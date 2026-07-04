@@ -1,3 +1,4 @@
+use std::sync::OnceLock;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use crate::workload_platform::evidence_lookup_reuse_decision::EvidenceLookupReuseDecisionPosture;
@@ -10,6 +11,7 @@ pub struct EvidenceLookupReuseRoutePacket {
     packet_identity: String,
     selected_family_identity: String,
     selected_product_identity_digest: String,
+    equivalence_policy_identity_digest: String,
     selected_compatibility_basis_identity_digest: String,
     selected_reuse_basis_identity_digest: String,
     posture: EvidenceLookupReuseDecisionPosture,
@@ -19,6 +21,11 @@ pub struct EvidenceLookupReuseRoutePacket {
 
 pub fn current_evidence_lookup_reuse_route_packet(
 ) -> Result<EvidenceLookupReuseRoutePacket, EvidenceLookupRouteAdmissionError> {
+    static CACHE: OnceLock<EvidenceLookupReuseRoutePacket> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
     let source = current_evidence_lookup_route_source()?;
     let boundary = source.left_boundary();
     let handoff = boundary.workload_handoff();
@@ -36,6 +43,8 @@ pub fn current_evidence_lookup_reuse_route_packet(
         .as_str()
         .to_string();
     let selected_product_identity_digest = decision.compiled_product_identity_digest().to_string();
+    let equivalence_policy_identity_digest =
+        decision.equivalence_policy_identity_digest().to_string();
     let selected_compatibility_basis_identity_digest = decision
         .selected_compatibility_basis_identity_digest()
         .to_string();
@@ -53,6 +62,7 @@ pub fn current_evidence_lookup_reuse_route_packet(
             ),
             format!("selected-family:{selected_family_identity}"),
             format!("selected-product:{selected_product_identity_digest}"),
+            format!("equivalence-policy:{equivalence_policy_identity_digest}"),
             format!("selected-compatibility-basis:{selected_compatibility_basis_identity_digest}"),
             format!("selected-reuse-basis:{selected_reuse_basis_identity_digest}"),
             format!("posture:{posture:?}"),
@@ -71,16 +81,19 @@ pub fn current_evidence_lookup_reuse_route_packet(
         ],
     );
 
-    Ok(EvidenceLookupReuseRoutePacket {
+    let packet = EvidenceLookupReuseRoutePacket {
         packet_identity,
         selected_family_identity,
         selected_product_identity_digest,
+        equivalence_policy_identity_digest,
         selected_compatibility_basis_identity_digest,
         selected_reuse_basis_identity_digest,
         posture,
         reuse_decision_identity_digest,
         rebuild_denial_identity_digest,
-    })
+    };
+    let _ = CACHE.set(packet.clone());
+    Ok(packet)
 }
 
 impl EvidenceLookupReuseRoutePacket {
@@ -94,6 +107,14 @@ impl EvidenceLookupReuseRoutePacket {
 
     pub fn selected_product_identity_digest(&self) -> &str {
         &self.selected_product_identity_digest
+    }
+
+    pub fn equivalence_policy_identity_digest(&self) -> &str {
+        &self.equivalence_policy_identity_digest
+    }
+
+    pub fn selected_compatibility_basis_identity_digest(&self) -> &str {
+        &self.selected_compatibility_basis_identity_digest
     }
 
     pub fn selected_reuse_basis_identity_digest(&self) -> &str {
@@ -120,8 +141,7 @@ impl EvidenceLookupReuseRoutePacket {
     ) -> Self {
         self.posture = posture;
         self.reuse_decision_identity_digest = reuse_decision_identity_digest.map(str::to_string);
-        self.rebuild_denial_identity_digest =
-            rebuild_denial_identity_digest.map(str::to_string);
+        self.rebuild_denial_identity_digest = rebuild_denial_identity_digest.map(str::to_string);
         self.packet_identity = truth_digest_parts(
             TruthDigestScope::ArtifactIdentity,
             &[
@@ -129,10 +149,17 @@ impl EvidenceLookupReuseRoutePacket {
                 format!("selected-family:{}", self.selected_family_identity),
                 format!("selected-product:{}", self.selected_product_identity_digest),
                 format!(
+                    "equivalence-policy:{}",
+                    self.equivalence_policy_identity_digest
+                ),
+                format!(
                     "selected-compatibility-basis:{}",
                     self.selected_compatibility_basis_identity_digest
                 ),
-                format!("selected-reuse-basis:{}", self.selected_reuse_basis_identity_digest),
+                format!(
+                    "selected-reuse-basis:{}",
+                    self.selected_reuse_basis_identity_digest
+                ),
                 format!("posture:{posture:?}"),
                 format!(
                     "reuse-decision:{}",
@@ -185,6 +212,16 @@ mod tests {
         assert_eq!(
             route.selected_product_identity_digest(),
             resolution.decision().compiled_product_identity_digest()
+        );
+        assert_eq!(
+            route.equivalence_policy_identity_digest(),
+            resolution.decision().equivalence_policy_identity_digest()
+        );
+        assert_eq!(
+            route.selected_compatibility_basis_identity_digest(),
+            resolution
+                .decision()
+                .selected_compatibility_basis_identity_digest()
         );
         assert_eq!(
             route.selected_reuse_basis_identity_digest(),

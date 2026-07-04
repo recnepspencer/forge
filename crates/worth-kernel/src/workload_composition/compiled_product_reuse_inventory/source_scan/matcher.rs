@@ -55,16 +55,19 @@ fn matches_line(
                     || line_contains_any(line, &["cache_key", "reuse_key"])))
         }
         CompiledProductReuseScanPattern::EquivalenceIdentifier => {
-            path.ends_with("/projection/diagnostic_surfaces/equivalence_contract.rs")
-                && (matches_exact_identifier(identifier, "build_derived_equivalence_contract")
-                    || matches_exact_identifier(
-                        identifier,
-                        "build_derived_equivalence_contract_report",
-                    )
-                    || matches_exact_identifier(
-                        identifier,
-                        "compare_derived_equivalence_contracts",
-                    ))
+            ((path.ends_with(
+                "/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/admitted_contract.rs",
+            ) && (matches_exact_identifier(identifier, "build_derived_equivalence_contract")
+                || matches_exact_identifier(
+                    identifier,
+                    "build_derived_equivalence_contract_report",
+                )))
+                || (path.ends_with(
+                    "/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/reuse_decision_contract.rs",
+                ) && matches_exact_identifier(
+                    identifier,
+                    "compare_derived_equivalence_contracts",
+                )))
         }
         CompiledProductReuseScanPattern::ParityIdentifier => {
             path.ends_with("/retained_replay_workload/replay_parity.rs")
@@ -74,7 +77,8 @@ fn matches_line(
                 )
         }
         CompiledProductReuseScanPattern::RebuildSuppressionLine => {
-            line.contains("DerivedTopologyUpdatePosture::BoundedRebuildRequired")
+            path.ends_with("/derived_topology/invalidation_plan/selection/row/selected.rs")
+                && line.contains("DerivedTopologyUpdatePosture::BoundedRebuildRequired")
                 && line.contains("Self::BoundedRebuild")
         }
         CompiledProductReuseScanPattern::RowCountShortcutLine => {
@@ -138,8 +142,8 @@ fn matches_line(
                 path,
                 &[
                     "/planner_owned_routing/public_closeout_route/current.rs",
+                    "/planner_owned_routing/public_proof/current.rs",
                     "/worth_workload/ordinary_consumer_sweep/current_cutover.rs",
-                    "/public_closeout/public_closeout.rs",
                 ],
             ) && (matches_exact_identifier(identifier, "current_evidence_lookup_public_closeout")
                 || matches_exact_identifier(

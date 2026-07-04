@@ -13,16 +13,14 @@ use super::cluster_ledger::{
 use super::current_cutover::{
     WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
 };
-use crate::workload_composition::public_closeout::{
-    WorthTouchedGraphConflictMilestoneFifteenSeed, WorthTouchedGraphConflictPublicCloseout,
-};
+use super::workload_composition_explainer_ledger::WorthWorkloadCompositionExplainerLedger;
+use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicFacade;
 
 pub(super) fn build_current_cluster_ledgers(
     cutover: &WorthWorkloadOrdinaryConsumerCutover,
     topology_cutover: &TopologyQueryBackedConsumerCutover,
     lookup_public_closeout: &EvidenceLookupPublicCloseout,
-    public_closeout: &WorthTouchedGraphConflictPublicCloseout,
-    phase_fifteen_seed: &WorthTouchedGraphConflictMilestoneFifteenSeed,
+    public_facade: &WorthTouchedGraphConflictPublicFacade,
     residue_rows: &[WorthWorkloadOrdinaryConsumerSweepResidueRow],
 ) -> Vec<WorthWorkloadOrdinaryConsumerClusterLedger> {
     vec![
@@ -69,14 +67,20 @@ pub(super) fn build_current_cluster_ledgers(
         WorthWorkloadOrdinaryConsumerClusterLedger::new(
             WorthWorkloadOrdinaryConsumerClusterKind::PublicCloseout,
             blocked_follow_on_family(WorthWorkloadOrdinaryConsumerClusterKind::PublicCloseout),
-            public_closeout_proof_basis_digests(public_closeout, phase_fifteen_seed),
+            public_closeout_proof_basis_digests(public_facade),
             cluster_rows(
                 WorthWorkloadOrdinaryConsumerClusterKind::PublicCloseout,
-                current_public_closeout_rows(lookup_public_closeout, public_closeout),
+                current_public_closeout_rows(lookup_public_closeout, public_facade.public_proof()),
                 residue_rows,
             ),
         ),
     ]
+}
+
+pub(super) fn build_workload_composition_explainer_ledger(
+    public_facade: &WorthTouchedGraphConflictPublicFacade,
+) -> WorthWorkloadCompositionExplainerLedger {
+    WorthWorkloadCompositionExplainerLedger::current_from_public_facade(public_facade)
 }
 
 fn cluster_rows(
@@ -197,7 +201,7 @@ fn query_backed_family_row_to_current_row(
 
 fn current_public_closeout_rows(
     lookup_public_closeout: &EvidenceLookupPublicCloseout,
-    public_closeout: &WorthTouchedGraphConflictPublicCloseout,
+    public_proof: &crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicProofInspection,
 ) -> Vec<WorthWorkloadOrdinaryConsumerSweepResidueRow> {
     let mut rows = lookup_public_closeout
         .family_stage_rows()
@@ -213,13 +217,13 @@ fn current_public_closeout_rows(
     rows.push(
         WorthWorkloadOrdinaryConsumerSweepResidueRow::ordinary_migrated(
             WorthWorkloadOrdinaryConsumerClusterKind::PublicCloseout,
-            "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
             "current_worth_touched_graph_conflict_public_closeout",
             "worth-kernel",
             "public closeout must keep consuming typed topology, evidence lookup, and replay/undo proof products instead of local cache folklore",
             format!(
                 "ordinary public/read-model consumers remain on the live public closeout proof chain digest {}",
-                public_closeout.proof_chain().proof_chain_digest()
+                public_proof.proof_chain_digest()
             ),
         ),
     );
@@ -231,7 +235,7 @@ fn evidence_lookup_family_row_to_current_row(
 ) -> WorthWorkloadOrdinaryConsumerSweepResidueRow {
     WorthWorkloadOrdinaryConsumerSweepResidueRow::ordinary_migrated(
         WorthWorkloadOrdinaryConsumerClusterKind::PublicCloseout,
-        "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/closeout_artifacts.rs",
+        "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/closeout_artifacts.rs",
         format!(
             "EvidenceLookupPublicCloseoutFamilyStageRow::{}::{:?}",
             row.family_identity(),
@@ -300,15 +304,15 @@ fn retained_replay_proof_basis_digests(
 }
 
 fn public_closeout_proof_basis_digests(
-    public_closeout: &WorthTouchedGraphConflictPublicCloseout,
-    phase_fifteen_seed: &WorthTouchedGraphConflictMilestoneFifteenSeed,
+    public_facade: &WorthTouchedGraphConflictPublicFacade,
 ) -> Vec<String> {
+    let public_proof = public_facade.public_proof();
     vec![
-        public_closeout.closeout_digest().to_string(),
-        public_closeout
-            .proof_chain()
-            .proof_chain_digest()
+        public_proof.closeout_digest().to_string(),
+        public_proof.proof_chain_digest().to_string(),
+        public_proof
+            .milestone_fifteen_seed()
+            .seed_digest()
             .to_string(),
-        phase_fifteen_seed.seed_digest().to_string(),
     ]
 }

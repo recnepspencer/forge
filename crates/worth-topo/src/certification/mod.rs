@@ -72,6 +72,11 @@ pub use historical_materialization_closeout::{
     TopologyHistoricalMaterializationArea, TopologyHistoricalMaterializationCloseoutReport,
     TopologyHistoricalMaterializationRow, TopologyHistoricalMaterializationStatus,
 };
+#[cfg(any(test, feature = "test-support-lowering"))]
+pub use public_closeout_seed_support::{
+    admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority,
+    TopologyQueryBackedReadFamilySelectedRouteAuthority,
+};
 pub use public_closeout_seed_support::{
     current_topology_milestone_fifteen_planner_seed_support,
     current_topology_milestone_fifteen_planner_seed_support_with_hostile_selected_reuse_basis_identity_digest,
@@ -82,8 +87,10 @@ pub use public_closeout_seed_support::{
     TopologyPublicCloseoutRenderedOutputComparisonPosture, TopologyPublicCloseoutSeedSupportError,
 };
 pub use public_facade_contracts::{
-    current_topology_public_facade_compile_fail_closeout, TopologyPublicFacadeCompileFailCloseout,
-    TopologyPublicFacadeCompileFailCloseoutError, TopologyPublicFacadeCompileFailCloseoutErrorKind,
+    current_topology_public_facade_compile_fail_closeout,
+    topology_public_facade_compile_fail_closeout_excluding_fence_class_for_tests,
+    TopologyPublicFacadeCompileFailCloseout, TopologyPublicFacadeCompileFailCloseoutError,
+    TopologyPublicFacadeCompileFailCloseoutErrorKind,
 };
 pub use query_boundary_cleanup_closeout::{
     TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,

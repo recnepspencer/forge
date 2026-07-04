@@ -1,4 +1,5 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
+use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind;
 
 use super::phase_fifteen_deleted_surfaces::current_phase_fifteen_deleted_surface_rows;
 use crate::workload_composition::{
@@ -18,6 +19,7 @@ pub enum WorthTouchedGraphConflictDeletionDisposition {
 pub struct WorthTouchedGraphConflictDeletionLedgerRow {
     source_path: String,
     surface_name: String,
+    family_kind: TouchedGraphParityFamilyKind,
     owner: ConflictBatchAdmissionOwner,
     disposition: WorthTouchedGraphConflictDeletionDisposition,
     blocker: String,
@@ -34,6 +36,7 @@ impl WorthTouchedGraphConflictDeletionLedgerRow {
     pub(super) fn explicit(
         source_path: String,
         surface_name: String,
+        family_kind: TouchedGraphParityFamilyKind,
         owner: ConflictBatchAdmissionOwner,
         disposition: WorthTouchedGraphConflictDeletionDisposition,
         blocker: String,
@@ -42,6 +45,7 @@ impl WorthTouchedGraphConflictDeletionLedgerRow {
         Self {
             source_path,
             surface_name,
+            family_kind,
             owner,
             disposition,
             blocker,
@@ -55,6 +59,10 @@ impl WorthTouchedGraphConflictDeletionLedgerRow {
 
     pub fn surface_name(&self) -> &str {
         &self.surface_name
+    }
+
+    pub const fn family_kind(&self) -> TouchedGraphParityFamilyKind {
+        self.family_kind
     }
 
     pub const fn owner(&self) -> ConflictBatchAdmissionOwner {
@@ -88,9 +96,10 @@ impl WorthTouchedGraphConflictDeletionLedger {
             .iter()
             .map(|row| {
                 format!(
-                    "{}:{}:{:?}:{:?}:{}:{}",
+                    "{}:{}:{}:{:?}:{:?}:{}:{}",
                     row.source_path,
                     row.surface_name,
+                    row.family_kind.as_str(),
                     row.owner,
                     row.disposition,
                     row.blocker,
@@ -151,6 +160,7 @@ pub(crate) fn expected_deletion_ledger_rows(
             Ok(WorthTouchedGraphConflictDeletionLedgerRow::explicit(
                 row.source_path().to_string(),
                 row.surface_name().to_string(),
+                TouchedGraphParityFamilyKind::ConflictIndependenceBatchAdmission,
                 row.owner(),
                 disposition,
                 row.blocker().to_string(),

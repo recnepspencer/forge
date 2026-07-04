@@ -13,7 +13,7 @@ use worth_spatial::certification::{
     SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture,
 };
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
+use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
 
 use crate::workload_composition::planner_owned_routing::{
     current_worth_touched_graph_conflict_selected_route_packet, PlannerOwnedRoutingError,
@@ -45,6 +45,8 @@ pub struct WorthTouchedGraphConflictAdmittedPublicProofInput {
     spatial_selected_family_identity: String,
     spatial_selected_product_identity_digest: String,
     spatial_equivalence_policy_identity_digest: String,
+    spatial_selected_compatibility_basis_identity_digest: String,
+    spatial_selected_reuse_basis_identity_digest: String,
     topology_freshness_requirement_posture: TopologyPublicCloseoutFreshnessRequirementPosture,
     topology_rendered_output_comparison_posture:
         TopologyPublicCloseoutRenderedOutputComparisonPosture,
@@ -122,6 +124,12 @@ pub fn admit_worth_touched_graph_conflict_public_proof_input(
             packet
                 .spatial_equivalence_policy_identity_digest()
                 .to_string(),
+            packet
+                .spatial_selected_compatibility_basis_identity_digest()
+                .to_string(),
+            packet
+                .spatial_selected_reuse_basis_identity_digest()
+                .to_string(),
             packet.topology_freshness_requirement_posture(),
             packet.topology_rendered_output_comparison_posture(),
             packet.spatial_freshness_requirement_posture(),
@@ -164,6 +172,8 @@ impl WorthTouchedGraphConflictAdmittedPublicProofInput {
         spatial_selected_family_identity: String,
         spatial_selected_product_identity_digest: String,
         spatial_equivalence_policy_identity_digest: String,
+        spatial_selected_compatibility_basis_identity_digest: String,
+        spatial_selected_reuse_basis_identity_digest: String,
         topology_freshness_requirement_posture: TopologyPublicCloseoutFreshnessRequirementPosture,
         topology_rendered_output_comparison_posture:
             TopologyPublicCloseoutRenderedOutputComparisonPosture,
@@ -201,6 +211,8 @@ impl WorthTouchedGraphConflictAdmittedPublicProofInput {
             spatial_selected_family_identity,
             spatial_selected_product_identity_digest,
             spatial_equivalence_policy_identity_digest,
+            spatial_selected_compatibility_basis_identity_digest,
+            spatial_selected_reuse_basis_identity_digest,
             topology_freshness_requirement_posture,
             topology_rendered_output_comparison_posture,
             spatial_freshness_requirement_posture,
@@ -287,6 +299,12 @@ impl WorthTouchedGraphConflictAdmittedPublicProofInput {
     }
     pub(crate) fn spatial_equivalence_policy_identity_digest(&self) -> &str {
         &self.spatial_equivalence_policy_identity_digest
+    }
+    pub(crate) fn spatial_selected_compatibility_basis_identity_digest(&self) -> &str {
+        &self.spatial_selected_compatibility_basis_identity_digest
+    }
+    pub(crate) fn spatial_selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.spatial_selected_reuse_basis_identity_digest
     }
     pub(crate) const fn topology_freshness_requirement_posture(
         &self,

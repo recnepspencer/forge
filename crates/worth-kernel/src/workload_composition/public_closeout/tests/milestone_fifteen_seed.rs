@@ -59,7 +59,7 @@ fn milestone_fifteen_seed_carries_product_identity_without_rediscovery() {
         seed.topology_query_selected_reuse_basis_identity_digest(),
         packet.selected_reuse_basis_identity_digest()
     );
-    let planner_input = seed.as_planner_proof_input();
+    let planner_input = seed.planner_proof_input();
     assert_eq!(
         planner_input.selected_equivalence_family_identity(),
         Some(
@@ -198,6 +198,13 @@ fn public_closeout_residue_manifest_matches_live_residue_chain() {
         live_rows
             .rows()
             .iter()
+            .filter(|row| {
+                row.source_path().starts_with(
+                    "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/",
+                ) || row
+                    .source_path()
+                    .starts_with("crates/worth-kernel/src/workload_composition/public_closeout/")
+            })
             .map(live_residue_row_key)
             .collect::<BTreeSet<_>>()
     );
@@ -218,6 +225,7 @@ fn manifest_row_key(
         .to_string(),
         match row.disposition() {
             PublicCloseoutConsumerResidueDisposition::ExplicitResidue => "explicit-residue",
+            PublicCloseoutConsumerResidueDisposition::QueryGap => "query-gap",
         }
         .to_string(),
         row.blocker().to_string(),
@@ -228,6 +236,9 @@ fn manifest_row_key(
             }
             PublicCloseoutConsumerResidueBoundaryPosture::ReplayUndoCloseoutOnly => {
                 "replay-undo-closeout-only"
+            }
+            PublicCloseoutConsumerResidueBoundaryPosture::QueryGapSupportGap => {
+                "query-gap-support-gap"
             }
             PublicCloseoutConsumerResidueBoundaryPosture::CoveredOrdinaryConsumerDependency => {
                 "covered-ordinary-consumer-dependency"
@@ -241,10 +252,10 @@ fn live_residue_row_key(
     row: &WorthTouchedGraphConflictResidueRow,
 ) -> (String, String, String, String, String, String, String) {
     (
-        "crates/worth-kernel/src/workload_composition/public_closeout/residue_chain.rs".to_string(),
+        row.source_path().to_string(),
         row.surface_name().to_string(),
         row.owner().to_string(),
-        "explicit-residue".to_string(),
+        row.disposition().as_str().to_string(),
         row.blocker().to_string(),
         row.removal_trigger().to_string(),
         match row.boundary_posture() {
@@ -253,6 +264,9 @@ fn live_residue_row_key(
             }
             WorthTouchedGraphConflictResidueBoundaryPosture::ReplayUndoCloseoutOnly => {
                 "replay-undo-closeout-only"
+            }
+            WorthTouchedGraphConflictResidueBoundaryPosture::QueryGapSupportGap => {
+                "query-gap-support-gap"
             }
             WorthTouchedGraphConflictResidueBoundaryPosture::CoveredOrdinaryConsumerDependency => {
                 "covered-ordinary-consumer-dependency"

@@ -14,11 +14,10 @@ use crate::derived_invalidation_compiled_product_admission::{
 use crate::derived_topology::compiled_product_consumer_cutover::build_derived_equivalence_contract_report;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
-use crate::projection::planner_owned_routing::diagnostic_projection_input::{
+use crate::projection::runtime_boundary::diagnostic_projection::{
     build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
     build_derived_rebuild_report, derived_validation_execution_report,
-    topology_derived_diagnostic_projection_source,
+    topology_derived_diagnostic_projection_source, DerivedReadDiagnostics,
 };
 use crate::selected_equivalence_family::{
     current_topology_selected_equivalence_family_catalog, select_topology_equivalence_family,

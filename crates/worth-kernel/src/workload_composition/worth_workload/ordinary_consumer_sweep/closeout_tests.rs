@@ -10,7 +10,7 @@ use super::cluster_ledger::{
     WorthWorkloadOrdinaryConsumerSweepResidueRow,
 };
 use super::current_cutover::current_worth_workload_ordinary_consumer_cutover;
-use crate::workload_composition::public_closeout::{
+use crate::workload_composition::planner_owned_routing::{
     current_public_closeout_consumer_residue_manifest,
     current_worth_touched_graph_conflict_milestone_fifteen_seed,
     current_worth_touched_graph_conflict_public_closeout,
@@ -31,6 +31,7 @@ use worth_spatial::facade::evidence_lookup_public_closeout::{
     current_evidence_lookup_public_closeout,
     current_evidence_lookup_public_closeout_residue_manifest,
     EvidenceLookupPublicCloseoutDisposition, EvidenceLookupPublicCloseoutResidueDisposition,
+    EvidenceLookupPublicCloseoutResidueRow,
 };
 use worth_spatial::facade::spatial_compiled_product_consumer_cutover::{
     current_spatial_consumer_residue_manifest, SpatialConsumerResidueDisposition,
@@ -213,7 +214,7 @@ fn expected_query_backed_rows(
 }
 fn expected_public_closeout_rows(
     lookup_public_closeout: &worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublicCloseout,
-    public_closeout: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictPublicCloseout,
+    public_closeout: &crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicCloseout,
     residue_rows: &[(WorthWorkloadOrdinaryConsumerClusterKind, LedgerRowKey)],
 ) -> BTreeSet<LedgerRowKey> {
     lookup_public_closeout
@@ -497,20 +498,27 @@ fn query_backed_residue_tuple(
     )
 }
 fn public_closeout_residue_tuple(
-    row: &crate::workload_composition::public_closeout::PublicCloseoutConsumerResidueRow,
+    row: &crate::workload_composition::planner_owned_routing::PublicCloseoutConsumerResidueRow,
 ) -> LedgerRowKey {
     (
         row.current_surface().to_string(),
         public_closeout_owner_label(row.owner()).to_string(),
-        WorthWorkloadOrdinaryConsumerClusterRowDisposition::CappedResidue
-            .as_str()
-            .to_string(),
+        match row.disposition() {
+            crate::workload_composition::planner_owned_routing::PublicCloseoutConsumerResidueDisposition::ExplicitResidue => {
+                WorthWorkloadOrdinaryConsumerClusterRowDisposition::CappedResidue
+            }
+            crate::workload_composition::planner_owned_routing::PublicCloseoutConsumerResidueDisposition::QueryGap => {
+                WorthWorkloadOrdinaryConsumerClusterRowDisposition::QueryGap
+            }
+        }
+        .as_str()
+        .to_string(),
         row.blocker().to_string(),
         row.removal_trigger().to_string(),
     )
 }
 fn evidence_lookup_public_closeout_residue_tuple(
-    row: &worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublicCloseoutResidueRow,
+    row: &EvidenceLookupPublicCloseoutResidueRow,
 ) -> LedgerRowKey {
     (
         row.current_surface().to_string(),

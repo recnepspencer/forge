@@ -36,8 +36,8 @@ const SCAN_ROOT_BASELINES: [(&str, &str); 10] = [
         "pub fn invalidation_selection_baseline() {}\n",
     ),
     (
-        "crates/worth-topo/src/projection/diagnostic_surfaces/baseline.rs",
-        "pub fn diagnostic_surface_baseline() {}\n",
+        "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/baseline.rs",
+        "pub fn topology_derived_cluster_baseline() {}\n",
     ),
     (
         "crates/worth-topo/src/projection/runtime_boundary/read_execution/baseline.rs",
@@ -113,7 +113,7 @@ const HOSTILE_CASES: [FixtureCase; 5] = [
     ),
     FixtureCase::new(
         "rendered-shape equality",
-        "crates/worth-topo/src/projection/diagnostic_surfaces/uncovered_shape.rs",
+        "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/uncovered_shape.rs",
         "pub fn compare_rendered_shape() -> bool { rendered_shape == expected_shape }\n",
         "rendered-shape equality line",
     ),

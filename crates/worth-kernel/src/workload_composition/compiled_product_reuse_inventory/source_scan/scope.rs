@@ -9,7 +9,7 @@ const PHASE_SCOPE_ROOTS: [&str; 10] = [
     "crates/worth-kernel/src/replay_undo_consumer_cutover/public_closeout",
     "crates/worth-topo/src/derived_topology/invalidation_plan/catalog",
     "crates/worth-topo/src/derived_topology/invalidation_plan/selection",
-    "crates/worth-topo/src/projection/diagnostic_surfaces",
+    "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster",
     "crates/worth-topo/src/projection/runtime_boundary/read_execution",
     "crates/worth-spatial/src/workload_platform/evidence_lookup_index_product",
     "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout",

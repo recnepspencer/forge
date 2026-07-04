@@ -44,6 +44,11 @@ The support matrix answers those questions row by row.
 For mutation-specific preferred-versus-lower-level posture, pair it with
 `workspace.public_mutation_surface_report()`.
 
+When downstream closeout ledgers need to distinguish Query-owned support gaps
+from local architecture residue, derive those rows from the live support
+matrix, admission boundary, and consumer-residue reports. Do not maintain a
+parallel hand-edited debt manifest for Query posture.
+
 Each row tells you:
 
 - the surface or facade family

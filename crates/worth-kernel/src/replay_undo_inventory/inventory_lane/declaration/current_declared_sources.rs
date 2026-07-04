@@ -60,7 +60,7 @@ pub fn current_replay_undo_declared_source_catalog() -> ReplayUndoDeclaredSource
         ),
         ReplayUndoDeclaredSource::new(
             ReplayUndoDeclaredSourceIdentity::SpatialEvidenceLookupPublicCloseout,
-            "crates/worth-spatial/src/facade/evidence_lookup_public_closeout/mod.rs",
+            "crates/worth-spatial/src/facade/planner_owned_routing/public_closeout_route.rs",
             ReplayUndoDeclaredSourceKind::PublicFunction,
             ReplayUndoDeclaredInputRoleSet::new(&[
                 ReplayUndoDeclaredInputRole::EvidenceLookupPublicCloseout,
@@ -71,7 +71,7 @@ pub fn current_replay_undo_declared_source_catalog() -> ReplayUndoDeclaredSource
         ),
         ReplayUndoDeclaredSource::new(
             ReplayUndoDeclaredSourceIdentity::SpatialEvidenceLookupPublicCloseoutAssemblyInput,
-            "crates/worth-spatial/src/facade/evidence_lookup_public_closeout/mod.rs",
+            "crates/worth-spatial/src/facade/planner_owned_routing/public_closeout_route.rs",
             ReplayUndoDeclaredSourceKind::PublicFunction,
             ReplayUndoDeclaredInputRoleSet::new(&[
                 ReplayUndoDeclaredInputRole::EvidenceLookupPublicCloseoutAssemblyInput,

@@ -3,7 +3,7 @@ use worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublic
 use worth_spatial::facade::spatial_compiled_product_consumer_cutover::SpatialConsumerResidueOwner;
 
 use super::cluster_ledger::WorthWorkloadOrdinaryConsumerClusterRowDisposition;
-use crate::workload_composition::public_closeout::PublicCloseoutConsumerResidueOwner;
+use crate::workload_composition::planner_owned_routing::PublicCloseoutConsumerResidueOwner;
 use crate::workload_composition::{ConflictBatchAdmissionDisposition, ConflictBatchAdmissionOwner};
 
 pub(crate) fn inventory_owner_label(owner: ConflictBatchAdmissionOwner) -> &'static str {
@@ -56,6 +56,7 @@ pub(crate) fn evidence_lookup_public_owner_label(
     match owner {
         EvidenceLookupPublicCloseoutResidueOwner::WorthSpatial => "worth-spatial",
         EvidenceLookupPublicCloseoutResidueOwner::WorthTopo => "worth-topo",
+        EvidenceLookupPublicCloseoutResidueOwner::ForgeQuery => "forge-query",
     }
 }
 

@@ -1,10 +1,11 @@
 mod batch_admission_support;
+mod builder;
 mod compiled_product_reuse_support;
 mod conflict_independence_support;
 mod current;
-mod diagnostic_projection_authority;
 mod packet;
 mod proof_chain_lowering;
+#[cfg(test)]
 mod query_backed_route_authority;
 mod spatial_route_projection_markers;
 

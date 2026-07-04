@@ -140,7 +140,7 @@ fn closeout_binds_full_conflict_authority_chain() {
             .closeout_digest()
     );
     let spatial_route_packet =
-        worth_spatial::facade::planner_owned_routing::evidence_lookup_route::current_evidence_lookup_route_packet()
+        worth_spatial::facade::evidence_lookup_route::current_evidence_lookup_route_packet()
             .expect("current planner-owned evidence lookup route packet");
     let spatial_route_projection_markers =
         crate::workload_composition::planner_owned_routing::SpatialRouteProjectionMarkers::from_route_packet(

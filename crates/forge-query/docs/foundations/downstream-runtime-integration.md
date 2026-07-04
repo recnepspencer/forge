@@ -32,6 +32,16 @@ The public contract is:
 - use the support matrix and admission surfaces when a family may be deferred
   or unsupported
 
+For inspect-only public proof and diagnostics lanes, consume the canonical
+Query-owned facade artifact and inspect its getters. Do not rebuild the same
+meaning from support wrappers, raw rows, or crate-local explainer helpers.
+
+If a runtime hands off closeout or parity artifacts between families, that
+handoff should already carry the route identity, family identity, witness
+identity, residue posture, and Query posture that later consumers need. Do not
+ reopen those facts from support snapshots, route packets, or family-local
+ rediscovery helpers.
+
 Identity and denial contracts on the ordinary path are also explicit:
 
 - canonical machine identity comes from

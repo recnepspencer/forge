@@ -17,6 +17,18 @@ const PHASE_FIFTEEN_SPATIAL_COMPILE_FAIL_FENCES: &[PhaseFifteenSpatialCompileFai
         "closeout-product",
     ),
     PhaseFifteenSpatialCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/assembly_input_function_not_exported.rs",
+        "legacy-closeout-facade",
+    ),
+    PhaseFifteenSpatialCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/selected_route_support_not_exported.rs",
+        "legacy-explainer-import",
+    ),
+    PhaseFifteenSpatialCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/planner_route_assembly_input_not_exported.rs",
+        "public-closeout-assembly-input",
+    ),
+    PhaseFifteenSpatialCompileFailFence::new(
         "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/product_not_hand_filled.rs",
         "compiled-product-identity",
     ),

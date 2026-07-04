@@ -1,3 +1,12 @@
+error[E0308]: mismatched types
+  --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:20:24
+   |
+20 |         stage_offsets: [None; 27],
+   |                        ^^^^^^^^^^ expected an array with a size of 28, found one with a size of 27
+   |
+   = note: expected array `[Option<usize>; 28]`
+              found array `[Option<usize>; 27]`
+
 error: cannot construct `WorkloadEvidenceStageLinkSet` with struct literal syntax due to private fields
   --> src/certification/public_facade_contracts/compile_fail/workload_operators/operator_stage_links_not_hand_filled.rs:17:13
    |

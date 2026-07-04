@@ -1,5 +1,5 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_route::EvidenceLookupRoutePacket;
+use worth_spatial::facade::evidence_lookup_route::EvidenceLookupRoutePacket;
 
 pub(crate) struct SpatialRouteProjectionMarkers {
     evidence_lookup_public_closeout_digest: String,

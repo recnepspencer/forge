@@ -1,20 +1,22 @@
 use schema::facade::platform::authority::{
     replay_undo_semantic_graph::ReplayUndoPlannerRouteFamily,
     touched_graph_conflict::{
-        BatchAdmissionPlannerRouteWitnessKind, ConflictIndependencePlannerRouteWitnessKind,
+        BatchAdmissionPlannerRouteFamily, BatchAdmissionPlannerRouteWitnessKind,
+        ConflictIndependencePlannerRouteWitnessKind,
     },
 };
 use topology::certification::{
     TopologyMilestoneFifteenPlannerSeedSupport, TopologyPublicCloseoutFreshnessRequirementPosture,
     TopologyPublicCloseoutRenderedOutputComparisonPosture,
 };
+use topology::derived_invalidation_route_input::TopologyInvalidationRouteInput;
 use topology::facade::TopologyDerivedReuseDecisionPosture;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::certification::{
     SpatialMilestoneFifteenPlannerSeedSupport, SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture,
 };
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
+use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
 
 use super::proof_chain_lowering::RoutePacketProofChainLowering;
 use crate::workload_composition::planner_owned_routing::{
@@ -46,6 +48,7 @@ pub struct WorthTouchedGraphConflictSelectedRoutePacket {
     evidence_lookup_query_surface_matrix_digest: String,
     evidence_lookup_query_consumer_kit_digest: String,
     evidence_lookup_query_boundary_support_digest: String,
+    evidence_lookup_query_support_digest: String,
     topology_query_backed_consumer_cutover_digest: String,
     topology_query_public_read_family_row_digest: String,
     topology_query_handle_identity_digest: String,
@@ -73,6 +76,12 @@ pub struct WorthTouchedGraphConflictSelectedRoutePacket {
     topology_row_scan_fallback_count: usize,
     topology_whole_view_fallback_count: usize,
     topology_repeated_rediscovery_denied_count: usize,
+    touched_closure_digest: String,
+    touched_semantic_family_key: String,
+    selected_plan_digest: String,
+    touched_aspect_count: usize,
+    touched_scope_count: usize,
+    selected_row_family_identities: Vec<String>,
     spatial_receipt_proof_row_count: usize,
     spatial_non_ordinary_residue_row_count: usize,
     source_firewall_digest: String,
@@ -107,6 +116,7 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
         evidence_lookup_query_surface_matrix_digest: String,
         evidence_lookup_query_consumer_kit_digest: String,
         evidence_lookup_query_boundary_support_digest: String,
+        evidence_lookup_query_support_digest: String,
         topology_query_backed_consumer_cutover_digest: String,
         topology_query_public_read_family_row_digest: String,
         topology_query_handle_identity_digest: String,
@@ -117,9 +127,15 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
         selected_equivalence_policy_identity_digest: &str,
         topology_support: &TopologyMilestoneFifteenPlannerSeedSupport,
         spatial_support: &SpatialMilestoneFifteenPlannerSeedSupport,
+        invalidation_route_input: &TopologyInvalidationRouteInput,
         source_firewall_digest: String,
         deletion_closeout_digest: String,
     ) -> Self {
+        let selected_row_family_identities = invalidation_route_input
+            .selected_rows()
+            .iter()
+            .map(|row| row.family_identity().as_str().to_string())
+            .collect::<Vec<_>>();
         let selected_route_identity_digest = truth_digest_parts(
             TruthDigestScope::ArtifactIdentity,
             &route_authority_digests
@@ -253,6 +269,7 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
             evidence_lookup_query_surface_matrix_digest,
             evidence_lookup_query_consumer_kit_digest,
             evidence_lookup_query_boundary_support_digest,
+            evidence_lookup_query_support_digest,
             topology_query_backed_consumer_cutover_digest,
             topology_query_public_read_family_row_digest,
             topology_query_handle_identity_digest,
@@ -297,6 +314,23 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
             topology_whole_view_fallback_count: topology_support.whole_view_fallback_count(),
             topology_repeated_rediscovery_denied_count: topology_support
                 .repeated_rediscovery_denied_count(),
+            touched_closure_digest: invalidation_route_input
+                .touched_closure_digest()
+                .to_string(),
+            touched_semantic_family_key: invalidation_route_input
+                .touched_closure()
+                .semantic_family_key()
+                .to_string(),
+            selected_plan_digest: invalidation_route_input.selected_plan_digest().to_string(),
+            touched_aspect_count: invalidation_route_input
+                .touched_closure()
+                .counters()
+                .touched_aspect_count(),
+            touched_scope_count: invalidation_route_input
+                .selected_plan()
+                .counters()
+                .touched_scope_count(),
+            selected_row_family_identities,
             spatial_receipt_proof_row_count: spatial_support.receipt_proof_row_count(),
             spatial_non_ordinary_residue_row_count: spatial_support
                 .non_ordinary_residue_row_count(),
@@ -313,6 +347,9 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
     }
     pub(crate) fn route_lineage_digests(&self) -> &[String] {
         &self.route_lineage_digests
+    }
+    pub(crate) fn overlap_identity_digests(&self) -> &[String] {
+        &self.overlap_identity_digests
     }
     pub(crate) fn locality_footprint_digests(&self) -> &[String] {
         &self.locality_footprint_digests
@@ -400,6 +437,120 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
     ) -> Option<BatchAdmissionPlannerRouteWitnessKind> {
         self.batch_admission_route_packet.denial_witness_kind()
     }
+    pub(crate) fn conflict_family_conflict_pre_execution_identity(&self) -> String {
+        truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &self
+                .overlap_identity_digests
+                .iter()
+                .map(|digest| format!("overlap:{digest}"))
+                .chain(
+                    self.selected_conflict_plan_digests
+                        .iter()
+                        .map(|digest| format!("selected-conflict:{digest}")),
+                )
+                .chain(std::iter::once(format!(
+                    "conflict-family:{}",
+                    self.conflict_route_family().as_str()
+                )))
+                .chain(std::iter::once(format!(
+                    "witness-kind:{}",
+                    self.conflict_independence_denial_witness_kind()
+                        .map(ConflictIndependencePlannerRouteWitnessKind::as_str)
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(format!(
+                    "witness:{}",
+                    self.conflict_independence_denial_witness_identity()
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(
+                    "worth-kernel:selected-route-conflict-family:conflict:v1".to_string(),
+                ))
+                .collect::<Vec<_>>(),
+        )
+    }
+    pub(crate) fn conflict_family_independence_pre_execution_identity(&self) -> String {
+        truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &self
+                .overlap_identity_digests
+                .iter()
+                .map(|digest| format!("overlap:{digest}"))
+                .chain(
+                    self.independence_proof_digests
+                        .iter()
+                        .map(|digest| format!("independence:{digest}")),
+                )
+                .chain(std::iter::once(format!(
+                    "independence-family:{}",
+                    self.independence_route_family().as_str()
+                )))
+                .chain(std::iter::once(format!(
+                    "witness-kind:{}",
+                    self.conflict_independence_denial_witness_kind()
+                        .map(ConflictIndependencePlannerRouteWitnessKind::as_str)
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(format!(
+                    "witness:{}",
+                    self.conflict_independence_denial_witness_identity()
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(
+                    "worth-kernel:selected-route-conflict-family:independence:v1".to_string(),
+                ))
+                .collect::<Vec<_>>(),
+        )
+    }
+    pub(crate) fn conflict_family_batch_pre_execution_identity(&self) -> String {
+        truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &self
+                .overlap_identity_digests
+                .iter()
+                .map(|digest| format!("overlap:{digest}"))
+                .chain(
+                    self.selected_conflict_plan_digests
+                        .iter()
+                        .map(|digest| format!("selected-conflict:{digest}")),
+                )
+                .chain(
+                    self.independence_proof_digests
+                        .iter()
+                        .map(|digest| format!("independence:{digest}")),
+                )
+                .chain(std::iter::once(format!(
+                    "selected-batch:{}",
+                    self.selected_batch_plan_digest
+                )))
+                .chain(
+                    self.batch_admission_route_packet
+                        .selected_family_row_digests()
+                        .iter()
+                        .map(|digest| format!("selected-family-row:{digest}")),
+                )
+                .chain(std::iter::once(format!(
+                    "batch-family:{}",
+                    BatchAdmissionPlannerRouteFamily::BatchAdmissionRoute.as_str()
+                )))
+                .chain(std::iter::once(format!(
+                    "witness-kind:{}",
+                    self.batch_admission_denial_witness_kind()
+                        .map(BatchAdmissionPlannerRouteWitnessKind::as_str)
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(format!(
+                    "witness:{}",
+                    self.batch_admission_denial_witness_identity()
+                        .unwrap_or("not-applicable")
+                )))
+                .chain(std::iter::once(
+                    "worth-kernel:selected-route-conflict-family:batch-admission:v1".to_string(),
+                ))
+                .collect::<Vec<_>>(),
+        )
+    }
     pub(crate) fn transaction_packet_identities(&self) -> &[String] {
         &self.transaction_packet_identities
     }
@@ -423,6 +574,9 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
     }
     pub(crate) fn evidence_lookup_query_boundary_support_digest(&self) -> &str {
         &self.evidence_lookup_query_boundary_support_digest
+    }
+    pub(crate) fn evidence_lookup_query_support_digest(&self) -> &str {
+        &self.evidence_lookup_query_support_digest
     }
     pub(crate) fn topology_query_backed_consumer_cutover_digest(&self) -> &str {
         &self.topology_query_backed_consumer_cutover_digest
@@ -475,6 +629,14 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
     pub(crate) fn spatial_equivalence_policy_identity_digest(&self) -> &str {
         &self.spatial_equivalence_policy_identity_digest
     }
+    pub(crate) fn spatial_selected_compatibility_basis_identity_digest(&self) -> &str {
+        self.compiled_product_reuse_route_packet
+            .spatial_selected_compatibility_basis_identity_digest()
+    }
+    pub(crate) fn spatial_selected_reuse_basis_identity_digest(&self) -> &str {
+        self.compiled_product_reuse_route_packet
+            .spatial_selected_reuse_basis_identity_digest()
+    }
     pub(crate) const fn topology_freshness_requirement_posture(
         &self,
     ) -> TopologyPublicCloseoutFreshnessRequirementPosture {
@@ -506,6 +668,24 @@ impl WorthTouchedGraphConflictSelectedRoutePacket {
     }
     pub(crate) const fn topology_repeated_rediscovery_denied_count(&self) -> usize {
         self.topology_repeated_rediscovery_denied_count
+    }
+    pub(crate) fn touched_closure_digest(&self) -> &str {
+        &self.touched_closure_digest
+    }
+    pub(crate) fn touched_semantic_family_key(&self) -> &str {
+        &self.touched_semantic_family_key
+    }
+    pub(crate) fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+    pub(crate) const fn touched_aspect_count(&self) -> usize {
+        self.touched_aspect_count
+    }
+    pub(crate) const fn touched_scope_count(&self) -> usize {
+        self.touched_scope_count
+    }
+    pub(crate) fn selected_row_family_identities(&self) -> &[String] {
+        &self.selected_row_family_identities
     }
     pub(crate) const fn spatial_receipt_proof_row_count(&self) -> usize {
         self.spatial_receipt_proof_row_count

@@ -2,16 +2,19 @@ use topology::certification::{
     TopologyPublicCloseoutFreshnessRequirementPosture,
     TopologyPublicCloseoutRenderedOutputComparisonPosture,
 };
+use topology::facade::TopologyDerivedReuseDecisionPosture;
 use worth_spatial::certification::{
     SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture,
 };
+use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
 
 use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictAdmittedPublicProofInput;
-use crate::workload_composition::public_closeout::{
+use crate::workload_composition::WorthTouchedGraphConflictSelectedRoutePacket;
+
+use super::types::{
     WorthTouchedGraphConflictPublicCloseoutError, WorthTouchedGraphConflictPublicCloseoutErrorKind,
 };
-use crate::workload_composition::WorthTouchedGraphConflictSelectedRoutePacket;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {
@@ -66,6 +69,24 @@ impl WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {
     pub fn spatial_equivalence_policy_identity_digest(&self) -> &str {
         self.admitted_input
             .spatial_equivalence_policy_identity_digest()
+    }
+
+    pub fn spatial_selected_compatibility_basis_identity_digest(&self) -> &str {
+        self.admitted_input
+            .spatial_selected_compatibility_basis_identity_digest()
+    }
+
+    pub fn spatial_selected_reuse_basis_identity_digest(&self) -> &str {
+        self.admitted_input
+            .spatial_selected_reuse_basis_identity_digest()
+    }
+
+    pub const fn topology_reuse_posture(&self) -> Option<TopologyDerivedReuseDecisionPosture> {
+        self.admitted_input.topology_reuse_posture()
+    }
+
+    pub const fn spatial_reuse_posture(&self) -> Option<EvidenceLookupReuseDecisionPosture> {
+        self.admitted_input.spatial_reuse_posture()
     }
 
     pub const fn topology_freshness_requirement_posture(
@@ -148,6 +169,12 @@ pub(crate) fn require_admitted_public_proof_input_matches_selected_route_packet(
             != packet.spatial_selected_product_identity_digest()
         || planner_proof_input.spatial_equivalence_policy_identity_digest()
             != packet.spatial_equivalence_policy_identity_digest()
+        || planner_proof_input.spatial_selected_compatibility_basis_identity_digest()
+            != packet.spatial_selected_compatibility_basis_identity_digest()
+        || planner_proof_input.spatial_selected_reuse_basis_identity_digest()
+            != packet.spatial_selected_reuse_basis_identity_digest()
+        || planner_proof_input.topology_reuse_posture() != Some(packet.topology_reuse_posture())
+        || planner_proof_input.spatial_reuse_posture() != Some(packet.spatial_reuse_posture())
     {
         return Err(WorthTouchedGraphConflictPublicCloseoutError::new(
             WorthTouchedGraphConflictPublicCloseoutErrorKind::IncompleteProofChain,

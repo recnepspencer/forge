@@ -365,6 +365,11 @@ enforcement, support posture pinning, in-memory Query test workspaces, or
 adoption/residue proof, it should enter through
 `forge_query::facade::consumer_kit` instead of building local proof machinery.
 
+If the downstream need is read-only proof or diagnostics inspection, the same
+boundary still applies: read the canonical public facade artifact and its typed
+inspection getters. Do not satisfy that contract through support wrappers, raw
+rows, or local helper explanations that rediscover planner-owned routing.
+
 This milestone moved consumer proof out of downstream folklore and into Query.
 The old patterns were hand-written report structs, local digest strings,
 consumer-owned source greps, local required-family rows, and fabricated test

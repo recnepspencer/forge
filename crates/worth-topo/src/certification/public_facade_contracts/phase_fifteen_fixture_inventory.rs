@@ -36,6 +36,18 @@ const PHASE_FIFTEEN_TOPOLOGY_COMPILE_FAIL_FENCES: &[PhaseFifteenTopologyCompileF
         "src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_not_exported.rs",
         "derived-read-diagnostic-support",
     ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_wrapper_not_exported.rs",
+        "support-wrapper-shortcut",
+    ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_topology_selected_route_authority_not_exported.rs",
+        "selected-route-authority",
+    ),
+    PhaseFifteenTopologyCompileFailFence::new(
+        "src/certification/public_facade_contracts/compile_fail/public_topology_selected_route_admission_not_exported.rs",
+        "selected-route-admission",
+    ),
 ];
 
 impl PhaseFifteenTopologyCompileFailFence {

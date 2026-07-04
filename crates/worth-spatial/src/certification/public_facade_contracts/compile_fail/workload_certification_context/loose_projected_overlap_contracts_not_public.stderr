@@ -3,3 +3,9 @@ error[E0432]: unresolved import `worth_spatial::facade::projected_overlap_faces:
   |
 1 | use worth_spatial::facade::projected_overlap_faces::ProjectedOverlapExtractionContracts;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectedOverlapExtractionContracts` in `facade::projected_overlap_faces`
+  |
+help: consider importing this variant instead
+  |
+1 - use worth_spatial::facade::projected_overlap_faces::ProjectedOverlapExtractionContracts;
+1 + use worth_kernel::workload_composition::ConflictBatchAdmissionSurfaceIdentity::ProjectedOverlapExtractionContracts;
+  |

@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::ledger::WorthTouchedGraphConflictDeletionLedger;
@@ -30,6 +32,10 @@ pub struct WorthTouchedGraphConflictDeletionCloseout {
 pub fn current_worth_touched_graph_conflict_deletion_closeout(
 ) -> Result<WorthTouchedGraphConflictDeletionCloseout, WorthTouchedGraphConflictDeletionCloseoutError>
 {
+    static CACHE: OnceLock<WorthTouchedGraphConflictDeletionCloseout> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
     let inventory = current_conflict_batch_admission_inventory().map_err(|error| {
         WorthTouchedGraphConflictDeletionCloseoutError::new(
             WorthTouchedGraphConflictDeletionCloseoutErrorKind::MissingDeletionRows,
@@ -43,7 +49,9 @@ pub fn current_worth_touched_graph_conflict_deletion_closeout(
                 format!("phase 15 source firewall did not load: {error:?}"),
             )
         })?;
-    closeout_from_products(&inventory, &firewall_report)
+    let closeout = closeout_from_products(&inventory, &firewall_report)?;
+    let _ = CACHE.set(closeout.clone());
+    Ok(closeout)
 }
 
 impl WorthTouchedGraphConflictDeletionCloseoutError {

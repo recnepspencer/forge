@@ -3,8 +3,8 @@ use topology::facade::{
     TopologyDerivedReuseDecisionPosture,
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::{
+use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
+use worth_spatial::facade::evidence_lookup_reuse_route::{
     current_evidence_lookup_reuse_route_packet, EvidenceLookupReuseRoutePacket,
 };
 
@@ -86,12 +86,59 @@ impl CompiledProductReusePlannerRoutePacket {
         self.topology_route_packet.selected_family_identity()
     }
 
+    pub fn topology_selected_family_identity(&self) -> &str {
+        self.topology_route_packet.selected_family_identity()
+    }
+
     pub fn selected_product_identity_digest(&self) -> &str {
         self.spatial_route_packet.selected_product_identity_digest()
     }
 
+    pub fn topology_selected_product_identity_digest(&self) -> &str {
+        self.topology_route_packet
+            .selected_product_identity_digest()
+    }
+
+    pub fn topology_selected_equivalence_policy_identity_digest(&self) -> &str {
+        self.topology_route_packet
+            .selected_equivalence_policy_identity_digest()
+    }
+
+    pub fn topology_selected_compatibility_basis_identity_digest(&self) -> &str {
+        self.topology_route_packet
+            .selected_compatibility_basis_identity_digest()
+    }
+
+    pub fn topology_selected_reuse_basis_identity_digest(&self) -> &str {
+        self.topology_route_packet
+            .selected_reuse_basis_identity_digest()
+    }
+
     pub fn selected_reuse_basis_identity_digest(&self) -> &str {
         self.topology_route_packet
+            .selected_reuse_basis_identity_digest()
+    }
+
+    pub fn spatial_selected_family_identity(&self) -> &str {
+        self.spatial_route_packet.selected_family_identity()
+    }
+
+    pub fn spatial_selected_product_identity_digest(&self) -> &str {
+        self.spatial_route_packet.selected_product_identity_digest()
+    }
+
+    pub fn spatial_equivalence_policy_identity_digest(&self) -> &str {
+        self.spatial_route_packet
+            .equivalence_policy_identity_digest()
+    }
+
+    pub fn spatial_selected_compatibility_basis_identity_digest(&self) -> &str {
+        self.spatial_route_packet
+            .selected_compatibility_basis_identity_digest()
+    }
+
+    pub fn spatial_selected_reuse_basis_identity_digest(&self) -> &str {
+        self.spatial_route_packet
             .selected_reuse_basis_identity_digest()
     }
 
@@ -125,11 +172,12 @@ mod tests {
     use topology::facade::{
         current_topology_compiled_product_reuse_route_packet, TopologyDerivedReuseDecisionPosture,
     };
-    use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
-    use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::current_evidence_lookup_reuse_route_packet;
+    use worth_spatial::facade::evidence_lookup_reuse_route::current_evidence_lookup_reuse_route_packet;
+    use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
 
     use crate::workload_composition::planner_owned_routing::{
-        current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader,
+        current_worth_touched_graph_conflict_derived_diagnostic_projection,
+        current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader,
         current_worth_touched_graph_conflict_public_proof_input_with_packet_loader,
         current_worth_touched_graph_conflict_selected_route_packet_with_route_loaders,
     };
@@ -145,9 +193,12 @@ mod tests {
             .expect("selected route should build");
         let proof = crate::workload_composition::planner_owned_routing::current_worth_touched_graph_conflict_public_proof_input()
             .expect("public proof input should build");
-        let diagnostics = crate::workload_composition::planner_owned_routing::current_worth_touched_graph_conflict_derived_read_diagnostic_input()
-            .expect("diagnostic input should build")
-            .as_read_diagnostics();
+        let diagnostics_projection =
+            current_worth_touched_graph_conflict_derived_diagnostic_projection()
+                .expect("diagnostic projection should build");
+        let rich_localization = diagnostics_projection
+            .rich_localization()
+            .expect("rich localization should remain available by default");
 
         assert_eq!(
             selected_route.compiled_product_reuse_route_packet_identity(),
@@ -174,15 +225,11 @@ mod tests {
             reuse_route.spatial_rebuild_denial_identity_digest()
         );
         assert_eq!(
-            diagnostics
-                .compiled_product_reuse_route_packet_identity
-                .as_deref(),
+            rich_localization.compiled_product_reuse_route_packet_identity(),
             Some(reuse_route.packet_identity())
         );
         assert_eq!(
-            diagnostics
-                .spatial_rebuild_denial_identity_digest
-                .as_deref(),
+            rich_localization.spatial_rebuild_denial_identity_digest(),
             reuse_route.spatial_rebuild_denial_identity_digest()
         );
     }
@@ -198,8 +245,8 @@ mod tests {
                 None,
                 Some("phase-12-topology-advisory-rebuild"),
             );
-        let advisory_spatial_route = current_evidence_lookup_reuse_route_packet()
-            .expect("spatial reuse route should build");
+        let advisory_spatial_route =
+            current_evidence_lookup_reuse_route_packet().expect("spatial reuse route should build");
         let advisory_route = CompiledProductReusePlannerRoutePacket::from_parts(
             advisory_topology_route,
             advisory_spatial_route,
@@ -219,12 +266,14 @@ mod tests {
                 Ok(selected_route_packet.clone())
             })
             .expect("proof should lower");
-        let diagnostics =
-            current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader(
+        let diagnostics_projection =
+            current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader(
                 || Ok(selected_route_packet.clone()),
             )
-            .expect("diagnostics should lower")
-            .as_read_diagnostics();
+            .expect("diagnostics should lower");
+        let rich_localization = diagnostics_projection
+            .rich_localization()
+            .expect("rich localization should remain available by default");
 
         assert_eq!(
             base_route.topology_posture(),
@@ -235,11 +284,11 @@ mod tests {
             Some(TopologyDerivedReuseDecisionPosture::AdvisoryMatchRequiresRebuild)
         );
         assert_eq!(
-            diagnostics.topology_reuse_posture,
+            rich_localization.topology_reuse_posture(),
             Some(TopologyDerivedReuseDecisionPosture::AdvisoryMatchRequiresRebuild)
         );
         assert_ne!(
-            diagnostics.topology_reuse_posture,
+            rich_localization.topology_reuse_posture(),
             Some(TopologyDerivedReuseDecisionPosture::ReuseAdmitted)
         );
         assert!(matches!(
@@ -260,8 +309,10 @@ mod tests {
                 None,
                 Some("phase-12-spatial-rebuild-denial"),
             );
-        let denied_route =
-            CompiledProductReusePlannerRoutePacket::from_parts(denied_topology_route, denied_spatial_route);
+        let denied_route = CompiledProductReusePlannerRoutePacket::from_parts(
+            denied_topology_route,
+            denied_spatial_route,
+        );
         let selected_route_packet =
             current_worth_touched_graph_conflict_selected_route_packet_with_route_loaders(
                 topology::certification::current_topology_milestone_fifteen_planner_seed_support,
@@ -277,12 +328,14 @@ mod tests {
                 Ok(selected_route_packet.clone())
             })
             .expect("proof should lower");
-        let diagnostics =
-            current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader(
+        let diagnostics_projection =
+            current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader(
                 || Ok(selected_route_packet.clone()),
             )
-            .expect("diagnostics should lower")
-            .as_read_diagnostics();
+            .expect("diagnostics should lower");
+        let rich_localization = diagnostics_projection
+            .rich_localization()
+            .expect("rich localization should remain available by default");
 
         assert_eq!(
             proof.spatial_reuse_posture(),
@@ -292,11 +345,9 @@ mod tests {
             proof.spatial_rebuild_denial_identity_digest(),
             Some("phase-12-spatial-rebuild-denial")
         );
-        assert_eq!(diagnostics.spatial_reuse_posture.as_deref(), Some("Denied"));
+        assert_eq!(rich_localization.spatial_reuse_posture(), Some("Denied"));
         assert_eq!(
-            diagnostics
-                .spatial_rebuild_denial_identity_digest
-                .as_deref(),
+            rich_localization.spatial_rebuild_denial_identity_digest(),
             Some("phase-12-spatial-rebuild-denial")
         );
     }
@@ -312,8 +363,10 @@ mod tests {
                 Some("phase-12-spatial-reuse-decision"),
                 None,
             );
-        let reused_route =
-            CompiledProductReusePlannerRoutePacket::from_parts(reused_topology_route, reused_spatial_route);
+        let reused_route = CompiledProductReusePlannerRoutePacket::from_parts(
+            reused_topology_route,
+            reused_spatial_route,
+        );
         let selected_route_packet =
             current_worth_touched_graph_conflict_selected_route_packet_with_route_loaders(
                 topology::certification::current_topology_milestone_fifteen_planner_seed_support,
@@ -329,12 +382,14 @@ mod tests {
                 Ok(selected_route_packet.clone())
             })
             .expect("proof should lower");
-        let diagnostics =
-            current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader(
+        let diagnostics_projection =
+            current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader(
                 || Ok(selected_route_packet.clone()),
             )
-            .expect("diagnostics should lower")
-            .as_read_diagnostics();
+            .expect("diagnostics should lower");
+        let rich_localization = diagnostics_projection
+            .rich_localization()
+            .expect("rich localization should remain available by default");
 
         assert_eq!(
             proof.spatial_reuse_posture(),
@@ -345,13 +400,11 @@ mod tests {
             Some("phase-12-spatial-reuse-decision")
         );
         assert_eq!(
-            diagnostics.spatial_reuse_posture.as_deref(),
+            rich_localization.spatial_reuse_posture(),
             Some("ReuseAdmitted")
         );
         assert_eq!(
-            diagnostics
-                .spatial_reuse_decision_identity_digest
-                .as_deref(),
+            rich_localization.spatial_reuse_decision_identity_digest(),
             Some("phase-12-spatial-reuse-decision")
         );
     }

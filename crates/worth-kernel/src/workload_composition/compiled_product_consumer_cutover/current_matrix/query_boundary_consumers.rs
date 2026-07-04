@@ -33,7 +33,7 @@ pub(super) fn current_query_boundary_consumer_rows() -> Result<
         ),
         KernelCompiledProductConsumerCoverageTarget::new(
             KernelCompiledProductConsumerClusterIdentity::KernelConflictPublicCloseoutBoundaryTraceability,
-            "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
             "current_worth_touched_graph_conflict_public_closeout",
             KernelCompiledProductConsumerResponsibility::QueryBacked,
             KernelCompiledProductFamilyClass::QueryLowerRuntimeBoundaryEnvelope,
@@ -46,7 +46,7 @@ pub(super) fn current_query_boundary_consumer_rows() -> Result<
                 "query.lower_runtime_boundary_envelope:v1",
             ),
             Some(KernelCompiledProductQueryBoundaryLane::LowerRuntimeBoundaryEnvelope),
-            "kernel public closeout still needs one explicit Query boundary lane for downstream traceability instead of local boundary prose",
+            "kernel public closeout still needs one explicit Query boundary lane for downstream traceability, but that lane is now anchored to planner-owned public proof rather than the deleted legacy helper path",
             &[Surface::KernelConflictPublicCloseoutBoundaryTraceability],
         ),
     ])

@@ -6,9 +6,9 @@ use super::closeout::validate_assembled_ordinary_sweep_closeout_for_test;
 use super::current_cutover::{
     current_worth_workload_ordinary_consumer_cutover, ordinary_consumer_cutover_from_inventory,
 };
-use crate::workload_composition::public_closeout::{
-    current_worth_touched_graph_conflict_milestone_fifteen_seed,
-    current_worth_touched_graph_conflict_public_closeout,
+use crate::workload_composition::planner_owned_routing::{
+    current_worth_touched_graph_conflict_public_facade_with_artifact_policy,
+    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
 };
 use crate::workload_composition::{
     current_conflict_batch_admission_inventory, ConflictBatchAdmissionCertificationPosture,
@@ -38,18 +38,17 @@ fn broad_scan_gate_rejects_downgraded_exact_denied_surface_in_live_inventory() {
         current_topology_query_backed_consumer_cutover().expect("current query-backed cutover");
     let lookup_public_closeout =
         current_evidence_lookup_public_closeout().expect("lookup public closeout");
-    let public_closeout =
-        current_worth_touched_graph_conflict_public_closeout().expect("kernel public closeout");
-    let phase_fifteen_seed =
-        current_worth_touched_graph_conflict_milestone_fifteen_seed().expect("seed");
+    let public_facade = current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
+    )
+    .expect("kernel public facade");
 
     let error = validate_assembled_ordinary_sweep_closeout_for_test(
         &hostile_inventory,
         &cutover,
         &topology_cutover,
         &lookup_public_closeout,
-        &public_closeout,
-        &phase_fifteen_seed,
+        &public_facade,
     )
     .expect_err("downgraded broad-scan surface must fail the assembled ordinary-sweep boundary");
 
@@ -83,18 +82,17 @@ fn phase_eleven_bypass_guard_rejects_hostile_live_cutover_inventory() {
         current_topology_query_backed_consumer_cutover().expect("current query-backed cutover");
     let lookup_public_closeout =
         current_evidence_lookup_public_closeout().expect("lookup public closeout");
-    let public_closeout =
-        current_worth_touched_graph_conflict_public_closeout().expect("kernel public closeout");
-    let phase_fifteen_seed =
-        current_worth_touched_graph_conflict_milestone_fifteen_seed().expect("seed");
+    let public_facade = current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
+    )
+    .expect("kernel public facade");
 
     let error = validate_assembled_ordinary_sweep_closeout_for_test(
         &hostile_inventory,
         &hostile_cutover,
         &topology_cutover,
         &lookup_public_closeout,
-        &public_closeout,
-        &phase_fifteen_seed,
+        &public_facade,
     )
     .expect_err("covered dependency must fail the assembled ordinary-sweep boundary");
 
@@ -117,18 +115,17 @@ fn topology_fallback_counts_fail_the_assembled_broad_scan_boundary() {
         .with_test_family_fallback_counts(TopologyReadRequestFamily::LoopCycleNeighborhood, 1, 0);
     let lookup_public_closeout =
         current_evidence_lookup_public_closeout().expect("lookup public closeout");
-    let public_closeout =
-        current_worth_touched_graph_conflict_public_closeout().expect("kernel public closeout");
-    let phase_fifteen_seed =
-        current_worth_touched_graph_conflict_milestone_fifteen_seed().expect("seed");
+    let public_facade = current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
+    )
+    .expect("kernel public facade");
 
     let error = validate_assembled_ordinary_sweep_closeout_for_test(
         &inventory,
         &cutover,
         &hostile_topology_cutover,
         &lookup_public_closeout,
-        &public_closeout,
-        &phase_fifteen_seed,
+        &public_facade,
     )
     .expect_err("query-backed fallback counts must fail the assembled broad-scan boundary");
 

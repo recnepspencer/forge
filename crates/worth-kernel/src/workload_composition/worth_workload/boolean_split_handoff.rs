@@ -1,6 +1,5 @@
 use worth_spatial::facade::evidence_lookup_workload_cutover::EvidenceLookupConsumedWorkloadHandoff;
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedgerReceipt;
-#[cfg(test)]
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionPacket;
 use worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthority;
 
@@ -15,7 +14,6 @@ pub struct CompletedBooleanSplitHandoff {
     completed_workload: WorthWorkload,
     split_ledger_receipt: PlanarBooleanSplitEdgeChainLedgerReceipt,
     lookup_consumed_workload_handoff: EvidenceLookupConsumedWorkloadHandoff,
-    #[cfg(test)]
     event_ledger_lookup_packet: Option<PlanarBooleanEventLedgerLookupExecutionPacket>,
 }
 
@@ -29,7 +27,6 @@ impl CompletedBooleanSplitHandoff {
             completed_workload,
             split_ledger_receipt,
             lookup_consumed_workload_handoff,
-            #[cfg(test)]
             event_ledger_lookup_packet: None,
         }
     }
@@ -46,8 +43,8 @@ impl CompletedBooleanSplitHandoff {
         &self.lookup_consumed_workload_handoff
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_test_event_ledger_lookup_packet(
+    #[doc(hidden)]
+    pub fn with_test_event_ledger_lookup_packet(
         mut self,
         packet: PlanarBooleanEventLedgerLookupExecutionPacket,
     ) -> Self {
@@ -55,8 +52,8 @@ impl CompletedBooleanSplitHandoff {
         self
     }
 
-    #[cfg(test)]
-    pub(crate) fn test_event_ledger_lookup_packet(
+    #[doc(hidden)]
+    pub fn test_event_ledger_lookup_packet(
         &self,
     ) -> Option<&PlanarBooleanEventLedgerLookupExecutionPacket> {
         self.event_ledger_lookup_packet.as_ref()

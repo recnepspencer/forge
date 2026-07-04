@@ -170,13 +170,13 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     assert_eq!(snapshot.validation(), staged.validation());
     assert_eq!(
         snapshot.diagnostics().invalidation_report,
-        crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_invalidation_report(
+        crate::projection::runtime_boundary::diagnostic_projection::build_derived_invalidation_report(
             &verified.read_basis()
         )
     );
     assert_eq!(
         snapshot.diagnostics().rebuild_report,
-        crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_rebuild_report(
+        crate::projection::runtime_boundary::diagnostic_projection::build_derived_rebuild_report(
             staged.materialized(),
             snapshot.interpreted(),
             staged.validation(),
@@ -184,7 +184,7 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     );
     assert_eq!(
         snapshot.diagnostics().fallback_report,
-        crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_fallback_report(
+        crate::projection::runtime_boundary::diagnostic_projection::build_derived_fallback_report(
             &verified.read_basis(),
             staged.materialized(),
         )

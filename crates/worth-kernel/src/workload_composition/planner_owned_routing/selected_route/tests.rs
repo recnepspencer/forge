@@ -22,7 +22,7 @@ fn selected_route_packet_carries_route_and_support_identity_once() {
     let packet = current_worth_touched_graph_conflict_selected_route_packet()
         .expect("selected-route packet should build from current proof surfaces");
     let spatial_route_packet =
-        worth_spatial::facade::planner_owned_routing::evidence_lookup_route::current_evidence_lookup_route_packet()
+        worth_spatial::facade::evidence_lookup_route::current_evidence_lookup_route_packet()
             .expect("spatial planner-owned route packet should build");
     let spatial_route_projection_markers =
         super::SpatialRouteProjectionMarkers::from_route_packet(&spatial_route_packet);
@@ -126,9 +126,8 @@ fn selected_route_packet_rejects_mismatched_topology_support() {
 fn selected_route_packet_is_the_authority_for_topology_query_backed_route_admission() {
     let packet = current_worth_touched_graph_conflict_selected_route_packet()
         .expect("selected-route packet should build from current proof surfaces");
-    let cutover =
-        topology::facade::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
-            .expect("packet-aligned topology route admission should succeed");
+    let cutover = topology::certification::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
+        .expect("packet-aligned topology route admission should succeed");
     let radial_row = admitted_radial_row(&cutover);
 
     assert_eq!(
@@ -200,9 +199,8 @@ fn packet_driven_topology_route_admission_rejects_foreign_query_posture() {
         .with_test_topology_query_support_snapshot_digest_override(
             "foreign-query-support-snapshot",
         );
-    let error =
-        topology::facade::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
-            .expect_err("foreign packet support posture should be rejected");
+    let error = topology::certification::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
+        .expect_err("foreign packet support posture should be rejected");
 
     assert!(error.detail().contains("query support snapshot"));
 }
@@ -212,9 +210,8 @@ fn packet_driven_topology_route_admission_rejects_mismatched_selected_reuse_basi
     let packet = current_worth_touched_graph_conflict_selected_route_packet()
         .expect("selected-route packet should build from current proof surfaces")
         .with_test_selected_reuse_basis_identity_digest_override("foreign-selected-reuse-basis");
-    let error =
-        topology::facade::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
-            .expect_err("packet with a foreign selected reuse basis should be rejected");
+    let error = topology::certification::admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority(&packet)
+        .expect_err("packet with a foreign selected reuse basis should be rejected");
 
     assert!(error.detail().contains("selected reuse basis identity"));
 }

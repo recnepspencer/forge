@@ -1,7 +1,7 @@
 use crate::certification::BridgeTraceAnchor;
 pub use crate::compiled_product_family::DeterministicDigest;
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
-use crate::projection::diagnostic_surfaces::{
+use crate::projection::planner_owned_routing::diagnostic_projection_input::report_types::{
     DerivedFallbackReport, DerivedInvalidationReport, DerivedReadDiagnostics, DerivedRebuildReport,
 };
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{

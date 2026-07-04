@@ -1,5 +1,5 @@
 use topology::facade::TopologyDerivedReuseDecisionPosture;
-use worth_spatial::facade::planner_owned_routing::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
+use worth_spatial::facade::evidence_lookup_reuse_route::EvidenceLookupReuseDecisionPosture;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct RoutePacketProofChainLowering {

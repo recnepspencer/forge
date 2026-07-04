@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from codex_cli import run_codex
+from agent_cli import run_agent
 from config_schema import load_config
 from event_log import EventLogDecodeError, append_event, load_events, validate_event_log
 from event_types import validate_runner_outcome
@@ -153,7 +153,7 @@ def run_single_turn(config_path: Path, run_id: str, log_path: Path | None) -> in
         expected_turn_instance_id=turn_instance_id,
     )
 
-    exit_code, capture = run_codex(
+    exit_code, capture = run_agent(
         projection,
         prompt,
         log_path or paths.log,
@@ -166,7 +166,7 @@ def run_single_turn(config_path: Path, run_id: str, log_path: Path | None) -> in
         "turn_instance_id": turn_instance_id,
     }
     if exit_code != 0:
-        failure_reason = capture.get("failure_reason") or f"codex exited with {exit_code}"
+        failure_reason = capture.get("failure_reason") or f"agent exited with {exit_code}"
         if failure_reason == "operator stop requested":
             append_runtime_event(
                 paths,
@@ -258,7 +258,7 @@ def run_recovery_turn(config_path: Path, run_id: str, log_path: Path | None, rea
         thread_id=projection["session"]["thread_id"],
     )
     prompt = build_recovery_prompt(projection, paths, reason, turn_instance_id)
-    exit_code, capture = run_codex(
+    exit_code, capture = run_agent(
         projection,
         prompt,
         log_path or paths.log,
@@ -266,7 +266,7 @@ def run_recovery_turn(config_path: Path, run_id: str, log_path: Path | None, rea
     )
     thread_id = capture.get("thread_id") or projection["session"]["thread_id"]
     if exit_code != 0:
-        failure_reason = capture.get("failure_reason") or f"codex exited with {exit_code}"
+        failure_reason = capture.get("failure_reason") or f"agent exited with {exit_code}"
         if failure_reason == "operator stop requested":
             append_runtime_event(
                 paths,
@@ -443,10 +443,10 @@ Event log file: {paths.events.resolve()}
 Current cursor: {projection.get('current')}
 Failure reason: {reason}
 
-Continue in the same persistent Codex thread. Re-read the current phase context if needed,
+Continue in the same persistent agent session when available. Re-read the current phase context if needed,
 then finish the same turn honestly. Do not mutate any runner files directly.
 
-If the prior Codex turn already completed the work, do not redo the work. Emit the correct
+If the prior agent turn already completed the work, do not redo the work. Emit the correct
 typed RUNNER_EVENT for that already-completed turn.
 
 Expected turn instance id: {turn_instance_id}
@@ -481,10 +481,10 @@ def pending_recovery_reason(
             candidate_reason = reason if isinstance(reason, str) and reason else "runner fault"
             continue
         if event_type == "codex_turn_completed":
-            candidate_reason = "prior Codex turn completed but outcome was not recorded"
+            candidate_reason = "prior agent turn completed but outcome was not recorded"
             continue
         if event_type == "codex_turn_failed":
-            candidate_reason = "prior Codex turn failed and needs recovery"
+            candidate_reason = "prior agent turn failed and needs recovery"
             continue
     return None
 

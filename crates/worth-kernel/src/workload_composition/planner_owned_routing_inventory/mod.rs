@@ -1,6 +1,5 @@
 mod catalog;
 mod catalog_kernel;
-mod catalog_query;
 mod catalog_spatial;
 mod catalog_topo;
 mod classification;

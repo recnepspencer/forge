@@ -7,9 +7,10 @@ use crate::workload_composition::batch_admission::BatchAdmissionPlanDenialKind;
 use crate::workload_composition::planner_owned_routing::{
     admitted_public_proof_input::current_worth_touched_graph_conflict_public_proof_input_with_packet_loader,
     current_replay_undo_transaction_route_packet,
-    derived_diagnostics::current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader,
+    derived_diagnostics::current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader,
     selected_route::current_worth_touched_graph_conflict_selected_route_packet_with_route_loaders,
-    selected_route::WorthTouchedGraphConflictSelectedRoutePacket, PlannerOwnedRoutingErrorKind,
+    selected_route::WorthTouchedGraphConflictSelectedRoutePacket,
+    test_support::run_stack_heavy_planner_owned_routing_test, PlannerOwnedRoutingErrorKind,
 };
 
 #[test]
@@ -51,64 +52,66 @@ fn conflict_and_independence_explanation_share_selected_route_chain() {
 
 #[test]
 fn denial_witness_localizes_conflict_vs_independence_failure() {
-    let conflict_denied =
-        current_worth_touched_graph_conflict_independence_route_packet_with_receipt_override(
-            |receipt| {
-                receipt.with_test_denial_kind(BatchAdmissionPlanDenialKind::SelectedPlanDenied)
-            },
-        )
-        .expect("conflict-denied route packet");
-    let independence_denied =
-        current_worth_touched_graph_conflict_independence_route_packet_with_receipt_override(
-            |receipt| {
-                receipt.with_test_denial_kind(
-                    BatchAdmissionPlanDenialKind::MissingExplicitIndependenceProof,
-                )
-            },
-        )
-        .expect("independence-denied route packet");
+    run_stack_heavy_planner_owned_routing_test(|| {
+        let conflict_denied =
+            current_worth_touched_graph_conflict_independence_route_packet_with_receipt_override(
+                |receipt| {
+                    receipt.with_test_denial_kind(BatchAdmissionPlanDenialKind::SelectedPlanDenied)
+                },
+            )
+            .expect("conflict-denied route packet");
+        let independence_denied =
+            current_worth_touched_graph_conflict_independence_route_packet_with_receipt_override(
+                |receipt| {
+                    receipt.with_test_denial_kind(
+                        BatchAdmissionPlanDenialKind::MissingExplicitIndependenceProof,
+                    )
+                },
+            )
+            .expect("independence-denied route packet");
 
-    assert_eq!(
-        conflict_denied
-            .denial_witness()
-            .expect("conflict denial witness")
-            .kind(),
-        ConflictIndependencePlannerRouteWitnessKind::ConflictRouteDenial
-    );
-    assert_eq!(
-        independence_denied
-            .denial_witness()
-            .expect("independence denial witness")
-            .kind(),
-        ConflictIndependencePlannerRouteWitnessKind::IndependenceDenial
-    );
-    assert_ne!(
-        conflict_denied
-            .denial_witness()
-            .expect("conflict denial witness")
-            .identity_digest(),
-        independence_denied
-            .denial_witness()
-            .expect("independence denial witness")
-            .identity_digest()
-    );
+        assert_eq!(
+            conflict_denied
+                .denial_witness()
+                .expect("conflict denial witness")
+                .kind(),
+            ConflictIndependencePlannerRouteWitnessKind::ConflictRouteDenial
+        );
+        assert_eq!(
+            independence_denied
+                .denial_witness()
+                .expect("independence denial witness")
+                .kind(),
+            ConflictIndependencePlannerRouteWitnessKind::IndependenceDenial
+        );
+        assert_ne!(
+            conflict_denied
+                .denial_witness()
+                .expect("conflict denial witness")
+                .identity_digest(),
+            independence_denied
+                .denial_witness()
+                .expect("independence denial witness")
+                .identity_digest()
+        );
 
-    assert_downstream_denial_propagation(
-        conflict_denied.clone(),
-        ConflictIndependencePlannerRouteWitnessKind::ConflictRouteDenial,
-        conflict_denied
-            .denial_witness()
-            .expect("conflict denial witness")
-            .identity_digest(),
-    );
-    assert_downstream_denial_propagation(
-        independence_denied.clone(),
-        ConflictIndependencePlannerRouteWitnessKind::IndependenceDenial,
-        independence_denied
-            .denial_witness()
-            .expect("independence denial witness")
-            .identity_digest(),
-    );
+        assert_downstream_denial_propagation(
+            conflict_denied.clone(),
+            ConflictIndependencePlannerRouteWitnessKind::ConflictRouteDenial,
+            conflict_denied
+                .denial_witness()
+                .expect("conflict denial witness")
+                .identity_digest(),
+        );
+        assert_downstream_denial_propagation(
+            independence_denied.clone(),
+            ConflictIndependencePlannerRouteWitnessKind::IndependenceDenial,
+            independence_denied
+                .denial_witness()
+                .expect("independence denial witness")
+                .identity_digest(),
+        );
+    });
 }
 
 fn assert_downstream_denial_propagation(
@@ -131,12 +134,14 @@ fn assert_downstream_denial_propagation(
             Ok(selected_route_packet.clone())
         })
         .expect("public proof input should preserve typed denial witness");
-    let diagnostic_input =
-        current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader(
+    let diagnostic_projection =
+        current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader(
             || Ok(selected_route_packet.clone()),
         )
-        .expect("diagnostic input should preserve typed denial witness");
-    let read_diagnostics = diagnostic_input.as_read_diagnostics();
+        .expect("diagnostic projection should preserve typed denial witness");
+    let rich_localization = diagnostic_projection
+        .rich_localization()
+        .expect("rich localization should remain available by default");
 
     assert_eq!(
         public_proof_input.conflict_independence_denial_witness_kind(),
@@ -147,20 +152,20 @@ fn assert_downstream_denial_propagation(
         Some(expected_identity)
     );
     assert_eq!(
-        diagnostic_input.conflict_independence_denial_witness_kind(),
-        Some(expected_kind)
-    );
-    assert_eq!(
-        diagnostic_input.conflict_independence_denial_witness_identity(),
+        diagnostic_projection.conflict_independence_denial_witness_identity_digest(),
         Some(expected_identity)
     );
     assert_eq!(
-        read_diagnostics.conflict_independence_denial_witness_kind,
+        diagnostic_projection.conflict_independence_denial_witness_kind(),
         Some(expected_kind)
     );
     assert_eq!(
-        read_diagnostics.conflict_independence_denial_witness_identity,
-        Some(expected_identity.to_string())
+        rich_localization.conflict_independence_denial_witness_kind(),
+        Some(expected_kind)
+    );
+    assert_eq!(
+        rich_localization.conflict_independence_denial_witness_identity(),
+        Some(expected_identity)
     );
 }
 

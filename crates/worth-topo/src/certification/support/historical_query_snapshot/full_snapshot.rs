@@ -2,7 +2,7 @@ use crate::certification::support::read_basis_query_runtime::HistoricalReadBasis
 use crate::certification::{DerivedEquivalenceContractReport, NamingAttachmentReport};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::report_types::DerivedReadDiagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     naming_attachment_report_from_query_input, TopologyNamingAttachmentInput,
 };

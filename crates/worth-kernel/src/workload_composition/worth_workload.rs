@@ -52,8 +52,10 @@ pub(crate) use ordinary_consumer_sweep::{
 pub use ordinary_consumer_sweep::{
     current_worth_workload_ordinary_consumer_sweep_closeout,
     worth_workload_ordinary_consumer_residue_rows, CompletedBooleanSplitBatchExecutionCluster,
-    LookupConsumedBatchExecutionCluster, WorthWorkloadOrdinaryConsumerClusterKind,
-    WorthWorkloadOrdinaryConsumerClusterLedger, WorthWorkloadOrdinaryConsumerClusterRowDisposition,
+    LookupConsumedBatchExecutionCluster, WorthWorkloadCompositionExplainerDisposition,
+    WorthWorkloadCompositionExplainerLedger, WorthWorkloadCompositionExplainerRow,
+    WorthWorkloadOrdinaryConsumerClusterKind, WorthWorkloadOrdinaryConsumerClusterLedger,
+    WorthWorkloadOrdinaryConsumerClusterRowDisposition,
     WorthWorkloadOrdinaryConsumerResidueBoundary, WorthWorkloadOrdinaryConsumerResidueRow,
     WorthWorkloadOrdinaryConsumerResidueSurface, WorthWorkloadOrdinaryConsumerSweepCloseoutError,
     WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,

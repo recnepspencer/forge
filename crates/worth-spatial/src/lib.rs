@@ -121,6 +121,7 @@ mod structure_guard;
 #[cfg(test)]
 mod test_support;
 pub mod touched_graph_conflict;
+pub mod touched_graph_parity_closeout;
 mod undo_family_catalog;
 mod witness_resolution;
 mod workload_platform;

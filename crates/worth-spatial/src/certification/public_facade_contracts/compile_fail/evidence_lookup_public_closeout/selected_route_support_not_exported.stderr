@@ -1,0 +1,11 @@
+error[E0603]: function `current_evidence_lookup_public_closeout_with_selected_route_support` is private
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/selected_route_support_not_exported.rs:1:61
+  |
+1 | use worth_spatial::facade::evidence_lookup_public_closeout::current_evidence_lookup_public_closeout_with_selected_route_support;
+  |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private function
+  |
+note: the function `current_evidence_lookup_public_closeout_with_selected_route_support` is defined here
+ --> src/facade/evidence_lookup_public_closeout/mod.rs
+  |
+  |     current_evidence_lookup_public_closeout_with_selected_route_support,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

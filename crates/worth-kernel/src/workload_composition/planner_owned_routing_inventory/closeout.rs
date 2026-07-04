@@ -128,5 +128,13 @@ fn validate_row(
         );
     }
 
+    if matches!(row.disposition(), PlannerOwnedRoutingDisposition::Cap)
+        && row.displaced_lane().path() == row.replacement_lane().path()
+    {
+        return Err(PlannerOwnedRoutingInventoryError::SelfReplacingCapPath {
+            surface: row.surface_name(),
+        });
+    }
+
     Ok(())
 }

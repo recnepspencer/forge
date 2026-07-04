@@ -1,5 +1,4 @@
 use super::catalog_kernel;
-use super::catalog_query;
 use super::catalog_spatial;
 use super::catalog_topo;
 use super::row::{PlannerOwnedRoutingInventoryRow, PlannerOwnedRoutingSurfaceIdentity as Surface};
@@ -9,7 +8,6 @@ pub(super) fn current_rows() -> Vec<PlannerOwnedRoutingInventoryRow> {
     rows.extend(catalog_kernel::rows());
     rows.extend(catalog_topo::rows());
     rows.extend(catalog_spatial::rows());
-    rows.extend(catalog_query::rows());
     rows
 }
 
@@ -33,7 +31,6 @@ pub(super) fn required_surfaces() -> &'static [Surface] {
         S::WorthTouchedGraphConflictResidueRow,
         S::CurrentWorthTouchedGraphConflictMilestoneFifteenSeed,
         S::WorthTouchedGraphConflictMilestoneFifteenSeed,
-        S::CurrentMilestoneFifteenPlannerProofInput,
         S::WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput,
         S::WorthTouchedGraphConflictProofChain,
         S::CurrentWorthTouchedGraphConflictSourceFirewallReport,
@@ -46,7 +43,6 @@ pub(super) fn required_surfaces() -> &'static [Surface] {
         S::WorthTouchedGraphConflictSourceFirewallReport,
         S::WorthTouchedGraphConflictSourceFirewallViolation,
         S::CurrentWorthWorkloadOrdinaryConsumerSweepCloseout,
-        S::DiagnosticSurfaceDeterministicDigest,
         S::DerivedFallbackReport,
         S::DerivedInvalidationReport,
         S::DerivedRebuildReport,
@@ -74,21 +70,5 @@ pub(super) fn required_surfaces() -> &'static [Surface] {
         S::EvidenceLookupPublicCloseoutResidueRow,
         S::EvidenceLookupPublicCloseoutError,
         S::EvidenceLookupPublicCloseoutErrorKind,
-        S::QueryWorkspacePublicSupportMatrix,
-        S::QueryWorkspacePublicApiContract,
-        S::QueryWorkspacePublicHandleContract,
-        S::QueryWorkspaceAdmitPublicApiFamily,
-        S::QueryProjectWorkspaceSupportSnapshot,
-        S::QuerySupportPinningContract,
-        S::QueryHardProhibitionBoundaryAudit,
-        S::QueryConsumerResidueAudit,
-        S::QueryConsumeProjectionFacts,
-        S::QueryDeclareProjectionFactConsumption,
-        S::QueryLowerRuntimeBoundaryEnvelopeSupport,
-        S::QueryLowerRuntimeBoundarySourceSupport,
-        S::QueryDeclarationScopedCapabilitySupport,
-        S::QueryDeclarationScopedTraceabilitySupport,
-        S::QueryDeclarationEnvelopeInput,
-        S::QueryDeclarationEnvelope,
     ]
 }

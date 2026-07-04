@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use super::phase_fifteen_fixture_inventory::phase_fifteen_spatial_compile_fail_fences;
+use super::phase_fourteen_fixture_inventory::phase_fourteen_spatial_compile_fail_fences;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,25 +41,43 @@ fn closeout_from_inventory(
     let mut fence_proof_parts = Vec::new();
     let fences = phase_fifteen_spatial_compile_fail_fences()
         .iter()
-        .filter(|fence| excluded_fence_class != Some(fence.fence_class()))
+        .map(|fence| {
+            (
+                fence.fixture_path(),
+                fence.stderr_path(),
+                fence.fence_class(),
+                "phase 15 spatial",
+            )
+        })
+        .chain(
+            phase_fourteen_spatial_compile_fail_fences()
+                .iter()
+                .map(|fence| {
+                    (
+                        fence.fixture_path(),
+                        fence.stderr_path(),
+                        fence.fence_class(),
+                        "phase 14 spatial",
+                    )
+                }),
+        )
+        .filter(|(_, _, fence_class, _)| excluded_fence_class != Some(*fence_class))
         .collect::<Vec<_>>();
     for fence in &fences {
-        let fixture_path = crate_relative_path(fence.fixture_path());
+        let fixture_path = crate_relative_path(fence.0);
         if !fixture_path.exists() {
             return Err(SpatialPublicFacadeCompileFailCloseoutError::new(
                 SpatialPublicFacadeCompileFailCloseoutErrorKind::MissingFixture,
-                format!(
-                    "phase 15 spatial compile-fail fixture missing: {}",
-                    fence.fixture_path()
-                ),
+                format!("{} compile-fail fixture missing: {}", fence.3, fence.0),
             ));
         }
-        let stderr_path = crate_relative_path(&fence.stderr_path());
+        let stderr_path = crate_relative_path(&fence.1);
         if !stderr_path.exists() {
             return Err(SpatialPublicFacadeCompileFailCloseoutError::new(
                 SpatialPublicFacadeCompileFailCloseoutErrorKind::MissingExpectedDiagnostic,
                 format!(
-                    "phase 15 spatial compile-fail diagnostic missing: {}",
+                    "{} compile-fail diagnostic missing: {}",
+                    fence.3,
                     stderr_path.display()
                 ),
             ));
@@ -67,7 +86,8 @@ fn closeout_from_inventory(
             SpatialPublicFacadeCompileFailCloseoutError::new(
                 SpatialPublicFacadeCompileFailCloseoutErrorKind::MissingFixture,
                 format!(
-                    "phase 15 spatial compile-fail fixture unreadable: {} ({error})",
+                    "{} compile-fail fixture unreadable: {} ({error})",
+                    fence.3,
                     fixture_path.display()
                 ),
             )
@@ -76,7 +96,8 @@ fn closeout_from_inventory(
             SpatialPublicFacadeCompileFailCloseoutError::new(
                 SpatialPublicFacadeCompileFailCloseoutErrorKind::MissingExpectedDiagnostic,
                 format!(
-                    "phase 15 spatial compile-fail diagnostic unreadable: {} ({error})",
+                    "{} compile-fail diagnostic unreadable: {} ({error})",
+                    fence.3,
                     stderr_path.display()
                 ),
             )
@@ -85,7 +106,8 @@ fn closeout_from_inventory(
             return Err(SpatialPublicFacadeCompileFailCloseoutError::new(
                 SpatialPublicFacadeCompileFailCloseoutErrorKind::EmptyExpectedDiagnostic,
                 format!(
-                    "phase 15 spatial compile-fail diagnostic must be non-empty: {}",
+                    "{} compile-fail diagnostic must be non-empty: {}",
+                    fence.3,
                     stderr_path.display()
                 ),
             ));
@@ -93,41 +115,39 @@ fn closeout_from_inventory(
         let fixture_digest = truth_digest_parts(
             TruthDigestScope::ArtifactIdentity,
             &[
-                "worth-spatial:phase-fifteen-compile-fail-fixture:v1".to_string(),
-                format!("path:{}", fence.fixture_path()),
+                "worth-spatial:public-facade-compile-fail-fixture:v2".to_string(),
+                format!("path:{}", fence.0),
                 fixture_source,
             ],
         );
         let diagnostic_digest = truth_digest_parts(
             TruthDigestScope::ArtifactIdentity,
             &[
-                "worth-spatial:phase-fifteen-compile-fail-diagnostic:v1".to_string(),
-                format!("path:{}", fence.stderr_path()),
+                "worth-spatial:public-facade-compile-fail-diagnostic:v2".to_string(),
+                format!("path:{}", fence.1),
                 expected_diagnostic,
             ],
         );
         fence_proof_parts.push(format!(
             "{}:{}:{}",
-            fence.fence_class(),
-            fixture_digest,
-            diagnostic_digest
+            fence.2, fixture_digest, diagnostic_digest
         ));
     }
 
     let fixture_paths = fences
         .iter()
-        .map(|fence| fence.fixture_path().to_string())
+        .map(|fence| fence.0.to_string())
         .collect::<Vec<_>>();
     let covered_fence_classes = fences
         .iter()
-        .map(|fence| fence.fence_class().to_string())
+        .map(|fence| fence.2.to_string())
         .collect::<Vec<_>>();
     let closeout_digest = truth_digest_parts(
         TruthDigestScope::ArtifactIdentity,
         &fence_proof_parts
             .into_iter()
             .chain(std::iter::once(
-                "worth-spatial:phase-fifteen-public-facade-compile-fail-closeout:v1".to_string(),
+                "worth-spatial:public-facade-compile-fail-closeout:v2".to_string(),
             ))
             .collect::<Vec<_>>(),
     );

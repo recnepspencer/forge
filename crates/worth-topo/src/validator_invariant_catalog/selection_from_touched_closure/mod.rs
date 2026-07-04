@@ -1,4 +1,7 @@
 mod closeout;
+mod current;
+#[cfg(test)]
+mod current_tests;
 mod operating_world_lowering;
 mod phase_four_seed;
 mod routing_closure;
@@ -8,6 +11,8 @@ mod selection_counters;
 mod selection_denial;
 
 pub use closeout::WorthTopologyLegalitySelectionCloseout;
+pub use current::current_topology_validator_invariant_selection_closeout;
+pub use current::current_topology_validator_invariant_selection_closeout_for_declared_touch;
 pub use phase_four_seed::WorthTopologyLegalitySelectionPhaseFourSeed;
 pub use routing_closure::WorthTopologyValidatorRoutingClosure;
 pub use selected_obligation_row::WorthTopologySelectedLegalityObligationRow;

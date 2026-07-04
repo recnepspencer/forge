@@ -317,7 +317,7 @@ pub(crate) fn phase_fifteen_semantic_source_coverages() -> Vec<SemanticSourceCov
         ),
         SemanticSourceCoverage::exact_file(
             Forbidden::CallerOwnedCompatibility,
-            "crates/worth-spatial/src/workload_platform/planner_owned_routing/evidence_lookup_route/packet.rs",
+            "crates/worth-spatial/src/facade/evidence_lookup_route/packet.rs",
             &[],
             SPATIAL_ROUTE_PACKET_COMPATIBILITY_ALLOWED_SURFACES,
         ),
@@ -346,19 +346,19 @@ pub(crate) fn phase_fifteen_semantic_source_coverages() -> Vec<SemanticSourceCov
             PUBLIC_PROOF_CHAIN_ALLOWED_SURFACES,
         ),
         SemanticSourceCoverage::exact_file(
-            Forbidden::CallerOwnedCompatibility,
+            Forbidden::PlannerRouteConstruction,
             "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/admitted_route.rs",
             &[],
             TOPOLOGY_QUERY_BACKED_ROUTE_AUTHORITY_ALLOWED_SURFACES,
         ),
         SemanticSourceCoverage::exact_file(
-            Forbidden::CallerOwnedCompatibility,
+            Forbidden::PlannerRouteConstruction,
             "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/selected_route_authority.rs",
             &[],
             TOPOLOGY_QUERY_BACKED_ROUTE_AUTHORITY_ALLOWED_SURFACES,
         ),
         SemanticSourceCoverage::exact_file(
-            Forbidden::CallerOwnedCompatibility,
+            Forbidden::PlannerRouteConstruction,
             "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/admission_error.rs",
             &[],
             TOPOLOGY_QUERY_BACKED_ROUTE_ADMISSION_ERROR_ALLOWED_SURFACES,

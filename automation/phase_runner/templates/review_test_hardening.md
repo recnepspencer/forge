@@ -24,10 +24,24 @@ Before declaring review findings, first ask:
 Is this phase mechanically cut over, or is the new lane still sharing ordinary
 behavior with displaced helpers or legacy callers?
 
-If the phase is still in a mixed cutover state, the primary finding is that the
-cutover is incomplete. Do not spend the review turn generating secondary
-proof-level findings against that intermediate state. Send it back to repair so
-the cutover finishes first.
+If the phase is still in a mixed cutover state, the primary finding is still
+that the cutover is incomplete. But do not stop at one sentence. Enumerate the
+full set of independent, load-bearing cutover leaks in the same ownership
+family that must be fixed together for the phase to become mechanically honest.
+
+Do not pad the review with cosmetic or derivative findings. Do batch the real
+ones that share the same root family, especially:
+
+- surviving ordinary callers of displaced lanes
+- public re-exports that preserve legacy authority
+- constructor or facade seams that still bypass the new lane
+- stale compile-fail or boundary proofs that no longer fence the real surface
+- any remaining ownership split where the new lane still depends on displaced
+  implementation ownership
+
+Do not treat each sibling leak as a separate future turn if it is already
+visible now. The repair turn should receive the widest honest fix set it can
+substantively close in one pass.
 
 Use the qa-loop skill and review the real implementation against:
 

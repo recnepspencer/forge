@@ -1,7 +1,8 @@
+use crate::workload_composition::performance_trace::trace_scope;
+use crate::workload_composition::planner_owned_routing::current_worth_workload_ordinary_consumer_cutover;
 use crate::workload_composition::planner_owned_routing::{
     PlannerOwnedRoutingError, PlannerOwnedRoutingErrorKind,
 };
-use crate::workload_composition::worth_workload::current_worth_workload_ordinary_consumer_cutover;
 use crate::workload_composition::BatchAdmissionExecutionReceipt;
 
 use super::admitted_input::admit_batch_admission_planner_route_input;
@@ -17,12 +18,17 @@ pub(crate) fn current_worth_touched_graph_conflict_batch_admission_route_packet(
 fn current_worth_touched_graph_conflict_batch_admission_route_packet_with_receipt_loader(
     override_receipt: impl FnOnce(BatchAdmissionExecutionReceipt) -> BatchAdmissionExecutionReceipt,
 ) -> Result<BatchAdmissionPlannerRoutePacket, PlannerOwnedRoutingError> {
-    let receipt = current_worth_workload_ordinary_consumer_cutover()
-        .map_err(current_route_error)?
-        .batch_execution_receipt()
-        .clone();
-    let admitted = admit_batch_admission_planner_route_input(override_receipt(receipt))?;
-    Ok(lower_batch_admission_planner_route_packet(admitted))
+    trace_scope(
+        "current_worth_touched_graph_conflict_batch_admission_route_packet",
+        || {
+            let receipt = current_worth_workload_ordinary_consumer_cutover()
+                .map_err(current_route_error)?
+                .batch_execution_receipt()
+                .clone();
+            let admitted = admit_batch_admission_planner_route_input(override_receipt(receipt))?;
+            Ok(lower_batch_admission_planner_route_packet(admitted))
+        },
+    )
 }
 
 #[cfg(test)]

@@ -202,6 +202,10 @@ The support snapshot is derived from the live matrix. The pins bind to live row
 digests. The audit checks executable source against the Query-owned registry.
 The workspace is the ordinary Query runtime facade, not a mock facade.
 
+Read-only proof and diagnostics follow the same ownership rule. Inspect the
+Query-owned public artifact and its typed getters instead of rebuilding the
+boundary from support wrappers, raw rows, or local explainer helpers.
+
 ## How It Relates To Other Features
 
 Use the Consumer Kit with [Support Matrix And Admission](support-matrix-and-admission.md)

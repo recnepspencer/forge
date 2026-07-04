@@ -25,6 +25,8 @@ STATIC_TOP_LEVEL_KEYS = {
     "phases",
 }
 
+SUPPORTED_PROVIDERS = {"codex", "cursor"}
+
 
 def load_config(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8-sig") as config_file:
@@ -95,12 +97,33 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
 
     session_defaults = config.get("session_defaults", {})
     if isinstance(session_defaults, dict):
-        for key in ("command", "model", "reasoning_effort"):
-            value = session_defaults.get(key)
-            if not isinstance(value, str) or not value:
-                errors.append(f"session_defaults.{key} is required")
+        provider = session_defaults.get("provider", "codex")
+        if not isinstance(provider, str) or provider not in SUPPORTED_PROVIDERS:
+            errors.append(f"session_defaults.provider must be one of {sorted(SUPPORTED_PROVIDERS)}")
+        model = session_defaults.get("model")
+        if not isinstance(model, str) or not model:
+            errors.append("session_defaults.model is required")
+        command = session_defaults.get("command")
+        if command is not None and (not isinstance(command, str) or not command):
+            errors.append("session_defaults.command must be a non-empty string when present")
+        command_args = session_defaults.get("command_args")
+        if command_args is not None:
+            if not isinstance(command_args, list) or not all(
+                isinstance(item, str) and item for item in command_args
+            ):
+                errors.append("session_defaults.command_args must be an array of non-empty strings")
+        reuse_session = session_defaults.get("reuse_session")
+        if reuse_session is not None and not isinstance(reuse_session, bool):
+            errors.append("session_defaults.reuse_session must be a boolean when present")
+        effort = session_defaults.get("reasoning_effort")
+        if provider == "codex" and (not isinstance(effort, str) or not effort):
+            errors.append("session_defaults.reasoning_effort is required for codex provider")
+        if effort is not None and (not isinstance(effort, str) or not effort):
+            errors.append("session_defaults.reasoning_effort must be a non-empty string when present")
         config_map = session_defaults.get("config")
-        if not isinstance(config_map, dict):
+        if config_map is None:
+            session_defaults["config"] = {}
+        elif not isinstance(config_map, dict):
             errors.append("session_defaults.config must be an object")
 
     runner_control = config.get("runner_control", {})

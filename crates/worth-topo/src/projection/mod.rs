@@ -1,8 +1,8 @@
-pub(crate) mod diagnostic_surfaces;
 pub(crate) mod planner_owned_routing;
 pub(crate) mod query_backed_consumer_cutover;
 pub(crate) mod read_views;
 pub(crate) mod runtime_boundary;
+pub(crate) mod touched_graph_parity_closeout;
 
 pub(crate) use read_views::domain::parity::{
     build_topology_read_view_parity_artifact, TopologyReadViewParityArtifact, TopologyReadViewRef,

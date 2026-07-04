@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::replay_undo_consumer_cutover::current_replay_undo_forbidden_surface_denial_ledger;
 use crate::replay_undo_inventory::{
     current_replay_undo_inventory_report, ReplayUndoInventoryCategory,
@@ -18,7 +20,14 @@ use super::scope_route_product::current_replay_undo_planner_scope_route_product;
 
 pub(crate) fn current_replay_undo_transaction_route_packet(
 ) -> Result<ReplayUndoPlannerRoutePacket, PlannerOwnedRoutingError> {
-    current_replay_undo_route_packet(ReplayUndoPlannerRouteFamily::Transaction, |input| input)
+    static CACHE: OnceLock<ReplayUndoPlannerRoutePacket> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+    let packet =
+        current_replay_undo_route_packet(ReplayUndoPlannerRouteFamily::Transaction, |input| input)?;
+    let _ = CACHE.set(packet.clone());
+    Ok(packet)
 }
 
 #[cfg(test)]

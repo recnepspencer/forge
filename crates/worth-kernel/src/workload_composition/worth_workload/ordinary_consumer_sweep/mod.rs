@@ -11,6 +11,7 @@ mod error;
 mod lookup_consumed_cluster;
 mod residue;
 mod residue_manifest;
+mod workload_composition_explainer_ledger;
 
 pub use boolean_split_batch_execution_cluster::CompletedBooleanSplitBatchExecutionCluster;
 pub use closeout::current_worth_workload_ordinary_consumer_sweep_closeout;
@@ -35,6 +36,10 @@ pub use residue_manifest::{
     worth_workload_ordinary_consumer_residue_rows, WorthWorkloadOrdinaryConsumerResidueBoundary,
     WorthWorkloadOrdinaryConsumerResidueRow, WorthWorkloadOrdinaryConsumerResidueSurface,
 };
+pub use workload_composition_explainer_ledger::{
+    WorthWorkloadCompositionExplainerDisposition, WorthWorkloadCompositionExplainerLedger,
+    WorthWorkloadCompositionExplainerRow,
+};
 
 #[cfg(test)]
 mod closeout_hostile_tests;
@@ -52,6 +57,8 @@ mod current_route_authority_tests;
 mod tests;
 #[cfg(test)]
 mod tests_support;
+#[cfg(test)]
+mod workload_composition_explainer_cutover_tests;
 
 #[cfg(test)]
 pub(crate) fn ordinary_consumer_cutover_from_inventory_for_tests(

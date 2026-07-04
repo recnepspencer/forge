@@ -8,6 +8,7 @@ use crate::workload_composition::{
     },
     ConflictBatchAdmissionOwner,
 };
+use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind;
 
 pub(super) fn current_phase_fifteen_deleted_surface_rows(
 ) -> Vec<WorthTouchedGraphConflictDeletionLedgerRow> {
@@ -18,6 +19,7 @@ pub(super) fn current_phase_fifteen_deleted_surface_rows(
             WorthTouchedGraphConflictDeletionLedgerRow::explicit(
                 row.current_path().to_string(),
                 row.current_surface().to_string(),
+                row.family_kind(),
                 parse_owner(row.owner()),
                 match row.disposition() {
                     LookupConsumedVerticalSliceDisplacedSurfaceDisposition::DeletedNow => {

@@ -5,6 +5,7 @@ use crate::selected_equivalence_family::current_topology_selected_equivalence_fa
 use crate::selected_equivalence_family::{
     TopologyFreshnessRequirementPosture, TopologyRenderedOutputComparisonPosture,
 };
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyPublicCloseoutSeedSupportError {
@@ -15,6 +16,7 @@ pub struct TopologyPublicCloseoutSeedSupportError {
 pub struct TopologyPublicCloseoutAlignmentSummary {
     cutover_digest: String,
     public_read_family_row_digest: String,
+    support_snapshot_digest: String,
     compiled_product_identity_digest: String,
     equivalence_policy_identity_digest: String,
     selected_equivalence_family_identity: String,
@@ -23,6 +25,8 @@ pub struct TopologyPublicCloseoutAlignmentSummary {
     selected_reuse_basis_identity_digest: String,
     reuse_decision_identity_digest: Option<String>,
     rebuild_denial_identity_digest: Option<String>,
+    route_authority_digest: String,
+    query_posture_digest: String,
     freshness_requirement_posture: TopologyPublicCloseoutFreshnessRequirementPosture,
     rendered_output_comparison_posture: TopologyPublicCloseoutRenderedOutputComparisonPosture,
     query_execution_count: usize,
@@ -90,17 +94,78 @@ where
             "topology public closeout seed support found a loop-cycle row with a mismatched selected equivalence family identity",
         ));
     }
+    let compiled_product_identity_digest = public_read_row
+        .compiled_product_identity_digest()
+        .ok_or_else(|| {
+            TopologyPublicCloseoutSeedSupportError::new(
+                "topology public closeout seed support requires compiled-product identity",
+            )
+        })?
+        .to_string();
+    let selected_equivalence_basis_identity_digest = public_read_row
+        .selected_equivalence_basis_identity_digest()
+        .ok_or_else(|| {
+            TopologyPublicCloseoutSeedSupportError::new(
+                "topology public closeout seed support requires equivalence-basis identity",
+            )
+        })?
+        .to_string();
+    let selected_compatibility_basis_identity_digest = public_read_row
+        .selected_compatibility_basis_identity_digest()
+        .ok_or_else(|| {
+            TopologyPublicCloseoutSeedSupportError::new(
+                "topology public closeout seed support requires compatibility-basis identity",
+            )
+        })?
+        .to_string();
+    let selected_reuse_basis_identity_digest = public_read_row
+        .selected_reuse_basis_identity_digest()
+        .ok_or_else(|| {
+            TopologyPublicCloseoutSeedSupportError::new(
+                "topology public closeout seed support requires reuse-basis identity",
+            )
+        })?
+        .to_string();
+    let support_snapshot_digest = cutover.support_snapshot_digest().to_string();
+    let route_authority_digest = truth_digest_parts(
+        TruthDigestScope::ArtifactIdentity,
+        &[
+            "worth-topo:touched-graph-parity-route-authority:v1".to_string(),
+            format!("family:{family_identity}"),
+            format!("product:{compiled_product_identity_digest}"),
+            format!("equivalence-basis:{selected_equivalence_basis_identity_digest}"),
+            format!("compatibility-basis:{selected_compatibility_basis_identity_digest}"),
+            format!("reuse-basis:{selected_reuse_basis_identity_digest}"),
+        ],
+    );
+    let query_posture_digest = truth_digest_parts(
+        TruthDigestScope::ArtifactIdentity,
+        &[
+            "worth:touched-graph-topology-query-posture:v1".to_string(),
+            format!("support-snapshot:{support_snapshot_digest}"),
+            format!(
+                "query-executions:{}",
+                public_read_row.query_execution_count()
+            ),
+            format!(
+                "row-scan-fallbacks:{}",
+                public_read_row.row_scan_fallback_count()
+            ),
+            format!(
+                "whole-view-fallbacks:{}",
+                public_read_row.whole_view_fallback_count()
+            ),
+            format!(
+                "repeated-rediscovery-denied:{}",
+                public_read_row.repeated_rediscovery_denied_count()
+            ),
+        ],
+    );
     Ok(TopologyPublicCloseoutAlignmentSummary {
         cutover_digest: cutover.closeout_digest().to_string(),
         public_read_family_row_digest: public_read_row.row_digest().to_string(),
-        compiled_product_identity_digest: public_read_row
-            .compiled_product_identity_digest()
-            .ok_or_else(|| {
-                TopologyPublicCloseoutSeedSupportError::new(
-                    "topology public closeout seed support requires compiled-product identity",
-                )
-            })?
-            .to_string(),
+        support_snapshot_digest,
+        compiled_product_identity_digest,
         equivalence_policy_identity_digest: public_read_row
             .equivalence_policy_identity_digest()
             .ok_or_else(|| {
@@ -110,36 +175,17 @@ where
             })?
             .to_string(),
         selected_equivalence_family_identity: family_identity.to_string(),
-        selected_equivalence_basis_identity_digest: public_read_row
-            .selected_equivalence_basis_identity_digest()
-            .ok_or_else(|| {
-                TopologyPublicCloseoutSeedSupportError::new(
-                    "topology public closeout seed support requires equivalence-basis identity",
-                )
-            })?
-            .to_string(),
-        selected_compatibility_basis_identity_digest: public_read_row
-            .selected_compatibility_basis_identity_digest()
-            .ok_or_else(|| {
-                TopologyPublicCloseoutSeedSupportError::new(
-                    "topology public closeout seed support requires compatibility-basis identity",
-                )
-            })?
-            .to_string(),
-        selected_reuse_basis_identity_digest: public_read_row
-            .selected_reuse_basis_identity_digest()
-            .ok_or_else(|| {
-                TopologyPublicCloseoutSeedSupportError::new(
-                    "topology public closeout seed support requires reuse-basis identity",
-                )
-            })?
-            .to_string(),
+        selected_equivalence_basis_identity_digest,
+        selected_compatibility_basis_identity_digest,
+        selected_reuse_basis_identity_digest,
         reuse_decision_identity_digest: public_read_row
             .reuse_decision_identity_digest()
             .map(str::to_string),
         rebuild_denial_identity_digest: public_read_row
             .rebuild_denial_identity_digest()
             .map(str::to_string),
+        route_authority_digest,
+        query_posture_digest,
         freshness_requirement_posture: family.freshness_requirement_posture().into(),
         rendered_output_comparison_posture: family.rendered_output_comparison_posture().into(),
         query_execution_count: public_read_row.query_execution_count(),
@@ -156,6 +202,10 @@ impl TopologyPublicCloseoutAlignmentSummary {
 
     pub fn public_read_family_row_digest(&self) -> &str {
         &self.public_read_family_row_digest
+    }
+
+    pub fn support_snapshot_digest(&self) -> &str {
+        &self.support_snapshot_digest
     }
 
     pub fn compiled_product_identity_digest(&self) -> &str {
@@ -188,6 +238,14 @@ impl TopologyPublicCloseoutAlignmentSummary {
 
     pub fn rebuild_denial_identity_digest(&self) -> Option<&str> {
         self.rebuild_denial_identity_digest.as_deref()
+    }
+
+    pub fn route_authority_digest(&self) -> &str {
+        &self.route_authority_digest
+    }
+
+    pub fn query_posture_digest(&self) -> &str {
+        &self.query_posture_digest
     }
 
     pub const fn freshness_requirement_posture(

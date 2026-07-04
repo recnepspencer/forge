@@ -18,7 +18,7 @@ use crate::derived_topology::invalidation_plan::selection::selection_test_fixtur
 use crate::derived_topology::invalidation_plan::selection::{
     DerivedInvalidationDensityPolicy, DerivedInvalidationSelectedPlan,
 };
-use crate::projection::planner_owned_routing::diagnostic_projection_input::build_derived_read_diagnostics;
+use crate::projection::planner_owned_routing::diagnostic_projection_input::source::build_derived_read_diagnostics;
 use crate::test_support::primitive_corpus::validated_topology::{
     build_test_runtime, committed_primitive_input,
 };

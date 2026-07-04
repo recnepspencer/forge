@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use super::catalog::{
     current_conflict_batch_admission_rows, required_conflict_batch_admission_surfaces,
@@ -12,6 +13,7 @@ use super::discovery::{
 };
 use super::error::ConflictBatchAdmissionInventoryError;
 use super::row::{ConflictBatchAdmissionInventoryRow, ConflictBatchAdmissionSurfaceIdentity};
+use crate::workload_composition::performance_trace::{trace_note, trace_scope};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConflictBatchAdmissionInventory {
@@ -25,10 +27,18 @@ pub struct ConflictBatchAdmissionInventory {
 
 pub fn current_conflict_batch_admission_inventory(
 ) -> Result<ConflictBatchAdmissionInventory, ConflictBatchAdmissionInventoryError> {
-    ConflictBatchAdmissionInventory::from_rows_for_validation(
-        current_conflict_batch_admission_rows()?,
-    )?
-    .with_default_workspace_closeout()
+    static CACHE: OnceLock<ConflictBatchAdmissionInventory> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+    trace_scope("current_conflict_batch_admission_inventory", || {
+        let inventory = ConflictBatchAdmissionInventory::from_rows_for_validation(
+            current_conflict_batch_admission_rows()?,
+        )?
+        .with_default_workspace_closeout()?;
+        let _ = CACHE.set(inventory.clone());
+        Ok(inventory)
+    })
 }
 
 impl ConflictBatchAdmissionInventory {
@@ -96,12 +106,19 @@ impl ConflictBatchAdmissionInventory {
         mut self,
     ) -> Result<Self, ConflictBatchAdmissionInventoryError> {
         let roots = default_workspace_scan_roots();
-        let discovery = ConflictBatchAdmissionDiscoveryReport::scan_roots(&roots)?;
-        let reconciliation =
-            ConflictBatchAdmissionReconciliation::from_inventory_and_discovery(&self, &discovery)?;
+        let discovery = trace_scope("inventory_workspace_discovery_scan", || {
+            ConflictBatchAdmissionDiscoveryReport::scan_roots(&roots)
+        })?;
+        let reconciliation = trace_scope("inventory_workspace_reconciliation", || {
+            ConflictBatchAdmissionReconciliation::from_inventory_and_discovery(&self, &discovery)
+        })?;
         self.scanned_file_count = discovery.scanned_file_count();
         self.discovered_surface_count = discovery.discovered_surfaces().len();
         self.unclassified_surface_count = reconciliation.unclassified_surfaces().len();
+        trace_note(format!(
+            "inventory discovery: scanned_files={}, discovered_surfaces={}, unclassified_surfaces={}",
+            self.scanned_file_count, self.discovered_surface_count, self.unclassified_surface_count
+        ));
         self.cut_line = ConflictBatchAdmissionCutLine::from_counts(
             self.counters,
             required_conflict_batch_admission_surfaces().len(),

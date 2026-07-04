@@ -16,7 +16,9 @@ mod witness_identity;
 #[cfg(test)]
 mod tests;
 
-pub use admitted_explanation_input::PlannerAdmittedExplanationInput;
+pub use admitted_explanation_input::{
+    admit_planner_admitted_explanation_input, PlannerAdmittedExplanationInput,
+};
 pub use artifact_kind::PlannerExplanationArtifactKind;
 pub use decision_trace_identity::{
     admit_planner_decision_trace_identity, PlannerDecisionTraceIdentity,

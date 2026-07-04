@@ -2,7 +2,6 @@
 fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
     let source = include_str!("mod.rs");
     let projection_mod = include_str!("../../mod.rs");
-    let diagnostic_surfaces_mod = include_str!("../../diagnostic_surfaces/mod.rs");
     let certification_snapshot_support =
         include_str!("../../../certification/support/historical_query_snapshot/mod.rs");
     let certification_snapshot_derived_support = include_str!(
@@ -228,7 +227,7 @@ fn declared_query_surfaces_mod_does_not_inline_snapshot_row_fallback_logic() {
         );
     }
     assert!(
-        !diagnostic_surfaces_mod.contains("pub(crate) mod query_diagnostics;"),
-        "diagnostic surfaces should not keep the internal query-diagnostics declaration lane after runtime-boundary rehome",
+        !projection_mod.contains("mod diagnostic_surfaces;"),
+        "projection root should not keep the deleted diagnostic_surfaces lane mounted after runtime-boundary rehome",
     );
 }

@@ -31,11 +31,15 @@ def project_run(
         projection["current"] = {"phase": 1, "turn": "plan"}
 
     for event in events:
-        if event.get("thread_id") and not projection["session"]["thread_id"]:
+        if event.get("thread_id"):
             projection["session"]["thread_id"] = event["thread_id"]
         if event["event_type"] == "prompt_selected":
             turn_instance_id = event["payload"].get("turn_instance_id")
-            current = projection.get("current")
+            current = prompt_cursor_match_current(
+                projection,
+                event.get("phase_id"),
+                event.get("turn"),
+            )
             if (
                 isinstance(current, dict)
                 and current.get("phase") == event.get("phase_id")
@@ -43,6 +47,10 @@ def project_run(
                 and isinstance(turn_instance_id, str)
                 and turn_instance_id
             ):
+                projection["current"] = {
+                    "phase": current["phase"],
+                    "turn": current["turn"],
+                }
                 projection["current_turn_instance_id"] = turn_instance_id
             continue
         if event["event_type"] == "run_started":
@@ -80,6 +88,7 @@ def project_run(
         first_unfinished = find_first_unfinished_phase(projection)
         if first_unfinished is not None:
             projection["current"] = {"phase": first_unfinished["id"], "turn": "plan"}
+    normalize_current_from_phase_state(projection)
 
     projection["last_event"] = events[-1] if events else None
     return projection
@@ -94,10 +103,13 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
         "contract_template": config["contract_template"],
         "runner_control": config.get("runner_control", {}),
         "session": {
-            "command": config["session_defaults"]["command"],
+            "provider": config["session_defaults"].get("provider", "codex"),
+            "command": config["session_defaults"].get("command"),
+            "command_args": config["session_defaults"].get("command_args", []),
             "model": config["session_defaults"]["model"],
-            "reasoning_effort": config["session_defaults"]["reasoning_effort"],
-            "config": config["session_defaults"]["config"],
+            "reasoning_effort": config["session_defaults"].get("reasoning_effort"),
+            "config": config["session_defaults"].get("config", {}),
+            "reuse_session": config["session_defaults"].get("reuse_session", True),
             "thread_id": None,
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
@@ -130,6 +142,56 @@ def project_phase(phase: dict[str, Any]) -> dict[str, Any]:
 def find_first_unfinished_phase(projection: dict[str, Any]) -> dict[str, Any] | None:
     for phase in projection["phases"]:
         if phase["status"] != "complete" or phase["qa_status"] != "passed":
+            return phase
+    return None
+
+
+def normalize_current_from_phase_state(projection: dict[str, Any]) -> None:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        return
+    first_unfinished = find_first_unfinished_phase(projection)
+    if first_unfinished is None:
+        projection["current"] = None
+        projection["current_turn_instance_id"] = None
+        return
+    current_phase = phase_by_id(projection, current.get("phase"))
+    if current_phase is None:
+        projection["current"] = {"phase": first_unfinished["id"], "turn": "plan"}
+        projection["current_turn_instance_id"] = None
+        return
+    if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
+        if current_phase["id"] != first_unfinished["id"]:
+            projection["current"] = {"phase": first_unfinished["id"], "turn": "plan"}
+            projection["current_turn_instance_id"] = None
+
+
+def prompt_cursor_match_current(
+    projection: dict[str, Any],
+    event_phase_id: Any,
+    event_turn: Any,
+) -> dict[str, Any] | None:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        return None
+    first_unfinished = find_first_unfinished_phase(projection)
+    if first_unfinished is None:
+        return current
+    if event_phase_id == first_unfinished["id"] and event_turn == "plan":
+        return {"phase": first_unfinished["id"], "turn": "plan"}
+    current_phase = phase_by_id(projection, current.get("phase"))
+    if current_phase is None:
+        return {"phase": first_unfinished["id"], "turn": "plan"}
+    if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
+        if current.get("turn") not in {"test_review", "test_repair_plan", "test_repair_implement", "code_quality_review"}:
+            if current_phase["id"] != first_unfinished["id"]:
+                return {"phase": first_unfinished["id"], "turn": "plan"}
+    return current
+
+
+def phase_by_id(projection: dict[str, Any], phase_id: Any) -> dict[str, Any] | None:
+    for phase in projection["phases"]:
+        if phase["id"] == phase_id:
             return phase
     return None
 

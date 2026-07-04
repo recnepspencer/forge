@@ -42,12 +42,16 @@
   },
   "contract_template": "templates/_contract_test_hardening.md",
   "session_defaults": {
+    "provider": "codex",
     "command": "C:/nvm4w/nodejs/codex.cmd",
     "model": "gpt-5.4",
     "reasoning_effort": "medium",
+    "reuse_session": false,
     "config": {
       "approval_policy": "never",
-      "sandbox_mode": "danger-full-access"
+      "sandbox_mode": "danger-full-access",
+      "service_tier": "fast",
+      "features.fast_mode": true
     }
   },
   "phases": [

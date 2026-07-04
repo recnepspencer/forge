@@ -165,9 +165,15 @@ fn query_boundary_residue_rows_are_exact() {
         row.owner() == QueryBackedConsumerResidueOwner::WorthTopo
             && row.disposition() == QueryBackedConsumerResidueDisposition::ExplicitResidue
     }));
+    assert!(residue
+        .iter()
+        .any(|row| { row.current_surface() == "TopologyReadViewParityArtifact::view_digest_hex" }));
     assert!(residue.iter().any(|row| {
-        row.owner() == QueryBackedConsumerResidueOwner::ForgeQuery
-            && row.disposition() == QueryBackedConsumerResidueDisposition::QueryGap
+        row.current_surface()
+            == "historical_context_for_family(... HistoricalPathReuseDescriptor::retained_reuse())"
+            && row.owner() == QueryBackedConsumerResidueOwner::WorthTopo
+            && row.disposition() == QueryBackedConsumerResidueDisposition::ExplicitResidue
+            && row.query_gap_kind().is_none()
     }));
 }
 

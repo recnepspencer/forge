@@ -12,7 +12,7 @@ use super::error::{
     WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
 };
 use crate::workload_composition::{
-    public_closeout::current_public_closeout_consumer_residue_manifest,
+    planner_owned_routing::current_public_closeout_consumer_residue_manifest,
     ConflictBatchAdmissionInventory, ConflictBatchAdmissionInventoryRow,
     ConflictBatchAdmissionReplacementPhase, ConflictBatchAdmissionSurfaceIdentity,
 };

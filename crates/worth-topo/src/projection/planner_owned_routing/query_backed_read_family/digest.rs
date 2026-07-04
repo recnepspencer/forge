@@ -4,7 +4,7 @@ use crate::projection::read_views::domain::TopologyReadRequestFamily;
 
 use super::selected_route::TopologyQueryBackedConsumerFamilyRow;
 
-pub(super) fn family_row_digest(
+pub(crate) fn family_row_digest(
     request_family: TopologyReadRequestFamily,
     status: &str,
     reuse_posture: &str,
@@ -45,7 +45,7 @@ pub(super) fn family_row_digest(
     )
 }
 
-pub(super) fn closeout_digest(
+pub(crate) fn closeout_digest(
     family_rows: &[TopologyQueryBackedConsumerFamilyRow],
     handle_identity_digest: &str,
     support_snapshot_digest: &str,

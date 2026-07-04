@@ -15,7 +15,7 @@ pub(super) fn topo_rows() -> Vec<CompiledProductReuseInventoryRow> {
     vec![
         row(
             Surface::BuildDerivedEquivalenceContract,
-            "crates/worth-topo/src/projection/diagnostic_surfaces/equivalence_contract.rs",
+            "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/admitted_contract.rs",
             "build_derived_equivalence_contract",
             "DerivedEquivalenceContractReport",
             Category::LocalEquivalenceHelper,
@@ -34,7 +34,7 @@ pub(super) fn topo_rows() -> Vec<CompiledProductReuseInventoryRow> {
         ),
         row(
             Surface::BuildDerivedEquivalenceContractReport,
-            "crates/worth-topo/src/projection/diagnostic_surfaces/equivalence_contract.rs",
+            "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/admitted_contract.rs",
             "build_derived_equivalence_contract_report",
             "DerivedEquivalenceContractReport",
             Category::LocalEquivalenceHelper,
@@ -53,7 +53,7 @@ pub(super) fn topo_rows() -> Vec<CompiledProductReuseInventoryRow> {
         ),
         row(
             Surface::CompareDerivedEquivalenceContracts,
-            "crates/worth-topo/src/projection/diagnostic_surfaces/equivalence_contract.rs",
+            "crates/worth-topo/src/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/reuse_decision_contract.rs",
             "compare_derived_equivalence_contracts",
             "DerivedParityComparisonReport::equivalent_derived_meaning",
             Category::LocalEquivalenceHelper,

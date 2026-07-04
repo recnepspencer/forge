@@ -31,6 +31,9 @@ pub enum PlannerOwnedRoutingInventoryError {
         surface: &'static str,
         disposition: PlannerOwnedRoutingDisposition,
     },
+    SelfReplacingCapPath {
+        surface: &'static str,
+    },
     ExportParseFailure {
         source_path: &'static str,
         statement: String,
@@ -108,6 +111,10 @@ impl Display for PlannerOwnedRoutingInventoryError {
                 f,
                 "ordinary surface `{surface}` has invalid disposition {:?}",
                 disposition
+            ),
+            Self::SelfReplacingCapPath { surface } => write!(
+                f,
+                "capped residue surface `{surface}` reuses the replacement lane path instead of naming an exact surviving residue path"
             ),
             Self::ExportParseFailure {
                 source_path,

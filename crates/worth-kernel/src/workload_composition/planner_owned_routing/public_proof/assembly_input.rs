@@ -1,16 +1,17 @@
 use crate::workload_composition::planner_owned_routing::public_proof::require_admitted_public_proof_input_matches_selected_route_packet;
-use crate::workload_composition::public_closeout::{
-    WorthTouchedGraphConflictPublicCloseoutError, WorthTouchedGraphConflictPublicCloseoutErrorKind,
-    WorthTouchedGraphConflictPublicCloseoutInput,
-};
 use crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutover;
 use crate::workload_composition::{
     WorthTouchedGraphConflictAdmittedPublicProofInput, WorthTouchedGraphConflictResidueChain,
     WorthTouchedGraphConflictSelectedRoutePacket,
 };
 
+use super::assembly_types::WorthTouchedGraphConflictPublicProofAssemblyInputParts;
+use super::types::{
+    WorthTouchedGraphConflictPublicCloseoutError, WorthTouchedGraphConflictPublicCloseoutErrorKind,
+};
+
 pub(crate) struct WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
-    closeout_input: WorthTouchedGraphConflictPublicCloseoutInput<'a>,
+    closeout_input: WorthTouchedGraphConflictPublicProofAssemblyInputParts<'a>,
     cutover: &'a WorthWorkloadOrdinaryConsumerCutover,
     selected_route_packet: &'a WorthTouchedGraphConflictSelectedRoutePacket,
     admitted_public_proof_input: &'a WorthTouchedGraphConflictAdmittedPublicProofInput,
@@ -18,7 +19,7 @@ pub(crate) struct WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
 
 impl<'a> WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
     pub(crate) fn new(
-        closeout_input: WorthTouchedGraphConflictPublicCloseoutInput<'a>,
+        closeout_input: WorthTouchedGraphConflictPublicProofAssemblyInputParts<'a>,
         cutover: &'a WorthWorkloadOrdinaryConsumerCutover,
         selected_route_packet: &'a WorthTouchedGraphConflictSelectedRoutePacket,
         admitted_public_proof_input: &'a WorthTouchedGraphConflictAdmittedPublicProofInput,
@@ -48,9 +49,13 @@ impl<'a> WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
                     .lower_proof_chain_inputs()
                     .transaction_packet_identities
             || cutover.replay_scope_identities()
-                != selected_route_packet.lower_proof_chain_inputs().replay_scope_identities
+                != selected_route_packet
+                    .lower_proof_chain_inputs()
+                    .replay_scope_identities
             || cutover.undo_scope_identities()
-                != selected_route_packet.lower_proof_chain_inputs().undo_scope_identities
+                != selected_route_packet
+                    .lower_proof_chain_inputs()
+                    .undo_scope_identities
         {
             return Err(WorthTouchedGraphConflictPublicCloseoutError::new(
                 WorthTouchedGraphConflictPublicCloseoutErrorKind::IncompleteProofChain,
@@ -67,7 +72,7 @@ impl<'a> WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
 
     pub(crate) fn closeout_input(
         &self,
-    ) -> &WorthTouchedGraphConflictPublicCloseoutInput<'a> {
+    ) -> &WorthTouchedGraphConflictPublicProofAssemblyInputParts<'a> {
         &self.closeout_input
     }
 
@@ -76,7 +81,7 @@ impl<'a> WorthTouchedGraphConflictPublicProofAssemblyInput<'a> {
     }
 
     pub(crate) fn residue_chain(&self) -> WorthTouchedGraphConflictResidueChain {
-        WorthTouchedGraphConflictResidueChain::from_cutover_rows(self.cutover.rows())
+        WorthTouchedGraphConflictResidueChain::from_current_live_surfaces(self.cutover.rows())
     }
 
     pub(crate) fn selected_route_packet(&self) -> &WorthTouchedGraphConflictSelectedRoutePacket {

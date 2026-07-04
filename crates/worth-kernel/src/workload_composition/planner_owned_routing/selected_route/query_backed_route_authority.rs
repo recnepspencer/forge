@@ -1,4 +1,4 @@
-use topology::facade::TopologyQueryBackedReadFamilySelectedRouteAuthority;
+use topology::certification::TopologyQueryBackedReadFamilySelectedRouteAuthority;
 
 use super::packet::WorthTouchedGraphConflictSelectedRoutePacket;
 

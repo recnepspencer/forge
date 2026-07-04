@@ -6,7 +6,7 @@ error: cannot construct `EvidenceLookupInputAdmissionRequest<'_>` with struct li
 5 |         spatial_touch_authority: (),
   |         --------------------------- private field
   |
-  = note: ...and other private fields `stage`, `receipt_family`, `stage_receipt_digest`, `stage_receipt_spatial_touch_digest`, `topology_seed` and `query_evidence` that were not provided
+  = note: ...and other private fields that were not provided
 help: you might have meant to use the `from_spatial_touch_authority` associated function
   |
 4 -     let _ = EvidenceLookupInputAdmissionRequest {

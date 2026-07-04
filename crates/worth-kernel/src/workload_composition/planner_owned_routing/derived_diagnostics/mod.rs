@@ -1,8 +1,19 @@
 mod current;
+mod projection;
+mod selection;
 
 #[cfg(test)]
 mod tests;
 
-pub use current::current_worth_touched_graph_conflict_derived_read_diagnostic_input;
 #[cfg(test)]
-pub(crate) use current::current_worth_touched_graph_conflict_derived_read_diagnostic_input_with_packet_loader;
+pub(crate) use current::current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader;
+pub(crate) use selection::select_rich_localization;
+pub use current::{
+    current_worth_touched_graph_conflict_derived_diagnostic_projection,
+    current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
+};
+pub use projection::{
+    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
+    WorthTouchedGraphConflictDerivedDiagnosticProjection,
+    WorthTouchedGraphConflictRichDerivedDiagnosticLocalization,
+};

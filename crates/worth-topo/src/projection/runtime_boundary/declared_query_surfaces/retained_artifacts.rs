@@ -4,7 +4,7 @@ use serde_json::Value;
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
+use crate::projection::runtime_boundary::diagnostic_projection::DerivedReadDiagnostics;
 use crate::validation::DerivedTopologyValidationReport;
 
 use super::{

@@ -41,6 +41,8 @@ fn source_firewall_scans_kernel_topo_and_spatial_regions() {
             WorthTouchedGraphConflictForbiddenSurface::EntityOnlyOverlapHelper,
             WorthTouchedGraphConflictForbiddenSurface::BroadTopologyScan,
             WorthTouchedGraphConflictForbiddenSurface::BroadEvidenceScan,
+            WorthTouchedGraphConflictForbiddenSurface::LockFirstAdmission,
+            WorthTouchedGraphConflictForbiddenSurface::SpeculativeRollbackAdmission,
             WorthTouchedGraphConflictForbiddenSurface::RollbackAdmission,
             WorthTouchedGraphConflictForbiddenSurface::CallerOwnedSerialization,
             WorthTouchedGraphConflictForbiddenSurface::CallerOwnedCompatibility,
@@ -48,6 +50,11 @@ fn source_firewall_scans_kernel_topo_and_spatial_regions() {
             WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier,
             WorthTouchedGraphConflictForbiddenSurface::LocalComparatorFolklore,
             WorthTouchedGraphConflictForbiddenSurface::CallerOwnedReuseDecision,
+            WorthTouchedGraphConflictForbiddenSurface::PlannerRouteConstruction,
+            WorthTouchedGraphConflictForbiddenSurface::LocalPublicProofFabrication,
+            WorthTouchedGraphConflictForbiddenSurface::LocalDiagnosticAuthorityFabrication,
+            WorthTouchedGraphConflictForbiddenSurface::SupportWrapperShortcut,
+            WorthTouchedGraphConflictForbiddenSurface::LegacyExplainerImport,
         ])
     );
 }
@@ -171,6 +178,46 @@ fn source_firewall_rejects_registered_overlap_and_scan_relapse() {
             "fn shadow_lookup_cache_key() {}\n",
             WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier,
         ),
+        (
+            "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/admitted_route.rs",
+            "fn shadow_selected_route_admission() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::PlannerRouteConstruction,
+        ),
+        (
+            "crates/worth-topo/src/projection/planner_owned_routing/query_backed_read_family/selected_route_authority.rs",
+            "fn shadow_selected_route_authority() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::PlannerRouteConstruction,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/assembly.rs",
+            "fn shadow_local_public_closeout_helper() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalPublicProofFabrication,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
+            "fn shadow_public_closeout_current_loader() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalPublicProofFabrication,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/architecture_alignment.rs",
+            "fn shadow_alignment_report_helper() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalPublicProofFabrication,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/derived_diagnostics/current.rs",
+            "fn shadow_local_diagnostic_authority() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LocalDiagnosticAuthorityFabrication,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/current.rs",
+            "fn shadow_public_facade_route_loader() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::SupportWrapperShortcut,
+        ),
+        (
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/inspection.rs",
+            "fn shadow_local_public_explainer() {}\n",
+            WorthTouchedGraphConflictForbiddenSurface::LegacyExplainerImport,
+        ),
     ];
     for (relative_path, source, _) in hostile_sources {
         let path = workspace.join(relative_path);
@@ -217,6 +264,12 @@ fn source_firewall_closeout_binds_deletion_closeout_and_phase_fifteen_coverage()
     assert!(closeout
         .covered_forbidden_surfaces()
         .contains(&WorthTouchedGraphConflictForbiddenSurface::DisplacedCacheKeyCarrier));
+    assert!(closeout
+        .covered_forbidden_surfaces()
+        .contains(&WorthTouchedGraphConflictForbiddenSurface::PlannerRouteConstruction));
+    assert!(closeout
+        .covered_forbidden_surfaces()
+        .contains(&WorthTouchedGraphConflictForbiddenSurface::LocalPublicProofFabrication));
 }
 
 #[test]
@@ -284,6 +337,72 @@ fn source_firewall_closeout_rejects_missing_public_facade_fence_class() {
     );
     assert!(
         error.detail().contains("selected-equivalence-family"),
+        "expected missing fence class detail, got: {}",
+        error.detail()
+    );
+}
+
+#[test]
+fn source_firewall_closeout_rejects_missing_support_wrapper_shortcut_fence_class() {
+    let report = current_worth_touched_graph_conflict_source_firewall_report()
+        .expect("current source firewall report should load");
+    let deletion_closeout =
+        crate::workload_composition::current_worth_touched_graph_conflict_deletion_closeout()
+            .expect("current deletion closeout should load");
+    let hostile_topology_closeout = topology::certification::
+        topology_public_facade_compile_fail_closeout_excluding_fence_class_for_tests(
+            "support-wrapper-shortcut",
+        )
+        .expect("hostile topology public-facade closeout should lower");
+    let spatial_public_facade_closeout = current_spatial_public_facade_compile_fail_closeout()
+        .expect("spatial public-facade closeout should load");
+
+    let error = super::closeout::closeout_from_products(
+        &report,
+        &deletion_closeout,
+        &hostile_topology_closeout,
+        &spatial_public_facade_closeout,
+    )
+    .expect_err("missing support-wrapper shortcut fence class should fail phase 15 closeout");
+    assert_eq!(
+        error.kind(),
+        WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind::PublicFacadeCertificationMismatch
+    );
+    assert!(
+        error.detail().contains("support-wrapper-shortcut"),
+        "expected missing fence class detail, got: {}",
+        error.detail()
+    );
+}
+
+#[test]
+fn source_firewall_closeout_rejects_missing_legacy_explainer_import_fence_class() {
+    let report = current_worth_touched_graph_conflict_source_firewall_report()
+        .expect("current source firewall report should load");
+    let deletion_closeout =
+        crate::workload_composition::current_worth_touched_graph_conflict_deletion_closeout()
+            .expect("current deletion closeout should load");
+    let topology_public_facade_closeout = current_topology_public_facade_compile_fail_closeout()
+        .expect("topology public-facade closeout should load");
+    let hostile_spatial_closeout =
+        worth_spatial::certification::spatial_public_facade_compile_fail_closeout_excluding_fence_class_for_tests(
+            "legacy-explainer-import",
+        )
+        .expect("hostile spatial public-facade closeout should lower");
+
+    let error = super::closeout::closeout_from_products(
+        &report,
+        &deletion_closeout,
+        &topology_public_facade_closeout,
+        &hostile_spatial_closeout,
+    )
+    .expect_err("missing legacy explainer import fence class should fail phase 15 closeout");
+    assert_eq!(
+        error.kind(),
+        WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind::PublicFacadeCertificationMismatch
+    );
+    assert!(
+        error.detail().contains("legacy-explainer-import"),
         "expected missing fence class detail, got: {}",
         error.detail()
     );

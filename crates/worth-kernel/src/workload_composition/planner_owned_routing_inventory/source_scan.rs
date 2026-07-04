@@ -9,29 +9,42 @@ use super::row::PlannerOwnedRoutingInventoryRow;
 struct DisplacedLaneSurfaceAuditSpec {
     lane: Lane,
     root_mod_path: &'static str,
+    include_crate_exports: bool,
 }
 
 const DISPLACED_LANE_SURFACE_AUDIT_SPECS: &[DisplacedLaneSurfaceAuditSpec] = &[
     DisplacedLaneSurfaceAuditSpec {
         lane: Lane::KernelPublicCloseout,
         root_mod_path: "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
+        include_crate_exports: false,
     },
     DisplacedLaneSurfaceAuditSpec {
         lane: Lane::KernelSourceFirewall,
         root_mod_path: "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
-    },
-    DisplacedLaneSurfaceAuditSpec {
-        lane: Lane::TopoDiagnosticSurfaces,
-        root_mod_path: "crates/worth-topo/src/projection/diagnostic_surfaces/mod.rs",
+        include_crate_exports: false,
     },
     DisplacedLaneSurfaceAuditSpec {
         lane: Lane::TopoQueryBackedConsumerCutover,
         root_mod_path: "crates/worth-topo/src/projection/query_backed_consumer_cutover/mod.rs",
+        include_crate_exports: false,
+    },
+    DisplacedLaneSurfaceAuditSpec {
+        lane: Lane::TopoDiagnosticProjectionInputResidue,
+        root_mod_path:
+            "crates/worth-topo/src/projection/planner_owned_routing/diagnostic_projection_input/report_types.rs",
+        include_crate_exports: false,
+    },
+    DisplacedLaneSurfaceAuditSpec {
+        lane: Lane::TopoDiagnosticProjectionInputResidue,
+        root_mod_path:
+            "crates/worth-topo/src/projection/planner_owned_routing/diagnostic_projection_input/source.rs",
+        include_crate_exports: true,
     },
     DisplacedLaneSurfaceAuditSpec {
         lane: Lane::SpatialEvidenceLookupPublicCloseout,
         root_mod_path:
-            "crates/worth-spatial/src/workload_platform/evidence_lookup_public_closeout/mod.rs",
+            "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/mod.rs",
+        include_crate_exports: false,
     },
 ];
 
@@ -71,7 +84,8 @@ fn ensure_displaced_lane_surface_coverage(
     rows: &[PlannerOwnedRoutingInventoryRow],
 ) -> Result<(), PlannerOwnedRoutingInventoryError> {
     for spec in DISPLACED_LANE_SURFACE_AUDIT_SPECS {
-        let covered_surfaces = load_displaced_lane_covered_surfaces(spec.root_mod_path)?;
+        let covered_surfaces =
+            load_displaced_lane_covered_surfaces(spec.root_mod_path, spec.include_crate_exports)?;
         for surface in covered_surfaces {
             if !rows.iter().any(|row| {
                 row.displaced_lane() == spec.lane && row.surface_name() == surface.as_str()
@@ -90,9 +104,10 @@ fn ensure_displaced_lane_surface_coverage(
 
 fn load_displaced_lane_covered_surfaces(
     root_mod_path: &'static str,
+    include_crate_exports: bool,
 ) -> Result<Vec<String>, PlannerOwnedRoutingInventoryError> {
     let mut covered_surfaces = BTreeSet::new();
-    covered_surfaces.extend(load_public_exports(root_mod_path)?);
+    covered_surfaces.extend(load_exports(root_mod_path, include_crate_exports)?);
     covered_surfaces.extend(load_public_item_tokens(root_mod_path)?);
 
     let mut visited_modules = BTreeSet::new();
@@ -116,7 +131,7 @@ fn collect_crate_visible_module_surfaces(
         return Ok(());
     }
 
-    covered_surfaces.extend(load_public_exports(source_path)?);
+    covered_surfaces.extend(load_exports(source_path, false)?);
     covered_surfaces.extend(load_public_item_tokens(source_path)?);
 
     for child_module_path in load_crate_visible_child_module_paths(source_path)? {
@@ -130,8 +145,9 @@ fn collect_crate_visible_module_surfaces(
     Ok(())
 }
 
-fn load_public_exports(
+fn load_exports(
     source_path: &str,
+    include_crate_exports: bool,
 ) -> Result<Vec<String>, PlannerOwnedRoutingInventoryError> {
     let contents = load_source(source_path)?;
     let mut exports = Vec::new();
@@ -150,8 +166,14 @@ fn load_public_exports(
             continue;
         }
 
-        if statement.starts_with("pub use ") && !statement.starts_with("pub(crate) use ") {
-            exports.extend(parse_pub_use_statement(source_path, &statement)?);
+        if statement.starts_with("pub use ")
+            || (include_crate_exports && statement.starts_with("pub(crate) use "))
+        {
+            exports.extend(parse_use_statement(
+                source_path,
+                &statement,
+                include_crate_exports,
+            )?);
         }
 
         statement.clear();
@@ -228,13 +250,19 @@ fn parse_crate_visible_child_module_name(line: &str) -> Option<&str> {
     Some(module_name)
 }
 
-fn parse_pub_use_statement(
+fn parse_use_statement(
     source_path: &str,
     statement: &str,
+    include_crate_exports: bool,
 ) -> Result<Vec<String>, PlannerOwnedRoutingInventoryError> {
     let statement = statement.trim();
     let statement = statement
         .strip_prefix("pub use ")
+        .or_else(|| {
+            include_crate_exports
+                .then_some(statement)
+                .and_then(|value| value.strip_prefix("pub(crate) use "))
+        })
         .and_then(|value| value.strip_suffix(';'))
         .ok_or_else(|| PlannerOwnedRoutingInventoryError::ExportParseFailure {
             source_path: leak_str(source_path),
@@ -352,5 +380,5 @@ pub(super) fn displaced_lane_covered_surfaces(
         .ok_or(PlannerOwnedRoutingInventoryError::MissingDisplacedLanePath(
             lane.path(),
         ))?;
-    load_displaced_lane_covered_surfaces(spec.root_mod_path)
+    load_displaced_lane_covered_surfaces(spec.root_mod_path, spec.include_crate_exports)
 }

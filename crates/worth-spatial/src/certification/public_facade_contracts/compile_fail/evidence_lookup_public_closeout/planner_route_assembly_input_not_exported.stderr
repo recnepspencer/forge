@@ -1,0 +1,15 @@
+error[E0603]: struct `EvidenceLookupPublicCloseoutAssemblyInput` is private
+ --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/planner_route_assembly_input_not_exported.rs:1:61
+  |
+1 | use worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublicCloseoutAssemblyInput;
+  |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private struct
+  |
+note: the struct `EvidenceLookupPublicCloseoutAssemblyInput` is defined here
+ --> src/facade/evidence_lookup_public_closeout/mod.rs
+  |
+  | pub(crate) use assembly_input::EvidenceLookupPublicCloseoutAssemblyInput;
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: import `EvidenceLookupPublicCloseoutAssemblyInput` directly
+  |
+1 | use worth_spatial::facade::evidence_lookup_public_closeout::assembly_input::EvidenceLookupPublicCloseoutAssemblyInput;
+  |                                                             ++++++++++++++++

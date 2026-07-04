@@ -8,7 +8,7 @@ use schema::facade::QueryAspectPath;
 use serde_json::{json, Value};
 
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
-use crate::projection::diagnostic_surfaces::derived_read_diagnostics::DerivedReadDiagnostics;
+use crate::projection::runtime_boundary::diagnostic_projection::DerivedReadDiagnostics;
 use crate::query_native_runtime_boundary::query_aspect_touch;
 
 #[cfg(test)]

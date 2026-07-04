@@ -18,6 +18,7 @@ pub(crate) mod replay_undo_semantic_graph;
 pub(crate) mod topology_class;
 pub(crate) mod touched_graph_basis;
 pub(crate) mod touched_graph_conflict;
+pub(crate) mod touched_graph_parity_closeout;
 
 #[allow(unused_imports)]
 pub(crate) use commit_flow::{
@@ -60,10 +61,11 @@ pub use interpretation::{
 };
 #[allow(unused_imports)]
 pub use planner_owned_routing_semantic_graph::{
-    admit_planner_decision_trace_identity, admit_planner_derived_diagnostic_contract_identity,
-    admit_planner_public_proof_identity, admit_planner_selected_family_identity,
-    admit_planner_selected_product_identity, admit_planner_selected_route_identity,
-    admit_planner_witness_identity, PlannerAdmittedExplanationInput, PlannerDecisionTraceIdentity,
+    admit_planner_admitted_explanation_input, admit_planner_decision_trace_identity,
+    admit_planner_derived_diagnostic_contract_identity, admit_planner_public_proof_identity,
+    admit_planner_selected_family_identity, admit_planner_selected_product_identity,
+    admit_planner_selected_route_identity, admit_planner_witness_identity,
+    PlannerAdmittedExplanationInput, PlannerDecisionTraceIdentity,
     PlannerDerivedDiagnosticContractIdentity, PlannerExplanationArtifactKind, PlannerMismatchLocus,
     PlannerOwnedRoutingSemanticGraphVocabularyError,
     PlannerOwnedRoutingSemanticGraphVocabularyErrorKind, PlannerPublicProofIdentity,
@@ -107,4 +109,16 @@ pub use touched_graph_conflict::{
     ConflictParticipantIdentity, ConflictParticipantIdentityInput, ConflictPriorProofIdentity,
     ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
     ConflictRoutingVocabularyError, ConflictTransactionProofInput,
+};
+#[allow(unused_imports)]
+pub(crate) use touched_graph_parity_closeout::{
+    admit_touched_graph_parity_readiness_claim, admit_touched_graph_parity_readiness_input,
+};
+#[allow(unused_imports)]
+pub use touched_graph_parity_closeout::{
+    TouchedGraphParityArchitectureClaim, TouchedGraphParityClaimKind,
+    TouchedGraphParityCoverageContributor, TouchedGraphParityCoverageRow,
+    TouchedGraphParityFamilyKind, TouchedGraphParityQuerySurfaceKind,
+    TouchedGraphParityReadinessError, TouchedGraphParityReadinessErrorKind,
+    TouchedGraphParityReadinessInput, TouchedGraphParityResidueClassification,
 };

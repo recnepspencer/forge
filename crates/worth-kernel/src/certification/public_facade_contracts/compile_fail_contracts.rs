@@ -184,12 +184,19 @@ const TOUCHED_GRAPH_CONFLICT_CONSTRUCTOR_DENIAL_EXPECTED_ERRORS: &[(&str, &str)]
     ),
     (
         "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/public_closeout_product_not_constructible.rs",
-        "private",
+        "unresolved import",
     ),
     (
         "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/milestone_fourteen_seed_not_constructible.rs",
         "private",
     ),
+];
+
+const TOUCHED_GRAPH_CONFLICT_EXPORT_DENIAL_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/planner_proof_input_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/selected_route_packet_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/derived_diagnostic_loader_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/touched_graph_conflict/topology_derived_read_diagnostic_support_not_exported.rs",
 ];
 
 #[test]
@@ -297,6 +304,13 @@ fn kernel_public_boundary_rejects_deleted_ordinary_consumer_wrapper_lane() {
 fn kernel_public_boundary_rejects_touched_graph_conflict_constructor_bypass() {
     for (fixture, expected_stderr) in TOUCHED_GRAPH_CONFLICT_CONSTRUCTOR_DENIAL_EXPECTED_ERRORS {
         assert_compile_fail_fixture_with_stderr(fixture, expected_stderr);
+    }
+}
+
+#[test]
+fn kernel_public_boundary_rejects_touched_graph_conflict_planner_owned_exports() {
+    for fixture in TOUCHED_GRAPH_CONFLICT_EXPORT_DENIAL_FIXTURES {
+        assert_compile_fail_fixture(fixture);
     }
 }
 

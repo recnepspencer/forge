@@ -1,6 +1,7 @@
 mod authority_occurrence_inventory;
 mod closeout;
 mod counters;
+mod current;
 mod deletion_ledger;
 mod denial;
 mod milestone_ten_seed;
@@ -15,6 +16,7 @@ pub use authority_occurrence_inventory::{
 };
 pub use closeout::WorthTopologyMilestoneNineCloseout;
 pub use counters::WorthTopologyMilestoneNineCloseoutCounters;
+pub use current::current_topology_validator_invariant_milestone_nine_closeout;
 pub use deletion_ledger::{
     WorthTopologyMilestoneNineDeletionDisposition, WorthTopologyMilestoneNineDeletionLedgerReport,
     WorthTopologyMilestoneNineDeletionLedgerRow,

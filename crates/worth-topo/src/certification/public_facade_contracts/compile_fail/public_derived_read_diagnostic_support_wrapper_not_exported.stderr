@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `topology::derived_read_diagnostic_input`
+ --> src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_wrapper_not_exported.rs:1:15
+  |
+1 | use topology::derived_read_diagnostic_input::current_topology_derived_read_diagnostic_input_with_selected_route_authority;
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `derived_read_diagnostic_input` in `topology`

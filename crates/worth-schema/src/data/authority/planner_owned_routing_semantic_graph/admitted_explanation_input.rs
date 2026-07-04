@@ -32,7 +32,7 @@ impl PlannerAdmittedExplanationInput {
     }
 }
 
-pub(crate) fn admit_planner_admitted_explanation_input(
+pub fn admit_planner_admitted_explanation_input(
     authority_owner: impl Into<String>,
     admitted_packet_digest: impl Into<String>,
 ) -> Result<PlannerAdmittedExplanationInput, PlannerOwnedRoutingSemanticGraphVocabularyError> {

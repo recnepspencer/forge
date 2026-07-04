@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth Touched Graph Milestone 16 Cross Family Parity Proof Residue Collapse And 7.5 Readiness",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+      "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
+      "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
+      "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
+      "crates/forge-query/docs/AI_README.md",
+      "crates/forge-query/docs/foundations/consumer-kit.md",
+      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/worth-kernel/src/workload_composition/planner_owned_routing/selected_route/mod.rs",
+      "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/mod.rs",
+      "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/inspection.rs",
+      "crates/worth-topo/src/projection/planner_owned_routing/mod.rs",
+      "crates/worth-spatial/src/workload_platform/planner_owned_routing/mod.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "reuse_session": true,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access",
+      "service_tier": "fast",
+      "features.fast_mode": true
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Cross-Family Coverage Inventory Cut Line",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/forge-query/docs",
+        "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md"
+      ],
+      "acceptance": [
+        "the coverage inventory contains at least one ordinary-path row for every milestone-16 family kind",
+        "coverage rows name source path, owner crate, replacement lane, selected identity fields consumed, Query surface kind, and ordinary-path reachability",
+        "the inventory replaces vague mixed-helper language with exact module or folder paths"
+      ],
+      "instructions": "Start by refreshing the coding-guideline docs, the touched-graph roadmap, the milestone-16 spec, and forge-query AI_README context, then freeze the live cross-family coverage inventory from real production surfaces.",
+      "qa_focus": "No grouped-family theater, no grep-only inventory, and no unowned ordinary-path surfaces hidden behind public closeout language."
+    },
+    {
+      "id": 2,
+      "title": "Shared Parity And Readiness Contract Vocabulary",
+      "owner": "worth-schema, worth-kernel",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "shared contracts distinguish declare-once parity, selected-route parity, public-projection parity, and readiness parity",
+        "family contributors compile against one shared parity vocabulary rather than crate-local row types",
+        "readiness inputs cannot be fabricated from helper-assembled strings or digests"
+      ],
+      "instructions": "Land one shared parity and readiness contract lane before any family contributor or readiness proof is implemented.",
+      "qa_focus": "No generic closeout row bags and no disguised public facade exported as readiness vocabulary."
+    },
+    {
+      "id": 3,
+      "title": "Live Coverage Ledger And Architecture Claim Derivation",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "architecture-claim rows are mechanically derived from live family contributors",
+        "rows carry selected-route, seed, architecture-claim, and residue or firewall digests where applicable",
+        "closeout counts and residue counts derive from the live ledger rather than prose"
+      ],
+      "instructions": "Build the live coverage ledger and architecture-claim derivation lane from Milestone 15 proof products and named contributor APIs.",
+      "qa_focus": "No docs-only ledger and no production truth derived from tests."
+    },
+    {
+      "id": 4,
+      "title": "Representative Selected-Route Parity Path",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "one named current-path builder carries selected route, family, product, witness, Query posture, residue, and firewall identities end to end",
+        "the representative path includes query-backed read, evidence, replay or conflict, reuse, and public-proof or diagnostic consumers",
+        "the path rejects local helper reassembly"
+      ],
+      "instructions": "Prove one real representative path from touched authority through public proof using a named builder in the new representative_path lane.",
+      "qa_focus": "No synthetic test-only path and no result-only parity claims."
+    },
+    {
+      "id": 5,
+      "title": "Registered Read, Validator, And Invalidation Family Parity",
+      "owner": "worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src/projection",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "read, validator or invariant, and invalidation families each have explicit contributor catalog rows",
+        "one representative declaration applies to multiple matching operators or stages without editing them",
+        "operator-local routing language is gone or explicitly blocked"
+      ],
+      "instructions": "Certify topology read, validator or invariant, and invalidation families as declare-once contributors to the shared architecture.",
+      "qa_focus": "No entity-only fallback and no operator-local declarations under new helper names."
+    },
+    {
+      "id": 6,
+      "title": "Evidence Lookup And Retained Spatial Family Parity",
+      "owner": "worth-spatial, worth-kernel, forge-query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform",
+        "crates/worth-kernel/src/workload_composition",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "spatial contributor catalogs name exact route packet, public-closeout digest, support posture, and consumer-residue inputs",
+        "Query support posture and consumer residue stay distinct from Worth-local residue",
+        "spatial parity rejects local Query-gap fabrication"
+      ],
+      "instructions": "Certify evidence lookup and retained spatial families as real contributors to the shared architecture while consuming real Query-owned support surfaces.",
+      "qa_focus": "No spatial-local Query language and no flattening of Query blockers into generic local debt."
+    },
+    {
+      "id": 7,
+      "title": "Replay And Undo Family Parity",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "replay and undo contributors lower through carried scope and witness contracts",
+        "explicit replay or undo contributor catalog rows name the exact packets or identities used for parity proof",
+        "parity fails when replay or undo identities diverge even if outputs match"
+      ],
+      "instructions": "Certify replay and undo as carried-proof semantic-graph families rather than local scope-reconstruction helpers.",
+      "qa_focus": "No scope reconstruction folklore and no denial-witness collapse into strings."
+    },
+    {
+      "id": 8,
+      "title": "Conflict, Independence, And Batch-Admission Family Parity",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "conflict, independence, and batch-admission contributors lower through carried overlap, plan, and witness contracts",
+        "an explicit conflict-family contributor catalog names the exact packets or identities used for parity proof",
+        "batch-admission remains a pre-execution selected-plan family"
+      ],
+      "instructions": "Certify the Milestone 13 concurrency families as one aspect-routed architecture rather than parallel policy subsystems.",
+      "qa_focus": "No executor-success theater and no local conflict categories hiding inside diagnostics."
+    },
+    {
+      "id": 9,
+      "title": "Compiled-Product Equivalence And Reuse Family Parity",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "reuse contributors lower through explicit equivalence, compatibility, and witness contracts",
+        "an explicit reuse-family contributor catalog names the exact packets or identities used for parity proof",
+        "parity fails when reuse basis, equivalence policy, or denial identity diverges even if outputs match"
+      ],
+      "instructions": "Certify compiled-product equivalence and reuse as explicit semantic claims rather than performance folklore.",
+      "qa_focus": "No rendered-output sameness and no compatibility silently promoted into reuse."
+    },
+    {
+      "id": 10,
+      "title": "Public Proof And Derived Diagnostic Parity",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "public proof and diagnostics expose matching selected-route, family, product, and witness identities for the same representative path",
+        "projections fail on mismatched selected-route, seed, residue, or firewall digests",
+        "public proof and diagnostics remain derived parity consumers rather than alternate family declarers"
+      ],
+      "instructions": "Certify public proof and derived diagnostics as downstream projections of the same carried route authority used by the family contributors.",
+      "qa_focus": "No projection authority drift and no pretty-output closeout without identity agreement."
+    },
+    {
+      "id": 11,
+      "title": "Milestone 7.5 Readiness Handoff Contract",
+      "owner": "worth-schema, worth-kernel, worth-topo",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection"
+      ],
+      "acceptance": [
+        "one typed readiness artifact carries touched or overlap identities, selected-route identities, representative family coverage, Query posture evidence, residue and firewall digests, and the architecture-claim digest",
+        "one concrete downstream 7.5-style consumer accepts only the readiness artifact and fails if required parity fields are missing",
+        "the handoff is not a bundle of separately reassembled report values"
+      ],
+      "instructions": "Emit one typed handoff proving Milestone 7.5 can start from touched authority and planner-owned proof without reviving local overlap or diagnostic rules.",
+      "qa_focus": "No prose checklist handoff and no downstream rediscovery from topology or conflict helpers."
+    },
+    {
+      "id": 12,
+      "title": "Final Ordinary-Authority Closeout Lane Cutover",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "new closeout lanes exist on disk before displaced lane surgery",
+        "displaced ordinary-authority helper lanes stop owning live architecture claims",
+        "Phase 1 names the exact displaced lanes this phase cuts over"
+      ],
+      "instructions": "Create the final parallel closeout lanes and cut any remaining mixed ordinary-authority folders off the unified architecture.",
+      "qa_focus": "No in-place final cleanup and no legacy helper wrapped with a parity facade and still left authoritative."
+    },
+    {
+      "id": 13,
+      "title": "Compatibility, Adapter, And Report Hard Deletion Or Residue Cap",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform"
+      ],
+      "acceptance": [
+        "every remaining compatibility, adapter, or report lane is either deleted or explicitly present in the residue ledger",
+        "residual report helpers cannot serve as ordinary-path sources for parity, readiness, or public projection claims",
+        "surviving lanes are already unreachable from the ordinary path"
+      ],
+      "instructions": "Delete or explicitly cap the remaining compatibility, adapter, and report lanes that no longer own ordinary architecture truth after cutover.",
+      "qa_focus": "No tiny-folder exemptions and no hidden architecture authority left in report helpers."
+    },
+    {
+      "id": 14,
+      "title": "Reintroduction Firewalls And Compile-Fail Denials",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/source_firewall",
+        "crates/worth-topo/src/certification",
+        "crates/worth-spatial/src/certification"
+      ],
+      "acceptance": [
+        "compile-fail fixtures reject imports of displaced local routing, overlap, reuse, or closeout helpers on covered paths",
+        "parity and readiness inputs cannot be fabricated from raw parts",
+        "firewalls guard route rediscovery, overlap reconstruction, reuse-basis fabrication, and raw public proof or readiness constructors"
+      ],
+      "instructions": "Seal the finished architecture so the old family-local languages cannot quietly return.",
+      "qa_focus": "No review-discipline-only preservation and no raw constructors left public just for tests."
+    },
+    {
+      "id": 15,
+      "title": "Exact Residue Collapse And Honest Query-Gap Classification",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "crates/forge-query/docs"
+      ],
+      "acceptance": [
+        "every surviving row is derived from live code surfaces with explicit owner, blocker, and removal trigger",
+        "Query-gap rows classify one exact blocker shape: missing, not admitted, not exposed, or identity semantics insufficient",
+        "later-scope blocker rows are mechanically unreachable from the covered ordinary path"
+      ],
+      "instructions": "Collapse every remaining disagreement with the unified architecture into exact typed residue or exact upstream blocker classification.",
+      "qa_focus": "No vague future-work buckets and no generic Query-gap theology."
+    },
+    {
+      "id": 16,
+      "title": "Cross-Family Closeout Matrix And Certified Counts",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "the final matrix publishes the required certification columns for coverage, parity, readiness, and residue counts",
+        "matrix counts match live derived coverage and residue ledgers exactly",
+        "uncertified family kinds fail closeout"
+      ],
+      "instructions": "Emit the final matrix proving the roadmap’s declared family coverage, residue counts, and architecture claims match live implementation state.",
+      "qa_focus": "No hand-maintained matrix and no approximate counts."
+    },
+    {
+      "id": 17,
+      "title": "Final Closeout And Roadmap Completion Gate",
+      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src/projection",
+        "crates/worth-spatial/src/workload_platform",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "the final gate fails unless covered family kinds, representative path, readiness handoff, and residue collapse all certify the same architecture claim",
+        "the final gate fails if any covered ordinary path still depends on a second ontology",
+        "the roadmap closes only when the next system can extend the kernel by declaration rather than reopening covered family logic"
+      ],
+      "instructions": "Close the touched graph roadmap only when the parity proof, readiness handoff, residue collapse, and reintroduction firewalls all agree.",
+      "qa_focus": "No completion by vibes and no mostly-unified exceptions."
+    }
+  ]
+}

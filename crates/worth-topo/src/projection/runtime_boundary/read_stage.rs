@@ -11,7 +11,7 @@ use crate::derived_topology::materialized_graph::{
 use crate::derived_topology::traversal_views::{
     bootstrap_topology_interpretation, InterpretedTopologyView,
 };
-use crate::projection::planner_owned_routing::diagnostic_projection_input::derive_topology_validation_report;
+use crate::projection::runtime_boundary::diagnostic_projection::derive_topology_validation_report;
 use crate::validation::TopologyValidationError;
 
 #[derive(Debug)]

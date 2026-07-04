@@ -13,7 +13,7 @@ The durable runner contract is:
 - chat is the artifact of record for plans, findings, explanations, and command
   summaries
 
-Never edit the config file, event log, or projection file directly from a Codex
+Never edit the config file, event log, or projection file directly from an
 turn. The only state transition you are allowed to make is the final
 `RUNNER_EVENT:` marker that the orchestrator will validate and append.
 
@@ -53,8 +53,11 @@ Default posture by turn:
   can be implemented literally next turn
 - `implement`: make the production cutover and the narrow proof reruns needed
   to know whether it works
-- `review`: find only load-bearing gaps; do not manufacture style findings
-- `repair`: close every finding in the same family before handing the phase back
+- `review`: find only load-bearing gaps, but batch the full set of visible
+  independent gaps in the same cutover family instead of stopping at the first
+  one
+- `repair`: close every visible finding in the same family before handing the
+  phase back
 - `test_review`: identify the deepest dishonest seam, not every minor testing
   imperfection
 - `test_repair_plan`: produce one plan that removes that dishonest seam at the
@@ -140,6 +143,6 @@ The event type must match the current turn:
 If this prompt includes a runner turn instance id requirement, your payload must
 echo it exactly.
 
-If a recovery turn tells you the prior Codex turn already completed the work, do
+If a recovery turn tells you the prior agent turn already completed the work, do
 not redo the work. Reconstruct the honest outcome from the code and emit the
 correct typed `RUNNER_EVENT` for that already-completed turn.

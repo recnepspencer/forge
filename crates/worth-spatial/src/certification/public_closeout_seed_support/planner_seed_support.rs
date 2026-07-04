@@ -2,7 +2,9 @@ use super::alignment_summary::{
     SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture, SpatialPublicCloseoutSeedSupportError,
 };
-use crate::workload_platform::planner_owned_routing::evidence_lookup_route::current_evidence_lookup_route_source;
+use crate::facade::evidence_lookup_route::{
+    current_evidence_lookup_route_source, CurrentEvidenceLookupRouteSource,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialMilestoneFifteenPlannerSeedSupport {
@@ -27,9 +29,7 @@ pub fn current_spatial_milestone_fifteen_planner_seed_support(
 }
 
 impl SpatialMilestoneFifteenPlannerSeedSupport {
-    fn from_current_route_source(
-        route_source: &crate::workload_platform::planner_owned_routing::evidence_lookup_route::CurrentEvidenceLookupRouteSource,
-    ) -> Self {
+    fn from_current_route_source(route_source: &CurrentEvidenceLookupRouteSource) -> Self {
         let boundary = route_source.left_boundary();
         let handoff = boundary.workload_handoff();
         let index_product = boundary.index_product();

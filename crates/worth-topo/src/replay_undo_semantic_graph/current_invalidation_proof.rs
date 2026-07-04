@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use forge_query::facade::ForgeQueryApplicationFacade;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -21,11 +23,7 @@ use crate::query_domain::{
     TopologyCurrentHeadReadHandleExt, TopologyReadAnchorIdentity,
 };
 use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
-use crate::validation_authority_inventory::WorthValidationAuthorityMilestoneEightSeedSummary;
-use crate::validator_invariant_catalog::{
-    current_worth_topology_legality_catalog_closeout, WorthTopologyLegalitySelectionCloseout,
-    WorthTopologyValidatorRoutingClosure,
-};
+use crate::validator_invariant_catalog::current_topology_validator_invariant_selection_closeout_for_declared_touch;
 
 use super::current_declaration_support::{
     first_source_identity_for_relation_kind, successor_candidate_with_retained_predecessor,
@@ -46,13 +44,12 @@ pub(crate) struct CurrentTopologyInvalidationProofError {
 
 pub(crate) fn current_topology_invalidation_proof(
 ) -> Result<CurrentTopologyInvalidationProof, CurrentTopologyInvalidationProofError> {
+    static CACHE: OnceLock<CurrentTopologyInvalidationProof> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
     let declaration = current_topology_invalidation_declaration()?;
-    let proof = declaration
-        .declared_touched_basis_proof(
-            "topology.rewire_loop_successor_program",
-            TopologyTouchedOperatingWorld::mainline(),
-        )
-        .map_err(current_runtime_error)?;
+    let proof = current_topology_invalidation_declared_touch_proof()?;
     let touched_closure = DerivedInvalidationTouchedClosure::from_declared_touch(&proof);
     let legality_support = legality_support_for_touch(&proof)?;
     let inventory = current_derived_invalidation_authority_inventory();
@@ -86,11 +83,13 @@ pub(crate) fn current_topology_invalidation_proof(
         detail: format!("current topology invalidation selected plan failed: {error:?}"),
     })?;
 
-    Ok(CurrentTopologyInvalidationProof {
+    let current_proof = CurrentTopologyInvalidationProof {
         declaration,
         touched_closure,
         selected_plan,
-    })
+    };
+    let _ = CACHE.set(current_proof.clone());
+    Ok(current_proof)
 }
 
 impl CurrentTopologyInvalidationProof {
@@ -115,6 +114,10 @@ impl CurrentTopologyInvalidationProofError {
 
 fn current_topology_invalidation_declaration(
 ) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, CurrentTopologyInvalidationProofError> {
+    static CACHE: OnceLock<TopologyRewireLoopSuccessorProgramDeclaration> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
     let mut runtime = crate::validation::reference_integrity::build_milestone_one_runtime()
         .map_err(|error| CurrentTopologyInvalidationProofError {
             detail: format!("current topology invalidation runtime did not build: {error:?}"),
@@ -155,33 +158,39 @@ fn current_topology_invalidation_declaration(
         "phase 13 current topology invalidation proof",
     )
     .map_err(CurrentTopologyInvalidationProofError::new)?;
-    successor_relocation_declaration(&local_rewire, &chosen_successor_identity)
-        .map_err(CurrentTopologyInvalidationProofError::new)
+    let declaration = successor_relocation_declaration(&local_rewire, &chosen_successor_identity)
+        .map_err(CurrentTopologyInvalidationProofError::new)?;
+    let _ = CACHE.set(declaration.clone());
+    Ok(declaration)
+}
+
+pub(crate) fn current_topology_invalidation_declared_touch_proof(
+) -> Result<TopologyDeclaredTouchedGraphBasisProof, CurrentTopologyInvalidationProofError> {
+    static CACHE: OnceLock<TopologyDeclaredTouchedGraphBasisProof> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+    let declared_touch_proof = current_topology_invalidation_declaration()?
+        .declared_touched_basis_proof(
+            "topology.rewire_loop_successor_program",
+            TopologyTouchedOperatingWorld::mainline(),
+        )
+        .map_err(current_runtime_error)?;
+    let _ = CACHE.set(declared_touch_proof.clone());
+    Ok(declared_touch_proof)
 }
 
 fn legality_support_for_touch(
     proof: &TopologyDeclaredTouchedGraphBasisProof,
 ) -> Result<DerivedInvalidationLegalitySupportEvidence, CurrentTopologyInvalidationProofError> {
-    let milestone_eight_summary =
-        WorthValidationAuthorityMilestoneEightSeedSummary::current_imported_public_closeout();
-    let routing_closure =
-        WorthTopologyValidatorRoutingClosure::from_declared_touch(proof, &milestone_eight_summary)
-            .map_err(|error| CurrentTopologyInvalidationProofError {
-                detail: format!("current topology invalidation routing closure failed: {error:?}"),
-            })?;
-    let catalog_closeout = current_worth_topology_legality_catalog_closeout().map_err(|error| {
-        CurrentTopologyInvalidationProofError {
-            detail: format!("current topology legality catalog closeout failed: {error:?}"),
-        }
-    })?;
     let selection_closeout =
-        WorthTopologyLegalitySelectionCloseout::from_phase_two_closeout_and_routing_closure(
-            &catalog_closeout,
-            &routing_closure,
-        )
-        .map_err(|error| CurrentTopologyInvalidationProofError {
-            detail: format!("current topology invalidation legality selection failed: {error:?}"),
-        })?;
+        current_topology_validator_invariant_selection_closeout_for_declared_touch(proof).map_err(
+            |error| CurrentTopologyInvalidationProofError {
+                detail: format!(
+                    "current topology invalidation validator selection closeout failed: {error:?}"
+                ),
+            },
+        )?;
     Ok(
         DerivedInvalidationLegalitySupportEvidence::from_selected_legality_plan(
             selection_closeout.selected_plan(),

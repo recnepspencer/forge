@@ -18,6 +18,7 @@ use crate::workload_composition::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind {
     SourceFirewallViolation,
+    MissingPhaseFourteenCoverage,
     MissingPhaseFifteenCoverage,
     DeletionCloseoutMismatch,
     PublicFacadeCertificationMismatch,
@@ -158,6 +159,19 @@ pub(crate) fn closeout_from_products(
             ));
         }
     }
+    for forbidden_surface in
+        WorthTouchedGraphConflictForbiddenSurface::phase_fourteen_relapse_categories()
+    {
+        if !covered_forbidden_surfaces.contains(forbidden_surface) {
+            return Err(WorthTouchedGraphConflictSourceFirewallCloseoutError::new(
+                WorthTouchedGraphConflictSourceFirewallCloseoutErrorKind::MissingPhaseFourteenCoverage,
+                format!(
+                    "phase 14 source firewall closeout requires covered forbidden surface `{}`",
+                    forbidden_surface.as_str()
+                ),
+            ));
+        }
+    }
     let covered_public_fence_classes = topology_public_facade_closeout
         .covered_fence_classes()
         .iter()
@@ -177,6 +191,19 @@ pub(crate) fn closeout_from_products(
         "equivalence-policy-identity",
         "reuse-decision",
         "rebuild-denial",
+        "selected-route-authority",
+        "selected-route-admission",
+        "legacy-closeout-facade",
+        "public-closeout-assembly-input",
+        "derived-read-diagnostic-support",
+        "support-wrapper-shortcut",
+        "legacy-explainer-import",
+        "local-routing-helper-import",
+        "route-rediscovery",
+        "overlap-reconstruction",
+        "reuse-basis-fabrication",
+        "closeout-helper-import",
+        "readiness-constructor",
     ] {
         if !covered_public_fence_classes.contains(&required_class) {
             return Err(WorthTouchedGraphConflictSourceFirewallCloseoutError::new(

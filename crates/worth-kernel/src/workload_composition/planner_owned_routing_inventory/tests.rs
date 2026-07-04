@@ -17,8 +17,8 @@ fn planner_owned_routing_inventory_is_scope_complete() {
     for lane in [
         DisplacedLane::KernelPublicCloseout,
         DisplacedLane::KernelSourceFirewall,
-        DisplacedLane::TopoDiagnosticSurfaces,
         DisplacedLane::TopoQueryBackedConsumerCutover,
+        DisplacedLane::TopoDiagnosticProjectionInputResidue,
         DisplacedLane::SpatialEvidenceLookupPublicCloseout,
     ] {
         for surface in source_scan::displaced_lane_covered_surfaces(lane).expect("lane surfaces") {
@@ -57,10 +57,15 @@ fn every_row_names_displaced_and_replacement_lanes() {
     let closeout = current_planner_owned_routing_inventory().expect("inventory");
     for row in closeout.report().rows() {
         assert!(!row.displaced_lane().path().is_empty());
-        assert!(row
-            .replacement_lane()
-            .path()
-            .contains("planner_owned_routing"));
+        assert!(
+            row.replacement_lane()
+                .path()
+                .contains("planner_owned_routing")
+                || row
+                    .replacement_lane()
+                    .path()
+                    .contains("touched_graph_parity_closeout")
+        );
         assert!(!row.current_authority_sources().is_empty());
         for authority_source in row.current_authority_sources() {
             assert!(!authority_source.contains(' '));
@@ -69,17 +74,61 @@ fn every_row_names_displaced_and_replacement_lanes() {
 }
 
 #[test]
-fn query_rows_are_marked_as_query_gaps() {
+fn capped_rows_name_a_real_residue_path_instead_of_self_replacing() {
     let closeout = current_planner_owned_routing_inventory().expect("inventory");
     for row in closeout
         .report()
         .rows()
         .iter()
-        .filter(|row| row.displaced_lane() == DisplacedLane::ForgeQueryDocs)
+        .filter(|row| row.disposition() == Disposition::Cap)
     {
-        assert_eq!(row.disposition(), Disposition::QueryGap);
-        assert!(row.query_gap().is_some());
+        assert_ne!(
+            row.displaced_lane().path(),
+            row.replacement_lane().path(),
+            "capped residue surface `{}` must name an exact surviving residue path instead of claiming the same path as its replacement lane",
+            row.surface_name()
+        );
     }
+}
+
+#[test]
+fn phase_twelve_names_exact_closeout_replacement_lanes_for_topology_and_spatial_authority() {
+    let closeout = current_planner_owned_routing_inventory().expect("inventory");
+
+    for lane in [
+        Lane::TopoQueryBackedReadFamily,
+        Lane::TopoInvalidationRoute,
+        Lane::SpatialEvidenceLookupRoute,
+        Lane::SpatialPublicCloseoutRoute,
+    ] {
+        assert!(
+            lane.path().contains("touched_graph_parity_closeout"),
+            "phase 12 replacement lane must point at the final parity closeout directory: {}",
+            lane.path()
+        );
+    }
+
+    assert!(closeout.report().rows().iter().any(|row| {
+        row.replacement_lane() == Lane::TopoQueryBackedReadFamily
+            && row.displaced_lane() == DisplacedLane::TopoQueryBackedConsumerCutover
+    }));
+    assert!(closeout.report().rows().iter().any(|row| {
+        row.replacement_lane() == Lane::SpatialPublicCloseoutRoute
+            && row.displaced_lane() == DisplacedLane::SpatialEvidenceLookupPublicCloseout
+    }));
+}
+
+#[test]
+fn query_gap_rows_require_precise_upstream_capability_names() {
+    let closeout = current_planner_owned_routing_inventory().expect("inventory");
+    assert!(
+        closeout
+            .report()
+            .rows()
+            .iter()
+            .all(|row| row.displaced_lane() != DisplacedLane::ForgeQueryDocs),
+        "planner-owned routing inventory must not keep a second static forge-query gap ledger once exact live residue manifests own the upstream blocker classification",
+    );
 }
 
 #[test]
@@ -91,21 +140,21 @@ fn high_risk_surfaces_keep_exact_phase_one_semantics() {
         rows,
         Surface::DerivedReadDiagnostics,
         Role::DerivedDiagnosticProjection,
-        Disposition::Migrate,
+        Disposition::Cap,
         Lane::TopoDiagnosticProjectionInput,
     );
     assert_row_semantics(
         rows,
         Surface::DerivedValidationExecutionReport,
         Role::DerivedDiagnosticProjection,
-        Disposition::Migrate,
+        Disposition::Cap,
         Lane::TopoDiagnosticProjectionInput,
     );
     assert_row_semantics(
         rows,
         Surface::DerivedInvalidationTargetRow,
         Role::DerivedDiagnosticProjection,
-        Disposition::Migrate,
+        Disposition::Cap,
         Lane::TopoDiagnosticProjectionInput,
     );
     assert_row_semantics(
@@ -124,10 +173,17 @@ fn high_risk_surfaces_keep_exact_phase_one_semantics() {
     );
     assert_row_semantics(
         rows,
-        Surface::QueryWorkspacePublicSupportMatrix,
-        Role::PriorProofInputConsumer,
-        Disposition::QueryGap,
-        Lane::TopoQueryBackedReadFamily,
+        Surface::BuildDerivedReadDiagnostics,
+        Role::DerivedDiagnosticProjection,
+        Disposition::Cap,
+        Lane::TopoDiagnosticProjectionInput,
+    );
+    assert_row_semantics(
+        rows,
+        Surface::DeriveTopologyValidationReport,
+        Role::DerivedDiagnosticProjection,
+        Disposition::Cap,
+        Lane::TopoDiagnosticProjectionInput,
     );
 }
 

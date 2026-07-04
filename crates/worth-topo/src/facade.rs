@@ -121,9 +121,6 @@ pub use crate::derived_invalidation_selected_plan::{
     DerivedInvalidationSelectionErrorKind, DerivedInvalidationTouchedClosure,
     DerivedInvalidationUnaffectedRow,
 };
-pub use crate::derived_read_diagnostic_input::{
-    TopologyDerivedReadDiagnosticInput, TopologyDerivedReadDiagnosticInputAdmissionError,
-};
 pub use crate::derived_topology::compiled_product_consumer_cutover::{
     current_topology_consumer_residue_manifest, TopologyConsumerResidueDisposition,
     TopologyConsumerResidueOwner, TopologyConsumerResidueRow,
@@ -131,14 +128,17 @@ pub use crate::derived_topology::compiled_product_consumer_cutover::{
 pub use crate::projection::planner_owned_routing::compiled_product_reuse_route::{
     current_topology_compiled_product_reuse_route_packet, TopologyCompiledProductReuseRoutePacket,
 };
-pub use crate::projection::planner_owned_routing::query_backed_read_family::{
-    admit_current_topology_query_backed_consumer_cutover_with_selected_route_authority,
+pub use crate::projection::planner_owned_routing::{
+    admit_milestone_seven_five_overlap_readiness_consumer,
+    TopologyMilestoneSevenFiveOverlapReadinessConsumer, TopologyMilestoneSevenFiveReadinessError,
+    TopologyMilestoneSevenFiveReadinessErrorKind,
+};
+pub use crate::projection::query_backed_consumer_cutover::{
     admit_topology_query_backed_consumer_cutover, current_query_backed_consumer_residue_manifest,
     current_topology_query_backed_consumer_cutover, QueryBackedConsumerResidueDisposition,
     QueryBackedConsumerResidueOwner, QueryBackedConsumerResidueRow,
     TopologyQueryBackedConsumerCutover, TopologyQueryBackedConsumerCutoverCurrentError,
-    TopologyQueryBackedConsumerFamilyRow, TopologyQueryBackedReadFamilySelectedRouteAuthority,
-    TopologyReadModelReusePosture,
+    TopologyQueryBackedConsumerFamilyRow, TopologyReadModelReusePosture,
 };
 pub use crate::projection::runtime_boundary::declared_query_surfaces::truth_surfaces::{
     NamingAttachmentReport, NamingAttachmentRow,
@@ -160,6 +160,10 @@ pub use crate::projection::runtime_boundary::query_runtime::{
 };
 pub use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters, TopologyRuntimeFailure,
+};
+pub use crate::projection::touched_graph_parity_closeout::invalidation_family::{
+    current_topology_invalidation_route_packet, TopologyInvalidationRoutePacket,
+    TopologyInvalidationRoutePacketCurrentError,
 };
 pub use crate::query_adoption::{
     current_topology_phase_eight_performance_counters,
@@ -311,6 +315,16 @@ pub use crate::topology_operators::{
     TopologyTouchedScope, TopologyWireRehomeHalfEdgeMember, TopologyWireSplitHalfEdgeMember,
     TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
+};
+pub use crate::touched_graph_parity_closeout::{
+    current_topology_invalidation_coverage_contributor, TOPOLOGY_INVALIDATION_CLAIM_PATH,
+};
+pub use crate::touched_graph_parity_closeout::{
+    current_topology_read_family_coverage_contributor, TOPOLOGY_READ_FAMILY_CLAIM_PATH,
+};
+pub use crate::touched_graph_parity_closeout::{
+    current_topology_validator_invariant_coverage_contributor,
+    TOPOLOGY_VALIDATOR_INVARIANT_CLAIM_PATH,
 };
 #[doc(hidden)]
 pub use crate::validation_authority_inventory::{

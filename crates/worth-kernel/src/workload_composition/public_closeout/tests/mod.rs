@@ -4,24 +4,24 @@ mod failure_guards;
 mod milestone_fifteen_seed;
 mod milestone_fifteen_seed_spatial_authority;
 
-use super::architecture_alignment_report::build_architecture_alignment_report;
-use super::public_closeout::{
-    current_public_closeout_components,
-    current_public_closeout_components_with_matrix_targets_loader,
-    current_worth_touched_graph_conflict_milestone_fifteen_seed,
-    current_worth_touched_graph_conflict_public_closeout, publish_from_parts,
-};
-use super::public_closeout_types::WorthTouchedGraphConflictPublicCloseoutErrorKind;
-use super::residue_chain::{
-    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
-    WorthTouchedGraphConflictResidueRow,
-};
+use super::current_worth_touched_graph_conflict_milestone_fifteen_seed;
 use super::{
     current_public_closeout_consumer_residue_manifest,
     PublicCloseoutConsumerResidueBoundaryPosture, PublicCloseoutConsumerResidueDisposition,
     PublicCloseoutConsumerResidueOwner, WorthTouchedGraphConflictMilestoneFifteenSeed,
 };
+use super::{
+    WorthTouchedGraphConflictPublicCloseoutErrorKind,
+    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
+    WorthTouchedGraphConflictResidueRow,
+};
 use crate::workload_composition::compiled_product_consumer_cutover::current_coverage_targets;
+use crate::workload_composition::planner_owned_routing::public_proof::{
+    build_architecture_alignment_report, current_public_closeout_components,
+    current_public_closeout_components_with_matrix_targets_loader,
+    current_worth_touched_graph_conflict_public_closeout, publish_from_parts,
+};
+use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictResidueDisposition;
 use crate::workload_composition::{
     admit_worth_touched_graph_conflict_public_proof_input,
     current_conflict_batch_admission_inventory,
@@ -162,6 +162,12 @@ pub(crate) fn hostile_public_proof_input_with_foreign_reuse_basis(
             .to_string(),
         current_input
             .spatial_equivalence_policy_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_compatibility_basis_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_reuse_basis_identity_digest()
             .to_string(),
         current_input.topology_freshness_requirement_posture(),
         current_input.topology_rendered_output_comparison_posture(),

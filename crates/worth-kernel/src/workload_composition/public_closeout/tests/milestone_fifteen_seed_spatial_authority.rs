@@ -59,6 +59,12 @@ fn hostile_public_proof_input_with_foreign_spatial_reuse_decision(
         current_input
             .spatial_equivalence_policy_identity_digest()
             .to_string(),
+        current_input
+            .spatial_selected_compatibility_basis_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_reuse_basis_identity_digest()
+            .to_string(),
         current_input.topology_freshness_requirement_posture(),
         current_input.topology_rendered_output_comparison_posture(),
         current_input.spatial_freshness_requirement_posture(),
@@ -130,6 +136,12 @@ fn hostile_public_proof_input_with_foreign_spatial_rebuild_denial(
             .to_string(),
         current_input
             .spatial_equivalence_policy_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_compatibility_basis_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_reuse_basis_identity_digest()
             .to_string(),
         current_input.topology_freshness_requirement_posture(),
         current_input.topology_rendered_output_comparison_posture(),
@@ -203,6 +215,12 @@ fn hostile_public_proof_input_with_foreign_reuse_route_packet_identity(
         current_input
             .spatial_equivalence_policy_identity_digest()
             .to_string(),
+        current_input
+            .spatial_selected_compatibility_basis_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_reuse_basis_identity_digest()
+            .to_string(),
         current_input.topology_freshness_requirement_posture(),
         current_input.topology_rendered_output_comparison_posture(),
         current_input.spatial_freshness_requirement_posture(),
@@ -275,6 +293,12 @@ fn hostile_public_proof_input_with_foreign_spatial_route_tuple(
         foreign_spatial_selected_family_identity.to_string(),
         foreign_spatial_selected_product_identity_digest.to_string(),
         foreign_spatial_equivalence_policy_identity_digest.to_string(),
+        current_input
+            .spatial_selected_compatibility_basis_identity_digest()
+            .to_string(),
+        current_input
+            .spatial_selected_reuse_basis_identity_digest()
+            .to_string(),
         current_input.topology_freshness_requirement_posture(),
         current_input.topology_rendered_output_comparison_posture(),
         current_input.spatial_freshness_requirement_posture(),

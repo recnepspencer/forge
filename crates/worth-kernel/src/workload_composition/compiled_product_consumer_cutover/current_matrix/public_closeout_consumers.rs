@@ -32,7 +32,7 @@ pub(super) fn current_public_closeout_consumer_rows() -> Result<
         ),
         KernelCompiledProductConsumerCoverageTarget::new(
             KernelCompiledProductConsumerClusterIdentity::ConflictPublicCloseout,
-            "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
             "current_worth_touched_graph_conflict_public_closeout",
             KernelCompiledProductConsumerResponsibility::PublicCloseout,
             KernelCompiledProductFamilyClass::KernelPublicCloseoutProofChain,
@@ -45,12 +45,12 @@ pub(super) fn current_public_closeout_consumer_rows() -> Result<
                 "kernel.public_closeout.proof_chain:v1",
             ),
             None,
-            "public closeout still publishes conflict-era proof before compiled-product consumer cutover exists",
+            "public closeout now lives on the planner-owned proof lane and must stay certified there instead of reviving the deleted legacy helper path",
             &[Surface::CurrentWorthTouchedGraphConflictPublicCloseout],
         ),
         KernelCompiledProductConsumerCoverageTarget::new(
             KernelCompiledProductConsumerClusterIdentity::ConflictPublicCloseoutSeed,
-            "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
+            "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
             "current_worth_touched_graph_conflict_milestone_fifteen_seed",
             KernelCompiledProductConsumerResponsibility::PublicCloseout,
             KernelCompiledProductFamilyClass::KernelPublicCloseoutSeed,
@@ -63,7 +63,7 @@ pub(super) fn current_public_closeout_consumer_rows() -> Result<
                 "kernel.public_closeout.seed:v1",
             ),
             None,
-            "Milestone 15 seed still reflects conflict-era closeout staging rather than compiled-product consumer closeout",
+            "Milestone 15 seed must stay certified on the planner-owned public-proof lane instead of a deleted legacy public-closeout helper",
             &[Surface::CurrentWorthTouchedGraphConflictMilestoneFourteenSeed],
         ),
         KernelCompiledProductConsumerCoverageTarget::new(

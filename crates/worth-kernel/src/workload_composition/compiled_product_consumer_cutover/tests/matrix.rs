@@ -130,7 +130,7 @@ fn kernel_consumer_matrix_classifies_every_current_consumer() {
 fn consumer_matrix_rejects_unbound_product_dependencies() {
     let error = KernelCompiledProductConsumerDependencyRow::new(
         KernelCompiledProductConsumerClusterIdentity::ReplayUndoPublicCloseoutReadModel,
-        "crates/worth-kernel/src/workload_composition/public_closeout/public_closeout.rs",
+        "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/current.rs",
         "current_worth_touched_graph_conflict_public_closeout",
         KernelCompiledProductConsumerResponsibility::QueryBacked,
         KernelCompiledProductFamilyClass::QueryProjectionConsumption,

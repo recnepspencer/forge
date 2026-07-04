@@ -51,8 +51,20 @@ fn architecture_alignment_report_proves_parallel_cutover_law() {
         .rows()
         .iter()
         .filter(|row| {
-            row.boundary_posture()
-                != WorthTouchedGraphConflictResidueBoundaryPosture::CoveredOrdinaryConsumerDependency
+            row.disposition() == WorthTouchedGraphConflictResidueDisposition::ExplicitResidue
+                && row.boundary_posture()
+                    != WorthTouchedGraphConflictResidueBoundaryPosture::CoveredOrdinaryConsumerDependency
+        })
+        .map(residue_row_key)
+        .collect::<BTreeSet<_>>();
+    let expected_query_gaps = closeout
+        .residue_chain()
+        .rows()
+        .iter()
+        .filter(|row| {
+            row.disposition() == WorthTouchedGraphConflictResidueDisposition::QueryGap
+                || row.boundary_posture()
+                    == WorthTouchedGraphConflictResidueBoundaryPosture::QueryGapSupportGap
         })
         .map(residue_row_key)
         .collect::<BTreeSet<_>>();
@@ -98,6 +110,18 @@ fn architecture_alignment_report_proves_parallel_cutover_law() {
             .collect::<BTreeSet<_>>(),
         expected_residue
     );
+    assert_eq!(
+        report
+            .query_gap_support_rows()
+            .iter()
+            .map(architecture_row_key)
+            .collect::<BTreeSet<_>>(),
+        expected_query_gaps
+    );
+    assert!(report
+        .query_gap_support_rows()
+        .iter()
+        .all(|row| row.query_gap_kind().is_some() && row.mechanically_unreachable_from_ordinary_path()));
     assert!(!report
         .topology_compiled_product_identity_digest()
         .is_empty());
@@ -125,9 +149,15 @@ fn architecture_alignment_report_surfaces_second_ontology_blockers() {
         .expect("hostile cutover should lower from the real inventory path");
     let hostile_residue_chain =
         WorthTouchedGraphConflictResidueChain::from_cutover_rows(hostile_cutover.rows());
+    let selected_route_packet = current_worth_touched_graph_conflict_selected_route_packet()
+        .expect("current selected-route packet should remain available for architecture alignment");
 
-    let report = build_architecture_alignment_report(&deletion_closeout, &hostile_residue_chain)
-        .expect("architecture report should lower from typed residue and deletion authority");
+    let report = build_architecture_alignment_report(
+        &deletion_closeout,
+        &hostile_residue_chain,
+        &selected_route_packet,
+    )
+    .expect("architecture report should lower from typed residue and deletion authority");
 
     let expected_blockers = hostile_residue_chain
         .rows()
@@ -147,6 +177,10 @@ fn architecture_alignment_report_surfaces_second_ontology_blockers() {
             .collect::<BTreeSet<_>>(),
         expected_blockers
     );
+    assert!(report
+        .ordinary_second_ontology_blockers()
+        .iter()
+        .all(|row| !row.mechanically_unreachable_from_ordinary_path()));
     assert!(!report.milestone_fifteen_ready());
 }
 

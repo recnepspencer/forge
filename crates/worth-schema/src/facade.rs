@@ -58,6 +58,9 @@ pub mod platform {
         };
         pub mod planner_owned_routing_semantic_graph {
             pub use crate::data::authority::{
+                admit_planner_admitted_explanation_input, admit_planner_public_proof_identity,
+                admit_planner_selected_family_identity, admit_planner_selected_product_identity,
+                admit_planner_selected_route_identity, admit_planner_witness_identity,
                 PlannerDecisionTraceIdentity, PlannerDerivedDiagnosticContractIdentity,
                 PlannerExplanationArtifactKind, PlannerMismatchLocus,
                 PlannerOwnedRoutingSemanticGraphVocabularyError,
@@ -65,6 +68,72 @@ pub mod platform {
                 PlannerSelectedFamilyIdentity, PlannerSelectedProductIdentity,
                 PlannerSelectedRouteIdentity, PlannerWitnessIdentity, PlannerWitnessRole,
             };
+        }
+        pub mod touched_graph_parity_closeout {
+            pub use crate::data::authority::{
+                TouchedGraphParityArchitectureClaim, TouchedGraphParityClaimKind,
+                TouchedGraphParityCoverageContributor, TouchedGraphParityCoverageRow,
+                TouchedGraphParityFamilyKind, TouchedGraphParityQuerySurfaceKind,
+                TouchedGraphParityReadinessError, TouchedGraphParityReadinessErrorKind,
+                TouchedGraphParityReadinessInput, TouchedGraphParityResidueClassification,
+            };
+        }
+        #[cfg(feature = "touched-graph-parity-internal-authority")]
+        #[doc(hidden)]
+        pub mod touched_graph_parity_closeout_internal {
+            use crate::data::authority::{
+                PlannerPublicProofIdentity, PlannerSelectedFamilyIdentity,
+                PlannerSelectedProductIdentity, PlannerSelectedRouteIdentity,
+                PlannerWitnessIdentity, TouchedGraphParityArchitectureClaim,
+                TouchedGraphParityFamilyKind, TouchedGraphParityReadinessError,
+                TouchedGraphParityReadinessInput, TouchedGraphParityResidueClassification,
+            };
+
+            #[allow(clippy::too_many_arguments)]
+            pub fn admit_touched_graph_parity_readiness_input(
+                claim: TouchedGraphParityArchitectureClaim,
+                residue_classification: TouchedGraphParityResidueClassification,
+                touched_closure_digest: impl Into<String>,
+                overlap_identity_digests: Vec<String>,
+                representative_family_coverage: Vec<TouchedGraphParityFamilyKind>,
+                topology_query_posture_digest: impl Into<String>,
+                spatial_query_posture_digest: impl Into<String>,
+                residue_digest: impl Into<String>,
+                source_firewall_digest: impl Into<String>,
+                architecture_claim_digest: impl Into<String>,
+            ) -> Result<TouchedGraphParityReadinessInput, TouchedGraphParityReadinessError>
+            {
+                crate::data::authority::admit_touched_graph_parity_readiness_input(
+                    claim,
+                    residue_classification,
+                    touched_closure_digest,
+                    overlap_identity_digests,
+                    representative_family_coverage,
+                    topology_query_posture_digest,
+                    spatial_query_posture_digest,
+                    residue_digest,
+                    source_firewall_digest,
+                    architecture_claim_digest,
+                )
+            }
+
+            pub fn admit_touched_graph_parity_readiness_claim(
+                family_kind: TouchedGraphParityFamilyKind,
+                selected_route_identity: PlannerSelectedRouteIdentity,
+                selected_family_identity: PlannerSelectedFamilyIdentity,
+                selected_product_identity: PlannerSelectedProductIdentity,
+                witness_identity: PlannerWitnessIdentity,
+                public_proof_identity: PlannerPublicProofIdentity,
+            ) -> TouchedGraphParityArchitectureClaim {
+                crate::data::authority::admit_touched_graph_parity_readiness_claim(
+                    family_kind,
+                    selected_route_identity,
+                    selected_family_identity,
+                    selected_product_identity,
+                    witness_identity,
+                    public_proof_identity,
+                )
+            }
         }
         pub use crate::data::authority::precision_fallback::{
             FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,

@@ -248,36 +248,102 @@ impl WorthTouchedGraphConflictProofChain {
         }
     }
 
-    pub fn authority_digests(&self) -> &[String] { &self.authority_digests }
-    pub fn overlap_identity_digests(&self) -> &[String] { &self.overlap_identity_digests }
-    pub fn locality_footprint_digests(&self) -> &[String] { &self.locality_footprint_digests }
-    pub fn selected_conflict_plan_digests(&self) -> &[String] { &self.selected_conflict_plan_digests }
-    pub fn independence_proof_digests(&self) -> &[String] { &self.independence_proof_digests }
-    pub fn selected_batch_plan_digest(&self) -> &str { &self.selected_batch_plan_digest }
-    pub fn batch_execution_receipt_digest(&self) -> &str { &self.batch_execution_receipt_digest }
-    pub fn replay_undo_boundary_proof_digests(&self) -> &[String] { &self.replay_undo_boundary_proof_digests }
-    pub fn transaction_packet_identities(&self) -> &[String] { &self.transaction_packet_identities }
-    pub fn replay_scope_identities(&self) -> &[String] { &self.replay_scope_identities }
-    pub fn undo_scope_identities(&self) -> &[String] { &self.undo_scope_identities }
-    pub fn evidence_lookup_public_closeout_digest(&self) -> &str { &self.evidence_lookup_public_closeout_digest }
-    pub fn evidence_lookup_family_coverage_digest(&self) -> &str { &self.evidence_lookup_family_coverage_digest }
-    pub fn evidence_lookup_query_surface_matrix_digest(&self) -> &str { &self.evidence_lookup_query_surface_matrix_digest }
-    pub fn evidence_lookup_query_consumer_kit_digest(&self) -> &str { &self.evidence_lookup_query_consumer_kit_digest }
-    pub fn evidence_lookup_query_boundary_support_digest(&self) -> &str { &self.evidence_lookup_query_boundary_support_digest }
-    pub fn topology_query_backed_consumer_cutover_digest(&self) -> &str { &self.topology_query_backed_consumer_cutover_digest }
-    pub fn topology_query_public_read_family_row_digest(&self) -> &str { &self.topology_query_public_read_family_row_digest }
-    pub fn topology_query_handle_identity_digest(&self) -> &str { &self.topology_query_handle_identity_digest }
-    pub fn topology_query_operating_context_identity_digest(&self) -> &str { &self.topology_query_operating_context_identity_digest }
-    pub fn topology_query_support_snapshot_digest(&self) -> &str { &self.topology_query_support_snapshot_digest }
-    pub fn topology_query_compiled_product_identity_digest(&self) -> &str { &self.topology_query_compiled_product_identity_digest }
-    pub fn topology_query_equivalence_policy_identity_digest(&self) -> &str { &self.topology_query_equivalence_policy_identity_digest }
-    pub fn topology_query_selected_equivalence_family_identity(&self) -> &str { &self.topology_query_selected_equivalence_family_identity }
-    pub fn topology_query_selected_equivalence_basis_identity_digest(&self) -> &str { &self.topology_query_selected_equivalence_basis_identity_digest }
-    pub fn topology_query_selected_compatibility_basis_identity_digest(&self) -> &str { &self.topology_query_selected_compatibility_basis_identity_digest }
-    pub fn topology_query_selected_reuse_basis_identity_digest(&self) -> &str { &self.topology_query_selected_reuse_basis_identity_digest }
-    pub fn topology_query_reuse_decision_identity_digest(&self) -> Option<&str> { self.topology_query_reuse_decision_identity_digest.as_deref() }
-    pub fn topology_query_rebuild_denial_identity_digest(&self) -> Option<&str> { self.topology_query_rebuild_denial_identity_digest.as_deref() }
-    pub fn selected_route_identity_digest(&self) -> &str { &self.selected_route_identity_digest }
-    pub fn selected_route_packet_digest(&self) -> &str { &self.selected_route_packet_digest }
-    pub fn proof_chain_digest(&self) -> &str { &self.proof_chain_digest }
+    pub fn authority_digests(&self) -> &[String] {
+        &self.authority_digests
+    }
+    pub fn overlap_identity_digests(&self) -> &[String] {
+        &self.overlap_identity_digests
+    }
+    pub fn locality_footprint_digests(&self) -> &[String] {
+        &self.locality_footprint_digests
+    }
+    pub fn selected_conflict_plan_digests(&self) -> &[String] {
+        &self.selected_conflict_plan_digests
+    }
+    pub fn independence_proof_digests(&self) -> &[String] {
+        &self.independence_proof_digests
+    }
+    pub fn selected_batch_plan_digest(&self) -> &str {
+        &self.selected_batch_plan_digest
+    }
+    pub fn batch_execution_receipt_digest(&self) -> &str {
+        &self.batch_execution_receipt_digest
+    }
+    pub fn replay_undo_boundary_proof_digests(&self) -> &[String] {
+        &self.replay_undo_boundary_proof_digests
+    }
+    pub fn transaction_packet_identities(&self) -> &[String] {
+        &self.transaction_packet_identities
+    }
+    pub fn replay_scope_identities(&self) -> &[String] {
+        &self.replay_scope_identities
+    }
+    pub fn undo_scope_identities(&self) -> &[String] {
+        &self.undo_scope_identities
+    }
+    pub fn evidence_lookup_public_closeout_digest(&self) -> &str {
+        &self.evidence_lookup_public_closeout_digest
+    }
+    pub fn evidence_lookup_family_coverage_digest(&self) -> &str {
+        &self.evidence_lookup_family_coverage_digest
+    }
+    pub fn evidence_lookup_query_surface_matrix_digest(&self) -> &str {
+        &self.evidence_lookup_query_surface_matrix_digest
+    }
+    pub fn evidence_lookup_query_consumer_kit_digest(&self) -> &str {
+        &self.evidence_lookup_query_consumer_kit_digest
+    }
+    pub fn evidence_lookup_query_boundary_support_digest(&self) -> &str {
+        &self.evidence_lookup_query_boundary_support_digest
+    }
+    pub fn topology_query_backed_consumer_cutover_digest(&self) -> &str {
+        &self.topology_query_backed_consumer_cutover_digest
+    }
+    pub fn topology_query_public_read_family_row_digest(&self) -> &str {
+        &self.topology_query_public_read_family_row_digest
+    }
+    pub fn topology_query_handle_identity_digest(&self) -> &str {
+        &self.topology_query_handle_identity_digest
+    }
+    pub fn topology_query_operating_context_identity_digest(&self) -> &str {
+        &self.topology_query_operating_context_identity_digest
+    }
+    pub fn topology_query_support_snapshot_digest(&self) -> &str {
+        &self.topology_query_support_snapshot_digest
+    }
+    pub fn topology_query_compiled_product_identity_digest(&self) -> &str {
+        &self.topology_query_compiled_product_identity_digest
+    }
+    pub fn topology_query_equivalence_policy_identity_digest(&self) -> &str {
+        &self.topology_query_equivalence_policy_identity_digest
+    }
+    pub fn topology_query_selected_equivalence_family_identity(&self) -> &str {
+        &self.topology_query_selected_equivalence_family_identity
+    }
+    pub fn topology_query_selected_equivalence_basis_identity_digest(&self) -> &str {
+        &self.topology_query_selected_equivalence_basis_identity_digest
+    }
+    pub fn topology_query_selected_compatibility_basis_identity_digest(&self) -> &str {
+        &self.topology_query_selected_compatibility_basis_identity_digest
+    }
+    pub fn topology_query_selected_reuse_basis_identity_digest(&self) -> &str {
+        &self.topology_query_selected_reuse_basis_identity_digest
+    }
+    pub fn topology_query_reuse_decision_identity_digest(&self) -> Option<&str> {
+        self.topology_query_reuse_decision_identity_digest
+            .as_deref()
+    }
+    pub fn topology_query_rebuild_denial_identity_digest(&self) -> Option<&str> {
+        self.topology_query_rebuild_denial_identity_digest
+            .as_deref()
+    }
+    pub fn selected_route_identity_digest(&self) -> &str {
+        &self.selected_route_identity_digest
+    }
+    pub fn selected_route_packet_digest(&self) -> &str {
+        &self.selected_route_packet_digest
+    }
+    pub fn proof_chain_digest(&self) -> &str {
+        &self.proof_chain_digest
+    }
 }

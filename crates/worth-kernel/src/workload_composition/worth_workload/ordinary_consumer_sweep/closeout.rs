@@ -12,19 +12,24 @@ use super::current_cutover::{
     current_worth_workload_ordinary_consumer_cutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
     WorthWorkloadOrdinaryConsumerCutoverRow,
 };
-use super::current_ledgers::build_current_cluster_ledgers;
+use super::current_ledgers::{
+    build_current_cluster_ledgers, build_workload_composition_explainer_ledger,
+};
 use super::error::{
     WorthWorkloadOrdinaryConsumerSweepCloseoutError,
     WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
 };
 use super::residue::collect_residue_rows;
+use super::workload_composition_explainer_ledger::WorthWorkloadCompositionExplainerLedger;
+use crate::workload_composition::planner_owned_routing::{
+    current_worth_touched_graph_conflict_public_facade_with_artifact_policy,
+    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
+    WorthTouchedGraphConflictPublicFacade,
+};
 use crate::workload_composition::{
-    current_conflict_batch_admission_inventory,
-    current_worth_touched_graph_conflict_milestone_fifteen_seed,
-    current_worth_touched_graph_conflict_public_closeout,
-    ConflictBatchAdmissionCertificationPosture, ConflictBatchAdmissionCostPosture,
-    ConflictBatchAdmissionDisposition, ConflictBatchAdmissionInventory,
-    ConflictBatchAdmissionSurfaceIdentity,
+    current_conflict_batch_admission_inventory, ConflictBatchAdmissionCertificationPosture,
+    ConflictBatchAdmissionCostPosture, ConflictBatchAdmissionDisposition,
+    ConflictBatchAdmissionInventory, ConflictBatchAdmissionSurfaceIdentity,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -32,6 +37,7 @@ pub struct WorthWorkloadOrdinaryConsumerSweepCloseout {
     closeout_digest: String,
     cluster_ledgers: Vec<WorthWorkloadOrdinaryConsumerClusterLedger>,
     residue_rows: Vec<WorthWorkloadOrdinaryConsumerSweepResidueRow>,
+    workload_composition_explainer_ledger: WorthWorkloadCompositionExplainerLedger,
 }
 
 pub fn current_worth_workload_ordinary_consumer_sweep_closeout() -> Result<
@@ -64,26 +70,20 @@ pub fn current_worth_workload_ordinary_consumer_sweep_closeout() -> Result<
             format!("ordinary sweep closeout requires current evidence lookup public closeout: {error:?}"),
         )
     })?;
-    let public_closeout =
-        current_worth_touched_graph_conflict_public_closeout().map_err(|error| {
-            WorthWorkloadOrdinaryConsumerSweepCloseoutError::new(
-                WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind::MissingCurrentProofSurface,
-                format!("ordinary sweep closeout requires current public closeout: {error:?}"),
-            )
-        })?;
-    let phase_fifteen_seed = current_worth_touched_graph_conflict_milestone_fifteen_seed()
-        .map_err(|error| {
-            WorthWorkloadOrdinaryConsumerSweepCloseoutError::new(
-                WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind::MissingCurrentProofSurface,
-                format!("ordinary sweep closeout requires current Milestone 15 seed: {error:?}"),
-            )
-        })?;
+    let public_facade = current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
+    )
+    .map_err(|error| {
+        WorthWorkloadOrdinaryConsumerSweepCloseoutError::new(
+            WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind::MissingCurrentProofSurface,
+            format!("ordinary sweep closeout requires planner-owned workload-composition public facade: {error:?}"),
+        )
+    })?;
     build_closeout_from_artifacts(
         &cutover,
         &topology_cutover,
         &lookup_public_closeout,
-        &public_closeout,
-        &phase_fifteen_seed,
+        &public_facade,
         &inventory,
     )
 }
@@ -92,8 +92,7 @@ fn build_closeout_from_artifacts(
     cutover: &super::current_cutover::WorthWorkloadOrdinaryConsumerCutover,
     topology_cutover: &topology::facade::TopologyQueryBackedConsumerCutover,
     lookup_public_closeout: &worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublicCloseout,
-    public_closeout: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictPublicCloseout,
-    phase_fifteen_seed: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictMilestoneFifteenSeed,
+    public_facade: &WorthTouchedGraphConflictPublicFacade,
     inventory: &ConflictBatchAdmissionInventory,
 ) -> Result<
     WorthWorkloadOrdinaryConsumerSweepCloseout,
@@ -103,12 +102,13 @@ fn build_closeout_from_artifacts(
     require_typed_query_backed_rows(topology_cutover.family_rows())?;
     let mut residue_rows = collect_residue_rows(inventory)?;
     residue_rows.sort_by(|left, right| left.surface_name().cmp(right.surface_name()));
+    let workload_composition_explainer_ledger =
+        build_workload_composition_explainer_ledger(public_facade);
     let cluster_ledgers = build_current_cluster_ledgers(
         cutover,
         topology_cutover,
         lookup_public_closeout,
-        public_closeout,
-        phase_fifteen_seed,
+        public_facade,
         &residue_rows,
     );
     let closeout_digest = truth_digest_parts(
@@ -141,6 +141,25 @@ fn build_closeout_from_artifacts(
                     row.disposition().as_str()
                 )
             }))
+            .chain(
+                workload_composition_explainer_ledger
+                    .proof_basis_digests()
+                    .iter()
+                    .map(|digest| format!("workload-composition-explainer-proof:{digest}")),
+            )
+            .chain(
+                workload_composition_explainer_ledger
+                    .rows()
+                    .iter()
+                    .map(|row| {
+                        format!(
+                            "workload-composition-explainer:{}:{}:{}",
+                            row.surface_name(),
+                            row.owner(),
+                            row.disposition().as_str()
+                        )
+                    }),
+            )
             .chain(std::iter::once(
                 "worth-kernel:ordinary-consumer-sweep-closeout:v1".to_string(),
             ))
@@ -150,6 +169,7 @@ fn build_closeout_from_artifacts(
         closeout_digest,
         cluster_ledgers,
         residue_rows,
+        workload_composition_explainer_ledger,
     })
 }
 
@@ -164,6 +184,12 @@ impl WorthWorkloadOrdinaryConsumerSweepCloseout {
 
     pub fn residue_rows(&self) -> &[WorthWorkloadOrdinaryConsumerSweepResidueRow] {
         &self.residue_rows
+    }
+
+    pub fn workload_composition_explainer_ledger(
+        &self,
+    ) -> &WorthWorkloadCompositionExplainerLedger {
+        &self.workload_composition_explainer_ledger
     }
 
     pub fn require_all_covered_consumers_on_compiled_product_lane(
@@ -313,8 +339,7 @@ pub(crate) fn validate_assembled_ordinary_sweep_closeout_for_test(
     cutover: &super::current_cutover::WorthWorkloadOrdinaryConsumerCutover,
     topology_cutover: &topology::facade::TopologyQueryBackedConsumerCutover,
     lookup_public_closeout: &worth_spatial::facade::evidence_lookup_public_closeout::EvidenceLookupPublicCloseout,
-    public_closeout: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictPublicCloseout,
-    phase_fifteen_seed: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictMilestoneFifteenSeed,
+    public_facade: &WorthTouchedGraphConflictPublicFacade,
 ) -> Result<
     WorthWorkloadOrdinaryConsumerSweepCloseout,
     WorthWorkloadOrdinaryConsumerSweepCloseoutError,
@@ -323,8 +348,7 @@ pub(crate) fn validate_assembled_ordinary_sweep_closeout_for_test(
         cutover,
         topology_cutover,
         lookup_public_closeout,
-        public_closeout,
-        phase_fifteen_seed,
+        public_facade,
         inventory,
     )?;
     require_nonordinary_inventory_and_query_path_for_artifacts(inventory, topology_cutover)?;

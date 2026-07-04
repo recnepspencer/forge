@@ -10,6 +10,7 @@ name = "schema"
 
 [features]
 conflict-routing-internal-authority = []
+touched-graph-parity-internal-authority = []
 
 [[test]]
 name = "touched_graph_conflict_internal_authority"

@@ -14,9 +14,49 @@ pub enum WorthTouchedGraphConflictForbiddenSurface {
     DisplacedCacheKeyCarrier,
     LocalComparatorFolklore,
     CallerOwnedReuseDecision,
+    PlannerRouteConstruction,
+    LocalPublicProofFabrication,
+    LocalDiagnosticAuthorityFabrication,
+    SupportWrapperShortcut,
+    LegacyExplainerImport,
 }
 
 impl WorthTouchedGraphConflictForbiddenSurface {
+    pub const fn phase_fourteen_reintroduction_categories() -> &'static [Self] {
+        &[
+            Self::EntityOnlyOverlapHelper,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::PlannerRouteConstruction,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
+        ]
+    }
+
+    pub const fn phase_fourteen_raw_construction_categories() -> &'static [Self] {
+        &[
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+        ]
+    }
+
+    pub const fn phase_fourteen_relapse_categories() -> &'static [Self] {
+        &[
+            Self::EntityOnlyOverlapHelper,
+            Self::GenericOverlapSecondAuthorityLane,
+            Self::DisplacedCacheKeyCarrier,
+            Self::LocalComparatorFolklore,
+            Self::CallerOwnedReuseDecision,
+            Self::PlannerRouteConstruction,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
+        ]
+    }
+
     pub const fn phase_twelve_relapse_categories() -> &'static [Self] {
         &[
             Self::EntityOnlyOverlapHelper,
@@ -40,6 +80,11 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             Self::DisplacedCacheKeyCarrier,
             Self::LocalComparatorFolklore,
             Self::CallerOwnedReuseDecision,
+            Self::PlannerRouteConstruction,
+            Self::LocalPublicProofFabrication,
+            Self::LocalDiagnosticAuthorityFabrication,
+            Self::SupportWrapperShortcut,
+            Self::LegacyExplainerImport,
         ]
     }
 
@@ -57,6 +102,11 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             Self::DisplacedCacheKeyCarrier => "displaced cache-key carrier",
             Self::LocalComparatorFolklore => "local comparator folklore",
             Self::CallerOwnedReuseDecision => "caller-owned reuse decision",
+            Self::PlannerRouteConstruction => "planner route construction",
+            Self::LocalPublicProofFabrication => "local public-proof fabrication",
+            Self::LocalDiagnosticAuthorityFabrication => "local diagnostic-authority fabrication",
+            Self::SupportWrapperShortcut => "support-wrapper shortcut",
+            Self::LegacyExplainerImport => "legacy explainer import",
         }
     }
 
@@ -163,6 +213,15 @@ impl WorthTouchedGraphConflictForbiddenSurface {
             | Surface::EvidenceLookupIndexReuseDecisionSelectedCompatibilityBasisIdentityDigest
             | Surface::EvidenceLookupIndexRebuildDenialSelectedCompatibilityBasisIdentityDigest => {
                 Some(Self::CallerOwnedReuseDecision)
+            }
+            Surface::TopologyQueryBackedReadFamilyAdmissionAuthoritySelectedCompatibilityBasisDigestForAdmission
+            | Surface::TopologyQueryBackedReadFamilySelectedRouteAuthorityCompatibilityBasisTraitMethod
+            | Surface::TopologyQuerySelectedCompatibilityBasisIdentityDigestTraitMethod => {
+                Some(Self::PlannerRouteConstruction)
+            }
+            Surface::WorthTouchedGraphConflictProofChainTopologyQuerySelectedCompatibilityBasisIdentityDigest
+            | Surface::WorthTouchedGraphConflictMilestoneFourteenSeedTopologyQuerySelectedCompatibilityBasisIdentityDigest => {
+                Some(Self::LocalPublicProofFabrication)
             }
             _ => None,
         }

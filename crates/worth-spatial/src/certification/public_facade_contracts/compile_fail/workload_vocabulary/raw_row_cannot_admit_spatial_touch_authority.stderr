@@ -6,26 +6,13 @@ error[E0277]: the trait bound `WorkloadEvidenceRow: BooleanEvidenceReceipt` is n
    |             |
    |             required by a bound introduced by this call
    |
-help: the following other types implement trait `BooleanEvidenceReceipt`
-  --> src/workload_platform/planar_boolean_events/event_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEventLedgerReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_loop_reconstruction/loop_reconstruction_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanLoopReconstructionLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanLoopReconstructionLedgerReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_events/pair_enumeration/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSegmentPairEnumerationReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_chain_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanSplitEdgeChainLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSplitEdgeChainLedgerReceipt`
+   = help: the following other types implement trait `BooleanEvidenceReceipt`:
+             PlanarBooleanCommonPlaneLocalFrameSelectionReceipt
+             PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt
+             PlanarBooleanEventLedgerReceipt
+             PlanarBooleanLoopReconstructionLedgerReceipt
+             PlanarBooleanSegmentPairEnumerationReceipt
+             PlanarBooleanSplitEdgeChainLedgerReceipt
 note: required by a bound in `SpatialGeometryEvidenceTouchRequest::<'a, T>::from_boolean_receipt`
   --> src/workload_platform/evidence_ledger/spatial_touch_admission/request.rs
    |
@@ -40,26 +27,13 @@ error[E0277]: the trait bound `WorkloadEvidenceRow: BooleanEvidenceReceipt` is n
 10 |     let _ = SpatialGeometryEvidenceTouchRequest::from_boolean_receipt(&row);
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `BooleanEvidenceReceipt` is not implemented for `WorkloadEvidenceRow`
    |
-help: the following other types implement trait `BooleanEvidenceReceipt`
-  --> src/workload_platform/planar_boolean_events/event_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanEventLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanEventLedgerReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_loop_reconstruction/loop_reconstruction_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanLoopReconstructionLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanLoopReconstructionLedgerReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_events/pair_enumeration/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanSegmentPairEnumerationReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSegmentPairEnumerationReceipt`
-   |
-  ::: src/workload_platform/planar_boolean_edge_splitting/split_edge_chain_ledger/receipt.rs
-   |
-   | impl BooleanEvidenceReceipt for PlanarBooleanSplitEdgeChainLedgerReceipt {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `PlanarBooleanSplitEdgeChainLedgerReceipt`
+   = help: the following other types implement trait `BooleanEvidenceReceipt`:
+             PlanarBooleanCommonPlaneLocalFrameSelectionReceipt
+             PlanarBooleanCommonPlaneSharedPlaneIdentityReceipt
+             PlanarBooleanEventLedgerReceipt
+             PlanarBooleanLoopReconstructionLedgerReceipt
+             PlanarBooleanSegmentPairEnumerationReceipt
+             PlanarBooleanSplitEdgeChainLedgerReceipt
 note: required by a bound in `SpatialGeometryEvidenceTouchRequest`
   --> src/workload_platform/evidence_ledger/spatial_touch_admission/request.rs
    |

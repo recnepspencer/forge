@@ -1047,6 +1047,9 @@ Operationally, this milestone must:
 - preserve the current anti-theatre guards: operational receipts stay the
   authority, while rich diagnostics remain derived projections selected by
   artifact policy
+- cut over representative topology and spatial closeout lanes so execution,
+  public proof, diagnostics, and Query posture all lower from the same
+  planner-owned selected-route chain rather than family-local rediscovery
 
 This milestone is too narrow if:
 - it only adds nicer diagnostics without migrating the current receipt-backed
@@ -1058,6 +1061,9 @@ This milestone is too narrow if:
 
 ## Milestone 16: Cross-Family Parity Proof, Residue Collapse, And 7.5 Readiness
 
+Spec:
+[touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md](./touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md)
+
 Close the touched graph program only when the remaining families prove they are
 instances of one semantic-graph architecture and all ordinary residue that
 disagrees with that claim is deleted, capped, or Query-gap.
@@ -1066,6 +1072,8 @@ Closes:
 - cross-category closeout matrix for read families, validators, invariants,
   invalidation, evidence lookup, replay/undo, conflict, cache/equivalence,
   diagnostics, and public proof
+  the roadmap-facing matrix is a live derived certification artifact published
+  by `worth-kernel`, not a hand-maintained count table
 - representative declare-once parity proof showing the same routing language
   governs multiple families end to end
 - hard-break reintroduction tests for old family-local routing seams, broad
@@ -1095,6 +1103,9 @@ Done when:
   trigger
 - certified closeout counts match the roadmap, implementation state, and
   declared family coverage ledger
+- roadmap completion is denied unless the final completion gate proves the
+  closeout matrix, representative path, readiness handoff, residue collapse,
+  and source-firewall closeout all certify the same architecture claim
 
 Operationally, this milestone must:
 - inventory every remaining ordinary adapter, helper, compatibility bridge,
@@ -1106,6 +1117,9 @@ Operationally, this milestone must:
   diagnostic/public proof output
 - refuse closeout if any remaining ordinary path still requires a family-local
   routing language, even if the path is small
+- emit Milestone 16 handoff products that already carry route identity, family
+  identity, witness identity, residue posture, and Query posture so later
+  families do not rediscover them locally
 
 This milestone is too narrow if:
 - it is treated as documentation cleanup plus a few residue deletions

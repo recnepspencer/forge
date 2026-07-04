@@ -5,6 +5,7 @@ use super::alignment_summary::{
     TopologyPublicCloseoutRenderedOutputComparisonPosture, TopologyPublicCloseoutSeedSupportError,
 };
 use crate::projection::query_backed_consumer_cutover::current_topology_query_backed_consumer_cutover_with_hostile_selected_basis_overrides;
+use std::sync::OnceLock;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyMilestoneFifteenPlannerSeedSupport {
@@ -24,9 +25,16 @@ pub struct TopologyMilestoneFifteenPlannerSeedSupport {
 
 pub fn current_topology_milestone_fifteen_planner_seed_support(
 ) -> Result<TopologyMilestoneFifteenPlannerSeedSupport, TopologyPublicCloseoutSeedSupportError> {
-    current_topology_milestone_fifteen_planner_seed_support_with_summary_loader(
+    static CACHE: OnceLock<TopologyMilestoneFifteenPlannerSeedSupport> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
+    let support = current_topology_milestone_fifteen_planner_seed_support_with_summary_loader(
         current_topology_public_closeout_alignment_summary,
-    )
+    )?;
+    let _ = CACHE.set(support.clone());
+    Ok(support)
 }
 
 pub fn current_topology_milestone_fifteen_planner_seed_support_with_hostile_selected_reuse_basis_identity_digest(
