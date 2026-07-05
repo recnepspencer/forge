@@ -16,6 +16,7 @@ pub use denial::{
 };
 pub use eligibility::{
     BlockedReclaimReport, ReclaimDecision, ReclaimEligibilityProof,
-    ReclaimReachabilityRemovalReceipt,
+    ReclaimReachabilityRemovalReceipt, S6ReclaimReachabilityRemovalEvidence,
+    S6ReclaimReachabilityRemovalEvidenceDenial,
 };
 pub use executed_evidence::ExecutedReachabilityEvidence;

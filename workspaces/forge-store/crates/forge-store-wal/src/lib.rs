@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+mod durable_publication;
+mod s6_queue_work;
 mod security_metadata;
 #[cfg(test)]
 mod security_metadata_tests;
@@ -12,6 +14,13 @@ pub enum DurablePublicationPhase {
     Recovered,
 }
 
+pub use durable_publication::{
+    CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
+    WalFrameDurablePublicationScope,
+};
+pub use s6_queue_work::{
+    WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope,
+};
 pub use security_metadata::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
     StoreWalRecordIdentity, WalRecordSecurityMetadataEnvelope, WalSecurityMetadataCarrier,

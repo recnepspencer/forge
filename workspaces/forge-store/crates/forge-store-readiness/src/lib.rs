@@ -83,7 +83,9 @@
 //!     (readiness, readiness)
 //! }
 //! ```
-
+//!
+//! S.6 certification closeout adoption cannot be minted from public scalar rows:
+//!
 mod adoption_denial;
 mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
@@ -101,11 +103,14 @@ mod s3_physical_integrity_readiness;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
-mod s5_1_security_scope_admission;
 mod s5_1_later_milestone_handoffs;
+mod s5_1_security_scope_admission;
 mod s5_1_security_scope_vocabulary;
 mod s5_simulation_harness_denial;
 mod s5_simulation_harness_readiness;
+mod s6_later_milestone_non_claims;
+mod s6_materialized_certification_closeout;
+mod s6_production_readiness_closeout;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -143,13 +148,13 @@ pub use s3_readiness_recap::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind,
 };
-pub use s5_1_security_scope_admission::{
-    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
-};
 pub use s5_1_later_milestone_handoffs::{
     S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
     S51SecurityFoundationHandoff, S51SecurityFoundationLifecyclePermission,
     S51SecurityFoundationNonClaim,
+};
+pub use s5_1_security_scope_admission::{
+    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
 };
 pub use s5_1_security_scope_vocabulary::{
     S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
@@ -159,3 +164,24 @@ pub use s5_simulation_harness_denial::{
     S5HarnessMaturityDependency, S5SimulationHarnessReadinessDenial,
 };
 pub use s5_simulation_harness_readiness::S5CorrectnessNonClaimEvidence;
+pub use s6_later_milestone_non_claims::{
+    S10BackupExportReadinessNonClaim, S10CompactionReadinessNonClaim,
+    S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S6LaterMilestoneDestination,
+    S6LaterMilestoneHandoffDenial, S7PlacementReadinessNonClaim,
+};
+pub use s6_materialized_certification_closeout::{
+    reject_materialized_s6_certification_as_runtime_authority,
+    S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
+    S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
+    S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
+    S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
+    S6ReadinessResidualDebtEvidenceRow,
+};
+pub use s6_production_readiness_closeout::{
+    close_s6_production_readiness, S6ClosedS10BackupExportAdmissionSeed,
+    S6ClosedS10RepairAdmissionSeed, S6ClosedS11SecureIoFoundationAdmissionSeed,
+    S6ClosedS7PlacementAdmissionSeed, S6ProductionReadinessClosure,
+    S6ProductionReadinessClosureDenial, S6ProductionReadinessClosureInput,
+    S6ProductionReadinessPosture, S6ProductionReadinessProof, S6ResidualDebtKind,
+    S6ResidualDebtLedger, S6ResidualDebtRow,
+};

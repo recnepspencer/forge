@@ -20,8 +20,12 @@ fn milestone_thirteen_closeout_requires_real_cutover() {
     let components = current_public_closeout_components().expect("current closeout components");
     let residue_chain = with_covered_ordinary_dependency(components.residue_chain());
 
-    let error = publish_from_parts(components.input().expect("current closeout input"), components.cutover(), residue_chain)
-        .expect_err("public closeout must reject an open ordinary-consumer dependency");
+    let error = publish_from_parts(
+        components.input().expect("current closeout input"),
+        components.cutover(),
+        residue_chain,
+    )
+    .expect_err("public closeout must reject an open ordinary-consumer dependency");
 
     assert_eq!(
         error.kind(),

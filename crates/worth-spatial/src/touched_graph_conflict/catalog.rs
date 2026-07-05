@@ -51,12 +51,11 @@ impl SpatialConflictFamilyCatalog {
                     .filter(|declaration_row| {
                         declaration_row.admits_evidence_selection()
                             && matches_declaration(declaration_row, contract)
-                            && contract
-                                .overlap_identity()
-                                .locality_identity()
-                                .is_some_and(|locality| {
+                            && contract.overlap_identity().locality_identity().is_some_and(
+                                |locality| {
                                     locality.authority_digest() == authority.digest().as_str()
-                                })
+                                },
+                            )
                             && authority_participant.as_ref().is_some_and(|participant| {
                                 contract
                                     .overlap_identity()
@@ -67,20 +66,20 @@ impl SpatialConflictFamilyCatalog {
                     })
                     .collect()
             }
-            SpatialConflictFamilyApplicability::ReplayBoundary { authority } => self
-                .declarations
-                .iter()
-                .filter(|declaration| {
-                    declaration.admits_replay_boundary_selection()
-                        && matches_declaration(declaration, contract)
-                        && contract
-                            .overlap_identity()
-                            .locality_identity()
-                            .is_some_and(|locality| {
-                                locality.authority_digest() == authority.digest().as_str()
-                            })
-                })
-                .collect(),
+            SpatialConflictFamilyApplicability::ReplayBoundary { authority } => {
+                self.declarations
+                    .iter()
+                    .filter(|declaration| {
+                        declaration.admits_replay_boundary_selection()
+                            && matches_declaration(declaration, contract)
+                            && contract.overlap_identity().locality_identity().is_some_and(
+                                |locality| {
+                                    locality.authority_digest() == authority.digest().as_str()
+                                },
+                            )
+                    })
+                    .collect()
+            }
         }
     }
 }

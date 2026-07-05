@@ -7,6 +7,7 @@ mod custody_capsule_observation_tests;
 mod repair_blast_radius_observation;
 #[cfg(test)]
 mod repair_blast_radius_observation_tests;
+mod s6_background_pressure;
 
 use forge_store_physical_format::PhysicalReference;
 
@@ -17,6 +18,10 @@ pub use custody_capsule_observation::{
 pub use repair_blast_radius_observation::{
     OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,
     OfflineRepairEvidenceKind,
+};
+pub use s6_background_pressure::{
+    offline_repair_scan_background_pressure_shape,
+    offline_verification_pressure_background_pressure_shape,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

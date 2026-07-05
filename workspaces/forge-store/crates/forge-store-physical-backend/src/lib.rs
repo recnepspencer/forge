@@ -1,10 +1,291 @@
 #![forbid(unsafe_code)]
-
+//! Backend/media capability witnesses cannot be synthesized from raw fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::AdmittedBackendCapabilityWitness;
+//! let _forged = AdmittedBackendCapabilityWitness {
+//!     profile: todo!(),
+//!     evidence_class: todo!(),
+//!     support: todo!(),
+//!     media_assumptions: todo!(),
+//!     rebind_triggers: todo!(),
+//!     confidence_limits: todo!(),
+//! };
+//! ```
+//! Claim witnesses cannot be constructed by copying backend labels or rows:
+//! ```compile_fail
+//! use forge_store_physical_backend::BackendCapabilityClaimWitness;
+//! let _forged = BackendCapabilityClaimWitness {
+//!     profile: todo!(),
+//!     evidence_class: todo!(),
+//!     kind: todo!(),
+//! };
+//! ```
+//! Certified backend evidence cannot be selected by public enum wrapping:
+//! ```compile_fail
+//! use forge_store_physical_backend::BackendCapabilityEvidenceBasis;
+//! let _forged = BackendCapabilityEvidenceBasis::certified_backend_profile();
+//! ```
+//! Ordinary callers cannot assemble externally-guaranteed runtime authority from
+//! public support and media declarations:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis,
+//!     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
+//!     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
+//! };
+//! let request = BackendCapabilityAdmissionRequest::new(
+//!     BackendTargetProfile::PosixFileFsyncDirSync,
+//!     BackendCapabilityEvidenceBasis::externally_guaranteed(1),
+//!     BackendCapabilitySupportSet::all_supported(),
+//!     BackendMediaAssumptionSet::platform_file_defaults(),
+//!     BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
+//! );
+//! let _forged =
+//!     PhysicalBackendCapabilityAdmissionAuthority::store_owned().admit_backend_capability(request);
+//! ```
+//! Raw probe rows or terminal projections cannot stand in for Store-owned
+//! capability evidence at the public admission boundary:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendCapabilityAdmissionRequest, BackendCapabilitySupportSet,
+//!     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
+//! };
+//! struct RawProbeRow;
+//! struct TerminalProjection;
+//! let _request = BackendCapabilityAdmissionRequest::new(
+//!     BackendTargetProfile::PosixFileFsyncDirSync,
+//!     RawProbeRow,
+//!     BackendCapabilitySupportSet::all_supported(),
+//!     BackendMediaAssumptionSet::platform_file_defaults(),
+//!     TerminalProjection,
+//! );
+//! ```
+//! Queue execution completion cannot be minted from ordinary caller-supplied
+//! fields in production builds:
+//! ```compile_fail
+//! use forge_store_physical_backend::BackendQueueExecutionCompletion;
+//! let _forged = BackendQueueExecutionCompletion::completed(todo!(), todo!());
+//! ```
+//! Queue execution tickets are backend-issued authority; ordinary callers cannot
+//! construct them from replay bindings:
+//! ```compile_fail
+//! use forge_store_physical_backend::BackendQueueExecutionTicket;
+//! let _forged = BackendQueueExecutionTicket::from_backend_authority(todo!(), todo!());
+//! ```
+//! Ordinary callers cannot issue queue execution tickets from caller-supplied
+//! replay bindings and a borrowed capability witness in production builds:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     AdmittedBackendCapabilityWitness, BackendQueueExecutionAdaptation,
+//!     BackendQueueExecutionAuthority, BackendQueueExecutionPlanBinding,
+//! };
+//! fn forge_ticket(
+//!     binding: BackendQueueExecutionPlanBinding,
+//!     witness: &AdmittedBackendCapabilityWitness,
+//! ) {
+//!     let _ = BackendQueueExecutionAuthority::store_owned().issue_ticket(
+//!         binding,
+//!         witness,
+//!         BackendQueueExecutionAdaptation::None,
+//!     );
+//! }
+//! ```
+//! Ordinary callers cannot combine public observations and a backend
+//! implementation into queue completion authority:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendQueueExecutionObservedCounters, BackendQueueExecutionSession, PhysicalReference,
+//!     PhysicalStoreBackend, StoreOwnedBackendQueueExecution,
+//! };
+//! struct Dummy;
+//! impl PhysicalStoreBackend for Dummy {
+//!     type Error = ();
+//!     fn append_framed_record(&mut self, _: &[u8]) -> Result<PhysicalReference, Self::Error> {
+//!         Err(())
+//!     }
+//!     fn read_framed_record(&self, _: PhysicalReference) -> Result<Vec<u8>, Self::Error> {
+//!         Err(())
+//!     }
+//! }
+//! let mut backend = Dummy;
+//! let observations = BackendQueueExecutionObservedCounters::new();
+//! let authority = StoreOwnedBackendQueueExecution { _private: () };
+//! let mut session = BackendQueueExecutionSession::for_store_backend(&mut backend, authority);
+//! let _ = session.complete_after_append(todo!(), todo!(), todo!(), b"payload", observations);
+//! ```
+//! Production queue execution sessions require Store-owned execution authority;
+//! ordinary backend implementations cannot open a completion-minting session:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendQueueExecutionSession, PhysicalReference, PhysicalStoreBackend,
+//!     StoreOwnedBackendQueueExecution,
+//! };
+//! struct Dummy;
+//! impl PhysicalStoreBackend for Dummy {
+//!     type Error = ();
+//!     fn append_framed_record(&mut self, _: &[u8]) -> Result<PhysicalReference, Self::Error> {
+//!         Err(())
+//!     }
+//!     fn read_framed_record(&self, _: PhysicalReference) -> Result<Vec<u8>, Self::Error> {
+//!         Err(())
+//!     }
+//! }
+//! let mut backend = Dummy;
+//! let authority = StoreOwnedBackendQueueExecution { _private: () };
+//! let _session = BackendQueueExecutionSession::for_store_backend(&mut backend, authority);
+//! ```
+//! Store durability receipts cannot be forged from raw fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreDurabilityOrderingBarrierDurable;
+//! let _forged: StoreDurabilityOrderingBarrierDurable<&'static str> =
+//!     StoreDurabilityOrderingBarrierDurable { core: todo!() };
+//! ```
+//! Store durability execution proof cannot be forged from public fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreDurabilityExecutionProof;
+//! let _forged: StoreDurabilityExecutionProof<&'static str> = StoreDurabilityExecutionProof {
+//!     binding: todo!(),
+//!     completed_barriers: todo!(),
+//!     file_sync: todo!(),
+//!     directory_sync_completed: true,
+//!     rename_completed: true,
+//!     ordering_barrier_completed: true,
+//!     delayed_syncs: 0,
+//!     failed_syncs: 0,
+//!     _seal: todo!(),
+//! };
+//! ```
+//! Store durability execution authority cannot be constructed by ordinary
+//! callers:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreOwnedDurabilityExecution;
+//! let _forged = StoreOwnedDurabilityExecution { _private: () };
+//! ```
+//! Certification-only durability authority is not an ordinary production API:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreOwnedDurabilityExecution;
+//! let _forged = StoreOwnedDurabilityExecution::for_certification_test_authority();
+//! ```
+//! Ordinary callers cannot open a Store-owned durability execution session
+//! without receiving Store-owned authority:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreDurabilityExecutionSession;
+//! struct Dummy;
+//! let mut backend = Dummy;
+//! let _session = StoreDurabilityExecutionSession::for_owned_backend(&mut backend);
+//! ```
+//! Raw WAL barrier bits are declarations, not completed sync authority:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     StoreDurabilityWriteAccepted, WalDurabilityBarrierSet,
+//! };
+//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
+//! let _boundary = accepted.reach_durability_boundary(WalDurabilityBarrierSet::EMPTY);
+//! ```
+//! Store durability progression cannot skip from backend-accepted to durable
+//! rename without parent namespace durability:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreDurabilityWriteAccepted;
+//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
+//! let _renamed = accepted.rename_durable();
+//! ```
+//! Store access policy admission cannot be forged from public fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::AdmittedAccessPolicy;
+//! let _forged = AdmittedAccessPolicy {
+//!     request: todo!(),
+//!     capability: todo!(),
+//!     counters: todo!(),
+//! };
+//! ```
+//! Store access execution receipts cannot be constructed without an admitted
+//! policy completing through the Store-owned receipt path:
+//! ```compile_fail
+//! use forge_store_physical_backend::AccessPolicyExecutionReceipt;
+//! let _forged = AccessPolicyExecutionReceipt {
+//!     policy: todo!(),
+//!     counters: todo!(),
+//! };
+//! ```
+//! Store access prerequisite proofs cannot be field-forged downstream:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
+//! };
+//! let _forged = AccessPolicyBufferLifecycle {
+//!     kind: AccessPolicyBufferLifecycleKind::PinnedS2Lease,
+//! };
+//! ```
+//! ```compile_fail
+//! let _forged = forge_store_physical_backend::AccessPolicyBufferLifecycle::from_buffer_pool_pinned_s2_lease();
+//! ```
+//! ```compile_fail
+//! use forge_store_physical_backend::DirectIoAlignmentRequirement;
+//! let _forged = DirectIoAlignmentRequirement {
+//!     page_aligned: true,
+//!     sector_aligned: true,
+//!     buffer_lifetime_stable: true,
+//! };
+//! ```
+//! ```compile_fail
+//! use forge_store_physical_backend::MmapFaultPosture;
+//! let _forged = MmapFaultPosture {
+//!     fault: todo!(),
+//!     writeback: todo!(),
+//!     visibility: todo!(),
+//!     truncate: todo!(),
+//!     punch_hole: todo!(),
+//! };
+//! ```
+//! ```compile_fail
+//! use forge_store_physical_backend::MixedAccessCoherenceBasis;
+//! let _forged = MixedAccessCoherenceBasis {
+//!     transition: todo!(),
+//!     reference: todo!(),
+//!     security_scope: todo!(),
+//!     invalidation: todo!(),
+//!     writeback: todo!(),
+//! };
+//! ```
+//! Store access execution authority cannot be opened without Store authority:
+//! ```compile_fail
+//! use forge_store_physical_backend::StoreOwnedAccessPolicyExecution;
+//! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
+//! ```
+mod access_policy;
+mod durability_ordering;
 mod durability_profile;
+mod io_capability;
 mod operation_boundary;
+mod s6_queue_execution;
+mod s6_queue_execution_session;
+mod s6_queue_execution_ticket;
+mod s6_secure_io;
+pub use forge_store_physical_format::PhysicalReference;
 
-use forge_store_physical_format::PhysicalReference;
-
+pub use access_policy::{
+    AccessPolicyAdmission, AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
+    AccessPolicyCounterSnapshot, AccessPolicyCounterStrength, AccessPolicyDenial,
+    AccessPolicyDenialKind, AccessPolicyExecutionObservation, AccessPolicyExecutionReceipt,
+    AccessPolicyExecutionRequest, AccessPolicyExecutionSession, AccessPolicyRequest,
+    AccessPolicySecurityScope, AccessPolicyViolation, AccessPolicyViolationKind,
+    AdmittedAccessPolicy, DirectIoAlignmentRequirement, MixedAccessCoherenceBasis,
+    MixedAccessTransition, MmapFaultHandling, MmapFaultPosture, MmapPunchHolePosture,
+    MmapTruncatePosture, MmapVisibilityPosture, MmapWritebackPosture, PageCachePolicyKind,
+    PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
+    StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
+};
+pub use durability_ordering::{
+    PhysicalStoreDurabilityExecutor, StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome,
+    StoreDurabilityBoundaryReached, StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength,
+    StoreDurabilityDenial, StoreDurabilityDenialKind, StoreDurabilityExecutionObservation,
+    StoreDurabilityExecutionProof, StoreDurabilityExecutionRequest,
+    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityOperation,
+    StoreDurabilityOrderingBarrierDurable, StoreDurabilityParentNamespaceDurable,
+    StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
+    StoreDurabilityState, StoreDurabilityWriteAccepted, StoreDurabilityWriteSubmitted,
+    StoreOwnedDurabilityExecution,
+};
 #[cfg(feature = "certification-test-authority")]
 pub use durability_profile::{
     AdversarialLostFlushAuthority, AdversarialReorderedFlushAuthority,
@@ -19,7 +300,38 @@ pub use durability_profile::{
     PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
     WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
 };
+pub use io_capability::{
+    reject_certification_only_evidence, reject_copied_qualification_row,
+    reject_environment_variable, reject_raw_backend_label, reject_raw_config_string,
+    reject_raw_os_name, reject_raw_probe_observation, reject_same_process_metric_projection,
+    reject_terminal_projection, AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionDenial,
+    BackendCapabilityAdmissionRequest, BackendCapabilityClaimOutcome,
+    BackendCapabilityClaimWitness, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
+    BackendCapabilityRebindRequired, BackendCapabilityStale, BackendCapabilitySupportPosture,
+    BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
+    BackendTargetProfile, CapabilityConfidenceLimits, CapabilityConfidenceScope,
+    CapabilityEvidenceClass, CapabilityResidualRisk, PhysicalBackendCapabilityAdmissionAuthority,
+};
 pub use operation_boundary::ProductionStorageBoundarySeam;
+pub use s6_queue_execution::{
+    BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
+    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
+    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
+    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
+    BackendQueueSpeculativeScope,
+};
+pub use s6_queue_execution_session::{
+    BackendQueueExecutionObservedCounters, BackendQueueExecutionRunError,
+    BackendQueueExecutionSession, StoreOwnedBackendQueueExecution,
+};
+pub use s6_queue_execution_ticket::{
+    BackendQueueExecutionAuthority, BackendQueueExecutionCompletionBuilder,
+    BackendQueueExecutionTicket, BackendQueueExecutionTicketDenial,
+};
+pub use s6_secure_io::{
+    preserve_secure_io_for_backend_completion, BackendSecureIoPreservationDenial,
+    BackendSecureIoPreservationReceipt, BackendSecureIoScope,
+};
 
 pub trait PhysicalStoreBackend {
     type Error;

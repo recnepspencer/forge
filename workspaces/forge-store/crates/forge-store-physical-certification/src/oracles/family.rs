@@ -2,7 +2,7 @@ use crate::{
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
     ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan,
-    S5PhysicalIsolationInterleavingOracle, TranscriptReplayOracle,
+    S5PhysicalIsolationInterleavingOracle, S6IoPressureSimulationOracle, TranscriptReplayOracle,
 };
 
 use super::{
@@ -62,6 +62,12 @@ impl ReusablePhysicalOracleFamily {
         }
     }
 
+    pub const fn s6_io_pressure_simulation() -> Self {
+        Self {
+            kind: OracleFamilyKind::S6IoPressureSimulation,
+        }
+    }
+
     pub const fn kind(&self) -> OracleFamilyKind {
         self.kind
     }
@@ -91,6 +97,7 @@ impl CertificationOwnedOracle for CounterContractOracle {}
 impl CertificationOwnedOracle for TranscriptReplayOracle {}
 impl CertificationOwnedOracle for IndependentVerifierAgreementOracle {}
 impl CertificationOwnedOracle for S5PhysicalIsolationInterleavingOracle {}
+impl CertificationOwnedOracle for S6IoPressureSimulationOracle {}
 
 impl<O: PhysicalProofOracle> PhysicalOracleJudgment<O> {
     pub fn judge(

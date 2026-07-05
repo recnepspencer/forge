@@ -1,6 +1,7 @@
 use crate::{
-    EvictionProtectionReason, EvictionProtectionSummary, LeaseEpoch, ResidentFrameBytes,
-    ResidentFrameDenial, ResidentFrameDenialKind, ResidentFrameIdentity, ResidentFrameLoadRequest,
+    DirtyPageAccessOrigin, EvictionProtectionReason, EvictionProtectionSummary, LeaseEpoch,
+    ResidentFrameBytes, ResidentFrameDenial, ResidentFrameDenialKind, ResidentFrameIdentity,
+    ResidentFrameLoadRequest,
 };
 
 use crate::dirty_publication::DirtyPublicationEpoch;
@@ -127,6 +128,10 @@ impl ResidentFrameRecord {
         self.dirty_state.dirty_mark_transition()
     }
 
+    pub(crate) const fn dirty_access_origin(&self) -> DirtyPageAccessOrigin {
+        self.dirty_state.access_origin()
+    }
+
     pub(crate) const fn write_schedule_transition(
         &self,
     ) -> Option<ResidentFrameWriteScheduleTransition> {
@@ -134,6 +139,17 @@ impl ResidentFrameRecord {
     }
 
     pub(crate) fn mark_dirty(&mut self) -> ResidentFrameDirtyMarkTransition {
+        self.mark_dirty_from_origin(DirtyPageAccessOrigin::StoreBuffer)
+    }
+
+    pub(crate) fn mark_mmap_dirty(&mut self) -> ResidentFrameDirtyMarkTransition {
+        self.mark_dirty_from_origin(DirtyPageAccessOrigin::Mmap)
+    }
+
+    fn mark_dirty_from_origin(
+        &mut self,
+        origin: DirtyPageAccessOrigin,
+    ) -> ResidentFrameDirtyMarkTransition {
         let transition = self.dirty_mark_transition();
         if matches!(
             transition,
@@ -143,12 +159,16 @@ impl ResidentFrameRecord {
             self.dirty_epoch = self.dirty_epoch.next();
         }
         self.dirty_state = match self.dirty_state {
-            ResidentFrameDirtyState::Clean | ResidentFrameDirtyState::ResidentDirty => {
-                ResidentFrameDirtyState::ResidentDirty
-            }
+            ResidentFrameDirtyState::Clean => ResidentFrameDirtyState::ResidentDirty { origin },
+            ResidentFrameDirtyState::ResidentDirty {
+                origin: existing_origin,
+            } => ResidentFrameDirtyState::ResidentDirty {
+                origin: existing_origin.merge(origin),
+            },
             ResidentFrameDirtyState::WriteScheduledNotDurable
-            | ResidentFrameDirtyState::WriteScheduledAndResidentDirty => {
-                ResidentFrameDirtyState::WriteScheduledAndResidentDirty
+            | ResidentFrameDirtyState::WriteScheduledAndResidentDirty { origin: _ } => {
+                let origin = self.dirty_state.access_origin().merge(origin);
+                ResidentFrameDirtyState::WriteScheduledAndResidentDirty { origin }
             }
         };
         transition
@@ -159,10 +179,10 @@ impl ResidentFrameRecord {
     ) -> Option<ResidentFrameWriteScheduleTransition> {
         let transition = self.write_schedule_transition()?;
         self.dirty_state = match self.dirty_state {
-            ResidentFrameDirtyState::ResidentDirty => {
+            ResidentFrameDirtyState::ResidentDirty { .. } => {
                 ResidentFrameDirtyState::WriteScheduledNotDurable
             }
-            ResidentFrameDirtyState::WriteScheduledAndResidentDirty => {
+            ResidentFrameDirtyState::WriteScheduledAndResidentDirty { .. } => {
                 ResidentFrameDirtyState::WriteScheduledNotDurable
             }
             ResidentFrameDirtyState::Clean | ResidentFrameDirtyState::WriteScheduledNotDurable => {
@@ -189,16 +209,25 @@ pub(crate) enum ResidentFrameWriteScheduleTransition {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ResidentFrameDirtyState {
     Clean,
-    ResidentDirty,
+    ResidentDirty { origin: DirtyPageAccessOrigin },
     WriteScheduledNotDurable,
-    WriteScheduledAndResidentDirty,
+    WriteScheduledAndResidentDirty { origin: DirtyPageAccessOrigin },
+}
+
+impl DirtyPageAccessOrigin {
+    const fn merge(self, next: Self) -> Self {
+        match (self, next) {
+            (Self::Mmap, _) | (_, Self::Mmap) => Self::Mmap,
+            (Self::StoreBuffer, Self::StoreBuffer) => Self::StoreBuffer,
+        }
+    }
 }
 
 impl ResidentFrameDirtyState {
     const fn has_resident_dirty_delta(self) -> bool {
         matches!(
             self,
-            Self::ResidentDirty | Self::WriteScheduledAndResidentDirty
+            Self::ResidentDirty { .. } | Self::WriteScheduledAndResidentDirty { .. }
         )
     }
 
@@ -209,7 +238,7 @@ impl ResidentFrameDirtyState {
     const fn dirty_mark_transition(self) -> ResidentFrameDirtyMarkTransition {
         match self {
             Self::Clean => ResidentFrameDirtyMarkTransition::NewlyDirty,
-            Self::ResidentDirty | Self::WriteScheduledAndResidentDirty => {
+            Self::ResidentDirty { .. } | Self::WriteScheduledAndResidentDirty { .. } => {
                 ResidentFrameDirtyMarkTransition::AlreadyResidentDirty
             }
             Self::WriteScheduledNotDurable => {
@@ -220,11 +249,22 @@ impl ResidentFrameDirtyState {
 
     const fn write_schedule_transition(self) -> Option<ResidentFrameWriteScheduleTransition> {
         match self {
-            Self::ResidentDirty => Some(ResidentFrameWriteScheduleTransition::FirstScheduledWrite),
-            Self::WriteScheduledAndResidentDirty => Some(
+            Self::ResidentDirty { .. } => {
+                Some(ResidentFrameWriteScheduleTransition::FirstScheduledWrite)
+            }
+            Self::WriteScheduledAndResidentDirty { .. } => Some(
                 ResidentFrameWriteScheduleTransition::AdditionalScheduledWriteBehindPendingWrite,
             ),
             Self::Clean | Self::WriteScheduledNotDurable => None,
+        }
+    }
+
+    const fn access_origin(self) -> DirtyPageAccessOrigin {
+        match self {
+            Self::ResidentDirty { origin } | Self::WriteScheduledAndResidentDirty { origin } => {
+                origin
+            }
+            Self::Clean | Self::WriteScheduledNotDurable => DirtyPageAccessOrigin::StoreBuffer,
         }
     }
 }

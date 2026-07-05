@@ -1,6 +1,13 @@
 use crate::{
-    DirtyPageCounterSnapshot, ResidentFrameIdentity, ResidentFrameLoadRequest, ResidentFrameToken,
+    AccessPolicyBufferLifecycle, DirtyPageCounterSnapshot, ResidentFrameIdentity,
+    ResidentFrameLoadRequest, ResidentFrameToken,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DirtyPageAccessOrigin {
+    StoreBuffer,
+    Mmap,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DirtyPageIdentity {
@@ -25,6 +32,7 @@ impl DirtyPageIdentity {
 pub struct DirtyPageState {
     identity: DirtyPageIdentity,
     request: ResidentFrameLoadRequest,
+    access_origin: DirtyPageAccessOrigin,
     counters: DirtyPageCounterSnapshot,
 }
 
@@ -32,11 +40,13 @@ impl DirtyPageState {
     pub(crate) const fn new(
         identity: DirtyPageIdentity,
         request: ResidentFrameLoadRequest,
+        access_origin: DirtyPageAccessOrigin,
         counters: DirtyPageCounterSnapshot,
     ) -> Self {
         Self {
             identity,
             request,
+            access_origin,
             counters,
         }
     }
@@ -51,6 +61,17 @@ impl DirtyPageState {
 
     pub const fn frame_size_bytes(self) -> u64 {
         self.request.frame_size().as_bytes()
+    }
+
+    pub const fn access_origin(self) -> DirtyPageAccessOrigin {
+        self.access_origin
+    }
+
+    pub const fn access_policy_lifecycle_proof(self) -> AccessPolicyBufferLifecycle {
+        match self.access_origin {
+            DirtyPageAccessOrigin::StoreBuffer => AccessPolicyBufferLifecycle::dirty_page_tracked(),
+            DirtyPageAccessOrigin::Mmap => AccessPolicyBufferLifecycle::dirty_mmap_page(),
+        }
     }
 
     pub const fn counters(self) -> DirtyPageCounterSnapshot {

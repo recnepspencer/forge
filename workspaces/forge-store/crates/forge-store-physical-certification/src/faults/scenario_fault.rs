@@ -58,6 +58,12 @@ pub fn s5_stable_read_plan_fault_event(
             mixed_root_locus(),
         )
         .map(Some),
+        PhysicalScenarioFaultKind::S6BackendLatencyInjection
+        | PhysicalScenarioFaultKind::S6QueueDepthSaturation
+        | PhysicalScenarioFaultKind::S6BandwidthThrottle
+        | PhysicalScenarioFaultKind::S6DelayedSync
+        | PhysicalScenarioFaultKind::S6PageCachePressure
+        | PhysicalScenarioFaultKind::S6BackgroundPacingLateYield => Ok(None),
         PhysicalScenarioFaultKind::FutureExtensionSlot => Ok(None),
     }
 }

@@ -49,20 +49,20 @@ impl TopologyConflictFamilyCatalog {
         applicability: TopologyConflictFamilyApplicability<'_>,
     ) -> Vec<&TopologyConflictFamilyDeclaration> {
         match applicability {
-            TopologyConflictFamilyApplicability::AspectLocality { touched_closure } => self
-                .declarations
-                .iter()
-                .filter(|declaration| {
-                    declaration.admits_aspect_locality_selection()
-                        && matches_declaration(declaration, contract)
-                        && contract
-                            .overlap_identity()
-                            .locality_identity()
-                            .is_some_and(|locality| {
-                                locality.authority_digest() == touched_closure.closure_digest()
-                            })
-                })
-                .collect(),
+            TopologyConflictFamilyApplicability::AspectLocality { touched_closure } => {
+                self.declarations
+                    .iter()
+                    .filter(|declaration| {
+                        declaration.admits_aspect_locality_selection()
+                            && matches_declaration(declaration, contract)
+                            && contract.overlap_identity().locality_identity().is_some_and(
+                                |locality| {
+                                    locality.authority_digest() == touched_closure.closure_digest()
+                                },
+                            )
+                    })
+                    .collect()
+            }
             TopologyConflictFamilyApplicability::Validator {
                 touched_closure,
                 identity,
@@ -73,12 +73,11 @@ impl TopologyConflictFamilyCatalog {
                     .filter(|declaration| {
                         declaration.admits_validator_selection()
                             && matches_declaration(declaration, contract)
-                            && contract
-                                .overlap_identity()
-                                .locality_identity()
-                                .is_some_and(|locality| {
+                            && contract.overlap_identity().locality_identity().is_some_and(
+                                |locality| {
                                     locality.authority_digest() == touched_closure.closure_digest()
-                                })
+                                },
+                            )
                             && participant.as_ref().is_some_and(|participant| {
                                 contract
                                     .overlap_identity()
@@ -89,20 +88,20 @@ impl TopologyConflictFamilyCatalog {
                     })
                     .collect()
             }
-            TopologyConflictFamilyApplicability::ReplayBoundary { touched_closure } => self
-                .declarations
-                .iter()
-                .filter(|declaration| {
-                    declaration.admits_replay_boundary_selection()
-                        && matches_declaration(declaration, contract)
-                        && contract
-                            .overlap_identity()
-                            .locality_identity()
-                            .is_some_and(|locality| {
-                                locality.authority_digest() == touched_closure.closure_digest()
-                            })
-                })
-                .collect(),
+            TopologyConflictFamilyApplicability::ReplayBoundary { touched_closure } => {
+                self.declarations
+                    .iter()
+                    .filter(|declaration| {
+                        declaration.admits_replay_boundary_selection()
+                            && matches_declaration(declaration, contract)
+                            && contract.overlap_identity().locality_identity().is_some_and(
+                                |locality| {
+                                    locality.authority_digest() == touched_closure.closure_digest()
+                                },
+                            )
+                    })
+                    .collect()
+            }
         }
     }
 }

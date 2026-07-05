@@ -1,7 +1,7 @@
 use crate::{
-    BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameDenialKind,
-    ResidentFrameLoadRequest, ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget,
-    S2PhysicalResidencyEntry,
+    AccessPolicyBufferLifecycleKind, BufferPoolBudget, DirtyPageBudget, PinnedPageBudget,
+    ResidentFrameDenialKind, ResidentFrameLoadRequest, ResidentFrameTable,
+    ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
 };
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
@@ -38,6 +38,19 @@ fn explicit_pin_view_and_unpin_produce_normal_lifecycle_receipt() {
     assert_eq!(receipt.counters().explicit_unpin_count(), 1);
     assert_eq!(receipt.counters().active_pinned_pages(), 0);
     assert_eq!(table.pin_counters().defensive_drop_count(), 0);
+}
+
+#[test]
+fn pinned_page_lease_produces_access_policy_lifecycle_proof() {
+    let mut table = resident_frame_table(8192, 1);
+    let admission = admit_payload_frame(&mut table, 7, 2, b"access-policy-proof");
+
+    let lease = table.lease_page(admission.resident_frame_token()).unwrap();
+    let pinned = lease.pin().unwrap();
+    let proof = pinned.access_policy_lifecycle_proof();
+
+    assert_eq!(proof.kind(), AccessPolicyBufferLifecycleKind::PinnedS2Lease);
+    let _ = pinned.unpin().unwrap();
 }
 
 #[test]

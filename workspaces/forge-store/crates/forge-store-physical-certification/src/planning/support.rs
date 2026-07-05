@@ -100,6 +100,7 @@ impl SupportedOracleFamilySet {
             OracleFamilyKind::TranscriptReplayEvidence,
             OracleFamilyKind::S5ReadinessShape,
             OracleFamilyKind::S5PhysicalIsolationInterleaving,
+            OracleFamilyKind::S6IoPressureSimulation,
             OracleFamilyKind::S4RecoveryDogfood,
             OracleFamilyKind::ForbiddenShortcutRejection,
         ])

@@ -47,9 +47,7 @@ impl PhysicalCounterExecutionSources {
         let resource_observation =
             resource_observation_from_sources(plan, allocation, resident, io);
         require_resource_observation_within_envelope(plan, resource_observation)?;
-        let compaction = trace
-            .compaction_interlock()
-            .ok_or(CounterMismatchEvidence::MissingCompactionInterlockObservation)?;
+        let compaction = require_compaction_observation_for_contracts(plan, trace)?;
         Ok(Self {
             plan_identity: plan.identity().clone(),
             actor_step_count: schedule.actor_steps().len() as u64,
@@ -65,6 +63,93 @@ impl PhysicalCounterExecutionSources {
             resident,
             io,
         })
+    }
+}
+
+fn require_compaction_observation_for_contracts(
+    plan: &PhysicalSimulationPlan,
+    trace: &ObservedPhysicalTrace,
+) -> Result<CompactionCounterSource, CounterMismatchEvidence> {
+    if requires_compaction_counter_source(plan) {
+        return trace
+            .compaction_interlock()
+            .map(CompactionCounterSource::Observed)
+            .ok_or(CounterMismatchEvidence::MissingCompactionInterlockObservation);
+    }
+    Ok(CompactionCounterSource::NoClaim)
+}
+
+fn requires_compaction_counter_source(plan: &PhysicalSimulationPlan) -> bool {
+    plan.counter_contracts()
+        .iter()
+        .any(|contract| is_compaction_counter(contract.kind()))
+}
+
+const fn is_compaction_counter(kind: CounterContractKind) -> bool {
+    matches!(
+        kind,
+        CounterContractKind::ProtectedReferences
+            | CounterContractKind::BlockedReclaimAttempts
+            | CounterContractKind::PublicationSwaps
+            | CounterContractKind::CompactionCandidateRanges
+            | CounterContractKind::CopiedPages
+    )
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CompactionCounterSource {
+    Observed(crate::CompactionInterlockObservation),
+    NoClaim,
+}
+
+impl CompactionCounterSource {
+    const fn protected_ranges(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.protected_ranges(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn candidate_ranges(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.candidate_ranges(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn range_comparisons(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.range_comparisons(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn overlapping_ranges(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.overlapping_ranges(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn copied_pages(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.copied_pages(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn publication_swaps(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.publication_swaps(),
+            Self::NoClaim => 0,
+        }
+    }
+
+    const fn blocked_reclaims(self) -> u64 {
+        match self {
+            Self::Observed(observation) => observation.blocked_reclaims(),
+            Self::NoClaim => 0,
+        }
     }
 }
 

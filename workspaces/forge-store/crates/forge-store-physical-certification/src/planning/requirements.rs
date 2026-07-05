@@ -14,12 +14,16 @@ use super::SimulationPlanDenial;
 
 mod replay_requirements;
 mod s5_interleaving_families;
+mod s6_io_pressure;
+mod shortcut_rejection;
 use replay_requirements::{s4_recovery_shape, s5_checkpoint_publication_crash_replay_shape};
 use s5_interleaving_families::{
     s5_checkpoint_publication_interlock_shape, s5_compaction_interlock_shape,
     s5_future_chunk_stability_shape, s5_reclaim_reachability_shape,
     s5_restart_during_cutover_shape, s5_tier_movement_stability_shape,
 };
+use s6_io_pressure::s6_io_pressure_shape;
+use shortcut_rejection::shortcut_rejection_shape;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalDriverKind {
@@ -45,6 +49,7 @@ pub enum OracleFamilyKind {
     TranscriptReplayEvidence,
     S5ReadinessShape,
     S5PhysicalIsolationInterleaving,
+    S6IoPressureSimulation,
     S4RecoveryDogfood,
     ForbiddenShortcutRejection,
     FutureExtensionNonClaim,
@@ -156,6 +161,10 @@ impl RequiredSimulationPlanShape {
                 PhysicalSimulationScenarioFamily::S5RestartDuringCutover,
                 PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
             ) => s5_restart_during_cutover_shape(actor_step_count),
+            (
+                PhysicalSimulationScenarioFamily::S6IoPressureHarness,
+                PhysicalScenarioExpectationKind::S6IoPressureSimulation,
+            ) => s6_io_pressure_shape(actor_step_count),
             (
                 PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood,
                 PhysicalScenarioExpectationKind::ShortcutRejectionDogfood,
@@ -351,30 +360,6 @@ fn s5_readiness_drivers_for_yieldpoint(yieldpoint: &str) -> RequiredPhysicalDriv
         }
         _ => RequiredPhysicalDriverSet::from_drivers([
             PhysicalDriverKind::ProductionBoundaryYieldpoint,
-        ]),
-    }
-}
-
-fn shortcut_rejection_shape() -> RequiredSimulationPlanShape {
-    RequiredSimulationPlanShape {
-        capabilities: baseline_capabilities(),
-        actors: RequiredActorSet::from_actors([]),
-        drivers: RequiredPhysicalDriverSet::from_drivers([
-            PhysicalDriverKind::ProductionBoundaryYieldpoint,
-            PhysicalDriverKind::ShortcutRejectionBoundary,
-        ]),
-        observers: RequiredObserverSet::from_observers([ObserverKind::ShortcutRejectionObserver]),
-        oracle_families: RequiredOracleFamilySet::from_oracles([
-            OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::ForbiddenShortcutRejection,
-        ]),
-        counter_contracts: RequiredCounterContractSet::from_contracts([
-            PhysicalCounterContract::exact(CounterContractKind::ForbiddenShortcutExact, 0),
-            PhysicalCounterContract::exact(CounterContractKind::ReplayIdentityExact, 1),
-            positive_contract(CounterContractKind::BlockedReclaimAttempts),
-        ]),
-        fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
-            FixtureClassKind::AspectNativeBoundaryFact,
         ]),
     }
 }

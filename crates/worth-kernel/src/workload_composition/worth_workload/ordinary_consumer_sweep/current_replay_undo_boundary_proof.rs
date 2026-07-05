@@ -1,13 +1,14 @@
+use topology::replay_undo_semantic_graph::current_replay_undo_topology_boundary;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::replay_family_catalog::current_spatial_replay_family_catalog;
 use worth_spatial::facade::replay_undo_semantic_graph::{
-    admit_prepared_spatial_replay_semantic_graph_input, current_boolean_event_ledger_spatial_boundary,
+    admit_prepared_spatial_replay_semantic_graph_input,
+    current_boolean_event_ledger_spatial_boundary,
     lower_spatial_replay_scope_product_from_admitted_input,
     lower_spatial_undo_scope_product_from_boolean_event_ledger_request,
     prepare_spatial_replay_semantic_graph_request, BooleanEventLedgerRollbackRequest,
     CurrentReplayUndoSpatialBoundary, SpatialReplaySemanticGraphPreparationRequest,
 };
-use topology::replay_undo_semantic_graph::current_replay_undo_topology_boundary;
 
 use crate::replay_undo_transaction_boundary::{
     admit_replay_undo_transaction_boundary_packet, assemble_replay_undo_transaction_boundary_input,
@@ -29,11 +30,10 @@ pub(crate) struct WorthWorkloadCurrentReplayUndoBoundaryProof {
 
 pub(crate) fn current_replay_undo_boundary_proof(
     split_boundary: &CurrentReplayUndoSpatialBoundary,
-) -> Result<
-    WorthWorkloadCurrentReplayUndoBoundaryProof,
-    WorthWorkloadOrdinaryConsumerCutoverError,
-> {
-    let topology_boundary = current_replay_undo_topology_boundary().map_err(current_boundary_error)?;
+) -> Result<WorthWorkloadCurrentReplayUndoBoundaryProof, WorthWorkloadOrdinaryConsumerCutoverError>
+{
+    let topology_boundary =
+        current_replay_undo_topology_boundary().map_err(current_boundary_error)?;
     let packet_input = current_replay_undo_boundary_packet_input(split_boundary)?;
     let packet = admit_replay_undo_transaction_boundary_packet(packet_input)
         .map_err(current_boundary_error)?;
@@ -67,7 +67,8 @@ fn current_replay_undo_boundary_packet_input(
 ) -> Result<ReplayUndoTransactionBoundaryInput, WorthWorkloadOrdinaryConsumerCutoverError> {
     let lookup_boundary =
         current_boolean_event_ledger_spatial_boundary().map_err(current_boundary_error)?;
-    let topology_boundary = current_replay_undo_topology_boundary().map_err(current_boundary_error)?;
+    let topology_boundary =
+        current_replay_undo_topology_boundary().map_err(current_boundary_error)?;
     let topology_undo_scope = topology_boundary
         .lower_undo_scope_product()
         .map_err(current_boundary_error)?;
@@ -103,12 +104,14 @@ fn current_replay_undo_boundary_packet_input(
         ),
     )
     .map_err(current_boundary_error)?;
-    assemble_replay_undo_transaction_boundary_input(ReplayUndoTransactionBoundaryAssemblyRequest::new(
-        &topology_undo_scope,
-        &replay_scope,
-        &undo_scope,
-        ReplayUndoTransactionBoundarySupportSource::Ordinary,
-    ))
+    assemble_replay_undo_transaction_boundary_input(
+        ReplayUndoTransactionBoundaryAssemblyRequest::new(
+            &topology_undo_scope,
+            &replay_scope,
+            &undo_scope,
+            ReplayUndoTransactionBoundarySupportSource::Ordinary,
+        ),
+    )
     .map_err(current_boundary_error)
 }
 
@@ -128,7 +131,10 @@ fn lower_replay_undo_boundary_proof_from_packet(
             format!("replay-scope:{}", packet.replay_scope_identity().digest()),
             format!("undo-scope:{}", packet.undo_scope_identity().digest()),
             format!("topology-boundary:{topology_boundary_digest}"),
-            format!("split-stage:{}", split_boundary.authority().stage_index_identity()),
+            format!(
+                "split-stage:{}",
+                split_boundary.authority().stage_index_identity()
+            ),
             format!(
                 "split-lookup:{}",
                 split_boundary
@@ -160,11 +166,7 @@ pub(crate) fn test_lower_replay_undo_boundary_proof_from_packet(
     packet: &ReplayUndoTransactionBoundaryPacket,
 ) -> Result<WorthWorkloadCurrentReplayUndoBoundaryProof, WorthWorkloadOrdinaryConsumerCutoverError>
 {
-    lower_replay_undo_boundary_proof_from_packet(
-        split_boundary,
-        topology_boundary_digest,
-        packet,
-    )
+    lower_replay_undo_boundary_proof_from_packet(split_boundary, topology_boundary_digest, packet)
 }
 
 fn require_packet_matches_current_split_boundary(

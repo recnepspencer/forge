@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+extern crate self as forge_store_physical_isolation;
+
 mod byte_guard;
 mod checkpoint_interlock;
 mod compaction_interlock;
@@ -17,6 +19,7 @@ mod readiness;
 mod reclaim_reachability;
 mod root_protocol;
 mod s5_harness_readiness;
+mod s6_background_pressure;
 mod s6_handoff;
 mod security_scope_propagation;
 mod stable_read_execution;
@@ -162,7 +165,8 @@ pub use reclaim_reachability::{
     reject_raw_reader_handle_scan_as_reclaim_authority, BlockedReclaimReport, DeferredReclaimQueue,
     DeferredReclaimReceipt, ExecutedReachabilityEvidence, ReclaimCandidateSet,
     ReclaimCounterSnapshot, ReclaimDecision, ReclaimDenial, ReclaimEligibilityProof,
-    ReclaimReachabilityRemovalReceipt,
+    ReclaimReachabilityRemovalReceipt, S6ReclaimReachabilityRemovalEvidence,
+    S6ReclaimReachabilityRemovalEvidenceDenial,
 };
 pub use root_protocol::{
     readmit_current_root_for_read_plan, reject_checkpoint_root_as_current_read_authority,
@@ -175,6 +179,14 @@ pub use root_protocol::{
 pub use s5_harness_readiness::{
     s5_simulation_harness_readiness_requirement, S5SimulationHarnessReadinessRequirement,
 };
+pub use s6_background_pressure::{
+    physical_isolation_checkpoint_background_pressure,
+    physical_isolation_compaction_background_pressure,
+    physical_isolation_s6_background_pressure_declaration,
+    physical_isolation_scrub_background_pressure, PhysicalIsolationBackgroundPressureKind,
+};
+#[cfg(any(test, feature = "certification-authority"))]
+pub use s6_handoff::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
 pub use s6_handoff::{
     publish_s6_io_qos_isolation_readiness_from_s5_closeout,
     reject_copied_closeout_report_as_s6_readiness,
@@ -187,13 +199,15 @@ pub use s6_handoff::{
     ForegroundInterferenceSurface, PhysicalIsolationCounterSnapshot, PhysicalStabilityAssumption,
     S5PhysicalIsolationCloseoutBasis, S6ExecutedIsolationCounterKind, S6HandoffProjectionEvidence,
     S6IoQosIsolationReadiness, S6IoQosIsolationReadinessBasis, S6IoQosIsolationReadinessDenial,
-    S6IoQosIsolationReadinessProofRequest, S6ReadinessAdmittedRecipe, S6ReadinessAuthorityPosture,
-    S6ReadinessBoundaryBridgedRecipe, S6ReadinessFreshBasis, S6ReadinessLoweredRecipe,
-    S6ReadinessProofHandoff, S6ReadinessPublicationAuthority, S6ReadinessResolvedRecipe,
-    UnsupportedQoSClaim,
+    S6IoQosIsolationReadinessProofRequest, S6IsolationInterferenceCounterName,
+    S6IsolationInterferenceSnapshot, S6IsolationInterferenceSnapshotRow, S6ReadinessAdmittedRecipe,
+    S6ReadinessAuthorityPosture, S6ReadinessBoundaryBridgedRecipe, S6ReadinessFreshBasis,
+    S6ReadinessLoweredRecipe, S6ReadinessProofHandoff, S6ReadinessPublicationAuthority,
+    S6ReadinessResolvedRecipe, UnsupportedQoSClaim,
 };
 pub use security_scope_propagation::{
-    LogicalDecodeSecurityScopeEntry, StableReadObservedSecurityScope,
+    preserve_s6_secure_io_stable_read_scope, LogicalDecodeSecurityScopeEntry,
+    S6SecureIoStableReadDenial, S6SecureIoStableReadPreservation, StableReadObservedSecurityScope,
     StableReadSecurityScopeCarrierBasis, StableReadSecurityScopePropagation,
     StableReadSecurityScopePropagationCounters, StableReadSecurityScopePropagationDenial,
     StableReadSecurityScopePropagationInput,

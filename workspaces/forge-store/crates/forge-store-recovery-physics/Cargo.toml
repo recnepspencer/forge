@@ -21,7 +21,7 @@ forge-store-wal.workspace = true
 
 [features]
 default = []
-certification-test-authority = []
+certification-test-authority = ["forge-store-physical-backend/certification-test-authority"]
 
 [dev-dependencies]
 forge-store-authority.workspace = true

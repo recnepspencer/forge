@@ -15,7 +15,7 @@ pub use forbidden_sources::{
 pub use oracle_impls::{
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
-    TranscriptReplayOracle,
+    S6IoPressureSimulationOracle, TranscriptReplayOracle,
 };
 pub use s5_physical_isolation::S5PhysicalIsolationInterleavingOracle;
 pub use s5_readiness::{

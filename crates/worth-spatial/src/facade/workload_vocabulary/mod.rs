@@ -38,7 +38,7 @@ pub use crate::workload_platform::vocabulary::{
     GeometryBindingWorkloadReceipt, ProjectionWorkload, ProjectionWorkloadReceipt,
     ResponseWorkload, ResponseWorkloadReceipt, RetainedReplayWorkload,
     RetainedReplayWorkloadReceipt, SpatialWorkloadStage, SurfaceSupportWorkload,
-    SurfaceSupportWorkloadReceipt, TransformWorkload, TransformWorkloadReceipt,
-    WorkloadStage, WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity,
-    WorkloadStagePosture, WorkloadStageSupport,
+    SurfaceSupportWorkloadReceipt, TransformWorkload, TransformWorkloadReceipt, WorkloadStage,
+    WorkloadStageDenial, WorkloadStageEnvelope, WorkloadStageIdentity, WorkloadStagePosture,
+    WorkloadStageSupport,
 };

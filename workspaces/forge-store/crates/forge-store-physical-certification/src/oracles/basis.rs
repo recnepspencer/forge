@@ -2,7 +2,7 @@ use crate::{
     CheckpointInterlockObservation, CompactionInterlockObservation, IndependentVerifierObservation,
     ObservedPhysicalTrace, ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
     PhysicalSimulationPlanIdentity, PhysicalSimulationScenarioFamily, RecoveryOutcomeObservation,
-    ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+    S6IoPressureOracleObservation, ShortcutRejectionObservation, ShortcutRejectionObservationKind,
 };
 
 use super::OracleDenial;
@@ -18,6 +18,7 @@ pub struct OracleVerdictBasis {
     recovery_outcome: Option<RecoveryOutcomeObservation>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     compaction_interlock: Option<CompactionInterlockObservation>,
+    s6_io_pressure: Option<S6IoPressureOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -41,6 +42,7 @@ impl OracleVerdictBasis {
             recovery_outcome: trace.recovery_outcome().cloned(),
             checkpoint_interlock: trace.checkpoint_interlock(),
             compaction_interlock: trace.compaction_interlock(),
+            s6_io_pressure: trace.s6_io_pressure_observation(),
             shortcut_rejections: trace.shortcut_rejections().to_vec(),
         })
     }
@@ -91,6 +93,10 @@ impl OracleVerdictBasis {
 
     pub const fn compaction_interlock(&self) -> Option<CompactionInterlockObservation> {
         self.compaction_interlock
+    }
+
+    pub const fn s6_io_pressure(&self) -> Option<S6IoPressureOracleObservation> {
+        self.s6_io_pressure
     }
 
     pub fn has_shortcut_rejection(&self, kind: ShortcutRejectionObservationKind) -> bool {

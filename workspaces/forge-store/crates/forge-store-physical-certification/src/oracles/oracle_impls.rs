@@ -1,3 +1,5 @@
+use forge_store_io_scheduler::LatencyEnvelopeAssessmentStatus;
+
 use crate::{
     IndependentVerifierObservationKind, OracleFamilyKind, RecoveryOutcomeKind,
     ShortcutRejectionObservationKind,
@@ -25,6 +27,9 @@ pub struct TranscriptReplayOracle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IndependentVerifierAgreementOracle;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S6IoPressureSimulationOracle;
 
 impl PhysicalProofOracle for CrashRecoversOldOrNewNeverMixedOracle {
     fn oracle_kind(&self) -> PhysicalProofOracleKind {
@@ -195,6 +200,45 @@ impl PhysicalProofOracle for IndependentVerifierAgreementOracle {
                 ))
             }
         }
+    }
+}
+
+impl PhysicalProofOracle for S6IoPressureSimulationOracle {
+    fn oracle_kind(&self) -> PhysicalProofOracleKind {
+        PhysicalProofOracleKind::S6IoPressureSimulation
+    }
+
+    fn family_kind(&self) -> OracleFamilyKind {
+        OracleFamilyKind::S6IoPressureSimulation
+    }
+
+    fn judge_basis(
+        &self,
+        basis: OracleVerdictBasis,
+    ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
+        if basis.scenario_family() != crate::PhysicalSimulationScenarioFamily::S6IoPressureHarness {
+            return Err(OracleDenial::PlanTraceIdentityMismatch);
+        }
+        let observation = basis
+            .s6_io_pressure()
+            .ok_or(OracleDenial::MissingS6IoPressureObservation)?;
+        if !observation.attribution_complete() {
+            return Err(OracleDenial::IncompleteS6IoPressureAttribution);
+        }
+        if observation.envelope_status() != LatencyEnvelopeAssessmentStatus::Held {
+            return Ok(PhysicalProofOracleVerdict::failed(
+                self.family_kind(),
+                self.oracle_kind(),
+                basis,
+                [],
+            ));
+        }
+        Ok(PhysicalProofOracleVerdict::satisfied(
+            self.family_kind(),
+            self.oracle_kind(),
+            basis,
+            [],
+        ))
     }
 }
 

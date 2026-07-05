@@ -278,11 +278,15 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
                 .lookup_route_authority()
                 .clone(),
             route_authority_digest,
-            boundary_proof_digest: replay_undo_boundary_proof.boundary_proof_digest().to_string(),
+            boundary_proof_digest: replay_undo_boundary_proof
+                .boundary_proof_digest()
+                .to_string(),
             transaction_packet_identity: replay_undo_boundary_proof
                 .transaction_packet_identity()
                 .to_string(),
-            replay_scope_identity: replay_undo_boundary_proof.replay_scope_identity().to_string(),
+            replay_scope_identity: replay_undo_boundary_proof
+                .replay_scope_identity()
+                .to_string(),
             undo_scope_identity: replay_undo_boundary_proof.undo_scope_identity().to_string(),
             source_identity: source_row.source_identity(),
             source_path: source_row.source_path().to_string(),

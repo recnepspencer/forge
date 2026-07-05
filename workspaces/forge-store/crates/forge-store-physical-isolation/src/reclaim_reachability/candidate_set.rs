@@ -54,4 +54,11 @@ impl ReclaimCandidateSet {
     pub fn contains_identity(&self, identity: CurrentGenerationPhysicalReference) -> bool {
         self.ranges.contains_owner(identity.owner())
     }
+
+    pub fn contains_owner(
+        &self,
+        owner: forge_store_physical_format::PhysicalGenerationOwner,
+    ) -> bool {
+        self.ranges.contains_owner(owner)
+    }
 }

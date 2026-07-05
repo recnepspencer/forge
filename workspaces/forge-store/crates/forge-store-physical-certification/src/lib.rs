@@ -18,6 +18,32 @@ mod s5_executed_isolation_contract;
 mod s5_executed_isolation_source;
 mod s5_handoff;
 mod s5_physical_isolation_mutation;
+mod s6_backend_qualification;
+#[cfg(test)]
+mod s6_backend_qualification_cross_backend_tests;
+#[cfg(test)]
+mod s6_backend_qualification_matrix_surface_tests;
+#[cfg(test)]
+mod s6_backend_qualification_negative_tests;
+#[cfg(test)]
+mod s6_backend_qualification_residual_debt_tests;
+#[cfg(test)]
+mod s6_backend_qualification_tests;
+mod s6_io_pressure_coverage;
+mod s6_io_pressure_execution;
+mod s6_io_pressure_harness;
+#[cfg(test)]
+mod s6_io_pressure_harness_negative_tests;
+#[cfg(test)]
+mod s6_io_pressure_harness_tests;
+mod s6_io_pressure_replay;
+#[cfg(test)]
+mod s6_io_pressure_replay_tests;
+#[cfg(test)]
+mod s6_io_pressure_shortcut_tests;
+#[cfg(any(test, feature = "certification-test-support"))]
+mod s6_io_pressure_test_support;
+mod s6_io_pressure_vocab;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -55,7 +81,8 @@ pub use counters::{
     CounterStrengthPosture, HostileCounterEvidenceRow, HostileResourceEnvelopeObservation,
     OverExactCounterDenied, PhysicalCounterContract, PhysicalCounterEvidenceReceipt,
     PhysicalCounterEvidenceRow, PhysicalCounterExecutionSources, PhysicalCounterExpectation,
-    PhysicalExecutedCounterEvidence, PhysicalResourceEnvelope, RequiredCounterContractSet,
+    PhysicalExecutedCounterEvidence, PhysicalResourceEnvelope, PhysicalResourceEnvelopeObservation,
+    RequiredCounterContractSet,
 };
 pub use coverage::{
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
@@ -134,7 +161,7 @@ pub use oracles::{
     PhysicalOracleVerdictTopology, PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle,
     PhysicalProofOracleKind, PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind,
     PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily,
-    S5PhysicalIsolationInterleavingOracle, TranscriptReplayOracle,
+    S5PhysicalIsolationInterleavingOracle, S6IoPressureSimulationOracle, TranscriptReplayOracle,
 };
 pub use planning::{
     lower_physical_simulation_plan, reject_unresolved_simulation_plan_recipe,
@@ -190,6 +217,29 @@ pub use s5_physical_isolation_mutation::{
     s5_physical_isolation_required_mutation_rows, S5MutationReplayBasis,
     S5PhysicalIsolationMutationEvidence,
 };
+pub use s6_backend_qualification::{
+    evaluate_row_rebind, reject_copied_backend_qualification_row,
+    reject_environment_name_backend_qualification, reject_log_output_backend_qualification,
+    reject_test_only_backend_label_qualification, require_profile_local_row,
+    BackendQualificationMatrix, BackendQualificationMatrixDenial,
+    BackendQualificationParityComparison, BackendQualificationRow, BackendQualificationRowIdentity,
+    CertifiedBackendQualificationSupport, PublishedQualificationPosture,
+    QualificationCapabilityProofAuthority, QualificationHarnessProof,
+    QualificationHarnessProofClaim, QualificationHarnessProofStrength,
+    QualificationMatrixPublisher, QualificationPublicationShortcut, QualificationRebindEvaluation,
+    QualificationResidualDebt, QualificationResidualDebtReason,
+};
+pub use s6_io_pressure_coverage::S6ExecutedIoPressureCoverageRows;
+pub use s6_io_pressure_execution::S6IoPressureExecutionCounters;
+pub use s6_io_pressure_harness::{
+    PhysicalFaultEvidenceClass, S6BackendSafetyQualificationDenial, S6HarnessSecureIoPosture,
+    S6IoPressureFaultKind, S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
+    S6IoPressureOracleObservation, S6PressureEvidenceMaturity, S6RealBackendSafetyQualification,
+};
+pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
+#[cfg(feature = "certification-test-support")]
+pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
+pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
     JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,

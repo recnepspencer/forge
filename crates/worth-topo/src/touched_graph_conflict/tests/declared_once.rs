@@ -92,9 +92,8 @@ fn aspect_and_validator_consumers_do_not_collapse_into_one_route() {
     );
 
     assert_eq!(
-        locality.matching_aspect_or_locality_conflict_family_identities_for_contract(
-            &aspect_contract,
-        ),
+        locality
+            .matching_aspect_or_locality_conflict_family_identities_for_contract(&aspect_contract,),
         vec![crate::touched_graph_conflict::TopologyConflictFamilyIdentity::AspectSelection]
     );
     assert!(validator_identity

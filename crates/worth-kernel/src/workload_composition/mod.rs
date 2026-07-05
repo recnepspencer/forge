@@ -126,8 +126,9 @@ pub use public_closeout::{
     current_worth_touched_graph_conflict_public_closeout,
     WorthTouchedGraphConflictMilestoneFourteenSeed, WorthTouchedGraphConflictProofChain,
     WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError,
-    WorthTouchedGraphConflictPublicCloseoutErrorKind, WorthTouchedGraphConflictResidueBoundaryPosture,
-    WorthTouchedGraphConflictResidueChain, WorthTouchedGraphConflictResidueRow,
+    WorthTouchedGraphConflictPublicCloseoutErrorKind,
+    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
+    WorthTouchedGraphConflictResidueRow,
 };
 pub use source_firewall::{
     current_worth_touched_graph_conflict_source_firewall_report,

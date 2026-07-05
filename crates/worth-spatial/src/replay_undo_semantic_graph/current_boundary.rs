@@ -3,8 +3,8 @@ use crate::replay_family_catalog::{
     SpatialReplayFamilyIdentityAuthority,
 };
 use crate::workload_platform::evidence_ledger::{
-    SelectedLookupSliceLedgerAssembly, SpatialGeometryEvidenceTouchAuthority, WorkloadEvidenceStage,
-    WorkloadEvidenceStageIndexProduct,
+    SelectedLookupSliceLedgerAssembly, SpatialGeometryEvidenceTouchAuthority,
+    WorkloadEvidenceStage, WorkloadEvidenceStageIndexProduct,
 };
 use crate::workload_platform::evidence_lookup_execution::EvidenceLookupExecutionReceipt;
 use crate::workload_platform::evidence_lookup_family_catalog::{
@@ -107,15 +107,19 @@ fn current_spatial_boundary(
     stage: WorkloadEvidenceStage,
     retained_replay_receipt: Option<RetainedReplayWorkloadReceipt>,
 ) -> Result<CurrentReplayUndoSpatialBoundary, CurrentReplayUndoSpatialBoundaryError> {
-    let catalog = current_evidence_lookup_family_catalog()
-        .map_err(|error| CurrentReplayUndoSpatialBoundaryError {
-            detail: format!("current evidence lookup family catalog failed: {:?}", error.kind()),
-        })?;
-    let family = catalog
-        .family_by_identity(family_identity)
-        .ok_or_else(|| CurrentReplayUndoSpatialBoundaryError {
+    let catalog = current_evidence_lookup_family_catalog().map_err(|error| {
+        CurrentReplayUndoSpatialBoundaryError {
+            detail: format!(
+                "current evidence lookup family catalog failed: {:?}",
+                error.kind()
+            ),
+        }
+    })?;
+    let family = catalog.family_by_identity(family_identity).ok_or_else(|| {
+        CurrentReplayUndoSpatialBoundaryError {
             detail: format!("missing covered current family `{family_identity}`"),
-        })?;
+        }
+    })?;
     let path = admit_current_family_stage_cutover_path(&catalog, family, stage)
         .map_err(CurrentReplayUndoSpatialBoundaryError::from_current_path)?;
     let proof = path
@@ -164,7 +168,10 @@ impl CurrentReplayUndoSpatialBoundaryError {
 
     fn from_workload_cutover(error: EvidenceLookupWorkloadCutoverError) -> Self {
         Self {
-            detail: format!("lookup-consumed workload handoff lowering failed: {:?}", error.kind()),
+            detail: format!(
+                "lookup-consumed workload handoff lowering failed: {:?}",
+                error.kind()
+            ),
         }
     }
 }
