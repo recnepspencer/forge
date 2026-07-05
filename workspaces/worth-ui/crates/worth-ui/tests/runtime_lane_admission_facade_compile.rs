@@ -45,4 +45,3 @@ fn extension_hook_cannot_override_active_plan_truth() {
         "tests/ui/runtime_authority/fail/extension_hook_cannot_override_active_plan_truth.rs",
     );
 }
-

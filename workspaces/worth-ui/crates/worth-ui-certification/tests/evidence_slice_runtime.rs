@@ -20,9 +20,13 @@ mod obligation_dispatch_prerequisite_support;
 fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
     let app = declaration_lookup_app();
     let artifact = authored_artifact(&app);
-    let identity_receipt = app.inspect(declaration_identity_query(artifact.identity().inspection_identity()));
+    let identity_receipt = app.inspect(declaration_identity_query(
+        artifact.identity().inspection_identity(),
+    ));
     let provenance_receipt = app.inspect(authored_provenance_query(
-        artifact.provenance().inspection_authored_source_provenance_ref(),
+        artifact
+            .provenance()
+            .inspection_authored_source_provenance_ref(),
     ));
     let identity_slice = identity_receipt
         .evidence_slice()
@@ -31,7 +35,10 @@ fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
         .evidence_slice()
         .expect("authored provenance query should return a slice");
 
-    assert_eq!(identity_receipt.query(), &declaration_identity_query(artifact.identity().inspection_identity()));
+    assert_eq!(
+        identity_receipt.query(),
+        &declaration_identity_query(artifact.identity().inspection_identity())
+    );
     assert_eq!(
         identity_receipt.authority_generation(),
         Some(identity_slice.authority_generation())
@@ -40,14 +47,20 @@ fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
         provenance_receipt.authority_generation(),
         Some(provenance_slice.authority_generation())
     );
-    assert_eq!(identity_receipt.evidence_slice_ref(), Some(identity_slice.slice_ref()));
+    assert_eq!(
+        identity_receipt.evidence_slice_ref(),
+        Some(identity_slice.slice_ref())
+    );
     assert_eq!(
         provenance_receipt.evidence_slice_ref(),
         Some(provenance_slice.slice_ref())
     );
     assert_eq!(identity_slice.slice_ref(), provenance_slice.slice_ref());
     assert_eq!(identity_slice.refs(), provenance_slice.refs());
-    assert_eq!(identity_slice.family_summaries(), provenance_slice.family_summaries());
+    assert_eq!(
+        identity_slice.family_summaries(),
+        provenance_slice.family_summaries()
+    );
     assert_eq!(identity_slice.omission(), None);
     assert_eq!(identity_slice.materialized_detail(), None);
     assert_eq!(
@@ -56,9 +69,15 @@ fn equivalent_declaration_slice_routes_return_the_same_canonical_slice_shape() {
             .iter()
             .map(|summary| (summary.family(), summary.ref_count()))
             .collect::<Vec<_>>(),
-        vec![(UiEvidenceFamily::Declaration, 1), (UiEvidenceFamily::Admission, 1)]
+        vec![
+            (UiEvidenceFamily::Declaration, 1),
+            (UiEvidenceFamily::Admission, 1)
+        ]
     );
-    assert_eq!(ordered_ref_keys(identity_slice.refs()), sorted_ref_keys(identity_slice.refs()));
+    assert_eq!(
+        ordered_ref_keys(identity_slice.refs()),
+        sorted_ref_keys(identity_slice.refs())
+    );
 }
 
 #[test]
@@ -66,12 +85,18 @@ fn obligation_slice_keeps_refs_and_detail_separate_with_explicit_scope_omission(
     let app = obligation_dispatch_prerequisite_support::query_touch_app();
     let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
     let refs_only = app.inspect(
-        obligation_touch_query(touch.target().graph_node_identity().digest(), touch.identity_digest())
-            .with_richness(UiEvidenceRichness::refs_only()),
+        obligation_touch_query(
+            touch.target().graph_node_identity().digest(),
+            touch.identity_digest(),
+        )
+        .with_richness(UiEvidenceRichness::refs_only()),
     );
     let rich = app.inspect(
-        obligation_touch_query(touch.target().graph_node_identity().digest(), touch.identity_digest())
-            .with_richness(UiEvidenceRichness::materialized_detail()),
+        obligation_touch_query(
+            touch.target().graph_node_identity().digest(),
+            touch.identity_digest(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail()),
     );
     let refs_only_slice = refs_only
         .evidence_slice()
@@ -80,7 +105,10 @@ fn obligation_slice_keeps_refs_and_detail_separate_with_explicit_scope_omission(
         .evidence_slice()
         .expect("rich obligation query should return a slice");
 
-    assert_eq!(refs_only.evidence_slice_ref(), Some(refs_only_slice.slice_ref()));
+    assert_eq!(
+        refs_only.evidence_slice_ref(),
+        Some(refs_only_slice.slice_ref())
+    );
     assert_eq!(rich.evidence_slice_ref(), Some(rich_slice.slice_ref()));
     assert_eq!(refs_only_slice.refs(), rich_slice.refs());
     assert_eq!(refs_only_slice.slice_ref(), rich_slice.slice_ref());
@@ -109,7 +137,8 @@ fn obligation_slice_keeps_refs_and_detail_separate_with_explicit_scope_omission(
 #[test]
 fn declaration_slice_replay_and_rebuild_stay_stable_after_assembly() {
     let app = declaration_lookup_app();
-    let query = declaration_identity_query(authored_artifact(&app).identity().inspection_identity());
+    let query =
+        declaration_identity_query(authored_artifact(&app).identity().inspection_identity());
     let first = receipt_slice_facts(&app.inspect(query.clone()));
     let second = receipt_slice_facts(&app.inspect(query.clone()));
 
@@ -168,7 +197,8 @@ fn authored_artifact(
     app.declaration_artifacts()
         .iter()
         .find(|artifact| {
-            artifact.provenance().source_provenance().module_path() == "app/evidence_slice_runtime.wui"
+            artifact.provenance().source_provenance().module_path()
+                == "app/evidence_slice_runtime.wui"
         })
         .expect("slice app should contain the authored artifact")
 }
@@ -178,7 +208,9 @@ fn declaration_identity_query(identity: UiInspectionDeclarationIdentity) -> UiIn
         UiInspectionTarget::declaration_identity(identity),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -187,7 +219,9 @@ fn authored_provenance_query(provenance: UiAuthoredSourceProvenanceRef) -> UiIns
         UiInspectionTarget::authored_source_provenance(provenance),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -254,8 +288,12 @@ fn receipt_slice_facts(receipt: &UiInspectionReceipt) -> ReceiptSliceFacts {
 
     ReceiptSliceFacts {
         outcome: receipt.relevance_outcome(),
-        authority_generation: receipt.authority_generation().map(|generation| generation.as_u64()),
-        slice_ref: receipt.evidence_slice_ref().map(|slice_ref| slice_ref.digest()),
+        authority_generation: receipt
+            .authority_generation()
+            .map(|generation| generation.as_u64()),
+        slice_ref: receipt
+            .evidence_slice_ref()
+            .map(|slice_ref| slice_ref.digest()),
         ref_keys: slice
             .map(|value| ordered_ref_keys(value.refs()))
             .unwrap_or_default(),

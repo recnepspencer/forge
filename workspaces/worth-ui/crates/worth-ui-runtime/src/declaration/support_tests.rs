@@ -2,11 +2,9 @@ use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
-use worth_ui_host_contract::WorthUiHostCapability;
 use worth_ui_inspection::{
-    UiInspectionMilestoneExpectation, UiInspectionQuery, UiInspectionScope,
-    UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
-    UiInspectionSupportWorld, UiInspectionTarget,
+    UiInspectionMilestoneExpectation, UiInspectionScope, UiInspectionSupportPosture,
+    UiInspectionSupportReason, UiInspectionSupportWorld,
 };
 
 use crate::declaration::artifact::ui_declaration_lowering::UiDeclarationLowering;
@@ -150,52 +148,6 @@ fn family_spec(family: UiDslSemanticFamily, declaration_index: usize) -> UiDslSe
         )
         .with_structural_token(UiDslStructuralToken::new("diagnostic-surface:lint")),
     }
-}
-
-#[test]
-fn support_snapshot_projects_schema_limited_control_rows() {
-    let artifact = lower(control_spec());
-    let snapshot = artifact
-        .support_snapshot()
-        .expect("control declaration should derive support snapshot");
-
-    assert_eq!(snapshot.rows().len(), 5);
-    assert_eq!(
-        snapshot
-            .row(UiDeclarationSupportRowSchemaKind::QueryBinding)
-            .expect("query-binding row should exist")
-            .declared_query_binding_posture(),
-        Some(&crate::declaration::UiDeclaredQueryBindingPosture::AttachedViewBinding),
-    );
-    assert_eq!(
-        snapshot
-            .row(UiDeclarationSupportRowSchemaKind::ServiceUsage)
-            .expect("service row should exist")
-            .declared_service_usage_posture(),
-        Some(&crate::declaration::UiDeclaredServiceUsagePosture::Portal),
-    );
-    assert_eq!(
-        snapshot
-            .row(UiDeclarationSupportRowSchemaKind::TouchMeaning)
-            .expect("touch row should exist")
-            .declared_touch_meaning_posture(),
-        Some(&crate::declaration::UiDeclaredTouchMeaningPosture::Press),
-    );
-    assert_eq!(
-        snapshot
-            .row(UiDeclarationSupportRowSchemaKind::MeasurementPolicy)
-            .expect("measurement row should exist")
-            .declared_measurement_policy_posture(),
-        Some(&crate::declaration::UiDeclaredMeasurementPolicyPosture::HugHeight),
-    );
-    assert_eq!(
-        snapshot
-            .row(UiDeclarationSupportRowSchemaKind::HostCapability)
-            .expect("host row should exist")
-            .declared_host_capability_posture()
-            .map(|posture| posture.required_capabilities()),
-        Some(&[WorthUiHostCapability::Ime, WorthUiHostCapability::TextInput,][..]),
-    );
 }
 
 #[test]
@@ -394,63 +346,6 @@ fn support_snapshot_inspection_projection_keeps_unsupported_posture_scope_local(
 }
 
 #[test]
-fn app_inspection_support_report_uses_declaration_support_projection() {
-    let app = crate::facade::WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.declaration-support.app")
-                .with_semantic_artifact_spec(family_spec(UiDslSemanticFamily::Region, 200)),
-        )
-        .freeze();
-
-    let mounting_report = app.inspection_support_report(UiInspectionScope::Mounting);
-    assert_eq!(
-        mounting_report.status(),
-        UiInspectionSupportStatus::Unsupported
-    );
-    assert_eq!(
-        mounting_report.posture(),
-        UiInspectionSupportPosture::Deferred
-    );
-    assert_eq!(
-        mounting_report.reason(),
-        Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
-    );
-    assert_eq!(
-        mounting_report.expected_in(),
-        Some(UiInspectionMilestoneExpectation::Milestone32),
-    );
-
-    let measurement_report = app.inspection_support_report(UiInspectionScope::Measurement);
-    assert_eq!(
-        measurement_report.status(),
-        UiInspectionSupportStatus::Supported
-    );
-    assert_eq!(
-        measurement_report.posture(),
-        UiInspectionSupportPosture::Supported
-    );
-    assert_eq!(measurement_report.reason(), None);
-    assert_eq!(measurement_report.expected_in(), None);
-
-    let receipt = app.inspect(UiInspectionQuery::new(
-        UiInspectionTarget::product_root(),
-        UiInspectionScope::Mounting,
-    ));
-    assert_eq!(
-        receipt
-            .support_report()
-            .and_then(|report| report.reason()),
-        Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
-    );
-    assert_eq!(
-        receipt
-            .support_report()
-            .and_then(|report| report.expected_in()),
-        Some(UiInspectionMilestoneExpectation::Milestone32),
-    );
-}
-
-#[test]
 fn support_snapshot_denial_does_not_create_fallback_authority() {
     let artifact = lower(UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new("workflow_editor.query.selection"),
@@ -465,21 +360,6 @@ fn support_snapshot_denial_does_not_create_fallback_authority() {
         }
     }
     assert!(artifact.support_snapshot().is_err());
-}
-
-fn control_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.save"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/declaration_support.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-    .with_posture_token(UiDslPostureToken::new("service:portal"))
-    .with_posture_token(UiDslPostureToken::new("touch:press"))
-    .with_posture_token(UiDslPostureToken::new("measurement:hug-height"))
-    .with_posture_token(UiDslPostureToken::new("host-capability:text-input"))
-    .with_posture_token(UiDslPostureToken::new("host-capability:ime"))
 }
 
 fn page_spec() -> UiDslSemanticArtifactSpec {

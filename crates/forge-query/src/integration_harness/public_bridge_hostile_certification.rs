@@ -112,3 +112,48 @@ pub fn public_bridge_hostile_title_projection_artifacts(
     .unwrap();
     (canonical.result_shape().clone(), authorized_projection)
 }
+
+pub fn public_bridge_projection_artifacts_for_canonical_bundle(
+    canonical: &crate::facade::CanonicalQueryBundle,
+) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
+    let authorized_projection = derive_authorized_projection(
+        canonical.query(),
+        canonical.result_shape(),
+        "policy:public-bridge-hostile-certification",
+        "schema:public-bridge-hostile-certification",
+        &PolicyAspectMask::allow_all(),
+        &PolicyInfluenceSet::none(),
+        8,
+        8,
+    )
+    .unwrap();
+    (canonical.result_shape().clone(), authorized_projection)
+}
+
+pub fn public_bridge_projection_artifacts_for_declarative_request(
+    request: &crate::facade::DeclarativeLiveQueryRequest,
+) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
+    let canonical = crate::declarative_live::canonicalize_declarative_request(request).unwrap();
+    public_bridge_projection_artifacts_for_canonical_bundle(&canonical)
+}
+
+pub fn public_bridge_projection_artifacts_for_read_graph(
+    read_graph: &crate::runtime::ForgeQueryReadGraph,
+) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
+    let canonical =
+        crate::declarative_live::canonicalize_declarative_request(read_graph.declarative_request())
+            .unwrap();
+    let derived = public_bridge_projection_artifacts_for_canonical_bundle(&canonical).1;
+    let authorized_projection = AuthorizedProjectionArtifact::new(
+        read_graph.query_digest(),
+        derived.result_shape_digest(),
+        derived.policy_digest(),
+        derived.tenant_schema_basis_digest(),
+        derived.visible_field_paths().to_vec(),
+        derived.masked_projection().clone(),
+        derived.narrowed_result_shape_digest().to_string(),
+        derived.influence_set().clone(),
+        derived.counters().clone(),
+    );
+    (canonical.result_shape().clone(), authorized_projection)
+}

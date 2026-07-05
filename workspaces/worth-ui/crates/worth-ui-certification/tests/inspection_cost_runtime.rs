@@ -4,7 +4,7 @@ use worth_ui::facade::inspection::{
     UiInspectionQuery, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget,
     UiRelevanceFamily, UiRelevanceFilter,
 };
-use worth_ui::facade::{UiInspectionAspectRelevanceDetail};
+use worth_ui::facade::UiInspectionAspectRelevanceDetail;
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -44,7 +44,9 @@ fn declaration_and_graph_receipts_expose_bounded_indexed_costs() {
     );
 
     assert_filtered_indexed_cost(
-        declaration_receipt.cost().expect("declaration receipt should expose cost"),
+        declaration_receipt
+            .cost()
+            .expect("declaration receipt should expose cost"),
         2,
         declaration_receipt
             .evidence_slice()
@@ -53,7 +55,9 @@ fn declaration_and_graph_receipts_expose_bounded_indexed_costs() {
             .len(),
     );
     assert_filtered_indexed_cost(
-        graph_receipt.cost().expect("graph receipt should expose cost"),
+        graph_receipt
+            .cost()
+            .expect("graph receipt should expose cost"),
         4,
         graph_receipt
             .evidence_slice()
@@ -68,12 +72,18 @@ fn obligation_receipts_expose_scope_omission_and_materialization_costs() {
     let app = obligation_dispatch_prerequisite_support::query_touch_app();
     let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
     let refs_only = app.inspect(
-        obligation_touch_query(touch.target().graph_node_identity().digest(), touch.identity_digest())
-            .with_richness(UiEvidenceRichness::refs_only()),
+        obligation_touch_query(
+            touch.target().graph_node_identity().digest(),
+            touch.identity_digest(),
+        )
+        .with_richness(UiEvidenceRichness::refs_only()),
     );
     let rich = app.inspect(
-        obligation_touch_query(touch.target().graph_node_identity().digest(), touch.identity_digest())
-            .with_richness(UiEvidenceRichness::materialized_detail()),
+        obligation_touch_query(
+            touch.target().graph_node_identity().digest(),
+            touch.identity_digest(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail()),
     );
     let refs_only_slice = refs_only
         .evidence_slice()
@@ -81,8 +91,12 @@ fn obligation_receipts_expose_scope_omission_and_materialization_costs() {
     let rich_slice = rich
         .evidence_slice()
         .expect("rich obligation receipt should carry a slice");
-    let refs_only_cost = refs_only.cost().expect("refs-only obligation receipt should expose cost");
-    let rich_cost = rich.cost().expect("rich obligation receipt should expose cost");
+    let refs_only_cost = refs_only
+        .cost()
+        .expect("refs-only obligation receipt should expose cost");
+    let rich_cost = rich
+        .cost()
+        .expect("rich obligation receipt should expose cost");
     let materialized_records = rich_slice
         .materialized_detail()
         .and_then(obligation_projection_count)
@@ -101,9 +115,12 @@ fn narrow_budget_rich_obligation_queries_omit_detail_by_budget_without_widening(
     let app = obligation_dispatch_prerequisite_support::query_touch_app();
     let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
     let receipt = app.inspect(
-        obligation_touch_query(touch.target().graph_node_identity().digest(), touch.identity_digest())
-            .with_budget(UiEvidenceBudget::narrow())
-            .with_richness(UiEvidenceRichness::materialized_detail()),
+        obligation_touch_query(
+            touch.target().graph_node_identity().digest(),
+            touch.identity_digest(),
+        )
+        .with_budget(UiEvidenceBudget::narrow())
+        .with_richness(UiEvidenceRichness::materialized_detail()),
     );
     let slice = receipt
         .evidence_slice()
@@ -170,11 +187,17 @@ fn aspect_provenance_widening_reports_honest_costs_on_the_real_path() {
 
     assert_eq!(plain_slice.refs().len(), 4);
     assert_eq!(provenance_slice.refs().len(), 6);
-    assert_eq!(plain_family_counts, vec![(worth_ui::facade::inspection::UiEvidenceFamily::Aspect, 4)]);
+    assert_eq!(
+        plain_family_counts,
+        vec![(worth_ui::facade::inspection::UiEvidenceFamily::Aspect, 4)]
+    );
     assert_eq!(
         provenance_family_counts,
         vec![
-            (worth_ui::facade::inspection::UiEvidenceFamily::Declaration, 2),
+            (
+                worth_ui::facade::inspection::UiEvidenceFamily::Declaration,
+                2
+            ),
             (worth_ui::facade::inspection::UiEvidenceFamily::Aspect, 4),
         ]
     );
@@ -252,7 +275,10 @@ fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
                     UiDslSemanticArtifactSpec::new(
                         UiDslSemanticKey::new("ui.aspect.alpha"),
                         UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored("app/inspection_cost_aspect_alpha.wui", 0),
+                        UiDslSourceProvenance::file_authored(
+                            "app/inspection_cost_aspect_alpha.wui",
+                            0,
+                        ),
                     )
                     .with_structural_token(UiDslStructuralToken::new("control:alpha"))
                     .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
@@ -262,7 +288,10 @@ fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
                     UiDslSemanticArtifactSpec::new(
                         UiDslSemanticKey::new("ui.aspect.beta"),
                         UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored("app/inspection_cost_aspect_beta.wui", 0),
+                        UiDslSourceProvenance::file_authored(
+                            "app/inspection_cost_aspect_beta.wui",
+                            0,
+                        ),
                     )
                     .with_structural_token(UiDslStructuralToken::new("control:beta"))
                     .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))

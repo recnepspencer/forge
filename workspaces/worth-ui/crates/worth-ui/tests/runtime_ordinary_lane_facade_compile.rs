@@ -49,4 +49,3 @@ fn raw_execution_plan_input_cannot_enter_ordinary_lane_execution() {
         "tests/ui/runtime_authority/fail/raw_plan_input_cannot_execute_ordinary_lane.rs",
     );
 }
-

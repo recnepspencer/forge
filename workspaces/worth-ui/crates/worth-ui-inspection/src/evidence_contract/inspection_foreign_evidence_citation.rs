@@ -1,7 +1,6 @@
 use super::{
     UiInspectionForeignEvidenceRef, UiInspectionQueryForeignEvidenceArtifactKind,
-    UiInspectionQueryForeignEvidenceKind,
-    UiInspectionQueryForeignEvidenceRef,
+    UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,
 };
 use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 

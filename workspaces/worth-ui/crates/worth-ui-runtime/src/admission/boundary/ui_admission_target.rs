@@ -5,7 +5,8 @@ use crate::graph::UiGraphNodeIdentity;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::{WorthUiHostCapabilityPosture, WorthUiHostCapabilityReport};
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryBasisPosture, WorthUiQueryBindingSubsystem,
+    WorthUiQueryMeasurementFactEligibilityError, WorthUiQueryPrerequisiteEvidence,
 };
 
 use super::UiAdmissionWorld;
@@ -80,6 +81,21 @@ impl UiAdmissionTarget {
     ) -> Self {
         self.query_prerequisites = Some(query_prerequisites);
         self
+    }
+
+    pub fn with_query_prerequisites_from_projection_consumption(
+        mut self,
+        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+    ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
+        let Some(query_prerequisites) = self.query_prerequisites.take() else {
+            return Ok(self);
+        };
+        self.query_prerequisites = Some(
+            WorthUiQueryBindingSubsystem::bootstrap()
+                .prerequisites()
+                .bind_projection_consumption(query_prerequisites, consumption)?,
+        );
+        Ok(self)
     }
 
     pub fn with_host_capability_report(

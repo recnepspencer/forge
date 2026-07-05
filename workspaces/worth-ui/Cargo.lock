@@ -1319,6 +1319,8 @@ dependencies = [
 name = "worth-ui-certification"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-query",
  "syn",
  "toml 0.8.23",
  "trybuild",
@@ -1344,6 +1346,7 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "worth-ui-host-contract",
+ "worth-ui-runtime",
 ]
 
 [[package]]
@@ -1357,6 +1360,7 @@ dependencies = [
 name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-query",
 ]
 

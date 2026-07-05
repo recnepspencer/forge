@@ -24,6 +24,27 @@ Your job is to produce a findings-first review of the tests:
 - which production surfaces are missing to support honest tests
 - which verification lanes are too shallow to support the phase claims
 
+Do an ordinary-lane audit before writing findings:
+
+- are the tests proving the real ordinary production lane?
+- are they proving a certification-only seam, fixture seam, helper seam, or
+  synthetic constructor instead?
+- could the production path still be missing while these tests pass?
+- is any test pre-solving the authority artifact the phase is supposed to
+  derive?
+
+If the tests certify the wrong seam, treat that as a primary finding even if
+coverage looks strong.
+
+State explicitly in chat whether the current phase proves:
+
+- the ordinary lane
+- a partially ordinary lane with synthetic gaps
+- only a certification seam
+
+If it is not the ordinary lane, say exactly what production caller, authority
+path, or boundary crossing is still missing.
+
 Be concrete. Use file/line references when possible.
 
 If the tests need hardening, finish with:

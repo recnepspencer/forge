@@ -3,6 +3,9 @@ mod closeout;
 mod identity;
 mod indexes;
 mod inspection;
+mod measurement_neighborhood_hint;
+#[cfg(test)]
+mod measurement_neighborhood_hint_tests;
 mod mounted_receipt;
 mod mutation;
 mod participation;
@@ -35,6 +38,7 @@ pub use indexes::{
     UiGraphPageParticipationMember, UiGraphParentChildIndex, UiGraphRegionMembershipIndex,
     UiGraphSlotOccupancyIndex,
 };
+pub(crate) use inspection::UiGraphEvidenceRecord;
 pub use inspection::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
     UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind, UiGraphEvidenceRef,
@@ -45,7 +49,7 @@ pub(crate) use inspection::{
     UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, WorthUiAspectInspectionBoundary,
     WorthUiGraphInspectionBoundary,
 };
-pub(crate) use inspection::UiGraphEvidenceRecord;
+pub use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
 pub(crate) use mounted_receipt::materialize_graph_mounted_receipts;
 pub use mounted_receipt::{
     UiGraphMountedPostureRelationship, UiGraphMountedReceiptAuthoritySeed,

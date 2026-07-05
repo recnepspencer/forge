@@ -21,7 +21,8 @@ const BETA_MODULE_PATH: &str = "app/graph_node_beta.wui";
 #[test]
 fn graph_node_identity_lookup_is_indexed_and_zero_scan() {
     let app = graph_identity_app();
-    let index = UiGraphNodeEvidenceIndex::rebuild(app.declaration_artifacts(), app.graph().snapshot());
+    let index =
+        UiGraphNodeEvidenceIndex::rebuild(app.declaration_artifacts(), app.graph().snapshot());
     let alpha_lookup = lookup_for_module_path(&app, &index, ALPHA_MODULE_PATH);
     let beta_lookup = lookup_for_module_path(&app, &index, BETA_MODULE_PATH);
 
@@ -59,14 +60,20 @@ fn public_graph_identity_lookup_returns_runtime_local_neighborhood() {
         observation_after.graph_node_evidence_index_rebuild_count(),
         observation_before.graph_node_evidence_index_rebuild_count(),
     );
-    assert_eq!(alpha_first.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        alpha_first.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert_eq!(
         alpha_first.authority_generation(),
         Some(UiEvidenceAuthorityGeneration::new(
             app.graph().generation().as_u64()
         ))
     );
-    assert_eq!(alpha_first.evidence_slice_ref(), alpha_second.evidence_slice_ref());
+    assert_eq!(
+        alpha_first.evidence_slice_ref(),
+        alpha_second.evidence_slice_ref()
+    );
     assert_eq!(alpha_first_slice.refs(), alpha_second_slice.refs());
     assert_node_neighborhood_families(alpha_first_slice.refs());
     assert_node_neighborhood_families(beta_slice.refs());
@@ -76,7 +83,8 @@ fn public_graph_identity_lookup_returns_runtime_local_neighborhood() {
 #[test]
 fn graph_node_identity_obligation_family_returns_indexed_graph_local_neighborhood() {
     let app = graph_identity_app();
-    let index = UiGraphNodeEvidenceIndex::rebuild(app.declaration_artifacts(), app.graph().snapshot());
+    let index =
+        UiGraphNodeEvidenceIndex::rebuild(app.declaration_artifacts(), app.graph().snapshot());
     let alpha = graph_node_identity_for_module_path(&app, ALPHA_MODULE_PATH);
     let beta = graph_node_identity_for_module_path(&app, BETA_MODULE_PATH);
     let alpha_lookup = lookup_for_graph_node_identity(&index, alpha);
@@ -107,7 +115,10 @@ fn graph_node_identity_obligation_family_returns_indexed_graph_local_neighborhoo
         obligation_refs(alpha_lookup.neighborhood().refs()),
         alpha_slice.refs().to_vec()
     );
-    assert_eq!(alpha_receipt.evidence_slice_ref(), alpha_repeat.evidence_slice_ref());
+    assert_eq!(
+        alpha_receipt.evidence_slice_ref(),
+        alpha_repeat.evidence_slice_ref()
+    );
     assert_eq!(alpha_slice.refs(), alpha_repeat_slice.refs());
     assert_eq!(
         structural_receipt.relevance_outcome(),
@@ -116,8 +127,14 @@ fn graph_node_identity_obligation_family_returns_indexed_graph_local_neighborhoo
         }
     );
     assert!(structural_receipt.evidence_slice().is_none());
-    assert_eq!(alpha_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
-    assert_eq!(beta_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        alpha_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
+    assert_eq!(
+        beta_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert!(!alpha_slice.refs().is_empty());
     assert!(!beta_slice.refs().is_empty());
     assert!(alpha_slice
@@ -159,11 +176,21 @@ fn rebuilding_graph_node_index_from_authority_preserves_public_lookup_answers() 
         before.evidence_slice().map(|slice| slice.refs().to_vec()),
         after.evidence_slice().map(|slice| slice.refs().to_vec())
     );
-    assert_eq!(obligation_before.authority_generation(), obligation_after.authority_generation());
-    assert_eq!(obligation_before.evidence_slice_ref(), obligation_after.evidence_slice_ref());
     assert_eq!(
-        obligation_before.evidence_slice().map(|slice| slice.refs().to_vec()),
-        obligation_after.evidence_slice().map(|slice| slice.refs().to_vec())
+        obligation_before.authority_generation(),
+        obligation_after.authority_generation()
+    );
+    assert_eq!(
+        obligation_before.evidence_slice_ref(),
+        obligation_after.evidence_slice_ref()
+    );
+    assert_eq!(
+        obligation_before
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec()),
+        obligation_after
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec())
     );
 }
 
@@ -190,11 +217,15 @@ fn graph_identity_query(graph_node_identity: UiGraphNodeIdentity) -> UiInspectio
         UiInspectionTarget::graph_node_identity(graph_node_identity.digest()),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
-fn all_obligation_graph_identity_query(graph_node_identity: UiGraphNodeIdentity) -> UiInspectionQuery {
+fn all_obligation_graph_identity_query(
+    graph_node_identity: UiGraphNodeIdentity,
+) -> UiInspectionQuery {
     UiInspectionQuery::new(
         UiInspectionTarget::graph_node_identity(graph_node_identity.digest()),
         UiInspectionScope::graph(),
@@ -239,10 +270,7 @@ fn lookup_for_graph_node_identity<'a>(
         .expect("graph node identity should resolve through the graph evidence index")
 }
 
-fn graph_node_identity_for_module_path(
-    app: &WorthUiApp,
-    module_path: &str,
-) -> UiGraphNodeIdentity {
+fn graph_node_identity_for_module_path(app: &WorthUiApp, module_path: &str) -> UiGraphNodeIdentity {
     let artifact = declaration_artifact_for_module_path(app, module_path);
     app.graph()
         .lookup()
@@ -259,9 +287,7 @@ fn declaration_artifact_for_module_path<'a>(
 ) -> &'a UiDeclarationArtifact {
     app.declaration_artifacts()
         .iter()
-        .find(|artifact| {
-            artifact.provenance().source_provenance().module_path() == module_path
-        })
+        .find(|artifact| artifact.provenance().source_provenance().module_path() == module_path)
         .expect("control artifact should exist")
 }
 

@@ -5,16 +5,19 @@ use crate::declaration::{
     UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
     UiDeclarationInspectionSupportProjection, UiDeclarationLowering,
 };
+use crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot;
 use crate::facade::{
     inspection_observation::WorthUiInspectionObservationState, CapabilitySnapshot,
-    UiInspectionScope, UiInspectionSupportReport, WorthUiDslPackage, WorthUiHostContract,
-    WorthUiRuntimeSupportInventory, PHASE3_RUNTIME_SUPPORT_INVENTORY,
+    UiInspectionScope, UiInspectionSupportReport, UiMeasurementInspectionEvidenceBundle,
+    WorthUiDslPackage, WorthUiHostContract, WorthUiRuntimeSupportInventory,
+    PHASE3_RUNTIME_SUPPORT_INVENTORY,
 };
 use crate::graph::{admit_graph_handoffs, UiGraphSnapshot, UiGraphWorldProfile};
 
 pub(crate) struct WorthUiFacadeLifecycleBootstrap {
     inspection_scope_inventory: UiInspectionScopeInventory,
     declaration_inspection_support: UiDeclarationInspectionSupportProjection,
+    measurement_inspection_evidence: UiMeasurementInspectionEvidenceSnapshot,
     inspection_observation: WorthUiInspectionObservationState,
     runtime_support_inventory: WorthUiRuntimeSupportInventory,
     _dsl_package: WorthUiDslPackage,
@@ -26,11 +29,13 @@ impl WorthUiFacadeLifecycleBootstrap {
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
         declaration_artifacts: &[UiDeclarationArtifact],
+        measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
     ) -> Self {
         Self::new_with_inspection_scope_inventory(
             dsl_package,
             host_contract,
             declaration_artifacts,
+            measurement_inspection_evidence,
             RUNTIME_INSPECTION_SCOPE_INVENTORY,
         )
     }
@@ -39,12 +44,16 @@ impl WorthUiFacadeLifecycleBootstrap {
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
         declaration_artifacts: &[UiDeclarationArtifact],
+        measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
         inspection_scope_inventory: UiInspectionScopeInventory,
     ) -> Self {
         Self {
             inspection_scope_inventory,
             declaration_inspection_support: derive_declaration_inspection_support_projection(
                 declaration_artifacts,
+            ),
+            measurement_inspection_evidence: UiMeasurementInspectionEvidenceSnapshot::from_bundles(
+                measurement_inspection_evidence,
             ),
             inspection_observation: WorthUiInspectionObservationState::new(),
             runtime_support_inventory: PHASE3_RUNTIME_SUPPORT_INVENTORY,
@@ -74,6 +83,12 @@ impl WorthUiFacadeLifecycleBootstrap {
 
     pub(crate) fn inspection_observation(&self) -> crate::facade::UiInspectionFacadeObservation {
         self.inspection_observation.snapshot()
+    }
+
+    pub(crate) fn measurement_inspection_evidence(
+        &self,
+    ) -> &UiMeasurementInspectionEvidenceSnapshot {
+        &self.measurement_inspection_evidence
     }
 
     pub(crate) fn record_inspection_query(&self) {
@@ -117,6 +132,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
         graph_world_profile: UiGraphWorldProfile,
+        measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
     ) -> Self {
         let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
         let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
@@ -130,6 +146,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
             dsl_package,
             host_contract,
             &declaration_artifacts,
+            measurement_inspection_evidence,
         );
         Self {
             capability_snapshot,
@@ -144,6 +161,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
         graph_world_profile: UiGraphWorldProfile,
+        measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
         inspection_scope_inventory: UiInspectionScopeInventory,
     ) -> Self {
         let declaration_artifacts = lower_declaration_artifacts(&dsl_package);
@@ -158,6 +176,7 @@ impl WorthUiCapabilityRegistrationFreezeCore {
             dsl_package,
             host_contract,
             &declaration_artifacts,
+            measurement_inspection_evidence,
             inspection_scope_inventory,
         );
         Self {

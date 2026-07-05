@@ -6,9 +6,10 @@ use worth_ui_host_contract::WorthUiHostCapability;
 
 use crate::declaration::artifact::ui_declaration_lowering::UiDeclarationLowering;
 use crate::declaration::{
-    UiDeclarationFamilyKind, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureAdmission,
-    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind,
-    UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
+    UiDeclarationFamilyKind, UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
+    UiDeclaredPostureAdmission, UiDeclaredPostureAdmissionDenial, UiDeclaredPostureApplicability,
+    UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture,
+    UiDeclaredTouchMeaningPosture,
 };
 
 fn lower(spec: UiDslSemanticArtifactSpec) -> crate::declaration::UiDeclarationArtifact {
@@ -90,6 +91,13 @@ fn family_spec(family: UiDslSemanticFamily, declaration_index: usize) -> UiDslSe
     }
 }
 
+fn expected_measurement_policy(
+    mode: UiDeclaredMeasurementMode,
+) -> UiDeclaredMeasurementPolicyPosture {
+    UiDeclaredMeasurementPolicyPosture::new(Some(mode), None, None, None, Vec::new())
+        .expect("test posture should contain measurement meaning")
+}
+
 #[test]
 fn declared_posture_projects_typed_control_intent_lanes() {
     let artifact = lower(
@@ -127,7 +135,9 @@ fn declared_posture_projects_typed_control_intent_lanes() {
     );
     assert_eq!(
         posture.measurement_policy().admitted(),
-        Some(&UiDeclaredMeasurementPolicyPosture::HugHeight)
+        Some(&expected_measurement_policy(
+            UiDeclaredMeasurementMode::HugHeight
+        ))
     );
     assert_eq!(
         posture

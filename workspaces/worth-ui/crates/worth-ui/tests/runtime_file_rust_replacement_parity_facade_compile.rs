@@ -49,4 +49,3 @@ fn rust_cannot_inject_active_plan_nodes_directly() {
         "tests/ui/runtime_file_rust_replacement_parity/fail/rust_cannot_inject_active_plan_nodes.rs",
     );
 }
-

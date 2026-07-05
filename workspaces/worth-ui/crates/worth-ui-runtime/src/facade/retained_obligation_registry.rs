@@ -14,7 +14,11 @@ pub(crate) struct WorthUiRetainedObligationRegistry {
 }
 
 impl WorthUiRetainedObligationRegistry {
-    pub(crate) fn register(&self, selected: &UiSelectedObligationSet, receipt: &UiInspectionReceipt) {
+    pub(crate) fn register(
+        &self,
+        selected: &UiSelectedObligationSet,
+        receipt: &UiInspectionReceipt,
+    ) {
         let Some(slice) = receipt.evidence_slice() else {
             return;
         };
@@ -44,7 +48,10 @@ impl WorthUiRetainedObligationRegistry {
     }
 
     pub(crate) fn retained_selection(&self, handle_digest: u64) -> Option<UiSelectedObligationSet> {
-        self.selections_by_handle.borrow().get(&handle_digest).cloned()
+        self.selections_by_handle
+            .borrow()
+            .get(&handle_digest)
+            .cloned()
     }
 
     pub(crate) fn discarded_ref(&self, evidence_ref: UiEvidenceRef) -> Option<UiEvidenceRef> {

@@ -28,4 +28,3 @@ fn raw_reload_counter_receipt_cannot_lower_to_foundational() {
         "tests/ui/runtime_reload_counter_boundary/fail/raw_reload_counter_receipt_cannot_lower_to_foundational.rs",
     );
 }
-

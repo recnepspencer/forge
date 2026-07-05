@@ -49,4 +49,3 @@ fn raw_query_string_cannot_execute_virtualized_data_lane() {
         "tests/ui/runtime_authority/fail/raw_query_string_cannot_execute_virtualized_data_lane.rs",
     );
 }
-

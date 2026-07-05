@@ -1,3 +1,6 @@
+mod measurement_neighborhood_hint;
+#[cfg(test)]
+mod measurement_neighborhood_hint_tests;
 mod touch_aspect;
 mod touch_authority;
 mod touch_denial;
@@ -8,6 +11,7 @@ mod touch_target;
 mod touch_timing;
 mod touch_world;
 
+pub use measurement_neighborhood_hint::UiGraphTouchMeasurementNeighborhoodHint;
 pub use touch_aspect::{
     UiGraphTouchAspectFact, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchRuntimeLane,
 };

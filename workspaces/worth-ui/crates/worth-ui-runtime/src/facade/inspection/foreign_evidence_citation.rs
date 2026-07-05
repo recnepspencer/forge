@@ -16,10 +16,12 @@ pub(crate) fn cite_foreign_evidence(
 ) -> UiInspectionForeignEvidenceCitation {
     match foreign_ref {
         UiInspectionForeignEvidenceRef::Query(query_ref) => {
-            UiInspectionForeignEvidenceCitation::Query(UiInspectionQueryForeignEvidenceCitation::new(
-                query_ref,
-                resolve_query_prerequisite_evidence(registry, query_ref),
-            ))
+            UiInspectionForeignEvidenceCitation::Query(
+                UiInspectionQueryForeignEvidenceCitation::new(
+                    query_ref,
+                    resolve_query_prerequisite_evidence(registry, query_ref),
+                ),
+            )
         }
     }
 }
@@ -74,7 +76,8 @@ fn query_foreign_routes(
     evidence: &WorthUiQueryPrerequisiteEvidence,
 ) -> impl Iterator<Item = UiInspectionQueryForeignEvidenceKind> + '_ {
     let mut routes = Vec::from([UiInspectionQueryForeignEvidenceKind::ProjectionConsumption]);
-    if evidence.inspection_lane() == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
+    if evidence.inspection_lane()
+        == worth_ui_query_binding::WorthUiQueryInspectionLane::WorkspaceInspect
     {
         routes.push(UiInspectionQueryForeignEvidenceKind::Inspection);
     }

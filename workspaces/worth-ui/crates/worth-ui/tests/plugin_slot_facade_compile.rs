@@ -2,9 +2,7 @@
 mod trybuild_support;
 #[test]
 fn compat_root_plugin_slot_registration_compiles() {
-    facade_compile_pass(
-        "tests/ui/facade/compat_pass/plugin_slot_registration_uses_only_facade.rs",
-    );
+    facade_compile_pass("tests/ui/facade/compat_pass/plugin_slot_registration_uses_only_facade.rs");
 }
 
 #[test]
@@ -44,4 +42,3 @@ fn facade_compile_fail(fixture_path: &str) {
     let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
-

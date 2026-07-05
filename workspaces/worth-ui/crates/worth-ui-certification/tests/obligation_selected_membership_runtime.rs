@@ -29,28 +29,32 @@ fn public_selected_rows_exclude_plausible_but_not_selected_candidates() {
     );
 
     let expected = selected_projection_set_from_selected_set(&selected);
-    let selected_public = selected_projection_set_from_receipt(&selected.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                touch.target().graph_node_identity().digest(),
-                touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance())
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
-    let report_public = selected_projection_set_from_receipt(&report.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                touch.target().graph_node_identity().digest(),
-                touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance())
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
+    let selected_public = selected_projection_set_from_receipt(
+        &selected.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    touch.target().graph_node_identity().digest(),
+                    touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance())
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
+    let report_public = selected_projection_set_from_receipt(
+        &report.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    touch.target().graph_node_identity().digest(),
+                    touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance())
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
 
     assert_eq!(expected, selected_public);
     assert_eq!(expected, report_public);

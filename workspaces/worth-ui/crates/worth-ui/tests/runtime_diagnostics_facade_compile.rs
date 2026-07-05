@@ -63,4 +63,3 @@ fn richness_policy_fields_are_not_publicly_mintable() {
         "tests/ui/runtime_diagnostics/fail/richness_policy_fields_not_public.rs",
     );
 }
-

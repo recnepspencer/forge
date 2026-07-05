@@ -42,7 +42,8 @@ impl UiDeclarationAuthoredEvidenceIndex {
         declaration_artifacts: &[UiDeclarationArtifact],
         graph_snapshot: &UiGraphSnapshot,
     ) -> Self {
-        let authority_generation = UiEvidenceAuthorityGeneration::new(graph_snapshot.generation().as_u64());
+        let authority_generation =
+            UiEvidenceAuthorityGeneration::new(graph_snapshot.generation().as_u64());
         let admission_boundary = UiAdmissionBoundary::new(declaration_artifacts, graph_snapshot);
         let by_declaration_identity = declaration_artifacts
             .iter()
@@ -65,7 +66,9 @@ impl UiDeclarationAuthoredEvidenceIndex {
             .enumerate()
             .map(|(declaration_artifact_index, artifact)| {
                 (
-                    artifact.provenance().inspection_authored_source_provenance_ref(),
+                    artifact
+                        .provenance()
+                        .inspection_authored_source_provenance_ref(),
                     authored_neighborhood_for_artifact(
                         declaration_artifact_index,
                         artifact,

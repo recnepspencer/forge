@@ -1,7 +1,7 @@
 use worth_ui_inspection::{
-    UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceRichness, UiInspectionDeclarationIdentity,
-    UiInspectionQuery, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget,
-    UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceRichness,
+    UiInspectionDeclarationIdentity, UiInspectionQuery, UiInspectionRelevance, UiInspectionScope,
+    UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
 };
 
 use crate::evidence::{preflight_evidence_expansion, UiEvidenceExpansion, UiEvidenceRef};
@@ -38,7 +38,9 @@ pub(crate) fn expand_evidence_ref(
     }
 
     match evidence_ref.family() {
-        UiEvidenceFamily::Obligation => app.expand_retained_obligation_ref(evidence_ref, requested_richness),
+        UiEvidenceFamily::Obligation => {
+            app.expand_retained_obligation_ref(evidence_ref, requested_richness)
+        }
         _ => UiEvidenceExpansion::new(
             evidence_ref,
             requested_richness,

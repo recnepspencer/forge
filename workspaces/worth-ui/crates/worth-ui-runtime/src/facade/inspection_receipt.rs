@@ -77,9 +77,11 @@ impl UiInspectionReceipt {
                     query.richness(),
                     worth_ui_inspection::UiEvidenceRichness::MaterializedDetail
                 )
-                .then_some(crate::evidence::UiEvidenceMaterializedDetail::Obligation(
-                    obligation_evidence.clone(),
-                )),
+                .then_some(
+                    crate::evidence::UiEvidenceMaterializedDetail::Obligation(
+                        obligation_evidence.clone(),
+                    ),
+                ),
             )
             .with_detail_available(true)
             .with_cost_metrics(UiInspectionCostMetrics::new(
@@ -119,6 +121,29 @@ impl UiInspectionReceipt {
             authority_generation: Some(authority_generation),
             posture: None,
             support_report: None,
+            evidence_slice_ref: Some(evidence_slice_ref),
+            evidence_slice: Some(assembly.into_slice()),
+            cost: Some(cost),
+        }
+    }
+
+    pub(crate) fn from_support_and_assembled_slice(
+        query: UiInspectionQuery,
+        relevance_admission: UiInspectionRelevanceAdmission,
+        support_report: UiInspectionSupportReport,
+        authority_generation: UiEvidenceAuthorityGeneration,
+        assembly: UiEvidenceSliceAssembly,
+    ) -> Self {
+        let posture = UiInspectionPosture::from_support_report(support_report);
+        let cost = assembly.cost();
+        let evidence_slice_ref = assembly.slice().slice_ref();
+        Self {
+            selected_relevance: query.relevance().clone(),
+            query,
+            relevance_admission,
+            authority_generation: Some(authority_generation),
+            posture: Some(posture),
+            support_report: Some(support_report),
             evidence_slice_ref: Some(evidence_slice_ref),
             evidence_slice: Some(assembly.into_slice()),
             cost: Some(cost),

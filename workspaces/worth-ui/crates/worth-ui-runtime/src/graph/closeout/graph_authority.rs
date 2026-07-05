@@ -51,7 +51,7 @@ impl<'a> UiGraphAuthority<'a> {
                 lookup.value().graph_node_identity().digest(),
             )
             .reference()
-            })
+        })
     }
 
     pub fn expand_evidence_ref(
@@ -59,9 +59,8 @@ impl<'a> UiGraphAuthority<'a> {
         evidence_ref: UiEvidenceRef,
         requested_richness: worth_ui_inspection::UiEvidenceRichness,
     ) -> UiEvidenceExpansion {
-        let current_generation = worth_ui_inspection::UiEvidenceAuthorityGeneration::new(
-            self.generation().as_u64(),
-        );
+        let current_generation =
+            worth_ui_inspection::UiEvidenceAuthorityGeneration::new(self.generation().as_u64());
         if let Some(preflight) =
             preflight_evidence_expansion(current_generation, evidence_ref, requested_richness)
         {

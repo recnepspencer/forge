@@ -59,4 +59,3 @@ fn local_subscription_recovery_path_cannot_replace_query_rebind_plan() {
 fn runtime_authority_compile_fail(path: &str) {
     trybuild_support::new_test_cases().compile_fail(path);
 }
-

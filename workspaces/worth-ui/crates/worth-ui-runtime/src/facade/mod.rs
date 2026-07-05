@@ -2,16 +2,23 @@
 
 pub mod admission;
 mod app;
+mod app_builder;
 mod app_derived_state;
 mod app_inspection_closeout;
 mod app_inspection_support;
-mod app_builder;
 mod builder;
 pub mod declaration;
 pub mod graph;
 mod inspection;
 mod inspection_observation;
 mod inspection_receipt;
+mod measurement_inspection_evidence;
+#[cfg(test)]
+mod measurement_inspection_query_denial_tests;
+#[cfg(test)]
+mod measurement_inspection_test_support;
+#[cfg(test)]
+mod measurement_inspection_tests;
 mod obligation_inspection;
 pub mod obligations;
 pub mod query_binding;
@@ -85,61 +92,94 @@ pub use crate::capability::{
     ViewBindingFamily, ViewBindingId, VisibleStateBindingDeclaration,
 };
 pub use crate::evidence::{
-    UiEvidenceExpansion, UiEvidenceFamilySummary, UiEvidenceHandle, UiEvidenceIdentity,
-    UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceSlice, UiEvidenceSliceRef,
-    UiInspectionCostReceipt, UiInspectionObligationEvidenceReceipt,
-    UiInspectionObligationReasonProjection,
+    admit_measurement_basis, certify_measurement_basis_determinism,
+    certify_measurement_basis_determinism_for_scenarios,
+    consume_declared_measurement_projection_facts, MeasurementEvidenceInput,
+    UiCurrentMeasurementResult, UiEvidenceExpansion, UiEvidenceFamilySummary, UiEvidenceHandle,
+    UiEvidenceIdentity, UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceSlice,
+    UiEvidenceSliceRef, UiInspectionCostReceipt, UiInspectionObligationEvidenceReceipt,
+    UiInspectionObligationReasonProjection, UiMeasurementBasis,
+    UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationOutcome,
+    UiMeasurementBasisCertificationReport, UiMeasurementBasisCertificationScenario,
+    UiMeasurementBasisCertificationScenarioError, UiMeasurementBasisDenial,
+    UiMeasurementBasisDeterminismPosture, UiMeasurementBasisGeneration, UiMeasurementBasisPosture,
+    UiMeasurementCoordinateSpace, UiMeasurementDependencyLineage,
+    UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
+    UiMeasurementEvidenceCategory, UiMeasurementEvidenceSlot, UiMeasurementGenerationCompatibility,
+    UiMeasurementNeighborhoodClassHint, UiMeasurementResult, UiMeasurementRoundingPosture,
+    UiMeasurementUnitPosture, UiMeasurementValue, UiProjectionFactReceipt,
+    UiProjectionFactReceiptDenial,
 };
 pub use crate::graph::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
     UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind, UiGraphNodeIdentity,
     UiMountedReceiptIdentity,
 };
+pub use crate::host::{
+    admit_current_host_measurement_evidence, collect_host_measurement_evidence,
+    freeze_measurement_request, UiHostMeasurementAssumptionProfile,
+    UiHostMeasurementEvidenceDenial, UiHostMeasurementExecutionDenial,
+    UiHostMeasurementFreshnessWitness, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
+};
 pub use crate::lifecycle::{WorthUiRuntimeSupportInventory, PHASE3_RUNTIME_SUPPORT_INVENTORY};
 pub use crate::runtime::*;
 pub use app::{WorthUi, WorthUiApp};
 pub use app_builder::{WorthUiAppBuilder, WorthUiBuilder};
 pub use builder::CapabilityRegistrationBuilder;
+pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 pub use inspection::UiInspectionAiHarness;
 pub use inspection_observation::UiInspectionFacadeObservation;
 pub use inspection_receipt::UiInspectionReceipt;
-pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
+pub use measurement_inspection_evidence::UiMeasurementInspectionEvidenceBundle;
 pub use worth_ui_dsl::WorthUiDslPackage;
 pub use worth_ui_host_contract::{
+    UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,
+    UiFontMetricsObservation, UiFontMetricsRequest, UiForbiddenHostAuthorityAsk, UiHostObservation,
+    UiHostObservationContractDenial, UiHostObservationValue, UiMeasurementCapabilityPosture,
+    UiMeasurementEvidenceFamily, UiMeasurementRequest, UiMeasurementRequestDenial,
+    UiMeasurementRequestFamily, UiMeasurementRequestIdentity,
+    UiNativeControlIntrinsicSizeObservation, UiNativeControlIntrinsicSizeRequest,
+    UiNativeControlKind, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
+    UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
+    UiTextBaselineMetricsObservation, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeObservation,
+    UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
     WorthUiHostAdapter, WorthUiHostCapability, WorthUiHostCapabilityPosture,
-    WorthUiHostCapabilityReport, WorthUiHostContract,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 pub use worth_ui_inspection::{
-    UiAuthoredSourceProvenanceRef,
-    UiEvidenceAuthorityArtifactIdentity, UiEvidenceAuthorityBinding, UiEvidenceAuthorityGeneration,
-    UiEvidenceAuthorityKind, UiEvidenceBudget, UiEvidenceExpansionOutcome, UiEvidenceFamily,
-    UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef,
-    UiEvidenceLinkKind, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
-    UiEvidenceRichness, UiEvidenceSliceOmission, UiInspectionAdmissionHostCapability,
-    UiInspectionAdmissionPosture, UiInspectionAdmissionQueryBasis,
-    UiInspectionAdmissionStaleEvidence, UiInspectionAiHarnessLane, UiInspectionClosureReport,
-    UiInspectionClosedSemanticLane, UiInspectionCloseoutGuarantee,
-    UiInspectionCloseoutNonGoal, UiInspectionCloseoutReport, UiInspectionCostLane,
-    UiInspectionDeferredPosture, UiInspectionDiagnosticOnlyPosture,
-    UiInspectionDerivedIndexLane, UiInspectionEvidenceSource,
-    UiInspectionDeclarationIdentity,
+    UiAuthoredSourceProvenanceRef, UiEvidenceAuthorityArtifactIdentity, UiEvidenceAuthorityBinding,
+    UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind, UiEvidenceBudget,
+    UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceLinkKind,
+    UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture, UiEvidenceRichness,
+    UiEvidenceSliceOmission, UiInspectionAdmissionHostCapability, UiInspectionAdmissionPosture,
+    UiInspectionAdmissionQueryBasis, UiInspectionAdmissionStaleEvidence, UiInspectionAiHarnessLane,
+    UiInspectionAspectName, UiInspectionAspectRelevanceDetail, UiInspectionClosedSemanticLane,
+    UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal, UiInspectionCloseoutReport,
+    UiInspectionClosureReport, UiInspectionCostLane, UiInspectionDeclarationIdentity,
+    UiInspectionDeferredPosture, UiInspectionDerivedIndexLane, UiInspectionDiagnosticOnlyPosture,
+    UiInspectionEvidenceSource, UiInspectionForeignEvidenceCitation,
+    UiInspectionForeignEvidenceRef, UiInspectionMeasurementBasisInput,
+    UiInspectionMeasurementBasisPosture, UiInspectionMeasurementBasisSource,
+    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
+    UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
+    UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
+    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
     UiInspectionMilestoneExpectation, UiInspectionObligationDecision,
     UiInspectionObligationDenialPosture, UiInspectionObligationDispatchPosture,
     UiInspectionObligationFamily, UiInspectionObligationLegalityReason,
-    UiInspectionObligationNonSelectionReason,
-    UiInspectionObligationRelevanceDetail, UiInspectionObligationSelectionReason,
-    UiInspectionObligationVerdictClass, UiInspectionObligationVerdictPosture,
-    UiInspectionPosture, UiInspectionQuery,
-    UiInspectionRelevance, UiInspectionRelevanceAdmission, UiInspectionRelevanceOutcome,
-    UiInspectionRefLifecycleLane, UiInspectionScope, UiInspectionScopeSupportRow,
-    UiInspectionSliceLane, UiInspectionSupportPosture, UiInspectionSupportReason,
-    UiInspectionSupportReport, UiInspectionSupportRowSchemaKind, UiInspectionSupportStatus,
-    UiInspectionSupportWorld, UiInspectionTarget,
-    UiInspectionTargetClass, UiInspectionTouchAspectPosture, UiInspectionTouchOriginClass,
-    UiInspectionTouchRuntimeLane, UiInspectionTouchTargetClass, UiInspectionUnsupportedPosture,
-    UiInspectionWrongWorldPosture, UiInspectionAspectName, UiInspectionAspectRelevanceDetail,
+    UiInspectionObligationNonSelectionReason, UiInspectionObligationRelevanceDetail,
+    UiInspectionObligationSelectionReason, UiInspectionObligationVerdictClass,
+    UiInspectionObligationVerdictPosture, UiInspectionPosture, UiInspectionQuery,
     UiInspectionQueryForeignEvidenceArtifactKind, UiInspectionQueryForeignEvidenceCitation,
     UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,
-    UiRelevanceFamily, UiRelevanceFilter,
-    UiSourceArtifactGeneration, UiSourceArtifactIdentity,
+    UiInspectionRefLifecycleLane, UiInspectionRelevance, UiInspectionRelevanceAdmission,
+    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionScopeSupportRow,
+    UiInspectionSliceLane, UiInspectionSupportPosture, UiInspectionSupportReason,
+    UiInspectionSupportReport, UiInspectionSupportRowSchemaKind, UiInspectionSupportStatus,
+    UiInspectionSupportWorld, UiInspectionTarget, UiInspectionTargetClass,
+    UiInspectionTouchAspectPosture, UiInspectionTouchOriginClass, UiInspectionTouchRuntimeLane,
+    UiInspectionTouchTargetClass, UiInspectionUnsupportedPosture, UiInspectionWrongWorldPosture,
+    UiRelevanceFamily, UiRelevanceFilter, UiSourceArtifactGeneration, UiSourceArtifactIdentity,
 };

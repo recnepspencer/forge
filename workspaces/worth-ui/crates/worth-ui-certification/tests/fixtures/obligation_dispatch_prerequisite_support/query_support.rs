@@ -62,8 +62,8 @@ pub fn query_prerequisites(
                 }
             },
             WorthUiQueryProjectionConsumptionLane::ConsumeProjectionFacts,
-            WorthUiQueryInspectionLane::WorkspaceInspect,
-            WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection,
+            WorthUiQueryInspectionLane::NotRequested,
+            WorthUiQueryCausalExplanationLane::NotRequested,
         )
         .expect("query prerequisite assembly should admit")
 }

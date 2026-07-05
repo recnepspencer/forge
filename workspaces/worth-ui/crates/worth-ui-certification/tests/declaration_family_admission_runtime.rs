@@ -2,8 +2,8 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclarationFamily, UiDeclarationFamilyCatalog, UiDeclarationFamilyKind,
-    UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
+    UiDeclarationArtifact, UiDeclarationFamily, UiDeclarationFamilyCatalog,
+    UiDeclarationFamilyKind, UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -60,8 +60,7 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
                 .with_semantic_artifact_spec(attached_query_binding_control_spec()),
         )
         .freeze();
-    let attached =
-        artifact_from_file_provenance(&attached_app, "app/query_binding_roles.wui", 0);
+    let attached = artifact_from_file_provenance(&attached_app, "app/query_binding_roles.wui", 0);
 
     match attached
         .family()
@@ -136,10 +135,9 @@ fn caller_authored_freeze_exposes_typed_family_denials_on_public_artifacts() {
             )
             .freeze();
     }));
-    let invalid_attached_intent_panic = panic_message(
-        invalid_attached_intent_freeze
-            .expect_err("freeze path must reject invalid attached intent posture before graph publication"),
-    );
+    let invalid_attached_intent_panic = panic_message(invalid_attached_intent_freeze.expect_err(
+        "freeze path must reject invalid attached intent posture before graph publication",
+    ));
     assert!(
         invalid_attached_intent_panic.contains("FamilyNotAdmitted")
             && invalid_attached_intent_panic.contains("InvalidAttachedRoleClaim")

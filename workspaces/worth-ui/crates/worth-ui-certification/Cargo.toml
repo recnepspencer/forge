@@ -14,12 +14,14 @@ workspace = true
 [dependencies]
 syn = { version = "2.0", features = ["full", "visit"] }
 toml = "0.8"
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 
 [dev-dependencies]
 trybuild = { workspace = true }
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-query = { path = "../../../../crates/forge-query" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
-worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
-worth-ui-query-binding = { path = "../worth-ui-query-binding" }
+worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
 worth-ui-runtime = { path = "../worth-ui-runtime" }
 worth-ui = { path = "../worth-ui" }

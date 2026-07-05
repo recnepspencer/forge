@@ -8,8 +8,14 @@ license.workspace = true
 name = "worth_ui_query_binding"
 path = "src/lib.rs"
 
+[features]
+certification-construction = []
+
 [lints]
 workspace = true
 
 [dependencies]
 forge-query = { path = "../../../../crates/forge-query" }
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }

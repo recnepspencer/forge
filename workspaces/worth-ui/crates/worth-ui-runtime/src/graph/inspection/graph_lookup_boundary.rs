@@ -5,10 +5,10 @@ use worth_ui_inspection::{
 };
 
 use crate::declaration::UiDeclarationArtifact;
+use crate::evidence::UiInspectionCostMetrics;
 use crate::evidence::{UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput};
 use crate::facade::UiInspectionReceipt;
 use crate::graph::{UiGraphNodeEvidenceIndex, UiGraphSnapshot};
-use crate::evidence::UiInspectionCostMetrics;
 
 pub(crate) struct WorthUiGraphInspectionBoundary<'a> {
     declaration_artifacts: &'a [UiDeclarationArtifact],
@@ -35,9 +35,11 @@ impl<'a> WorthUiGraphInspectionBoundary<'a> {
         authority_generation: UiEvidenceAuthorityGeneration,
     ) -> Option<UiInspectionReceipt> {
         let lookup = match query.target() {
-            UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => self
-                .graph_node_evidence_index
-                .lookup_graph_node_identity(crate::graph::UiGraphNodeIdentity::new(*graph_node_digest)),
+            UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => {
+                self.graph_node_evidence_index.lookup_graph_node_identity(
+                    crate::graph::UiGraphNodeIdentity::new(*graph_node_digest),
+                )
+            }
             _ => return None,
         }?;
         let refs = filter_refs_for_query(lookup.neighborhood().refs(), &query);
@@ -67,7 +69,9 @@ impl<'a> WorthUiGraphInspectionBoundary<'a> {
         let declaration_artifact_index = match query.target() {
             UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => self
                 .graph_node_evidence_index
-                .lookup_graph_node_identity(crate::graph::UiGraphNodeIdentity::new(*graph_node_digest))?
+                .lookup_graph_node_identity(crate::graph::UiGraphNodeIdentity::new(
+                    *graph_node_digest,
+                ))?
                 .neighborhood()
                 .declaration_artifact_index(),
             _ => return None,
@@ -75,10 +79,14 @@ impl<'a> WorthUiGraphInspectionBoundary<'a> {
         let graph_supported = self
             .graph_snapshot
             .lookup()
-            .graph_node(crate::graph::UiGraphNodeIdentity::new(match query.target() {
-                UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => *graph_node_digest,
-                _ => unreachable!(),
-            }))
+            .graph_node(crate::graph::UiGraphNodeIdentity::new(
+                match query.target() {
+                    UiInspectionTarget::GraphNodeIdentity { graph_node_digest } => {
+                        *graph_node_digest
+                    }
+                    _ => unreachable!(),
+                },
+            ))
             .is_some();
         if !graph_supported {
             return Some(unsupported_support_report(query.scope()));
@@ -91,7 +99,10 @@ impl<'a> WorthUiGraphInspectionBoundary<'a> {
     }
 }
 
-fn filter_refs_for_query(refs: &[UiEvidenceRef], query: &UiInspectionQuery) -> Box<[UiEvidenceRef]> {
+fn filter_refs_for_query(
+    refs: &[UiEvidenceRef],
+    query: &UiInspectionQuery,
+) -> Box<[UiEvidenceRef]> {
     match query.relevance().filter().family_filter() {
         Some(family) => refs
             .iter()
@@ -107,7 +118,10 @@ fn family_matches(evidence_family: UiEvidenceFamily, relevance_family: UiRelevan
     matches!(
         (evidence_family, relevance_family),
         (UiEvidenceFamily::Graph, UiRelevanceFamily::Graph)
-            | (UiEvidenceFamily::Declaration, UiRelevanceFamily::Declaration)
+            | (
+                UiEvidenceFamily::Declaration,
+                UiRelevanceFamily::Declaration
+            )
             | (UiEvidenceFamily::Admission, UiRelevanceFamily::Admission)
             | (UiEvidenceFamily::Obligation, UiRelevanceFamily::Obligation)
     )

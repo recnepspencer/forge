@@ -28,4 +28,3 @@ fn raw_watcher_event_cannot_declare_dependency_impact() {
         "tests/ui/runtime_source_ingress/fail/raw_watcher_event_cannot_declare_dependency_impact.rs",
     );
 }
-

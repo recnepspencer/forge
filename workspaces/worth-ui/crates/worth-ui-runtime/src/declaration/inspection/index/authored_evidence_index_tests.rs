@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use worth_ui_inspection::{
-    UiEvidenceFamily, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
-    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFilter,
-};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
     UiDslStructuralToken,
+};
+use worth_ui_inspection::{
+    UiEvidenceFamily, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
+    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFilter,
 };
 
 use super::UiDeclarationAuthoredEvidenceIndex;
@@ -30,7 +30,9 @@ fn authored_lookup_omits_admission_ref_when_declaration_correspondence_is_ambigu
         .expect("ambiguous authored lookup should still retain declaration evidence");
     let by_provenance = index
         .lookup_authored_provenance(
-            &control.provenance().inspection_authored_source_provenance_ref(),
+            &control
+                .provenance()
+                .inspection_authored_source_provenance_ref(),
         )
         .expect("ambiguous authored provenance should still retain declaration evidence");
 
@@ -40,7 +42,10 @@ fn authored_lookup_omits_admission_ref_when_declaration_correspondence_is_ambigu
     assert_eq!(by_provenance.cost().declaration_identity_index_lookups(), 0);
     assert_eq!(by_provenance.cost().authored_provenance_index_lookups(), 1);
     assert_eq!(by_provenance.cost().declaration_artifact_scans(), 0);
-    assert_eq!(by_identity.neighborhood().refs(), by_provenance.neighborhood().refs());
+    assert_eq!(
+        by_identity.neighborhood().refs(),
+        by_provenance.neighborhood().refs()
+    );
     assert_eq!(by_identity.neighborhood().refs().len(), 1);
     assert_eq!(
         by_identity.neighborhood().refs()[0].family(),
@@ -53,7 +58,9 @@ fn public_authored_lookup_omits_admission_ref_when_declaration_correspondence_is
     let app = repeated_instance_app();
     let control = control_artifact(&app);
     let observation_before = app.inspection_observation();
-    let by_identity = app.inspect(declaration_identity_query(control.identity().inspection_identity()));
+    let by_identity = app.inspect(declaration_identity_query(
+        control.identity().inspection_identity(),
+    ));
     let by_provenance = app.inspect(authored_provenance_query(
         control
             .provenance()
@@ -67,16 +74,28 @@ fn public_authored_lookup_omits_admission_ref_when_declaration_correspondence_is
         .evidence_slice()
         .expect("ambiguous authored provenance should retain declaration evidence");
 
-    assert_eq!(by_identity.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
-    assert_eq!(by_provenance.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        by_identity.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
+    assert_eq!(
+        by_provenance.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert_eq!(
         observation_after.authored_lookup_count() - observation_before.authored_lookup_count(),
         2
     );
-    assert_eq!(by_identity.evidence_slice_ref(), by_provenance.evidence_slice_ref());
+    assert_eq!(
+        by_identity.evidence_slice_ref(),
+        by_provenance.evidence_slice_ref()
+    );
     assert_eq!(identity_slice.refs(), provenance_slice.refs());
     assert_eq!(identity_slice.refs().len(), 1);
-    assert_eq!(identity_slice.refs()[0].family(), UiEvidenceFamily::Declaration);
+    assert_eq!(
+        identity_slice.refs()[0].family(),
+        UiEvidenceFamily::Declaration
+    );
     assert!(!identity_slice
         .refs()
         .iter()
@@ -115,19 +134,34 @@ fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
     let after_identity = app.inspect(declaration_identity_query(declaration_identity));
     let after_provenance = app.inspect(authored_provenance_query(authored_provenance));
 
-    assert_eq!(rebuilt_identity.cost().declaration_identity_index_lookups(), 1);
+    assert_eq!(
+        rebuilt_identity.cost().declaration_identity_index_lookups(),
+        1
+    );
     assert_eq!(rebuilt_identity.cost().declaration_artifact_scans(), 0);
-    assert_eq!(rebuilt_provenance.cost().authored_provenance_index_lookups(), 1);
+    assert_eq!(
+        rebuilt_provenance
+            .cost()
+            .authored_provenance_index_lookups(),
+        1
+    );
     assert_eq!(rebuilt_provenance.cost().declaration_artifact_scans(), 0);
 
-    assert_eq!(before_identity.authority_generation(), after_identity.authority_generation());
+    assert_eq!(
+        before_identity.authority_generation(),
+        after_identity.authority_generation()
+    );
     assert_eq!(
         before_identity.evidence_slice_ref(),
         after_identity.evidence_slice_ref()
     );
     assert_eq!(
-        before_identity.evidence_slice().map(|slice| slice.refs().to_vec()),
-        after_identity.evidence_slice().map(|slice| slice.refs().to_vec())
+        before_identity
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec()),
+        after_identity
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec())
     );
     assert_eq!(
         before_provenance.authority_generation(),
@@ -138,8 +172,12 @@ fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
         after_provenance.evidence_slice_ref()
     );
     assert_eq!(
-        before_provenance.evidence_slice().map(|slice| slice.refs().to_vec()),
-        after_provenance.evidence_slice().map(|slice| slice.refs().to_vec())
+        before_provenance
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec()),
+        after_provenance
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec())
     );
 }
 
@@ -160,7 +198,7 @@ fn runtime_basis(
         declaration_identity,
         UiRuntimeDataInstanceKeyToken::new(Arc::<str>::from(runtime_key)),
     )
-        .expect("typed runtime basis key should admit")
+    .expect("typed runtime basis key should admit")
 }
 
 fn declaration_identity_query(
@@ -170,7 +208,9 @@ fn declaration_identity_query(
         UiInspectionTarget::declaration_identity(identity),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -181,13 +221,16 @@ fn authored_provenance_query(
         UiInspectionTarget::authored_source_provenance(provenance),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
 fn repeated_instance_app() -> WorthUiApp {
-    let dsl_package = WorthUiDslPackage::named("worth-ui.runtime.authored-evidence-index.ambiguous")
-        .with_semantic_artifact_spec(control_spec());
+    let dsl_package =
+        WorthUiDslPackage::named("worth-ui.runtime.authored-evidence-index.ambiguous")
+            .with_semantic_artifact_spec(control_spec());
     let baseline = WorthUi::app()
         .with_dsl_package(dsl_package.clone())
         .freeze();

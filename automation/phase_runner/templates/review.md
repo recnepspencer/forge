@@ -24,6 +24,36 @@ Use the qa-loop skill and review the real implementation against:
 - arch laws, perf laws, composition laws, domain structure laws, and DX laws
 - missed edge cases and incomplete production surfaces
 
+Before you write findings, do a root-cause check privately and let it shape the
+review:
+
+- is the implementation closing the ordinary production lane, or only a
+  certification/test seam?
+- is any required authority still synthetic, caller-minted, test-minted, or
+  reconstruction-based?
+- if this implementation passed as-is, what adjacent failure would most likely
+  appear in the next phase?
+- does the current design fix a local symptom, or does it remove the boundary
+  mistake that caused the symptom?
+
+If the deeper issue is architectural rather than local, say so directly.
+Do not stop at the nearest observable defect if it is only a manifestation of a
+broader missing lane.
+
+For each finding, include a root-cause class:
+
+- `local bug`
+- `missing ordinary lane`
+- `synthetic authority`
+- `projection dishonesty`
+- `test-only proof`
+- `phase-scope mismatch`
+- `boundary collapse`
+
+Do not reward issue-by-issue patching if multiple findings are caused by the
+same missing authority seam. Prefer one deeper finding over several shallow
+findings when they share a root cause.
+
 If the phase is not actually done, report the findings in chat with file/line
 references and update the JSON state only with a short marker:
 

@@ -82,8 +82,8 @@ pub fn audit_phase5_graph_lookup_lane_is_indexed_not_scan_first(
         .join("crates/worth-ui-runtime/src/graph/inspection/graph_lookup_boundary.rs");
     let graph_node_evidence_index = workspace_root
         .join("crates/worth-ui-runtime/src/graph/inspection/graph_node_evidence_index.rs");
-    let obligation_inspection = workspace_root
-        .join("crates/worth-ui-runtime/src/facade/obligation_inspection.rs");
+    let obligation_inspection =
+        workspace_root.join("crates/worth-ui-runtime/src/facade/obligation_inspection.rs");
     let app_inspection_support_source =
         fs::read_to_string(&app_inspection_support).expect("source should decode");
     let boundary_source = fs::read_to_string(&graph_lookup_boundary).expect("source should decode");
@@ -229,7 +229,8 @@ pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
     let consumed_aspect_evidence_index = workspace_root.join(
         "crates/worth-ui-runtime/src/graph/inspection/aspect/consumed_aspect_evidence_index.rs",
     );
-    let boundary_source = fs::read_to_string(&aspect_lookup_boundary).expect("source should decode");
+    let boundary_source =
+        fs::read_to_string(&aspect_lookup_boundary).expect("source should decode");
     let mut violations = Vec::new();
 
     for required_lookup in ["lookup_published_aspect", "lookup_consumed_aspect"] {
@@ -260,7 +261,10 @@ pub fn audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first(
         ));
     }
 
-    for path in [&published_aspect_evidence_index, &consumed_aspect_evidence_index] {
+    for path in [
+        &published_aspect_evidence_index,
+        &consumed_aspect_evidence_index,
+    ] {
         let method_names = collect_method_names_for_function(path, "lookup");
         if !method_names.iter().any(|name| name == "get") {
             violations.push(format!(

@@ -13,9 +13,8 @@ use super::selection_reason_mapping::{
 };
 use super::{
     UiObligationEvidenceDecision, UiObligationEvidenceDenialPosture,
-    UiObligationEvidenceDispatchPosture,
-    UiObligationEvidencePrerequisiteSource, UiObligationLegalityReasonEvidence,
-    UiObligationNonSelectionReason,
+    UiObligationEvidenceDispatchPosture, UiObligationEvidencePrerequisiteSource,
+    UiObligationLegalityReasonEvidence, UiObligationNonSelectionReason,
 };
 use crate::obligations::verdict::UiObligationDispatchStopPosture;
 
@@ -68,9 +67,7 @@ pub(super) fn inspection_verdict_posture(
         UiObligationDispatchStopPosture::Unsupported => {
             UiInspectionObligationVerdictPosture::Unsupported
         }
-        UiObligationDispatchStopPosture::Deferred => {
-            UiInspectionObligationVerdictPosture::Deferred
-        }
+        UiObligationDispatchStopPosture::Deferred => UiInspectionObligationVerdictPosture::Deferred,
         UiObligationDispatchStopPosture::DiagnosticOnly => {
             UiInspectionObligationVerdictPosture::DiagnosticOnly
         }
@@ -218,7 +215,9 @@ fn inspection_dispatch_stop_posture(
     stop_posture: UiObligationDispatchStopPosture,
 ) -> UiInspectionObligationDispatchPosture {
     match stop_posture {
-        UiObligationDispatchStopPosture::None => UiInspectionObligationDispatchPosture::ImmediateCheck,
+        UiObligationDispatchStopPosture::None => {
+            UiInspectionObligationDispatchPosture::ImmediateCheck
+        }
         UiObligationDispatchStopPosture::Unsupported => {
             UiInspectionObligationDispatchPosture::Unsupported
         }

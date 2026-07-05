@@ -18,30 +18,34 @@ fn touch_queries_do_not_leak_same_node_admission_rows_across_distinct_touches() 
             .select_obligations_for_target(&query_touch, target),
     );
 
-    let matching_rows = projected_decisions(&report.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                query_touch.target().graph_node_identity().digest(),
-                query_touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance())
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
+    let matching_rows = projected_decisions(
+        &report.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    query_touch.target().graph_node_identity().digest(),
+                    query_touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance())
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
     assert!(matching_rows.contains(&UiInspectionObligationDecision::Admission));
 
-    let mismatched_rows = projected_decisions(&report.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                structural_touch.target().graph_node_identity().digest(),
-                structural_touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance())
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
+    let mismatched_rows = projected_decisions(
+        &report.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    structural_touch.target().graph_node_identity().digest(),
+                    structural_touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance())
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
     assert!(
         mismatched_rows.is_empty(),
         "same-node touch queries must not absorb admission rows from a different admitted work"

@@ -1,12 +1,12 @@
 use crate::admission::UiAdmissionAggregation;
-use crate::obligations::selection::UiSelectedObligationSet;
+use crate::admission::UiSupportSnapshot;
 use crate::obligations::verdict::{UiObligationVerdict, UiObligationVerdictClass};
 
 pub(crate) fn aggregation_from_selected(
-    selected: &UiSelectedObligationSet,
+    support_snapshot: &UiSupportSnapshot,
     verdicts: &[UiObligationVerdict],
 ) -> UiAdmissionAggregation {
-    match selected.support_snapshot().posture() {
+    match support_snapshot.posture() {
         crate::admission::UiSupportPosture::Unsupported { .. } => {
             UiAdmissionAggregation::Unsupported
         }

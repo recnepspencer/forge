@@ -12,12 +12,12 @@ pub(crate) fn admitted_report_evidence_records(
     vec![admission_record(report)]
 }
 
-fn admission_record(
-    report: &UiAdmissionReport,
-) -> UiObligationEvidenceRecord {
+fn admission_record(report: &UiAdmissionReport) -> UiObligationEvidenceRecord {
     let authority_digest = report.identity_digest();
     let target = report.target();
-    let legality_posture = report.legality_decision().map(|legality| legality.posture());
+    let legality_posture = report
+        .legality_decision()
+        .map(|legality| legality.posture());
     let legality_reason = legality_posture.and_then(legality_reason_from_posture);
     let touch_identity_digest = report
         .dispatch_plan()

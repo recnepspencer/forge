@@ -32,20 +32,38 @@ fn provenance_expanded_aspect_slices_keep_exact_public_shape_and_replay_stabilit
     assert_eq!(plain.evidence_slice_ref(), Some(plain_slice.slice_ref()));
     assert_eq!(first.evidence_slice_ref(), Some(first_slice.slice_ref()));
     assert_eq!(second.evidence_slice_ref(), Some(second_slice.slice_ref()));
-    assert_eq!(first.authority_generation(), Some(first_slice.authority_generation()));
-    assert_eq!(second.authority_generation(), Some(second_slice.authority_generation()));
+    assert_eq!(
+        first.authority_generation(),
+        Some(first_slice.authority_generation())
+    );
+    assert_eq!(
+        second.authority_generation(),
+        Some(second_slice.authority_generation())
+    );
     assert_eq!(first_slice.slice_ref(), second_slice.slice_ref());
     assert_eq!(first_slice.refs(), second_slice.refs());
-    assert_eq!(first_slice.family_summaries(), second_slice.family_summaries());
+    assert_eq!(
+        first_slice.family_summaries(),
+        second_slice.family_summaries()
+    );
     assert_eq!(first_slice.omission(), None);
     assert!(first_slice.materialized_detail().is_none());
-    assert_eq!(ordered_ref_keys(first_slice.refs()), sorted_ref_keys(first_slice.refs()));
+    assert_eq!(
+        ordered_ref_keys(first_slice.refs()),
+        sorted_ref_keys(first_slice.refs())
+    );
     assert_eq!(plain_slice.refs().len(), 4);
     assert_eq!(first_slice.refs().len(), 6);
-    assert_eq!(family_counts(plain_slice.refs()), vec![(UiEvidenceFamily::Aspect, 4)]);
+    assert_eq!(
+        family_counts(plain_slice.refs()),
+        vec![(UiEvidenceFamily::Aspect, 4)]
+    );
     assert_eq!(
         family_counts(first_slice.refs()),
-        vec![(UiEvidenceFamily::Declaration, 2), (UiEvidenceFamily::Aspect, 4)]
+        vec![
+            (UiEvidenceFamily::Declaration, 2),
+            (UiEvidenceFamily::Aspect, 4)
+        ]
     );
     assert_eq!(
         declaration_ref_digests(first_slice.refs()),
@@ -87,12 +105,18 @@ fn published_aspect_with_provenance_query() -> UiInspectionQuery {
     )
     .with_relevance(
         UiInspectionRelevance::local(UiRelevanceFilter::family(UiRelevanceFamily::Aspect))
-            .with_aspect_detail(UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs()),
+            .with_aspect_detail(
+                UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs(),
+            ),
     )
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
-fn control_spec(semantic_key: &str, module_path: &str, structural_token: &str) -> UiDslSemanticArtifactSpec {
+fn control_spec(
+    semantic_key: &str,
+    module_path: &str,
+    structural_token: &str,
+) -> UiDslSemanticArtifactSpec {
     UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new(semantic_key),
         UiDslSemanticFamily::Control,

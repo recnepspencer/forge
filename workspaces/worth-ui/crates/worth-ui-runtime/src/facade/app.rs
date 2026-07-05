@@ -1,6 +1,6 @@
 use worth_ui_inspection::{
-    UiInspectionQuery, UiInspectionRelevanceOutcome, UiInspectionScope,
-    UiInspectionSupportPosture, UiInspectionSupportReport, UiInspectionTarget,
+    UiInspectionQuery, UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionSupportPosture,
+    UiInspectionSupportReport, UiInspectionTarget,
 };
 
 use crate::admission::UiAdmissionBoundary;
@@ -20,10 +20,11 @@ use crate::facade::{
     WorthUiRuntimeSupportInventory,
 };
 use crate::graph::{
-    UiGraphAspectEvidenceIndexes, UiGraphAuthority, UiGraphCloseoutReport, UiGraphNodeEvidenceIndex,
-    UiGraphSnapshot,
+    UiGraphAspectEvidenceIndexes, UiGraphAuthority, UiGraphCloseoutReport,
+    UiGraphNodeEvidenceIndex, UiGraphSnapshot,
 };
 use crate::obligations::closeout::UiObligationCloseoutReport;
+use crate::obligations::touch::UiGraphTouchDescriptor;
 
 /// Runtime facade entrypoint for building Worth UI applications.
 pub struct WorthUi {
@@ -74,12 +75,11 @@ impl WorthUiApp {
             &graph_snapshot,
             &lifecycle,
         );
-        let graph_aspect_evidence_indexes =
-            Self::build_graph_aspect_evidence_indexes(
-                &graph_snapshot,
-                &graph_node_evidence_index,
-                &lifecycle,
-            );
+        let graph_aspect_evidence_indexes = Self::build_graph_aspect_evidence_indexes(
+            &graph_snapshot,
+            &graph_node_evidence_index,
+            &lifecycle,
+        );
 
         Self {
             capability_snapshot,
@@ -130,6 +130,20 @@ impl WorthUiApp {
         UiAdmissionBoundary::new(&self.declaration_artifacts, &self.graph_snapshot)
     }
 
+    /// Admit Query-backed measurement eligibility from an ordinary projection-fact
+    /// consumption attempt without requiring callers to mint prerequisite artifacts.
+    pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+        &self,
+        touch: &UiGraphTouchDescriptor,
+        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+    ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
+        self.admission()
+            .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+                touch,
+                consumption,
+            )
+    }
+
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
         &self.graph_snapshot
     }
@@ -144,6 +158,13 @@ impl WorthUiApp {
 
     pub(crate) fn graph_aspect_evidence_indexes(&self) -> &UiGraphAspectEvidenceIndexes {
         &self.graph_aspect_evidence_indexes
+    }
+
+    pub(crate) fn measurement_inspection_evidence(
+        &self,
+    ) -> &crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot
+    {
+        self.lifecycle.measurement_inspection_evidence()
     }
 
     pub fn graph_closeout_report(&self) -> UiGraphCloseoutReport {
@@ -165,6 +186,26 @@ impl WorthUiApp {
         let authority_generation = Some(UiEvidenceAuthorityGeneration::new(
             self.graph_snapshot.generation().as_u64(),
         ));
+        if query.scope() == UiInspectionScope::Measurement {
+            let relevance_admission = query.admit_relevance();
+            if !matches!(
+                relevance_admission.outcome(),
+                UiInspectionRelevanceOutcome::Matched
+            ) {
+                return UiInspectionReceipt::from_relevance_admission(
+                    query,
+                    relevance_admission,
+                    authority_generation,
+                );
+            }
+            if let Some(receipt) = self.measurement_inspection_boundary().inspect(
+                self,
+                query.clone(),
+                authority_generation.expect("graph-backed inspection has one active generation"),
+            ) {
+                return receipt;
+            }
+        }
         match query.target() {
             UiInspectionTarget::ProductRoot | UiInspectionTarget::DeclaredSurface { .. } => {
                 let support_report = self.inspection_support_report_for(&query);
@@ -250,10 +291,12 @@ impl WorthUiApp {
                         )
                     })
             }
-            UiInspectionTarget::PublishedAspect { .. } | UiInspectionTarget::ConsumedAspect { .. } => {
+            UiInspectionTarget::PublishedAspect { .. }
+            | UiInspectionTarget::ConsumedAspect { .. } => {
                 let support_report = self.inspection_support_report_for(&query);
                 let relevance_admission = query.admit_relevance();
-                let refined_relevance = relevance_admission.refined_for_support_report(support_report);
+                let refined_relevance =
+                    relevance_admission.refined_for_support_report(support_report);
                 if !matches!(
                     support_report.posture(),
                     UiInspectionSupportPosture::Supported
@@ -280,7 +323,9 @@ impl WorthUiApp {
                     .unwrap_or_else(|| {
                         UiInspectionReceipt::from_support(
                             query.clone(),
-                            query.admit_relevance().refined_for_support_report(support_report),
+                            query
+                                .admit_relevance()
+                                .refined_for_support_report(support_report),
                             support_report,
                             authority_generation,
                         )
@@ -350,10 +395,11 @@ impl WorthUiApp {
 
     #[cfg(test)]
     pub(crate) fn rebuild_authored_evidence_index_from_authority(&mut self) {
-        self.authored_evidence_index = crate::declaration::UiDeclarationAuthoredEvidenceIndex::rebuild(
-            &self.declaration_artifacts,
-            &self.graph_snapshot,
-        );
+        self.authored_evidence_index =
+            crate::declaration::UiDeclarationAuthoredEvidenceIndex::rebuild(
+                &self.declaration_artifacts,
+                &self.graph_snapshot,
+            );
     }
 
     #[cfg(test)]

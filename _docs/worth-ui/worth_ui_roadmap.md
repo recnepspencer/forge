@@ -489,17 +489,16 @@ truth already established by declarations, graph topology, and admission.
 - no renderer-local debug helper is required to explain declaration, admission,
   graph, or aspect posture
 
-### Milestone 3.6: Measurement Semantics, Host Evidence Exchange, and Allocation Planning
+### Milestone 3.6a: Measurement Vocabulary, Basis Admission, and Host Evidence Boundaries
 
-This slice closes the planning side of measurement before continuous
-interaction, committed allocation receipts, and churn-heavy replanning broaden
-the runtime.
+This slice closes the semantic and authority side of measurement before
+allocation-neighborhood planning, committed allocation receipts, and
+churn-heavy resize/scroll/drag behavior broaden the runtime.
 
 **Must ship**
 
 - `UiMeasurementRequest`
 - `UiMeasurementResult`
-- `UiAllocationPlan`
 - measurement vocabulary for:
   - `available-space`
   - `fixed`
@@ -515,8 +514,8 @@ the runtime.
   - `portal-anchored`
 - typed host measurement-evidence exchange for intrinsic measurement, text
   measurement, viewport facts, and native sizing observations
-- allocation-neighborhood planning semantics for parent/child constraint flow
-  and sibling negotiation
+- deterministic measurement-basis assembly from declaration posture, Query
+  basis/facts, world posture, host capability posture, and host evidence
 
 **Acceptance evidence**
 
@@ -524,14 +523,50 @@ the runtime.
 - intrinsic measurement stays evidence and does not become host-owned or
   cache-owned layout truth
 - equivalent declaration + graph + measurement evidence inputs converge to the
-  same allocation plan
+  same measurement basis
 - unsupported, cyclic, or not-yet-admitted measurement modes deny through typed
   posture instead of heuristic fallback
+
+### Milestone 3.6b: Allocation Neighborhood Planning And Constraint Propagation
+
+Detailed spec: [milestone-3.6b.md](./milestone-3.6b.md)
+
+This slice closes the planning kernel that consumes the 3.6a measurement basis
+before committed allocation receipts and continuous interaction churn broaden
+the runtime.
+
+**Must ship**
+
+- `UiAllocationPlan`
+- allocation-neighborhood planning semantics for parent/child constraint flow
+  and sibling negotiation
+- explicit constraint-propagation rules for:
+  - parent-to-child available-space
+  - child intrinsic contribution
+  - sibling negotiation
+  - equal-share distribution
+  - bounded min/max reconciliation
+  - viewport-relative basis use
+  - portal-anchor planning inputs
+  - scroll-owner planning inputs
+- planning-time denial posture for contradictory or cyclic allocation
+  neighborhoods
+
+**Acceptance evidence**
+
+- equivalent declaration + graph + measurement basis inputs converge to the
+  same allocation plan
+- plan assembly does not rediscover declaration or Query meaning from source
+  text, renderer code, or host helpers
+- unsupported or contradictory allocation neighborhoods deny before committed
+  receipt production
+- local plan changes can identify a typed affected neighborhood instead of
+  widening immediately to whole-page planning
 
 ### Milestone 3.7: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
 
 This slice closes committed allocation truth and churn-heavy measurement
-behavior after planning semantics already exist.
+behavior after 3.6a and 3.6b planning semantics already exist.
 
 **Must ship**
 

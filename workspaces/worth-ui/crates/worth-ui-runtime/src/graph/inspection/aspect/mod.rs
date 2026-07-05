@@ -1,11 +1,11 @@
-mod aspect_evidence_neighborhood;
-mod aspect_lookup_boundary;
-#[cfg(test)]
-mod aspect_evidence_test_support;
-mod consumed_aspect_evidence_index;
-mod published_aspect_evidence_index;
 #[cfg(test)]
 mod aspect_evidence_index_tests;
+mod aspect_evidence_neighborhood;
+#[cfg(test)]
+mod aspect_evidence_test_support;
+mod aspect_lookup_boundary;
+mod consumed_aspect_evidence_index;
+mod published_aspect_evidence_index;
 
 use consumed_aspect_evidence_index::UiConsumedAspectEvidenceIndex;
 use published_aspect_evidence_index::UiPublishedAspectEvidenceIndex;

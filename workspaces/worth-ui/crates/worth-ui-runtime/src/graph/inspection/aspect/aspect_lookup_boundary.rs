@@ -8,9 +8,11 @@ use worth_ui_inspection::{
 
 use super::UiGraphAspectEvidenceIndexes;
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationEvidenceRecord};
-use crate::evidence::{order_refs, UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput};
-use crate::facade::UiInspectionReceipt;
 use crate::evidence::UiInspectionCostMetrics;
+use crate::evidence::{
+    order_refs, UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput,
+};
+use crate::facade::UiInspectionReceipt;
 
 struct UiAspectSliceInput {
     refs: Box<[UiEvidenceRef]>,
@@ -55,14 +57,13 @@ impl<'a> WorthUiAspectInspectionBoundary<'a> {
         );
         let assembly = UiEvidenceSliceAssembly::assemble(
             &query,
-            UiEvidenceSliceAssemblyInput::new(authority_generation, slice_input.refs).with_cost_metrics(
-                UiInspectionCostMetrics::new(
+            UiEvidenceSliceAssemblyInput::new(authority_generation, slice_input.refs)
+                .with_cost_metrics(UiInspectionCostMetrics::new(
                     lookup.cost().index_lookups(),
                     slice_input.considered_count,
                     0,
                     false,
-                ),
-            ),
+                )),
         );
         Some(UiInspectionReceipt::from_assembled_slice(
             query.clone(),

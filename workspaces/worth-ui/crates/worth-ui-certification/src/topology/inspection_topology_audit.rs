@@ -135,9 +135,18 @@ pub fn audit_inspection_future_artifact_seed_topology(workspace_root: &Path) -> 
     ];
     let evidence_mod = inspection_root.join("receipt/evidence/mod.rs");
     let expected_evidence_seed_modules = [
-        ("measurement", inspection_root.join("receipt/evidence/measurement/mod.rs")),
-        ("mounting", inspection_root.join("receipt/evidence/mounting/mod.rs")),
-        ("inspector", inspection_root.join("receipt/evidence/inspector/mod.rs")),
+        (
+            "measurement",
+            inspection_root.join("receipt/evidence/measurement/mod.rs"),
+        ),
+        (
+            "mounting",
+            inspection_root.join("receipt/evidence/mounting/mod.rs"),
+        ),
+        (
+            "inspector",
+            inspection_root.join("receipt/evidence/inspector/mod.rs"),
+        ),
     ];
     let mut violations = Vec::new();
 

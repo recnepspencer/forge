@@ -49,6 +49,12 @@ pub enum UiDeclaredPostureAdmissionDenial {
         lane: UiDeclaredPostureLaneKind,
         observed: Vec<String>,
     },
+    ImpossibleLaneCombination {
+        family: UiDeclarationFamilyKind,
+        lane: UiDeclaredPostureLaneKind,
+        observed: Vec<String>,
+        reason: &'static str,
+    },
     InvalidLaneClaim {
         family: UiDeclarationFamilyKind,
         lane: UiDeclaredPostureLaneKind,

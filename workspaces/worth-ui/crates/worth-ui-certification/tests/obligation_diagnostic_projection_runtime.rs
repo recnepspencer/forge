@@ -16,14 +16,16 @@ fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
             .select_obligations_for_target(&touch, target),
     );
 
-    let inspection = report.inspect(UiInspectionQuery::new(
-        UiInspectionTarget::obligation_touch(
-            touch.target().graph_node_identity().digest(),
-            touch.identity_digest(),
-        ),
-        UiInspectionScope::graph(),
-    )
-    .with_richness(UiEvidenceRichness::materialized_detail()));
+    let inspection = report.inspect(
+        UiInspectionQuery::new(
+            UiInspectionTarget::obligation_touch(
+                touch.target().graph_node_identity().digest(),
+                touch.identity_digest(),
+            ),
+            UiInspectionScope::graph(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail()),
+    );
     let diagnostics = report.diagnostic_projection();
 
     let inspection_rows = inspection
@@ -59,11 +61,15 @@ fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
     let denied_report = app
         .admission()
         .report(obligation_dispatch_prerequisite_support::wrong_query_basis_target(&touch));
-    let denied_inspection = denied_report.inspect(UiInspectionQuery::new(
-        UiInspectionTarget::obligation_graph_node(touch.target().graph_node_identity().digest()),
-        UiInspectionScope::graph(),
-    )
-    .with_richness(UiEvidenceRichness::materialized_detail()));
+    let denied_inspection = denied_report.inspect(
+        UiInspectionQuery::new(
+            UiInspectionTarget::obligation_graph_node(
+                touch.target().graph_node_identity().digest(),
+            ),
+            UiInspectionScope::graph(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail()),
+    );
     let denied_projection = denied_report.diagnostic_projection();
     assert_parity_for_decision(
         denied_inspection

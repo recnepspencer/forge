@@ -196,7 +196,10 @@ fn graph_family_refs_expand_to_followup_queries_on_public_path() {
     assert_eq!(expansion.evidence_ref(), evidence_ref);
     assert!(expansion.outcome().is_available());
     assert!(expansion.materialized_detail().is_none());
-    assert_eq!(followup_query.target(), &UiInspectionTarget::graph_node_identity(graph_node_identity.digest()));
+    assert_eq!(
+        followup_query.target(),
+        &UiInspectionTarget::graph_node_identity(graph_node_identity.digest())
+    );
     assert!(followup_receipt.evidence_slice().is_some());
 }
 
@@ -208,9 +211,8 @@ fn stale_generation_refs_expand_as_wrong_generation_after_real_graph_successor_c
         .evidence_ref_for_node(first_graph_node_identity(&app))
         .expect("graph authority should derive a shared evidence ref for the node");
     let successor = successor_graph_commit(&app);
-    let current_generation = UiEvidenceAuthorityGeneration::new(
-        successor.committed_generation().as_u64(),
-    );
+    let current_generation =
+        UiEvidenceAuthorityGeneration::new(successor.committed_generation().as_u64());
 
     let expansion = successor
         .graph()
@@ -250,13 +252,11 @@ fn public_refs_only_inspection_stays_cheap_until_explicit_expansion() {
             - observation_before.rich_artifact_materialization_count(),
         0
     );
-    assert!(
-        receipt
-            .evidence_slice()
-            .expect("public refs-only inspection should retain an evidence slice")
-            .materialized_detail()
-            .is_none()
-    );
+    assert!(receipt
+        .evidence_slice()
+        .expect("public refs-only inspection should retain an evidence slice")
+        .materialized_detail()
+        .is_none());
 
     let _ = app.expand_evidence_ref(evidence_ref, UiEvidenceRichness::summary());
     let observation_after_expand = app.inspection_observation();

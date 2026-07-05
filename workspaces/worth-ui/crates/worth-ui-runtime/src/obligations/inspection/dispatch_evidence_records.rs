@@ -1,8 +1,8 @@
 use crate::obligations::dispatch::{UiObligationDispatchExecution, UiObligationDispatchPlan};
 use crate::obligations::inspection::{
     query_prerequisite_evidence_from_refs, UiObligationEvidenceAuthoritySource,
-    UiObligationEvidenceDecision, UiObligationEvidenceDispatchPosture,
-    UiObligationEvidenceHandle, UiObligationEvidenceHandleKind, UiObligationEvidenceRecord,
+    UiObligationEvidenceDecision, UiObligationEvidenceDispatchPosture, UiObligationEvidenceHandle,
+    UiObligationEvidenceHandleKind, UiObligationEvidenceRecord,
 };
 
 pub(crate) fn dispatch_evidence_records(
@@ -61,7 +61,11 @@ pub(crate) fn dispatch_evidence_records(
                 UiObligationEvidenceHandle::new(
                     UiObligationEvidenceHandleKind::Dispatch,
                     dispatch_plan.shape_digest()
-                        ^ entry.selected().identity().identity_digest().rotate_left(13),
+                        ^ entry
+                            .selected()
+                            .identity()
+                            .identity_digest()
+                            .rotate_left(13),
                 ),
                 UiObligationEvidenceAuthoritySource::DispatchPlan,
                 dispatch_plan.shape_digest(),
@@ -77,13 +81,19 @@ pub(crate) fn dispatch_evidence_records(
                 Some(dispatch_posture),
                 None,
                 None,
-                entry.selected().selection_reasons().to_vec().into_boxed_slice(),
+                entry
+                    .selected()
+                    .selection_reasons()
+                    .to_vec()
+                    .into_boxed_slice(),
                 crate::obligations::inspection::prerequisite_sources_from_refs(
                     entry.selected().prerequisite_evidence_refs(),
                 )
                 .into_boxed_slice(),
-                query_prerequisite_evidence_from_refs(entry.selected().prerequisite_evidence_refs())
-                    .into_boxed_slice(),
+                query_prerequisite_evidence_from_refs(
+                    entry.selected().prerequisite_evidence_refs(),
+                )
+                .into_boxed_slice(),
                 None,
                 None,
             )

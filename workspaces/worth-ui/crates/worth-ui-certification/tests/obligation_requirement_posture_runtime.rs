@@ -1,6 +1,11 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
 mod obligation_dispatch_prerequisite_support;
 
+use worth_ui::facade::admission::{
+    UiAdmissionFamily, UiAdmissionOutcome, UiAdmissionTarget, UiAdmissionWorld,
+    UiMeasurementAdmissionPosture, UiSupportPosture,
+};
+use worth_ui::facade::declaration::UiDeclarationSupportMilestoneExpectation;
 use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchRuntimeLane, UiGraphTouchTiming,
 };
@@ -91,6 +96,60 @@ fn motion_requirement_stays_a_deferred_requirement_check_even_with_host_posture(
 }
 
 #[test]
+fn non_measurement_prerequisite_paths_do_not_gain_measurement_entry_support() {
+    let app = focus_touch_app();
+    let touch = focus_touch(&app);
+    let target = available_host_capability_target(&touch);
+    let selected = app
+        .admission()
+        .select_obligations_for_target(&touch, target.clone());
+    let dispatch = app.admission().lower_obligation_dispatch(&selected);
+    let report = app.admission().admit_selected_obligations(&selected);
+
+    assert_eq!(
+        selected
+            .obligations()
+            .iter()
+            .map(|obligation| obligation.family())
+            .collect::<Vec<_>>(),
+        vec![
+            UiObligationFamily::StructuralLegality,
+            UiObligationFamily::FocusRouteRequirement,
+        ]
+    );
+    assert!(selected
+        .obligation_for_family(UiObligationFamily::MeasurementRequirement)
+        .is_none());
+    assert!(app
+        .admission()
+        .admit_measurement_requirement(&selected)
+        .is_none());
+    assert_eq!(dispatch.support_snapshot(), selected.support_snapshot());
+    assert_eq!(report.support_snapshot(), selected.support_snapshot());
+    assert_eq!(
+        selected.support_snapshot().posture(),
+        &UiSupportPosture::Supported {
+            family: UiAdmissionFamily::TouchMeaning,
+            world: UiAdmissionWorld::authoritative(),
+        }
+    );
+    assert_eq!(
+        dispatch.support_snapshot().posture(),
+        &UiSupportPosture::Supported {
+            family: UiAdmissionFamily::TouchMeaning,
+            world: UiAdmissionWorld::authoritative(),
+        }
+    );
+    assert_eq!(
+        report.support_snapshot().posture(),
+        &UiSupportPosture::Supported {
+            family: UiAdmissionFamily::TouchMeaning,
+            world: UiAdmissionWorld::authoritative(),
+        }
+    );
+}
+
+#[test]
 fn portal_requirement_can_lower_to_diagnostic_only_without_runtime_execution() {
     let app = service_touch_app();
     let touch = service_touch(&app);
@@ -153,20 +212,96 @@ fn measurement_requirement_remains_prerequisite_only_under_host_observation() {
         )
         .expect("host measurement touch should admit");
 
-    let selected = fixture.app.admission().select_obligations_for_target(
-        &touch,
-        worth_ui::facade::admission::UiAdmissionTarget::graph_node(
-            touch.target().graph_node_identity(),
-            worth_ui::facade::admission::UiAdmissionWorld::from_graph_world_profile(
-                touch.world().world_profile().clone(),
-            ),
-        )
-        .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-            WorthUiHostContract::egui(),
-        )),
-    );
+    let target = UiAdmissionTarget::graph_node(
+        touch.target().graph_node_identity(),
+        UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
+    )
+    .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
+        WorthUiHostContract::egui(),
+    ));
+    let selected = fixture
+        .app
+        .admission()
+        .select_obligations_for_target(&touch, target.clone());
     let dispatch = fixture.app.admission().lower_obligation_dispatch(&selected);
     let verdicts = dispatch.execute();
+    let ordinary_admission = fixture.app.admission().admit(target.clone());
+    let measurement_admission = fixture
+        .app
+        .admission()
+        .admit_measurement_requirement(&selected)
+        .expect("selected measurement obligation should yield typed measurement admission");
+    let selected_report = fixture
+        .app
+        .admission()
+        .admit_selected_obligations(&selected);
+
+    assert_eq!(
+        selected
+            .obligations()
+            .iter()
+            .map(|obligation| obligation.family())
+            .collect::<Vec<_>>(),
+        vec![UiObligationFamily::MeasurementRequirement]
+    );
+    assert_eq!(
+        fixture.app.admission().support_snapshot(&target).posture(),
+        &UiSupportPosture::Deferred {
+            family: UiAdmissionFamily::TouchMeaning,
+            expected_in: UiDeclarationSupportMilestoneExpectation::Milestone32,
+            world: UiAdmissionWorld::from_graph_world_profile(
+                touch.world().world_profile().clone(),
+            ),
+        }
+    );
+    assert_eq!(ordinary_admission.outcome(), &UiAdmissionOutcome::Deferred);
+    assert_eq!(
+        selected.support_snapshot().posture(),
+        &UiSupportPosture::Deferred {
+            family: UiAdmissionFamily::TouchMeaning,
+            expected_in: UiDeclarationSupportMilestoneExpectation::Milestone32,
+            world: UiAdmissionWorld::from_graph_world_profile(
+                touch.world().world_profile().clone(),
+            ),
+        }
+    );
+    assert_eq!(
+        measurement_admission.posture(),
+        &UiMeasurementAdmissionPosture::Admitted {
+            world: UiAdmissionWorld::from_graph_world_profile(
+                touch.world().world_profile().clone(),
+            ),
+            host_capability: WorthUiHostCapabilityReport::from_contract(
+                WorthUiHostContract::egui(),
+            ),
+        }
+    );
+    assert_eq!(
+        dispatch.measurement_admission(),
+        Some(&measurement_admission)
+    );
+    assert_eq!(
+        selected_report.measurement_admission(),
+        Some(&measurement_admission)
+    );
+    assert_eq!(
+        dispatch.support_snapshot().posture(),
+        &UiSupportPosture::Supported {
+            family: UiAdmissionFamily::MeasurementRequirement,
+            world: UiAdmissionWorld::from_graph_world_profile(
+                touch.world().world_profile().clone(),
+            ),
+        }
+    );
+    assert_eq!(
+        selected_report.support_snapshot().posture(),
+        &UiSupportPosture::Supported {
+            family: UiAdmissionFamily::MeasurementRequirement,
+            world: UiAdmissionWorld::from_graph_world_profile(
+                touch.world().world_profile().clone(),
+            ),
+        }
+    );
 
     assert_eq!(
         dispatch
