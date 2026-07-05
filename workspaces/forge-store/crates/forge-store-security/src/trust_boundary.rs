@@ -1,8 +1,8 @@
 use forge_store_authority::StoreCurrentAuthorityWitness;
 
 use crate::{
-    StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionExpectation,
-    StoreSecurityScopeIdentity,
+    StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeIdentity,
 };
 
 pub use crate::trust_boundary_category::{
@@ -47,6 +47,7 @@ impl StoreTrustBoundaryEvidence {
         let current_identity = StoreSecurityScopeIdentity::from_physical_security_scope(
             current_authority.physical_witness(),
             expectation.key_scope(),
+            StoreKeyVersionPosture::Current,
             expectation.tenant_scope(),
             expectation.authenticity_requirement(),
             expectation.custody_posture(),
@@ -283,6 +284,7 @@ fn declaration_identity(
     Ok(StoreSecurityScopeIdentity::from_physical_security_scope(
         declaration.physical_witness(),
         declaration.key_scope(),
+        declaration.key_version_posture(),
         declaration.tenant_scope(),
         declaration
             .authenticity_requirement()

@@ -1,16 +1,11 @@
-use forge_foundational::{
-    canonicalization_api::common_path::canonicalization,
-    canonicalization_api::lower_lane::basis::CanonicalizationRuleVersion,
-    canonicalization_api::lower_lane::comparison::CanonicalComparisonOutcome, BoundaryArtifactId,
-    CanonicalEquivalenceBasis, CanonicalIdentityInput,
-};
+use forge_foundational::CanonicalEquivalenceBasis;
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::StableDigest;
-use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCounterSnapshot, BlobChunkIdentity,
-    BlobChunkStreamingObservation,
+    BlobChunkCollisionVerificationReceipt, BlobChunkContentDigest, BlobChunkDedupeAdmissionDenial,
+    BlobChunkDedupeCounterSnapshot, BlobChunkIdentity, BlobChunkIntegrityProof,
+    BlobChunkRootCanonicalComparison, BlobChunkSecurityMetadataWitness,
 };
 
 pub type BlobChunkDedupeAdmissionOutcome =
@@ -18,19 +13,29 @@ pub type BlobChunkDedupeAdmissionOutcome =
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobChunkDedupeCandidate {
+    proof: BlobChunkIntegrityProof,
     identity: BlobChunkIdentity,
-    content_digest: StableDigest,
-    security_scope: StoreSecurityScopeIdentity,
+    content_digest: BlobChunkContentDigest,
+    security_metadata: BlobChunkSecurityMetadataWitness,
 }
 
 impl BlobChunkDedupeCandidate {
-    pub fn from_streaming_observation(observation: BlobChunkStreamingObservation) -> Self {
-        let (identity, content_digest, security_scope) = observation.into_candidate_parts();
+    pub fn from_integrity_proof(proof: BlobChunkIntegrityProof) -> Self {
         Self {
-            identity,
-            content_digest,
-            security_scope,
+            identity: proof.identity().clone(),
+            content_digest: proof.content_digest().clone(),
+            security_metadata: proof.security_metadata(),
+            proof,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_forced_content_digest_for_collision_fixture(
+        mut self,
+        content_digest: StableDigest,
+    ) -> Self {
+        self.content_digest = BlobChunkContentDigest::from_integrity_parts(content_digest);
+        self
     }
 
     pub const fn identity(&self) -> &BlobChunkIdentity {
@@ -38,11 +43,19 @@ impl BlobChunkDedupeCandidate {
     }
 
     pub const fn content_digest(&self) -> &StableDigest {
+        self.content_digest.digest()
+    }
+
+    pub(crate) const fn content_digest_witness(&self) -> &BlobChunkContentDigest {
         &self.content_digest
     }
 
-    pub const fn security_scope(&self) -> StoreSecurityScopeIdentity {
-        self.security_scope
+    pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
+        self.security_metadata
+    }
+
+    pub const fn security_scope(&self) -> forge_store_security::StoreSecurityScopeIdentity {
+        self.security_metadata.identity()
     }
 }
 
@@ -51,133 +64,40 @@ pub struct BlobChunkCanonicalEquivalence {
     basis: CanonicalEquivalenceBasis,
     existing_identity: BlobChunkIdentity,
     candidate_identity: BlobChunkIdentity,
-    content_digest: StableDigest,
-    security_scope: StoreSecurityScopeIdentity,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BlobChunkCanonicalComparisonBasis {
-    existing_identity: BlobChunkIdentity,
-    candidate_identity: BlobChunkIdentity,
-    content_digest: StableDigest,
-    security_scope: StoreSecurityScopeIdentity,
-    existing_artifact_id: BoundaryArtifactId,
-    candidate_artifact_id: BoundaryArtifactId,
-    rule_version: CanonicalizationRuleVersion,
-}
-
-impl BlobChunkCanonicalComparisonBasis {
-    pub fn from_candidates(
-        existing: &BlobChunkDedupeCandidate,
-        candidate: &BlobChunkDedupeCandidate,
-    ) -> Result<Self, BlobChunkDedupeAdmissionDenial> {
-        if existing.content_digest != candidate.content_digest {
-            return Err(BlobChunkDedupeAdmissionDenial::ContentDigestMismatch {
-                counters: BlobChunkDedupeCounterSnapshot::start(),
-            });
-        }
-        if existing.security_scope != candidate.security_scope {
-            return Err(
-                BlobChunkDedupeAdmissionDenial::CrossScopeSecurityWitnessMismatch {
-                    counters: BlobChunkDedupeCounterSnapshot::start().record_cross_scope_denial(),
-                },
-            );
-        }
-
-        Ok(Self {
-            existing_identity: existing.identity.clone(),
-            candidate_identity: candidate.identity.clone(),
-            content_digest: candidate.content_digest.clone(),
-            security_scope: candidate.security_scope,
-            existing_artifact_id: candidate_artifact_id(existing),
-            candidate_artifact_id: candidate_artifact_id(candidate),
-            rule_version: blob_chunk_canonical_rule_version(),
-        })
-    }
-
-    pub const fn existing_artifact_id(&self) -> BoundaryArtifactId {
-        self.existing_artifact_id
-    }
-
-    pub const fn candidate_artifact_id(&self) -> BoundaryArtifactId {
-        self.candidate_artifact_id
-    }
-
-    pub fn evaluate_foundational_equivalence(
-        &self,
-    ) -> Result<BlobChunkCanonicalEquivalence, BlobChunkDedupeAdmissionDenial> {
-        let left = canonicalization()
-            .basis()
-            .at(self.rule_version.clone())
-            .from_identity(CanonicalIdentityInput::BoundaryArtifact(
-                self.existing_artifact_id,
-            ));
-        let right = canonicalization()
-            .basis()
-            .at(self.rule_version.clone())
-            .from_identity(CanonicalIdentityInput::BoundaryArtifact(
-                self.candidate_artifact_id,
-            ));
-
-        let ready = match (left, right) {
-            (TransitionOutcome::Success(left), TransitionOutcome::Success(right)) => {
-                canonicalization()
-                    .compare()
-                    .left(left)
-                    .right(right)
-                    .under(CanonicalEquivalenceBasis::ExactCanonicalBasis)
-            }
-            _ => {
-                return Err(
-                    BlobChunkDedupeAdmissionDenial::UnsupportedFoundationalEquivalenceBasis {
-                        basis: CanonicalEquivalenceBasis::ExactCanonicalBasis,
-                    },
-                )
-            }
-        };
-        let outcome = match ready {
-            TransitionOutcome::Success(ready) => canonicalization().compare().evaluate(&ready),
-            _ => {
-                return Err(
-                    BlobChunkDedupeAdmissionDenial::UnsupportedFoundationalEquivalenceBasis {
-                        basis: CanonicalEquivalenceBasis::ExactCanonicalBasis,
-                    },
-                )
-            }
-        };
-
-        match outcome {
-            CanonicalComparisonOutcome::Equivalent(equivalent) => {
-                if equivalent.equivalence_basis() != CanonicalEquivalenceBasis::ExactCanonicalBasis
-                    || *equivalent.left_version() != self.rule_version
-                    || *equivalent.right_version() != self.rule_version
-                    || equivalent.entry_count() != 1
-                {
-                    return Err(
-                        BlobChunkDedupeAdmissionDenial::UnsupportedFoundationalEquivalenceBasis {
-                            basis: equivalent.equivalence_basis(),
-                        },
-                    );
-                }
-                Ok(BlobChunkCanonicalEquivalence {
-                    basis: equivalent.equivalence_basis(),
-                    existing_identity: self.existing_identity.clone(),
-                    candidate_identity: self.candidate_identity.clone(),
-                    content_digest: self.content_digest.clone(),
-                    security_scope: self.security_scope,
-                })
-            }
-            CanonicalComparisonOutcome::Mismatched(_)
-            | CanonicalComparisonOutcome::Unsupported(_) => Err(
-                BlobChunkDedupeAdmissionDenial::UnboundFoundationalEquivalence {
-                    counters: BlobChunkDedupeCounterSnapshot::start().record_cross_scope_denial(),
-                },
-            ),
-        }
-    }
+    content_digest: BlobChunkContentDigest,
+    security_metadata: BlobChunkSecurityMetadataWitness,
 }
 
 impl BlobChunkCanonicalEquivalence {
+    pub(crate) fn from_exact_canonical_basis(
+        existing_identity: BlobChunkIdentity,
+        candidate_identity: BlobChunkIdentity,
+        content_digest: BlobChunkContentDigest,
+        security_metadata: BlobChunkSecurityMetadataWitness,
+    ) -> Self {
+        Self {
+            basis: CanonicalEquivalenceBasis::ExactCanonicalBasis,
+            existing_identity,
+            candidate_identity,
+            content_digest,
+            security_metadata,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn forced_digest_collision_fixture(
+        existing: &BlobChunkDedupeCandidate,
+        candidate: &BlobChunkDedupeCandidate,
+    ) -> Self {
+        Self {
+            basis: CanonicalEquivalenceBasis::ExactCanonicalBasis,
+            existing_identity: existing.identity.clone(),
+            candidate_identity: candidate.identity.clone(),
+            content_digest: candidate.content_digest.clone(),
+            security_metadata: candidate.security_metadata,
+        }
+    }
+
     pub const fn basis(&self) -> CanonicalEquivalenceBasis {
         self.basis
     }
@@ -191,107 +111,8 @@ impl BlobChunkCanonicalEquivalence {
             && self.candidate_identity == candidate.identity
             && self.content_digest == candidate.content_digest
             && self.content_digest == existing.content_digest
-            && self.security_scope == candidate.security_scope
-            && self.security_scope == existing.security_scope
-    }
-}
-
-fn blob_chunk_canonical_rule_version() -> CanonicalizationRuleVersion {
-    CanonicalizationRuleVersion::new("s51.blob.dedupe.candidate").expect("nonempty rule version")
-}
-
-fn candidate_artifact_id(candidate: &BlobChunkDedupeCandidate) -> BoundaryArtifactId {
-    BoundaryArtifactId::new(stable_candidate_hash(candidate))
-}
-
-fn stable_candidate_hash(candidate: &BlobChunkDedupeCandidate) -> u64 {
-    let mut hash = 0xcbf29ce484222325_u64;
-    hash = hash_bytes(
-        hash,
-        candidate.identity.content_digest().as_str().as_bytes(),
-    );
-    hash = hash_bytes(hash, candidate.content_digest.as_str().as_bytes());
-    hash = hash_u64(hash, key_scope_tag(candidate.security_scope.key_scope()));
-    hash = hash_u64(
-        hash,
-        tenant_scope_tag(candidate.security_scope.tenant_scope()),
-    );
-    hash = hash_u64(
-        hash,
-        authenticity_requirement_tag(candidate.security_scope.authenticity_requirement()),
-    );
-    hash_u64(
-        hash,
-        custody_posture_tag(candidate.security_scope.custody_posture()),
-    )
-}
-
-fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
-    for byte in bytes {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    hash
-}
-
-const fn hash_u64(hash: u64, value: u64) -> u64 {
-    (hash ^ value).wrapping_mul(0x100000001b3)
-}
-
-const fn key_scope_tag(scope: forge_store_security::StoreKeyScope) -> u64 {
-    match scope {
-        forge_store_security::StoreKeyScope::StoreManagedRoot => 1,
-        forge_store_security::StoreKeyScope::TenantEnvelope => 2,
-        forge_store_security::StoreKeyScope::ArtifactEnvelope => 3,
-        forge_store_security::StoreKeyScope::PageEnvelope => 4,
-        forge_store_security::StoreKeyScope::WalCheckpointEnvelope => 5,
-        forge_store_security::StoreKeyScope::BlobChunkEnvelope => 6,
-        forge_store_security::StoreKeyScope::BackupExportEnvelope => 7,
-        forge_store_security::StoreKeyScope::RepairScopeEnvelope => 8,
-        forge_store_security::StoreKeyScope::SecurityLifecycleFoundation => 9,
-    }
-}
-
-const fn tenant_scope_tag(scope: forge_store_security::StoreTenantScope) -> u64 {
-    match scope {
-        forge_store_security::StoreTenantScope::StoreInternal => 11,
-        forge_store_security::StoreTenantScope::TenantPhysicalBoundary => 12,
-        forge_store_security::StoreTenantScope::MultiTenantPhysicalBoundary => 13,
-        forge_store_security::StoreTenantScope::BackupRestoreBoundary => 14,
-        forge_store_security::StoreTenantScope::RepairBlastRadius => 15,
-        forge_store_security::StoreTenantScope::ImportReadmissionBoundary => 16,
-        forge_store_security::StoreTenantScope::SecurityLifecycleFoundation => 17,
-    }
-}
-
-const fn authenticity_requirement_tag(
-    requirement: forge_store_security::StoreAuthenticityRequirement,
-) -> u64 {
-    match requirement.class() {
-        None => 20,
-        Some(forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedFrame) => 21,
-        Some(forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedWalRecord) => 22,
-        Some(forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedManifest) => 23,
-        Some(forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk) => 24,
-        Some(
-            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBackupCapsule,
-        ) => 25,
-        Some(forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedRepairRead) => {
-            26
-        }
-    }
-}
-
-const fn custody_posture_tag(posture: forge_store_security::StoreCustodyPosture) -> u64 {
-    match posture {
-        forge_store_security::StoreCustodyPosture::InternalStoreCustody => 31,
-        forge_store_security::StoreCustodyPosture::ExportPrepared => 32,
-        forge_store_security::StoreCustodyPosture::ExportedOutOfCustody => 33,
-        forge_store_security::StoreCustodyPosture::ImportedUnreadmitted => 34,
-        forge_store_security::StoreCustodyPosture::Readmitted => 35,
-        forge_store_security::StoreCustodyPosture::CustodyUnavailable => 36,
-        forge_store_security::StoreCustodyPosture::CustodyDenied => 37,
-        forge_store_security::StoreCustodyPosture::CustodyUnsupported => 38,
+            && self.security_metadata == candidate.security_metadata
+            && self.security_metadata == existing.security_metadata
     }
 }
 
@@ -300,6 +121,7 @@ pub struct BlobChunkDedupeAdmission {
     existing: BlobChunkDedupeCandidate,
     candidate: BlobChunkDedupeCandidate,
     equivalence: Option<BlobChunkCanonicalEquivalence>,
+    root_comparison: Option<BlobChunkRootCanonicalComparison>,
 }
 
 impl BlobChunkDedupeAdmission {
@@ -311,6 +133,7 @@ impl BlobChunkDedupeAdmission {
             existing,
             candidate,
             equivalence: None,
+            root_comparison: None,
         }
     }
 
@@ -319,6 +142,14 @@ impl BlobChunkDedupeAdmission {
         equivalence: BlobChunkCanonicalEquivalence,
     ) -> Self {
         self.equivalence = Some(equivalence);
+        self
+    }
+
+    pub fn with_root_canonical_comparison(
+        mut self,
+        comparison: BlobChunkRootCanonicalComparison,
+    ) -> Self {
+        self.root_comparison = Some(comparison);
         self
     }
 
@@ -335,6 +166,39 @@ impl BlobChunkDedupeAdmission {
         };
 
         let counters = counters.record_equivalence_comparison();
+        if self.existing.identity != self.candidate.identity {
+            let Some(root_comparison) = self.root_comparison else {
+                return TransitionOutcome::denied(
+                    BlobChunkDedupeAdmissionDenial::CanonicalRootComparisonRequired {
+                        counters: counters.record_collision_probe(),
+                    },
+                );
+            };
+            if !root_comparison
+                .matches_candidate_identities(&self.existing.identity, &self.candidate.identity)
+                || root_comparison.is_equivalent()
+            {
+                return TransitionOutcome::denied(
+                    BlobChunkDedupeAdmissionDenial::UnboundRootCanonicalComparison {
+                        counters: counters.record_cross_scope_denial(),
+                    },
+                );
+            }
+            let receipt = BlobChunkCollisionVerificationReceipt::from_verified_identity_mismatch(
+                self.existing.proof,
+                self.candidate.proof,
+                self.candidate.content_digest,
+                self.candidate.security_metadata,
+                counters,
+            );
+            return TransitionOutcome::denied(
+                BlobChunkDedupeAdmissionDenial::ChunkByteVerificationRequired {
+                    counters: receipt.counters(),
+                    receipt,
+                },
+            );
+        }
+
         if !equivalence.matches_candidates(&self.existing, &self.candidate) {
             return TransitionOutcome::denied(
                 BlobChunkDedupeAdmissionDenial::UnboundFoundationalEquivalence {
@@ -343,13 +207,13 @@ impl BlobChunkDedupeAdmission {
             );
         }
 
-        if self.existing.security_scope != self.candidate.security_scope {
+        if self.existing.security_metadata != self.candidate.security_metadata {
             return deny_scope_mismatch(&self.existing, &self.candidate, counters);
         }
 
         TransitionOutcome::success(BlobChunkDedupeShareClaim {
-            content_digest: self.candidate.content_digest,
-            security_scope: self.candidate.security_scope,
+            content_digest: self.candidate.content_digest.digest().clone(),
+            security_metadata: self.candidate.security_metadata,
             equivalence,
             counters: counters.record_same_scope_admission(),
         })
@@ -359,7 +223,7 @@ impl BlobChunkDedupeAdmission {
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobChunkDedupeShareClaim {
     content_digest: StableDigest,
-    security_scope: StoreSecurityScopeIdentity,
+    security_metadata: BlobChunkSecurityMetadataWitness,
     equivalence: BlobChunkCanonicalEquivalence,
     counters: BlobChunkDedupeCounterSnapshot,
 }
@@ -369,8 +233,12 @@ impl BlobChunkDedupeShareClaim {
         &self.content_digest
     }
 
-    pub const fn security_scope(&self) -> StoreSecurityScopeIdentity {
-        self.security_scope
+    pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
+        self.security_metadata
+    }
+
+    pub const fn security_scope(&self) -> forge_store_security::StoreSecurityScopeIdentity {
+        self.security_metadata.identity()
     }
 
     pub fn equivalence(&self) -> BlobChunkCanonicalEquivalence {
@@ -387,21 +255,21 @@ fn deny_missing_equivalence(
     candidate: &BlobChunkDedupeCandidate,
     counters: BlobChunkDedupeCounterSnapshot,
 ) -> BlobChunkDedupeAdmissionOutcome {
-    if existing.security_scope.tenant_scope() != candidate.security_scope.tenant_scope() {
+    if existing.security_metadata.tenant_scope() != candidate.security_metadata.tenant_scope() {
         return TransitionOutcome::denied(
             BlobChunkDedupeAdmissionDenial::CrossTenantScopeRequiresExplicitEquivalence {
-                left: existing.security_scope.tenant_scope(),
-                right: candidate.security_scope.tenant_scope(),
+                left: existing.security_metadata.tenant_scope(),
+                right: candidate.security_metadata.tenant_scope(),
                 counters: counters.record_cross_scope_denial(),
             },
         );
     }
 
-    if existing.security_scope.key_scope() != candidate.security_scope.key_scope() {
+    if existing.security_metadata.key_scope() != candidate.security_metadata.key_scope() {
         return TransitionOutcome::denied(
             BlobChunkDedupeAdmissionDenial::CrossKeyScopeRequiresExplicitEquivalence {
-                left: existing.security_scope.key_scope(),
-                right: candidate.security_scope.key_scope(),
+                left: existing.security_metadata.key_scope(),
+                right: candidate.security_metadata.key_scope(),
                 counters: counters.record_cross_scope_denial(),
             },
         );
@@ -418,21 +286,21 @@ fn deny_scope_mismatch(
     candidate: &BlobChunkDedupeCandidate,
     counters: BlobChunkDedupeCounterSnapshot,
 ) -> BlobChunkDedupeAdmissionOutcome {
-    if existing.security_scope.tenant_scope() != candidate.security_scope.tenant_scope() {
+    if existing.security_metadata.tenant_scope() != candidate.security_metadata.tenant_scope() {
         return TransitionOutcome::denied(
             BlobChunkDedupeAdmissionDenial::CrossTenantScopeRequiresExplicitEquivalence {
-                left: existing.security_scope.tenant_scope(),
-                right: candidate.security_scope.tenant_scope(),
+                left: existing.security_metadata.tenant_scope(),
+                right: candidate.security_metadata.tenant_scope(),
                 counters: counters.record_cross_scope_denial(),
             },
         );
     }
 
-    if existing.security_scope.key_scope() != candidate.security_scope.key_scope() {
+    if existing.security_metadata.key_scope() != candidate.security_metadata.key_scope() {
         return TransitionOutcome::denied(
             BlobChunkDedupeAdmissionDenial::CrossKeyScopeRequiresExplicitEquivalence {
-                left: existing.security_scope.key_scope(),
-                right: candidate.security_scope.key_scope(),
+                left: existing.security_metadata.key_scope(),
+                right: candidate.security_metadata.key_scope(),
                 counters: counters.record_cross_scope_denial(),
             },
         );

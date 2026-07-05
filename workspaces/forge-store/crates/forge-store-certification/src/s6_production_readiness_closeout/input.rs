@@ -52,9 +52,7 @@ pub fn close_s6_production_readiness(
 }
 
 impl S6ProductionReadinessClosureInput {
-    pub fn from_phase13_adoption(
-        phase13_adoption: S6CertificationEvidenceAdoptionReceipt,
-    ) -> Self {
+    pub fn from_phase13_adoption(phase13_adoption: S6CertificationEvidenceAdoptionReceipt) -> Self {
         Self {
             phase13_adoption,
             requested_posture: S6ProductionReadinessPosture::ResidualDebtPresent,

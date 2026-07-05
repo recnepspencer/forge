@@ -86,6 +86,41 @@
 //!
 //! S.6 certification closeout adoption cannot be minted from public scalar rows:
 //!
+//! ```compile_fail
+//! use forge_store_readiness::{
+//!     S6MaterializedCertificationAdoptionReceipt, S6ReadinessCertificationProofSummary,
+//!     S6ReadinessCertificationProofTopology,
+//! };
+//!
+//! let _from_fields = S6MaterializedCertificationAdoptionReceipt {
+//!     canonical_execution_identity_tag: 7,
+//!     proof_execution_identity_tag: 7,
+//!     canonical_lane_binding_mask: 0b111,
+//!     proof_lane_binding_mask: 0b111,
+//!     profile_count: 6,
+//!     profile_boundary_certification_only: true,
+//!     performance_receipt_count: 5,
+//!     counter_strengths: vec![],
+//!     canonical_access_policy_rows: 1,
+//!     canonical_post_admission_violation_rows: 1,
+//!     proof: S6ReadinessCertificationProofSummary::new(true, 5, 1, 1),
+//!     proof_topology: S6ReadinessCertificationProofTopology::new(
+//!         true, true, true, true, true, true, true, true, true, true, true, true, 5, 5, 5,
+//!     ),
+//!     residual_debt_rows: vec![],
+//! };
+//! ```
+//!
+//! S.6/S.7 placement admission authority cannot be forged from raw fields:
+//!
+//! ```compile_fail
+//! use forge_store_readiness::S6S7PlacementAdmissionAuthority;
+//!
+//! let _forged = S6S7PlacementAdmissionAuthority {
+//!     current_authority: todo!(),
+//! };
+//! ```
+//!
 mod adoption_denial;
 mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
@@ -111,6 +146,7 @@ mod s5_simulation_harness_readiness;
 mod s6_later_milestone_non_claims;
 mod s6_materialized_certification_closeout;
 mod s6_production_readiness_closeout;
+mod s6_s7_placement_admission;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -184,4 +220,7 @@ pub use s6_production_readiness_closeout::{
     S6ProductionReadinessClosureDenial, S6ProductionReadinessClosureInput,
     S6ProductionReadinessPosture, S6ProductionReadinessProof, S6ResidualDebtKind,
     S6ResidualDebtLedger, S6ResidualDebtRow,
+};
+pub use s6_s7_placement_admission::{
+    admit_s6_s7_placement_handoff, S6S7PlacementAdmissionAuthority,
 };

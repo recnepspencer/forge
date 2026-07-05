@@ -187,6 +187,14 @@ pub fn evaluate_deserialized_security_scope_readmission(
             counters.snapshot(),
         );
     }
+    counters.check_key_version();
+    if declaration.key_version_posture() != StoreKeyVersionPosture::Current {
+        counters.record_denial();
+        return StoreSecurityScopeReadmissionEvaluation::new(
+            Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture),
+            counters.snapshot(),
+        );
+    }
     counters.check_tenant_scope();
     if declaration.tenant_scope() != expectation.tenant_scope() {
         counters.record_denial();

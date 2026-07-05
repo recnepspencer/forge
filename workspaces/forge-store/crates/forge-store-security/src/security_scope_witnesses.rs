@@ -1,5 +1,5 @@
 use crate::{
-    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
+    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
@@ -23,6 +23,29 @@ impl StoreCurrentKeyScopeWitness {
 
     pub const fn key_scope(&self) -> StoreKeyScope {
         self.key_scope
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct StoreCurrentKeyVersionScopeWitness {
+    identity: StoreSecurityScopeIdentity,
+    key_version_posture: StoreKeyVersionPosture,
+}
+
+impl StoreCurrentKeyVersionScopeWitness {
+    pub(crate) const fn new(identity: StoreSecurityScopeIdentity) -> Self {
+        Self {
+            identity,
+            key_version_posture: identity.key_version_posture(),
+        }
+    }
+
+    pub const fn identity(&self) -> StoreSecurityScopeIdentity {
+        self.identity
+    }
+
+    pub const fn key_version_posture(&self) -> StoreKeyVersionPosture {
+        self.key_version_posture
     }
 }
 
@@ -98,6 +121,7 @@ impl StoreCurrentCustodyScopeWitness {
 #[derive(Debug, PartialEq, Eq)]
 pub struct StoreCurrentSecurityScopeWitnessSet {
     key_scope: StoreCurrentKeyScopeWitness,
+    key_version_scope: StoreCurrentKeyVersionScopeWitness,
     tenant_scope: StoreCurrentTenantScopeWitness,
     authenticity_scope: StoreCurrentAuthenticityScopeWitness,
     custody_scope: StoreCurrentCustodyScopeWitness,
@@ -107,6 +131,7 @@ impl StoreCurrentSecurityScopeWitnessSet {
     pub(crate) const fn new(identity: StoreSecurityScopeIdentity) -> Self {
         Self {
             key_scope: StoreCurrentKeyScopeWitness::new(identity),
+            key_version_scope: StoreCurrentKeyVersionScopeWitness::new(identity),
             tenant_scope: StoreCurrentTenantScopeWitness::new(identity),
             authenticity_scope: StoreCurrentAuthenticityScopeWitness::new(identity),
             custody_scope: StoreCurrentCustodyScopeWitness::new(identity),
@@ -115,6 +140,10 @@ impl StoreCurrentSecurityScopeWitnessSet {
 
     pub const fn key_scope(&self) -> &StoreCurrentKeyScopeWitness {
         &self.key_scope
+    }
+
+    pub const fn key_version_scope(&self) -> &StoreCurrentKeyVersionScopeWitness {
+        &self.key_version_scope
     }
 
     pub const fn tenant_scope(&self) -> &StoreCurrentTenantScopeWitness {

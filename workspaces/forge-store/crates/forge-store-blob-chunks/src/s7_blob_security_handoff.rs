@@ -1,16 +1,22 @@
 use forge_store_readiness::S51AdmittedSecurityScopeReadiness;
 use forge_store_security::{StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity};
 
-use crate::{BlobChunkSecurityScope, BlobChunkSecurityScopeDenial};
+use crate::{
+    BlobChunkSecurityMetadataWitness, BlobChunkSecurityScope, BlobChunkSecurityScopeDenial,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S7BlobChunkSecurityPermission {
-    identity: StoreSecurityScopeIdentity,
+    metadata: BlobChunkSecurityMetadataWitness,
 }
 
 impl S7BlobChunkSecurityPermission {
     pub const fn identity(self) -> StoreSecurityScopeIdentity {
-        self.identity
+        self.metadata.identity()
+    }
+
+    pub const fn metadata(self) -> BlobChunkSecurityMetadataWitness {
+        self.metadata
     }
 }
 
@@ -30,7 +36,7 @@ impl S7BlobChunkSecurityHandoff {
     pub(crate) fn from_blob_security_scope(scope: BlobChunkSecurityScope) -> Self {
         Self {
             permission: S7BlobChunkSecurityPermission {
-                identity: scope.identity(),
+                metadata: scope.metadata(),
             },
             scope,
         }

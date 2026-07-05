@@ -165,6 +165,7 @@ fn identical_physical_witnesses_are_not_security_equivalent_across_scope_drift()
     let tenant_boundary = StoreSecurityScopeIdentity::from_physical_security_scope(
         physical_witness,
         StoreKeyScope::PageEnvelope,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::TenantPhysicalBoundary,
         requirement,
         StoreCustodyPosture::InternalStoreCustody,
@@ -172,6 +173,7 @@ fn identical_physical_witnesses_are_not_security_equivalent_across_scope_drift()
     let import_boundary = StoreSecurityScopeIdentity::from_physical_security_scope(
         physical_witness,
         StoreKeyScope::PageEnvelope,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::ImportReadmissionBoundary,
         requirement,
         StoreCustodyPosture::InternalStoreCustody,
@@ -179,6 +181,7 @@ fn identical_physical_witnesses_are_not_security_equivalent_across_scope_drift()
     let backup_key_scope = StoreSecurityScopeIdentity::from_physical_security_scope(
         physical_witness,
         StoreKeyScope::BackupExportEnvelope,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::TenantPhysicalBoundary,
         requirement,
         StoreCustodyPosture::InternalStoreCustody,

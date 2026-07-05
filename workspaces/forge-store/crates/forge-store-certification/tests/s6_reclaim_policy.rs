@@ -6,7 +6,6 @@ mod reclaim_support;
 #[path = "s5_epoch_scope_and_root_kind/support.rs"]
 mod support;
 
-use forge_store_blob_chunks::S6BlobReclaimNonClaimHandoff;
 use forge_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use forge_store_physical_isolation::{
     HazardLeaseTable, HazardLeaseTableCapacity, ReclaimDenial, ReclaimEligibilityProof,
@@ -65,10 +64,6 @@ fn reclaim_policy_consumes_real_s5_reachability_removal() {
     assert_eq!(
         receipt.observed_interpretation(),
         ReclaimedByteInterpretation::NonObservableReclaimedStorage
-    );
-    assert!(
-        !S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt.clone())
-            .carries_blob_lifecycle_claim()
     );
     assert!(!S6ColdTierIoPosture::from_reclaim_receipt(receipt)
         .unwrap()

@@ -15,15 +15,17 @@ use forge_store_readiness::{
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
-    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionOutcome,
     StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
+pub(crate) use crate::blob_chunk_physical_test_support::physical_payload_for_bytes;
+
 use crate::{
     BlobChunkCanonicalComparisonBasis, BlobChunkCanonicalEquivalence, BlobChunkDedupeCandidate,
-    BlobChunkIdentity, BlobChunkSecurityScope, BlobChunkStreamingOperation,
-    BlobChunkStreamingResidencyProof, BlobChunkStreamingWindow,
+    BlobChunkIntegrityProof, BlobChunkSecurityScope, BlobChunkSequenceAdmission, BlobChunkSize,
+    BlobChunkStreamingResidencyProof, BlobChunkStreamingWindow, BlobChunkingRuleAdmission,
 };
 
 pub(crate) fn blob_scope(
@@ -49,8 +51,14 @@ pub(crate) fn blob_scope_from_parts(
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
 ) -> Result<BlobChunkSecurityScope, crate::BlobChunkSecurityScopeDenial> {
-    let admitted =
-        admitted_security_scope(identity_key, key_scope, tenant_scope, authenticity, custody);
+    let admitted = admitted_security_scope(
+        identity_key,
+        key_scope,
+        StoreKeyVersionPosture::Current,
+        tenant_scope,
+        authenticity,
+        custody,
+    );
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::blob_chunk(),
         admitted,
@@ -64,6 +72,7 @@ pub(crate) fn non_blob_family_readiness(
     let admitted = admitted_security_scope(
         identity_key,
         StoreKeyScope::BlobChunkEnvelope,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::TenantPhysicalBoundary,
         StoreAuthenticityRequirement::required(
             forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
@@ -80,16 +89,67 @@ pub(crate) fn candidate_for_scope(scope: BlobChunkSecurityScope) -> BlobChunkDed
     candidate_for_scope_with_digest(scope, "sha256:blob-s51-same-content")
 }
 
+pub(crate) fn candidate_for_bytes_and_scope(
+    bytes: &[u8],
+    scope: BlobChunkSecurityScope,
+) -> BlobChunkDedupeCandidate {
+    BlobChunkDedupeCandidate::from_integrity_proof(integrity_proof_for_scope(scope, bytes))
+}
+
 pub(crate) fn candidate_for_scope_with_digest(
     scope: BlobChunkSecurityScope,
     digest_raw: &str,
 ) -> BlobChunkDedupeCandidate {
-    let observation = BlobChunkStreamingOperation::ingest(scope)
-        .observe_window(streaming_window_with_digest(digest_raw))
-        .expect("window should observe")
-        .complete_without_whole_object_residency()
-        .expect("single-window operation should complete");
-    BlobChunkDedupeCandidate::from_streaming_observation(observation)
+    BlobChunkDedupeCandidate::from_integrity_proof(integrity_proof_for_scope(
+        scope,
+        digest_raw.as_bytes(),
+    ))
+}
+
+pub(crate) fn integrity_proof_for_scope(
+    scope: BlobChunkSecurityScope,
+    bytes: &[u8],
+) -> BlobChunkIntegrityProof {
+    admitted_sequence_for_scope(scope, bytes)
+        .first_chunk()
+        .clone()
+}
+
+pub(crate) fn admitted_sequence_for_scope(
+    scope: BlobChunkSecurityScope,
+    bytes: &[u8],
+) -> crate::AdmittedBlobChunkSequence {
+    let rule = BlobChunkingRuleAdmission::fixed_size(
+        BlobChunkSize::from_bytes(bytes.len() as u64).expect("nonempty chunk size"),
+    )
+    .expect("fixed-size rule should admit");
+    BlobChunkSequenceAdmission::start(scope, rule, bytes.len() as u64)
+        .expect("sequence should start")
+        .push_payload(0, physical_payload_for_bytes(bytes))
+        .expect("window should admit into sequence")
+        .finish()
+        .expect("sequence should finish")
+}
+
+pub(crate) fn admitted_multichunk_sequence_for_scope(
+    scope: BlobChunkSecurityScope,
+    bytes: &[u8],
+    chunk_size: u64,
+) -> crate::AdmittedBlobChunkSequence {
+    let rule = BlobChunkingRuleAdmission::fixed_size(
+        BlobChunkSize::from_bytes(chunk_size).expect("nonempty chunk size"),
+    )
+    .expect("fixed-size rule should admit");
+    let mut admission = BlobChunkSequenceAdmission::start(scope, rule, bytes.len() as u64)
+        .expect("sequence should start");
+    let mut offset = 0_u64;
+    for chunk in bytes.chunks(chunk_size as usize) {
+        admission = admission
+            .push_payload(offset, physical_payload_for_bytes(chunk))
+            .expect("window should admit into sequence");
+        offset += chunk.len() as u64;
+    }
+    admission.finish().expect("sequence should finish")
 }
 
 pub(crate) fn streaming_window() -> BlobChunkStreamingWindow {
@@ -101,7 +161,7 @@ pub(crate) fn streaming_window_with_digest(raw: &str) -> BlobChunkStreamingWindo
     let residency =
         BlobChunkStreamingResidencyProof::bounded_window(4096, 1024).expect("bounded window");
     BlobChunkStreamingWindow::new(
-        BlobChunkIdentity::from_digest(digest.clone()),
+        crate::BlobChunkIdentity::from_integrity_parts(digest.clone()),
         digest,
         residency,
     )
@@ -118,9 +178,17 @@ pub(crate) fn canonical_equivalence(
         .expect("candidate-derived equivalence should admit")
 }
 
+pub(crate) fn forced_collision_equivalence(
+    existing: &BlobChunkDedupeCandidate,
+    candidate: &BlobChunkDedupeCandidate,
+) -> BlobChunkCanonicalEquivalence {
+    BlobChunkCanonicalEquivalence::forced_digest_collision_fixture(existing, candidate)
+}
+
 fn admitted_security_scope(
     identity_key: &str,
     key_scope: StoreKeyScope,
+    key_version: StoreKeyVersionPosture,
     tenant_scope: StoreTenantScope,
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
@@ -131,7 +199,7 @@ fn admitted_security_scope(
     let request = StoreSecurityScopeAdmissionRequest::new(
         &authority,
         key_scope,
-        StoreKeyVersionPosture::Current,
+        key_version,
         tenant_scope,
         authenticity,
         custody,
@@ -147,6 +215,7 @@ fn admitted_security_scope(
 pub(crate) fn security_scope_admission_outcome(
     identity_key: &str,
     key_scope: StoreKeyScope,
+    key_version: StoreKeyVersionPosture,
     tenant_scope: StoreTenantScope,
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
@@ -157,13 +226,29 @@ pub(crate) fn security_scope_admission_outcome(
     let request = StoreSecurityScopeAdmissionRequest::new(
         &authority,
         key_scope,
-        StoreKeyVersionPosture::Current,
+        key_version,
         tenant_scope,
         authenticity,
         custody,
         expectation,
     );
     admit_store_security_scope(request)
+}
+
+pub(crate) fn deserialized_blob_scope_declaration(
+    identity_key: &str,
+) -> StoreRawSecurityScopeDeclaration {
+    let authority = current_authority(identity_key, "chunk-authority");
+    StoreRawSecurityScopeDeclaration::deserialized_unadmitted(
+        authority.physical_witness(),
+        StoreKeyScope::BlobChunkEnvelope,
+        StoreKeyVersionPosture::Current,
+        StoreTenantScope::TenantPhysicalBoundary,
+        Some(StoreAuthenticityRequirement::required(
+            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
+        )),
+        Some(StoreCustodyPosture::InternalStoreCustody),
+    )
 }
 
 fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWitness {

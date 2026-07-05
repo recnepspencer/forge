@@ -7,8 +7,8 @@ use crate::security_scope_test_support::{
 use crate::{
     admit_store_security_scope, readmit_deserialized_security_scope_declaration,
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionDenial,
-    StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
 };
 
 #[test]
@@ -91,6 +91,24 @@ fn readmission_denies_wrong_key_tenant_authenticity_and_custody_expectations() {
 }
 
 #[test]
+fn readmission_denies_stale_key_version_before_admission() {
+    let authority = current_authority("store.s51.security.readmission.stale", "page-0011");
+    let stale = StoreRawSecurityScopeDeclaration::deserialized_unadmitted(
+        authority.physical_witness(),
+        StoreKeyScope::PageEnvelope,
+        StoreKeyVersionPosture::Stale,
+        StoreTenantScope::TenantPhysicalBoundary,
+        Some(platform_authenticity_requirement()),
+        Some(StoreCustodyPosture::InternalStoreCustody),
+    );
+
+    assert!(matches!(
+        readmit_platform(&authority, stale),
+        Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture)
+    ));
+}
+
+#[test]
 fn readmission_denies_missing_authenticity_missing_custody_and_replayed_evidence() {
     let authority = current_authority("store.s51.security.readmission.missing", "page-0010");
 
@@ -121,7 +139,7 @@ fn readmission_denies_missing_authenticity_missing_custody_and_replayed_evidence
     let replayed = StoreRawSecurityScopeDeclaration::replayed_admission_evidence(
         authority.physical_witness(),
         StoreKeyScope::PageEnvelope,
-        crate::StoreKeyVersionPosture::Current,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::TenantPhysicalBoundary,
         Some(platform_authenticity_requirement()),
         Some(StoreCustodyPosture::InternalStoreCustody),

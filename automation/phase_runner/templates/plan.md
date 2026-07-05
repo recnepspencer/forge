@@ -18,6 +18,8 @@ Do the following:
 - Make sure to follow our arch and perf laws.
 - Review relevant context, including the spec, this phase's scope paths, and the
   relevant APIs.
+- If this run has a prior boundary review turn for the current phase, use that
+  boundary brief as planning input.
 - Read `_docs/more_guidelines/dx_laws.md` if it exists.
 - Plan the directory skeleton explicitly.
 - Plan the DX target via DX laws as an actual Rust code block target.

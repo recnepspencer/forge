@@ -13,6 +13,7 @@ EVENT_TYPES = {
     "prompt_selected",
     "codex_turn_completed",
     "codex_turn_failed",
+    "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
     "review_failed",
@@ -31,6 +32,7 @@ EVENT_TYPES = {
 }
 
 PHASE_PROGRESS_EVENTS = {
+    "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
     "review_failed",

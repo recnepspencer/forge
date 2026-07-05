@@ -11,8 +11,8 @@ use forge_store_physical_format::{
     PhysicalReferenceAuthority, PhysicalSegmentId,
 };
 use forge_store_security::{
-    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope, StoreSecurityScopeIdentity,
-    StoreTenantScope,
+    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeIdentity, StoreTenantScope,
 };
 use std::cell::Cell;
 
@@ -200,6 +200,7 @@ fn security_scope() -> StoreSecurityScopeIdentity {
         StorePhysicalBoundaryWitness::from_physical_authority(authority)
             .expect("boundary witness should admit"),
         StoreKeyScope::PageEnvelope,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::StoreInternal,
         StoreAuthenticityRequirement::not_required(),
         StoreCustodyPosture::InternalStoreCustody,

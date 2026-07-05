@@ -2,7 +2,6 @@
 //!
 //! Physical references are admitted only through physical authority. Raw
 //! construction from placement coordinates is intentionally unavailable:
-//!
 //! ```compile_fail
 //! use forge_store_physical_format::{
 //!     PhysicalGeneration, PhysicalPageId, PhysicalRecordSlot, PhysicalReference,
@@ -16,7 +15,6 @@
 //!     PhysicalGeneration::from_raw(1).unwrap(),
 //! );
 //! ```
-//!
 //! Admission witnesses are sealed proof values:
 //!
 //! ```compile_fail
@@ -24,7 +22,6 @@
 //!
 //! let _forged = PhysicalReferenceAdmissionWitness { reference: todo!() };
 //! ```
-//!
 //! Generation owners are also sealed evidence, not raw diagnostic bags:
 //!
 //! ```compile_fail
@@ -37,7 +34,6 @@
 //!     generation: PhysicalGeneration::from_raw(1).unwrap(),
 //! };
 //! ```
-//!
 //! Page generation cannot substitute for slot generation:
 //!
 //! ```compile_fail
@@ -57,7 +53,6 @@
 //!
 //! let _ = references.admit_page_slot(page_cell);
 //! ```
-//!
 //! Semantic artifact digests are not physical placement identity:
 //!
 //! ```compile_fail
@@ -124,19 +119,6 @@
 //! let shortcut: PhysicalShortcutBoundaryDenial = todo!();
 //! let _forged = denial.with_shortcut_denial(shortcut);
 //! ```
-//!
-//! Current-root scope posture cannot be synthesized without membership proof:
-//!
-//! ```compile_fail
-//! use forge_store_physical_format::{
-//!     CurrentRootManifestAdmission, RootManifestIntegrityPosture,
-//! };
-//!
-//! let _forged = RootManifestIntegrityPosture::CurrentRootAdmitted(
-//!     CurrentRootManifestAdmission { root_owner: todo!() },
-//! );
-//! ```
-
 #![forbid(unsafe_code)]
 
 mod algorithm_review;
@@ -223,6 +205,10 @@ mod page_record_test_support;
 mod page_record_tests;
 mod page_size;
 mod payload_view;
+mod physical_chunk_checksum;
+mod physical_chunk_checksum_denials;
+#[doc(hidden)]
+pub mod physical_format_compile_fail;
 mod physical_scope;
 mod reclaim_region;
 mod reclaimed_byte_interpretation;
@@ -363,6 +349,12 @@ pub use page_record_counters::PageRecordCounterSnapshot;
 pub use page_record_denials::{PageRecordDenial, PageRecordDenialKind};
 pub use page_size::PhysicalPageSizeClass;
 pub use payload_view::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use physical_chunk_checksum::{
+    PhysicalChunkChecksum, PhysicalChunkChecksumAlgorithm, PhysicalChunkChecksumAuthority,
+    PhysicalChunkChecksumWitness, PhysicalChunkPayloadIntegrityWitness,
+    StorePhysicalChunkWriteReceipt, StorePhysicalChunkWriteSource,
+};
+pub use physical_chunk_checksum_denials::PhysicalChunkChecksumDenial;
 pub use physical_scope::{
     CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
     ManifestMembershipProof, PhysicalReferenceScope, PhysicalScopeFamily,

@@ -1,7 +1,7 @@
 use forge_proof::TransitionOutcome;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreSecurityScopeAdmissionDenial, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionDenial, StoreTenantScope,
 };
 
 use crate::blob_chunk_test_support::{
@@ -108,6 +108,7 @@ fn blob_readiness_rejects_wrong_family_key_authenticity_tenant_and_custody() {
         security_scope_admission_outcome(
             "store.s51.blob.bad_custody",
             StoreKeyScope::BlobChunkEnvelope,
+            StoreKeyVersionPosture::Current,
             StoreTenantScope::TenantPhysicalBoundary,
             StoreAuthenticityRequirement::required(
                 StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
@@ -300,7 +301,14 @@ fn assert_scope_denial(
         | BlobChunkSecurityScopeDenial::WrongKeyScope { counters, .. }
         | BlobChunkSecurityScopeDenial::WrongTenantScope { counters, .. }
         | BlobChunkSecurityScopeDenial::WrongAuthenticityRequirement { counters, .. }
-        | BlobChunkSecurityScopeDenial::UnsupportedCustodyPosture { counters, .. } => {
+        | BlobChunkSecurityScopeDenial::UnsupportedCustodyPosture { counters, .. }
+        | BlobChunkSecurityScopeDenial::StaleKeyVersionPosture { counters, .. }
+        | BlobChunkSecurityScopeDenial::IdentityProviderClaimRejected { counters }
+        | BlobChunkSecurityScopeDenial::ApplicationOrgClaimRejected { counters }
+        | BlobChunkSecurityScopeDenial::KmsKeyIdentifierRejected { counters }
+        | BlobChunkSecurityScopeDenial::IamRoleClaimRejected { counters }
+        | BlobChunkSecurityScopeDenial::OperatorIdentityRejected { counters }
+        | BlobChunkSecurityScopeDenial::DeserializedMetadataRequiresReadmission { counters } => {
             assert_eq!(counters.readiness_inputs(), 1);
             assert_eq!(counters.denials(), 1);
         }
