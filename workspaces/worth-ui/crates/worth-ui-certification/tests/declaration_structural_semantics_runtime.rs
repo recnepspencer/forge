@@ -209,7 +209,8 @@ fn slot_participation_not_admitted_for_page_structures_on_freeze_path() {
             .freeze();
     }));
     let panic_message = panic_message(
-        freeze.expect_err("freeze path must reject page slot participation before graph publication"),
+        freeze
+            .expect_err("freeze path must reject page slot participation before graph publication"),
     );
     assert!(
         panic_message.contains("StructuralSemanticsNotAdmitted")
@@ -230,9 +231,9 @@ fn unsupported_structural_tokens_deny_through_public_freeze_path() {
             )
             .freeze();
     }));
-    let panic_message = panic_message(
-        freeze.expect_err("freeze path must reject unsupported structural tokens before graph publication"),
-    );
+    let panic_message = panic_message(freeze.expect_err(
+        "freeze path must reject unsupported structural tokens before graph publication",
+    ));
     assert!(
         panic_message.contains("StructuralSemanticsNotAdmitted")
             && panic_message.contains("UnsupportedStructuralTokens")
@@ -253,7 +254,8 @@ fn non_structural_families_cannot_smuggle_graph_handoff_authority() {
             .freeze();
     }));
     let panic_message = panic_message(
-        freeze.expect_err("freeze path must reject non-structural families before graph publication"),
+        freeze
+            .expect_err("freeze path must reject non-structural families before graph publication"),
     );
     assert!(
         panic_message.contains("StructuralSemanticsNotAdmitted")

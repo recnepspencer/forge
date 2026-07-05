@@ -2,15 +2,15 @@ use std::collections::BTreeSet;
 
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::inspection::{
-    UiEvidenceBudget, UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceRef,
-    UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture, UiEvidenceRichness,
-    UiInspectionAiHarness, UiInspectionAiHarnessLane, UiInspectionClosedSemanticLane,
-    UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal, UiInspectionCostLane,
-    UiInspectionDerivedIndexLane, UiInspectionForeignEvidenceRef, UiInspectionObligationFamily,
-    UiInspectionObligationRelevanceDetail, UiInspectionQuery, UiInspectionQueryForeignEvidenceKind,
-    UiInspectionRefLifecycleLane, UiInspectionRelevance, UiInspectionRelevanceOutcome,
-    UiInspectionScope, UiInspectionSliceLane, UiInspectionTarget, UiInspectionTargetClass,
-    UiRelevanceFamily, UiRelevanceFilter, UiEvidenceSliceOmission,
+    UiEvidenceBudget, UiEvidenceExpansionOutcome, UiEvidenceFamily,
+    UiEvidenceMaterializationPosture, UiEvidenceRef, UiEvidenceRetentionPosture,
+    UiEvidenceRichness, UiEvidenceSliceOmission, UiInspectionAiHarness, UiInspectionAiHarnessLane,
+    UiInspectionClosedSemanticLane, UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal,
+    UiInspectionCostLane, UiInspectionDerivedIndexLane, UiInspectionForeignEvidenceRef,
+    UiInspectionObligationFamily, UiInspectionObligationRelevanceDetail, UiInspectionQuery,
+    UiInspectionQueryForeignEvidenceKind, UiInspectionRefLifecycleLane, UiInspectionRelevance,
+    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionSliceLane, UiInspectionTarget,
+    UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
@@ -190,8 +190,20 @@ fn closeout_runtime_covers_exact_family_relevance_and_query_citation_lanes() {
         .refs()[0];
     let expansion = touch_app.expand_evidence_ref(obligation_ref, UiEvidenceRichness::summary());
 
-    assert_eq!(family_counts(&declaration), vec![(UiEvidenceFamily::Declaration, 1), (UiEvidenceFamily::Admission, 1)]);
-    assert_eq!(family_counts(&provenance), vec![(UiEvidenceFamily::Declaration, 1), (UiEvidenceFamily::Admission, 1)]);
+    assert_eq!(
+        family_counts(&declaration),
+        vec![
+            (UiEvidenceFamily::Declaration, 1),
+            (UiEvidenceFamily::Admission, 1)
+        ]
+    );
+    assert_eq!(
+        family_counts(&provenance),
+        vec![
+            (UiEvidenceFamily::Declaration, 1),
+            (UiEvidenceFamily::Admission, 1)
+        ]
+    );
     assert_eq!(
         family_counts(&graph),
         vec![
@@ -204,12 +216,12 @@ fn closeout_runtime_covers_exact_family_relevance_and_query_citation_lanes() {
     assert_eq!(family_counts(&aspect), vec![(UiEvidenceFamily::Aspect, 2)]);
     assert_eq!(
         family_counts(&obligation),
-        vec![(UiEvidenceFamily::Obligation, obligation.evidence_slice().unwrap().refs().len())]
+        vec![(
+            UiEvidenceFamily::Obligation,
+            obligation.evidence_slice().unwrap().refs().len()
+        )]
     );
-    assert_eq!(
-        expansion.outcome(),
-        UiEvidenceExpansionOutcome::Available
-    );
+    assert_eq!(expansion.outcome(), UiEvidenceExpansionOutcome::Available);
     assert_eq!(
         expansion
             .foreign_evidence_refs()
@@ -320,7 +332,9 @@ fn declaration_identity_query(
         UiInspectionTarget::declaration_identity(artifact.identity().inspection_identity()),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -329,11 +343,15 @@ fn authored_provenance_query(
 ) -> UiInspectionQuery {
     UiInspectionQuery::new(
         UiInspectionTarget::authored_source_provenance(
-            artifact.provenance().inspection_authored_source_provenance_ref(),
+            artifact
+                .provenance()
+                .inspection_authored_source_provenance_ref(),
         ),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -342,7 +360,9 @@ fn graph_identity_query(graph_node_digest: u64) -> UiInspectionQuery {
         UiInspectionTarget::graph_node_identity(graph_node_digest),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -374,7 +394,9 @@ fn obligation_query(graph_node_digest: u64, touch_identity_digest: u64) -> UiIns
 fn family_counts(
     receipt: &worth_ui::facade::inspection::UiInspectionReceipt,
 ) -> Vec<(UiEvidenceFamily, usize)> {
-    let slice = receipt.evidence_slice().expect("receipt should retain a slice");
+    let slice = receipt
+        .evidence_slice()
+        .expect("receipt should retain a slice");
     slice
         .family_summaries()
         .iter()
@@ -398,7 +420,9 @@ fn receipt_snapshot(
     usize,
     bool,
 ) {
-    let slice = receipt.evidence_slice().expect("receipt should retain a slice");
+    let slice = receipt
+        .evidence_slice()
+        .expect("receipt should retain a slice");
     let cost = receipt.cost().expect("receipt should expose cost");
     (
         receipt.authority_generation().map(|value| value.as_u64()),

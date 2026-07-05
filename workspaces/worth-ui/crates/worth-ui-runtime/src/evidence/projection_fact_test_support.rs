@@ -1,0 +1,232 @@
+#![cfg(test)]
+
+use worth_ui_host_contract::{
+    UiFontMeasurementKey, UiFontMetricsObservation, UiFontMetricsRequest, UiHostObservation,
+    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
+    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostCapability,
+    WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
+};
+use worth_ui_inspection::UiEvidenceAuthorityGeneration;
+
+use crate::declaration::{
+    UiDeclarationAspectDigest, UiDeclarationFamilyDigest, UiDeclarationIdentity,
+    UiDeclarationPostureDigest, UiDeclarationStructuralDigest, UiDeclaredMeasurementBasisSource,
+    UiDeclaredMeasurementConstraintModifier, UiDeclaredMeasurementEvidenceRequirement,
+    UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
+};
+use crate::host::UiHostMeasurementAssumptionProfile;
+
+use super::{
+    UiMeasurementCoordinateSpace, UiMeasurementResult, UiMeasurementRoundingPosture,
+    UiMeasurementUnitPosture,
+};
+
+pub(super) use super::projection_query_context_test_support::display_field_projection_consumption;
+pub(crate) use super::projection_query_context_test_support::{
+    display_field_projection_context, entity_identity_projection_context,
+};
+
+pub(crate) fn synthetic_declaration_identity(label: &str) -> UiDeclarationIdentity {
+    UiDeclarationIdentity::new(
+        UiDeclarationFamilyDigest::new(1),
+        UiDeclarationAspectDigest::new(2),
+        UiDeclarationStructuralDigest::new(3),
+        UiDeclarationPostureDigest::new(4),
+        label,
+    )
+}
+
+pub(crate) fn scroll_viewport_policy() -> UiDeclaredMeasurementPolicyPosture {
+    UiDeclaredMeasurementPolicyPosture::new(
+        Some(UiDeclaredMeasurementMode::HugHeight),
+        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        Some(UiDeclaredMeasurementBasisSource::ScrollViewport),
+        None,
+        vec![
+            UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics,
+            UiDeclaredMeasurementEvidenceRequirement::ScrollContentExtent,
+        ],
+    )
+    .expect("measurement policy should admit")
+}
+
+pub(crate) fn host_font_metrics_policy() -> UiDeclaredMeasurementPolicyPosture {
+    UiDeclaredMeasurementPolicyPosture::new(
+        Some(UiDeclaredMeasurementMode::HugHeight),
+        None,
+        None,
+        None,
+        vec![UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics],
+    )
+    .expect("host policy should admit")
+}
+
+pub(crate) fn capability_report(generation: u64) -> WorthUiHostCapabilityReport {
+    capability_report_with_capabilities(
+        generation,
+        vec![
+            WorthUiHostCapability::FontMetrics,
+            WorthUiHostCapability::PortalAnchorObservation,
+            WorthUiHostCapability::ScrollContainerObservation,
+            WorthUiHostCapability::ViewportObservation,
+        ],
+    )
+}
+
+pub(crate) fn capability_report_with_capabilities(
+    generation: u64,
+    capabilities: Vec<WorthUiHostCapability>,
+) -> WorthUiHostCapabilityReport {
+    WorthUiHostCapabilityReport::available(capabilities)
+        .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(generation))
+}
+
+pub(crate) fn host_result_font_metrics(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    host_result_font_metrics_with_assumption_profile(
+        request_seed,
+        report,
+        generation,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
+pub(crate) fn host_result_font_metrics_with_assumption_profile(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+    assumption_profile: UiHostMeasurementAssumptionProfile,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::font_metrics(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::FontMetrics,
+        UiFontMetricsRequest::new(UiFontMeasurementKey::new("body-md")),
+        report,
+    )
+    .expect("font metrics request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::FontMetrics(UiFontMetricsObservation {
+            ascent: 10.0,
+            descent: 2.0,
+            line_gap: 1.0,
+        }),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::GraphNodeLocal,
+        UiMeasurementRoundingPosture::ExactFloat,
+        assumption_profile,
+    )
+}
+
+pub(crate) fn host_result_viewport_extent(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    host_result_viewport_extent_with_value(request_seed, report, generation, 100.0, 50.0)
+}
+
+pub(crate) fn host_result_viewport_extent_with_value(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+    width: f32,
+    height: f32,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::viewport_extent(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::ViewportExtent,
+        UiViewportExtentRequest,
+        report,
+    )
+    .expect("viewport request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::ViewportExtent(UiViewportExtentObservation { width, height }),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::Viewport,
+        UiMeasurementRoundingPosture::ExactFloat,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
+pub(crate) fn host_result_portal_anchor(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::portal_anchor_rect(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::PortalAnchorRect,
+        UiPortalAnchorRectRequest::new(44),
+        report,
+    )
+    .expect("portal request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
+            x: 1.0,
+            y: 2.0,
+            width: 3.0,
+            height: 4.0,
+        }),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::PortalLayer,
+        UiMeasurementRoundingPosture::ExactFloat,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
+pub(crate) fn host_result_scroll_container_viewport(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::scroll_container_viewport(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::ScrollContainerViewport,
+        worth_ui_host_contract::UiScrollContainerViewportRequest::new(55),
+        report,
+    )
+    .expect("scroll container request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::ScrollContainerViewport(
+            worth_ui_host_contract::UiScrollContainerViewportObservation {
+                width: 120.0,
+                height: 60.0,
+            },
+        ),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::GraphNodeLocal,
+        UiMeasurementRoundingPosture::ExactFloat,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
+fn host_result(
+    request: UiMeasurementRequest,
+    value: UiHostObservationValue,
+    generation: UiEvidenceAuthorityGeneration,
+    unit_posture: UiMeasurementUnitPosture,
+    coordinate_space: UiMeasurementCoordinateSpace,
+    rounding_posture: UiMeasurementRoundingPosture,
+    assumption_profile: UiHostMeasurementAssumptionProfile,
+) -> UiMeasurementResult {
+    UiMeasurementResult::from_host_observation(
+        UiHostObservation::from_request(&request, value).expect("host observation should align"),
+        generation,
+        unit_posture,
+        coordinate_space,
+        rounding_posture,
+        assumption_profile,
+    )
+}

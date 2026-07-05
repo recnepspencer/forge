@@ -14,9 +14,9 @@ use worth_ui_inspection::{
 use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 
 use super::projection_mapping::{
-    inspection_decision, inspection_denial_posture, inspection_dispatch_posture,
-    inspection_family, inspection_legality_reason, inspection_non_selection_reason,
-    inspection_source, inspection_verdict_class, inspection_verdict_posture,
+    inspection_decision, inspection_denial_posture, inspection_dispatch_posture, inspection_family,
+    inspection_legality_reason, inspection_non_selection_reason, inspection_source,
+    inspection_verdict_class, inspection_verdict_posture,
 };
 use super::selection_reason_mapping::inspection_selection_reason;
 use super::{UiObligationEvidenceAuthoritySource, UiObligationEvidenceHandle};
@@ -47,7 +47,10 @@ impl UiObligationEvidenceVerdictPosture {
         class: UiObligationVerdictClass,
         stop_posture: UiObligationDispatchStopPosture,
     ) -> Self {
-        Self { class, stop_posture }
+        Self {
+            class,
+            stop_posture,
+        }
     }
 
     pub const fn class(self) -> UiObligationVerdictClass {

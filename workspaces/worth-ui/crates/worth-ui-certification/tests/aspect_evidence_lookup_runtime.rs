@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::inspection::{
     UiEvidenceFamily, UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionQuery,
-    UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope,
-    UiInspectionTarget, UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
+    UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget,
+    UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
 };
 use worth_ui::facade::UiInspectionAspectRelevanceDetail;
 use worth_ui_dsl::{
@@ -30,9 +30,11 @@ fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
     let all_graph_node_digests = all_graph_node_digests(&app);
     let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
     let published_receipt = app.inspect(published_aspect_query(" Content.Text "));
-    let published_provenance_receipt = app.inspect(published_aspect_with_provenance_query(SHARED_ASPECT));
+    let published_provenance_receipt =
+        app.inspect(published_aspect_with_provenance_query(SHARED_ASPECT));
     let consumed_receipt = app.inspect(consumed_aspect_query(SHARED_ASPECT));
-    let consumed_provenance_receipt = app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
+    let consumed_provenance_receipt =
+        app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
     let competing_published = app.inspect(published_aspect_query(COMPETING_PUBLISHED_ASPECT));
     let competing_consumed = app.inspect(consumed_aspect_query(COMPETING_CONSUMED_ASPECT));
     let published_facts = aspect_neighborhood_facts_from_receipt(
@@ -72,8 +74,14 @@ fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
         &all_mounted_receipt_digests,
     );
 
-    assert_eq!(published_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
-    assert_eq!(consumed_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        published_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
+    assert_eq!(
+        consumed_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert_eq!(published_facts, published_provenance_facts);
     assert_eq!(consumed_facts, consumed_provenance_facts);
     assert_membership(
@@ -132,11 +140,26 @@ fn shared_published_and_consumed_aspect_queries_keep_relationships_and_provenanc
         consumed_facts.mounted_receipt_digests,
     );
     assert_eq!(
-        declaration_ref_digests(published_receipt.evidence_slice().expect("published slice").refs()),
-        declaration_ref_digests(consumed_receipt.evidence_slice().expect("consumed slice").refs()),
+        declaration_ref_digests(
+            published_receipt
+                .evidence_slice()
+                .expect("published slice")
+                .refs()
+        ),
+        declaration_ref_digests(
+            consumed_receipt
+                .evidence_slice()
+                .expect("consumed slice")
+                .refs()
+        ),
     );
     assert_eq!(
-        declaration_ref_digests(published_receipt.evidence_slice().expect("published slice").refs()),
+        declaration_ref_digests(
+            published_receipt
+                .evidence_slice()
+                .expect("published slice")
+                .refs()
+        ),
         declaration_artifact_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_lane_identity_distinctness(&published_facts, &consumed_facts);
@@ -200,22 +223,38 @@ fn aspect_identity_app() -> WorthUiApp {
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.certification.aspect-evidence-lookup")
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.alpha", ALPHA_MODULE_PATH, "query-binding:attached:view")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                        .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.alpha",
+                        ALPHA_MODULE_PATH,
+                        "query-binding:attached:view",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.beta", BETA_MODULE_PATH, "service:portal")
-                        .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.beta",
+                        BETA_MODULE_PATH,
+                        "service:portal",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.gamma", GAMMA_MODULE_PATH, "query-binding:attached:view")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                        .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.gamma",
+                        GAMMA_MODULE_PATH,
+                        "query-binding:attached:view",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.delta", DELTA_MODULE_PATH, "service:portal")
-                        .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.delta",
+                        DELTA_MODULE_PATH,
+                        "service:portal",
+                    )
+                    .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
                 ),
         )
         .freeze()
@@ -249,12 +288,18 @@ fn aspect_query_with_provenance(target: UiInspectionTarget) -> UiInspectionQuery
     UiInspectionQuery::new(target, UiInspectionScope::graph())
         .with_relevance(
             UiInspectionRelevance::local(UiRelevanceFilter::family(UiRelevanceFamily::Aspect))
-                .with_aspect_detail(UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs()),
+                .with_aspect_detail(
+                    UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs(),
+                ),
         )
         .with_richness(UiEvidenceRichness::refs_only())
 }
 
-fn control_spec(semantic_key: &str, module_path: &str, posture_token: &str) -> UiDslSemanticArtifactSpec {
+fn control_spec(
+    semantic_key: &str,
+    module_path: &str,
+    posture_token: &str,
+) -> UiDslSemanticArtifactSpec {
     UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new(semantic_key),
         UiDslSemanticFamily::Control,
@@ -265,23 +310,45 @@ fn control_spec(semantic_key: &str, module_path: &str, posture_token: &str) -> U
 }
 
 fn expected_graph_node_digests(app: &WorthUiApp, module_paths: &[&str]) -> BTreeSet<u64> {
-    module_paths.iter().map(|path| graph_node_identity(app, path).digest()).collect()
+    module_paths
+        .iter()
+        .map(|path| graph_node_identity(app, path).digest())
+        .collect()
 }
 
 fn expected_mounted_receipt_digests(app: &WorthUiApp, module_paths: &[&str]) -> BTreeSet<u64> {
-    module_paths.iter().map(|path| mounted_receipt_identity(app, path).digest()).collect()
+    module_paths
+        .iter()
+        .map(|path| mounted_receipt_identity(app, path).digest())
+        .collect()
 }
 
 fn all_graph_node_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_graph_node_digests(app, &[ALPHA_MODULE_PATH, BETA_MODULE_PATH, GAMMA_MODULE_PATH, DELTA_MODULE_PATH])
-        .into_iter()
-        .collect()
+    expected_graph_node_digests(
+        app,
+        &[
+            ALPHA_MODULE_PATH,
+            BETA_MODULE_PATH,
+            GAMMA_MODULE_PATH,
+            DELTA_MODULE_PATH,
+        ],
+    )
+    .into_iter()
+    .collect()
 }
 
 fn all_mounted_receipt_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_mounted_receipt_digests(app, &[ALPHA_MODULE_PATH, BETA_MODULE_PATH, GAMMA_MODULE_PATH, DELTA_MODULE_PATH])
-        .into_iter()
-        .collect()
+    expected_mounted_receipt_digests(
+        app,
+        &[
+            ALPHA_MODULE_PATH,
+            BETA_MODULE_PATH,
+            GAMMA_MODULE_PATH,
+            DELTA_MODULE_PATH,
+        ],
+    )
+    .into_iter()
+    .collect()
 }
 
 fn declaration_artifact_index(app: &WorthUiApp, module_path: &str) -> usize {
@@ -294,7 +361,9 @@ fn declaration_artifact_index(app: &WorthUiApp, module_path: &str) -> usize {
 fn graph_node_identity(app: &WorthUiApp, module_path: &str) -> UiGraphNodeIdentity {
     app.graph()
         .lookup()
-        .declaration_instances(app.declaration_artifacts()[declaration_artifact_index(app, module_path)].identity())
+        .declaration_instances(
+            app.declaration_artifacts()[declaration_artifact_index(app, module_path)].identity(),
+        )
         .value()
         .first()
         .copied()
@@ -348,7 +417,9 @@ fn aspect_neighborhood_facts_from_receipt(
     all_graph_node_digests: &[u64],
     all_mounted_receipt_digests: &[u64],
 ) -> AspectNeighborhoodFacts {
-    let slice = receipt.evidence_slice().expect("query should return an evidence slice");
+    let slice = receipt
+        .evidence_slice()
+        .expect("query should return an evidence slice");
     let projections = project_aspect_evidence_refs(
         slice.refs(),
         aspect_name,
@@ -358,17 +429,23 @@ fn aspect_neighborhood_facts_from_receipt(
 
     assert_eq!(
         projections.len(),
-        slice.refs()
+        slice
+            .refs()
             .iter()
             .filter(|evidence_ref| evidence_ref.family() == UiEvidenceFamily::Aspect)
             .count(),
     );
 
     AspectNeighborhoodFacts {
-        lanes: projections.iter().map(|projection| projection.lane()).collect(),
+        lanes: projections
+            .iter()
+            .map(|projection| projection.lane())
+            .collect(),
         graph_node_digests: projections
             .iter()
-            .filter(|projection| projection.subject_kind() == UiAspectEvidenceSubjectKind::GraphNode)
+            .filter(|projection| {
+                projection.subject_kind() == UiAspectEvidenceSubjectKind::GraphNode
+            })
             .map(|projection| projection.subject_digest())
             .collect(),
         mounted_receipt_digests: projections

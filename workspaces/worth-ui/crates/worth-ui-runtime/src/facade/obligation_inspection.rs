@@ -1,7 +1,9 @@
 use crate::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use crate::facade::{UiInspectionReceipt, WorthUiApp};
+use crate::graph::UiGraphNodeIdentity;
 use crate::obligations::touch::{
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDescriptor, UiGraphTouchTiming,
+    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchDescriptor,
+    UiGraphTouchTiming,
 };
 use worth_ui_inspection::UiInspectionQuery;
 
@@ -43,7 +45,9 @@ impl WorthUiApp {
             touch.target().graph_node_identity(),
             UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
         );
-        let selected = self.admission().select_obligations_for_target(&touch, target);
+        let selected = self
+            .admission()
+            .select_obligations_for_target(&touch, target);
         let receipt = selected.inspect(query);
         self.retained_obligation_registry()
             .register(&selected, &receipt);
@@ -77,36 +81,46 @@ impl WorthUiApp {
 
     fn query_touch_for_node(
         &self,
-        graph_node_identity: crate::graph::UiGraphNodeIdentity,
+        graph_node_identity: UiGraphNodeIdentity,
     ) -> Option<UiGraphTouchDescriptor> {
-        let control_node = self.graph().lookup().graph_node(graph_node_identity)?.value();
-        let transition = self.graph().mounted_receipt_transition_for_node(
-            graph_node_identity,
-            control_node
-                .participation_posture()
-                .axis(crate::graph::UiGraphParticipationAxis::Mounted),
-            crate::graph::UiGraphAxisParticipation::runtime_mutation(
-                crate::graph::UiGraphParticipationStatus::Admitted,
-            ),
-        )?;
+        self.try_query_touch_for_node(graph_node_identity).ok()
+    }
 
-        self.graph()
-            .touches()
-            .query_fact_change_receipt()
-            .ok()
-            .and_then(|origin| {
-                self.graph()
-                    .touches()
-                    .from_mounted_receipt_transition(
-                        origin,
-                        UiGraphTouchTiming::PostMutation,
-                        transition,
-                        UiGraphTouchAspects::new()
-                            .query_binding(UiGraphTouchAspectPosture::Invalidated)
-                            .participation(UiGraphTouchAspectPosture::Invalidated),
-                    )
-                    .ok()
-            })
+    pub(crate) fn try_query_touch_for_node(
+        &self,
+        graph_node_identity: UiGraphNodeIdentity,
+    ) -> Result<UiGraphTouchDescriptor, UiGraphTouchDenial> {
+        let graph = self.graph();
+        let control_node = graph
+            .lookup()
+            .graph_node(graph_node_identity)
+            .ok_or(UiGraphTouchDenial::UnknownGraphNode {
+                graph_node_identity,
+            })?
+            .value();
+        let transition = graph
+            .mounted_receipt_transition_for_node(
+                graph_node_identity,
+                control_node
+                    .participation_posture()
+                    .axis(crate::graph::UiGraphParticipationAxis::Mounted),
+                crate::graph::UiGraphAxisParticipation::runtime_mutation(
+                    crate::graph::UiGraphParticipationStatus::Admitted,
+                ),
+            )
+            .ok_or(UiGraphTouchDenial::UnknownGraphNode {
+                graph_node_identity,
+            })?;
+        let origin = graph.touches().query_fact_change_receipt()?;
+
+        graph.touches().from_mounted_receipt_transition(
+            origin,
+            UiGraphTouchTiming::PostMutation,
+            transition,
+            UiGraphTouchAspects::new()
+                .query_binding(UiGraphTouchAspectPosture::Invalidated)
+                .participation(UiGraphTouchAspectPosture::Invalidated),
+        )
     }
 
     fn structural_touch_for_node(

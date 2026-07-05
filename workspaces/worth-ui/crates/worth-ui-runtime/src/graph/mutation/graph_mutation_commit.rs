@@ -1,8 +1,7 @@
 use super::graph_mutation_stage::UiGraphMutationStage;
 use crate::graph::{
     UiGraphAuthority, UiGraphInstantiationPlan, UiGraphMutationCommitDenial,
-    UiGraphMutationCommitResult,
-    UiGraphWorldProfile,
+    UiGraphMutationCommitResult, UiGraphWorldProfile,
 };
 
 impl UiGraphInstantiationPlan {

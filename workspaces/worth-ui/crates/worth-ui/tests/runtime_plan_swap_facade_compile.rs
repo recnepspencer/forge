@@ -45,4 +45,3 @@ fn injected_swap_denials_are_not_public_facade_variants() {
         "tests/ui/runtime_plan_swap/fail/injected_denial_variants_not_public.rs",
     );
 }
-

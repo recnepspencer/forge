@@ -84,17 +84,21 @@ impl UiAspectEvidenceRecord {
         authority_generation: UiEvidenceAuthorityGeneration,
     ) -> Self {
         let identity = match kind {
-            UiAspectEvidenceRecordKind::PublishedGraphNode(graph_node_digest) => {
-                aspect_identity("aspect:published:graph-node", canonical_label, graph_node_digest)
-            }
+            UiAspectEvidenceRecordKind::PublishedGraphNode(graph_node_digest) => aspect_identity(
+                "aspect:published:graph-node",
+                canonical_label,
+                graph_node_digest,
+            ),
             UiAspectEvidenceRecordKind::PublishedMountedReceipt(receipt_digest) => aspect_identity(
                 "aspect:published:mounted-receipt",
                 canonical_label,
                 receipt_digest,
             ),
-            UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_digest) => {
-                aspect_identity("aspect:consumed:graph-node", canonical_label, graph_node_digest)
-            }
+            UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_digest) => aspect_identity(
+                "aspect:consumed:graph-node",
+                canonical_label,
+                graph_node_digest,
+            ),
             UiAspectEvidenceRecordKind::ConsumedMountedReceipt(receipt_digest) => aspect_identity(
                 "aspect:consumed:mounted-receipt",
                 canonical_label,
@@ -120,7 +124,11 @@ impl UiAspectEvidenceRecord {
             ),
             UiEvidenceMaterializationPosture::RefsOnly,
             UiEvidenceRetentionPosture::CurrentGenerationOnly,
-            evidence_handle(UiEvidenceFamily::Aspect, self.identity, self.identity.digest()),
+            evidence_handle(
+                UiEvidenceFamily::Aspect,
+                self.identity,
+                self.identity.digest(),
+            ),
         )
     }
 }
@@ -146,9 +154,7 @@ pub fn project_aspect_evidence_ref(
                 UiAspectEvidenceLane::Consumed,
             ),
         ] {
-            if evidence_ref.identity()
-                == identity_for_kind(canonical_label, kind)
-            {
+            if evidence_ref.identity() == identity_for_kind(canonical_label, kind) {
                 return Some(UiAspectEvidenceRefProjection::new(
                     lane,
                     UiAspectEvidenceSubjectKind::GraphNode,
@@ -170,9 +176,7 @@ pub fn project_aspect_evidence_ref(
                 UiAspectEvidenceLane::Consumed,
             ),
         ] {
-            if evidence_ref.identity()
-                == identity_for_kind(canonical_label, kind)
-            {
+            if evidence_ref.identity() == identity_for_kind(canonical_label, kind) {
                 return Some(UiAspectEvidenceRefProjection::new(
                     lane,
                     UiAspectEvidenceSubjectKind::MountedReceipt,
@@ -209,18 +213,26 @@ fn identity_for_kind(
     kind: UiAspectEvidenceRecordKind,
 ) -> UiEvidenceIdentity {
     match kind {
-        UiAspectEvidenceRecordKind::PublishedGraphNode(graph_node_digest) => {
-            aspect_identity("aspect:published:graph-node", canonical_label, graph_node_digest)
-        }
-        UiAspectEvidenceRecordKind::PublishedMountedReceipt(receipt_digest) => {
-            aspect_identity("aspect:published:mounted-receipt", canonical_label, receipt_digest)
-        }
-        UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_digest) => {
-            aspect_identity("aspect:consumed:graph-node", canonical_label, graph_node_digest)
-        }
-        UiAspectEvidenceRecordKind::ConsumedMountedReceipt(receipt_digest) => {
-            aspect_identity("aspect:consumed:mounted-receipt", canonical_label, receipt_digest)
-        }
+        UiAspectEvidenceRecordKind::PublishedGraphNode(graph_node_digest) => aspect_identity(
+            "aspect:published:graph-node",
+            canonical_label,
+            graph_node_digest,
+        ),
+        UiAspectEvidenceRecordKind::PublishedMountedReceipt(receipt_digest) => aspect_identity(
+            "aspect:published:mounted-receipt",
+            canonical_label,
+            receipt_digest,
+        ),
+        UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_digest) => aspect_identity(
+            "aspect:consumed:graph-node",
+            canonical_label,
+            graph_node_digest,
+        ),
+        UiAspectEvidenceRecordKind::ConsumedMountedReceipt(receipt_digest) => aspect_identity(
+            "aspect:consumed:mounted-receipt",
+            canonical_label,
+            receipt_digest,
+        ),
     }
 }
 

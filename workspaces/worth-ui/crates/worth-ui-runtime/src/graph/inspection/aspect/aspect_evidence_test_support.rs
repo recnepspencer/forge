@@ -28,22 +28,38 @@ pub(super) fn aspect_identity_app() -> WorthUiApp {
         .with_dsl_package(
             WorthUiDslPackage::named("worth-ui.runtime.aspect-evidence-index")
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.alpha", ALPHA_MODULE_PATH, "query-binding:attached:view")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                        .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.alpha",
+                        ALPHA_MODULE_PATH,
+                        "query-binding:attached:view",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.beta", BETA_MODULE_PATH, "service:portal")
-                        .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.beta",
+                        BETA_MODULE_PATH,
+                        "service:portal",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.gamma", GAMMA_MODULE_PATH, "query-binding:attached:view")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                        .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.gamma",
+                        GAMMA_MODULE_PATH,
+                        "query-binding:attached:view",
+                    )
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
                 )
                 .with_semantic_artifact_spec(
-                    control_spec("ui.workflow.aspect.delta", DELTA_MODULE_PATH, "service:portal")
-                        .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
+                    control_spec(
+                        "ui.workflow.aspect.delta",
+                        DELTA_MODULE_PATH,
+                        "service:portal",
+                    )
+                    .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
                 ),
         )
         .freeze()
@@ -64,36 +80,66 @@ pub(super) fn consumed_aspect_with_provenance_query(aspect_name: &str) -> UiInsp
     )
     .with_relevance(
         UiInspectionRelevance::local(UiRelevanceFilter::family(UiRelevanceFamily::Aspect))
-            .with_aspect_detail(UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs()),
+            .with_aspect_detail(
+                UiInspectionAspectRelevanceDetail::new().include_direct_provenance_refs(),
+            ),
     )
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
 pub(super) fn expected_declaration_indexes(app: &WorthUiApp, module_paths: &[&str]) -> Vec<usize> {
-    module_paths.iter().map(|path| declaration_artifact_index(app, path)).collect()
+    module_paths
+        .iter()
+        .map(|path| declaration_artifact_index(app, path))
+        .collect()
 }
 
-pub(super) fn expected_graph_node_digests(app: &WorthUiApp, module_paths: &[&str]) -> BTreeSet<u64> {
-    module_paths.iter().map(|path| graph_node_identity(app, path).digest()).collect()
+pub(super) fn expected_graph_node_digests(
+    app: &WorthUiApp,
+    module_paths: &[&str],
+) -> BTreeSet<u64> {
+    module_paths
+        .iter()
+        .map(|path| graph_node_identity(app, path).digest())
+        .collect()
 }
 
 pub(super) fn expected_mounted_receipt_digests(
     app: &WorthUiApp,
     module_paths: &[&str],
 ) -> BTreeSet<u64> {
-    module_paths.iter().map(|path| mounted_receipt_identity(app, path).digest()).collect()
+    module_paths
+        .iter()
+        .map(|path| mounted_receipt_identity(app, path).digest())
+        .collect()
 }
 
 pub(super) fn all_graph_node_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_graph_node_digests(app, &[ALPHA_MODULE_PATH, BETA_MODULE_PATH, GAMMA_MODULE_PATH, DELTA_MODULE_PATH])
-        .into_iter()
-        .collect()
+    expected_graph_node_digests(
+        app,
+        &[
+            ALPHA_MODULE_PATH,
+            BETA_MODULE_PATH,
+            GAMMA_MODULE_PATH,
+            DELTA_MODULE_PATH,
+        ],
+    )
+    .into_iter()
+    .collect()
 }
 
 pub(super) fn all_mounted_receipt_digests(app: &WorthUiApp) -> Vec<u64> {
-    expected_mounted_receipt_digests(app, &[ALPHA_MODULE_PATH, BETA_MODULE_PATH, GAMMA_MODULE_PATH, DELTA_MODULE_PATH])
-        .into_iter()
-        .collect()
+    expected_mounted_receipt_digests(
+        app,
+        &[
+            ALPHA_MODULE_PATH,
+            BETA_MODULE_PATH,
+            GAMMA_MODULE_PATH,
+            DELTA_MODULE_PATH,
+        ],
+    )
+    .into_iter()
+    .collect()
 }
 
 pub(super) fn declaration_ref_digests(
@@ -109,7 +155,10 @@ pub(super) fn declaration_ref_digests(
         .map(|evidence_ref| evidence_ref.identity().digest())
         .collect::<Vec<_>>();
     digests.sort_unstable();
-    assert_eq!(digests, declaration_artifact_digests(app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]));
+    assert_eq!(
+        digests,
+        declaration_artifact_digests(app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH])
+    );
     digests
 }
 
@@ -176,15 +225,22 @@ pub(super) fn aspect_neighborhood_facts(
     );
 
     AspectNeighborhoodFacts {
-        lanes: projections.iter().map(|projection| projection.lane()).collect(),
+        lanes: projections
+            .iter()
+            .map(|projection| projection.lane())
+            .collect(),
         graph_node_digests: projections
             .iter()
-            .filter(|projection| projection.subject_kind() == UiAspectEvidenceSubjectKind::GraphNode)
+            .filter(|projection| {
+                projection.subject_kind() == UiAspectEvidenceSubjectKind::GraphNode
+            })
             .map(|projection| projection.subject_digest())
             .collect(),
         mounted_receipt_digests: projections
             .iter()
-            .filter(|projection| projection.subject_kind() == UiAspectEvidenceSubjectKind::MountedReceipt)
+            .filter(|projection| {
+                projection.subject_kind() == UiAspectEvidenceSubjectKind::MountedReceipt
+            })
             .map(|projection| projection.subject_digest())
             .collect(),
         entries: projections,
@@ -251,7 +307,9 @@ fn declaration_artifact_index(app: &WorthUiApp, module_path: &str) -> usize {
 fn graph_node_identity(app: &WorthUiApp, module_path: &str) -> UiGraphNodeIdentity {
     app.graph()
         .lookup()
-        .declaration_instances(app.declaration_artifacts()[declaration_artifact_index(app, module_path)].identity())
+        .declaration_instances(
+            app.declaration_artifacts()[declaration_artifact_index(app, module_path)].identity(),
+        )
         .value()
         .first()
         .copied()
@@ -270,13 +328,22 @@ fn mounted_receipt_identity(app: &WorthUiApp, module_path: &str) -> UiMountedRec
 pub(super) fn declaration_artifact_digests(app: &WorthUiApp, module_paths: &[&str]) -> Vec<u64> {
     let mut digests = module_paths
         .iter()
-        .map(|path| app.declaration_artifacts()[declaration_artifact_index(app, path)].identity().digest().raw())
+        .map(|path| {
+            app.declaration_artifacts()[declaration_artifact_index(app, path)]
+                .identity()
+                .digest()
+                .raw()
+        })
         .collect::<Vec<_>>();
     digests.sort_unstable();
     digests
 }
 
-fn control_spec(semantic_key: &str, module_path: &str, posture_token: &str) -> UiDslSemanticArtifactSpec {
+fn control_spec(
+    semantic_key: &str,
+    module_path: &str,
+    posture_token: &str,
+) -> UiDslSemanticArtifactSpec {
     UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new(semantic_key),
         UiDslSemanticFamily::Control,

@@ -63,4 +63,3 @@ fn query_inspection_link_fields_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/query_inspection_links_fields_not_public.rs",
     );
 }
-

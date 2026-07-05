@@ -2,6 +2,7 @@ use std::cell::Cell;
 
 use crate::admission::UiSupportSnapshot;
 use crate::declaration::stable_text_digest;
+use crate::declaration::UiDeclarationIdentity;
 use crate::evidence::{
     preflight_evidence_expansion, UiEvidenceAuthorityGeneration, UiEvidenceExpansion,
     UiEvidenceExpansionOutcome, UiEvidenceMaterializedDetail, UiEvidenceRef,
@@ -60,6 +61,8 @@ pub struct UiSelectedObligationSet {
     authority_generation: UiEvidenceAuthorityGeneration,
     touch: UiGraphTouchDescriptor,
     support_snapshot: UiSupportSnapshot,
+    requested_target: crate::admission::UiAdmissionTarget,
+    selected_declaration_identity: Option<UiDeclarationIdentity>,
     obligations: Box<[UiSelectedObligation]>,
     evidence_index: UiObligationEvidenceIndex,
     inspection_observation: UiObligationInspectionObservationState,
@@ -71,6 +74,8 @@ impl PartialEq for UiSelectedObligationSet {
             && self.authority_generation == other.authority_generation
             && self.touch == other.touch
             && self.support_snapshot == other.support_snapshot
+            && self.requested_target == other.requested_target
+            && self.selected_declaration_identity == other.selected_declaration_identity
             && self.obligations == other.obligations
             && self.evidence_index == other.evidence_index
     }
@@ -83,6 +88,8 @@ impl UiSelectedObligationSet {
         authority_generation: UiEvidenceAuthorityGeneration,
         touch: UiGraphTouchDescriptor,
         support_snapshot: UiSupportSnapshot,
+        requested_target: crate::admission::UiAdmissionTarget,
+        selected_declaration_identity: Option<UiDeclarationIdentity>,
         obligations: Box<[UiSelectedObligation]>,
         evidence_index: UiObligationEvidenceIndex,
     ) -> Self {
@@ -92,6 +99,8 @@ impl UiSelectedObligationSet {
             authority_generation,
             touch,
             support_snapshot,
+            requested_target,
+            selected_declaration_identity,
             obligations,
             evidence_index,
             inspection_observation: UiObligationInspectionObservationState::new(),
@@ -126,8 +135,25 @@ impl UiSelectedObligationSet {
         &self.support_snapshot
     }
 
+    pub fn requested_target(&self) -> &crate::admission::UiAdmissionTarget {
+        &self.requested_target
+    }
+
+    pub fn selected_declaration_identity(&self) -> Option<&UiDeclarationIdentity> {
+        self.selected_declaration_identity.as_ref()
+    }
+
     pub fn obligations(&self) -> &[UiSelectedObligation] {
         &self.obligations
+    }
+
+    pub fn obligation_for_family(
+        &self,
+        family: crate::obligations::catalog::UiObligationFamily,
+    ) -> Option<&UiSelectedObligation> {
+        self.obligations
+            .iter()
+            .find(|obligation| obligation.family() == family)
     }
 
     pub fn evidence_index(&self) -> &UiObligationEvidenceIndex {
@@ -201,11 +227,13 @@ impl UiSelectedObligationSet {
 
         self.inspection_observation
             .record_rich_artifact_materialization();
-        let detail = UiEvidenceMaterializedDetail::Obligation(self.evidence_index.inspect(
-            &UiObligationEvidenceQuery::new()
-                .for_handle_digest(evidence_ref.handle().handle_digest()),
-            self.authority_generation,
-        ));
+        let detail = UiEvidenceMaterializedDetail::Obligation(
+            self.evidence_index.inspect(
+                &UiObligationEvidenceQuery::new()
+                    .for_handle_digest(evidence_ref.handle().handle_digest()),
+                self.authority_generation,
+            ),
+        );
         let foreign_evidence_refs = self
             .evidence_index
             .records()

@@ -1,8 +1,7 @@
 use worth_ui::facade::graph::{UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming};
 use worth_ui::facade::inspection::{
     UiEvidenceMaterializedDetail, UiEvidenceRichness, UiInspectionObligationVerdictClass,
-    UiInspectionObligationVerdictPosture, UiInspectionQuery, UiInspectionScope,
-    UiInspectionTarget,
+    UiInspectionObligationVerdictPosture, UiInspectionQuery, UiInspectionScope, UiInspectionTarget,
 };
 use worth_ui::facade::{app::WorthUi, declaration::UiDeclarationArtifact};
 use worth_ui_dsl::{
@@ -38,7 +37,10 @@ fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_post
     let right = public_global_stop(&right_report, &right_touch);
 
     assert_eq!(left.1.denial_posture(), None);
-    assert_eq!(left.1.verdict_class(), Some(UiInspectionObligationVerdictClass::Violation));
+    assert_eq!(
+        left.1.verdict_class(),
+        Some(UiInspectionObligationVerdictClass::Violation)
+    );
     assert_eq!(
         left.1.verdict_posture(),
         Some(UiInspectionObligationVerdictPosture::Unsupported)

@@ -142,9 +142,10 @@ fn unsupported_authored_aspects_deny_through_public_freeze_path() {
             .freeze();
     }));
 
-    let panic_message = panic_message(
-        result.expect_err("freeze path must panic when unsupported aspect slices deny handoff lowering"),
-    );
+    let panic_message =
+        panic_message(result.expect_err(
+            "freeze path must panic when unsupported aspect slices deny handoff lowering",
+        ));
     assert!(
         panic_message.contains(
             "freeze path must deny graph instantiation before mutation when sealed handoff lowering fails"

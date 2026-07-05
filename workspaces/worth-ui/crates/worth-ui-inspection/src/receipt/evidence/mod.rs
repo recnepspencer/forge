@@ -10,9 +10,8 @@ pub use obligation_decision::UiInspectionObligationDecision;
 pub use obligation_reason_projection::{
     UiInspectionAdmissionHostCapability, UiInspectionAdmissionQueryBasis,
     UiInspectionAdmissionStaleEvidence, UiInspectionObligationDenialPosture,
-    UiInspectionObligationDispatchPosture,
-    UiInspectionObligationFamily, UiInspectionObligationLegalityReason,
-    UiInspectionObligationNonSelectionReason,
+    UiInspectionObligationDispatchPosture, UiInspectionObligationFamily,
+    UiInspectionObligationLegalityReason, UiInspectionObligationNonSelectionReason,
     UiInspectionObligationSelectionReason, UiInspectionObligationSupportSelectionPosture,
     UiInspectionObligationVerdictClass, UiInspectionObligationVerdictPosture,
     UiInspectionObligationWorldProfileClass, UiInspectionSelectionBudget,

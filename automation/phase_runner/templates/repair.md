@@ -34,7 +34,19 @@ Repair rules:
   - If Worth still has a surviving wrapper, alias, adapter, local scanner, local manifest, or local second-ontology lane, classify that as Worth-local explicit residue and fix it here.
   - If a migration is blocked because Query does not support a required ordinary-path capability, name the exact missing capability and treat it as a blocker to fix, not as a standing debt ledger.
 - If you cannot name the exact missing Query capability, do not manufacture a Query-gap row. Treat it as Worth-local residue or a bad test assumption and fix the model accordingly.
-
+- Before choosing a fix, classify the problem as one of:
+  - `local fix`
+  - `structural fix`
+  - `phase-scope mismatch`
+- Choose `local fix` only if the defect is isolated and fixing it will not
+  leave the same authority gap behind.
+- Choose `structural fix` if the finding reveals a missing ordinary lane,
+  synthetic authority, fake proof path, or boundary collapse.
+- Choose `phase-scope mismatch` only if the review is demanding a surface this
+  phase does not honestly own.
+- State the classification first in chat.
+- If the correct classification is `structural fix`, do not propose a narrow
+  patch that only silences the current finding.
 - Fix the cause, not the symptom.
 - Fix the full visible finding family, not just the first file that failed.
 - If the previous review identified repeated or shared findings, start by
@@ -66,6 +78,16 @@ Repair rules:
   does not support it. If the phase still is not done after repair, either finish
   a real repair with `repair_completed` or leave the next review to emit
   `review_failed` with sharper findings.
+
+In the plan or implementation explanation, say briefly:
+
+- what the real root cause is
+- why the chosen fix removes that root cause
+- what adjacent future finding this fix is intended to prevent
+
+Do not reward issue-by-issue patching if multiple findings are caused by the
+same missing authority seam. Prefer one deeper fix over several shallow fixes
+when they share a root cause.
 
 After repair, finish with:
 

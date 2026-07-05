@@ -1,3 +1,5 @@
+mod measurement_entry_boundary;
+mod query_measurement_eligibility_boundary;
 mod ui_admission_boundary;
 mod ui_admission_target;
 mod ui_admission_world;

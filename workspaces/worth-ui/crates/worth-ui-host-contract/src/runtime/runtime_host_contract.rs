@@ -1,3 +1,5 @@
+use super::{UiHostObservationValue, UiMeasurementRequest};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiHostKind {
     Headless,
@@ -13,6 +15,10 @@ pub struct WorthUiHostContract {
 
 pub trait WorthUiHostAdapter {
     fn host_contract(self) -> WorthUiHostContract;
+}
+
+pub trait WorthUiMeasurementHostAdapter {
+    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue;
 }
 
 impl WorthUiHostContract {

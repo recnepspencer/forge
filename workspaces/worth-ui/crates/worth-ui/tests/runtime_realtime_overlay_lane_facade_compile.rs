@@ -56,4 +56,3 @@ fn ordinary_widget_fallback_cannot_execute_realtime_lane() {
         "tests/ui/runtime_authority/fail/ordinary_widget_fallback_cannot_execute_realtime_lane.rs",
     );
 }
-

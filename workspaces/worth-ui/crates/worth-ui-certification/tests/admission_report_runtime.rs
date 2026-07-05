@@ -1,10 +1,10 @@
+use std::sync::Arc;
 use worth_ui::facade::admission::{
     UiAdmissionAggregation, UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld,
     UiLegalityPosture, UiLegalityReason, UiSupportPosture, UiSupportReason,
 };
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
-use std::sync::Arc;
 
 use worth_ui::facade::graph::{
     resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
@@ -49,14 +49,16 @@ fn admission_report_keeps_support_truth_separate_from_legality_truth() {
         graph_node_identity(&app, admitted),
         UiAdmissionWorld::from_graph_world_profile(query_world_profile.clone()),
     ));
-    let advisory_report = boundary.report(UiAdmissionTarget::graph_node(
-        graph_node_identity(&app, advisory),
-        UiAdmissionWorld::from_graph_world_profile(query_world_profile.clone()),
-    )
-    .with_query_prerequisites(query_prerequisites(
-        &query_world_profile,
-        worth_ui::facade::admission::UiAdmissionQueryBasis::GraphAligned,
-    )));
+    let advisory_report = boundary.report(
+        UiAdmissionTarget::graph_node(
+            graph_node_identity(&app, advisory),
+            UiAdmissionWorld::from_graph_world_profile(query_world_profile.clone()),
+        )
+        .with_query_prerequisites(query_prerequisites(
+            &query_world_profile,
+            worth_ui::facade::admission::UiAdmissionQueryBasis::GraphAligned,
+        )),
+    );
     let unsupported_report = boundary.report(UiAdmissionTarget::graph_node(
         graph_node_identity(&foreign_app, foreign),
         UiAdmissionWorld::from_graph_world_profile(query_world_profile.clone()),

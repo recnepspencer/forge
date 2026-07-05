@@ -2,8 +2,24 @@ use super::{
     WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostContract, WorthUiHostKind,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorthUiHostCapabilityObservationGeneration {
+    value: u64,
+}
+
+impl WorthUiHostCapabilityObservationGeneration {
+    pub const fn new(value: u64) -> Self {
+        Self { value }
+    }
+
+    pub const fn as_u64(self) -> u64 {
+        self.value
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiHostCapabilityReport {
+    observation_generation: WorthUiHostCapabilityObservationGeneration,
     posture: WorthUiHostCapabilityPosture,
     observed_capabilities: Box<[WorthUiHostCapability]>,
 }
@@ -14,17 +30,26 @@ impl WorthUiHostCapabilityReport {
             WorthUiHostKind::Headless => Self::missing(Vec::new()),
             WorthUiHostKind::Egui => Self::available(vec![
                 WorthUiHostCapability::Accessibility,
+                WorthUiHostCapability::DpiObservation,
                 WorthUiHostCapability::FontMetrics,
                 WorthUiHostCapability::Ime,
+                WorthUiHostCapability::NativeControlIntrinsicMeasurement,
+                WorthUiHostCapability::PortalAnchorObservation,
+                WorthUiHostCapability::ScrollContainerObservation,
+                WorthUiHostCapability::TextBaselineMeasurement,
+                WorthUiHostCapability::TextIntrinsicMeasurement,
                 WorthUiHostCapability::TextInput,
+                WorthUiHostCapability::ViewportObservation,
                 WorthUiHostCapability::VisualCapture,
             ]),
-            WorthUiHostKind::CapabilityProbeInconclusive => {
-                Self::ambiguous(vec![WorthUiHostCapability::TextInput])
-            }
-            WorthUiHostKind::DiagnosticsOnly => {
-                Self::diagnostic_only(vec![WorthUiHostCapability::TextInput])
-            }
+            WorthUiHostKind::CapabilityProbeInconclusive => Self::ambiguous(vec![
+                WorthUiHostCapability::TextInput,
+                WorthUiHostCapability::TextIntrinsicMeasurement,
+            ]),
+            WorthUiHostKind::DiagnosticsOnly => Self::diagnostic_only(vec![
+                WorthUiHostCapability::TextInput,
+                WorthUiHostCapability::TextIntrinsicMeasurement,
+            ]),
         }
     }
 
@@ -52,9 +77,22 @@ impl WorthUiHostCapabilityReport {
         observed_capabilities.dedup();
 
         Self {
+            observation_generation: WorthUiHostCapabilityObservationGeneration::new(0),
             posture,
             observed_capabilities: observed_capabilities.into_boxed_slice(),
         }
+    }
+
+    pub fn with_observation_generation(
+        mut self,
+        observation_generation: WorthUiHostCapabilityObservationGeneration,
+    ) -> Self {
+        self.observation_generation = observation_generation;
+        self
+    }
+
+    pub fn observation_generation(&self) -> WorthUiHostCapabilityObservationGeneration {
+        self.observation_generation
     }
 
     pub fn posture(&self) -> WorthUiHostCapabilityPosture {
@@ -65,7 +103,35 @@ impl WorthUiHostCapabilityReport {
         &self.observed_capabilities
     }
 
+    pub fn profile_identity_digest(&self) -> u64 {
+        let posture_label = match self.posture {
+            WorthUiHostCapabilityPosture::Available => "available",
+            WorthUiHostCapabilityPosture::Missing => "missing",
+            WorthUiHostCapabilityPosture::Ambiguous => "ambiguous",
+            WorthUiHostCapabilityPosture::DiagnosticOnly => "diagnostic-only",
+        };
+        let mut capabilities = self
+            .observed_capabilities
+            .iter()
+            .map(|capability| capability.as_str())
+            .collect::<Vec<_>>();
+        capabilities.sort_unstable();
+        capabilities.into_iter().fold(
+            stable_text_digest("worth-ui-host-capability-report")
+                ^ stable_text_digest(posture_label).rotate_left(7),
+            |digest, capability| digest ^ stable_text_digest(capability).rotate_left(17),
+        )
+    }
+
     pub fn supports(&self, capability: WorthUiHostCapability) -> bool {
         self.observed_capabilities.contains(&capability)
     }
+}
+
+fn stable_text_digest(text: &str) -> u64 {
+    text.as_bytes()
+        .iter()
+        .fold(0xCBF2_9CE4_8422_2325, |digest, byte| {
+            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
+        })
 }

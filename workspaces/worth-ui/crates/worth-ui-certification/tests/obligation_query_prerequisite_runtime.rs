@@ -39,11 +39,11 @@ fn query_requirement_selection_and_verdicts_retain_query_owned_prerequisite_evid
     );
     assert_eq!(
         query_ref.inspection_lane(),
-        WorthUiQueryInspectionLane::WorkspaceInspect
+        WorthUiQueryInspectionLane::NotRequested
     );
     assert_eq!(
         query_ref.causal_explanation_lane(),
-        WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
+        WorthUiQueryCausalExplanationLane::NotRequested
     );
 
     let verdict = bundle

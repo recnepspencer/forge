@@ -2,7 +2,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureApplicability,
+    UiDeclarationArtifact, UiDeclaredMeasurementMode, UiDeclaredPostureApplicability,
     UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
 };
 use worth_ui_dsl::{
@@ -51,10 +51,18 @@ fn public_freeze_projects_declared_posture_contracts_from_declaration_authority(
         posture.touch_meaning().admitted(),
         Some(&UiDeclaredTouchMeaningPosture::Press)
     );
+    let measurement_policy = posture
+        .measurement_policy()
+        .admitted()
+        .expect("measurement posture should remain declaration-owned on freeze");
     assert_eq!(
-        posture.measurement_policy().admitted(),
-        Some(&UiDeclaredMeasurementPolicyPosture::HugHeight)
+        measurement_policy.mode(),
+        Some(UiDeclaredMeasurementMode::HugHeight)
     );
+    assert_eq!(measurement_policy.constraint_modifier(), None);
+    assert_eq!(measurement_policy.basis_source(), None);
+    assert_eq!(measurement_policy.ownership_posture(), None);
+    assert!(measurement_policy.evidence_requirements().is_empty());
     assert_eq!(
         posture
             .host_capability()
@@ -122,15 +130,16 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
     let intent_freeze = catch_unwind(AssertUnwindSafe(|| {
         let _ = WorthUi::app()
             .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.certification.declared-posture.classification.intent")
-                    .with_semantic_artifact_spec(intent_spec()),
+                WorthUiDslPackage::named(
+                    "worth-ui.certification.declared-posture.classification.intent",
+                )
+                .with_semantic_artifact_spec(intent_spec()),
             )
             .freeze();
     }));
-    let intent_panic = panic_message(
-        intent_freeze
-            .expect_err("freeze path must reject standalone intent declarations before graph publication"),
-    );
+    let intent_panic = panic_message(intent_freeze.expect_err(
+        "freeze path must reject standalone intent declarations before graph publication",
+    ));
     assert!(
         intent_panic.contains("StructuralSemanticsNotAdmitted")
             && intent_panic.contains("FamilyDoesNotProjectStructuralSemantics")

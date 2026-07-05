@@ -172,7 +172,8 @@ pub fn audit_phase4_authored_lookup_lane_is_indexed_not_scan_first(
     }
 
     for function_name in ["lookup_declaration_identity", "lookup_authored_provenance"] {
-        let method_names = collect_method_names_for_function(&authored_evidence_index, function_name);
+        let method_names =
+            collect_method_names_for_function(&authored_evidence_index, function_name);
         if !method_names.iter().any(|name| name == "get") {
             violations.push(format!(
                 "{} no longer proves indexed authored lookup because `{function_name}` does not call map lookup `get()` on the authoritative authored index",
@@ -302,7 +303,8 @@ fn production_source_text(path: &Path) -> String {
 
 fn source_without_test_module_tail(path: &Path) -> String {
     let text = fs::read_to_string(path).expect("source file should decode");
-    if let Some(test_module_start) = text.find("#[cfg(test)]\nmod tests")
+    if let Some(test_module_start) = text
+        .find("#[cfg(test)]\nmod tests")
         .or_else(|| text.find("#[cfg(test)]\r\nmod tests"))
     {
         text[..test_module_start].to_string()

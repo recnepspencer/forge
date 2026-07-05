@@ -1,7 +1,7 @@
 use crate::obligations::inspection::{
     prerequisite_sources_from_refs, query_prerequisite_evidence_from_refs,
-    UiObligationEvidenceAuthoritySource, UiObligationEvidenceDecision,
-    UiObligationEvidenceRecord, UiObligationEvidenceVerdictPosture,
+    UiObligationEvidenceAuthoritySource, UiObligationEvidenceDecision, UiObligationEvidenceRecord,
+    UiObligationEvidenceVerdictPosture,
 };
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::UiObligationVerdict;
@@ -32,9 +32,7 @@ pub(crate) fn verdict_evidence_records(
                     .obligations()
                     .iter()
                     .find(|entry| verdict.selected_identity() == Some(entry.identity()))
-                    .map(|entry| {
-                        prerequisite_sources_from_refs(entry.prerequisite_evidence_refs())
-                    })
+                    .map(|entry| prerequisite_sources_from_refs(entry.prerequisite_evidence_refs()))
                     .unwrap_or_default()
                     .into_boxed_slice(),
                 selected

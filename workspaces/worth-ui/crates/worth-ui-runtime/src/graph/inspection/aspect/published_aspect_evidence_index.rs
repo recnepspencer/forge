@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::aspect_evidence_neighborhood::{UiAspectEvidenceLookup, UiAspectEvidenceNeighborhood};
 use super::super::aspect_evidence_record::{UiAspectEvidenceRecord, UiAspectEvidenceRecordKind};
+use super::aspect_evidence_neighborhood::{UiAspectEvidenceLookup, UiAspectEvidenceNeighborhood};
 use crate::evidence::{order_refs, UiEvidenceAuthorityGeneration, UiEvidenceRef};
 use crate::graph::{
     UiGraphAspectPublisherKind, UiGraphNodeEvidenceIndex, UiGraphSnapshot, UiMountedReceiptIdentity,
@@ -40,10 +40,9 @@ impl UiPublishedAspectEvidenceIndex {
         let canonical_label_by_ref_identity_digest: BTreeMap<u64, Box<str>> = by_canonical_label
             .iter()
             .flat_map(|(canonical_label, neighborhood)| {
-                neighborhood
-                    .refs()
-                    .iter()
-                    .map(move |evidence_ref| (evidence_ref.identity().digest(), canonical_label.clone()))
+                neighborhood.refs().iter().map(move |evidence_ref| {
+                    (evidence_ref.identity().digest(), canonical_label.clone())
+                })
             })
             .collect();
 
@@ -119,7 +118,10 @@ fn neighborhood_for_publishers(
     }
 
     UiAspectEvidenceNeighborhood::new(
-        declaration_artifact_indexes.into_iter().collect::<Vec<_>>().into_boxed_slice(),
+        declaration_artifact_indexes
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         order_refs(refs),
     )
 }

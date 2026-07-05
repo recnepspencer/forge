@@ -77,13 +77,11 @@ fn refs_only_obligation_inspection_does_not_materialize_before_explicit_expansio
             - observation_before.rich_artifact_materialization_count(),
         0
     );
-    assert!(
-        receipt
-            .evidence_slice()
-            .expect("refs-only obligation inspection should retain a slice")
-            .materialized_detail()
-            .is_none()
-    );
+    assert!(receipt
+        .evidence_slice()
+        .expect("refs-only obligation inspection should retain a slice")
+        .materialized_detail()
+        .is_none());
 
     let _ = selected.expand_evidence_ref(evidence_ref, UiEvidenceRichness::summary());
     let observation_after_expand = selected.inspection_observation();

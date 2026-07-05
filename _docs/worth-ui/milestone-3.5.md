@@ -6,7 +6,7 @@
 >
 > **Primary prerequisite:** `Milestone 3.4 Admission, Support, And Graph Touch Obligations`
 >
-> **Follow-on sequence:** `Milestone 3.6 Measurement And Allocation Kernel`
+> **Follow-on sequence:** `Milestone 3.6a Measurement Vocabulary, Basis Admission, And Host Evidence Boundaries`
 >
 > **Primary architectural driver:** make runtime truth inspectable through typed,
 > indexed, relevance-scoped evidence rather than debug dumps, renderer-local

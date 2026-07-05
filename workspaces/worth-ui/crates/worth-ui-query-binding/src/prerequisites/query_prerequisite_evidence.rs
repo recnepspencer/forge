@@ -18,6 +18,7 @@ pub struct WorthUiQueryPrerequisiteEvidence {
     projection_consumption_lane: WorthUiQueryProjectionConsumptionLane,
     inspection_lane: WorthUiQueryInspectionLane,
     causal_explanation_lane: WorthUiQueryCausalExplanationLane,
+    projection_contract_digest: Option<Box<str>>,
 }
 
 impl WorthUiQueryPrerequisiteEvidence {
@@ -28,6 +29,7 @@ impl WorthUiQueryPrerequisiteEvidence {
         projection_consumption_lane: WorthUiQueryProjectionConsumptionLane,
         inspection_lane: WorthUiQueryInspectionLane,
         causal_explanation_lane: WorthUiQueryCausalExplanationLane,
+        projection_contract_digest: Option<Box<str>>,
     ) -> Result<Self, WorthUiQueryPrerequisiteEvidenceError> {
         if resolution_report.basis_digest() != basis.proof().digest()
             || resolution_report.resolution_mode() != basis.resolution_mode()
@@ -42,6 +44,7 @@ impl WorthUiQueryPrerequisiteEvidence {
             projection_consumption_lane,
             inspection_lane,
             causal_explanation_lane,
+            projection_contract_digest,
         })
     }
 
@@ -67,5 +70,21 @@ impl WorthUiQueryPrerequisiteEvidence {
 
     pub fn causal_explanation_lane(&self) -> WorthUiQueryCausalExplanationLane {
         self.causal_explanation_lane
+    }
+
+    pub fn projection_contract_digest(&self) -> Option<&str> {
+        self.projection_contract_digest.as_deref()
+    }
+
+    pub(crate) fn bound_to_projection_contract(&self, projection_contract_digest: &str) -> Self {
+        Self {
+            basis: self.basis.clone(),
+            resolution_report: self.resolution_report.clone(),
+            basis_posture: self.basis_posture,
+            projection_consumption_lane: self.projection_consumption_lane,
+            inspection_lane: self.inspection_lane,
+            causal_explanation_lane: self.causal_explanation_lane,
+            projection_contract_digest: Some(projection_contract_digest.into()),
+        }
     }
 }

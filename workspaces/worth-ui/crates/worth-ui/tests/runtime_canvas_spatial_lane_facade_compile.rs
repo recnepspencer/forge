@@ -70,4 +70,3 @@ fn spatial_tool_state_hook_fields_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/spatial_tool_state_hook_fields_not_public.rs",
     );
 }
-

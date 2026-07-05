@@ -348,4 +348,3 @@ fn node_replacement_counters_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/node_replacement_counters_not_publicly_mintable.rs",
     );
 }
-

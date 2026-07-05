@@ -6,7 +6,7 @@ use worth_ui_inspection::{
 use crate::admission::inspection::UiAdmissionEvidenceRecord;
 use crate::admission::{
     UiAdmissionAggregation, UiAdmissionDecision, UiAdmissionTarget, UiLegalityDecision,
-    UiSupportSnapshot,
+    UiMeasurementAdmission, UiSupportSnapshot,
 };
 use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::evidence::UiEvidenceRef;
@@ -15,8 +15,8 @@ use crate::obligations::closeout::{UiAdmissionAuthorityHandoff, UiObligationClos
 use crate::obligations::diagnostics::UiObligationDiagnosticProjection;
 use crate::obligations::dispatch::UiObligationDispatchPlan;
 use crate::obligations::inspection::{
-    admitted_report_evidence_records, dispatch_evidence_records,
-    verdict_evidence_records, UiObligationEvidenceHandle, UiObligationEvidenceIndex,
+    admitted_report_evidence_records, dispatch_evidence_records, verdict_evidence_records,
+    UiObligationEvidenceHandle, UiObligationEvidenceIndex,
 };
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::UiObligationVerdict;
@@ -29,6 +29,7 @@ pub struct UiAdmissionReport {
     authority_generation: UiEvidenceAuthorityGeneration,
     target: UiAdmissionTarget,
     support_snapshot: UiSupportSnapshot,
+    measurement_admission: Option<UiMeasurementAdmission>,
     aggregation: UiAdmissionAggregation,
     legality_decision: Option<UiLegalityDecision>,
     dispatch_plan: Option<UiObligationDispatchPlan>,
@@ -61,26 +62,30 @@ impl UiAdmissionReport {
             authority_generation,
             target,
             support_snapshot,
+            measurement_admission: None,
             aggregation,
             legality_decision,
             dispatch_plan: None,
             verdicts: Box::new([]),
             evidence_index: UiObligationEvidenceIndex::empty(),
         };
-        let evidence_index =
-            UiObligationEvidenceIndex::new(admitted_report_evidence_records(&report).into_boxed_slice());
+        let evidence_index = UiObligationEvidenceIndex::new(
+            admitted_report_evidence_records(&report).into_boxed_slice(),
+        );
 
         report.with_evidence_index(evidence_index)
     }
 
     pub(crate) fn from_selected_execution(
         selected: &UiSelectedObligationSet,
+        support_snapshot: UiSupportSnapshot,
+        measurement_admission: Option<UiMeasurementAdmission>,
         dispatch_plan: UiObligationDispatchPlan,
         verdicts: Box<[UiObligationVerdict]>,
     ) -> Self {
-        let aggregation = aggregation_from_selected(selected, &verdicts);
+        let aggregation = aggregation_from_selected(&support_snapshot, &verdicts);
         let identity_digest = admission_report_identity_digest(
-            selected.support_snapshot().target(),
+            support_snapshot.target(),
             aggregation,
             None,
             Some(&verdicts),
@@ -88,8 +93,9 @@ impl UiAdmissionReport {
         let report = Self {
             identity_digest,
             authority_generation: selected.authority_generation(),
-            target: selected.support_snapshot().target().clone(),
-            support_snapshot: selected.support_snapshot().clone(),
+            target: support_snapshot.target().clone(),
+            support_snapshot,
+            measurement_admission,
             aggregation,
             legality_decision: None,
             dispatch_plan: Some(dispatch_plan),
@@ -132,6 +138,10 @@ impl UiAdmissionReport {
 
     pub fn aggregation(&self) -> UiAdmissionAggregation {
         self.aggregation
+    }
+
+    pub fn measurement_admission(&self) -> Option<&UiMeasurementAdmission> {
+        self.measurement_admission.as_ref()
     }
 
     pub fn legality_decision(&self) -> Option<&UiLegalityDecision> {

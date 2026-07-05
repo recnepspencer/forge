@@ -17,7 +17,8 @@ fn workspace_root() -> &'static Path {
 
 #[test]
 fn phase5_graph_lookup_lane_does_not_reopen_declaration_source() {
-    let violations = audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(workspace_root());
+    let violations =
+        audit_phase5_graph_lookup_lane_does_not_reopen_declaration_source(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 
@@ -29,7 +30,8 @@ fn phase5_graph_lookup_lane_is_indexed_not_scan_first() {
 
 #[test]
 fn phase6_aspect_lookup_lane_does_not_reopen_declaration_source() {
-    let violations = audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(workspace_root());
+    let violations =
+        audit_phase6_aspect_lookup_lane_does_not_reopen_declaration_source(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 

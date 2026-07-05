@@ -9,15 +9,10 @@ use crate::declaration::{
 };
 use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::graph::{UiGraphNodeRecord, UiGraphSnapshot};
-use crate::obligations::dispatch::{UiObligationDispatchBoundary, UiObligationDispatchPlan};
-use crate::obligations::selection::{UiObligationSelectionBoundary, UiSelectedObligationSet};
-use crate::obligations::touch::UiGraphTouchDescriptor;
-use crate::obligations::verdict::UiObligationVerdict;
-
 pub struct UiAdmissionBoundary<'a> {
-    support_artifacts: &'a [UiDeclarationArtifact],
-    declaration_artifacts: &'a [UiDeclarationArtifact],
-    graph_snapshot: &'a UiGraphSnapshot,
+    pub(super) support_artifacts: &'a [UiDeclarationArtifact],
+    pub(super) declaration_artifacts: &'a [UiDeclarationArtifact],
+    pub(super) graph_snapshot: &'a UiGraphSnapshot,
 }
 
 impl<'a> UiAdmissionBoundary<'a> {
@@ -148,52 +143,6 @@ impl<'a> UiAdmissionBoundary<'a> {
             .into_report(UiEvidenceAuthorityGeneration::new(
                 self.graph_snapshot.generation().as_u64(),
             ))
-    }
-
-    pub fn select_obligations(&self, touch: &UiGraphTouchDescriptor) -> UiSelectedObligationSet {
-        self.select_obligations_for_target(
-            touch,
-            UiAdmissionTarget::graph_node(
-                touch.target().graph_node_identity(),
-                UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
-            ),
-        )
-    }
-
-    pub fn select_obligations_for_target(
-        &self,
-        touch: &UiGraphTouchDescriptor,
-        target: UiAdmissionTarget,
-    ) -> UiSelectedObligationSet {
-        let selection_target = selection_target_for_touch(touch, target);
-        let support_snapshot = self.support_snapshot(&selection_target);
-
-        UiObligationSelectionBoundary::new(self.support_artifacts, self.graph_snapshot)
-            .select(touch, support_snapshot)
-    }
-
-    pub fn lower_obligation_dispatch(
-        &self,
-        selected: &UiSelectedObligationSet,
-    ) -> UiObligationDispatchPlan {
-        let _ = self;
-        UiObligationDispatchBoundary::new().lower(selected)
-    }
-
-    pub fn dispatch_selected_obligations(
-        &self,
-        selected: &UiSelectedObligationSet,
-    ) -> Box<[UiObligationVerdict]> {
-        self.lower_obligation_dispatch(selected).execute()
-    }
-
-    pub fn admit_selected_obligations(
-        &self,
-        selected: &UiSelectedObligationSet,
-    ) -> UiAdmissionReport {
-        let dispatch_plan = self.lower_obligation_dispatch(selected);
-        let verdicts = dispatch_plan.execute();
-        UiAdmissionReport::from_selected_execution(selected, dispatch_plan, verdicts)
     }
 
     fn legality_outcome(&self, target: &UiAdmissionTarget) -> UiAdmissionOutcome {
@@ -346,14 +295,17 @@ impl<'a> UiAdmissionBoundary<'a> {
         ))
     }
 
-    fn graph_node_record(&self, target: &UiAdmissionTarget) -> Option<UiGraphNodeRecord> {
+    pub(super) fn graph_node_record(
+        &self,
+        target: &UiAdmissionTarget,
+    ) -> Option<UiGraphNodeRecord> {
         self.graph_snapshot
             .lookup()
             .graph_node(target.graph_node_identity())
             .map(|lookup| lookup.value().clone())
     }
 
-    fn declaration_artifact(
+    pub(super) fn declaration_artifact(
         &self,
         declaration_identity: &crate::declaration::UiDeclarationIdentity,
     ) -> Option<&'a UiDeclarationArtifact> {
@@ -362,7 +314,7 @@ impl<'a> UiAdmissionBoundary<'a> {
             .find(|artifact| artifact.identity() == declaration_identity)
     }
 
-    fn support_artifact(
+    pub(super) fn support_artifact(
         &self,
         declaration_identity: &crate::declaration::UiDeclarationIdentity,
     ) -> Option<&'a UiDeclarationArtifact> {
@@ -372,31 +324,8 @@ impl<'a> UiAdmissionBoundary<'a> {
     }
 }
 
-const fn required_lane_cost(target: &UiAdmissionTarget) -> u8 {
-    let _ = target;
+const fn required_lane_cost(_target: &UiAdmissionTarget) -> u8 {
     1
-}
-
-fn selection_target_for_touch(
-    touch: &UiGraphTouchDescriptor,
-    target: UiAdmissionTarget,
-) -> UiAdmissionTarget {
-    let mut selection_target = UiAdmissionTarget::graph_node(
-        touch.target().graph_node_identity(),
-        UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
-    )
-    .with_selection_budget(target.selection_budget());
-
-    if let Some(query_prerequisites) = target.query_prerequisites() {
-        selection_target = selection_target.with_query_prerequisites(query_prerequisites.clone());
-    }
-
-    if let Some(host_capability_report) = target.host_capability_report() {
-        selection_target =
-            selection_target.with_host_capability_report(host_capability_report.clone());
-    }
-
-    selection_target
 }
 
 #[cfg(test)]

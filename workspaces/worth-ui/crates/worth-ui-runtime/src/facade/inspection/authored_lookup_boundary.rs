@@ -1,7 +1,7 @@
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
+use crate::evidence::UiInspectionCostMetrics;
 use crate::evidence::{UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput};
 use crate::facade::UiInspectionReceipt;
-use crate::evidence::UiInspectionCostMetrics;
 use worth_ui_inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceFamily, UiInspectionQuery, UiInspectionScope,
     UiInspectionScopeSupportRow, UiInspectionSupportReason, UiInspectionSupportReport,
@@ -84,7 +84,10 @@ impl<'a> WorthUiAuthoredInspectionBoundary<'a> {
     }
 }
 
-fn filter_refs_for_query(refs: &[UiEvidenceRef], query: &UiInspectionQuery) -> Box<[UiEvidenceRef]> {
+fn filter_refs_for_query(
+    refs: &[UiEvidenceRef],
+    query: &UiInspectionQuery,
+) -> Box<[UiEvidenceRef]> {
     match query.relevance().filter().family_filter() {
         Some(family) => refs
             .iter()
@@ -96,11 +99,19 @@ fn filter_refs_for_query(refs: &[UiEvidenceRef], query: &UiInspectionQuery) -> B
     }
 }
 
-fn family_matches(evidence_family: UiEvidenceFamily, relevance_family: worth_ui_inspection::UiRelevanceFamily) -> bool {
+fn family_matches(
+    evidence_family: UiEvidenceFamily,
+    relevance_family: worth_ui_inspection::UiRelevanceFamily,
+) -> bool {
     matches!(
         (evidence_family, relevance_family),
-        (UiEvidenceFamily::Declaration, worth_ui_inspection::UiRelevanceFamily::Declaration)
-            | (UiEvidenceFamily::Admission, worth_ui_inspection::UiRelevanceFamily::Admission)
+        (
+            UiEvidenceFamily::Declaration,
+            worth_ui_inspection::UiRelevanceFamily::Declaration
+        ) | (
+            UiEvidenceFamily::Admission,
+            worth_ui_inspection::UiRelevanceFamily::Admission
+        )
     )
 }
 

@@ -4,6 +4,7 @@ mod declaration;
 mod evidence;
 pub mod facade;
 mod graph;
+pub mod host;
 mod lifecycle;
 mod obligations;
 mod runtime;

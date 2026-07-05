@@ -7,7 +7,9 @@ use super::{
     evidence_family_summary, evidence_slice, UiEvidenceAuthorityGeneration,
     UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceSlice,
 };
-use super::{evidence_slice_ordering::order_refs, inspection_cost_receipt::UiInspectionCostMetrics};
+use super::{
+    evidence_slice_ordering::order_refs, inspection_cost_receipt::UiInspectionCostMetrics,
+};
 
 pub(crate) struct UiEvidenceSliceAssemblyInput {
     authority_generation: UiEvidenceAuthorityGeneration,
@@ -58,10 +60,7 @@ impl UiEvidenceSliceAssemblyInput {
 }
 
 impl UiEvidenceSliceAssembly {
-    pub(crate) fn assemble(
-        query: &UiInspectionQuery,
-        input: UiEvidenceSliceAssemblyInput,
-    ) -> Self {
+    pub(crate) fn assemble(query: &UiInspectionQuery, input: UiEvidenceSliceAssemblyInput) -> Self {
         let refs = order_refs(input.refs.into_vec());
         let materialized_detail = if input.detail_available
             && query.richness() == UiEvidenceRichness::materialized_detail()
@@ -73,10 +72,13 @@ impl UiEvidenceSliceAssembly {
         };
         let family_summaries = refs
             .iter()
-            .fold(std::collections::BTreeMap::new(), |mut counts, evidence_ref| {
-                *counts.entry(evidence_ref.family()).or_insert(0usize) += 1;
-                counts
-            })
+            .fold(
+                std::collections::BTreeMap::new(),
+                |mut counts, evidence_ref| {
+                    *counts.entry(evidence_ref.family()).or_insert(0usize) += 1;
+                    counts
+                },
+            )
             .into_iter()
             .map(|(family, ref_count)| evidence_family_summary(family, ref_count))
             .collect::<Vec<_>>()
@@ -107,10 +109,9 @@ impl UiEvidenceSliceAssembly {
             omission,
             Some(UiEvidenceSliceOmission::ByBudget { .. })
         ));
-        let cost =
-            input
-                .cost_metrics
-                .finalize(refs.len(), materialized_records, omitted_by_budget);
+        let cost = input
+            .cost_metrics
+            .finalize(refs.len(), materialized_records, omitted_by_budget);
         let slice = evidence_slice(
             input.authority_generation,
             refs,
@@ -138,5 +139,8 @@ impl UiEvidenceSliceAssembly {
 fn materialized_record_count(detail: &UiEvidenceMaterializedDetail) -> usize {
     match detail {
         UiEvidenceMaterializedDetail::Obligation(receipt) => receipt.projections().len(),
+        UiEvidenceMaterializedDetail::Measurement(detail) => {
+            detail.basis_inputs().len() + detail.dependency_lineage().len()
+        }
     }
 }

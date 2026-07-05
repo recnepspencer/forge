@@ -98,7 +98,7 @@ fn support_row_for_measurement_policy(
 ) -> UiDeclarationSupportRow {
     let lane = posture.measurement_policy();
     let unsupported_posture = unsupported_posture_for(lane.applicability());
-    match lane.admitted().copied() {
+    match lane.admitted().cloned() {
         Some(admitted) => UiDeclarationSupportRow::with_measurement_policy(
             UiDeclarationSupportRowSchemaKind::MeasurementPolicy,
             lane.applicability(),

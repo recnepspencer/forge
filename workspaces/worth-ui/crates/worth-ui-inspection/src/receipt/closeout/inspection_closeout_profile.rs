@@ -1,12 +1,12 @@
 use super::{
     UiInspectionAiHarnessLane, UiInspectionClosedSemanticLane, UiInspectionCloseoutGuarantee,
-    UiInspectionCloseoutNonGoal, UiInspectionCostLane, UiInspectionDerivedIndexLane,
-    UiInspectionRefLifecycleLane, UiInspectionSliceLane, UiInspectionCloseoutReport,
+    UiInspectionCloseoutNonGoal, UiInspectionCloseoutReport, UiInspectionCostLane,
+    UiInspectionDerivedIndexLane, UiInspectionRefLifecycleLane, UiInspectionSliceLane,
 };
 use crate::{
     UiEvidenceBudget, UiEvidenceFamily, UiEvidenceMaterializationPosture,
-    UiEvidenceRetentionPosture, UiInspectionQueryForeignEvidenceKind,
-    UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTargetClass,
+    UiEvidenceRetentionPosture, UiInspectionQueryForeignEvidenceKind, UiInspectionRelevanceOutcome,
+    UiInspectionScope, UiInspectionTargetClass,
 };
 
 const MILESTONE35_EVIDENCE_FAMILIES: &[UiEvidenceFamily] = &[

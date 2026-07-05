@@ -41,7 +41,13 @@ impl<'a> UiObligationSelectionBoundary<'a> {
         &self,
         touch: &UiGraphTouchDescriptor,
         support_snapshot: UiSupportSnapshot,
+        requested_target: crate::admission::UiAdmissionTarget,
     ) -> UiSelectedObligationSet {
+        let selected_declaration_identity = self
+            .graph_snapshot
+            .lookup()
+            .graph_node(touch.target().graph_node_identity())
+            .map(|lookup| lookup.value().declaration_identity().clone());
         let (obligations, non_selected_records) = match support_snapshot.posture() {
             UiSupportPosture::WrongWorld { .. } => (Vec::new(), Vec::new()),
             UiSupportPosture::Supported { .. }
@@ -56,11 +62,14 @@ impl<'a> UiObligationSelectionBoundary<'a> {
             UiEvidenceAuthorityGeneration::new(self.graph_snapshot.generation().as_u64()),
             touch.clone(),
             support_snapshot,
+            requested_target,
+            selected_declaration_identity,
             obligations.into_boxed_slice(),
             UiObligationEvidenceIndex::empty(),
         );
-        let evidence_index = UiObligationEvidenceIndex::new(non_selected_records.into_boxed_slice())
-            .with_appended(selected_obligation_evidence_records(&selected));
+        let evidence_index =
+            UiObligationEvidenceIndex::new(non_selected_records.into_boxed_slice())
+                .with_appended(selected_obligation_evidence_records(&selected));
 
         selected.with_evidence_index(evidence_index)
     }

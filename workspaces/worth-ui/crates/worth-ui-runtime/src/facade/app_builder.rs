@@ -5,8 +5,8 @@ use crate::facade::{
     MosaicPlacementPolicyDescriptor, MosaicRegionKindDescriptor, MosaicSizingContractDescriptor,
     MosaicStateSlotDescriptor, NativeCapabilityDescriptor, PluginSlotDescriptor,
     RuntimeOutcomeProjectionDescriptor, SettingDescriptor, SurfaceDescriptor,
-    TaskPresentationDescriptor, ThemeTokenDescriptor, ViewBindingDescriptor, WorthUiApp,
-    WorthUiDslPackage, WorthUiHostAdapter, WorthUiHostContract,
+    TaskPresentationDescriptor, ThemeTokenDescriptor, UiMeasurementInspectionEvidenceBundle,
+    ViewBindingDescriptor, WorthUiApp, WorthUiDslPackage, WorthUiHostAdapter, WorthUiHostContract,
 };
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_inspection::UiInspectionScopeInventory;
@@ -17,6 +17,7 @@ pub struct WorthUiBuilder {
     dsl_package: WorthUiDslPackage,
     host_contract: WorthUiHostContract,
     graph_world_profile: UiGraphWorldProfile,
+    measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
 }
 
 pub type WorthUiAppBuilder = WorthUiBuilder;
@@ -28,6 +29,7 @@ impl WorthUiBuilder {
             dsl_package: WorthUiDslPackage::empty(),
             host_contract: WorthUiHostContract::headless(),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
+            measurement_inspection_evidence: Vec::new(),
         }
     }
 
@@ -46,6 +48,14 @@ impl WorthUiBuilder {
 
     pub fn with_graph_world_profile(mut self, graph_world_profile: UiGraphWorldProfile) -> Self {
         self.graph_world_profile = graph_world_profile;
+        self
+    }
+
+    pub fn with_measurement_inspection_evidence(
+        mut self,
+        evidence: UiMeasurementInspectionEvidenceBundle,
+    ) -> Self {
+        self.measurement_inspection_evidence.push(evidence);
         self
     }
 
@@ -148,6 +158,7 @@ impl WorthUiBuilder {
             self.dsl_package,
             self.host_contract,
             self.graph_world_profile,
+            self.measurement_inspection_evidence.into_boxed_slice(),
         ))
     }
 
@@ -179,6 +190,7 @@ impl WorthUiBuilder {
                 self.dsl_package,
                 self.host_contract,
                 self.graph_world_profile,
+                self.measurement_inspection_evidence.into_boxed_slice(),
                 inspection_scope_inventory,
             ),
         )

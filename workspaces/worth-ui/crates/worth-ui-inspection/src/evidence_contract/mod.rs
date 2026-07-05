@@ -8,8 +8,7 @@ pub use inspection_foreign_evidence_citation::{
 };
 pub use inspection_foreign_evidence_ref::{
     UiInspectionForeignEvidenceRef, UiInspectionQueryForeignEvidenceArtifactKind,
-    UiInspectionQueryForeignEvidenceKind,
-    UiInspectionQueryForeignEvidenceRef,
+    UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

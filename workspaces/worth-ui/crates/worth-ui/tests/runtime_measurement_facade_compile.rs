@@ -40,4 +40,3 @@ fn uncertified_counter_packet_cannot_lower_to_foundational() {
         "tests/ui/runtime_measurement/fail/uncertified_counter_packet_cannot_lower_to_foundational.rs",
     );
 }
-

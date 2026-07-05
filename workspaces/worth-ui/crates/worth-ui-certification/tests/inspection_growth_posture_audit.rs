@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use worth_ui_certification::topology::{
     audit_dummy_future_family_extension_home, audit_evidence_family_storage_homes,
-    audit_inspection_future_artifact_seed_topology, audit_inspection_materialized_detail_growth_posture,
+    audit_inspection_future_artifact_seed_topology,
+    audit_inspection_materialized_detail_growth_posture,
 };
 
 fn workspace_root() -> &'static Path {
@@ -47,14 +48,19 @@ fn inspection_growth_posture_stays_seeded_typed_and_family_local() {
 
 #[test]
 fn growth_posture_audit_rejects_missing_future_seed_homes_fixture() {
-    let violations =
-        audit_inspection_future_artifact_seed_topology(&fixture_root("inspection_missing_artifact_seed_homes"));
+    let violations = audit_inspection_future_artifact_seed_topology(&fixture_root(
+        "inspection_missing_artifact_seed_homes",
+    ));
     assert_has_violation(
         &violations,
         "receipt/replay/mod.rs",
         "future replay inspection artifacts lack an honest internal home",
     );
-    assert_has_violation(&violations, "receipt/mod.rs", "private `replay` child module");
+    assert_has_violation(
+        &violations,
+        "receipt/mod.rs",
+        "private `replay` child module",
+    );
 }
 
 #[test]

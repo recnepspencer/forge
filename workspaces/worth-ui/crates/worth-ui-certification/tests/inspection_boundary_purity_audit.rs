@@ -84,13 +84,11 @@ fn ai_harness_and_query_citation_stay_on_the_ordinary_boundary() {
     );
 
     assert_eq!(harnessed, direct);
-    assert!(
-        harnessed
-            .evidence_slice()
-            .expect("obligation query should retain a slice")
-            .materialized_detail()
-            .is_none()
-    );
+    assert!(harnessed
+        .evidence_slice()
+        .expect("obligation query should retain a slice")
+        .materialized_detail()
+        .is_none());
     assert_eq!(expansion.foreign_evidence_refs().len(), 3);
 
     match ai.cite_foreign_evidence(expansion.foreign_evidence_refs()[0]) {
@@ -161,7 +159,9 @@ fn declaration_identity_query(
         UiInspectionTarget::declaration_identity(artifact.identity().inspection_identity()),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -170,11 +170,15 @@ fn authored_provenance_query(
 ) -> UiInspectionQuery {
     UiInspectionQuery::new(
         UiInspectionTarget::authored_source_provenance(
-            artifact.provenance().inspection_authored_source_provenance_ref(),
+            artifact
+                .provenance()
+                .inspection_authored_source_provenance_ref(),
         ),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -183,7 +187,9 @@ fn graph_identity_query(graph_node_digest: u64) -> UiInspectionQuery {
         UiInspectionTarget::graph_node_identity(graph_node_digest),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 

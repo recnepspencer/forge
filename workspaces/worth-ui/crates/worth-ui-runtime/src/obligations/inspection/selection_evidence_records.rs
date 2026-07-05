@@ -98,11 +98,7 @@ pub(crate) fn prerequisite_sources_from_target(
 pub(crate) fn query_prerequisite_evidence_from_target(
     target: &UiAdmissionTarget,
 ) -> Vec<WorthUiQueryPrerequisiteEvidence> {
-    target
-        .query_prerequisites()
-        .into_iter()
-        .cloned()
-        .collect()
+    target.query_prerequisites().into_iter().cloned().collect()
 }
 
 pub(crate) fn prerequisite_sources_from_refs(

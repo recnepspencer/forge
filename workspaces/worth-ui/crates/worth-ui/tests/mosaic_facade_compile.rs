@@ -133,4 +133,3 @@ fn facade_compile_pass(fixture_path: &str) {
 fn facade_compile_fail(fixture_path: &str) {
     trybuild_support::new_test_cases().compile_fail(fixture_path);
 }
-

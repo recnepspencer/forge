@@ -264,7 +264,9 @@ fn declaration_identity_query(
         UiInspectionTarget::declaration_identity(artifact.identity().inspection_identity()),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -273,11 +275,15 @@ fn authored_provenance_query(
 ) -> UiInspectionQuery {
     UiInspectionQuery::new(
         UiInspectionTarget::authored_source_provenance(
-            artifact.provenance().inspection_authored_source_provenance_ref(),
+            artifact
+                .provenance()
+                .inspection_authored_source_provenance_ref(),
         ),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -286,7 +292,9 @@ fn graph_identity_query(graph_node_digest: u64) -> UiInspectionQuery {
         UiInspectionTarget::graph_node_identity(graph_node_digest),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 

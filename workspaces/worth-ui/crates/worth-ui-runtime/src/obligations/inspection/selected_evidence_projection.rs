@@ -86,7 +86,10 @@ impl UiSelectedObligationEvidenceProjection {
             touch_identity_digest: projection.touch_identity_digest()?,
             family: projection.family()?,
             selection_reasons: projection.selection_reasons().to_vec().into_boxed_slice(),
-            prerequisite_sources: projection.prerequisite_sources().to_vec().into_boxed_slice(),
+            prerequisite_sources: projection
+                .prerequisite_sources()
+                .to_vec()
+                .into_boxed_slice(),
         })
     }
 

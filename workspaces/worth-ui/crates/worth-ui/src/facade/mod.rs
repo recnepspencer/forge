@@ -1,5 +1,5 @@
-pub mod app;
 pub mod admission;
+pub mod app;
 mod compat;
 pub mod declaration;
 pub mod diagnostics;

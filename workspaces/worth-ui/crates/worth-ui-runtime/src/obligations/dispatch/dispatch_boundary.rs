@@ -1,5 +1,7 @@
 use crate::admission::{
-    UiAdmissionHostCapability, UiAdmissionQueryBasis, UiAdmissionSelectionBudget, UiSupportPosture,
+    UiAdmissionHostCapability, UiAdmissionQueryBasis, UiAdmissionSelectionBudget,
+    UiAdmissionStaleEvidence, UiMeasurementAdmission, UiMeasurementAdmissionPosture,
+    UiMeasurementCapabilityGateReason, UiSupportPosture, UiSupportSnapshot,
 };
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::UiObligationDispatchStopPosture;
@@ -18,8 +20,17 @@ impl UiObligationDispatchBoundary {
         Self
     }
 
-    pub fn lower(&self, selected: &UiSelectedObligationSet) -> UiObligationDispatchPlan {
-        let plan_stop_posture = match selected.support_snapshot().posture() {
+    pub fn lower(
+        &self,
+        selected: &UiSelectedObligationSet,
+        support_snapshot: UiSupportSnapshot,
+        measurement_admission: Option<UiMeasurementAdmission>,
+    ) -> UiObligationDispatchPlan {
+        let plan_stop_posture = measurement_plan_stop_posture(
+            selected,
+            measurement_admission.as_ref(),
+        )
+        .unwrap_or_else(|| match support_snapshot.posture() {
             UiSupportPosture::Supported { .. } => supported_plan_stop_posture(selected),
             UiSupportPosture::Unsupported { .. } => UiObligationDispatchStopPosture::Unsupported,
             UiSupportPosture::Deferred { .. } => UiObligationDispatchStopPosture::Deferred,
@@ -27,7 +38,7 @@ impl UiObligationDispatchBoundary {
                 UiObligationDispatchStopPosture::DiagnosticOnly
             }
             UiSupportPosture::WrongWorld { .. } => UiObligationDispatchStopPosture::WrongWorld,
-        };
+        });
         let entries = selected
             .obligations()
             .iter()
@@ -40,8 +51,72 @@ impl UiObligationDispatchBoundary {
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
+        UiObligationDispatchPlan::new(
+            selected.clone(),
+            support_snapshot,
+            measurement_admission,
+            entries,
+            plan_stop_posture,
+        )
+    }
+}
 
-        UiObligationDispatchPlan::new(selected.clone(), entries, plan_stop_posture)
+fn measurement_plan_stop_posture(
+    selected: &UiSelectedObligationSet,
+    measurement_admission: Option<&UiMeasurementAdmission>,
+) -> Option<UiObligationDispatchStopPosture> {
+    if !selected.obligations().iter().any(|obligation| {
+        obligation.family()
+            == crate::obligations::catalog::UiObligationFamily::MeasurementRequirement
+    }) {
+        return None;
+    }
+
+    match measurement_admission?.posture() {
+        UiMeasurementAdmissionPosture::Admitted { .. } => {
+            Some(UiObligationDispatchStopPosture::Deferred)
+        }
+        UiMeasurementAdmissionPosture::Unsupported { .. } => {
+            Some(UiObligationDispatchStopPosture::Unsupported)
+        }
+        UiMeasurementAdmissionPosture::WrongWorld { .. } => {
+            Some(UiObligationDispatchStopPosture::WrongWorld)
+        }
+        UiMeasurementAdmissionPosture::Deferred { .. } => {
+            Some(UiObligationDispatchStopPosture::Deferred)
+        }
+        UiMeasurementAdmissionPosture::DiagnosticOnly { .. } => {
+            Some(UiObligationDispatchStopPosture::DiagnosticOnly)
+        }
+        UiMeasurementAdmissionPosture::CapabilityGated { reason, .. } => Some(match reason {
+            UiMeasurementCapabilityGateReason::MissingHostCapability => {
+                UiObligationDispatchStopPosture::WrongHostCapability {
+                    required: UiAdmissionHostCapability::Available,
+                    observed: UiAdmissionHostCapability::Missing,
+                }
+            }
+            UiMeasurementCapabilityGateReason::AmbiguousHostCapability => {
+                UiObligationDispatchStopPosture::Ambiguous {
+                    required_query_basis: None,
+                    observed_query_basis: None,
+                    required_host_capability: Some(UiAdmissionHostCapability::Available),
+                    observed_host_capability: Some(UiAdmissionHostCapability::Ambiguous),
+                }
+            }
+            UiMeasurementCapabilityGateReason::DiagnosticOnlyHostCapability => {
+                UiObligationDispatchStopPosture::DiagnosticOnly
+            }
+            UiMeasurementCapabilityGateReason::MissingHostCapabilityReport => {
+                UiObligationDispatchStopPosture::Unsupported
+            }
+        }),
+        UiMeasurementAdmissionPosture::StaleSupportPosture { .. } => {
+            Some(UiObligationDispatchStopPosture::Stale {
+                required: UiAdmissionQueryBasis::GraphAligned,
+                observed: UiAdmissionQueryBasis::StaleReceipt,
+                evidence: UiAdmissionStaleEvidence::DeclarationArtifactMissing,
+            })
+        }
     }
 }
 
@@ -171,6 +246,13 @@ fn supported_plan_stop_posture(
                 UiObligationDispatchStopPosture::DiagnosticOnly
             }
         };
+    }
+
+    if selected.obligations().iter().any(|obligation| {
+        obligation.family()
+            == crate::obligations::catalog::UiObligationFamily::MeasurementRequirement
+    }) {
+        return UiObligationDispatchStopPosture::Deferred;
     }
 
     UiObligationDispatchStopPosture::None

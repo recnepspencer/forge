@@ -60,8 +60,7 @@ pub fn audit_dummy_future_family_extension_home(workspace_root: &Path) -> Vec<St
     }
 
     let allowed_prefixes = [
-        workspace_root
-            .join("crates/worth-ui-inspection/src/receipt/evidence/dummy_future_family"),
+        workspace_root.join("crates/worth-ui-inspection/src/receipt/evidence/dummy_future_family"),
         workspace_root.join("crates/worth-ui-runtime/src/evidence/dummy_future_family"),
     ];
 

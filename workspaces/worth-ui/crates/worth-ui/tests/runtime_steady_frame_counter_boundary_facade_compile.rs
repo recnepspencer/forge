@@ -28,4 +28,3 @@ fn raw_steady_frame_receipt_cannot_lower_to_foundational() {
         "tests/ui/runtime_steady_frame_counter_boundary/fail/raw_steady_frame_receipt_cannot_lower_to_foundational.rs",
     );
 }
-

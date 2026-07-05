@@ -4,7 +4,7 @@ use worth_ui_host_contract::WorthUiHostCapability;
 use crate::declaration::{UiDeclarationFamilyAdmission, UiDeclarationFamilyKind};
 
 use super::{
-    UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture,
+    measurement_policy::admit_measurement_policy_lane, UiDeclaredHostCapabilityPosture,
     UiDeclaredPostureAdmission, UiDeclaredPostureAdmissionDenial, UiDeclaredPostureApplicability,
     UiDeclaredPostureContract, UiDeclaredPostureLane, UiDeclaredPostureLaneKind,
     UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
@@ -177,46 +177,6 @@ fn admit_touch_meaning_lane(
         |claim| match claim {
             "touch:press" => Some(UiDeclaredTouchMeaningPosture::Press),
             "touch:text-entry" => Some(UiDeclaredTouchMeaningPosture::TextEntry),
-            _ => None,
-        },
-    )
-}
-
-fn admit_measurement_policy_lane(
-    family: UiDeclarationFamilyKind,
-    posture_tokens: &[&str],
-) -> Result<
-    UiDeclaredPostureLane<UiDeclaredMeasurementPolicyPosture>,
-    UiDeclaredPostureAdmissionDenial,
-> {
-    let claims = posture_tokens
-        .iter()
-        .copied()
-        .filter(|token| token.starts_with("measurement:"))
-        .collect::<Vec<_>>();
-    let applicability = match family {
-        UiDeclarationFamilyKind::Control
-        | UiDeclarationFamilyKind::Page
-        | UiDeclarationFamilyKind::PageSet
-        | UiDeclarationFamilyKind::Region
-        | UiDeclarationFamilyKind::Mosaic
-        | UiDeclarationFamilyKind::LocalComposition
-        | UiDeclarationFamilyKind::DiagnosticSurface => UiDeclaredPostureApplicability::Optional,
-        UiDeclarationFamilyKind::QueryBinding | UiDeclarationFamilyKind::Intent => {
-            UiDeclaredPostureApplicability::NotApplicable
-        }
-    };
-
-    admit_lane(
-        family,
-        UiDeclaredPostureLaneKind::MeasurementPolicy,
-        applicability,
-        claims,
-        |claim| match claim {
-            "measurement:hug-height" => Some(UiDeclaredMeasurementPolicyPosture::HugHeight),
-            "measurement:font-metrics-required" => {
-                Some(UiDeclaredMeasurementPolicyPosture::FontMetricsRequired)
-            }
             _ => None,
         },
     )

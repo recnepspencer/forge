@@ -10,4 +10,3 @@ fn lane_frame_cost_certification_facade_types_compile() {
         "tests/ui/runtime_lane_frame_cost_certification/pass/lane_frame_cost_certification_facade_types.rs",
     );
 }
-

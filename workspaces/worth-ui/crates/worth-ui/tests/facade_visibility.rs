@@ -96,4 +96,3 @@ fn crate_root_does_not_export_snapshot_authority() {
         "tests/ui/facade_visibility/topology/crate_root_does_not_export_snapshot_authority.rs",
     );
 }
-

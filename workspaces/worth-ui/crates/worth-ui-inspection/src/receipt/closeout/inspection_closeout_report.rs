@@ -7,7 +7,7 @@ use super::{
 use crate::{
     UiEvidenceFamily, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
     UiInspectionQueryForeignEvidenceKind, UiInspectionRelevanceOutcome,
- };
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiInspectionCloseoutReport {

@@ -40,4 +40,3 @@ fn facade_compile_fail(fixture_path: &str) {
     let tests = trybuild_support::new_test_cases();
     tests.compile_fail(fixture_path);
 }
-

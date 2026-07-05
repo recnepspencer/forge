@@ -1,9 +1,8 @@
 use worth_ui::facade::inspection::{
-    UiEvidenceAuthorityKind, UiEvidenceFamily, UiEvidenceMaterializedDetail,
-    UiEvidenceRichness,
-    UiInspectionObligationDenialPosture, UiInspectionObligationRelevanceDetail,
-    UiInspectionQuery, UiInspectionRelevance,
-    UiInspectionScope, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceAuthorityKind, UiEvidenceFamily, UiEvidenceMaterializedDetail, UiEvidenceRichness,
+    UiInspectionObligationDenialPosture, UiInspectionObligationRelevanceDetail, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
+    UiRelevanceFilter,
 };
 use worth_ui::facade::obligations::UiObligationEvidenceDecision;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationEvidenceProjection;
@@ -21,20 +20,23 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
         .select_obligations_for_target(&touch, target.clone());
 
     let selected_from_set = selected_projection_set_from_selected_set(&selected);
-    let selected_from_index = selected_projection_set_from_records(selected.evidence_index().records());
-    let selected_from_selected_inspect = selected_projection_set_from_receipt(&selected.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                touch.target().graph_node_identity().digest(),
-                touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance(
-            UiInspectionObligationRelevanceDetail::new(),
-        ))
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
+    let selected_from_index =
+        selected_projection_set_from_records(selected.evidence_index().records());
+    let selected_from_selected_inspect = selected_projection_set_from_receipt(
+        &selected.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    touch.target().graph_node_identity().digest(),
+                    touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance(
+                UiInspectionObligationRelevanceDetail::new(),
+            ))
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
 
     assert_eq!(
         selected.selected_obligation_handles().len(),
@@ -52,19 +54,21 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
     assert_eq!(selected_from_set, selected_from_selected_inspect);
 
     let report = app.admission().admit_selected_obligations(&selected);
-    let selected_from_report_inspect = selected_projection_set_from_receipt(&report.inspect(
-        UiInspectionQuery::new(
-            UiInspectionTarget::obligation_touch(
-                touch.target().graph_node_identity().digest(),
-                touch.identity_digest(),
-            ),
-            UiInspectionScope::graph(),
-        )
-        .with_relevance(obligation_relevance(
-            UiInspectionObligationRelevanceDetail::new(),
-        ))
-        .with_richness(UiEvidenceRichness::materialized_detail()),
-    ));
+    let selected_from_report_inspect = selected_projection_set_from_receipt(
+        &report.inspect(
+            UiInspectionQuery::new(
+                UiInspectionTarget::obligation_touch(
+                    touch.target().graph_node_identity().digest(),
+                    touch.identity_digest(),
+                ),
+                UiInspectionScope::graph(),
+            )
+            .with_relevance(obligation_relevance(
+                UiInspectionObligationRelevanceDetail::new(),
+            ))
+            .with_richness(UiEvidenceRichness::materialized_detail()),
+        ),
+    );
     assert_eq!(selected_from_set, selected_from_report_inspect);
 
     let dispatch_records = report
@@ -80,7 +84,10 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
             && record.denial_posture().is_none()
     }));
 
-    assert_eq!(report.verdict_evidence_handles().len(), report.verdicts().len());
+    assert_eq!(
+        report.verdict_evidence_handles().len(),
+        report.verdicts().len()
+    );
     for verdict in report.verdicts() {
         let evidence = report
             .evidence_index()
@@ -100,7 +107,10 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
                 .map(|posture| posture.stop_posture()),
             Some(verdict.stop_posture())
         );
-        assert_eq!(evidence.touch_identity_digest(), Some(touch.identity_digest()));
+        assert_eq!(
+            evidence.touch_identity_digest(),
+            Some(touch.identity_digest())
+        );
         assert_eq!(evidence.selection_reasons(), verdict.selection_reasons());
         let selected_evidence = selected
             .obligations()
@@ -198,7 +208,10 @@ fn selected_verdict_and_admission_paths_retain_typed_evidence_handles() {
         UiEvidenceAuthorityKind::AdmissionReport
     );
     assert_ne!(
-        evidence_ref.authority_binding().artifact_identity().digest(),
+        evidence_ref
+            .authority_binding()
+            .artifact_identity()
+            .digest(),
         touch.target().graph_node_identity().digest(),
         "admission evidence provenance must bind to the owning report artifact, not the graph node"
     );
@@ -244,14 +257,16 @@ fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_
     );
 
     let report = app.admission().admit_selected_obligations(&selected);
-    let report_receipt = report.inspect(UiInspectionQuery::new(
-        UiInspectionTarget::obligation_touch(
-            touch.target().graph_node_identity().digest(),
-            touch.identity_digest(),
-        ),
-        UiInspectionScope::graph(),
-    )
-    .with_richness(UiEvidenceRichness::materialized_detail()));
+    let report_receipt = report.inspect(
+        UiInspectionQuery::new(
+            UiInspectionTarget::obligation_touch(
+                touch.target().graph_node_identity().digest(),
+                touch.identity_digest(),
+            ),
+            UiInspectionScope::graph(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail()),
+    );
     let report_slice = report_receipt
         .evidence_slice()
         .expect("admission report inspection should expose an evidence slice");
@@ -295,11 +310,20 @@ fn evidence_provenance_uses_owner_artifact_identity_instead_of_surrogate_target_
         UiEvidenceAuthorityKind::ObligationAuthority
     );
     assert_ne!(
-        dispatch_ref.authority_binding().artifact_identity().digest(),
-        selected_ref.authority_binding().artifact_identity().digest()
+        dispatch_ref
+            .authority_binding()
+            .artifact_identity()
+            .digest(),
+        selected_ref
+            .authority_binding()
+            .artifact_identity()
+            .digest()
     );
     assert_ne!(
-        dispatch_ref.authority_binding().artifact_identity().digest(),
+        dispatch_ref
+            .authority_binding()
+            .artifact_identity()
+            .digest(),
         verdict_ref.authority_binding().artifact_identity().digest()
     );
 }

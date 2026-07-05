@@ -44,10 +44,13 @@ fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_trut
         .refs()[0];
     let expansion = ai.expand_evidence_ref(evidence_ref, UiEvidenceRichness::materialized_detail());
     let foreign_refs = expansion.foreign_evidence_refs();
-    let expected_prerequisite = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch)
-        .query_prerequisites()
-        .expect("graph-aligned query target should retain one Query-owned prerequisite artifact")
-        .clone();
+    let expected_prerequisite =
+        obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch)
+            .query_prerequisites()
+            .expect(
+                "graph-aligned query target should retain one Query-owned prerequisite artifact",
+            )
+            .clone();
     let routes = foreign_refs
         .iter()
         .map(|foreign_ref| match foreign_ref {
@@ -119,9 +122,18 @@ fn ai_harness_cites_query_owned_foreign_evidence_without_copying_it_into_ui_trut
                     query_citation.artifact_identity_digest(),
                     query_ref.artifact_identity_digest()
                 );
-                assert_eq!(query_citation.obligation_handle_digest(), query_ref.obligation_handle_digest());
-                assert_eq!(query_citation.graph_node_digest(), touch.target().graph_node_identity().digest());
-                assert_eq!(query_citation.touch_identity_digest(), Some(touch.identity_digest()));
+                assert_eq!(
+                    query_citation.obligation_handle_digest(),
+                    query_ref.obligation_handle_digest()
+                );
+                assert_eq!(
+                    query_citation.graph_node_digest(),
+                    touch.target().graph_node_identity().digest()
+                );
+                assert_eq!(
+                    query_citation.touch_identity_digest(),
+                    Some(touch.identity_digest())
+                );
                 assert!(query_citation.is_available());
                 assert_eq!(
                     query_citation.prerequisite_evidence(),

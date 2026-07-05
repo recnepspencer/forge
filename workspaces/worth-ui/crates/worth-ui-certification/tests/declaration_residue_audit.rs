@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
 use worth_ui_certification::topology::{
-    audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
-    audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source,
     audit_host_and_inspection_layers_do_not_import_declaration_authority,
     audit_non_owner_code_does_not_reopen_declaration_source,
+    audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source,
+    audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
 };
 
 fn workspace_root() -> &'static Path {

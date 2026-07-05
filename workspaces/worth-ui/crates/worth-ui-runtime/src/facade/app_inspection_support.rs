@@ -64,6 +64,18 @@ impl WorthUiApp {
         )
     }
 
+    pub(crate) fn measurement_inspection_boundary(
+        &self,
+    ) -> crate::facade::inspection::WorthUiMeasurementInspectionBoundary<'_> {
+        crate::facade::inspection::WorthUiMeasurementInspectionBoundary::new(
+            self.declaration_artifacts(),
+            self.graph_snapshot(),
+            self.authored_evidence_index(),
+            self.graph_node_evidence_index(),
+            self.measurement_inspection_evidence(),
+        )
+    }
+
     pub(crate) fn declaration_artifact_for_graph_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,

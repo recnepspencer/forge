@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::admission::{UiAdmissionBoundary, UiAdmissionTarget, UiAdmissionWorld};
-use crate::declaration::UiDeclarationEvidenceRecord;
 use crate::declaration::UiDeclarationArtifact;
+use crate::declaration::UiDeclarationEvidenceRecord;
 use crate::evidence::{order_refs, UiEvidenceAuthorityGeneration, UiEvidenceRef};
 use crate::graph::{UiGraphEvidenceRecord, UiGraphNodeIdentity, UiGraphSnapshot};
 
@@ -34,7 +34,8 @@ impl UiGraphNodeEvidenceIndex {
         declaration_artifacts: &[UiDeclarationArtifact],
         graph_snapshot: &UiGraphSnapshot,
     ) -> Self {
-        let authority_generation = UiEvidenceAuthorityGeneration::new(graph_snapshot.generation().as_u64());
+        let authority_generation =
+            UiEvidenceAuthorityGeneration::new(graph_snapshot.generation().as_u64());
         let admission_boundary = UiAdmissionBoundary::new(declaration_artifacts, graph_snapshot);
         let artifact_indexes_by_declaration = declaration_artifacts
             .iter()
@@ -134,7 +135,9 @@ fn graph_node_neighborhood(
     graph_snapshot: &UiGraphSnapshot,
     admission_boundary: &UiAdmissionBoundary<'_>,
 ) -> UiGraphNodeEvidenceNeighborhood {
-    let graph_ref = UiGraphEvidenceRecord::for_snapshot(graph_snapshot, graph_node_identity.digest()).reference();
+    let graph_ref =
+        UiGraphEvidenceRecord::for_snapshot(graph_snapshot, graph_node_identity.digest())
+            .reference();
     let declaration_ref =
         UiDeclarationEvidenceRecord::for_artifact(artifact).bind_ref(authority_generation);
     let admission_report = admission_boundary.report(UiAdmissionTarget::graph_node(

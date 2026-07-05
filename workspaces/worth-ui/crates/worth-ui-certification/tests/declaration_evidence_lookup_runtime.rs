@@ -1,8 +1,8 @@
+use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::inspection::{
     UiEvidenceFamily, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
     UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFilter,
 };
-use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::{
     app::WorthUi, UiAuthoredSourceProvenanceRef, UiInspectionDeclarationIdentity,
 };
@@ -26,18 +26,21 @@ fn declaration_identity_lookup_returns_authored_evidence_refs_on_public_lookup_l
 
     assert_eq!(
         receipt.authority_generation(),
-        Some(worth_ui::facade::inspection::UiEvidenceAuthorityGeneration::new(
-            app.graph().generation().as_u64(),
-        ))
+        Some(
+            worth_ui::facade::inspection::UiEvidenceAuthorityGeneration::new(
+                app.graph().generation().as_u64(),
+            )
+        )
     );
     assert_eq!(
         observation_after.authored_lookup_count() - observation_before.authored_lookup_count(),
         1
     );
     assert_eq!(slice.refs().len(), 2);
-    assert!(slice.refs().iter().any(|evidence_ref| {
-        evidence_ref.family() == UiEvidenceFamily::Declaration
-    }));
+    assert!(slice
+        .refs()
+        .iter()
+        .any(|evidence_ref| { evidence_ref.family() == UiEvidenceFamily::Declaration }));
     assert!(slice.refs().contains(&real_admission_ref(&app, artifact)));
 }
 
@@ -61,8 +64,12 @@ fn authored_source_provenance_lookup_converges_with_declaration_identity() {
     );
 
     assert_eq!(
-        identity_receipt.evidence_slice().map(|slice| slice.refs().to_vec()),
-        provenance_receipt.evidence_slice().map(|slice| slice.refs().to_vec())
+        identity_receipt
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec()),
+        provenance_receipt
+            .evidence_slice()
+            .map(|slice| slice.refs().to_vec())
     );
     assert_eq!(
         identity_receipt.evidence_slice_ref(),
@@ -80,7 +87,10 @@ fn authored_provenance_lookup_rejects_stale_source_generation_without_fuzzy_matc
 
     let receipt = changed.inspect(authored_provenance_query(stale_provenance));
 
-    assert_eq!(receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert!(receipt.evidence_slice().is_none());
     assert!(receipt.evidence_slice_ref().is_none());
 }
@@ -90,7 +100,9 @@ fn declaration_identity_query(identity: UiInspectionDeclarationIdentity) -> UiIn
         UiInspectionTarget::declaration_identity(identity),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -99,7 +111,9 @@ fn authored_provenance_query(provenance: UiAuthoredSourceProvenanceRef) -> UiIns
         UiInspectionTarget::authored_source_provenance(provenance),
         UiInspectionScope::graph(),
     )
-    .with_relevance(UiInspectionRelevance::local(UiRelevanceFilter::target_local()))
+    .with_relevance(UiInspectionRelevance::local(
+        UiRelevanceFilter::target_local(),
+    ))
     .with_richness(UiEvidenceRichness::refs_only())
 }
 
@@ -144,13 +158,18 @@ fn authored_source_generation_tracks_source_artifact_generation_not_declaration_
         changed_artifact.provenance().semantic_input_digest()
     );
     assert_ne!(
-        baseline_artifact.provenance().inspection_source_generation(),
+        baseline_artifact
+            .provenance()
+            .inspection_source_generation(),
         changed_artifact.provenance().inspection_source_generation()
     );
 
     let receipt = changed.inspect(authored_provenance_query(stale_provenance));
 
-    assert_eq!(receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert!(receipt.evidence_slice().is_none());
     assert!(receipt.evidence_slice_ref().is_none());
 }

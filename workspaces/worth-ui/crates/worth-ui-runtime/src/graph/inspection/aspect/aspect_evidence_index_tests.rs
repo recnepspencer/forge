@@ -12,9 +12,9 @@ use super::UiGraphAspectEvidenceIndexes;
 use crate::facade::UiInspectionReceipt;
 use crate::graph::{UiAspectEvidenceLane, UiGraphNodeEvidenceIndex};
 use worth_ui_inspection::{
-    UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionAspectRelevanceDetail,
-    UiInspectionQuery, UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope,
-    UiInspectionTarget, UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionAspectRelevanceDetail, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget,
+    UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
 };
 
 #[test]
@@ -26,13 +26,22 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
         UiGraphAspectEvidenceIndexes::rebuild(app.graph().snapshot(), &graph_node_index);
     let all_graph_node_digests = all_graph_node_digests(&app);
     let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
-    let shared_published = aspect_indexes.lookup_published_aspect(SHARED_ASPECT).unwrap();
-    let shared_consumed = aspect_indexes.lookup_consumed_aspect(SHARED_ASPECT).unwrap();
-    let competing_published = aspect_indexes.lookup_published_aspect(COMPETING_PUBLISHED_ASPECT).unwrap();
-    let competing_consumed = aspect_indexes.lookup_consumed_aspect(COMPETING_CONSUMED_ASPECT).unwrap();
+    let shared_published = aspect_indexes
+        .lookup_published_aspect(SHARED_ASPECT)
+        .unwrap();
+    let shared_consumed = aspect_indexes
+        .lookup_consumed_aspect(SHARED_ASPECT)
+        .unwrap();
+    let competing_published = aspect_indexes
+        .lookup_published_aspect(COMPETING_PUBLISHED_ASPECT)
+        .unwrap();
+    let competing_consumed = aspect_indexes
+        .lookup_consumed_aspect(COMPETING_CONSUMED_ASPECT)
+        .unwrap();
     let public_shared_published = app.inspect(published_aspect_query(SHARED_ASPECT));
     let public_shared_consumed = app.inspect(consumed_aspect_query(SHARED_ASPECT));
-    let public_competing_published = app.inspect(published_aspect_query(COMPETING_PUBLISHED_ASPECT));
+    let public_competing_published =
+        app.inspect(published_aspect_query(COMPETING_PUBLISHED_ASPECT));
     let public_competing_consumed = app.inspect(consumed_aspect_query(COMPETING_CONSUMED_ASPECT));
     let shared_published_facts = aspect_neighborhood_facts(
         SHARED_ASPECT,
@@ -64,11 +73,17 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
     assert_indexed_lookup(competing_published.cost());
     assert_indexed_lookup(competing_consumed.cost());
     assert_eq!(
-        shared_published.neighborhood().declaration_artifact_indexes(),
-        shared_consumed.neighborhood().declaration_artifact_indexes(),
+        shared_published
+            .neighborhood()
+            .declaration_artifact_indexes(),
+        shared_consumed
+            .neighborhood()
+            .declaration_artifact_indexes(),
     );
     assert_eq!(
-        shared_published.neighborhood().declaration_artifact_indexes(),
+        shared_published
+            .neighborhood()
+            .declaration_artifact_indexes(),
         expected_declaration_indexes(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_eq!(
@@ -179,8 +194,14 @@ fn ordinary_aspect_queries_stay_local_and_do_not_rebuild_aspect_indexes() {
         observation_after.graph_node_evidence_index_rebuild_count(),
         observation_before.graph_node_evidence_index_rebuild_count(),
     );
-    assert_eq!(first_published.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
-    assert_eq!(first_consumed.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        first_published.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
+    assert_eq!(
+        first_consumed.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert_same_slice(&first_published, &second_published);
     assert_same_slice(&first_consumed, &second_consumed);
     assert_eq!(first_published_facts, second_published_facts);
@@ -217,8 +238,14 @@ fn consumed_aspect_query_can_include_direct_provenance_refs() {
         .with_richness(UiEvidenceRichness::refs_only()),
     );
 
-    assert_eq!(local_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
-    assert_eq!(provenance_receipt.relevance_outcome(), UiInspectionRelevanceOutcome::Matched);
+    assert_eq!(
+        local_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
+    assert_eq!(
+        provenance_receipt.relevance_outcome(),
+        UiInspectionRelevanceOutcome::Matched
+    );
     assert_eq!(aspect_ref_count(&local_receipt), 4);
     assert_eq!(
         declaration_ref_digests(&app, &provenance_receipt),
@@ -261,7 +288,9 @@ fn aspect_targets_reject_unindexed_widening_and_missing_targets() {
     assert!(widened_receipt.evidence_slice().is_none());
     assert_eq!(
         missing_receipt.relevance_outcome(),
-        UiInspectionRelevanceOutcome::UnsupportedScope { scope: UiInspectionScope::Graph }
+        UiInspectionRelevanceOutcome::UnsupportedScope {
+            scope: UiInspectionScope::Graph
+        }
     );
     assert!(missing_receipt.evidence_slice().is_none());
     assert!(missing_receipt.support_report().is_some());

@@ -42,4 +42,3 @@ fn fallback_runtime_failure_constructor_is_not_public_api() {
         "tests/ui/runtime_reload_failure/fail/fallback_runtime_constructor_not_public.rs",
     );
 }
-

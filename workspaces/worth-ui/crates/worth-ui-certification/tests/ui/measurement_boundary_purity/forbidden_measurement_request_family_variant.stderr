@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `FinalLayoutSize` found for enum `UiMeasurementRequestFamily` in the current scope
+ --> tests/ui/measurement_boundary_purity/forbidden_measurement_request_family_variant.rs:2:65
+  |
+2 |     let _ = worth_ui_host_contract::UiMeasurementRequestFamily::FinalLayoutSize;
+  |                                                                 ^^^^^^^^^^^^^^^ variant or associated item not found in `UiMeasurementRequestFamily`

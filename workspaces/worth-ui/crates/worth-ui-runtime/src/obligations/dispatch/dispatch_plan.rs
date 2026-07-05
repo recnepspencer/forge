@@ -1,4 +1,4 @@
-use crate::admission::UiSupportSnapshot;
+use crate::admission::{UiMeasurementAdmission, UiSupportSnapshot};
 use crate::declaration::stable_text_digest;
 use crate::obligations::selection::UiSelectedObligationSet;
 use crate::obligations::verdict::{
@@ -10,6 +10,8 @@ use super::{dispatch_execution::UiObligationDispatchExecution, UiObligationDispa
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiObligationDispatchPlan {
     selected: UiSelectedObligationSet,
+    support_snapshot: UiSupportSnapshot,
+    measurement_admission: Option<UiMeasurementAdmission>,
     entries: Box<[UiObligationDispatchEntry]>,
     plan_stop_posture: UiObligationDispatchStopPosture,
     shape_digest: u64,
@@ -18,12 +20,16 @@ pub struct UiObligationDispatchPlan {
 impl UiObligationDispatchPlan {
     pub(crate) fn new(
         selected: UiSelectedObligationSet,
+        support_snapshot: UiSupportSnapshot,
+        measurement_admission: Option<UiMeasurementAdmission>,
         entries: Box<[UiObligationDispatchEntry]>,
         plan_stop_posture: UiObligationDispatchStopPosture,
     ) -> Self {
         let shape_digest = entries.iter().fold(
             stable_text_digest("obligation-dispatch-plan")
                 ^ selected.touch().identity_digest().rotate_left(7)
+                ^ stable_text_digest(&format!("{:?}", support_snapshot.posture())).rotate_left(11)
+                ^ stable_text_digest(&format!("{measurement_admission:?}")).rotate_left(19)
                 ^ digest_stop_posture(plan_stop_posture).rotate_left(13),
             |digest, entry| {
                 digest
@@ -38,6 +44,8 @@ impl UiObligationDispatchPlan {
 
         Self {
             selected,
+            support_snapshot,
+            measurement_admission,
             entries,
             plan_stop_posture,
             shape_digest,
@@ -49,7 +57,11 @@ impl UiObligationDispatchPlan {
     }
 
     pub fn support_snapshot(&self) -> &UiSupportSnapshot {
-        self.selected.support_snapshot()
+        &self.support_snapshot
+    }
+
+    pub fn measurement_admission(&self) -> Option<&UiMeasurementAdmission> {
+        self.measurement_admission.as_ref()
     }
 
     pub fn entries(&self) -> &[UiObligationDispatchEntry] {

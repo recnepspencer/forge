@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::aspect_evidence_neighborhood::{UiAspectEvidenceLookup, UiAspectEvidenceNeighborhood};
 use super::super::aspect_evidence_record::{UiAspectEvidenceRecord, UiAspectEvidenceRecordKind};
+use super::aspect_evidence_neighborhood::{UiAspectEvidenceLookup, UiAspectEvidenceNeighborhood};
 use crate::evidence::{order_refs, UiEvidenceAuthorityGeneration, UiEvidenceRef};
 use crate::graph::{
     UiGraphAspectConsumerKind, UiGraphNodeEvidenceIndex, UiGraphSnapshot, UiMountedReceiptIdentity,
@@ -40,10 +40,9 @@ impl UiConsumedAspectEvidenceIndex {
         let canonical_label_by_ref_identity_digest: BTreeMap<u64, Box<str>> = by_canonical_label
             .iter()
             .flat_map(|(canonical_label, neighborhood)| {
-                neighborhood
-                    .refs()
-                    .iter()
-                    .map(move |evidence_ref| (evidence_ref.identity().digest(), canonical_label.clone()))
+                neighborhood.refs().iter().map(move |evidence_ref| {
+                    (evidence_ref.identity().digest(), canonical_label.clone())
+                })
             })
             .collect();
 
@@ -82,16 +81,16 @@ fn neighborhood_for_consumers(
                 declaration_artifact_indexes.insert(
                     graph_node_evidence_index
                         .lookup_graph_node_identity(graph_node_identity)
-                        .expect("consumed aspect node should resolve through graph-node evidence index")
+                        .expect(
+                            "consumed aspect node should resolve through graph-node evidence index",
+                        )
                         .neighborhood()
                         .declaration_artifact_index(),
                 );
                 refs.push(
                     UiAspectEvidenceRecord::new(
                         canonical_label,
-                        UiAspectEvidenceRecordKind::ConsumedGraphNode(
-                            graph_node_identity.digest(),
-                        ),
+                        UiAspectEvidenceRecordKind::ConsumedGraphNode(graph_node_identity.digest()),
                         authority_generation,
                     )
                     .reference(),
@@ -118,7 +117,10 @@ fn neighborhood_for_consumers(
     }
 
     UiAspectEvidenceNeighborhood::new(
-        declaration_artifact_indexes.into_iter().collect::<Vec<_>>().into_boxed_slice(),
+        declaration_artifact_indexes
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into_boxed_slice(),
         order_refs(refs),
     )
 }
