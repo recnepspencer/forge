@@ -18,6 +18,7 @@ pub(crate) fn family_token(family: PhysicalSimulationScenarioFamily) -> &'static
         PhysicalSimulationScenarioFamily::S5TierMovementStability => "s5-tier-movement-stability",
         PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
         PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
+        PhysicalSimulationScenarioFamily::S6IoPressureHarness => "s6-io-pressure-harness",
         PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
     }
@@ -62,6 +63,7 @@ pub(crate) fn intent_token(intent: PhysicalScenarioIntent) -> &'static str {
         PhysicalScenarioIntent::S5TierMovementStabilityOnly => "s5-tier-movement-stability-only",
         PhysicalScenarioIntent::S5FutureChunkStabilityOnly => "s5-future-chunk-stability-only",
         PhysicalScenarioIntent::S5RestartDuringCutover => "s5-restart-during-cutover",
+        PhysicalScenarioIntent::S6IoPressureSimulation => "s6-io-pressure-simulation",
         PhysicalScenarioIntent::ForbiddenShortcutRejectionShape => {
             "forbidden-shortcut-rejection-shape"
         }
@@ -97,6 +99,12 @@ pub(crate) fn fault_token(fault: PhysicalScenarioFaultKind) -> &'static str {
         PhysicalScenarioFaultKind::StaleEpochReuse => "stale-epoch-reuse",
         PhysicalScenarioFaultKind::InPlaceCompactionOverwrite => "in-place-compaction-overwrite",
         PhysicalScenarioFaultKind::MixedRootRead => "mixed-root-read",
+        PhysicalScenarioFaultKind::S6BackendLatencyInjection => "s6-backend-latency-injection",
+        PhysicalScenarioFaultKind::S6QueueDepthSaturation => "s6-queue-depth-saturation",
+        PhysicalScenarioFaultKind::S6BandwidthThrottle => "s6-bandwidth-throttle",
+        PhysicalScenarioFaultKind::S6DelayedSync => "s6-delayed-sync",
+        PhysicalScenarioFaultKind::S6PageCachePressure => "s6-page-cache-pressure",
+        PhysicalScenarioFaultKind::S6BackgroundPacingLateYield => "s6-background-pacing-late-yield",
         PhysicalScenarioFaultKind::FutureExtensionSlot => "future-extension-slot",
     }
 }
@@ -124,6 +132,7 @@ pub(crate) fn expectation_token(expectation: PhysicalScenarioExpectationKind) ->
         PhysicalScenarioExpectationKind::S5PhysicalIsolationDenial => {
             "s5-physical-isolation-denial"
         }
+        PhysicalScenarioExpectationKind::S6IoPressureSimulation => "s6-io-pressure-simulation",
         PhysicalScenarioExpectationKind::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalScenarioExpectationKind::FutureExtensionSlot => "future-extension-slot",
     }
@@ -133,6 +142,9 @@ pub(crate) fn non_claim_token(non_claim: PhysicalScenarioNonClaim) -> &'static s
     match non_claim {
         PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim => {
             "no-s5-physical-isolation-correctness-claim"
+        }
+        PhysicalScenarioNonClaim::NoRealBackendSafetyQualification => {
+            "no-real-backend-safety-qualification"
         }
         PhysicalScenarioNonClaim::FutureExtensionSlotDoesNotImplementFutureBehavior => {
             "future-extension-slot-does-not-implement-future-behavior"

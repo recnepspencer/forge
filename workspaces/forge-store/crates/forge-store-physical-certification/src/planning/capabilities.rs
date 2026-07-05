@@ -67,7 +67,7 @@ impl PhysicalSimulationCapabilitySet {
     }
 }
 
-const BASELINE_CAPABILITIES: [PhysicalSimulationCapability; 7] = [
+const BASELINE_CAPABILITIES: [PhysicalSimulationCapability; 8] = [
     PhysicalSimulationCapability::ProductionBoundaryDriver,
     PhysicalSimulationCapability::IndependentObserver,
     PhysicalSimulationCapability::CertificationOracleFamily,
@@ -75,6 +75,7 @@ const BASELINE_CAPABILITIES: [PhysicalSimulationCapability; 7] = [
     PhysicalSimulationCapability::FixtureClassAdmission,
     PhysicalSimulationCapability::EvidencePolicy,
     PhysicalSimulationCapability::ForbiddenShortcutDenial,
+    PhysicalSimulationCapability::ProfileSupport,
 ];
 
 pub(crate) fn capability_token(capability: PhysicalSimulationCapability) -> &'static str {

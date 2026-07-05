@@ -18,6 +18,38 @@ impl ResidentFrameTable {
         &mut self,
         token: ResidentFrameToken,
     ) -> Result<DirtyPageState, ResidentFrameDenial> {
+        self.mark_dirty_from_store_buffer(token)
+    }
+
+    pub fn mark_mmap_dirty(
+        &mut self,
+        token: ResidentFrameToken,
+    ) -> Result<DirtyPageState, ResidentFrameDenial> {
+        self.mark_dirty_from_resident_mmap(token)
+    }
+
+    fn mark_dirty_from_store_buffer(
+        &mut self,
+        token: ResidentFrameToken,
+    ) -> Result<DirtyPageState, ResidentFrameDenial> {
+        self.mark_dirty_with_record_transition(token, ResidentFrameTable::mark_record_dirty)
+    }
+
+    fn mark_dirty_from_resident_mmap(
+        &mut self,
+        token: ResidentFrameToken,
+    ) -> Result<DirtyPageState, ResidentFrameDenial> {
+        self.mark_dirty_with_record_transition(token, ResidentFrameTable::mark_record_mmap_dirty)
+    }
+
+    fn mark_dirty_with_record_transition(
+        &mut self,
+        token: ResidentFrameToken,
+        mark_record_dirty: fn(
+            &mut ResidentFrameTable,
+            ResidentFrameIdentity,
+        ) -> ResidentFrameDirtyMarkTransition,
+    ) -> Result<DirtyPageState, ResidentFrameDenial> {
         self.dirty_counters = self.dirty_counters.with_dirty_mark_attempt();
         let identity = self.validate_resident_token_for_dirty(token)?;
         self.reject_dirty_mutation_behind_record_view(identity)?;
@@ -27,6 +59,8 @@ impl ResidentFrameTable {
             .dirty_mark_transition();
         match transition {
             ResidentFrameDirtyMarkTransition::AlreadyResidentDirty => {
+                let actual_transition = mark_record_dirty(self, identity);
+                debug_assert_eq!(actual_transition, transition);
                 self.dirty_counters = self.dirty_counters.with_already_dirty();
                 self.publish_dirty_counters();
                 return Ok(self.dirty_state_report(identity, request));
@@ -36,7 +70,7 @@ impl ResidentFrameTable {
                 self.reject_dirty_budget_overflow()?;
             }
         }
-        let actual_transition = self.record_at_slot_mut(identity.slot())?.mark_dirty();
+        let actual_transition = mark_record_dirty(self, identity);
         debug_assert_eq!(actual_transition, transition);
         self.dirty_counters = match transition {
             ResidentFrameDirtyMarkTransition::NewlyDirty => self
@@ -185,11 +219,34 @@ impl ResidentFrameTable {
         identity: ResidentFrameIdentity,
         request: ResidentFrameLoadRequest,
     ) -> DirtyPageState {
+        let origin = self
+            .record_at_slot(identity.slot())
+            .expect("validated resident slot remains in range")
+            .dirty_access_origin();
         DirtyPageState::new(
             DirtyPageIdentity::new(identity),
             request,
+            origin,
             self.dirty_counters,
         )
+    }
+
+    fn mark_record_dirty(
+        &mut self,
+        identity: ResidentFrameIdentity,
+    ) -> ResidentFrameDirtyMarkTransition {
+        self.record_at_slot_mut(identity.slot())
+            .expect("validated resident slot remains in range")
+            .mark_dirty()
+    }
+
+    fn mark_record_mmap_dirty(
+        &mut self,
+        identity: ResidentFrameIdentity,
+    ) -> ResidentFrameDirtyMarkTransition {
+        self.record_at_slot_mut(identity.slot())
+            .expect("validated resident slot remains in range")
+            .mark_mmap_dirty()
     }
 
     fn deny_dirty_publication_plan<T>(

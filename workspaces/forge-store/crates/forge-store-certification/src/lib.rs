@@ -1,7 +1,6 @@
 #![doc = include_str!("certification_compile_fail_proofs.md")]
 #![doc = include_str!("receipt_authority_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
-
 mod allocation_envelope_evidence;
 #[cfg(test)]
 mod allocation_envelope_evidence_tests;
@@ -222,7 +221,7 @@ mod s5_1_recovery_scope_propagation_tests;
 mod s5_evidence_materialization;
 mod s5_physical_isolation_closeout;
 mod s5_physical_isolation_harness;
-mod s6_io_qos_readiness_handoff;
+mod s6_facade;
 mod scale_fixture;
 mod scale_property;
 mod scenario_definition;
@@ -252,7 +251,6 @@ mod synthetic_closeout_rejection;
 mod terminal_projection_json_fixture_boundary_tests;
 #[cfg(test)]
 mod wal_frame_integrity_tests;
-
 pub use allocation_envelope_evidence::{
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
     AllocationEnvelopeEvidenceRow,
@@ -261,9 +259,7 @@ pub use background_envelope_evidence::{
     BackgroundClassEnvelopeEvidence, BackgroundEnvelopeEvidenceBundle,
     BackgroundEnvelopeEvidenceDenial, RequiredInterferenceKind,
 };
-pub use binary_format_evidence::{
-    BinaryPhysicalFormatEvidence, BinaryPhysicalFormatEvidenceDenial,
-};
+pub use binary_format_evidence::*;
 pub use bounded_memory_closeout::{BoundedMemoryCloseoutDenial, BoundedMemoryCloseoutReport};
 pub use bounded_memory_harness_closeout::{
     HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
@@ -388,6 +384,8 @@ pub use s2_entry_boundary_evidence::{
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
     S2ForbiddenEntryAttempt,
 };
+#[allow(unused_imports)]
+pub use s6_facade::*;
 pub use scale_fixture::*;
 pub use scale_property::PhysicalScalePropertyEvidence;
 pub use scenario_definition::*;

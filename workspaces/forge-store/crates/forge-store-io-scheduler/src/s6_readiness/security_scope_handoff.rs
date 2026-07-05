@@ -134,10 +134,12 @@ fn reject_wrong_authenticity(
     if identity.authenticity_requirement() == StoreAuthenticityRequirement::not_required() {
         Ok(())
     } else {
-        Err(S51LaterMilestoneHandoffDenial::WrongAuthenticityRequirement {
-            actual: identity.authenticity_requirement(),
-            counters: counters.unsupported().denied(),
-        })
+        Err(
+            S51LaterMilestoneHandoffDenial::WrongAuthenticityRequirement {
+                actual: identity.authenticity_requirement(),
+                counters: counters.unsupported().denied(),
+            },
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 use crate::{
     CurrentGenerationPhysicalReference, HazardLeaseEpochIndexSnapshot, HazardLeaseOverlap,
 };
+use forge_store_physical_format::{PhysicalGenerationOwner, PhysicalReclaimRegion};
 
 use super::{ExecutedReachabilityEvidence, ReclaimCounterSnapshot, ReclaimDenial};
 
@@ -15,6 +16,19 @@ pub struct ReclaimEligibilityProof {
 pub struct ReclaimReachabilityRemovalReceipt {
     evidence: ExecutedReachabilityEvidence,
     counters: ReclaimCounterSnapshot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S6ReclaimReachabilityRemovalEvidence {
+    region: PhysicalReclaimRegion,
+    root_epoch: u64,
+    protected_ranges: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S6ReclaimReachabilityRemovalEvidenceDenial {
+    EmptyProtectedReachability,
+    OwnerNotCoveredByReachability,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,8 +117,57 @@ impl ReclaimReachabilityRemovalReceipt {
         self.evidence.candidates().contains_identity(identity)
     }
 
+    pub fn covers_reclaimed_owner(&self, owner: PhysicalGenerationOwner) -> bool {
+        self.evidence.candidates().contains_owner(owner)
+    }
+
+    pub fn lower_for_s6_reclaim_policy(
+        &self,
+        region: PhysicalReclaimRegion,
+    ) -> Result<S6ReclaimReachabilityRemovalEvidence, S6ReclaimReachabilityRemovalEvidenceDenial>
+    {
+        let owner = region.reference().generation_owner();
+        if !self.covers_reclaimed_owner(owner) {
+            return Err(S6ReclaimReachabilityRemovalEvidenceDenial::OwnerNotCoveredByReachability);
+        }
+        S6ReclaimReachabilityRemovalEvidence::from_reclaim_reachability_removal_receipt(
+            region,
+            self.evidence.root_epoch().get(),
+            self.evidence.candidates().candidate_ranges().len() as u32,
+        )
+    }
+
     pub const fn counters(&self) -> ReclaimCounterSnapshot {
         self.counters
+    }
+}
+
+impl S6ReclaimReachabilityRemovalEvidence {
+    fn from_reclaim_reachability_removal_receipt(
+        region: PhysicalReclaimRegion,
+        root_epoch: u64,
+        protected_ranges: u32,
+    ) -> Result<Self, S6ReclaimReachabilityRemovalEvidenceDenial> {
+        if protected_ranges == 0 {
+            return Err(S6ReclaimReachabilityRemovalEvidenceDenial::EmptyProtectedReachability);
+        }
+        Ok(Self {
+            region,
+            root_epoch,
+            protected_ranges,
+        })
+    }
+
+    pub const fn region(self) -> PhysicalReclaimRegion {
+        self.region
+    }
+
+    pub const fn root_epoch(self) -> u64 {
+        self.root_epoch
+    }
+
+    pub const fn protected_ranges(self) -> u32 {
+        self.protected_ranges
     }
 }
 

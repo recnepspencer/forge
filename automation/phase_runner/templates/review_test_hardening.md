@@ -52,6 +52,21 @@ Use the qa-loop skill and review the real implementation against:
 
 Review only. Do not fix yet.
 
+Root-cause review rule:
+
+- Do not only list the next visible defect.
+- First name the shared root defect if findings point to the same bad boundary.
+- Classify each finding as one of: local bug, missing test, wrong ownership
+  boundary, forgeable authority, certification-overreach, count/projection
+  pretending to be proof, or adoption not tied to a production API.
+- If two or more findings share a class, write one root repair direction that
+  would remove the whole class of failure rather than asking repair to patch
+  each symptom.
+- For repeated review failures in the same phase, assume the phase may need an
+  authority-topology repair. Review for the owning law surface: which lower
+  crate should define the sealed witness, which crate may consume it, and which
+  public constructors must become impossible.
+
 If the phase is not actually done, finish with:
 
 `RUNNER_EVENT: {"event_type":"review_failed","payload":{"notes":{"findings":["..."]}}}`

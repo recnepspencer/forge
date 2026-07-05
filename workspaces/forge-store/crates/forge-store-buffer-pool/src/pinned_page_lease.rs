@@ -1,5 +1,5 @@
 use crate::{
-    PageLeaseId, PinnedFrameView, RecordViewAccess, RecordViewDenial,
+    AccessPolicyBufferLifecycle, PageLeaseId, PinnedFrameView, RecordViewAccess, RecordViewDenial,
     RecordViewMaterializationProfile, ResidentFrameDenial, ResidentFrameIdentity,
     ResidentFrameTable, ResidentFrameToken, UnpinnedPageReceipt, ZeroCopyRecordView,
 };
@@ -75,6 +75,10 @@ impl<'table> PinnedPageLease<'table> {
 
     pub fn physical_reference(&self) -> Result<PhysicalReference, ResidentFrameDenial> {
         self.table.resident_physical_reference(self.identity)
+    }
+
+    pub const fn access_policy_lifecycle_proof(&self) -> AccessPolicyBufferLifecycle {
+        AccessPolicyBufferLifecycle::pinned_s2_lease()
     }
 }
 

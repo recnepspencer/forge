@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod checkpoint_cutover;
+mod durable_publication;
 mod integrity_damage_map;
 mod integrity_input;
 mod integrity_vetted_records;
@@ -52,6 +53,12 @@ pub use checkpoint_cutover::{
     RecoveredCheckpointSelector, SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator,
     SuperblockRingCheckpointPointer, WalRetentionAction, WalRetentionAdmittedAction,
     WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
+};
+pub use durable_publication::{
+    CheckpointCrashDurabilityPosture, DurabilityRecoveryReplaySource,
+    DurabilityRecoverySourcePrecedence, DurabilityReplayIdentity, DurabilityReplayKind,
+    DurableCheckpointPublication, DurableManifestPublication, DurableWalPublication,
+    StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
 pub use integrity_damage_map::{IntegrityDamageMap, QuarantineSummary};
 pub use integrity_input::RecoveryPhysicsIntegrityInput;

@@ -36,6 +36,8 @@ mod security_scope_propagation_tests;
 mod security_scope_readmission_tests;
 mod security_scope_receipt;
 mod security_scope_roles;
+#[cfg(any(test, feature = "certification-test-authority"))]
+mod security_scope_test_authority;
 #[cfg(test)]
 mod security_scope_test_support;
 mod security_scope_witnesses;
@@ -136,6 +138,11 @@ pub use security_scope_roles::{
     StoreSecurityReadinessVocabularyTerm, StoreSecurityRequirementVocabulary,
     StoreSecurityResultVocabulary, StoreSecurityWitnessVocabulary,
     StoreSecurityWitnessVocabularyTerm,
+};
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use security_scope_test_authority::{
+    admitted_store_internal_security_scope_for_s6_test,
+    admitted_wrong_s6_io_qos_security_scope_for_test,
 };
 pub use security_scope_witnesses::{
     StoreAdmittedSecurityScope, StoreCurrentAuthenticityScopeWitness,

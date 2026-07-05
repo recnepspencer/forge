@@ -9,6 +9,7 @@ description = "Roadmap 2 S.10 operational safety, backup, PITR, repair, and fore
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
+forge-store-io-scheduler.workspace = true
 forge-store-offline-verifier.workspace = true
 forge-store-physical-integrity.workspace = true
 forge-store-recovery-physics.workspace = true

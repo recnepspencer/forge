@@ -126,6 +126,8 @@ mod blob_chunk_streaming;
 mod blob_chunk_test_support;
 mod blob_lifecycle_receipts;
 mod large_record_streaming_envelope;
+mod s6_background_pressure;
+mod s6_reclaim_handoff;
 mod s7_blob_security_handoff;
 
 pub use blob_chunk_counters::{
@@ -151,4 +153,9 @@ pub use blob_lifecycle_receipts::{
 pub use large_record_streaming_envelope::{
     LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial,
 };
+pub use s6_background_pressure::{
+    blob_background_pressure_kind, blob_ingest_background_pressure_shape,
+    blob_migration_background_pressure_shape, BlobBackgroundPressureKind,
+};
+pub use s6_reclaim_handoff::S6BlobReclaimNonClaimHandoff;
 pub use s7_blob_security_handoff::{S7BlobChunkSecurityHandoff, S7BlobChunkSecurityPermission};

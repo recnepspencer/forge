@@ -42,6 +42,7 @@ pub enum PhysicalProofOracleKind {
     TranscriptReplay,
     IndependentVerifierAgreement,
     S5PhysicalIsolationInterleaving,
+    S6IoPressureSimulation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +69,9 @@ pub enum OracleDenial {
     MissingRecoveryOutcomeObservation,
     MissingCheckpointInterlockObservation,
     MissingCompactionInterlockObservation,
+    MissingS6IoPressureObservation,
+    IncompleteS6IoPressureAttribution,
+    S6IoPressureEnvelopeViolated,
     CheckpointInterlockObservationDenied {
         oracle: PhysicalProofOracleKind,
     },

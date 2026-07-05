@@ -105,6 +105,8 @@ mod repair_blast_radius_tests;
 mod repair_quarantine_readiness;
 #[cfg(test)]
 mod repair_quarantine_readiness_tests;
+mod s10_later_io_readiness;
+mod s6_background_pressure;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
 pub use backup_export_custody_counters::BackupExportCustodyCounterSnapshot;
@@ -129,6 +131,16 @@ pub use repair_blast_radius_handoff::{
 pub use repair_blast_radius_plan::{RepairBlastRadiusPlan, RepairReadPlan};
 pub use repair_blast_radius_readiness::RepairBlastRadiusReadiness;
 pub use repair_quarantine_readiness::RepairQuarantineScopePreservation;
+pub use s10_later_io_readiness::{
+    admit_s10_backup_export_io_readiness_seed, admit_s10_compaction_io_readiness_seed,
+    admit_s10_repair_scan_io_readiness_seed, S10BackupExportIoReadinessSeed,
+    S10CompactionIoReadinessSeed, S10RepairScanIoReadinessSeed,
+};
+pub use s6_background_pressure::{
+    backup_prep_background_pressure_shape, operations_background_pressure_kind,
+    repair_background_pressure_shape, replication_prep_background_pressure_shape,
+    OperationsBackgroundPressureKind,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperationalRecoveryPosture {

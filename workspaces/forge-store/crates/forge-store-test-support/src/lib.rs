@@ -12,6 +12,8 @@ mod resident_pressure_fixtures;
 mod s4_recovery_physics;
 mod s5_1_security_scope_harness;
 mod s5_physical_isolation;
+mod s6_interference_profiles;
+mod s6_io_pressure_profiles;
 mod terminal_projection_json_fixtures;
 
 use forge_store_physical_format::{
@@ -69,6 +71,12 @@ pub use s5_1_security_scope_harness::{
     S51SecurityScopeHarnessReplayExecution,
 };
 pub use s5_physical_isolation::{s5_boundary_fact, s5_boundary_yieldpoint};
+pub use s6_interference_profiles::{
+    deterministic_s6_interference_profile, S6InterferenceTestProfile,
+};
+pub use s6_io_pressure_profiles::{
+    deterministic_s6_io_pressure_profile, large_s6_io_pressure_profile, S6IoPressureTestProfile,
+};
 pub use terminal_projection_json_fixtures::StoreTerminalProjectionJsonFixture;
 
 pub fn test_physical_reference(slot_index: u16) -> PhysicalReference {

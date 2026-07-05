@@ -10,6 +10,10 @@ forge-store-budgets.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-readiness.workspace = true
+forge-store-security.workspace = true
+
+[features]
+certification-test-authority = []
 
 [lints]
 workspace = true

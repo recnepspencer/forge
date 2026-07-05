@@ -1,6 +1,7 @@
 #![doc = include_str!("api_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
+mod access_policy_lifecycle;
 mod admission;
 mod allocation_scope;
 mod background_envelope_admission;
@@ -44,6 +45,7 @@ mod resident_frame_report;
 mod resident_frame_request;
 mod resident_frame_source;
 mod resident_frame_table;
+mod s6_queue_work;
 mod speculative_work_admission;
 mod speculative_work_budget;
 mod speculative_work_counters;
@@ -76,6 +78,7 @@ mod speculative_work_honesty_tests;
 #[cfg(test)]
 mod speculative_work_tests;
 
+pub use access_policy_lifecycle::{AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind};
 pub use admission::{AdmittedBufferPoolEntry, BufferPoolAdmission};
 pub use allocation_scope::{
     AllocationAdmission, AllocationDenial, AllocationGrant, AllocationReceipt, AllocationRequest,
@@ -103,7 +106,8 @@ pub use buffer_pool_evidence_source::{
 pub use dirty_counters::DirtyPageCounterSnapshot;
 pub use dirty_publication::{DirtyPublicationPlan, DirtyPublicationReceipt};
 pub use dirty_state::{
-    DirtyPageIdentity, DirtyPageState, DirtyShutdownPosture, DirtyShutdownReport,
+    DirtyPageAccessOrigin, DirtyPageIdentity, DirtyPageState, DirtyShutdownPosture,
+    DirtyShutdownReport,
 };
 pub use entry::{S2PhysicalResidencyEntry, S2PhysicalResidencyEntryBuilder};
 pub use entry_denials::{BufferPoolEntryDenial, BufferPoolEntryDenialKind};
@@ -144,6 +148,9 @@ pub use resident_frame_report::{
 };
 pub use resident_frame_request::{ResidentFrameLoadRequest, ResidentFrameSize};
 pub use resident_frame_table::{ResidentFrameTable, ResidentFrameTableCapacity};
+pub use s6_queue_work::{
+    BufferPoolQueueExecutionDeclaration, BufferPoolQueueExecutionKind, BufferPoolQueueGroupingScope,
+};
 pub use speculative_work_admission::SpeculativePhysicalWorkAdmission;
 pub use speculative_work_budget::SpeculativeWorkBudgetSnapshot;
 pub use speculative_work_counters::SpeculativeWorkCounterSnapshot;

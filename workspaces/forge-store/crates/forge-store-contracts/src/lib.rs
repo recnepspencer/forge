@@ -20,6 +20,8 @@ mod contract_error;
 mod handoff_readiness;
 mod physical_authority;
 mod roadmap_scope;
+mod s6_background_pressure;
+mod s6_queue_producer;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
 pub use contract_error::{StoreContractError, StoreContractResult};
@@ -33,6 +35,8 @@ pub use physical_authority::{
 pub use roadmap_scope::{
     RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
 };
+pub use s6_background_pressure::{S6BackgroundPressureDeclaration, S6BackgroundPressureKind};
+pub use s6_queue_producer::{S6QueueProducerKind, S6QueueProducerResourceShape};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableArtifactClass {

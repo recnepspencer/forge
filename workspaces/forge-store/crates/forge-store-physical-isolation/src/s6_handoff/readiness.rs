@@ -39,6 +39,19 @@ pub fn publish_s6_io_qos_isolation_readiness_from_s5_closeout(
     )
 }
 
+#[cfg(any(test, feature = "certification-authority"))]
+pub fn publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(
+    wait_count: u64,
+    retry_count: u64,
+) -> Result<S6IoQosIsolationReadiness, S6IoQosIsolationReadinessDenial> {
+    publish_s6_io_qos_isolation_readiness_from_s5_closeout(
+        ExecutedS5IsolationCloseout::from_foreground_reservation_test_counts(
+            wait_count,
+            retry_count,
+        )?,
+    )
+}
+
 fn publish_s6_io_qos_isolation_readiness(
     request: S6IoQosIsolationReadinessRequest,
 ) -> Result<S6IoQosIsolationReadiness, S6IoQosIsolationReadinessDenial> {

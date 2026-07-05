@@ -1,4 +1,7 @@
-use crate::{DirtyShutdownPosture, ResidentFrameDenialKind};
+use crate::{
+    AccessPolicyBufferLifecycleKind, DirtyPageAccessOrigin, DirtyShutdownPosture,
+    ResidentFrameDenialKind,
+};
 
 use crate::dirty_state_test_support::{admit_payload_frame, load_request, resident_frame_table};
 
@@ -18,6 +21,60 @@ fn dirty_marking_is_resident_authority_state_with_exact_counts() {
     );
     assert_eq!(table.counters().dirty_state().dirty_pages().as_pages(), 1);
     assert_eq!(table.dirty_counters().newly_dirty_count(), 1);
+    assert_eq!(table.dirty_counters().already_dirty_count(), 1);
+}
+
+#[test]
+fn dirty_page_state_derives_store_buffer_lifecycle_proof() {
+    let mut table = resident_frame_table(8192, 1, 1);
+    let admission = admit_payload_frame(&mut table, 7, 2, b"dirty-lifecycle");
+
+    let dirty = table.mark_dirty(admission.resident_frame_token()).unwrap();
+
+    assert_eq!(dirty.access_origin(), DirtyPageAccessOrigin::StoreBuffer);
+    assert_eq!(
+        dirty.access_policy_lifecycle_proof().kind(),
+        AccessPolicyBufferLifecycleKind::DirtyPageTracked
+    );
+}
+
+#[test]
+fn mmap_dirty_page_state_derives_mmap_lifecycle_proof_until_publication() {
+    let mut table = resident_frame_table(8192, 1, 1);
+    let admission = admit_payload_frame(&mut table, 7, 2, b"mmap-dirty");
+
+    let mmap_dirty = table
+        .mark_mmap_dirty(admission.resident_frame_token())
+        .unwrap();
+    let repeated_store_dirty = table.mark_dirty(admission.resident_frame_token()).unwrap();
+
+    assert_eq!(mmap_dirty.access_origin(), DirtyPageAccessOrigin::Mmap);
+    assert_eq!(
+        repeated_store_dirty.access_origin(),
+        DirtyPageAccessOrigin::Mmap
+    );
+    assert_eq!(
+        repeated_store_dirty.access_policy_lifecycle_proof().kind(),
+        AccessPolicyBufferLifecycleKind::DirtyMmapPage
+    );
+}
+
+#[test]
+fn mmap_dirty_mark_upgrades_existing_store_buffer_dirty_lifecycle_proof() {
+    let mut table = resident_frame_table(8192, 1, 1);
+    let admission = admit_payload_frame(&mut table, 7, 2, b"store-then-mmap-dirty");
+
+    table.mark_dirty(admission.resident_frame_token()).unwrap();
+    let mmap_dirty = table
+        .mark_mmap_dirty(admission.resident_frame_token())
+        .unwrap();
+
+    assert_eq!(mmap_dirty.access_origin(), DirtyPageAccessOrigin::Mmap);
+    assert_eq!(
+        mmap_dirty.access_policy_lifecycle_proof().kind(),
+        AccessPolicyBufferLifecycleKind::DirtyMmapPage
+    );
+    assert_eq!(table.dirty_counters().dirty_pages().as_pages(), 1);
     assert_eq!(table.dirty_counters().already_dirty_count(), 1);
 }
 

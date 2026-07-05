@@ -1,8 +1,14 @@
 use crate::{
     CounterContractKind, FixtureClassKind, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
-    PhysicalProofOracleKind, PhysicalScenarioActorRole, PhysicalScenarioFaultKind,
-    PhysicalSimulationProfile, S5CompactionMutationKind, S5PhysicalIsolationMutationKind,
+    PhysicalFaultEvidenceClass, PhysicalProofOracleKind, PhysicalScenarioActorRole,
+    PhysicalScenarioFaultKind, PhysicalSimulationProfile, S5CompactionMutationKind,
+    S5PhysicalIsolationMutationKind, S6HarnessSecureIoPosture, S6IoPressureFaultKind,
+    S6PressureEvidenceMaturity,
 };
+use forge_store_io_scheduler::{
+    foreground_reservation::ForegroundIoLaneKind, BackgroundIoPressureClass,
+};
+use forge_store_physical_backend::BackendTargetProfile;
 
 use super::{HarnessSubsystem, Roadmap2HarnessSequence};
 
@@ -35,6 +41,13 @@ pub enum CoverageRowDimension {
     MutationValidationPosture(MutationValidationPosture),
     CompactionMutation(S5CompactionMutationKind),
     S5PhysicalIsolationMutation(S5PhysicalIsolationMutationKind),
+    S6BackendTarget(BackendTargetProfile),
+    S6ForegroundLane(ForegroundIoLaneKind),
+    S6BackgroundPressure(BackgroundIoPressureClass),
+    S6SecureIoPosture(S6HarnessSecureIoPosture),
+    S6IoPressureFaultKind(S6IoPressureFaultKind),
+    S6FaultEvidenceClass(PhysicalFaultEvidenceClass),
+    S6EvidenceMaturity(S6PressureEvidenceMaturity),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -80,6 +80,15 @@ let raw = b"resident bytes without pin";
 let _view = PinnedFrameView::new(raw);
 ```
 
+Access-policy lifecycle proof cannot be minted without a live
+`PinnedPageLease`:
+
+```compile_fail
+use forge_store_buffer_pool::AccessPolicyBufferLifecycle;
+
+let _proof = AccessPolicyBufferLifecycle::pinned_s2_lease();
+```
+
 `PinnedFrameView` cannot outlive its `PinnedPageLease`:
 
 ```compile_fail

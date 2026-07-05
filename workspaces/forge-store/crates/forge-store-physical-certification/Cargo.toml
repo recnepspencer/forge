@@ -24,5 +24,11 @@ forge-store-readiness.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-security.workspace = true
 
+[dev-dependencies]
+forge-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
+
+[features]
+certification-test-support = []
+
 [lints]
 workspace = true

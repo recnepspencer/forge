@@ -224,6 +224,8 @@ mod page_record_tests;
 mod page_size;
 mod payload_view;
 mod physical_scope;
+mod reclaim_region;
+mod reclaimed_byte_interpretation;
 mod record_framing;
 mod reference_authority;
 mod reference_counters;
@@ -366,6 +368,8 @@ pub use physical_scope::{
     ManifestMembershipProof, PhysicalReferenceScope, PhysicalScopeFamily,
     RootManifestIntegrityPosture,
 };
+pub use reclaim_region::{PhysicalReclaimRegion, PhysicalReclaimRegionDenial};
+pub use reclaimed_byte_interpretation::ReclaimedByteInterpretation;
 pub use record_framing::{
     FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
     RecordPlacementWitness,

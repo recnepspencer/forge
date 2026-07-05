@@ -301,6 +301,7 @@ fn scenario_family_token(family: PhysicalSimulationScenarioFamily) -> &'static s
         PhysicalSimulationScenarioFamily::S5TierMovementStability => "s5-tier-movement-stability",
         PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
         PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
+        PhysicalSimulationScenarioFamily::S6IoPressureHarness => "s6-io-pressure-harness",
         PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
     }

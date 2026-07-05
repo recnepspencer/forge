@@ -784,6 +784,8 @@ showing when background work yielded, paced, or was denied.
 
 ## S.7: Native Blob/Object Chunk Store
 
+Engineering spec: [storage-foundation-s7.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s7.md)
+
 ### Goal
 
 Make blob storage native to the physical substrate before Roadmap 1's blob

@@ -9,6 +9,7 @@ pub enum PhysicalSimulationScenarioFamily {
     S5TierMovementStability,
     S5FutureChunkStability,
     S5RestartDuringCutover,
+    S6IoPressureHarness,
     ShortcutRejectionDogfood,
     FutureExtensionSlot,
 }
@@ -32,6 +33,7 @@ pub enum PhysicalScenarioIntent {
     S5TierMovementStabilityOnly,
     S5FutureChunkStabilityOnly,
     S5RestartDuringCutover,
+    S6IoPressureSimulation,
     ForbiddenShortcutRejectionShape,
     FutureExtensionSlot,
 }
@@ -196,6 +198,42 @@ impl PhysicalScenarioFault {
         }
     }
 
+    pub const fn s6_backend_latency_injection() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6BackendLatencyInjection,
+        }
+    }
+
+    pub const fn s6_queue_depth_saturation() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6QueueDepthSaturation,
+        }
+    }
+
+    pub const fn s6_bandwidth_throttle() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6BandwidthThrottle,
+        }
+    }
+
+    pub const fn s6_delayed_sync() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6DelayedSync,
+        }
+    }
+
+    pub const fn s6_page_cache_pressure() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6PageCachePressure,
+        }
+    }
+
+    pub const fn s6_background_pacing_late_yield() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::S6BackgroundPacingLateYield,
+        }
+    }
+
     pub const fn kind(&self) -> PhysicalScenarioFaultKind {
         self.kind
     }
@@ -212,6 +250,12 @@ pub enum PhysicalScenarioFaultKind {
     StaleEpochReuse,
     InPlaceCompactionOverwrite,
     MixedRootRead,
+    S6BackendLatencyInjection,
+    S6QueueDepthSaturation,
+    S6BandwidthThrottle,
+    S6DelayedSync,
+    S6PageCachePressure,
+    S6BackgroundPacingLateYield,
     FutureExtensionSlot,
 }
 
@@ -292,6 +336,13 @@ impl PhysicalScenarioExpectation {
         }
     }
 
+    pub fn s6_io_pressure_simulation() -> Self {
+        Self {
+            kind: PhysicalScenarioExpectationKind::S6IoPressureSimulation,
+            non_claims: vec![PhysicalScenarioNonClaim::NoRealBackendSafetyQualification],
+        }
+    }
+
     pub fn with_future_extension_non_claim(mut self) -> Self {
         let non_claim = PhysicalScenarioNonClaim::FutureExtensionSlotDoesNotImplementFutureBehavior;
         if !self.non_claims.contains(&non_claim) {
@@ -320,6 +371,7 @@ pub enum PhysicalScenarioExpectationKind {
     StableReadPlanDenial,
     S5PhysicalIsolationInterleaving,
     S5PhysicalIsolationDenial,
+    S6IoPressureSimulation,
     ShortcutRejectionDogfood,
     FutureExtensionSlot,
 }
@@ -327,5 +379,6 @@ pub enum PhysicalScenarioExpectationKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalScenarioNonClaim {
     NoS5PhysicalIsolationCorrectnessClaim,
+    NoRealBackendSafetyQualification,
     FutureExtensionSlotDoesNotImplementFutureBehavior,
 }

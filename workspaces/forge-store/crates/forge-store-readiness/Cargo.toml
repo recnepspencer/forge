@@ -14,5 +14,8 @@ forge-store-physical-format.workspace = true
 forge-store-s0-reclassification.workspace = true
 forge-store-security.workspace = true
 
+[features]
+certification-authority = []
+
 [lints]
 workspace = true

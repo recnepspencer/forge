@@ -10,5 +10,5 @@ pub use crate::s5_1_closeout::{
 pub use crate::s5_evidence_materialization::*;
 pub use crate::s5_physical_isolation_closeout::*;
 pub use crate::s5_physical_isolation_harness::*;
-pub use crate::s6_io_qos_readiness_handoff::*;
+pub use crate::s6_facade::*;
 pub use crate::synthetic_closeout_exports::*;

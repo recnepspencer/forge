@@ -14,6 +14,7 @@ pub use contract::{
 };
 pub use evidence::{
     admit_physical_counter_evidence, PhysicalCounterEvidenceReceipt, PhysicalCounterEvidenceRow,
+    PhysicalResourceEnvelopeObservation,
 };
 pub use executed_evidence::{PhysicalCounterExecutionSources, PhysicalExecutedCounterEvidence};
 pub(crate) use expectation::counter_expectation_kind_token;

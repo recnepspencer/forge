@@ -67,6 +67,36 @@ impl ExecutedS5IsolationCloseout {
         })
     }
 
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub fn from_foreground_reservation_test_counts(
+        wait_count: u64,
+        retry_count: u64,
+    ) -> Result<Self, S6IoQosIsolationReadinessDenial> {
+        let counters = PhysicalIsolationCounterSnapshot::from_store_executed_counts(
+            1,
+            wait_count,
+            retry_count,
+            1,
+            1,
+            1,
+            1,
+            1,
+            4096,
+        )?;
+        let foundational_counter_receipt = s6_store_executed_counter_receipt(counters)?;
+        let proof_progression_identity = foreground_reservation_test_progression_identity(counters);
+        let basis = S5PhysicalIsolationCloseoutBasis::from_executed_isolation(
+            proof_progression_identity,
+            counters,
+        );
+        Ok(Self {
+            basis,
+            counters,
+            foundational_counter_receipt,
+            proof_progression_identity,
+        })
+    }
+
     pub const fn basis(&self) -> S5PhysicalIsolationCloseoutBasis {
         self.basis
     }
@@ -304,6 +334,19 @@ fn proof_progression_identity(
         ),
     );
     mix_u64(identity, receipts.reclaim.counters().candidate_ranges())
+}
+
+#[cfg(any(test, feature = "certification-authority"))]
+fn foreground_reservation_test_progression_identity(
+    counters: PhysicalIsolationCounterSnapshot,
+) -> u64 {
+    let mut identity = 0x5355_0000_0000_0002_u64;
+    identity = mix_u64(identity, counters.outcome_count());
+    identity = mix_u64(identity, counters.wait_count());
+    identity = mix_u64(identity, counters.retry_count());
+    identity = mix_u64(identity, counters.latch_counter_rows());
+    identity = mix_u64(identity, counters.reclaim_counter_rows());
+    mix_u64(identity, counters.protected_byte_footprint())
 }
 
 const fn mix_u64(mut digest: u64, value: u64) -> u64 {
