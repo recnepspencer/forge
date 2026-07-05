@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use topology::touched_graph_parity_closeout::{
     current_topology_family_contributor_catalog as current_topology_catalog,
     TopologyContributorCatalogRowKind, TopologyContributorCoverageAuthority,
@@ -24,6 +26,11 @@ pub struct TopologyFamilyContributorCatalogError {
 
 pub fn current_topology_family_contributor_catalog(
 ) -> Result<TopologyCatalog, TopologyFamilyContributorCatalogError> {
+    static CACHE: OnceLock<TopologyCatalog> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
     let catalog = current_topology_catalog().map_err(|error| {
         TopologyFamilyContributorCatalogError::new(
             TopologyFamilyContributorCatalogErrorKind::CurrentSurfaceUnavailable,
@@ -31,6 +38,7 @@ pub fn current_topology_family_contributor_catalog(
         )
     })?;
     validate_catalog(&catalog)?;
+    let _ = CACHE.set(catalog.clone());
     Ok(catalog)
 }
 

@@ -6,23 +6,16 @@ pub(crate) mod family_contributors;
 pub(crate) mod readiness_handoff;
 pub(crate) mod representative_path;
 
+pub(crate) use closeout_matrix::closeout_matrix_from_authorities;
 pub use closeout_matrix::{
     current_worth_touched_graph_cross_family_closeout_matrix,
-    WorthTouchedGraphCrossFamilyCloseoutMatrix,
-    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+    WorthTouchedGraphCrossFamilyCloseoutMatrix, WorthTouchedGraphCrossFamilyCloseoutMatrixError,
     WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind,
     WorthTouchedGraphCrossFamilyCloseoutMatrixRow,
 };
-pub(crate) use closeout_matrix::closeout_matrix_from_authorities;
-pub(crate) use current_authorities::{
-    current_touched_graph_parity_closeout_authorities,
-    CurrentTouchedGraphParityCloseoutAuthorities,
-};
 pub use completion_gate::{
-    current_worth_touched_graph_roadmap_completion_gate,
-    WorthTouchedGraphRoadmapCompletionGate,
-    WorthTouchedGraphRoadmapCompletionGateError,
-    WorthTouchedGraphRoadmapCompletionGateErrorKind,
+    current_worth_touched_graph_roadmap_completion_gate, WorthTouchedGraphRoadmapCompletionGate,
+    WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
 pub use coverage_inventory::{
     current_cross_family_coverage_inventory, current_live_coverage_ledger,
@@ -30,6 +23,9 @@ pub use coverage_inventory::{
     CrossFamilyCoverageInventory, CrossFamilyCoverageInventoryError,
     CrossFamilyCoverageQuerySurfaceKind, CrossFamilyCoverageRow, LiveCoverageLedger,
     LiveCoverageLedgerError,
+};
+pub(crate) use current_authorities::{
+    current_touched_graph_parity_closeout_authorities, CurrentTouchedGraphParityCloseoutAuthorities,
 };
 pub use family_contributors::{
     current_conflict_family_contributor_catalog, current_conflict_family_parity_claim,

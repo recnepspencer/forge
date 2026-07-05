@@ -20,14 +20,14 @@ mod tests_replay_undo;
 #[cfg(test)]
 mod tests_spatial;
 
+pub(crate) use current::cross_family_coverage_inventory_from_authorities;
 pub use current::{
     current_cross_family_coverage_inventory, CrossFamilyCoverageInventory,
     CrossFamilyCoverageInventoryError,
 };
-pub(crate) use current::cross_family_coverage_inventory_from_authorities;
 pub use ledger_row::{ArchitectureClaimLedgerRow, ArchitectureClaimLedgerRowKind};
-pub use live_ledger::{current_live_coverage_ledger, LiveCoverageLedger, LiveCoverageLedgerError};
 pub(crate) use live_ledger::live_coverage_ledger_from_authorities;
+pub use live_ledger::{current_live_coverage_ledger, LiveCoverageLedger, LiveCoverageLedgerError};
 pub use row::{
     CrossFamilyCoverageFamilyKind, CrossFamilyCoverageQuerySurfaceKind, CrossFamilyCoverageRow,
 };

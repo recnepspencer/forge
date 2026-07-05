@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use topology::touched_graph_parity_closeout::{
     TopologyFamilyContributorCatalogRow, TopologyTouchedGraphParityCoverageContributor,
 };
@@ -11,20 +13,20 @@ use super::row::{
     CrossFamilyCoverageResidueClassification as ResidueClassification, CrossFamilyCoverageRow,
 };
 use super::validation::validate_rows;
+use crate::workload_composition::performance_trace::trace_scope;
 use crate::workload_composition::planner_owned_routing::{
     current_worth_touched_graph_conflict_public_facade_with_artifact_policy,
     current_worth_touched_graph_conflict_selected_route_packet,
     current_worth_workload_ordinary_consumer_cutover,
-    WorthTouchedGraphConflictPublicFacade, WorthWorkloadOrdinaryConsumerCutover,
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
+    WorthTouchedGraphConflictPublicFacade, WorthWorkloadOrdinaryConsumerCutover,
 };
 use crate::workload_composition::touched_graph_parity_closeout::family_contributors::{
     conflict_family_coverage_contributor_rows, current_spatial_family_contributor_catalog,
     current_topology_family_contributor_catalog,
     public_projection_family_coverage_contributor_rows_from_public_facade,
     replay_undo_coverage_contributor_rows_from_authorities, reuse_family_coverage_contributor_rows,
-    spatial_coverage_contributor_rows,
-    KernelTouchedGraphParityCoverageContributor,
+    spatial_coverage_contributor_rows, KernelTouchedGraphParityCoverageContributor,
 };
 use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityCoverageContributor;
 
@@ -46,26 +48,45 @@ pub enum CrossFamilyCoverageInventoryError {
 
 pub fn current_cross_family_coverage_inventory(
 ) -> Result<CrossFamilyCoverageInventory, CrossFamilyCoverageInventoryError> {
-    let selected_route =
+    static CACHE: OnceLock<CrossFamilyCoverageInventory> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
+    let inventory = build_current_cross_family_coverage_inventory()?;
+    let _ = CACHE.set(inventory.clone());
+    Ok(inventory)
+}
+
+fn build_current_cross_family_coverage_inventory(
+) -> Result<CrossFamilyCoverageInventory, CrossFamilyCoverageInventoryError> {
+    let selected_route = trace_scope("coverage_inventory_selected_route_packet", || {
         current_worth_touched_graph_conflict_selected_route_packet().map_err(|_| {
             CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
                 "current_worth_touched_graph_conflict_selected_route_packet",
             )
-        })?;
-    let public_facade = current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
-        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
-    )
-    .map_err(|_| {
-        CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
-            "current_worth_touched_graph_conflict_public_facade_with_artifact_policy",
-        )
+        })
     })?;
-    let cutover = current_worth_workload_ordinary_consumer_cutover().map_err(|_| {
-        CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
-            "current_worth_workload_ordinary_consumer_cutover",
+    let public_facade = trace_scope("coverage_inventory_public_facade", || {
+        current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
+            WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
         )
+        .map_err(|_| {
+            CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
+                "current_worth_touched_graph_conflict_public_facade_with_artifact_policy",
+            )
+        })
     })?;
-    cross_family_coverage_inventory_from_authorities(&selected_route, &public_facade, &cutover)
+    let cutover = trace_scope("coverage_inventory_cutover", || {
+        current_worth_workload_ordinary_consumer_cutover().map_err(|_| {
+            CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
+                "current_worth_workload_ordinary_consumer_cutover",
+            )
+        })
+    })?;
+    trace_scope("cross_family_coverage_inventory_from_authorities", || {
+        cross_family_coverage_inventory_from_authorities(&selected_route, &public_facade, &cutover)
+    })
 }
 
 pub(crate) fn cross_family_coverage_inventory_from_authorities(
@@ -75,15 +96,19 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
 ) -> Result<CrossFamilyCoverageInventory, CrossFamilyCoverageInventoryError> {
     let public_proof = public_facade.public_proof();
     let diagnostics = public_facade.derived_diagnostics();
-    let topology_catalog = current_topology_family_contributor_catalog().map_err(|_| {
-        CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
-            "current_topology_family_contributor_catalog",
-        )
+    let topology_catalog = trace_scope("cross_family_topology_catalog", || {
+        current_topology_family_contributor_catalog().map_err(|_| {
+            CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
+                "current_topology_family_contributor_catalog",
+            )
+        })
     })?;
-    let _spatial_catalog = current_spatial_family_contributor_catalog().map_err(|_| {
-        CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
-            "current_spatial_family_contributor_catalog",
-        )
+    let _spatial_catalog = trace_scope("cross_family_spatial_catalog", || {
+        current_spatial_family_contributor_catalog().map_err(|_| {
+            CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
+                "current_spatial_family_contributor_catalog",
+            )
+        })
     })?;
     let topology_row = topology_catalog
         .rows()
@@ -108,12 +133,14 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
         return Err(CrossFamilyCoverageInventoryError::MismatchedAuthorityChain);
     }
 
-    let mut rows: Vec<CrossFamilyCoverageRow> = topology_catalog
-        .rows()
-        .iter()
-        .map(row_from_topology_catalog_row)
-        .collect::<Result<Vec<_>, _>>()?;
-    rows.extend(
+    let mut rows: Vec<CrossFamilyCoverageRow> = trace_scope("cross_family_topology_rows", || {
+        topology_catalog
+            .rows()
+            .iter()
+            .map(row_from_topology_catalog_row)
+            .collect::<Result<Vec<_>, _>>()
+    })?;
+    rows.extend(trace_scope("cross_family_spatial_rows", || {
         spatial_coverage_contributor_rows()
             .map_err(|_| {
                 CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
@@ -122,9 +149,9 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
             })?
             .iter()
             .map(row_from_spatial_catalog_row)
-            .collect::<Result<Vec<_>, _>>()?,
-    );
-    rows.extend(
+            .collect::<Result<Vec<_>, _>>()
+    })?);
+    rows.extend(trace_scope("cross_family_replay_undo_rows", || {
         replay_undo_coverage_contributor_rows_from_authorities(selected_route, cutover)
             .map_err(|_| {
                 CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
@@ -133,9 +160,9 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
             })?
             .iter()
             .map(|row| row_from_kernel_contributor(FamilyKind::ReplayUndo, row.clone()))
-            .collect::<Result<Vec<_>, _>>()?,
-    );
-    rows.extend(
+            .collect::<Result<Vec<_>, _>>()
+    })?);
+    rows.extend(trace_scope("cross_family_conflict_rows", || {
         conflict_family_coverage_contributor_rows()
             .map_err(|_| {
                 CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
@@ -149,9 +176,9 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
                     row.clone(),
                 )
             })
-            .collect::<Result<Vec<_>, _>>()?,
-    );
-    rows.extend(
+            .collect::<Result<Vec<_>, _>>()
+    })?);
+    rows.extend(trace_scope("cross_family_reuse_rows", || {
         reuse_family_coverage_contributor_rows()
             .map_err(|_| {
                 CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
@@ -160,9 +187,9 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
             })?
             .iter()
             .map(|row| row_from_kernel_contributor(FamilyKind::CompiledProductReuse, row.clone()))
-            .collect::<Result<Vec<_>, _>>()?,
-    );
-    rows.extend(
+            .collect::<Result<Vec<_>, _>>()
+    })?);
+    rows.extend(trace_scope("cross_family_public_projection_rows", || {
         public_projection_family_coverage_contributor_rows_from_public_facade(public_facade)
             .map_err(|_| {
                 CrossFamilyCoverageInventoryError::CurrentSurfaceUnavailable(
@@ -178,40 +205,42 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
                 };
                 row_from_kernel_contributor(family_kind, row)
             })
-            .collect::<Result<Vec<_>, _>>()?,
-    );
+            .collect::<Result<Vec<_>, _>>()
+    })?);
 
-    validate_rows(&rows)?;
+    trace_scope("cross_family_validate_rows", || validate_rows(&rows))?;
 
-    let inventory_digest = truth_digest_parts(
-        TruthDigestScope::ArtifactIdentity,
-        &rows
-            .iter()
-            .flat_map(|row: &CrossFamilyCoverageRow| {
-                [
-                    format!("family-kind:{}", row.family_kind().as_str()),
-                    format!("surface:{}", row.current_surface()),
-                    format!("source:{}", row.source_path()),
-                    format!("caller-surface:{}", row.ordinary_path_live_caller_surface()),
-                    format!("caller-path:{}", row.ordinary_path_live_caller_path()),
-                    format!("replacement:{}", row.replacement_lane()),
-                    format!("query-surface:{}", row.query_surface_kind().as_str()),
-                ]
-            })
-            .chain(std::iter::once(format!(
-                "selected-route:{}",
-                selected_route.selected_route_identity_digest()
-            )))
-            .chain(std::iter::once(format!(
-                "public-proof:{}",
-                public_proof.proof_chain_digest()
-            )))
-            .chain(std::iter::once(format!(
-                "diagnostics:{}",
-                diagnostics.decision_trace_identity_digest()
-            )))
-            .collect::<Vec<_>>(),
-    );
+    let inventory_digest = trace_scope("cross_family_inventory_digest", || {
+        truth_digest_parts(
+            TruthDigestScope::ArtifactIdentity,
+            &rows
+                .iter()
+                .flat_map(|row: &CrossFamilyCoverageRow| {
+                    [
+                        format!("family-kind:{}", row.family_kind().as_str()),
+                        format!("surface:{}", row.current_surface()),
+                        format!("source:{}", row.source_path()),
+                        format!("caller-surface:{}", row.ordinary_path_live_caller_surface()),
+                        format!("caller-path:{}", row.ordinary_path_live_caller_path()),
+                        format!("replacement:{}", row.replacement_lane()),
+                        format!("query-surface:{}", row.query_surface_kind().as_str()),
+                    ]
+                })
+                .chain(std::iter::once(format!(
+                    "selected-route:{}",
+                    selected_route.selected_route_identity_digest()
+                )))
+                .chain(std::iter::once(format!(
+                    "public-proof:{}",
+                    public_proof.proof_chain_digest()
+                )))
+                .chain(std::iter::once(format!(
+                    "diagnostics:{}",
+                    diagnostics.decision_trace_identity_digest()
+                )))
+                .collect::<Vec<_>>(),
+        )
+    });
 
     Ok(CrossFamilyCoverageInventory {
         rows,

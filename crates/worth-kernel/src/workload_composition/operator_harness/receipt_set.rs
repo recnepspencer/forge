@@ -1,4 +1,4 @@
-use worth_spatial::facade::workload_operators::CoplanarOverlapOperatorReceipt;
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::CoplanarOverlapOperatorReceipt;
 use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageLinkSet,
 };

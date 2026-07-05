@@ -2,6 +2,7 @@ mod closeout;
 mod declared_surface;
 mod forbidden_surface;
 mod ordinary_cutover_firewall;
+mod phase_fifteen_public_facade_semantic_source_registry;
 mod phase_fifteen_public_proof_semantic_source_registry;
 mod phase_fifteen_semantic_source_registry;
 mod phase_fourteen_raw_construction_registry;

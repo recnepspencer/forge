@@ -112,30 +112,24 @@ pub(crate) fn build_architecture_alignment_report(
                     .iter()
                     .map(|row| format!("capped-residue:{}:{}", row.owner(), row.surface_name())),
             )
-            .chain(
-                query_gap_support_rows
-                    .iter()
-                    .map(|row| {
-                        format!(
-                            "query-gap-support:{}:{}:{}",
-                            row.owner(),
-                            row.surface_name(),
-                            row.query_gap_kind()
-                                .expect("query-gap rows must name exact blocker shape")
-                                .as_str()
-                        )
-                    }),
-            )
-            .chain(
-                ordinary_second_ontology_blockers.iter().map(|row| {
-                    format!(
-                        "second-ontology:{}:{}:{}",
-                        row.owner(),
-                        row.surface_name(),
-                        row.mechanically_unreachable_from_ordinary_path()
-                    )
-                }),
-            )
+            .chain(query_gap_support_rows.iter().map(|row| {
+                format!(
+                    "query-gap-support:{}:{}:{}",
+                    row.owner(),
+                    row.surface_name(),
+                    row.query_gap_kind()
+                        .expect("query-gap rows must name exact blocker shape")
+                        .as_str()
+                )
+            }))
+            .chain(ordinary_second_ontology_blockers.iter().map(|row| {
+                format!(
+                    "second-ontology:{}:{}:{}",
+                    row.owner(),
+                    row.surface_name(),
+                    row.mechanically_unreachable_from_ordinary_path()
+                )
+            }))
             .chain(std::iter::once(format!(
                 "topology-compiled-product:{}",
                 selected_route_packet.selected_product_identity_digest()

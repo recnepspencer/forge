@@ -1,3 +1,4 @@
+use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
 use crate::workload_platform::planar_boolean_edge_splitting::{
     PlanarBooleanSplitEdgeFragment, PlanarBooleanSplitEdgeFragmentEndpointRef,
     PlanarBooleanSplitEdgeFragmentSchedule, PlanarBooleanSplitEdgeFragmentSet,
@@ -184,6 +185,7 @@ fn loop_source_carrier_row(
         format!("carrier-row-{suffix}"),
         format!("recovered-{suffix}"),
         format!("carrier-{suffix}"),
+        PlanarBooleanCommonPlaneOperandSide::Left,
         "source-face".to_string(),
         "source-loop".to_string(),
         source_edge_identity.to_string(),

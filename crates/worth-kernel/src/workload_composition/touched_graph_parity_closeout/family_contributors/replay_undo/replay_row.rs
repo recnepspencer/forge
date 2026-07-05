@@ -55,7 +55,9 @@ pub(super) fn replay_contributor_row_from_authorities(
         ORDINARY_CALLER_SURFACE,
         ORDINARY_CALLER_PATH,
         selected_route.replay_undo_route_family(),
-        selected_route.replay_undo_route_packet_identity().to_string(),
+        selected_route
+            .replay_undo_route_packet_identity()
+            .to_string(),
         shared_identity(
             selected_route.transaction_packet_identities(),
             &cutover.transaction_packet_identities(),

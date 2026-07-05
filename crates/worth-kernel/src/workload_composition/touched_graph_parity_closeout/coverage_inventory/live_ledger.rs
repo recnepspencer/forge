@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::current::{current_cross_family_coverage_inventory, CrossFamilyCoverageInventory};
@@ -28,6 +30,17 @@ pub enum LiveCoverageLedgerError {
 }
 
 pub fn current_live_coverage_ledger() -> Result<LiveCoverageLedger, LiveCoverageLedgerError> {
+    static CACHE: OnceLock<LiveCoverageLedger> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
+    let ledger = build_current_live_coverage_ledger()?;
+    let _ = CACHE.set(ledger.clone());
+    Ok(ledger)
+}
+
+fn build_current_live_coverage_ledger() -> Result<LiveCoverageLedger, LiveCoverageLedgerError> {
     let inventory = current_cross_family_coverage_inventory()
         .map_err(|_| LiveCoverageLedgerError::CurrentCoverageInventoryUnavailable)?;
     let closeout = current_worth_touched_graph_conflict_public_closeout()

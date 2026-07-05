@@ -8,6 +8,7 @@ pub struct TouchedGraphParityReadinessInput {
     claim: TouchedGraphParityArchitectureClaim,
     residue_classification: TouchedGraphParityResidueClassification,
     touched_closure_digest: String,
+    selected_plan_digest: String,
     overlap_identity_digests: Vec<String>,
     representative_family_coverage: Vec<TouchedGraphParityFamilyKind>,
     topology_query_posture_digest: String,
@@ -22,6 +23,7 @@ pub(crate) fn admit_touched_graph_parity_readiness_input(
     claim: TouchedGraphParityArchitectureClaim,
     residue_classification: TouchedGraphParityResidueClassification,
     touched_closure_digest: impl Into<String>,
+    selected_plan_digest: impl Into<String>,
     overlap_identity_digests: Vec<String>,
     representative_family_coverage: Vec<TouchedGraphParityFamilyKind>,
     topology_query_posture_digest: impl Into<String>,
@@ -31,6 +33,7 @@ pub(crate) fn admit_touched_graph_parity_readiness_input(
     architecture_claim_digest: impl Into<String>,
 ) -> Result<TouchedGraphParityReadinessInput, TouchedGraphParityReadinessError> {
     let touched_closure_digest = touched_closure_digest.into();
+    let selected_plan_digest = selected_plan_digest.into();
     let topology_query_posture_digest = topology_query_posture_digest.into();
     let spatial_query_posture_digest = spatial_query_posture_digest.into();
     let residue_digest = residue_digest.into();
@@ -87,6 +90,12 @@ pub(crate) fn admit_touched_graph_parity_readiness_input(
             "readiness input requires touched or overlap identity carried from selected-route authority",
         ));
     }
+    if selected_plan_digest.trim().is_empty() {
+        return Err(TouchedGraphParityReadinessError::new(
+            TouchedGraphParityReadinessErrorKind::MissingTouchedOrOverlapIdentity,
+            "readiness input requires the carried selected-plan digest from selected-route authority",
+        ));
+    }
     if representative_family_coverage.is_empty() {
         return Err(TouchedGraphParityReadinessError::new(
             TouchedGraphParityReadinessErrorKind::MissingRepresentativeFamilyCoverage,
@@ -118,6 +127,7 @@ pub(crate) fn admit_touched_graph_parity_readiness_input(
         claim,
         residue_classification,
         touched_closure_digest,
+        selected_plan_digest,
         overlap_identity_digests,
         representative_family_coverage,
         topology_query_posture_digest,
@@ -136,6 +146,7 @@ impl TouchedGraphParityReadinessInput {
     ///     claim: unsafe { std::mem::zeroed() },
     ///     residue_classification: unsafe { std::mem::zeroed() },
     ///     touched_closure_digest: String::new(),
+    ///     selected_plan_digest: String::new(),
     ///     overlap_identity_digests: Vec::new(),
     ///     representative_family_coverage: Vec::new(),
     ///     topology_query_posture_digest: String::new(),
@@ -176,6 +187,10 @@ impl TouchedGraphParityReadinessInput {
 
     pub fn touched_closure_digest(&self) -> &str {
         &self.touched_closure_digest
+    }
+
+    pub fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
     }
 
     pub fn overlap_identity_digests(&self) -> &[String] {

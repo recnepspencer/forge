@@ -98,8 +98,6 @@ mod public_api_workflow_boundary;
 mod public_api_workload_certification_context;
 #[path = "workload_inventory/mod.rs"]
 mod public_api_workload_inventory;
-#[path = "workload_operators/mod.rs"]
-mod public_api_workload_operators;
 #[path = "workload_vocabulary/mod.rs"]
 mod public_api_workload_vocabulary;
 mod query_contract_helpers;

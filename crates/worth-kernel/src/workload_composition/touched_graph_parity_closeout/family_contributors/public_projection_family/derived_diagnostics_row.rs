@@ -18,15 +18,16 @@ pub(super) fn current_derived_diagnostics_contributor_row(
             format!("{error:?}"),
         )
     })?;
-    let projection = current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy(
-        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
-    )
-    .map_err(|error| {
-        PublicProjectionContributorCatalogError::new(
-            PublicProjectionContributorCatalogErrorKind::CurrentSurfaceUnavailable,
-            error.detail(),
+    let projection =
+        current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy(
+            WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
         )
-    })?;
+        .map_err(|error| {
+            PublicProjectionContributorCatalogError::new(
+                PublicProjectionContributorCatalogErrorKind::CurrentSurfaceUnavailable,
+                error.detail(),
+            )
+        })?;
     derived_diagnostics_contributor_row_from_projection(&projection)
 }
 

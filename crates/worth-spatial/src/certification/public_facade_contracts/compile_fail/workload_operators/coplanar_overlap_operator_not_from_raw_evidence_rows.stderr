@@ -5,7 +5,7 @@ error[E0599]: no function or associated item named `from_consumed_evidence` foun
   |                                              ^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `CoplanarOverlapWorkloadOperator`
   |
 note: if you're trying to build a new `CoplanarOverlapWorkloadOperator`, consider using `CoplanarOverlapWorkloadOperator::from_stage_links` which returns `CoplanarOverlapWorkloadOperator`
- --> src/workload_platform/workload_operators/coplanar_overlap.rs
+ --> src/workload_platform/planar_boolean_overlap_region_extraction/legacy_operator_surface/operator.rs
   |
   |     pub fn from_stage_links(consumed_stage_links: &WorkloadEvidenceStageLinkSet) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -35,6 +35,7 @@ use super::{
     CompletedBooleanLoopReconstructionProducts, CompletedBooleanSplitHandoff,
     WorkloadCompositionError,
 };
+use crate::workload_composition::current_touched_graph_readiness_handoff;
 
 pub struct PlanarBooleanLoopReconstructionCloseoutInput<'a> {
     split_decision_log_receipt: &'a PlanarBooleanSplitDecisionLogReceipt,
@@ -117,8 +118,11 @@ impl CompletedBooleanSplitHandoff {
             WorkloadCompositionError::LoopReconstructionCloseout(denial.human_reason().to_string())
         })?;
         let loop_request = PlanarBooleanLoopReconstructionRequest::admit(
-            PlanarBooleanLoopReconstructionRequestInput::from_split_consumption(
+            PlanarBooleanLoopReconstructionRequestInput::from_split_consumption_and_readiness(
                 &loop_split_consumption,
+                &current_touched_graph_readiness_handoff().map_err(|error| {
+                    WorkloadCompositionError::LoopReconstructionCloseout(error.detail().to_string())
+                })?,
             ),
         )
         .map_err(|denial| {
@@ -303,6 +307,9 @@ impl CompletedBooleanSplitHandoff {
             role_boundary.containment_evidence_postures().clone(),
             degenerate_boundary.clone(),
             degenerate_boundary.outcomes().clone(),
+            identity_boundary.loop_identity_map().clone(),
+            identity_boundary.persistent_name_propagation_map().clone(),
+            identity_boundary.subshape_signature_map().clone(),
             decision_log,
             loop_ledger,
         );

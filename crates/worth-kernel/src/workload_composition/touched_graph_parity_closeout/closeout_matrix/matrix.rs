@@ -61,7 +61,9 @@ impl WorthTouchedGraphCrossFamilyCloseoutMatrix {
         &self,
         family_kind: schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind,
     ) -> Option<&WorthTouchedGraphCrossFamilyCloseoutMatrixRow> {
-        self.rows.iter().find(|row| row.family_kind() == family_kind)
+        self.rows
+            .iter()
+            .find(|row| row.family_kind() == family_kind)
     }
 
     pub fn closeout_architecture_claim_digest(&self) -> &str {
@@ -73,7 +75,10 @@ impl WorthTouchedGraphCrossFamilyCloseoutMatrix {
     }
 
     pub fn covered_surface_count(&self) -> usize {
-        self.rows.iter().map(|row| row.covered_surface_count()).sum()
+        self.rows
+            .iter()
+            .map(|row| row.covered_surface_count())
+            .sum()
     }
 
     pub fn deleted_count(&self) -> usize {

@@ -2,7 +2,7 @@ use worth_kernel::workload_composition::{
     OperatorOutcome, OperatorOutcomeKind, WorkloadCatalog, WorkloadOperator,
     WorkloadOperatorFamily, WorkloadStageRequirement,
 };
-use worth_spatial::facade::workload_operators::{
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     CoplanarOverlapOperatorDenial, CoplanarOverlapWorkloadOperator,
 };
 use worth_spatial::facade::workload_vocabulary::{

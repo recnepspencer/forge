@@ -5,56 +5,24 @@ pub(crate) struct PhaseFifteenSpatialCompileFailFence {
 
 const PHASE_FIFTEEN_SPATIAL_COMPILE_FAIL_FENCES: &[PhaseFifteenSpatialCompileFailFence] = &[
     PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/struct_literals/family_declaration_not_hand_filled.rs",
-        "family-record",
+        "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/loop_ledger_only_request_entry_not_available.rs",
+        "synthetic-readiness",
     ),
     PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_input_admission/struct_literals/admitted_input_not_hand_filled.rs",
-        "admitted-input",
+        "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/request_not_hand_filled_from_copied_fields.rs",
+        "copied-overlap-rows",
     ),
     PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/closeout_not_hand_filled.rs",
-        "closeout-product",
+        "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/raw_arrangement_cells_do_not_admit_classification_input.rs",
+        "bypassed-arrangement-or-cell-proof",
     ),
     PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/assembly_input_function_not_exported.rs",
-        "legacy-closeout-facade",
+        "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/identity_map_does_not_mint_overlap_region_ledger.rs",
+        "raw-loop-and-ledger-bypass",
     ),
     PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/selected_route_support_not_exported.rs",
-        "legacy-explainer-import",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_public_closeout/planner_route_assembly_input_not_exported.rs",
-        "public-closeout-assembly-input",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/product_not_hand_filled.rs",
-        "compiled-product-identity",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/rebuild_denial_not_hand_filled.rs",
-        "rebuild-denial",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/reuse_decision_not_exported.rs",
-        "reuse-decision",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/admitted_input_not_hand_filled.rs",
-        "admitted-input",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/declaration_not_hand_filled.rs",
-        "family-record",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/selected_family_not_hand_filled.rs",
-        "selected-equivalence-family",
-    ),
-    PhaseFifteenSpatialCompileFailFence::new(
-        "src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/struct_literals/lowered_identity_not_hand_filled.rs",
-        "equivalence-policy-identity",
+        "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/public_contract_fence_input_not_exported.rs",
+        "phase-fifteen-public-contract-string-bypass",
     ),
 ];
 

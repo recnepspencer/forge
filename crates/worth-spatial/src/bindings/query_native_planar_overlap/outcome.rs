@@ -6,11 +6,11 @@ use crate::planar_contracts::coplanar_overlap_contract::{
 };
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
 use crate::workload_platform::coplanar_overlap_storm::CoplanarOverlapStormWorkloadError;
+use crate::workload_platform::planar_boolean_overlap_region_extraction::CoplanarOverlapOperatorReceipt;
 use crate::workload_platform::user_response::{
     WorthPolicyDecision, WorthUserOutcome, WorthUserOutcomeCauseKind, WorthUserOutcomeKind,
     WorthUserResponseSource, WorthUserResponseWorkload,
 };
-use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CoplanarOverlapUserOutcomeKind {

@@ -16,6 +16,6 @@ pub use validation::{
     WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind,
 };
 
-pub(crate) use current::current_matrix_authority;
 pub(crate) use current::closeout_matrix_from_authorities;
+pub(crate) use current::current_matrix_authority;
 pub(crate) use validation::validate_closeout_matrix;

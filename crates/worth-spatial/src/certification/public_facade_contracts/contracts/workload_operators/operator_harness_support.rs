@@ -1,6 +1,6 @@
 use worth_kernel::workload_composition::WorkloadCatalog;
 use worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle;
-use worth_spatial::facade::workload_operators::{
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     CoplanarOverlapOperatorDenial, CoplanarOverlapWorkloadOperator,
 };
 use worth_spatial::facade::workload_vocabulary::{

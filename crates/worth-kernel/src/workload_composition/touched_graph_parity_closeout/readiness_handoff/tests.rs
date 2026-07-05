@@ -27,6 +27,7 @@ fn milestone_seven_five_readiness_input_is_sufficient_without_route_rediscovery(
         assert!(!readiness.selected_route_identity_digest().is_empty());
         assert!(!readiness.selected_product_identity_digest().is_empty());
         assert!(!readiness.touched_closure_digest().is_empty());
+        assert!(!readiness.selected_plan_digest().is_empty());
         assert!(!readiness.overlap_identity_digests().is_empty());
         assert_eq!(
             readiness.representative_family_coverage(),
@@ -86,6 +87,10 @@ fn milestone_seven_five_readiness_input_is_sufficient_without_route_rediscovery(
             readiness.touched_closure_digest()
         );
         assert_eq!(
+            consumer.selected_plan_digest(),
+            readiness.selected_plan_digest()
+        );
+        assert_eq!(
             consumer.overlap_identity_digests(),
             readiness.overlap_identity_digests()
         );
@@ -124,6 +129,7 @@ fn milestone_seven_five_readiness_input_rejects_missing_family_proof() {
             readiness.claim().clone(),
             readiness.residue_classification(),
             readiness.touched_closure_digest(),
+            readiness.selected_plan_digest(),
             readiness.overlap_identity_digests().to_vec(),
             reduced_coverage,
             readiness.topology_query_posture_digest(),
@@ -153,6 +159,7 @@ fn milestone_seven_five_readiness_input_carries_closed_architecture_digest() {
             readiness.claim().clone(),
             readiness.residue_classification(),
             readiness.touched_closure_digest(),
+            readiness.selected_plan_digest(),
             readiness.overlap_identity_digests().to_vec(),
             readiness.representative_family_coverage().to_vec(),
             readiness.topology_query_posture_digest(),

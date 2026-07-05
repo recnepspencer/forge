@@ -1,4 +1,6 @@
-use super::current::{current_matrix_authority, current_worth_touched_graph_cross_family_closeout_matrix};
+use super::current::{
+    current_matrix_authority, current_worth_touched_graph_cross_family_closeout_matrix,
+};
 use super::matrix::WorthTouchedGraphCrossFamilyCloseoutMatrix;
 use super::row::WorthTouchedGraphCrossFamilyCloseoutMatrixRow;
 use super::validation::{
@@ -6,8 +8,7 @@ use super::validation::{
 };
 use crate::workload_composition::{
     current_live_coverage_ledger, current_representative_selected_route_parity_path,
-    current_touched_graph_readiness_handoff,
-    current_worth_touched_graph_conflict_public_closeout,
+    current_touched_graph_readiness_handoff, current_worth_touched_graph_conflict_public_closeout,
 };
 
 fn run_stack_heavy_closeout_matrix_test(test: impl FnOnce() + Send + 'static) {
@@ -36,7 +37,9 @@ fn cross_family_closeout_matrix_rejects_uncertified_family_kinds() {
             &live_ledger,
             &readiness,
             &representative_path,
-            closeout.architecture_alignment_report().deleted_authority_rows(),
+            closeout
+                .architecture_alignment_report()
+                .deleted_authority_rows(),
         )
         .expect("current matrix authority");
 
@@ -93,7 +96,9 @@ fn cross_family_closeout_matrix_rejects_missing_public_projection_certification(
             &live_ledger,
             &readiness,
             &representative_path,
-            closeout.architecture_alignment_report().deleted_authority_rows(),
+            closeout
+                .architecture_alignment_report()
+                .deleted_authority_rows(),
         )
         .expect("current matrix authority");
         authority.public_proof_parity_passed = false;

@@ -1,0 +1,9 @@
+error[E0599]: no method named `admit_shared_area_components` found for struct `PlanarBooleanAreaOverlapComponentSet` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/area_overlap_components_do_not_admit_shared_area_components.rs:21:10
+   |
+20 |       let _ = area_overlap_components
+   |  _____________-
+21 | |         .admit_shared_area_components(&containment_map(), &winding_field());
+   | |         -^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanAreaOverlapComponentSet`
+   | |_________|
+   |

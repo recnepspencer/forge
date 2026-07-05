@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::workload_operators`
+ --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/legacy_workload_operator_facade_not_public.rs:1:28
+  |
+1 | use worth_spatial::facade::workload_operators::CoplanarOverlapWorkloadOperator;
+  |                            ^^^^^^^^^^^^^^^^^^ could not find `workload_operators` in `facade`

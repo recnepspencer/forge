@@ -76,6 +76,9 @@ fn boolean_stage_for_requirement(
         WorkloadStageRequirement::BooleanLoopReconstruction => {
             Some(WorkloadEvidenceStage::BooleanLoopReconstruction)
         }
+        WorkloadStageRequirement::BooleanOverlapRegionExtraction => {
+            Some(WorkloadEvidenceStage::BooleanAssemble)
+        }
         _ => None,
     }
 }

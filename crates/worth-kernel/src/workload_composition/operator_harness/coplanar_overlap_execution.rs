@@ -1,4 +1,5 @@
 use forge_query::facade::ForgeQueryDomainOperatingContext;
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::CoplanarOverlapWorkloadOperator;
 use worth_spatial::facade::planar_local_frame::PlanarLocalFrameCertificateQueryDomain;
 use worth_spatial::facade::planar_overlap::CoplanarOverlapContractQueryDomain;
 use worth_spatial::facade::planar_precision::PlanarPrecisionCertificationQueryDomain;
@@ -8,7 +9,6 @@ use worth_spatial::facade::planar_segment_segment::CertifiedSegmentSegment2DQuer
 use worth_spatial::facade::planar_signed_area::CertifiedSignedArea2DQueryDomain;
 use worth_spatial::facade::planar_winding::CertifiedPolygonWinding2DQueryDomain;
 use worth_spatial::facade::projected_overlap_faces::CoplanarOverlapExtractionBundle;
-use worth_spatial::facade::workload_operators::CoplanarOverlapWorkloadOperator;
 
 use super::{
     BatchAdmissionExecutionOperatorRun, OperatorOutcome, OperatorRun, OperatorWorkloadError,

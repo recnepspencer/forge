@@ -1,5 +1,5 @@
-use super::current::current_cross_family_coverage_inventory;
 use super::claim_derivation::derive_residue_rows;
+use super::current::current_cross_family_coverage_inventory;
 use super::ledger_row::ArchitectureClaimLedgerRowKind;
 use super::live_ledger::{
     current_live_coverage_ledger, derive_live_coverage_ledger, LiveCoverageLedgerError,
@@ -222,9 +222,10 @@ fn residue_collapse_is_exact_and_mechanically_derived() {
             assert!(row.mechanically_unreachable_from_ordinary_path());
         }
 
-        for row in residue_rows.iter().filter(|row| {
-            row.claim_kind() == ArchitectureClaimLedgerRowKind::BlockedOutsideRoadmap
-        }) {
+        for row in residue_rows
+            .iter()
+            .filter(|row| row.claim_kind() == ArchitectureClaimLedgerRowKind::BlockedOutsideRoadmap)
+        {
             assert!(row.mechanically_unreachable_from_ordinary_path());
         }
     });

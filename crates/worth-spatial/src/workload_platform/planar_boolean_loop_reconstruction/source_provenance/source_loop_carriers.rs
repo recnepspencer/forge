@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
 use crate::workload_platform::planar_boolean_events::PlanarBooleanLoopRole;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -7,6 +8,7 @@ pub struct PlanarBooleanLoopSourceCarrierRow {
     source_loop_carrier_identity: String,
     recovered_carrier_identity: String,
     carrier_identity: String,
+    operand_side: PlanarBooleanCommonPlaneOperandSide,
     source_face_identity: String,
     source_loop_identity: String,
     source_edge_identity: String,
@@ -23,6 +25,7 @@ impl PlanarBooleanLoopSourceCarrierRow {
         source_loop_carrier_identity: String,
         recovered_carrier_identity: String,
         carrier_identity: String,
+        operand_side: PlanarBooleanCommonPlaneOperandSide,
         source_face_identity: String,
         source_loop_identity: String,
         source_edge_identity: String,
@@ -36,6 +39,7 @@ impl PlanarBooleanLoopSourceCarrierRow {
             source_loop_carrier_identity,
             recovered_carrier_identity,
             carrier_identity,
+            operand_side,
             source_face_identity,
             source_loop_identity,
             source_edge_identity,
@@ -57,6 +61,10 @@ impl PlanarBooleanLoopSourceCarrierRow {
 
     pub fn carrier_identity(&self) -> &str {
         &self.carrier_identity
+    }
+
+    pub fn operand_side(&self) -> PlanarBooleanCommonPlaneOperandSide {
+        self.operand_side
     }
 
     pub fn source_face_identity(&self) -> &str {

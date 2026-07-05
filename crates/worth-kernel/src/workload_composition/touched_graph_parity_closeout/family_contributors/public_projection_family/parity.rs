@@ -172,7 +172,7 @@ impl PublicProjectionParityRow {
     pub const fn kind(&self) -> PublicProjectionContributorRowKind {
         self.kind
     }
-    pub const fn family_kind(&self) -> schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind {
+    pub const fn family_kind(&self) -> schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind{
         self.kind.family_kind()
     }
     pub const fn current_packet_or_identity_source(&self) -> &'static str {

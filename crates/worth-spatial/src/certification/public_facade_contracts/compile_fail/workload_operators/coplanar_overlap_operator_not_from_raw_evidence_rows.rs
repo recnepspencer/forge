@@ -1,4 +1,4 @@
-use worth_spatial::facade::workload_operators::CoplanarOverlapWorkloadOperator;
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::CoplanarOverlapWorkloadOperator;
 use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceRow;
 
 fn main() {

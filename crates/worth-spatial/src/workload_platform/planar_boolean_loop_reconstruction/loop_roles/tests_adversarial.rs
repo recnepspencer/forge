@@ -1,3 +1,4 @@
+use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
 use crate::workload_platform::planar_boolean_events::PlanarBooleanLoopRole;
 use crate::workload_platform::planar_boolean_loop_reconstruction::{
     PlanarBooleanAdmittedReconstructedLoop, PlanarBooleanAdmittedReconstructedLoopSet,
@@ -73,6 +74,7 @@ fn single_source_born_loop_does_not_coerce_into_preserved_source_role() {
                 "source-carrier:solo".to_string(),
                 "recovered-carrier:solo".to_string(),
                 "carrier:solo".to_string(),
+                PlanarBooleanCommonPlaneOperandSide::Left,
                 "source-face:solo".to_string(),
                 "source-loop:solo".to_string(),
                 "source-edge:solo".to_string(),
@@ -206,6 +208,7 @@ fn reconstructed_loop_records_split_source_containment_evidence() {
                 "source-carrier:split-source-containment".to_string(),
                 "recovered-carrier:split-source-containment".to_string(),
                 "carrier:split-source-containment".to_string(),
+                PlanarBooleanCommonPlaneOperandSide::Left,
                 "source-face:split-source-containment".to_string(),
                 "source-loop:split-source-containment".to_string(),
                 "source-edge:split-source-containment".to_string(),

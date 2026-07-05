@@ -232,18 +232,39 @@ Done when:
 
 ## Milestone 7.6: Fragment Classification
 
+Spec:
+[milestone-7.6.md](./milestone-7.6.md)
+
 Freeze result-fragment classification after split and overlap extraction.
 
 Closes:
+- canonical fragment-classification request from the `7.5` overlap-region
+  ledger receipt
+- classification fragment subjects recovered from overlap-ledger products
+  rather than raw loops, raw split fragments, raw overlap chains, or local
+  geometry scans
+- operand membership, boundary posture, and coplanar-overlap classification
+  as separate typed products
+- operation-rule lowering for union, intersect, A-minus-B, and B-minus-A before
+  keep/discard assignment executes
 - inside / outside / boundary classification
 - keep / discard labeling for union, intersect, and subtract
 - coplanar-overlap classification rules
 - typed ambiguity posture and policy-required exits
 - deterministic classification tie-breaks
+- one canonical classification ledger receipt for `7.7` face assembly
 
 Done when:
-- every admitted fragment has a typed classification result or a typed
-  ambiguity / denial outcome
+- every admitted `7.5` overlap ledger can produce one canonical fragment
+  classification ledger or a typed localized denial
+- every admitted fragment has a typed keep, discard, ambiguity, or denial
+  outcome
+- boundary-only contact cannot become kept area without typed operation-rule
+  proof
+- subtraction operand roles cannot drift under operand-order variation
+- face assembly can consume `PlanarBooleanFragmentClassificationLedgerReceipt`
+  without reopening raw fragments, loops, overlap regions, inside/outside
+  tests, or keep/discard summaries
 
 ## Milestone 7.7: Planar Face Assembly
 

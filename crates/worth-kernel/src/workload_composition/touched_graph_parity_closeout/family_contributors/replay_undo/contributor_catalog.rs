@@ -1,7 +1,6 @@
 use crate::workload_composition::planner_owned_routing::{
     current_worth_touched_graph_conflict_selected_route_packet,
-    current_worth_workload_ordinary_consumer_cutover,
-    WorthTouchedGraphConflictSelectedRoutePacket,
+    current_worth_workload_ordinary_consumer_cutover, WorthTouchedGraphConflictSelectedRoutePacket,
     WorthWorkloadOrdinaryConsumerCutover,
 };
 use crate::workload_composition::touched_graph_parity_closeout::family_contributors::{
@@ -154,14 +153,13 @@ fn validate_catalog_rows(
             format!("{error:?}"),
         )
     })?;
-    let selected_route = current_worth_touched_graph_conflict_selected_route_packet().map_err(
-        |error| {
+    let selected_route =
+        current_worth_touched_graph_conflict_selected_route_packet().map_err(|error| {
             ReplayUndoFamilyContributorCatalogError::new(
                 ReplayUndoFamilyContributorCatalogErrorKind::CurrentSurfaceUnavailable,
                 error.detail(),
             )
-        },
-    )?;
+        })?;
     validate_catalog_rows_against_authorities(rows, &selected_route, &cutover)
 }
 

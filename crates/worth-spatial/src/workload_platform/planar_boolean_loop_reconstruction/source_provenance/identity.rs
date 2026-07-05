@@ -79,7 +79,11 @@ pub(crate) fn fragment_membership_map_identity(
 pub(crate) fn overlap_chain_lineage_identity(
     request_identity: &str,
     chain_identity: &str,
+    member_identities: &[String],
     fragment_identities: &[String],
+    source_loop_identities: &[String],
+    source_edge_identities: &[String],
+    boundary_roles: &[crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanOverlapChainBoundaryRole],
 ) -> String {
     let mut parts = vec![
         "planar-boolean-loop-overlap-chain-lineage".to_string(),
@@ -87,9 +91,29 @@ pub(crate) fn overlap_chain_lineage_identity(
         format!("chain:{chain_identity}"),
     ];
     parts.extend(
+        member_identities
+            .iter()
+            .map(|member_identity| format!("member:{member_identity}")),
+    );
+    parts.extend(
         fragment_identities
             .iter()
             .map(|fragment_identity| format!("fragment:{fragment_identity}")),
+    );
+    parts.extend(
+        source_loop_identities
+            .iter()
+            .map(|source_loop_identity| format!("source-loop:{source_loop_identity}")),
+    );
+    parts.extend(
+        source_edge_identities
+            .iter()
+            .map(|source_edge_identity| format!("source-edge:{source_edge_identity}")),
+    );
+    parts.extend(
+        boundary_roles
+            .iter()
+            .map(|boundary_role| format!("boundary-role:{boundary_role:?}")),
     );
     truth_digest_parts(TruthDigestScope::ArtifactIdentity, &parts)
 }

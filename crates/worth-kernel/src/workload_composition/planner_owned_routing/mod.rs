@@ -75,10 +75,9 @@ pub use public_proof::{
     WorthTouchedGraphConflictArchitectureAlignmentReportRow,
     WorthTouchedGraphConflictDeletionAlignmentRow, WorthTouchedGraphConflictMilestoneFifteenSeed,
     WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError,
-    WorthTouchedGraphConflictPublicCloseoutErrorKind,
-    WorthTouchedGraphConflictQueryGapKind, WorthTouchedGraphConflictResidueBoundaryPosture,
-    WorthTouchedGraphConflictResidueChain, WorthTouchedGraphConflictResidueDisposition,
-    WorthTouchedGraphConflictResidueRow,
+    WorthTouchedGraphConflictPublicCloseoutErrorKind, WorthTouchedGraphConflictQueryGapKind,
+    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
+    WorthTouchedGraphConflictResidueDisposition, WorthTouchedGraphConflictResidueRow,
 };
 #[cfg(test)]
 pub(crate) use replay_undo_route::{

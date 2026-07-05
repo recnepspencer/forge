@@ -1,7 +1,5 @@
 use super::current::current_worth_touched_graph_roadmap_completion_gate;
-use crate::workload_composition::{
-    planner_owned_routing::run_stack_heavy_planner_owned_routing_test,
-};
+use crate::workload_composition::planner_owned_routing::run_stack_heavy_planner_owned_routing_test;
 
 #[test]
 fn touched_graph_roadmap_completion_gate_requires_unified_architecture() {
@@ -21,7 +19,8 @@ fn touched_graph_roadmap_completion_gate_requires_unified_architecture() {
         );
         assert_eq!(
             gate.closeout_architecture_claim_digest(),
-            gate.live_coverage_ledger().closeout_architecture_claim_digest()
+            gate.live_coverage_ledger()
+                .closeout_architecture_claim_digest()
         );
         assert_eq!(
             gate.readiness_handoff().source_firewall_digest(),

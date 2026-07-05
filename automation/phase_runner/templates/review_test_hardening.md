@@ -43,6 +43,15 @@ Do not treat each sibling leak as a separate future turn if it is already
 visible now. The repair turn should receive the widest honest fix set it can
 substantively close in one pass.
 
+For algorithmic product phases, do not stop at the first semantic
+insufficiency. After identifying the primary defect, enumerate the adjacent
+invariants that a real product of this kind must satisfy, especially identity
+basis, ordering basis, component separation, replay stability, denial
+completeness, performance shape, and downstream sufficiency. If those adjacent
+invariants are visibly weak in the current implementation, include them in the
+same review finding set so the repair turn can fix the whole family rather than
+only the nearest symptom.
+
 Use the qa-loop skill and review the real implementation against:
 
 - the spec and this phase's acceptance evidence

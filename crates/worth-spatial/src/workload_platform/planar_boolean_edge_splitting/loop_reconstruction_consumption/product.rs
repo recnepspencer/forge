@@ -12,6 +12,7 @@ pub struct PlanarBooleanLoopReconstructionSplitConsumption {
     split_ledger_downstream_identity: String,
     split_request_identity: String,
     workload_stage_index_identity: String,
+    selected_plan_digest: String,
     counters: PlanarBooleanLoopReconstructionSplitConsumptionCounters,
 }
 
@@ -56,6 +57,7 @@ impl PlanarBooleanLoopReconstructionSplitConsumption {
                 .to_string(),
             split_request_identity: downstream.split_request_identity().to_string(),
             workload_stage_index_identity: downstream.workload_stage_index_identity().to_string(),
+            selected_plan_digest: downstream.lookup_selected_plan_digest().to_string(),
             counters,
         })
     }
@@ -84,6 +86,10 @@ impl PlanarBooleanLoopReconstructionSplitConsumption {
         &self.workload_stage_index_identity
     }
 
+    pub fn lookup_selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+
     pub fn counters(&self) -> PlanarBooleanLoopReconstructionSplitConsumptionCounters {
         self.counters
     }
@@ -95,6 +101,7 @@ impl PlanarBooleanLoopReconstructionSplitConsumption {
             && !self.split_ledger_downstream_identity.is_empty()
             && !self.split_request_identity.is_empty()
             && !self.workload_stage_index_identity.is_empty()
+            && !self.selected_plan_digest.is_empty()
             && self.counters.downstream_gate_consumed() == 1
             && self.counters.receipts_consumed() > 0
             && self.counters.spatial_lookup_products_consumed() == 1

@@ -245,10 +245,8 @@ fn replay_undo_boundary_rows(
 
 fn coplanar_overlap_rows(
 ) -> Result<Vec<ConflictBatchAdmissionInventoryRow>, ConflictBatchAdmissionInventoryError> {
-    let operator_path =
-        "crates/worth-spatial/src/workload_platform/workload_operators/coplanar_overlap.rs";
-    let receipt_path =
-        "crates/worth-spatial/src/workload_platform/workload_operators/coplanar_overlap_receipt.rs";
+    let operator_path = "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/legacy_operator_surface/operator.rs";
+    let receipt_path = "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/legacy_operator_surface/receipt.rs";
     Ok(vec![
         row(Surface::CoplanarOverlapWorkloadOperator, operator_path, "CoplanarOverlapWorkloadOperator", Owner::WorthSpatial, "workload overlap operator callers", AuthorityKind::OperationalOverlapExecution, Disposition::Migrate, ReplacementPhase::PhaseThreeConflictCatalog, "operator is current operational overlap surface before shared conflict families exist", "spatial conflict family catalog names equivalent overlap authority", CertificationPosture::OrdinaryProductionReachable, CostPosture::OperationalOverlapExecution, QuerySurface::NotQuery, RowScope::ConcreteSource)?,
         row(Surface::CoplanarOverlapWorkloadOperatorFromStageLinks, operator_path, "CoplanarOverlapWorkloadOperator::from_stage_links", Owner::WorthSpatial, "coplanar overlap workload setup", AuthorityKind::OperationalOverlapExecution, Disposition::Migrate, ReplacementPhase::PhaseFourAdmittedConflictInput, "stage-link constructor is current overlap input boundary", "admitted conflict input accepts only sealed prior proof links", CertificationPosture::OrdinaryProductionReachable, CostPosture::PriorProofBoundary, QuerySurface::NotQuery, RowScope::ConcreteSource)?,

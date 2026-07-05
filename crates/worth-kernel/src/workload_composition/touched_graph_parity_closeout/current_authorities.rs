@@ -13,21 +13,20 @@ use super::readiness_handoff::{
 };
 use super::representative_path::representative_selected_route_parity_path_from_authorities;
 use super::{ReadinessHandoffError, RepresentativeSelectedRouteParityPath};
-use crate::workload_composition::{
-    current_worth_touched_graph_conflict_source_firewall_closeout, LiveCoverageLedgerError,
-    WorthTouchedGraphConflictSourceFirewallCloseout,
-};
 use crate::workload_composition::planner_owned_routing::{
     current_replay_undo_transaction_route_packet,
     current_worth_touched_graph_conflict_compiled_product_reuse_route_packet,
     public_proof::{current_public_closeout_components, publish_from_parts},
     require_matching_projection_authority, select_rich_localization,
-    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
-    WorthTouchedGraphConflictDerivedDiagnosticProjection, WorthTouchedGraphConflictPublicFacade,
-    WorthTouchedGraphConflictPublicFacadeError, WorthTouchedGraphConflictPublicFacadeErrorKind,
-    WorthTouchedGraphConflictPublicProofInspection,
     CompiledProductReusePlannerRoutePacket, ReplayUndoPlannerRoutePacket,
-    WorthTouchedGraphConflictPublicCloseout,
+    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
+    WorthTouchedGraphConflictDerivedDiagnosticProjection, WorthTouchedGraphConflictPublicCloseout,
+    WorthTouchedGraphConflictPublicFacade, WorthTouchedGraphConflictPublicFacadeError,
+    WorthTouchedGraphConflictPublicFacadeErrorKind, WorthTouchedGraphConflictPublicProofInspection,
+};
+use crate::workload_composition::{
+    current_worth_touched_graph_conflict_source_firewall_closeout, LiveCoverageLedgerError,
+    WorthTouchedGraphConflictSourceFirewallCloseout,
 };
 use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityReadinessInput;
 
@@ -46,13 +45,12 @@ pub(crate) struct CurrentTouchedGraphParityCloseoutAuthoritiesError {
     detail: String,
 }
 
-pub(crate) fn current_touched_graph_parity_closeout_authorities(
-) -> Result<
+pub(crate) fn current_touched_graph_parity_closeout_authorities() -> Result<
     CurrentTouchedGraphParityCloseoutAuthorities,
     CurrentTouchedGraphParityCloseoutAuthoritiesError,
 > {
-    let public_closeout_components = current_public_closeout_components()
-        .map_err(|error| authorities_error(error.detail()))?;
+    let public_closeout_components =
+        current_public_closeout_components().map_err(|error| authorities_error(error.detail()))?;
     let public_closeout = publish_from_parts(
         public_closeout_components
             .input()
@@ -86,9 +84,8 @@ pub(crate) fn current_touched_graph_parity_closeout_authorities(
         Ok(value) => value,
         Err(error) => return Err(authorities_error(format!("{error:?}"))),
     };
-    let replay_route: ReplayUndoPlannerRoutePacket =
-        current_replay_undo_transaction_route_packet()
-            .map_err(|error| authorities_error(error.detail()))?;
+    let replay_route: ReplayUndoPlannerRoutePacket = current_replay_undo_transaction_route_packet()
+        .map_err(|error| authorities_error(error.detail()))?;
     let reuse_route: CompiledProductReusePlannerRoutePacket =
         current_worth_touched_graph_conflict_compiled_product_reuse_route_packet()
             .map_err(|error| authorities_error(error.detail()))?;
@@ -101,12 +98,9 @@ pub(crate) fn current_touched_graph_parity_closeout_authorities(
         reuse_route,
     )
     .map_err(|error| authorities_error(error.detail()))?;
-    let live_coverage_ledger = live_coverage_ledger_from_authorities(
-        &inventory,
-        &public_closeout,
-        selected_route_packet,
-    )
-    .map_err(live_coverage_ledger_error)?;
+    let live_coverage_ledger =
+        live_coverage_ledger_from_authorities(&inventory, &public_closeout, selected_route_packet)
+            .map_err(live_coverage_ledger_error)?;
     let readiness_handoff = touched_graph_readiness_handoff_from_authorities(
         &representative_path,
         &live_coverage_ledger,
@@ -131,13 +125,17 @@ pub(crate) fn current_touched_graph_parity_closeout_authorities(
     })
 }
 
-fn authorities_error(detail: impl Into<String>) -> CurrentTouchedGraphParityCloseoutAuthoritiesError {
+fn authorities_error(
+    detail: impl Into<String>,
+) -> CurrentTouchedGraphParityCloseoutAuthoritiesError {
     CurrentTouchedGraphParityCloseoutAuthoritiesError {
         detail: detail.into(),
     }
 }
 
-fn readiness_error(error: ReadinessHandoffError) -> CurrentTouchedGraphParityCloseoutAuthoritiesError {
+fn readiness_error(
+    error: ReadinessHandoffError,
+) -> CurrentTouchedGraphParityCloseoutAuthoritiesError {
     authorities_error(error.detail())
 }
 
@@ -152,7 +150,9 @@ impl CurrentTouchedGraphParityCloseoutAuthorities {
         &self.public_closeout
     }
 
-    pub(crate) fn source_firewall_closeout(&self) -> &WorthTouchedGraphConflictSourceFirewallCloseout {
+    pub(crate) fn source_firewall_closeout(
+        &self,
+    ) -> &WorthTouchedGraphConflictSourceFirewallCloseout {
         &self.source_firewall_closeout
     }
 
@@ -184,11 +184,12 @@ fn build_public_facade_from_authorities(
     selected_route_packet: &crate::workload_composition::WorthTouchedGraphConflictSelectedRoutePacket,
     artifact_policy: WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
 ) -> Result<WorthTouchedGraphConflictPublicFacade, WorthTouchedGraphConflictPublicFacadeError> {
-    let derived_diagnostics = WorthTouchedGraphConflictDerivedDiagnosticProjection::from_selected_route_packet(
-        selected_route_packet,
-        artifact_policy,
-        select_rich_localization(artifact_policy, selected_route_packet),
-    );
+    let derived_diagnostics =
+        WorthTouchedGraphConflictDerivedDiagnosticProjection::from_selected_route_packet(
+            selected_route_packet,
+            artifact_policy,
+            select_rich_localization(artifact_policy, selected_route_packet),
+        );
     require_matching_projection_authority(&public_closeout, &derived_diagnostics).map_err(
         |detail| {
             WorthTouchedGraphConflictPublicFacadeError::new(

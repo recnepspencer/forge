@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::workload_composition::planner_owned_routing::derived_diagnostics::{
     current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
@@ -23,6 +25,18 @@ pub fn current_worth_touched_graph_conflict_public_facade(
 pub fn current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
     artifact_policy: WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
 ) -> Result<WorthTouchedGraphConflictPublicFacade, WorthTouchedGraphConflictPublicFacadeError> {
+    static MINIMAL_CACHE: OnceLock<WorthTouchedGraphConflictPublicFacade> = OnceLock::new();
+    static RICH_CACHE: OnceLock<WorthTouchedGraphConflictPublicFacade> = OnceLock::new();
+    let cache = match artifact_policy {
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth => {
+            &MINIMAL_CACHE
+        }
+        WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::RichLocalization => &RICH_CACHE,
+    };
+    if let Some(cached) = cache.get() {
+        return Ok(cached.clone());
+    }
+
     let public_closeout =
         current_worth_touched_graph_conflict_public_closeout().map_err(|error| {
             WorthTouchedGraphConflictPublicFacadeError::new(
@@ -53,6 +67,9 @@ pub fn current_worth_touched_graph_conflict_public_facade_with_artifact_policy(
         public_proof_inspection(public_closeout),
         derived_diagnostics,
     ))
+    .inspect(|facade| {
+        let _ = cache.set(facade.clone());
+    })
 }
 
 fn public_proof_inspection(

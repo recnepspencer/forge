@@ -1,5 +1,8 @@
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionDenial;
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
+    PlanarBooleanOverlapRegionSummumBonumCloseoutDenial,
+};
 use worth_spatial::facade::workload_vocabulary::{
     SpatialEvidenceLookupDenial, SpatialGeometryEvidenceTouchDenial,
     SpatialGeometryEvidenceTouchDenialKind, WorkloadEvidenceStage,
@@ -114,6 +117,9 @@ pub enum WorkloadCompositionError {
     MismatchedEvidenceStage(WorkloadEvidenceStage),
     LoopReconstructionCloseout(String),
     LoopRuntimeRegistration(String),
+    OverlapRegionCloseout(String),
+    OverlapRegionSummumBonumCloseout(PlanarBooleanOverlapRegionSummumBonumCloseoutDenial),
+    OverlapRuntimeRegistration(String),
     BooleanChainHandoff(String),
     SpatialTouchAuthority(SpatialGeometryEvidenceTouchDenial),
     SpatialEvidenceLookup(SpatialEvidenceLookupDenial),
@@ -152,6 +158,9 @@ impl WorkloadCompositionError {
             ),
             Self::LoopReconstructionCloseout(reason) => reason.clone(),
             Self::LoopRuntimeRegistration(reason) => reason.clone(),
+            Self::OverlapRegionCloseout(reason) => reason.clone(),
+            Self::OverlapRegionSummumBonumCloseout(denial) => denial.detail().to_string(),
+            Self::OverlapRuntimeRegistration(reason) => reason.clone(),
             Self::BooleanChainHandoff(reason) => reason.clone(),
             Self::SpatialTouchAuthority(denial) => denial.human_reason(),
             Self::SpatialEvidenceLookup(denial) => denial.detail().to_string(),
@@ -186,6 +195,15 @@ impl WorkloadCompositionError {
     pub fn replay_undo_boundary_denial(&self) -> Option<&ReplayUndoBoundaryDenial> {
         match self {
             Self::ReplayUndoBoundary(denial) => Some(denial),
+            _ => None,
+        }
+    }
+
+    pub fn overlap_region_summum_bonum_closeout_denial(
+        &self,
+    ) -> Option<&PlanarBooleanOverlapRegionSummumBonumCloseoutDenial> {
+        match self {
+            Self::OverlapRegionSummumBonumCloseout(denial) => Some(denial),
             _ => None,
         }
     }
