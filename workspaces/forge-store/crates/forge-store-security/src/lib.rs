@@ -147,7 +147,8 @@ pub use security_scope_test_authority::{
 pub use security_scope_witnesses::{
     StoreAdmittedSecurityScope, StoreCurrentAuthenticityScopeWitness,
     StoreCurrentCustodyScopeWitness, StoreCurrentKeyScopeWitness,
-    StoreCurrentSecurityScopeWitnessSet, StoreCurrentTenantScopeWitness,
+    StoreCurrentKeyVersionScopeWitness, StoreCurrentSecurityScopeWitnessSet,
+    StoreCurrentTenantScopeWitness,
 };
 pub use trust_boundary::{
     StoreBackupRestoreAfterKeyRotationBoundaryEvidence,

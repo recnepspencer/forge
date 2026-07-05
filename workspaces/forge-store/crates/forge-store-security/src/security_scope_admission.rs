@@ -77,6 +77,7 @@ pub fn evaluate_store_security_scope_admission(
     let identity = StoreSecurityScopeIdentity::from_physical_security_scope(
         declaration.physical_witness(),
         declaration.key_scope(),
+        declaration.key_version_posture(),
         declaration.tenant_scope(),
         authenticity_requirement,
         custody_posture,

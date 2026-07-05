@@ -49,7 +49,7 @@ impl BlobChunkStreamingOperation {
         self,
         window: BlobChunkStreamingWindow,
     ) -> Result<BlobChunkStreamingObservation, BlobChunkStreamingDenial> {
-        if window.identity.content_digest() != window.content_digest() {
+        if window.identity.chunk_digest() != window.content_digest() {
             return Err(BlobChunkStreamingDenial::WindowDigestMismatch);
         }
 
@@ -179,19 +179,5 @@ impl BlobChunkStreamingObservation {
 
     pub const fn counters(&self) -> BlobChunkStreamingCounterSnapshot {
         self.counters
-    }
-
-    pub(crate) fn into_candidate_parts(
-        self,
-    ) -> (
-        BlobChunkIdentity,
-        StableDigest,
-        forge_store_security::StoreSecurityScopeIdentity,
-    ) {
-        (
-            self.window.identity,
-            self.window.content_digest,
-            self.scope.identity(),
-        )
     }
 }

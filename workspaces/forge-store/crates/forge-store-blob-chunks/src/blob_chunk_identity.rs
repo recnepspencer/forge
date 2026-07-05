@@ -1,16 +1,31 @@
 use forge_store_contracts::StableDigest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlobChunkContentDigest {
+    digest: StableDigest,
+}
+
+impl BlobChunkContentDigest {
+    pub(crate) const fn from_integrity_parts(digest: StableDigest) -> Self {
+        Self { digest }
+    }
+
+    pub const fn digest(&self) -> &StableDigest {
+        &self.digest
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobChunkIdentity {
-    content_digest: StableDigest,
+    chunk_digest: StableDigest,
 }
 
 impl BlobChunkIdentity {
-    pub const fn from_digest(content_digest: StableDigest) -> Self {
-        Self { content_digest }
+    pub(crate) const fn from_integrity_parts(chunk_digest: StableDigest) -> Self {
+        Self { chunk_digest }
     }
 
-    pub const fn content_digest(&self) -> &StableDigest {
-        &self.content_digest
+    pub const fn chunk_digest(&self) -> &StableDigest {
+        &self.chunk_digest
     }
 }

@@ -1,5 +1,17 @@
 use super::reclaim_policy::{S6ReclaimPolicyEvidenceOutcomeKind, S6ReclaimPolicyEvidenceRow};
-use forge_store_blob_chunks::S6BlobReclaimNonClaimHandoff;
+use forge_foundational::{
+    aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
+};
+use forge_proof::TransitionOutcome;
+use forge_store_aspect_native::{
+    StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
+    StorePhysicalBoundaryWitness,
+};
+use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
+use forge_store_blob_chunks::{
+    BlobChunkSecurityMetadataWitness, S6BlobReclaimNonClaimHandoff, S7BlobChunkSecurityHandoff,
+};
+use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
@@ -10,13 +22,21 @@ use forge_store_physical_format::{
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
     ReclaimedByteInterpretation,
 };
+use forge_store_readiness::{
+    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
+};
 use forge_store_reclaim_policy::{
     PhysicalStoreReclaimPolicyExecutor, ReclaimPermit, ReclaimPolicyAdmission,
     ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionRequest,
     ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority, ReclaimPolicyReachabilityProof,
     ReclaimPolicyRequest, ReclaimPolicySecurityScope, StoreOwnedReclaimPolicyExecution,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::{
+    admit_store_security_scope, admitted_store_internal_security_scope_for_s6_test,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+};
 use forge_store_tiering::S6ColdTierIoPosture;
 
 #[test]
@@ -43,8 +63,22 @@ fn reclaim_policy_evidence_materializes_execution_and_non_claim_handoffs() {
         Some(ReclaimedByteInterpretation::NonObservableReclaimedStorage)
     );
 
-    let blob = S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt.clone());
+    let (blob_scope, blob_metadata) =
+        blob_reclaim_security_scope_and_metadata("store.s7.phase2.cert.reclaim");
+    let blob_admitted =
+        ReclaimPolicyAdmission::admit(authority, request_with_security_scope(&backend, blob_scope))
+            .unwrap();
+    let blob_receipt = ReclaimPolicyExecutionSession::for_store_backend(
+        &mut executor,
+        StoreOwnedReclaimPolicyExecution::for_certification_test_authority(),
+    )
+    .execute(blob_admitted)
+    .unwrap()
+    .unwrap();
+    let blob = S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(blob_receipt, blob_metadata)
+        .expect("matching blob metadata should bind reclaim handoff");
     assert!(!blob.carries_blob_lifecycle_claim());
+    assert_eq!(blob.security_metadata(), blob_metadata);
     let blob_row = S6ReclaimPolicyEvidenceRow::from_blob_non_claim_handoff(blob);
     assert_eq!(
         blob_row.outcome(),
@@ -59,6 +93,51 @@ fn reclaim_policy_evidence_materializes_execution_and_non_claim_handoffs() {
         cold_row.outcome(),
         &S6ReclaimPolicyEvidenceOutcomeKind::ColdTierNonClaimHandoff
     );
+}
+
+#[test]
+fn blob_reclaim_non_claim_handoff_denies_mismatched_security_metadata() {
+    let backend = admitted_backend();
+    let authority = ReclaimPolicyProofAuthority::for_admitted_backend(&backend);
+    let (receipt_scope, receipt_metadata) =
+        blob_reclaim_security_scope_and_metadata("store.s7.phase2.cert.reclaim.receipt");
+    let copied_admitted = admitted_blob_security_scope(
+        "store.s7.phase2.cert.reclaim.copied",
+        StoreTenantScope::MultiTenantPhysicalBoundary,
+    );
+    let copied_readiness = accept_s5_1_admitted_security_scope_readiness(
+        S51SecurityScopeReadinessReservation::blob_chunk(),
+        copied_admitted,
+    );
+    let copied_metadata = S7BlobChunkSecurityHandoff::from_s5_1_readiness(copied_readiness)
+        .expect("copied blob metadata should admit")
+        .permission()
+        .metadata();
+    let admitted = ReclaimPolicyAdmission::admit(
+        authority,
+        request_with_security_scope(&backend, receipt_scope),
+    )
+    .unwrap();
+    let mut executor = ObservingBackend;
+    let receipt = ReclaimPolicyExecutionSession::for_store_backend(
+        &mut executor,
+        StoreOwnedReclaimPolicyExecution::for_certification_test_authority(),
+    )
+    .execute(admitted)
+    .unwrap()
+    .unwrap();
+
+    let admitted =
+        S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt.clone(), receipt_metadata)
+            .expect("matching blob metadata should bind reclaim handoff");
+    assert_eq!(admitted.security_metadata(), receipt_metadata);
+
+    let denial = S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt, copied_metadata)
+        .expect_err("copied blob metadata must not bind reclaim handoff");
+    assert_eq!(denial.receipt_scope(), receipt_metadata.identity());
+    assert_eq!(denial.metadata_scope(), copied_metadata.identity());
+    assert_eq!(denial.receipt(), receipt_metadata.receipt());
+    assert_eq!(denial.metadata_receipt(), copied_metadata.receipt());
 }
 
 struct ObservingBackend;
@@ -82,6 +161,18 @@ impl PhysicalStoreReclaimPolicyExecutor for ObservingBackend {
 fn request(
     backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
 ) -> ReclaimPolicyRequest {
+    request_with_security_scope(
+        backend,
+        ReclaimPolicySecurityScope::from_admitted_scope(
+            &admitted_store_internal_security_scope_for_s6_test(),
+        ),
+    )
+}
+
+fn request_with_security_scope(
+    backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
+    security_scope: ReclaimPolicySecurityScope,
+) -> ReclaimPolicyRequest {
     let authority = ReclaimPolicyProofAuthority::for_admitted_backend(backend);
     ReclaimPolicyRequest::new()
         .for_region(PhysicalReclaimRegion::new(reference(), 4096).unwrap())
@@ -95,11 +186,112 @@ fn request(
                 PhysicalReclaimRegion::new(reference(), 4096).unwrap(),
             ),
         )
-        .with_security_scope(ReclaimPolicySecurityScope::from_admitted_scope(
-            &admitted_store_internal_security_scope_for_s6_test(),
-        ))
+        .with_security_scope(security_scope)
         .with_reclaim_permit(ReclaimPermit::new(1).unwrap())
         .with_later_handoff_policy(authority.non_claim_later_handoff())
+}
+
+fn blob_reclaim_security_scope_and_metadata(
+    identity_key: &str,
+) -> (ReclaimPolicySecurityScope, BlobChunkSecurityMetadataWitness) {
+    let admitted =
+        admitted_blob_security_scope(identity_key, StoreTenantScope::TenantPhysicalBoundary);
+    let reclaim_scope = ReclaimPolicySecurityScope::from_admitted_scope(&admitted);
+    let readiness = accept_s5_1_admitted_security_scope_readiness(
+        S51SecurityScopeReadinessReservation::blob_chunk(),
+        admitted,
+    );
+    let handoff = S7BlobChunkSecurityHandoff::from_s5_1_readiness(readiness).expect("blob handoff");
+    (reclaim_scope, handoff.permission().metadata())
+}
+
+fn admitted_blob_security_scope(
+    identity_key: &str,
+    tenant_scope: StoreTenantScope,
+) -> StoreAdmittedSecurityScope {
+    let authority = current_authority(identity_key, "chunk-authority");
+    let authenticity = StoreAuthenticityRequirement::required(
+        StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
+    );
+    let expectation = StoreSecurityScopeAdmissionExpectation::new(
+        StoreKeyScope::BlobChunkEnvelope,
+        tenant_scope,
+        authenticity,
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    let request = StoreSecurityScopeAdmissionRequest::new(
+        &authority,
+        StoreKeyScope::BlobChunkEnvelope,
+        StoreKeyVersionPosture::Current,
+        tenant_scope,
+        authenticity,
+        StoreCustodyPosture::InternalStoreCustody,
+        expectation,
+    );
+
+    match admit_store_security_scope(request) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("blob security scope should admit: {outcome:?}"),
+    }
+}
+
+fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWitness {
+    require_current_store_authority(boundary_fact(identity_key, value))
+}
+
+fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
+    let key = aspect_key(identity_key);
+    let contract = scalar_string_contract(key.clone());
+    let admitted_state = match aspects()
+        .authoritative_state()
+        .admit([validated_scalar_value(&contract, value)])
+    {
+        TransitionOutcome::Success(state) => state,
+        outcome => panic!("state admission should succeed: {outcome:?}"),
+    };
+
+    StoreAspectBoundaryFact::from_admitted_state(
+        StoreAspectIdentity::from_aspect_key(key),
+        StoreAspectAuthorityInput::new(admitted_state, physical_witness()),
+    )
+    .expect("Store boundary fact should admit matching identity")
+}
+
+fn aspect_key(raw: &str) -> AspectKey {
+    aspects().vocabulary().key(raw).unwrap()
+}
+
+fn scalar_string_contract(aspect_key: AspectKey) -> AspectContract {
+    aspects()
+        .contract()
+        .for_key(aspect_key)
+        .identified_by(aspects().vocabulary().identity(1))
+        .at_revision(aspects().vocabulary().revision(1))
+        .scalar(ScalarAspectType::String)
+}
+
+fn validated_scalar_value(
+    contract: &AspectContract,
+    value: &str,
+) -> forge_foundational::ContractValidatedAspectArtifact {
+    match aspects()
+        .validate()
+        .against(contract)
+        .value(AspectValue::String(InternedString::from(value)))
+    {
+        TransitionOutcome::Success(validated) => validated,
+        outcome => panic!("aspect validation should succeed: {outcome:?}"),
+    }
+}
+
+fn physical_witness() -> StorePhysicalBoundaryWitness {
+    StorePhysicalBoundaryWitness::from_physical_authority(
+        StorePhysicalAuthorityWitness::for_aspect_native_boundary(
+            ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+        )
+        .unwrap(),
+    )
+    .unwrap()
 }
 
 fn admitted_backend() -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {

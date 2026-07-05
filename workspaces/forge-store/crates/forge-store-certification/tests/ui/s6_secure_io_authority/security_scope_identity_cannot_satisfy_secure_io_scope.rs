@@ -4,7 +4,7 @@ use forge_store_io_scheduler::{
 };
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreSecurityScopeIdentity, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 fn main() {
@@ -18,6 +18,7 @@ fn main() {
         )
         .unwrap(),
         StoreKeyScope::StoreManagedRoot,
+        StoreKeyVersionPosture::Current,
         StoreTenantScope::StoreInternal,
         StoreAuthenticityRequirement::required(StoreAuthenticityRequirementClass::AuthenticatedFrame),
         StoreCustodyPosture::InternalStoreCustody,

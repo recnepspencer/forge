@@ -2,31 +2,58 @@ use forge_store_physical_format::ReclaimedByteInterpretation;
 use forge_store_reclaim_policy::{
     ReclaimPolicyCounterSnapshot, ReclaimPolicyExecutionReceipt, ReclaimPolicyOperation,
 };
-use forge_store_security::StoreSecurityScopeIdentity;
+
+use crate::BlobChunkSecurityMetadataWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S6BlobReclaimNonClaimHandoff {
     interpretation: ReclaimedByteInterpretation,
-    security_scope: StoreSecurityScopeIdentity,
+    security_metadata: BlobChunkSecurityMetadataWitness,
     counters: ReclaimPolicyCounterSnapshot,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S6BlobReclaimHandoffDenial {
+    receipt_scope: forge_store_security::StoreSecurityScopeIdentity,
+    metadata_scope: forge_store_security::StoreSecurityScopeIdentity,
+    receipt: forge_store_security::StoreSecurityScopeAdmissionReceipt,
+    metadata_receipt: forge_store_security::StoreSecurityScopeAdmissionReceipt,
+}
+
 impl S6BlobReclaimNonClaimHandoff {
-    pub fn from_reclaim_receipt(receipt: ReclaimPolicyExecutionReceipt) -> Self {
+    pub fn from_reclaim_receipt(
+        receipt: ReclaimPolicyExecutionReceipt,
+        metadata: BlobChunkSecurityMetadataWitness,
+    ) -> Result<Self, S6BlobReclaimHandoffDenial> {
         let policy = receipt.policy();
-        Self {
-            interpretation: receipt.observed_interpretation(),
-            security_scope: policy.security_scope().identity(),
-            counters: receipt.counters(),
+        let receipt_scope = policy.security_scope().identity();
+        let policy_receipt = policy.security_scope().receipt();
+        if receipt_scope != metadata.identity() || policy_receipt != metadata.receipt() {
+            return Err(S6BlobReclaimHandoffDenial {
+                receipt_scope,
+                metadata_scope: metadata.identity(),
+                receipt: policy_receipt,
+                metadata_receipt: metadata.receipt(),
+            });
         }
+
+        Ok(Self {
+            interpretation: receipt.observed_interpretation(),
+            security_metadata: metadata,
+            counters: receipt.counters(),
+        })
     }
 
     pub const fn interpretation(self) -> ReclaimedByteInterpretation {
         self.interpretation
     }
 
-    pub const fn security_scope(self) -> StoreSecurityScopeIdentity {
-        self.security_scope
+    pub const fn security_metadata(self) -> BlobChunkSecurityMetadataWitness {
+        self.security_metadata
+    }
+
+    pub const fn security_scope(self) -> forge_store_security::StoreSecurityScopeIdentity {
+        self.security_metadata.identity()
     }
 
     pub const fn counters(self) -> ReclaimPolicyCounterSnapshot {
@@ -45,5 +72,25 @@ impl S6BlobReclaimNonClaimHandoff {
         receipt: ReclaimPolicyExecutionReceipt,
     ) -> ReclaimPolicyOperation {
         receipt.policy().posture().operation()
+    }
+}
+
+impl S6BlobReclaimHandoffDenial {
+    pub const fn receipt_scope(self) -> forge_store_security::StoreSecurityScopeIdentity {
+        self.receipt_scope
+    }
+
+    pub const fn metadata_scope(self) -> forge_store_security::StoreSecurityScopeIdentity {
+        self.metadata_scope
+    }
+
+    pub const fn receipt(self) -> forge_store_security::StoreSecurityScopeAdmissionReceipt {
+        self.receipt
+    }
+
+    pub const fn metadata_receipt(
+        self,
+    ) -> forge_store_security::StoreSecurityScopeAdmissionReceipt {
+        self.metadata_receipt
     }
 }

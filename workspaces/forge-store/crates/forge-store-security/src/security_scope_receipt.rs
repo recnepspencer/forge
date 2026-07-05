@@ -1,8 +1,8 @@
 use crate::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionCounterSnapshot,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeDeclarationProvenance,
-    StoreSecurityScopeIdentity, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreSecurityScopeAdmissionCounterSnapshot, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeDeclarationProvenance, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,7 +110,10 @@ const fn identity_fingerprint(identity: StoreSecurityScopeIdentity) -> u64 {
             tenant_scope_tag(identity.tenant_scope()),
         ),
         mix(
-            authenticity_requirement_tag(identity.authenticity_requirement()),
+            mix(
+                key_version_posture_tag(identity.key_version_posture()),
+                authenticity_requirement_tag(identity.authenticity_requirement()),
+            ),
             custody_posture_tag(identity.custody_posture()),
         ),
     )
@@ -123,7 +126,10 @@ fn declaration_fingerprint(declaration: StoreRawSecurityScopeDeclaration) -> u64
             tenant_scope_tag(declaration.tenant_scope()),
         ),
         mix(
-            option_authenticity_requirement_tag(declaration.authenticity_requirement()),
+            mix(
+                key_version_posture_tag(declaration.key_version_posture()),
+                option_authenticity_requirement_tag(declaration.authenticity_requirement()),
+            ),
             mix(
                 option_custody_posture_tag(declaration.custody_posture()),
                 provenance_tag(declaration.provenance()),
@@ -160,6 +166,17 @@ const fn key_scope_tag(scope: StoreKeyScope) -> u64 {
         StoreKeyScope::BackupExportEnvelope => 17,
         StoreKeyScope::RepairScopeEnvelope => 18,
         StoreKeyScope::SecurityLifecycleFoundation => 19,
+    }
+}
+
+const fn key_version_posture_tag(posture: StoreKeyVersionPosture) -> u64 {
+    match posture {
+        StoreKeyVersionPosture::Current => 71,
+        StoreKeyVersionPosture::Stale => 72,
+        StoreKeyVersionPosture::RebindRequired => 73,
+        StoreKeyVersionPosture::Unsupported => 74,
+        StoreKeyVersionPosture::Unavailable => 75,
+        StoreKeyVersionPosture::Denied => 76,
     }
 }
 
