@@ -63,7 +63,10 @@ pub(crate) fn validate_closeout_matrix(
                 ),
             ));
         }
-        if !authority.family_parity_coverage.contains(&row.family_kind()) {
+        if !authority
+            .family_parity_coverage
+            .contains(&row.family_kind())
+        {
             return Err(WorthTouchedGraphCrossFamilyCloseoutMatrixError::new(
                 WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind::MissingFamilyParity,
                 format!(
@@ -85,13 +88,21 @@ pub(crate) fn validate_closeout_matrix(
             row.family_kind(),
             "covered_surface_count",
             row.covered_surface_count(),
-            authority.covered_counts.get(&row.family_kind()).copied().unwrap_or(0),
+            authority
+                .covered_counts
+                .get(&row.family_kind())
+                .copied()
+                .unwrap_or(0),
         )?;
         assert_family_count(
             row.family_kind(),
             "deleted_count",
             row.deleted_count(),
-            authority.deleted_counts.get(&row.family_kind()).copied().unwrap_or(0),
+            authority
+                .deleted_counts
+                .get(&row.family_kind())
+                .copied()
+                .unwrap_or(0),
         )?;
         assert_family_count(
             row.family_kind(),
@@ -107,13 +118,21 @@ pub(crate) fn validate_closeout_matrix(
             row.family_kind(),
             "query_gap_count",
             row.query_gap_count(),
-            authority.query_gap_counts.get(&row.family_kind()).copied().unwrap_or(0),
+            authority
+                .query_gap_counts
+                .get(&row.family_kind())
+                .copied()
+                .unwrap_or(0),
         )?;
         assert_family_count(
             row.family_kind(),
             "blocked_outside_roadmap_count",
             row.blocked_outside_roadmap_count(),
-            authority.blocked_counts.get(&row.family_kind()).copied().unwrap_or(0),
+            authority
+                .blocked_counts
+                .get(&row.family_kind())
+                .copied()
+                .unwrap_or(0),
         )?;
         if row.representative_path_covered()
             != authority

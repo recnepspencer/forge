@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanOverlapChainBoundaryRole;
 
+use super::identity::{overlap_chain_lineage_identity, overlap_chain_lineage_map_identity};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlanarBooleanLoopOverlapChainLineageRow {
     lineage_identity: String,
@@ -61,6 +63,19 @@ impl PlanarBooleanLoopOverlapChainLineageRow {
     pub fn boundary_roles(&self) -> &[PlanarBooleanOverlapChainBoundaryRole] {
         &self.boundary_roles
     }
+
+    pub(crate) fn certifies_canonical_identity(&self, request_identity: &str) -> bool {
+        self.lineage_identity
+            == overlap_chain_lineage_identity(
+                request_identity,
+                self.chain_identity(),
+                self.member_identities(),
+                self.fragment_identities(),
+                self.source_loop_identities(),
+                self.source_edge_identities(),
+                self.boundary_roles(),
+            )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -116,5 +131,13 @@ impl PlanarBooleanLoopOverlapChainLineageMap {
         self.chain_offsets
             .get(chain_identity)
             .and_then(|offset| self.rows.get(*offset))
+    }
+
+    pub(crate) fn certifies_canonical_identities(&self) -> bool {
+        self.rows
+            .iter()
+            .all(|row| row.certifies_canonical_identity(self.request_identity()))
+            && self.lineage_map_identity
+                == overlap_chain_lineage_map_identity(self.request_identity(), &self.rows)
     }
 }

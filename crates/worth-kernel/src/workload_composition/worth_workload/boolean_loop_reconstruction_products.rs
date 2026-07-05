@@ -6,9 +6,10 @@ use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     PlanarBooleanClosedWalkCandidateAssembly, PlanarBooleanDegenerateLoopOutcomeBoundary,
     PlanarBooleanDegenerateLoopOutcomeSet, PlanarBooleanFragmentContinuationIndex,
     PlanarBooleanLoopCandidateBoundary, PlanarBooleanLoopContainmentEvidencePostureSet,
-    PlanarBooleanLoopDecisionLog, PlanarBooleanLoopIslandPartition,
-    PlanarBooleanLoopReconstructionLedger, PlanarBooleanLoopReconstructionRequest,
-    PlanarBooleanLoopRoleOutcomeSet, PlanarBooleanLoopSourceProvenanceBundle,
+    PlanarBooleanLoopDecisionLog, PlanarBooleanLoopIdentityMap, PlanarBooleanLoopIslandPartition,
+    PlanarBooleanLoopPersistentNamePropagationMap, PlanarBooleanLoopReconstructionLedger,
+    PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopRoleOutcomeSet,
+    PlanarBooleanLoopSourceProvenanceBundle, PlanarBooleanLoopSubshapeSignatureMap,
     PlanarBooleanReconstructedLoopBoundary, PlanarBooleanSourceLoopSplitAttribution,
     PlanarBooleanWalkOutcomeSet,
 };
@@ -31,6 +32,9 @@ pub struct CompletedBooleanLoopReconstructionProducts {
     containment_postures: PlanarBooleanLoopContainmentEvidencePostureSet,
     degenerate_boundary: PlanarBooleanDegenerateLoopOutcomeBoundary,
     degenerate_outcomes: PlanarBooleanDegenerateLoopOutcomeSet,
+    loop_identity_map: PlanarBooleanLoopIdentityMap,
+    persistent_name_propagation_map: PlanarBooleanLoopPersistentNamePropagationMap,
+    subshape_signature_map: PlanarBooleanLoopSubshapeSignatureMap,
     decision_log: PlanarBooleanLoopDecisionLog,
     loop_ledger: PlanarBooleanLoopReconstructionLedger,
 }
@@ -54,6 +58,9 @@ impl CompletedBooleanLoopReconstructionProducts {
         containment_postures: PlanarBooleanLoopContainmentEvidencePostureSet,
         degenerate_boundary: PlanarBooleanDegenerateLoopOutcomeBoundary,
         degenerate_outcomes: PlanarBooleanDegenerateLoopOutcomeSet,
+        loop_identity_map: PlanarBooleanLoopIdentityMap,
+        persistent_name_propagation_map: PlanarBooleanLoopPersistentNamePropagationMap,
+        subshape_signature_map: PlanarBooleanLoopSubshapeSignatureMap,
         decision_log: PlanarBooleanLoopDecisionLog,
         loop_ledger: PlanarBooleanLoopReconstructionLedger,
     ) -> Self {
@@ -74,6 +81,9 @@ impl CompletedBooleanLoopReconstructionProducts {
             containment_postures,
             degenerate_boundary,
             degenerate_outcomes,
+            loop_identity_map,
+            persistent_name_propagation_map,
+            subshape_signature_map,
             decision_log,
             loop_ledger,
         }
@@ -141,6 +151,18 @@ impl CompletedBooleanLoopReconstructionProducts {
 
     pub fn degenerate_outcomes(&self) -> &PlanarBooleanDegenerateLoopOutcomeSet {
         &self.degenerate_outcomes
+    }
+
+    pub fn loop_identity_map(&self) -> &PlanarBooleanLoopIdentityMap {
+        &self.loop_identity_map
+    }
+
+    pub fn persistent_name_propagation_map(&self) -> &PlanarBooleanLoopPersistentNamePropagationMap {
+        &self.persistent_name_propagation_map
+    }
+
+    pub fn subshape_signature_map(&self) -> &PlanarBooleanLoopSubshapeSignatureMap {
+        &self.subshape_signature_map
     }
 
     pub fn decision_log(&self) -> &PlanarBooleanLoopDecisionLog {

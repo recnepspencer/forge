@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use schema::facade::platform::authority::planner_owned_routing_semantic_graph::{
     admit_planner_admitted_explanation_input, admit_planner_public_proof_identity,
     admit_planner_selected_family_identity, admit_planner_selected_product_identity,
@@ -13,41 +15,69 @@ use schema::facade::platform::authority::touched_graph_parity_closeout_internal:
 };
 
 use super::error::{ReadinessHandoffError, ReadinessHandoffErrorKind};
+use crate::workload_composition::performance_trace::trace_scope;
 use crate::workload_composition::planner_owned_routing::current_worth_touched_graph_conflict_selected_route_packet;
 use crate::workload_composition::touched_graph_parity_closeout::{
     current_conflict_family_parity_claim, current_live_coverage_ledger,
-    current_replay_undo_family_parity_claim, current_reuse_family_parity_claim,
-    current_representative_selected_route_parity_path, current_spatial_family_parity_claim,
+    current_replay_undo_family_parity_claim, current_representative_selected_route_parity_path,
+    current_reuse_family_parity_claim, current_spatial_family_parity_claim,
     current_topology_family_declare_once_parity_claim,
 };
 
 pub fn current_touched_graph_readiness_handoff(
 ) -> Result<TouchedGraphParityReadinessInput, ReadinessHandoffError> {
+    static CURRENT_READINESS_HANDOFF: OnceLock<TouchedGraphParityReadinessInput> = OnceLock::new();
+    if let Some(cached) = CURRENT_READINESS_HANDOFF.get() {
+        return Ok(cached.clone());
+    }
+
+    let readiness = trace_scope(
+        "current_touched_graph_readiness_handoff",
+        build_current_touched_graph_readiness_handoff,
+    )?;
+    let _ = CURRENT_READINESS_HANDOFF.set(readiness.clone());
+    Ok(readiness)
+}
+
+fn build_current_touched_graph_readiness_handoff(
+) -> Result<TouchedGraphParityReadinessInput, ReadinessHandoffError> {
     let representative_path =
-        current_representative_selected_route_parity_path().map_err(|error| {
-            ReadinessHandoffError::new(
-                ReadinessHandoffErrorKind::CurrentRepresentativePathUnavailable,
-                error.detail(),
-            )
+        trace_scope("current_representative_selected_route_parity_path", || {
+            current_representative_selected_route_parity_path().map_err(|error| {
+                ReadinessHandoffError::new(
+                    ReadinessHandoffErrorKind::CurrentRepresentativePathUnavailable,
+                    error.detail(),
+                )
+            })
         })?;
-    let live_coverage_ledger = current_live_coverage_ledger().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentLiveCoverageLedgerUnavailable,
-            format!("{error:?}"),
-        )
+    let live_coverage_ledger = trace_scope("current_live_coverage_ledger", || {
+        current_live_coverage_ledger().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentLiveCoverageLedgerUnavailable,
+                format!("{error:?}"),
+            )
+        })
     })?;
-    let selected_route =
-        current_worth_touched_graph_conflict_selected_route_packet().map_err(|error| {
-            ReadinessHandoffError::new(
-                ReadinessHandoffErrorKind::CurrentSelectedRouteUnavailable,
-                error.detail(),
-            )
-        })?;
+    let selected_route = trace_scope(
+        "current_worth_touched_graph_conflict_selected_route_packet",
+        || {
+            current_worth_touched_graph_conflict_selected_route_packet().map_err(|error| {
+                ReadinessHandoffError::new(
+                    ReadinessHandoffErrorKind::CurrentSelectedRouteUnavailable,
+                    error.detail(),
+                )
+            })
+        },
+    )?;
+    let representative_family_coverage = trace_scope(
+        "current_representative_family_coverage",
+        current_representative_family_coverage,
+    )?;
     touched_graph_readiness_handoff_from_authorities(
         &representative_path,
         &live_coverage_ledger,
         &selected_route,
-        current_representative_family_coverage()?,
+        representative_family_coverage,
     )
 }
 
@@ -105,6 +135,10 @@ pub(crate) fn touched_graph_readiness_handoff_from_authorities(
         claim,
         TouchedGraphParityResidueClassification::OrdinaryPathCarried,
         selected_route.touched_closure_digest(),
+        representative_path
+            .evidence_lookup()
+            .packet()
+            .selected_lookup_plan_digest(),
         selected_route.overlap_identity_digests().to_vec(),
         representative_family_coverage,
         representative_path
@@ -129,35 +163,58 @@ pub(crate) fn touched_graph_readiness_handoff_from_authorities(
 
 pub(crate) fn current_representative_family_coverage(
 ) -> Result<Vec<TouchedGraphParityFamilyKind>, ReadinessHandoffError> {
-    let topology = current_topology_family_declare_once_parity_claim().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
-            error.detail(),
-        )
+    static CURRENT_REPRESENTATIVE_FAMILY_COVERAGE: OnceLock<Vec<TouchedGraphParityFamilyKind>> =
+        OnceLock::new();
+    if let Some(cached) = CURRENT_REPRESENTATIVE_FAMILY_COVERAGE.get() {
+        return Ok(cached.clone());
+    }
+
+    let coverage = build_current_representative_family_coverage()?;
+    let _ = CURRENT_REPRESENTATIVE_FAMILY_COVERAGE.set(coverage.clone());
+    Ok(coverage)
+}
+
+fn build_current_representative_family_coverage(
+) -> Result<Vec<TouchedGraphParityFamilyKind>, ReadinessHandoffError> {
+    let topology = trace_scope("representative_family_coverage_topology", || {
+        current_topology_family_declare_once_parity_claim().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
+                error.detail(),
+            )
+        })
     })?;
-    let spatial = current_spatial_family_parity_claim().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
-            error.detail(),
-        )
+    let spatial = trace_scope("representative_family_coverage_spatial", || {
+        current_spatial_family_parity_claim().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
+                error.detail(),
+            )
+        })
     })?;
-    let replay_undo = current_replay_undo_family_parity_claim().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
-            error.detail(),
-        )
+    let replay_undo = trace_scope("representative_family_coverage_replay_undo", || {
+        current_replay_undo_family_parity_claim().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
+                error.detail(),
+            )
+        })
     })?;
-    let conflict = current_conflict_family_parity_claim().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
-            error.detail(),
-        )
+    let conflict = trace_scope("representative_family_coverage_conflict", || {
+        current_conflict_family_parity_claim().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
+                error.detail(),
+            )
+        })
     })?;
-    let reuse = current_reuse_family_parity_claim().map_err(|error| {
-        ReadinessHandoffError::new(
-            ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
-            error.detail(),
-        )
+    let reuse = trace_scope("representative_family_coverage_reuse", || {
+        current_reuse_family_parity_claim().map_err(|error| {
+            ReadinessHandoffError::new(
+                ReadinessHandoffErrorKind::CurrentCoverageInventoryUnavailable,
+                error.detail(),
+            )
+        })
     })?;
     let mut coverage = topology
         .rows()

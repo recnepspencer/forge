@@ -68,5 +68,6 @@ pub(crate) use packet_backed_loop_closeout_assertions::{
 pub(crate) use public_closeout_parity_assertions::assert_public_closeout_rejects_mismatched_proof_products;
 pub(crate) use real_handoff_support::{
     certified_real_loop_handoff, certified_real_loop_replay_closeout_chain,
-    real_loop_handoff_for_branch, CertifiedLoopReplayCloseoutChain, ReplayBranch,
+    real_loop_handoff_for_branch, with_packet_backed_loop_boundary_basis,
+    CertifiedLoopReplayCloseoutChain, ReplayBranch,
 };

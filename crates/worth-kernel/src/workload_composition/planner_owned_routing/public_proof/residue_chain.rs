@@ -201,9 +201,7 @@ impl WorthTouchedGraphConflictResidueRow {
         };
         let query_gap_kind = row.query_gap_kind().map(|kind| match kind.as_str() {
             "missing" => WorthTouchedGraphConflictQueryGapKind::MissingArtifact,
-            "not-admitted" => {
-                WorthTouchedGraphConflictQueryGapKind::NotAdmittedOnSupportedPath
-            }
+            "not-admitted" => WorthTouchedGraphConflictQueryGapKind::NotAdmittedOnSupportedPath,
             "not-exposed" => WorthTouchedGraphConflictQueryGapKind::NotExposedAtBoundary,
             "identity-semantics-insufficient" => {
                 WorthTouchedGraphConflictQueryGapKind::IdentitySemanticsInsufficient
@@ -241,9 +239,7 @@ impl WorthTouchedGraphConflictResidueRow {
         };
         let query_gap_kind = row.query_gap_kind().map(|kind| match kind.as_str() {
             "missing" => WorthTouchedGraphConflictQueryGapKind::MissingArtifact,
-            "not-admitted" => {
-                WorthTouchedGraphConflictQueryGapKind::NotAdmittedOnSupportedPath
-            }
+            "not-admitted" => WorthTouchedGraphConflictQueryGapKind::NotAdmittedOnSupportedPath,
             "not-exposed" => WorthTouchedGraphConflictQueryGapKind::NotExposedAtBoundary,
             "identity-semantics-insufficient" => {
                 WorthTouchedGraphConflictQueryGapKind::IdentitySemanticsInsufficient

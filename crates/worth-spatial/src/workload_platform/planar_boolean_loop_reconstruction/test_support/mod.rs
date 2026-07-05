@@ -24,7 +24,8 @@ pub(crate) use malformed_lineage::{
     with_duplicate_first_fragment,
 };
 pub(crate) use phase_fourteen_subject::{
-    prepared_phase_fourteen_subject, PreparedPhaseFourteenSubject,
+    admitted_phase_fourteen_identity_products, prepared_phase_fourteen_subject,
+    prepared_phase_fourteen_subject_with_tag, PreparedPhaseFourteenSubject,
 };
 pub(crate) use replay_support::retained_replay_receipt_chain;
 pub(crate) use runtime_subject::{

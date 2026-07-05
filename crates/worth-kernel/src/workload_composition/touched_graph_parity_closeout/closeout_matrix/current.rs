@@ -7,23 +7,24 @@ use schema::facade::platform::authority::touched_graph_parity_closeout::{
 use super::matrix::WorthTouchedGraphCrossFamilyCloseoutMatrix;
 use super::row::WorthTouchedGraphCrossFamilyCloseoutMatrixRow;
 use super::validation::{
-    validate_closeout_matrix, CloseoutMatrixAuthority, WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+    validate_closeout_matrix, CloseoutMatrixAuthority,
+    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
     WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind,
 };
 use crate::workload_composition::planner_owned_routing::current_worth_touched_graph_conflict_public_closeout;
 use crate::workload_composition::public_closeout::WorthTouchedGraphConflictDeletionAlignmentRow;
 use crate::workload_composition::touched_graph_parity_closeout::{
     current_conflict_family_parity_claim, current_live_coverage_ledger,
-    current_public_projection_parity_claim,
-    current_replay_undo_family_parity_claim, current_representative_selected_route_parity_path,
-    current_reuse_family_parity_claim, current_spatial_family_parity_claim,
-    current_topology_family_declare_once_parity_claim, ArchitectureClaimLedgerRowKind,
-    LiveCoverageLedger,
+    current_public_projection_parity_claim, current_replay_undo_family_parity_claim,
+    current_representative_selected_route_parity_path, current_reuse_family_parity_claim,
+    current_spatial_family_parity_claim, current_topology_family_declare_once_parity_claim,
+    ArchitectureClaimLedgerRowKind, LiveCoverageLedger,
 };
 
-pub fn current_worth_touched_graph_cross_family_closeout_matrix(
-) -> Result<WorthTouchedGraphCrossFamilyCloseoutMatrix, WorthTouchedGraphCrossFamilyCloseoutMatrixError>
-{
+pub fn current_worth_touched_graph_cross_family_closeout_matrix() -> Result<
+    WorthTouchedGraphCrossFamilyCloseoutMatrix,
+    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+> {
     let live_ledger = current_live_coverage_ledger().map_err(|_| {
         WorthTouchedGraphCrossFamilyCloseoutMatrixError::new(
             WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind::CurrentLiveCoverageLedgerUnavailable,
@@ -55,13 +56,17 @@ pub(crate) fn closeout_matrix_from_authorities(
     readiness: &TouchedGraphParityReadinessInput,
     representative_path: &crate::workload_composition::RepresentativeSelectedRouteParityPath,
     closeout: &crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicCloseout,
-) -> Result<WorthTouchedGraphCrossFamilyCloseoutMatrix, WorthTouchedGraphCrossFamilyCloseoutMatrixError>
-{
+) -> Result<
+    WorthTouchedGraphCrossFamilyCloseoutMatrix,
+    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+> {
     let authority = current_matrix_authority(
         &live_ledger,
         &readiness,
         &representative_path,
-        closeout.architecture_alignment_report().deleted_authority_rows(),
+        closeout
+            .architecture_alignment_report()
+            .deleted_authority_rows(),
     )?;
     let representative_path_coverage = representative_path.covered_family_kinds();
     let readiness_coverage = readiness
@@ -74,23 +79,41 @@ pub(crate) fn closeout_matrix_from_authorities(
         .map(|family_kind| {
             WorthTouchedGraphCrossFamilyCloseoutMatrixRow::new(
                 family_kind,
-                authority.covered_counts.get(&family_kind).copied().unwrap_or(0),
+                authority
+                    .covered_counts
+                    .get(&family_kind)
+                    .copied()
+                    .unwrap_or(0),
                 representative_path_coverage.contains(&family_kind)
-                    && !representative_path.selected_route_identity_digest().is_empty(),
+                    && !representative_path
+                        .selected_route_identity_digest()
+                        .is_empty(),
                 authority.family_parity_coverage.contains(&family_kind),
                 authority.public_proof_parity_passed,
                 authority.diagnostic_parity_passed,
                 readiness_coverage.contains(&family_kind)
                     && readiness.architecture_claim_digest()
                         == live_ledger.closeout_architecture_claim_digest(),
-                authority.deleted_counts.get(&family_kind).copied().unwrap_or(0),
+                authority
+                    .deleted_counts
+                    .get(&family_kind)
+                    .copied()
+                    .unwrap_or(0),
                 authority
                     .capped_residue_counts
                     .get(&family_kind)
                     .copied()
                     .unwrap_or(0),
-                authority.query_gap_counts.get(&family_kind).copied().unwrap_or(0),
-                authority.blocked_counts.get(&family_kind).copied().unwrap_or(0),
+                authority
+                    .query_gap_counts
+                    .get(&family_kind)
+                    .copied()
+                    .unwrap_or(0),
+                authority
+                    .blocked_counts
+                    .get(&family_kind)
+                    .copied()
+                    .unwrap_or(0),
             )
         })
         .collect::<Vec<_>>();
@@ -199,7 +222,9 @@ pub(crate) fn current_matrix_authority(
         capped_residue_counts,
         query_gap_counts,
         blocked_counts,
-        closeout_architecture_claim_digest: live_ledger.closeout_architecture_claim_digest().to_string(),
+        closeout_architecture_claim_digest: live_ledger
+            .closeout_architecture_claim_digest()
+            .to_string(),
     })
 }
 
@@ -215,8 +240,10 @@ fn current_readiness_input(
 
 fn deleted_counts(
     rows: &[WorthTouchedGraphConflictDeletionAlignmentRow],
-) -> Result<BTreeMap<TouchedGraphParityFamilyKind, usize>, WorthTouchedGraphCrossFamilyCloseoutMatrixError>
-{
+) -> Result<
+    BTreeMap<TouchedGraphParityFamilyKind, usize>,
+    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+> {
     let mut counts = BTreeMap::new();
     for row in rows {
         *counts.entry(row.family_kind()).or_insert(0) += 1;

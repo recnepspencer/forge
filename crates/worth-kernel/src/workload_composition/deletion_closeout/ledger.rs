@@ -1,5 +1,5 @@
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityFamilyKind;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::phase_fifteen_deleted_surfaces::current_phase_fifteen_deleted_surface_rows;
 use crate::workload_composition::{

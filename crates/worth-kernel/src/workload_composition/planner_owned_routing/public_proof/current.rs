@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::workload_composition::compiled_product_consumer_cutover::{
     current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader,
     KernelCompiledProductConsumerCoverageTarget,
@@ -24,18 +26,17 @@ use super::types::{
 
 pub fn current_worth_touched_graph_conflict_public_closeout(
 ) -> Result<WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError> {
-    trace_scope(
+    static CACHE: OnceLock<WorthTouchedGraphConflictPublicCloseout> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
+    let closeout = trace_scope(
         "current_worth_touched_graph_conflict_public_closeout",
-        || {
-            let components = current_public_closeout_components()?;
-            assemble_public_closeout_from_parts(
-                components.input()?,
-                components.cutover(),
-                components.selected_route_packet(),
-                components.admitted_public_proof_input(),
-            )
-        },
-    )
+        build_current_worth_touched_graph_conflict_public_closeout,
+    )?;
+    let _ = CACHE.set(closeout.clone());
+    Ok(closeout)
 }
 
 pub fn current_worth_touched_graph_conflict_milestone_fifteen_seed() -> Result<
@@ -53,6 +54,17 @@ fn map_planner_owned_routing_error(
     WorthTouchedGraphConflictPublicCloseoutError::new(
         WorthTouchedGraphConflictPublicCloseoutErrorKind::CurrentProofUnavailable,
         error.detail(),
+    )
+}
+
+fn build_current_worth_touched_graph_conflict_public_closeout(
+) -> Result<WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError> {
+    let components = current_public_closeout_components()?;
+    assemble_public_closeout_from_parts(
+        components.input()?,
+        components.cutover(),
+        components.selected_route_packet(),
+        components.admitted_public_proof_input(),
     )
 }
 

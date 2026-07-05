@@ -20,6 +20,7 @@ pub struct TopologyMilestoneSevenFiveOverlapReadinessConsumer {
     selected_product_identity_digest: String,
     selected_witness_identity_digest: Option<String>,
     touched_closure_digest: String,
+    selected_plan_digest: String,
     overlap_identity_digests: Vec<String>,
     topology_query_posture_digest: String,
     spatial_query_posture_digest: String,
@@ -71,6 +72,7 @@ pub fn admit_milestone_seven_five_overlap_readiness_consumer(
             selected_witness_identity.identity_digest().to_string(),
         ),
         touched_closure_digest: readiness.touched_closure_digest().to_string(),
+        selected_plan_digest: readiness.selected_plan_digest().to_string(),
         overlap_identity_digests: readiness.overlap_identity_digests().to_vec(),
         topology_query_posture_digest: readiness.topology_query_posture_digest().to_string(),
         spatial_query_posture_digest: readiness.spatial_query_posture_digest().to_string(),
@@ -101,6 +103,10 @@ impl TopologyMilestoneSevenFiveOverlapReadinessConsumer {
         &self.touched_closure_digest
     }
 
+    pub fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+
     pub fn overlap_identity_digests(&self) -> &[String] {
         &self.overlap_identity_digests
     }
@@ -123,6 +129,15 @@ impl TopologyMilestoneSevenFiveOverlapReadinessConsumer {
 
     pub fn architecture_claim_digest(&self) -> &str {
         &self.architecture_claim_digest
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_selected_plan_digest_for_tests(
+        mut self,
+        selected_plan_digest: impl Into<String>,
+    ) -> Self {
+        self.selected_plan_digest = selected_plan_digest.into();
+        self
     }
 }
 

@@ -34,6 +34,7 @@ use crate::workload_platform::vocabulary::{
     RetainedReplayWorkload, SurfaceSupportWorkload, TransformWorkload,
 };
 use topology::facade::TopologySeed;
+use worth_kernel::workload_composition::current_touched_graph_readiness_handoff;
 
 pub(crate) enum LoopFixtureEntryOrder {
     Canonical,
@@ -55,9 +56,12 @@ pub(crate) struct PreparedLoopReconstructionSubject {
 
 impl PreparedLoopReconstructionSubject {
     pub(crate) fn admit_loop_request(&self) -> PlanarBooleanLoopReconstructionRequest {
+        let readiness = current_touched_graph_readiness_handoff()
+            .expect("current readiness handoff should assemble for loop test support");
         PlanarBooleanLoopReconstructionRequest::admit(
-            PlanarBooleanLoopReconstructionRequestInput::from_split_consumption(
+            PlanarBooleanLoopReconstructionRequestInput::from_split_consumption_and_readiness(
                 &self.loop_split_consumption,
+                &readiness,
             ),
         )
         .expect("loop reconstruction request should admit")

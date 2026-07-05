@@ -39,6 +39,9 @@ fn complete_lookup_test_ledger(
     tag: &str,
     mut evidence_rows: Vec<WorkloadEvidenceRow>,
 ) -> CompleteWorkloadEvidenceLedger {
+    let has_retained_replay_evidence = evidence_rows
+        .iter()
+        .any(|row| row.stage() == WorkloadEvidenceStage::RetainedReplay);
     let label = format!("{tag} lookup execution");
     let topology = TopologySeed::cube()
         .with_declaration(label.clone())
@@ -96,14 +99,19 @@ fn complete_lookup_test_ledger(
             transform.identity().receipt_identity(),
             WorkloadEvidenceStageCounters::transform(1, 1, 0),
         ),
-        WorkloadEvidenceRow::receipt_backed(
-            WorkloadEvidenceStage::RetainedReplay,
-            replay.identity().receipt_identity(),
-            WorkloadEvidenceStageCounters::retained_replay(1, 1),
-        ),
         WorkloadEvidenceRow::from_diagnostic_receipt(&diagnostics),
         WorkloadEvidenceRow::from_response_receipt(&response),
     ];
+    if !has_retained_replay_evidence {
+        rows.insert(
+            5,
+            WorkloadEvidenceRow::receipt_backed(
+                WorkloadEvidenceStage::RetainedReplay,
+                replay.identity().receipt_identity(),
+                WorkloadEvidenceStageCounters::retained_replay(1, 1),
+            ),
+        );
+    }
     rows.append(&mut evidence_rows);
     WorkloadEvidenceLedger::from_rows(rows)
         .expect("lookup execution test rows should index")

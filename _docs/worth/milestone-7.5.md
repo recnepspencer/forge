@@ -3,19 +3,28 @@
 > **Status:** Draft
 >
 > **Purpose:** freeze the canonical overlap-region products that consume the
-> `7.4` loop reconstruction ledger and feed `7.6` fragment classification
-> without reopening split, continuation, walk, loop, projection, plane, or
-> workload-entry authority.
+> Milestone 16 touched-graph readiness handoff and the `7.4` loop
+> reconstruction ledger, then feed `7.6` fragment classification without
+> reopening split, continuation, walk, loop, projection, plane, Query, touched
+> graph, selected-route, or workload-entry authority.
 
 ## Goal
 
-Milestone `7.5` closes the gap between the `7.4` loop reconstruction ledger
-and honest coplanar overlap-region extraction.
+Milestone `7.5` closes the gap between the Milestone 16 unified touched-graph
+readiness handoff, the `7.4` loop reconstruction ledger, and honest coplanar
+overlap-region extraction.
 
 By the end of this milestone:
 
-- a `7.4` loop reconstruction ledger can enter one and only one overlap-region
+- a `TouchedGraphParityReadinessInput` admitted through
+  `admit_milestone_seven_five_overlap_readiness_consumer(...)` and a matching
+  `7.4` loop reconstruction ledger can enter one and only one overlap-region
   extraction request boundary
+- selected-route identity, selected family identity, selected product identity,
+  selected witness identity, touched-closure digest, overlap identity digests,
+  Query posture digests, residue digest, source-firewall digest, and
+  architecture-claim digest are carried from the readiness handoff into the
+  overlap request instead of being rediscovered or summarized locally
 - reconstructed loops, born loops, loop islands, overlap-chain lineage,
   persistent-name propagation, and loop decision-log identity are lowered into
   overlap-participation products instead of host-local pairwise geometry
@@ -30,8 +39,10 @@ By the end of this milestone:
   reopening loop truth
 - workload evidence, replay, diagnostics, operator registration, validator
   registration, and public-contract fences prove that overlap extraction
-  consumed the real `7.4` loop ledger rather than raw loops, raw overlap
-  chains, raw split fragments, or hand-filled overlap-region rows
+  consumed the real Milestone 16 readiness handoff and the real `7.4` loop
+  ledger rather than raw loops, raw overlap chains, raw split fragments,
+  hand-filled readiness rows, copied selected-route digests, or synthetic
+  overlap-region rows
 
 Milestone `7.5` does **not** classify keep/discard fragment truth, assemble
 faces, clean final topology, or certify final boolean legality. It freezes the
@@ -39,9 +50,13 @@ canonical overlap-region ledger those later phases must consume.
 
 ## Why This Milestone Exists
 
-The tempting mistake after `7.4` is to treat coplanar overlap as a side helper:
-scan loop pairs, notice coincident segments, infer whether they "kind of"
-overlap, and feed ad hoc regions directly into classification.
+The tempting mistake after `7.4` and Milestone 16 is to treat coplanar overlap
+as a side helper: scan loop pairs, notice coincident segments, infer whether
+they "kind of" overlap, and feed ad hoc regions directly into classification.
+The newer, subtler mistake is to keep the old `7.5` entry shape and start from
+the loop ledger alone even though the architecture now has a typed readiness
+handoff that already proves selected-route, touched-closure, representative
+family coverage, Query posture, residue, and source-firewall truth.
 
 That is not enough for Worth. Coplanar overlap is where loop truth first
 becomes shared-area truth. If this milestone reopens raw loops, rediscovers
@@ -51,11 +66,12 @@ allows later classification to inspect raw overlap-chain folklore instead of a
 receipt-backed overlap ledger, the planar boolean lane becomes impossible to
 trust.
 
-`7.5` therefore makes overlap extraction a receipt-backed, phase-typed,
-operator-named boundary. It still does not classify keep/discard semantics or
-assemble result topology, but it must produce the exact canonical overlap
-ledger that fragment classification and face assembly can consume without
-rediscovering overlap meaning from loop geometry.
+`7.5` therefore makes overlap extraction a receipt-backed, readiness-bound,
+phase-typed, operator-named boundary. It still does not classify keep/discard
+semantics or assemble result topology, but it must produce the exact canonical
+overlap ledger that fragment classification and face assembly can consume
+without rediscovering overlap meaning from loop geometry or bypassing the
+unified touched-graph architecture.
 
 ## Governing Summaries
 
@@ -84,6 +100,16 @@ rediscovering overlap meaning from loop geometry.
 - `_docs/worth/milestone-7-roadmap.md`: protects `7.5` as coplanar overlap
   region extraction only. Fragment classification, face assembly, cleanup, and
   legality remain later `7.x` milestones.
+- `_docs/worth/touched-graph-roadmap.md`: protects the unified touched graph,
+  indexing, aspect, selected-route, replay, conflict, reuse, public-proof, and
+  diagnostics architecture. `7.5` must consume that architecture through the
+  typed readiness handoff instead of rebuilding local touched graph or index
+  proof.
+- `_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md`:
+  protects the exact handoff into this milestone. `7.5` receives readiness
+  truth as `TouchedGraphParityReadinessInput`, admits it through
+  `TopologyMilestoneSevenFiveOverlapReadinessConsumer`, and then binds it to
+  the `7.4` loop ledger.
 - `_docs/worth/milestone-7.4.md`: protects loop-ledger authority. `7.5` must
   consume `PlanarBooleanLoopReconstructionLedgerReceipt` and must not rebuild
   split, continuation, walk, loop-role, or loop-island meaning from raw loop
@@ -101,36 +127,70 @@ rediscovering overlap meaning from loop geometry.
   artifacts`. `7.5` may add domain overlap artifacts, but it must not invent a
   caller-owned overlap route, pseudo-Query runtime lane, or local support
   posture.
+- `crates/worth-schema/src/data/authority/touched_graph_parity_closeout/readiness_input.rs`:
+  protects the readiness vocabulary owned by schema. `7.5` may consume these
+  identities and digests, but it must not duplicate or locally reinterpret the
+  readiness contract.
+- `crates/worth-kernel/src/workload_composition/touched_graph_parity_closeout/readiness_handoff/*`:
+  protects the current readiness producer. `7.5` must use the current handoff
+  path rather than reconstruct representative family coverage, Query posture,
+  selected route, residue, source-firewall, or architecture-claim evidence.
+- `crates/worth-topo/src/projection/planner_owned_routing/milestone_seven_five_readiness_consumer.rs`:
+  protects the topology-owned admission surface for this milestone. The
+  overlap request must be downstream of this consumer, not parallel to it.
 
 ## Adversarial Constraint
 
 Given a real Query/workload-composed planar boolean operand pair that has
-successfully produced a `7.4` loop reconstruction ledger, overlap-region
-extraction must either:
+successfully produced a Milestone 16 touched-graph readiness handoff and a
+matching `7.4` loop reconstruction ledger, overlap-region extraction must
+either:
 
 - deny before overlap-ledger construction with a typed, localized,
   replay-stable reason
 
 or:
 
-- emit one canonical overlap-region ledger whose overlap request identity,
-  participating loops, participating islands, overlap adjacency index, overlap
-  island extraction, shared-boundary outcomes, shared-area admission outcomes,
-  opposite-sense coincidence normalization, winding outcomes, admitted overlap
-  regions, boundary-only overlap outcomes, identity, naming propagation,
-  counters, decision log, and downstream-consumption identity remain stable
-  across replay, benign loop-order variation, reversed source-edge sense,
-  opposite-sense coincident boundary presentation, nested overlap islands,
-  overlap-storm pressure, and shared-boundary-versus-shared-area pressure.
+- emit one canonical overlap-region ledger whose readiness-bound request
+  identity, selected-route identity, touched-closure identity, overlap
+  identity set, participating loops, participating islands, overlap adjacency
+  index, overlap island extraction, shared-boundary outcomes, shared-area
+  admission outcomes, opposite-sense coincidence normalization, winding
+  outcomes, admitted overlap regions, boundary-only overlap outcomes, identity,
+  naming propagation, counters, decision log, and downstream-consumption
+  identity remain stable across replay, benign loop-order variation, reversed
+  source-edge sense, opposite-sense coincident boundary presentation, nested
+  overlap islands, overlap-storm pressure, and shared-boundary-versus-shared-area
+  pressure.
 
-If `7.6` still has to ask raw loop, overlap-chain, or pairwise geometry
-questions instead of consuming a `7.5` overlap-region ledger receipt, this
-milestone has failed.
+If `7.6` still has to ask raw loop, overlap-chain, touched graph,
+selected-route, Query-posture, or pairwise geometry questions instead of
+consuming a `7.5` overlap-region ledger receipt, this milestone has failed.
 
 ## Product Decision Lock
 
-- `7.5` starts from `PlanarBooleanLoopReconstructionLedgerReceipt` and nowhere
-  else.
+- `7.5` starts from a `TouchedGraphParityReadinessInput` admitted through
+  `admit_milestone_seven_five_overlap_readiness_consumer(...)` and a matching
+  `PlanarBooleanLoopReconstructionLedgerReceipt`. The loop ledger alone is no
+  longer sufficient as the root `7.5` entry.
+- `worth-schema` owns `TouchedGraphParityReadinessInput`,
+  `TouchedGraphParityArchitectureClaim`, `TouchedGraphParityFamilyKind`, and
+  `TouchedGraphParityResidueClassification`. `7.5` must not create local
+  readiness enums, local digest helpers, local family-coverage proof, or local
+  architecture-claim summaries.
+- `worth-kernel` owns `current_touched_graph_readiness_handoff()` and the
+  readiness producer path. `7.5` consumes that handoff; it does not recreate
+  representative selected-route parity, live coverage ledger, conflict route,
+  replay, reuse, public-proof, or diagnostics evidence.
+- `worth-topo` owns
+  `TopologyMilestoneSevenFiveOverlapReadinessConsumer` and the admission rule
+  that all `TouchedGraphParityFamilyKind::ALL` families are represented before
+  overlap extraction can proceed.
+- The overlap request must bind readiness consumer fields to loop-ledger
+  identity before participation recovery begins. A mismatch between selected
+  route, touched closure, overlap identity digests, Query posture digests,
+  residue digest, source-firewall digest, architecture-claim digest, or loop
+  ledger provenance is a typed denial, not an implementation warning.
 - Query continues to own declaration, admission, support posture, runtime
   handles, retained artifact progression, receipts, envelopes, inspection, and
   ordinary outcomes.
@@ -159,9 +219,12 @@ milestone has failed.
 "extract overlap regions" procedure.
 
 Input:
+- `TouchedGraphParityReadinessInput`
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
 - `PlanarBooleanLoopReconstructionLedgerReceipt`
 
 Request:
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - `PlanarBooleanOverlapRegionExtractionRequest`
 
 Participation:
@@ -224,6 +287,33 @@ overlap summaries as substitutes for overlap-region truth.
 
 Milestone `7.5` should widen live surfaces before inventing new ones:
 
+- `crates/worth-schema/src/data/authority/touched_graph_parity_closeout/readiness_input.rs`
+  - `TouchedGraphParityReadinessInput`
+  - selected-route identity, selected-family identity, selected-product
+    identity, selected-witness identity, touched-closure digest, overlap
+    identity digests, representative family coverage, topology/spatial Query
+    posture digests, residue digest, source-firewall digest, and
+    architecture-claim digest
+- `crates/worth-schema/src/data/authority/touched_graph_parity_closeout/architecture_claim.rs`
+  - `TouchedGraphParityArchitectureClaim`
+  - `ReadinessParity` claim kind admitted through schema internals, not
+    locally manufactured by `7.5`
+- `crates/worth-schema/src/data/authority/touched_graph_parity_closeout/family_kind.rs`
+  - `TouchedGraphParityFamilyKind::ALL`
+  - required coverage families:
+    `ReadRouting`, `ValidatorInvariantRouting`, `Invalidation`,
+    `EvidenceLookup`, `RetainedSpatial`, `ReplayUndo`,
+    `ConflictIndependenceBatchAdmission`, `CompiledProductReuse`,
+    `PublicProof`, and `DerivedDiagnostics`
+- `crates/worth-kernel/src/workload_composition/touched_graph_parity_closeout/readiness_handoff/*`
+  - `current_touched_graph_readiness_handoff()`
+  - `touched_graph_readiness_handoff_from_authorities(...)`
+  - current producer path from representative selected-route parity path, live
+    coverage ledger, and selected-route packet
+- `crates/worth-topo/src/projection/planner_owned_routing/milestone_seven_five_readiness_consumer.rs`
+  - `admit_milestone_seven_five_overlap_readiness_consumer(...)`
+  - `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
+  - `MissingRepresentativeFamilyProof`
 - `crates/worth-spatial/src/facade/planar_boolean_loop_reconstruction.rs`
   - `PlanarBooleanLoopReconstructionLedgerReceipt`
   - reconstructed-loop, born-loop, island-partition, role, identity, naming,
@@ -253,7 +343,12 @@ Milestone `7.5` should widen live surfaces before inventing new ones:
 
 New `7.5` surfaces are allowed where existing surfaces cannot honestly express:
 
-- a proof-bearing overlap-region extraction request from a loop-ledger receipt
+- a proof-bearing overlap-region extraction request from an admitted readiness
+  consumer and matching loop-ledger receipt
+- a readiness-to-loop-ledger binding product that proves selected-route,
+  touched-closure, overlap identity, Query posture, residue, source firewall,
+  architecture claim, and loop-ledger provenance agree before overlap
+  participation is built
 - loop and island participation recovered from loop-ledger products and
   overlap-chain lineage
 - a first-class overlap adjacency index and canonical ordering basis
@@ -265,10 +360,136 @@ New `7.5` surfaces are allowed where existing surfaces cannot honestly express:
 - overlap evidence rows and public-contract fences against synthetic overlap
   proof
 
+## Parallel Folder Cutover Target
+
+Build `7.5` as a parallel overlap-region lane. Do not refactor the `7.4`
+`planar_boolean_loop_reconstruction` lane in place, do not move touched-graph
+readiness code into spatial, and do not add local Query or selected-route
+proof helpers under the overlap folders.
+
+The intended directory skeleton is:
+
+```text
+crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/
+  mod.rs
+  readiness_boundary/
+    mod.rs
+    request.rs
+    binding.rs
+    denial.rs
+    tests.rs
+  surface_contract/
+    mod.rs
+    operator_matrix.rs
+    validator_plan.rs
+    tests.rs
+  participation/
+    mod.rs
+    loop_participation.rs
+    island_participation.rs
+    chain_lineage.rs
+    tests.rs
+  adjacency_index/
+    mod.rs
+    index.rs
+    ordering_basis.rs
+    tests.rs
+  arrangement_graph/
+    mod.rs
+    graph.rs
+    cells.rs
+    containment.rs
+    winding_field.rs
+    tests.rs
+  island_components/
+    mod.rs
+    candidates.rs
+    components.rs
+    tests.rs
+  contact_area_classification/
+    mod.rs
+    boundary.rs
+    area.rs
+    mixed.rs
+    denials.rs
+    tests.rs
+  winding_normalization/
+    mod.rs
+    opposite_sense.rs
+    canonical_winding.rs
+    tests.rs
+  region_candidate/
+    mod.rs
+    candidate.rs
+    promotion.rs
+    denial.rs
+    tests.rs
+  identity_lineage/
+    mod.rs
+    identity_map.rs
+    persistent_names.rs
+    subshape_signature.rs
+    tests.rs
+  ledger/
+    mod.rs
+    decision_log.rs
+    ledger.rs
+    receipt.rs
+    tests.rs
+  evidence/
+    mod.rs
+    stage_requirement.rs
+    replay.rs
+    checkpoint.rs
+    tests.rs
+  public_contracts/
+    mod.rs
+    fences.rs
+    tests.rs
+  closeout/
+    mod.rs
+    summum_bonum.rs
+    tests.rs
+
+crates/worth-spatial/src/facade/planar_boolean_overlap_region_extraction.rs
+
+crates/worth-kernel/src/workload_composition/planar_boolean_overlap_region_extraction/
+  mod.rs
+  stage_requirement.rs
+  hostile_recipes.rs
+  public_contract_fence.rs
+  closeout.rs
+  tests.rs
+
+crates/worth-topo/src/projection/planner_owned_routing/
+  milestone_seven_five_readiness_consumer.rs      # existing admission surface
+  overlap_region_route/                           # only if topology read-routing
+    mod.rs                                        # needs a new typed contributor
+    admission.rs
+    packet.rs
+    tests.rs
+```
+
+The skeleton is intentionally phase-shaped. If a future implementation cannot
+place a `7.5` artifact under one of these folders without weakening its name,
+that is a design signal: either the artifact belongs to an existing authority
+surface listed above, or the spec is missing a responsibility that should be
+made explicit before coding continues.
+
 ## Query, Graph, And Invariant Integration Contract
 
 `7.5` must distinguish three different things that are easy to collapse:
 
+- touched-graph readiness handoff
+  - proof-bearing architecture input produced by `worth-kernel`, admitted by
+    schema, and consumed through `worth-topo`
+  - examples: selected-route identity, selected-family identity,
+    selected-product identity, selected-witness identity, touched-closure
+    digest, overlap identity digests, representative family coverage, Query
+    posture digests, residue digest, source-firewall digest, and
+    architecture-claim digest
+  - these are not spatial facts and must not be regenerated by overlap
+    extraction
 - spatial overlap products
   - prepared artifacts owned by `worth-spatial`
   - examples: overlap request, participation maps, adjacency indexes, island
@@ -291,6 +512,14 @@ New `7.5` surfaces are allowed where existing surfaces cannot honestly express:
 
 This means:
 
+- the first `7.5` admission step is
+  `admit_milestone_seven_five_overlap_readiness_consumer(&readiness)`, followed
+  by binding the resulting consumer to a matching
+  `PlanarBooleanLoopReconstructionLedgerReceipt`
+- a missing `TouchedGraphParityFamilyKind::ALL` representative family, missing
+  Query posture digest, missing residue digest, missing source-firewall digest,
+  missing architecture-claim digest, or mismatched selected-route/touched/overlap
+  identity is a hard denial before request construction
 - a new `7.5` operator name in the spec is not automatically a public mutation
   method
 - overlap-region operators in this milestone should usually remain prepared
@@ -308,6 +537,11 @@ This means:
   emit typed denials; "remember to run validator X" is not an admitted plan
 - overlap evidence rows are not validator execution. Evidence proves the stage
   happened; registered/domain validators prove the stage is legal
+- Forge Query remains upstream of ordinary domain work. If `7.5` needs a
+  Query-owned retained artifact, support snapshot, inspection handle, invariant
+  pack, or graph-shaped authoring contribution that the readiness handoff does
+  not already provide, the implementation must extend the Query-shaped path or
+  block; it must not create a local pseudo-Query lane.
 
 ## Required Denial Taxonomy
 
@@ -319,6 +553,11 @@ neighborhood:
 
 - `NonCoplanarLoopLedgerInputDenied`
 - `ForeignLoopLedgerReceiptDenied`
+- `MissingMilestoneSevenFiveReadinessConsumerDenied`
+- `ReadinessLoopLedgerIdentityMismatchDenied`
+- `MissingRepresentativeTouchedGraphFamilyDenied`
+- `MissingReadinessQueryPostureDenied`
+- `ReadinessResidueOrSourceFirewallMissingDenied`
 - `DanglingLoopParticipationDenied`
 - `ContradictoryIslandMembershipDenied`
 - `UnindexedOverlapNeighborhoodDenied`
@@ -337,84 +576,127 @@ distinct refusal classes into one generic denial bucket or one stringly stop.
 
 The first honest implementation target for `7.5` is:
 
-1. Build canonical participation rows from `7.4` loop-ledger identity.
-2. Build a canonical overlap adjacency/index product from those participation
+1. Admit `TouchedGraphParityReadinessInput` through
+   `admit_milestone_seven_five_overlap_readiness_consumer(...)`.
+2. Bind the resulting readiness consumer to a matching `7.4` loop-ledger
+   receipt and deny before request construction if selected-route,
+   touched-closure, overlap identity, Query posture, residue, source firewall,
+   architecture claim, or loop provenance cannot be reconciled.
+3. Build canonical participation rows from the readiness-bound `7.4`
+   loop-ledger identity.
+4. Build a canonical overlap adjacency/index product from those participation
    rows and overlap-chain lineage.
-3. Build a coplanar arrangement/cell decomposition for the participating loop
+5. Build a coplanar arrangement/cell decomposition for the participating loop
    neighborhood.
-4. Classify arrangement cells by operand containment and winding membership.
-5. Separate positive-area overlap cells from boundary-only contact components
+6. Classify arrangement cells by operand containment and winding membership.
+7. Separate positive-area overlap cells from boundary-only contact components
    without collapsing mixed islands.
-6. Canonicalize admitted region boundaries and winding.
-7. Mint stable region identities and lineage.
-8. Emit one overlap-region ledger receipt consumed by `7.6`.
+8. Canonicalize admitted region boundaries and winding.
+9. Mint stable region identities and lineage.
+10. Emit one overlap-region ledger receipt consumed by `7.6`.
 
 ## Phase Plan
 
-### Phase 1: Overlap-Region Request Boundary
+### Phase 1: Readiness-Bound Overlap-Region Request Boundary
 
-Freeze the only artifact that may enter `7.5`: a request built from the `7.4`
-loop reconstruction ledger receipt.
+Freeze the only artifact that may enter `7.5`: a request built from an admitted
+Milestone 16 touched-graph readiness consumer and a matching `7.4` loop
+reconstruction ledger receipt.
 
 **Consumes**
+- `TouchedGraphParityReadinessInput`
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
 - `PlanarBooleanLoopReconstructionLedgerReceipt`
 
 **Produces**
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - `PlanarBooleanOverlapRegionExtractionRequest`
 
 **Relevant subsystems**
+- `worth-schema` touched-graph parity closeout authority vocabulary
+- `worth-topo` planner-owned routing readiness consumer
 - `worth-kernel` workload composition
 - `worth-spatial` planar boolean loop reconstruction and overlap extraction
 - Query retained artifact progression
 
 **Relevant APIs**
+- `current_touched_graph_readiness_handoff()`
+- `TouchedGraphParityReadinessInput`
+- `admit_milestone_seven_five_overlap_readiness_consumer(...)`
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
 - `PlanarBooleanLoopReconstructionLedgerReceipt`
 - new `PlanarBooleanOverlapRegionExtractionRequest`
+- new `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 
 **Warnings**
+- Do not accept a `PlanarBooleanLoopReconstructionLedgerReceipt` by itself as
+  the root `7.5` input.
+- Do not rebuild selected-route identity, representative family coverage,
+  touched closure, overlap identity digests, Query posture, residue, source
+  firewall, or architecture-claim evidence inside the overlap lane.
 - Do not accept raw reconstructed loops, raw born loops, raw overlap chains, or
   copied loop-ledger fields as substitutes for the request artifact.
 - Do not add a second overlap extraction route in `worth-spatial` that the
   kernel cannot evidence.
+- Do not make `worth-spatial` depend on schema internals that construct
+  readiness claims; it consumes the admitted consumer and binding product.
 
 **Test requirements**
-- Adversarial parity test: the same loop ledger must produce the same
-  overlap-region extraction request identity across replay.
-- Adversarial rejection test: a synthetic overlap request built from raw loops
-  or copied receipt fields must fail to enter the extraction boundary.
+- Adversarial parity test: the same admitted readiness input and matching loop
+  ledger must produce the same binding digest and overlap-region extraction
+  request identity across replay.
+- Adversarial rejection test: a loop ledger without a readiness consumer, a
+  readiness input missing representative family coverage, a readiness consumer
+  whose selected-route/touched/overlap identity does not match the loop-ledger
+  provenance, or a synthetic overlap request built from raw loops or copied
+  receipt fields must fail to enter the extraction boundary.
 
 **Engineering decisions**
 - The request boundary is a proof transition, not an ergonomic constructor.
+- The readiness handoff is the architecture root; the loop ledger is the
+  geometry-loop root. `7.5` begins only after both roots agree.
 - Preserve the `7.4` loop-ledger, decision-log, and naming receipt identities
   so later overlap evidence rows can point back to real loop truth.
+- Preserve readiness consumer fields in the binding product so later evidence
+  rows can prove they did not rediscover or flatten selected-route and Query
+  posture truth.
 
 **Open questions**
 - None.
 
 ### Phase 2: Overlap Extraction Surface Contract And Registration
 
-Freeze the operator classification matrix and validator registration plan before
-overlap functionality spreads across crates.
+Freeze the parallel folder cutover, operator classification matrix, and
+validator registration plan before overlap functionality spreads across crates.
 
 **Consumes**
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - milestone-scoped overlap operator inventory
 - milestone-scoped overlap validator inventory
 
 **Produces**
+- `PlanarBooleanOverlapRegionExtractionDirectoryCutoverMap`
 - `PlanarBooleanOverlapOperatorClassificationMatrix`
 - `PlanarBooleanOverlapValidatorRegistrationPlan`
 
 **Relevant subsystems**
 - `worth-topo`
 - `worth-spatial`
+- `worth-kernel`
 - Query declaration and graph-composition surfaces
 
 **Relevant APIs**
+- target `planar_boolean_overlap_region_extraction` folder skeleton
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
 - topology operator declaration families
 - Query invariant registration
 - grouped and contribution workflow precedent where naming propagation is needed
 
 **Warnings**
+- Do not implement overlap-region extraction by editing
+  `planar_boolean_loop_reconstruction` in place.
+- Do not create local touched-graph, selected-route, Query posture, or
+  representative-family-coverage helper folders under the overlap lane.
 - Do not let overlap operators remain unnamed helpers.
 - Do not defer validator registration until closeout; the runtime denial surface
   must be designed with the operators, not added after them.
@@ -422,16 +704,22 @@ overlap functionality spreads across crates.
   declarations when the milestone still owns prepared overlap products.
 
 **Test requirements**
+- Adversarial parity test: every new `7.5` artifact must have one owning folder
+  in the parallel cutover skeleton and one consuming phase in this spec.
 - Adversarial parity test: every new `7.5` operator must map to exactly one
   classification class in the operator matrix.
 - Adversarial rejection test: an overlap-affecting operator missing Query or
   validator registration evidence must fail closeout certification.
+- Adversarial rejection test: a local readiness clone, local selected-route
+  clone, or in-place loop-reconstruction refactor must fail structural QA.
 
 **Engineering decisions**
 - Treat operator growth and validator growth as first-class milestone outputs,
   not implementation notes.
 - Keep topology declaration growth minimal in `7.5`; final face mutation
   authority remains later roadmap work.
+- The cutover map is not documentation only; it is the implementation index for
+  where new files belong.
 
 **Open questions**
 - None.
@@ -443,6 +731,7 @@ allowed to consume.
 
 **Consumes**
 - `PlanarBooleanOverlapRegionExtractionRequest`
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - `PlanarBooleanLoopReconstructionLedgerReceipt`
 
 **Produces**
@@ -464,6 +753,8 @@ allowed to consume.
   anonymous region candidates.
 - Do not recover participation by re-walking raw split fragments or
   continuation maps.
+- Do not use participation recovery to repair missing readiness or selected
+  route evidence; that was a Phase 1 denial.
 
 **Test requirements**
 - Adversarial parity test: the same loop ledger must produce the same overlap
@@ -973,6 +1264,9 @@ the canonical overlap ledger is replay-safe, checkpoint-safe, and fenced
 against synthetic products.
 
 **Consumes**
+- `TouchedGraphParityReadinessInput`
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - `PlanarBooleanOverlapRegionLedgerReceipt`
 - `PlanarBooleanOverlapOperatorClassificationMatrix`
 - `PlanarBooleanOverlapValidatorRegistrationPlan`
@@ -992,6 +1286,8 @@ against synthetic products.
 - compile-fail public facade contract surfaces
 
 **Relevant APIs**
+- `current_touched_graph_readiness_handoff()`
+- `admit_milestone_seven_five_overlap_readiness_consumer(...)`
 - `BooleanEvidenceReceipt`
 - `WorkloadStageRequirement`
 - overlap-ledger receipts
@@ -999,6 +1295,8 @@ against synthetic products.
 - retained / checkpoint parity surfaces
 
 **Warnings**
+- Do not accept evidence that proves overlap extraction ran but omits the
+  readiness handoff, readiness consumer, or readiness-to-loop binding.
 - Do not let manual overlap ledgers or copied overlap rows satisfy workload
   requirements.
 - Do not call replay success closeout if canonical region identities, area
@@ -1008,11 +1306,11 @@ against synthetic products.
 
 **Test requirements**
 - Adversarial parity test: real workload-backed overlap extraction should
-  satisfy the same stage requirement and produce the same ledger across replay,
-  retained consumption, and checkpoint consumption.
+  satisfy the same stage requirement and produce the same readiness-bound ledger
+  across replay, retained consumption, and checkpoint consumption.
 - Adversarial rejection test: synthetic overlap evidence, raw overlap rows, or
   replay/checkpoint paths that require reopening raw loops, raw scans, or
-  bypassed arrangement/cell proofs must fail.
+  bypassed readiness, arrangement, or cell proofs must fail.
 
 **Engineering decisions**
 - Overlap extraction gets its own evidence boundary rather than piggy-backing on
@@ -1030,6 +1328,9 @@ Run one hostile certification program that proves `7.5` survives the exact
 pressure that would break a naive overlap extractor.
 
 **Consumes**
+- `TouchedGraphParityReadinessInput`
+- `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
+- `PlanarBooleanOverlapReadinessLoopLedgerBinding`
 - `PlanarBooleanOverlapRegionLedgerReceipt`
 - `PlanarBooleanOverlapRegionEvidenceReceipt`
 - replay, checkpoint, and public-contract fence proof from `Phase 15`
@@ -1043,6 +1344,7 @@ pressure that would break a naive overlap extractor.
 - workload catalog hostile recipes
 
 **Relevant APIs**
+- touched-graph readiness handoff and `7.5` readiness consumer
 - overlap-region ledger receipt
 - workload catalog hostile recipes
 - overlap replay / checkpoint parity surfaces
@@ -1050,18 +1352,19 @@ pressure that would break a naive overlap extractor.
 **Warnings**
 - Do not use synthetic overlap-region rows, hand-filled islands, hand-filled
   arrangement cells, or local helper fixtures as the primary closeout proof.
-- Do not let the metaboss quietly reopen split, loop, arrangement,
-  containment, or classification work.
+- Do not let the metaboss quietly reopen touched-graph, selected-route, Query
+  posture, split, loop, arrangement, containment, or classification work.
 
 **Test requirements**
 - Adversarial parity test: the same admitted hostile workload must produce the
-  same overlap-region ledger digest, region identities, shared-area outcomes,
-  boundary-only outcomes, and canonical winding outcomes across replay, benign
-  ordering variation, and checkpoint consumption.
+  same readiness-bound request digest, overlap-region ledger digest, region
+  identities, shared-area outcomes, boundary-only outcomes, and canonical
+  winding outcomes across replay, benign ordering variation, and checkpoint
+  consumption.
 - Adversarial rejection test: any hostile scenario that attempts to turn
   boundary-only contact into area overlap, to let opposite-sense coincidence
   drift canonical winding, to collapse mixed boundary/area islands, or to
-  bypass the ledger receipt with raw loop data must deny with typed
+  bypass readiness or the ledger receipt with raw loop data must deny with typed
   localization.
 
 **Engineering decisions**
@@ -1193,6 +1496,13 @@ For `7.5`, the following count as theatre and are not admitted as closeout
 proof:
 
 - constructing `PlanarBooleanOverlapRegionLedger` directly in tests
+- constructing `PlanarBooleanOverlapRegionExtractionRequest` without
+  `TopologyMilestoneSevenFiveOverlapReadinessConsumer`
+- copying selected-route, touched-closure, overlap identity, Query posture,
+  residue, source-firewall, or architecture-claim digests into local structs
+  without the readiness consumer and binding product
+- duplicating `TouchedGraphParityReadinessInput` vocabulary under
+  `worth-spatial` or `worth-kernel`
 - bypassing `PlanarBooleanLoopReconstructionLedgerReceipt`
 - using raw loop arrays as overlap extractor input
 - asserting overlap regions without arrangement/cell evidence
@@ -1202,7 +1512,18 @@ proof:
 ## Must Ship
 
 - one canonical overlap-region extraction request boundary from
+  `TouchedGraphParityReadinessInput`,
+  `TopologyMilestoneSevenFiveOverlapReadinessConsumer`, and matching
   `PlanarBooleanLoopReconstructionLedgerReceipt`
+- one explicit readiness-to-loop-ledger binding product that carries
+  selected-route identity, selected family identity, selected product identity,
+  selected witness identity, touched-closure digest, overlap identity digests,
+  topology/spatial Query posture digests, residue digest, source-firewall
+  digest, architecture-claim digest, and loop-ledger provenance into overlap
+  extraction
+- one parallel `planar_boolean_overlap_region_extraction` folder lane in
+  `worth-spatial`, with workload composition surfaces in `worth-kernel` and no
+  in-place refactor of `planar_boolean_loop_reconstruction`
 - first-class overlap participation, adjacency, arrangement, cell, containment,
   island, component, boundary-only, shared-area, canonical winding, identity,
   and ledger products
@@ -1215,12 +1536,17 @@ proof:
 ## Acceptance Evidence
 
 - focused positive and hostile tests for every named phase
+- readiness admission proof showing `TouchedGraphParityReadinessInput` enters
+  through `admit_milestone_seven_five_overlap_readiness_consumer(...)`
+- binding proof showing the admitted readiness consumer and `7.4` loop ledger
+  match before request construction
 - validator registration proof showing overlap graph/topology legality
   validators deny through typed runtime lanes
 - operator classification matrix proving no `7.5` operator is an unclassified
   helper
 - public-contract and compile-fail proof that synthetic overlap-region entry,
-  raw loop bypass, and synthetic ledger construction are rejected
+  raw loop bypass, local readiness clones, in-place loop-reconstruction
+  refactors, and synthetic ledger construction are rejected
 - workload evidence and stage-requirement proof for overlap extraction
 - replay and checkpoint parity proof for canonical overlap-region identity,
   area honesty, and winding stability
@@ -1233,6 +1559,7 @@ proof:
     - `mixed_boundary_and_area_contact_does_not_collapse`
     - `benign_loop_order_variation_preserves_ledger_digest`
     - `synthetic_overlap_ledger_is_rejected`
+    - `synthetic_readiness_or_mismatched_loop_ledger_is_rejected`
     - `checkpoint_replay_preserves_region_identity_and_names`
     - `overlap_storm_uses_index_not_pairwise_rediscovery`
 
@@ -1252,6 +1579,9 @@ proof:
 - `7.6+` must consume `PlanarBooleanOverlapRegionLedgerReceipt` as the
   exclusive overlap-truth boundary and must not reopen raw loops, raw islands,
   raw arrangement cells, or raw overlap scans.
+- Do not start implementation from the old loop-ledger-only entry shape. The
+  Milestone 16 readiness handoff is the architecture entry; the `7.4` loop
+  ledger is the matching loop-geometry entry.
 - Do not put keep/discard fragment classification or face assembly into `7.5`.
 - Do not widen into EMBER here.
 - If a Query-owned retained artifact, support, inspection, outcome, or evidence
@@ -1264,18 +1594,20 @@ proof:
 ## Required Self-Check
 
 - Does the milestone solve a real structural problem or just package work
-  cosmetically? Yes: it freezes the overlap-region authority that fragment
-  classification and face assembly depend on.
+  cosmetically? Yes: it freezes the readiness-bound overlap-region authority
+  that fragment classification and face assembly depend on.
 - Is the adversarial constraint precise and load-bearing? Yes: it requires one
   canonical overlap ledger or a typed localized denial for the same admitted
-  loop ledger across replay, ordering pressure, opposite-sense coincidence, and
-  area-honesty pressure.
+  readiness handoff and loop ledger across replay, ordering pressure,
+  opposite-sense coincidence, and area-honesty pressure.
 - Does the roadmap justify this milestone now? Yes: `7.5` is the first
-  overlap-region consumer of the `7.4` loop ledger and the roadmap places
-  classification and assembly after it.
+  overlap-region consumer of the Milestone 16 readiness handoff and the `7.4`
+  loop ledger, and the roadmap places classification and assembly after it.
 - Does the spec preserve crate authority boundaries? Yes: Query owns runtime
-  entry and progression, `worth-kernel` owns workload evidence, `worth-spatial`
-  owns overlap extraction semantics, and `worth-topo` remains topology truth.
+  entry and progression, `worth-schema` owns readiness vocabulary,
+  `worth-kernel` owns readiness production and workload evidence,
+  `worth-topo` owns the `7.5` readiness consumer, `worth-spatial` owns overlap
+  extraction semantics, and no crate gets to rebuild another crate's authority.
 - Are the phases carrying most of the real design information? Yes.
 - Is each phase centered on one conceptual detail or boundary? Yes.
 - Does each phase contain at least 2 adversarial tests by default? Yes.

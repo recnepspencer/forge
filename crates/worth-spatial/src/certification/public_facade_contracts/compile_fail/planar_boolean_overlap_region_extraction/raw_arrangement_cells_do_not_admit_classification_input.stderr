@@ -1,0 +1,13 @@
+error[E0599]: no function or associated item named `from_cell_set` found for struct `PlanarBooleanOverlapCellContainmentInput<'a>` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/raw_arrangement_cells_do_not_admit_classification_input.rs:10:55
+   |
+10 |     let _ = PlanarBooleanOverlapCellContainmentInput::from_cell_set(&arrangement_cells());
+   |                                                       ^^^^^^^^^^^^^ function or associated item not found in `PlanarBooleanOverlapCellContainmentInput<'_>`
+   |
+note: if you're trying to build a new `PlanarBooleanOverlapCellContainmentInput<'_>`, consider using `PlanarBooleanOverlapCellContainmentInput::<'a>::from_arrangement` which returns `PlanarBooleanOverlapCellContainmentInput<'_>`
+  --> src/workload_platform/planar_boolean_overlap_region_extraction/arrangement_graph/cell_classification/input.rs
+   |
+   | /     pub fn from_arrangement(
+   | |         arrangement_graph: &'a PlanarBooleanCoplanarOverlapArrangementGraph,
+   | |     ) -> Self {
+   | |_____________^

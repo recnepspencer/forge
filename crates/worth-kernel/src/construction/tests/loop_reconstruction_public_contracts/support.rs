@@ -209,9 +209,12 @@ pub(super) fn real_loop_candidate_boundary(
         ),
     )
     .expect("loop reconstruction should consume the real downstream split product");
+    let readiness = crate::workload_composition::current_touched_graph_readiness_handoff()
+        .expect("current readiness handoff should assemble");
     let loop_request = PlanarBooleanLoopReconstructionRequest::admit(
-        PlanarBooleanLoopReconstructionRequestInput::from_split_consumption(
+        PlanarBooleanLoopReconstructionRequestInput::from_split_consumption_and_readiness(
             &loop_split_consumption,
+            &readiness,
         ),
     )
     .expect("loop reconstruction request should admit from the real loop split consumption");

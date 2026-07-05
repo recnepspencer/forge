@@ -17,6 +17,18 @@ use crate::workload_platform::planar_boolean_loop_reconstruction::{
 pub struct PlanarBooleanLoopReconstructionLedger {
     ledger_identity: String,
     request_identity: String,
+    selected_plan_digest: String,
+    selected_route_identity_digest: String,
+    selected_family_identity: String,
+    selected_product_identity_digest: String,
+    selected_witness_identity_digest: Option<String>,
+    touched_closure_digest: String,
+    overlap_identity_digests: Vec<String>,
+    topology_query_posture_digest: String,
+    spatial_query_posture_digest: String,
+    residue_digest: String,
+    source_firewall_digest: String,
+    architecture_claim_digest: String,
     decision_log_identity: String,
     loop_identity_map_identity: String,
     persistent_name_map_identity: String,
@@ -55,6 +67,33 @@ impl PlanarBooleanLoopReconstructionLedger {
                 &rows,
             ),
             request_identity: input.request().request_identity().to_string(),
+            selected_plan_digest: input.request().selected_plan_digest().to_string(),
+            selected_route_identity_digest: input
+                .request()
+                .selected_route_identity_digest()
+                .to_string(),
+            selected_family_identity: input.request().selected_family_identity().to_string(),
+            selected_product_identity_digest: input
+                .request()
+                .selected_product_identity_digest()
+                .to_string(),
+            selected_witness_identity_digest: input
+                .request()
+                .selected_witness_identity_digest()
+                .map(str::to_string),
+            touched_closure_digest: input.request().touched_closure_digest().to_string(),
+            overlap_identity_digests: input.request().overlap_identity_digests().to_vec(),
+            topology_query_posture_digest: input
+                .request()
+                .topology_query_posture_digest()
+                .to_string(),
+            spatial_query_posture_digest: input
+                .request()
+                .spatial_query_posture_digest()
+                .to_string(),
+            residue_digest: input.request().residue_digest().to_string(),
+            source_firewall_digest: input.request().source_firewall_digest().to_string(),
+            architecture_claim_digest: input.request().architecture_claim_digest().to_string(),
             decision_log_identity: input.decision_log().decision_log_identity().to_string(),
             loop_identity_map_identity: input.loop_identity_map().map_identity().to_string(),
             persistent_name_map_identity: input.persistent_name_map().map_identity().to_string(),
@@ -101,6 +140,54 @@ impl PlanarBooleanLoopReconstructionLedger {
 
     pub fn decision_log_identity(&self) -> &str {
         &self.decision_log_identity
+    }
+
+    pub fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+
+    pub fn selected_route_identity_digest(&self) -> &str {
+        &self.selected_route_identity_digest
+    }
+
+    pub fn selected_family_identity(&self) -> &str {
+        &self.selected_family_identity
+    }
+
+    pub fn selected_product_identity_digest(&self) -> &str {
+        &self.selected_product_identity_digest
+    }
+
+    pub fn selected_witness_identity_digest(&self) -> Option<&str> {
+        self.selected_witness_identity_digest.as_deref()
+    }
+
+    pub fn touched_closure_digest(&self) -> &str {
+        &self.touched_closure_digest
+    }
+
+    pub fn overlap_identity_digests(&self) -> &[String] {
+        &self.overlap_identity_digests
+    }
+
+    pub fn topology_query_posture_digest(&self) -> &str {
+        &self.topology_query_posture_digest
+    }
+
+    pub fn spatial_query_posture_digest(&self) -> &str {
+        &self.spatial_query_posture_digest
+    }
+
+    pub fn residue_digest(&self) -> &str {
+        &self.residue_digest
+    }
+
+    pub fn source_firewall_digest(&self) -> &str {
+        &self.source_firewall_digest
+    }
+
+    pub fn architecture_claim_digest(&self) -> &str {
+        &self.architecture_claim_digest
     }
 
     pub fn loop_identity_map_identity(&self) -> &str {

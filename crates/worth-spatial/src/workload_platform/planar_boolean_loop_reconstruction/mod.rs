@@ -4,6 +4,7 @@ mod island_partition;
 mod loop_candidates;
 mod loop_decision_log;
 mod loop_identity;
+mod loop_participation_support;
 mod loop_reconstruction_evidence;
 mod loop_reconstruction_ledger;
 mod loop_roles;
@@ -56,6 +57,11 @@ pub use loop_identity::{
     PlanarBooleanLoopIdentityRow, PlanarBooleanLoopNamingAuthoritySupport,
     PlanarBooleanLoopPersistentNamePropagationMap, PlanarBooleanLoopPersistentNamePropagationRow,
     PlanarBooleanLoopSubshapeSignatureMap, PlanarBooleanLoopSubshapeSignatureRow,
+};
+pub use loop_participation_support::{
+    PlanarBooleanLoopReconstructionParticipationSupport,
+    PlanarBooleanLoopReconstructionParticipationSupportDenial,
+    PlanarBooleanLoopReconstructionParticipationSupportDenialKind,
 };
 pub use loop_reconstruction_evidence::{
     PlanarBooleanLoopReconstructionEvidenceInput, PlanarBooleanLoopReconstructionEvidenceReceipt,

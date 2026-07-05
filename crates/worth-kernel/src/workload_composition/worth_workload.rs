@@ -19,6 +19,7 @@ use worth_spatial::facade::workload_vocabulary::{
     RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt, TransformWorkloadReceipt,
     WorkloadEvidenceStage, WorkloadStageSupport,
 };
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionEvidenceReceipt;
 
 use super::BatchAdmissionExecutionReceipt;
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};
@@ -150,6 +151,44 @@ impl WorthWorkload {
 
     pub fn evidence_ledger(&self) -> &CompleteWorkloadEvidenceLedger {
         &self.evidence_ledger
+    }
+
+    pub fn require_boolean_overlap_region_extraction(
+        &self,
+        evidence_receipt: &PlanarBooleanOverlapRegionEvidenceReceipt,
+    ) -> Result<(), WorkloadCompositionError> {
+        require_boolean_evidence(
+            &self.evidence_ledger,
+            evidence_receipt,
+            WorkloadStageRequirement::BooleanOverlapRegionExtraction,
+        )
+    }
+
+    pub fn with_completed_planar_boolean_overlap_region_extraction(
+        &self,
+        evidence_receipt: &PlanarBooleanOverlapRegionEvidenceReceipt,
+    ) -> Result<Self, WorkloadCompositionError> {
+        let evidence_ledger = self
+            .evidence_ledger
+            .with_boolean_evidence_receipt(evidence_receipt)
+            .map_err(|error| {
+                map_boolean_ledger_error(
+                    error,
+                    WorkloadStageRequirement::BooleanOverlapRegionExtraction,
+                )
+            })?;
+        Self::compose(WorthWorkloadParts {
+            topology: self.topology.clone(),
+            geometry_binding: self.geometry_binding.clone(),
+            surface_support: self.surface_support.clone(),
+            projection: self.projection.clone(),
+            transform: self.transform.clone(),
+            retained_replay: self.retained_replay.clone(),
+            batch_admission_execution: self.batch_admission_execution.clone(),
+            diagnostics: self.diagnostics.clone(),
+            response: self.response.clone(),
+            evidence_ledger,
+        })
     }
 }
 
@@ -326,6 +365,9 @@ fn stage_requirement_for_boolean_evidence_stage(
         WorkloadEvidenceStage::BooleanSplit => Some(WorkloadStageRequirement::BooleanSplit),
         WorkloadEvidenceStage::BooleanLoopReconstruction => {
             Some(WorkloadStageRequirement::BooleanLoopReconstruction)
+        }
+        WorkloadEvidenceStage::BooleanAssemble => {
+            Some(WorkloadStageRequirement::BooleanOverlapRegionExtraction)
         }
         _ => None,
     }

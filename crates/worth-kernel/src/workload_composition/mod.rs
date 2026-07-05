@@ -15,6 +15,7 @@ mod conflict_plan;
 mod deletion_closeout;
 mod operator_harness;
 mod performance_trace;
+mod planar_boolean_overlap_region_extraction;
 mod planner_owned_routing;
 mod planner_owned_routing_inventory;
 mod public_closeout;
@@ -146,6 +147,20 @@ pub use operator_harness::{
     OperatorSupportReceipt, OperatorWorkloadError, OperatorWorkloadReceipt,
     UnsupportedOperatorFamily, WorkloadOperator, WorkloadOperatorFamily,
 };
+pub use planar_boolean_overlap_region_extraction::{
+    CompletedPlanarBooleanOverlapRegionExtractionHandoff,
+    PlanarBooleanOverlapRegionAntiTheatreFenceDenial,
+    PlanarBooleanOverlapRegionAntiTheatreFenceProof,
+    PlanarBooleanOverlapRegionCloseoutInput,
+    PlanarBooleanOverlapRegionPublicContractFenceDenial,
+    PlanarBooleanOverlapRegionPublicContractFenceProof,
+    PlanarBooleanOverlapRegionPublicContractProofRow,
+    PlanarBooleanOverlapRegionPublicContractProofRowKind,
+    PlanarBooleanOverlapRegistrationContract, PlanarBooleanOverlapRegistrationContractError,
+    PlanarBooleanOverlapRegionMetabossSubcase,
+    PlanarBooleanOverlapRuntimeRegistrationProof,
+    PlanarBooleanOverlapRegionSummumBonumCloseoutInput,
+};
 pub(crate) use planner_owned_routing::{
     admit_worth_touched_graph_conflict_public_proof_input,
     current_worth_touched_graph_conflict_derived_diagnostic_projection,
@@ -184,25 +199,24 @@ pub use stage_requirements::WorkloadStageRequirement;
 pub use touched_graph_parity_closeout::{
     current_conflict_family_contributor_catalog, current_conflict_family_parity_claim,
     current_cross_family_coverage_inventory, current_live_coverage_ledger,
-    current_public_projection_contributor_catalog,
-    current_public_projection_parity_claim, current_replay_undo_family_contributor_catalog,
-    current_replay_undo_family_parity_claim, current_representative_selected_route_parity_path,
-    current_reuse_family_contributor_catalog, current_reuse_family_parity_claim,
-    current_spatial_family_contributor_catalog, current_spatial_family_parity_claim,
+    current_public_projection_contributor_catalog, current_public_projection_parity_claim,
+    current_replay_undo_family_contributor_catalog, current_replay_undo_family_parity_claim,
+    current_representative_selected_route_parity_path, current_reuse_family_contributor_catalog,
+    current_reuse_family_parity_claim, current_spatial_family_contributor_catalog,
+    current_spatial_family_parity_claim, current_touched_graph_readiness_handoff,
     current_worth_touched_graph_cross_family_closeout_matrix,
-    current_worth_touched_graph_roadmap_completion_gate,
-    current_touched_graph_readiness_handoff, ConflictFamilyContributorCatalog,
+    current_worth_touched_graph_roadmap_completion_gate, ConflictFamilyContributorCatalog,
     ConflictFamilyContributorCatalogError, ConflictFamilyContributorCatalogErrorKind,
     ConflictFamilyContributorCatalogRow, ConflictFamilyContributorRowKind,
     ConflictFamilyParityClaim, ConflictFamilyParityError, ConflictFamilyParityErrorKind,
     ConflictFamilyParityRow, CrossFamilyCoverageFamilyKind, CrossFamilyCoverageInventory,
     CrossFamilyCoverageInventoryError, CrossFamilyCoverageQuerySurfaceKind, CrossFamilyCoverageRow,
-    LiveCoverageLedger, LiveCoverageLedgerError,
-    PublicProjectionContributorCatalog, PublicProjectionContributorCatalogError,
-    PublicProjectionContributorCatalogErrorKind, PublicProjectionContributorCatalogRow,
-    PublicProjectionContributorRowKind, PublicProjectionParityClaim, PublicProjectionParityError,
-    PublicProjectionParityErrorKind, PublicProjectionParityRow, ReadinessHandoffError,
-    ReadinessHandoffErrorKind, ReplayUndoContributorRowKind, ReplayUndoFamilyContributorCatalog,
+    LiveCoverageLedger, LiveCoverageLedgerError, PublicProjectionContributorCatalog,
+    PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
+    PublicProjectionContributorCatalogRow, PublicProjectionContributorRowKind,
+    PublicProjectionParityClaim, PublicProjectionParityError, PublicProjectionParityErrorKind,
+    PublicProjectionParityRow, ReadinessHandoffError, ReadinessHandoffErrorKind,
+    ReplayUndoContributorRowKind, ReplayUndoFamilyContributorCatalog,
     ReplayUndoFamilyContributorCatalogError, ReplayUndoFamilyContributorCatalogErrorKind,
     ReplayUndoFamilyContributorCatalogRow, ReplayUndoFamilyParityClaim,
     ReplayUndoFamilyParityError, ReplayUndoFamilyParityErrorKind, ReplayUndoFamilyParityRow,
@@ -218,12 +232,10 @@ pub use touched_graph_parity_closeout::{
     ReuseFamilyParityErrorKind, ReuseFamilyParityRow, SpatialFamilyContributorCatalogError,
     SpatialFamilyContributorCatalogErrorKind, SpatialFamilyParityClaim, SpatialFamilyParityError,
     SpatialFamilyParityErrorKind, SpatialFamilyParityRow,
-    WorthTouchedGraphCrossFamilyCloseoutMatrix,
-    WorthTouchedGraphCrossFamilyCloseoutMatrixError,
+    WorthTouchedGraphCrossFamilyCloseoutMatrix, WorthTouchedGraphCrossFamilyCloseoutMatrixError,
     WorthTouchedGraphCrossFamilyCloseoutMatrixErrorKind,
     WorthTouchedGraphCrossFamilyCloseoutMatrixRow, WorthTouchedGraphRoadmapCompletionGate,
-    WorthTouchedGraphRoadmapCompletionGateError,
-    WorthTouchedGraphRoadmapCompletionGateErrorKind,
+    WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
 pub use workload_catalog::{
     BuiltBooleanCleanFailCatalogRecipe, BuiltBooleanDeniedCatalogRecipe,

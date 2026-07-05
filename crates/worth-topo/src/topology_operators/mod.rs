@@ -11,6 +11,7 @@ mod mutation_digest;
 pub(crate) mod mutation_records;
 mod mutation_sequence;
 mod naming_continuity;
+mod overlap_region_blueprint;
 mod query_workflow;
 #[cfg(test)]
 mod query_workflow_tests;
@@ -69,6 +70,14 @@ pub use loop_reconstruction_blueprint::{
     PlanarBooleanLoopOperatorRow, PlanarBooleanLoopOperatorTruthAuthority,
     PlanarBooleanLoopRequiredQuerySurface, PlanarBooleanLoopValidatorRegistrationPlan,
     PlanarBooleanLoopValidatorRow, PlanarBooleanLoopValidatorRuntimeLane,
+};
+pub use overlap_region_blueprint::{
+    PlanarBooleanOverlapBlueprintCloseout, PlanarBooleanOverlapBlueprintCloseoutDenial,
+    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
+    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
+    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
+    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
 };
 pub use mutation_digest::{TopologyMutationDigest, TopologyMutationSequenceDigest};
 pub(crate) use mutation_records::TopologyDeclaredMutationActionRef;

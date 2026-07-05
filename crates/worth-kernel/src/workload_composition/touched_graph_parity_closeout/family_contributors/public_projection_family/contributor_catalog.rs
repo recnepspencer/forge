@@ -1,13 +1,15 @@
 use crate::workload_composition::planner_owned_routing::{
     current_worth_touched_graph_conflict_public_facade_with_artifact_policy,
-    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy, WorthTouchedGraphConflictPublicFacade,
+    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
+    WorthTouchedGraphConflictPublicFacade,
 };
 use crate::workload_composition::touched_graph_parity_closeout::family_contributors::{
     KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError,
 };
 
 use super::derived_diagnostics_row::{
-    current_derived_diagnostics_contributor_row, derived_diagnostics_contributor_row_from_public_facade,
+    current_derived_diagnostics_contributor_row,
+    derived_diagnostics_contributor_row_from_public_facade,
 };
 use super::error::{
     PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
@@ -196,7 +198,8 @@ fn validate_catalog_rows_against_public_facade(
     for row in rows {
         match row.kind() {
             PublicProjectionContributorRowKind::PublicProof => {
-                if row.selected_route_identity_digest() != public_proof.selected_route_identity_digest()
+                if row.selected_route_identity_digest()
+                    != public_proof.selected_route_identity_digest()
                     || row.selected_family_identity() != public_proof.selected_family_identity()
                     || row.selected_product_identity_digest()
                         != public_proof.selected_product_identity_digest()
@@ -215,7 +218,8 @@ fn validate_catalog_rows_against_public_facade(
                 }
             }
             PublicProjectionContributorRowKind::DerivedDiagnostics => {
-                if row.selected_route_identity_digest() != diagnostics.selected_route_identity_digest()
+                if row.selected_route_identity_digest()
+                    != diagnostics.selected_route_identity_digest()
                     || row.selected_family_identity() != diagnostics.selected_family_identity()
                     || row.selected_product_identity_digest()
                         != diagnostics.selected_product_identity_digest()

@@ -1,10 +1,10 @@
 use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictArchitectureAlignmentReportRow;
 
+use super::super::ArchitectureClaimLedgerRowKind;
 use super::error::{
     WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
 use super::gate::WorthTouchedGraphRoadmapCompletionGate;
-use super::super::ArchitectureClaimLedgerRowKind;
 
 pub(crate) fn validate_roadmap_completion_gate(
     gate: &WorthTouchedGraphRoadmapCompletionGate,
@@ -27,7 +27,7 @@ pub(crate) fn validate_roadmap_completion_gate(
     }
 
     if public_closeout.selected_route_identity_digest()
-            != representative_path.selected_route_identity_digest()
+        != representative_path.selected_route_identity_digest()
         || public_closeout.selected_family_identity()
             != representative_path.selected_family_identity()
         || public_closeout.selected_product_identity_digest()
@@ -59,8 +59,12 @@ pub(crate) fn validate_roadmap_completion_gate(
             .public_proof()
             .architecture_alignment_report()
             .report_digest()
-            != public_closeout.architecture_alignment_report().report_digest()
-        || representative_path.evidence_lookup().public_closeout_digest()
+            != public_closeout
+                .architecture_alignment_report()
+                .report_digest()
+        || representative_path
+            .evidence_lookup()
+            .public_closeout_digest()
             != public_closeout
                 .milestone_fifteen_seed()
                 .evidence_lookup_public_closeout_digest()
@@ -79,9 +83,11 @@ pub(crate) fn validate_roadmap_completion_gate(
     }
 
     if representative_path_coverage.is_empty()
-        || !representative_path_coverage
-            .iter()
-            .all(|family_kind| readiness.representative_family_coverage().contains(family_kind))
+        || !representative_path_coverage.iter().all(|family_kind| {
+            readiness
+                .representative_family_coverage()
+                .contains(family_kind)
+        })
     {
         return Err(WorthTouchedGraphRoadmapCompletionGateError::new(
             WorthTouchedGraphRoadmapCompletionGateErrorKind::RepresentativePathAuthorityMismatch,
@@ -90,7 +96,10 @@ pub(crate) fn validate_roadmap_completion_gate(
     }
 
     for family_kind in gate.covered_family_kinds() {
-        let row = matrix.rows().iter().find(|row| row.family_kind() == *family_kind);
+        let row = matrix
+            .rows()
+            .iter()
+            .find(|row| row.family_kind() == *family_kind);
         let Some(row) = row else {
             return Err(WorthTouchedGraphRoadmapCompletionGateError::new(
                 WorthTouchedGraphRoadmapCompletionGateErrorKind::MissingCoveredFamilyCertification,
@@ -116,7 +125,10 @@ pub(crate) fn validate_roadmap_completion_gate(
     }
 
     for family_kind in representative_path_coverage {
-        let row = matrix.rows().iter().find(|row| row.family_kind() == family_kind);
+        let row = matrix
+            .rows()
+            .iter()
+            .find(|row| row.family_kind() == family_kind);
         let Some(row) = row else {
             return Err(WorthTouchedGraphRoadmapCompletionGateError::new(
                 WorthTouchedGraphRoadmapCompletionGateErrorKind::RepresentativePathAuthorityMismatch,

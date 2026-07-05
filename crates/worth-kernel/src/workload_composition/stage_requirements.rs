@@ -24,6 +24,7 @@ pub enum WorkloadStageRequirement {
     BooleanEventLedger,
     BooleanSplit,
     BooleanLoopReconstruction,
+    BooleanOverlapRegionExtraction,
     EvidenceLedger,
 }
 
@@ -58,6 +59,7 @@ impl WorkloadStageRequirement {
             Self::BooleanEventLedger => "boolean event ledger receipt",
             Self::BooleanSplit => "boolean split receipt",
             Self::BooleanLoopReconstruction => "boolean loop reconstruction receipt",
+            Self::BooleanOverlapRegionExtraction => "boolean overlap-region extraction evidence receipt",
             Self::EvidenceLedger => "workload evidence ledger",
         }
     }
@@ -92,6 +94,7 @@ impl WorkloadStageRequirement {
             Self::BooleanEventLedger => "boolean_event_ledger",
             Self::BooleanSplit => "boolean_split",
             Self::BooleanLoopReconstruction => "boolean_loop_reconstruction",
+            Self::BooleanOverlapRegionExtraction => "boolean_overlap_region_extraction",
             Self::EvidenceLedger => "evidence_ledger",
         }
     }

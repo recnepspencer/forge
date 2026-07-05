@@ -1,9 +1,7 @@
 use super::error::{
     WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
-use super::gate::{
-    RoadmapCompletionFirewallCertification, WorthTouchedGraphRoadmapCompletionGate,
-};
+use super::gate::{RoadmapCompletionFirewallCertification, WorthTouchedGraphRoadmapCompletionGate};
 use super::validation::validate_roadmap_completion_gate;
 use crate::workload_composition::touched_graph_parity_closeout::current_touched_graph_parity_closeout_authorities;
 
@@ -25,7 +23,9 @@ pub fn current_worth_touched_graph_roadmap_completion_gate(
             authorities
                 .source_firewall_closeout()
                 .source_firewall_report_digest(),
-            authorities.source_firewall_closeout().deletion_closeout_digest(),
+            authorities
+                .source_firewall_closeout()
+                .deletion_closeout_digest(),
             authorities
                 .source_firewall_closeout()
                 .covered_forbidden_surfaces()

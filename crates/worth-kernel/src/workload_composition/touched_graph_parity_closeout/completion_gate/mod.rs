@@ -10,8 +10,7 @@ mod tests_failure_guards;
 
 pub use current::current_worth_touched_graph_roadmap_completion_gate;
 pub use error::{
-    WorthTouchedGraphRoadmapCompletionGateError,
-    WorthTouchedGraphRoadmapCompletionGateErrorKind,
+    WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
 pub use gate::WorthTouchedGraphRoadmapCompletionGate;
 

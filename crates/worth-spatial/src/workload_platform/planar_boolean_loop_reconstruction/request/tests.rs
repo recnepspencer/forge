@@ -1,15 +1,19 @@
 use crate::workload_platform::planar_boolean_loop_reconstruction::test_support::{
     prepared_loop_reconstruction_subject, LoopFixtureEntryOrder,
 };
+use worth_kernel::workload_composition::current_touched_graph_readiness_handoff;
 
 use super::{PlanarBooleanLoopReconstructionRequest, PlanarBooleanLoopReconstructionRequestInput};
 
 #[test]
 fn loop_reconstruction_request_preserves_split_receipt_and_request_lineage() {
     let subject = prepared_loop_reconstruction_subject(LoopFixtureEntryOrder::Canonical);
+    let readiness = current_touched_graph_readiness_handoff()
+        .expect("current readiness handoff should assemble");
     let request = PlanarBooleanLoopReconstructionRequest::admit(
-        PlanarBooleanLoopReconstructionRequestInput::from_split_consumption(
+        PlanarBooleanLoopReconstructionRequestInput::from_split_consumption_and_readiness(
             &subject.loop_split_consumption,
+            &readiness,
         ),
     )
     .expect("loop reconstruction request should admit from loop split consumption");

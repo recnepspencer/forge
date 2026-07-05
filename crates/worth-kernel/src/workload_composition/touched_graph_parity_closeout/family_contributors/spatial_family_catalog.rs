@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use worth_spatial::touched_graph_parity_closeout::{
     current_spatial_family_contributor_catalog as current_spatial_catalog,
     SpatialContributorCatalogRowKind, SpatialContributorLocalLanguagePosture,
@@ -26,6 +28,11 @@ pub struct SpatialFamilyContributorCatalogError {
 
 pub fn current_spatial_family_contributor_catalog(
 ) -> Result<SpatialCatalog, SpatialFamilyContributorCatalogError> {
+    static CACHE: OnceLock<SpatialCatalog> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
     let catalog = current_spatial_catalog().map_err(|error| {
         SpatialFamilyContributorCatalogError::new(
             SpatialFamilyContributorCatalogErrorKind::CurrentSurfaceUnavailable,
@@ -33,6 +40,7 @@ pub fn current_spatial_family_contributor_catalog(
         )
     })?;
     validate_catalog(&catalog)?;
+    let _ = CACHE.set(catalog.clone());
     Ok(catalog)
 }
 

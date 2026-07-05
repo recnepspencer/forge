@@ -30,6 +30,7 @@ use crate::workload_platform::coplanar_overlap_storm::CoplanarOverlapStormWorklo
 use crate::workload_platform::high_valence_singularity::{
     HighValenceSingularityReceipt, HighValenceSingularityWorkloadError,
 };
+use crate::workload_platform::planar_boolean_overlap_region_extraction::CoplanarOverlapOperatorReceipt;
 use crate::workload_platform::retained_replay_workload::{
     UnsupportedReplayReasonCode, UnsupportedReplayWorkload,
 };
@@ -37,7 +38,6 @@ use crate::workload_platform::surface_support::UnsupportedSurfaceSupport;
 use crate::workload_platform::thin_feature_scale_separation::{
     ThinFeatureScaleSeparationReceipt, ThinFeatureScaleSeparationWorkloadError,
 };
-use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
 
 impl WorthUserResponseSource {
     pub fn from_overlap_receipt(receipt: &CoplanarOverlapContractReceipt) -> Self {

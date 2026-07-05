@@ -121,7 +121,8 @@ fn architecture_alignment_report_proves_parallel_cutover_law() {
     assert!(report
         .query_gap_support_rows()
         .iter()
-        .all(|row| row.query_gap_kind().is_some() && row.mechanically_unreachable_from_ordinary_path()));
+        .all(|row| row.query_gap_kind().is_some()
+            && row.mechanically_unreachable_from_ordinary_path()));
     assert!(!report
         .topology_compiled_product_identity_digest()
         .is_empty());

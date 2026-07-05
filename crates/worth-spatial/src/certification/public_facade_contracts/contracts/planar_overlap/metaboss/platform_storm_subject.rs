@@ -5,10 +5,10 @@ use worth_kernel::workload_composition::{
 use worth_spatial::facade::coplanar_overlap_storm::{
     CoplanarOverlapStormReceipt, CoplanarOverlapStormWorkload, CoplanarOverlapStormWorkloadError,
 };
-use worth_spatial::facade::planar_overlap::CoplanarOverlapUserOutcome;
-use worth_spatial::facade::workload_operators::{
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     CoplanarOverlapOperatorReceipt, CoplanarOverlapWorkloadOperator,
 };
+use worth_spatial::facade::planar_overlap::CoplanarOverlapUserOutcome;
 use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceLedgerError, WorkloadEvidenceRow, WorkloadEvidenceStage,
 };

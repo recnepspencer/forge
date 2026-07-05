@@ -6,6 +6,7 @@ use super::{
 };
 use crate::planar_contracts::planar_diagnostics::PlanarDiagnosticBundleReceipt;
 use crate::workload_platform::geometry_binding::GeometryBindingReceiptSet;
+use crate::workload_platform::planar_boolean_overlap_region_extraction::CoplanarOverlapOperatorReceipt;
 use crate::workload_platform::projection_workload::ProjectionReceiptSet;
 use crate::workload_platform::retained_replay_workload::ReplayReceiptSet;
 use crate::workload_platform::surface_support::{
@@ -18,7 +19,6 @@ use crate::workload_platform::vocabulary::{
     ResponseWorkloadReceipt, RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt,
     TransformWorkloadReceipt,
 };
-use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
 
 impl WorkloadEvidenceRow {
     pub(crate) fn from_operator_evidence(

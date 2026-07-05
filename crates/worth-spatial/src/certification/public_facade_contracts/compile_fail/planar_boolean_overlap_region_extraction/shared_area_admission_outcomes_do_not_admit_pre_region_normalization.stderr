@@ -1,0 +1,5 @@
+error[E0599]: no method named `normalize_pre_region_coincidence` found for struct `PlanarBooleanSharedAreaAdmissionOutcomeSet` in the current scope
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/shared_area_admission_outcomes_do_not_admit_pre_region_normalization.rs:15:44
+   |
+15 |     let _ = shared_area_admission_outcomes.normalize_pre_region_coincidence(&chain_lineage_map());
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanSharedAreaAdmissionOutcomeSet`

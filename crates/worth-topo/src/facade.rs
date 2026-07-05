@@ -133,6 +133,13 @@ pub use crate::projection::planner_owned_routing::{
     TopologyMilestoneSevenFiveOverlapReadinessConsumer, TopologyMilestoneSevenFiveReadinessError,
     TopologyMilestoneSevenFiveReadinessErrorKind,
 };
+pub use crate::topology_operators::{
+    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
+    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
+    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
+    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
+};
 pub use crate::projection::query_backed_consumer_cutover::{
     admit_topology_query_backed_consumer_cutover, current_query_backed_consumer_residue_manifest,
     current_topology_query_backed_consumer_cutover, QueryBackedConsumerResidueDisposition,

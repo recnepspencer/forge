@@ -5,7 +5,7 @@ use super::storm_receipt::CoplanarOverlapStormReceipt;
 use crate::workload_platform::evidence_ledger::{
     CompleteWorkloadEvidenceLedger, WorkloadEvidenceStage,
 };
-use crate::workload_platform::workload_operators::CoplanarOverlapOperatorReceipt;
+use crate::workload_platform::planar_boolean_overlap_region_extraction::CoplanarOverlapOperatorReceipt;
 
 pub struct CoplanarOverlapStormWorkload<'a> {
     evidence_ledger: &'a CompleteWorkloadEvidenceLedger,

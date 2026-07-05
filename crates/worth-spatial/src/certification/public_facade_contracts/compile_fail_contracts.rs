@@ -11,6 +11,27 @@ const GENERIC_DIGEST_WRAPPER_DENIAL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/generic_digest_bridge_denials/lookup_digest_is_not_query_descriptor_digest.rs",
     "src/certification/public_facade_contracts/compile_fail/spatial_evidence_lookup/generic_digest_bridge_denials/query_digest_is_not_lookup_product_digest.rs",
 ];
+const OVERLAP_REQUEST_BOUNDARY_FIXTURES: &[&str] = &[
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/loop_ledger_only_request_entry_not_available.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/request_not_hand_filled_from_copied_fields.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/legacy_workload_operator_facade_not_public.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/raw_arrangement_cells_do_not_admit_classification_input.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/winding_input_requires_containment_map.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/raw_arrangement_graph_does_not_admit_island_candidate_input.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/raw_arrangement_graph_does_not_admit_island_component_bundle.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/overlap_islands_do_not_admit_boundary_contact_classification_bundle.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/overlap_islands_do_not_classify_boundary_contact_components.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/boundary_contact_classification_input_requires_area_overlap_component_set.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/area_overlap_components_do_not_admit_shared_area_components.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/pure_boundary_only_outcomes_do_not_admit_shared_area_components.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/shared_area_admission_outcomes_do_not_admit_pre_region_normalization.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/mixed_boundary_area_outcomes_do_not_admit_pre_region_normalization.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/admitted_overlap_regions_do_not_normalize_post_admission_canonical_winding.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/boundary_only_outcomes_do_not_normalize_post_admission_canonical_winding.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/canonical_winding_set_does_not_mint_overlap_region_identity_lineage.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/identity_map_does_not_mint_overlap_region_ledger.rs",
+    "src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/public_contract_fence_input_not_exported.rs",
+];
 
 #[test]
 fn spatial_public_boundary_rejects_internal_constructor_bypass() {
@@ -54,6 +75,11 @@ fn public_api_cannot_forge_compiled_product_or_reuse_products() {
 #[test]
 fn generic_digest_wrappers_cannot_bridge_query_and_lookup_products() {
     run_explicit_compile_fail_fixture_inventory(GENERIC_DIGEST_WRAPPER_DENIAL_FIXTURES);
+}
+
+#[test]
+fn overlap_request_boundary_rejects_loop_ledger_only_and_copied_field_entry() {
+    run_explicit_compile_fail_fixture_inventory(OVERLAP_REQUEST_BOUNDARY_FIXTURES);
 }
 
 #[test]

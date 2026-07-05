@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/overlap_islands_do_not_admit_boundary_contact_classification_bundle.rs:10:69
+   |
+10 |     let _ = PlanarBooleanBoundaryContactClassificationBundle::admit(overlap_islands());
+   |             ------------------------------------------------------- ^^^^^^^^^^^^^^^^^ expected `PlanarBooleanBoundaryContactClassificationInput<'_>`, found `PlanarBooleanOverlapIslandSet`
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/workload_platform/planar_boolean_overlap_region_extraction/contact_area_classification/product.rs
+   |
+   |     pub fn admit(
+   |            ^^^^^

@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::facade::evidence_lookup_route::current_evidence_lookup_route_packet;
 use crate::spatial_compiled_product_family::{
     current_spatial_compiled_product_family_catalog, select_spatial_compiled_product_family,
@@ -34,8 +36,15 @@ use super::query_boundary_support::compose_query_boundary_support_digest;
 
 pub fn current_evidence_lookup_public_closeout(
 ) -> Result<EvidenceLookupPublicCloseout, EvidenceLookupPublicCloseoutError> {
+    static CACHE: OnceLock<EvidenceLookupPublicCloseout> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
     let route_input = current_evidence_lookup_public_closeout_route_input()?;
-    EvidenceLookupPublicCloseout::assemble_from_route_input(&route_input)
+    let closeout = EvidenceLookupPublicCloseout::assemble_from_route_input(&route_input)?;
+    let _ = CACHE.set(closeout.clone());
+    Ok(closeout)
 }
 
 pub(crate) fn current_evidence_lookup_public_closeout_assembly_input(
@@ -67,6 +76,11 @@ pub(crate) fn current_evidence_lookup_public_closeout_route_input_with_selected_
 
 pub fn current_evidence_lookup_public_closeout_route_input(
 ) -> Result<EvidenceLookupPublicCloseoutRouteInput, EvidenceLookupPublicCloseoutError> {
+    static CACHE: OnceLock<EvidenceLookupPublicCloseoutRouteInput> = OnceLock::new();
+    if let Some(cached) = CACHE.get() {
+        return Ok(cached.clone());
+    }
+
     let route_packet = current_evidence_lookup_route_packet().map_err(|error| {
         EvidenceLookupPublicCloseoutError::new(
             EvidenceLookupPublicCloseoutErrorKind::MissingSelectedRouteFamilyRow,
@@ -302,9 +316,11 @@ pub fn current_evidence_lookup_public_closeout_route_input(
         catalog.declarations(),
     )?;
 
-    admit_evidence_lookup_public_closeout_route_input(
+    let route_input = admit_evidence_lookup_public_closeout_route_input(
         route_packet,
         selected_route_support,
         admitted_assembly_input,
-    )
+    )?;
+    let _ = CACHE.set(route_input.clone());
+    Ok(route_input)
 }
