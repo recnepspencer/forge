@@ -15,6 +15,10 @@ REQUIRED_TURNS = (
     "code_quality_review",
 )
 
+OPTIONAL_TURNS = (
+    "boundary_review",
+)
+
 STATIC_TOP_LEVEL_KEYS = {
     "schema_version",
     "project",
@@ -86,6 +90,16 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
             template_path = resolve_config_path(config_path, template_name)
             if not template_path.exists():
                 errors.append(f"template not found for {turn}: {template_path}")
+        for turn in OPTIONAL_TURNS:
+            if turn not in templates:
+                continue
+            template_name = templates.get(turn)
+            if not isinstance(template_name, str) or not template_name:
+                errors.append(f"turn_templates.{turn} must name a template file when present")
+                continue
+            template_path = resolve_config_path(config_path, template_name)
+            if not template_path.exists():
+                errors.append(f"template not found for {turn}: {template_path}")
 
     contract_template = config.get("contract_template")
     if not isinstance(contract_template, str) or not contract_template:
@@ -131,6 +145,7 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
         errors.append("runner_control must be an object when present")
     elif isinstance(runner_control, dict):
         validate_optional_positive_int(runner_control, "stop_before_phase", errors)
+        validate_optional_positive_int(runner_control, "boundary_review_start_phase", errors)
         validate_optional_positive_int(runner_control, "turn_timeout_seconds", errors)
         validate_optional_positive_int(runner_control, "idle_timeout_seconds", errors)
         stop_reason = runner_control.get("stop_reason")

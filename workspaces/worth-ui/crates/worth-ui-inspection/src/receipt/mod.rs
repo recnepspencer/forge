@@ -17,13 +17,13 @@ pub use closure_report::UiInspectionClosureReport;
 pub use inspection_cost_receipt::UiInspectionCostReceipt;
 pub use measurement::{
     UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
-    UiInspectionMeasurementBasisSource, UiInspectionMeasurementDenialPosture,
-    UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementDependencyLineageKind,
-    UiInspectionMeasurementEvidenceCategory, UiInspectionMeasurementEvidenceSlot,
-    UiInspectionMeasurementEvidenceView, UiInspectionMeasurementFailureSource,
-    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
-    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
-    UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionMeasurementBasisSource, UiInspectionMeasurementChildIntrinsicSource,
+    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
+    UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
+    UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
+    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
+    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
 };
 pub use scope_support_row::UiInspectionScopeSupportRow;
 pub use support_report::UiInspectionSupportReport;

@@ -1,4 +1,8 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::{
+    admitted_allocation_neighborhood, admitted_measurement_basis,
+    admitted_measurement_basis_with_font_seed, allocation_planning,
+};
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, identity_match_app, runtime_and_narrowing, surface_node,
@@ -44,11 +48,12 @@ fn handle_allocation_performs_no_source_parse_or_registry_lookup() {
 fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
-    let query_input_count = plan_input
+    let measurement_basis = admitted_measurement_basis("handle-allocation.query-view-binding");
+    let neighborhood = admitted_allocation_neighborhood("handle-allocation.query-view-binding");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let query_input_count = planning
         .node_inputs()
+        .expect("admitted planning exposes node inputs")
         .iter()
         .filter(|input| {
             input.query_binding_identity().is_some() && input.query_binding_posture().is_some()
@@ -56,7 +61,7 @@ fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
         .count();
 
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
 
     assert_eq!(query_input_count, allocation.view_binding_handles().len());
@@ -84,9 +89,14 @@ fn handle_allocation_reports_cardinality_and_collision_denials() {
             &[duplicate_hook.clone(), duplicate_hook],
         )
         .expect("plan input prepares with duplicated hook claims");
+    let planning = allocation_planning(
+        &runtime,
+        &plan_input,
+        "handle-allocation.duplicate.component",
+    );
 
     let denial = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect_err("duplicate component handle claim denies");
 
     assert_eq!(
@@ -114,9 +124,10 @@ fn handle_allocation_rejects_non_component_plan_local_claim_collisions() {
             &[duplicate_hook.clone(), duplicate_hook],
         )
         .expect("plan input prepares with duplicated token claims");
+    let planning = allocation_planning(&runtime, &plan_input, "handle-allocation.duplicate.token");
 
     let denial = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect_err("duplicate token handle claim denies");
 
     assert_eq!(
@@ -129,18 +140,50 @@ fn handle_allocation_rejects_non_component_plan_local_claim_collisions() {
 }
 
 #[test]
-fn same_count_plan_identity_change_requires_distinct_plan_receipt() {
-    let first = runtime_handle_allocation_with_component_hook_id("platform.component_hook.a11y");
-    let second =
-        runtime_handle_allocation_with_component_hook_id("platform.component_hook.telemetry");
+fn same_lowered_topology_but_changed_planning_semantics_requires_distinct_plan_receipt() {
+    let inputs = activation_staging_inputs();
+    let (runtime, pending) = inputs.into_runtime_and_pending();
+    let plan_input = runtime
+        .prepare_execution_plan_input(pending)
+        .expect("plan input prepares");
+    let neighborhood = admitted_allocation_neighborhood("handle-allocation.plan-drift");
+    let first_planning = runtime.plan_allocation_for_lowered_input_for_test(
+        plan_input.clone(),
+        &admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 100),
+        &neighborhood,
+    );
+    let second_planning = runtime.plan_allocation_for_lowered_input_for_test(
+        plan_input,
+        &admitted_measurement_basis_with_font_seed("handle-allocation.plan-drift", 240),
+        &neighborhood,
+    );
 
+    assert_eq!(first_planning.node_inputs(), second_planning.node_inputs());
+
+    let first = runtime
+        .allocate_runtime_handles(&first_planning)
+        .expect("first handles allocate");
+    let second = runtime
+        .allocate_runtime_handles(&second_planning)
+        .expect("second handles allocate");
+
+    assert_eq!(first.basis().active_artifact_digest(), second.basis().active_artifact_digest());
+    assert_eq!(
+        first.basis().candidate_artifact_digest(),
+        second.basis().candidate_artifact_digest()
+    );
+    assert_eq!(first.basis().frame_epoch(), second.basis().frame_epoch());
     assert_eq!(
         first.basis().plan_node_input_count(),
         second.basis().plan_node_input_count()
     );
+    assert_eq!(
+        first.basis().query_binding_input_count(),
+        second.basis().query_binding_input_count()
+    );
     assert_ne!(
-        first.basis().plan_input_fingerprint(),
-        second.basis().plan_input_fingerprint()
+        first.basis().allocation_planning_identity_digest(),
+        second.basis().allocation_planning_identity_digest()
     );
     assert!(!first.receipt().certifies_basis(second.basis()));
     assert_ne!(first.receipt(), second.receipt());
@@ -164,28 +207,11 @@ fn handle_reuse_after_lane_change_requires_new_plan_receipt() {
 fn runtime_handle_allocation() -> crate::runtime::WorthUiRuntimeHandleAllocation {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("handle-allocation.runtime");
+    let neighborhood = admitted_allocation_neighborhood("handle-allocation.runtime");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     runtime
-        .allocate_runtime_handles(&plan_input)
-        .expect("handles allocate")
-}
-
-fn runtime_handle_allocation_with_component_hook_id(
-    hook_id: &str,
-) -> crate::runtime::WorthUiRuntimeHandleAllocation {
-    let inputs = activation_staging_inputs();
-    let hook = WorthUiComponentLoweringHook::registered(
-        hook_id,
-        WorthUiPlanNodeInputFamily::Accessibility,
-    );
-    let (runtime, pending) = inputs.into_runtime_and_pending();
-    let plan_input = runtime
-        .prepare_execution_plan_input_with_component_hooks_for_test(pending, &[hook])
-        .expect("plan input prepares with component hook");
-    runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate")
 }
 
@@ -238,11 +264,11 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
             Some(&pending_execution_plan_lowering_input),
         )
         .expect("lane-change activation staging succeeds");
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("lane-change plan input prepares");
+    let measurement_basis = admitted_measurement_basis("handle-allocation.lane-change");
+    let neighborhood = admitted_allocation_neighborhood("handle-allocation.lane-change");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
 
     runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("lane-change handles allocate")
 }

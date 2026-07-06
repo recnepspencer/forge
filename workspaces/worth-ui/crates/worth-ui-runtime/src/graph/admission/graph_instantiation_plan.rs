@@ -1,7 +1,9 @@
 use super::admit_graph_handoffs;
 use crate::declaration::{
     UiAspectContract, UiDeclarationIdentity, UiDeclarationOrderingGuarantee,
-    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
+    UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
+    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralDigest,
+    UiDeclarationStructuralRole, UiDeclaredMeasurementConstraintModifier,
 };
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphAxisParticipation, UiGraphContainmentClaim,
@@ -48,6 +50,7 @@ impl UiGraphInstantiationPlan {
 pub struct UiGraphNodeInstantiationEntry {
     declaration_identity: UiDeclarationIdentity,
     authored_provenance_digest: u64,
+    measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
     aspect_contract: UiAspectContract,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     topology_seed: UiGraphTopologySeed,
@@ -61,6 +64,7 @@ impl UiGraphNodeInstantiationEntry {
     pub(crate) fn new(
         declaration_identity: UiDeclarationIdentity,
         authored_provenance_digest: u64,
+        measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
         aspect_contract: UiAspectContract,
         repeated_instance_basis: UiRepeatedInstanceBasis,
         topology_seed: UiGraphTopologySeed,
@@ -72,6 +76,7 @@ impl UiGraphNodeInstantiationEntry {
         Self {
             declaration_identity,
             authored_provenance_digest,
+            measurement_constraint_modifier,
             aspect_contract,
             repeated_instance_basis,
             topology_seed,
@@ -92,6 +97,12 @@ impl UiGraphNodeInstantiationEntry {
 
     pub fn aspect_contract(&self) -> &UiAspectContract {
         &self.aspect_contract
+    }
+
+    pub fn measurement_constraint_modifier(
+        &self,
+    ) -> Option<UiDeclaredMeasurementConstraintModifier> {
+        self.measurement_constraint_modifier
     }
 
     pub fn repeated_instance_basis(&self) -> &UiRepeatedInstanceBasis {
@@ -182,32 +193,49 @@ pub enum UiGraphTopologyLocalDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphTopologySeed {
+    structural_digest: UiDeclarationStructuralDigest,
     role: UiDeclarationStructuralRole,
+    operator_kind: UiDeclarationPlanningOperatorKind,
     containment_claim: UiGraphContainmentClaim,
     parent_resolution_claim: UiGraphParentResolutionClaim,
     slot_participation_intent: UiDeclarationSlotParticipationIntent,
     ordering_guarantee: UiDeclarationOrderingGuarantee,
+    repetition_posture: UiDeclarationRepetitionPosture,
 }
 
 impl UiGraphTopologySeed {
     pub(crate) fn new(
+        structural_digest: UiDeclarationStructuralDigest,
         role: UiDeclarationStructuralRole,
+        operator_kind: UiDeclarationPlanningOperatorKind,
         containment_claim: UiGraphContainmentClaim,
         parent_resolution_claim: UiGraphParentResolutionClaim,
         slot_participation_intent: UiDeclarationSlotParticipationIntent,
         ordering_guarantee: UiDeclarationOrderingGuarantee,
+        repetition_posture: UiDeclarationRepetitionPosture,
     ) -> Self {
         Self {
+            structural_digest,
             role,
+            operator_kind,
             containment_claim,
             parent_resolution_claim,
             slot_participation_intent,
             ordering_guarantee,
+            repetition_posture,
         }
     }
 
     pub fn role(&self) -> UiDeclarationStructuralRole {
         self.role
+    }
+
+    pub fn structural_digest(&self) -> UiDeclarationStructuralDigest {
+        self.structural_digest
+    }
+
+    pub fn operator_kind(&self) -> UiDeclarationPlanningOperatorKind {
+        self.operator_kind
     }
 
     pub fn containment_claim(&self) -> &UiGraphContainmentClaim {
@@ -224,6 +252,10 @@ impl UiGraphTopologySeed {
 
     pub fn ordering_guarantee(&self) -> UiDeclarationOrderingGuarantee {
         self.ordering_guarantee
+    }
+
+    pub fn repetition_posture(&self) -> UiDeclarationRepetitionPosture {
+        self.repetition_posture
     }
 }
 

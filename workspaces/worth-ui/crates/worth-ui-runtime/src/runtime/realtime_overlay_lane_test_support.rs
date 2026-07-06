@@ -1,3 +1,4 @@
+use super::allocation_planning_test_support::allocation_planning;
 use super::realtime_overlay_lane_pending_activation_fixture::pending_plan_input;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
@@ -57,7 +58,14 @@ pub(super) fn realtime_denial_for_missing_realtime_support() -> WorthUiHudPlanDe
     );
     let lane_admission = context
         .runtime
-        .admit_execution_lanes(&context.plan_input, &support)
+        .admit_execution_lanes(
+            &allocation_planning(
+                &context.runtime,
+                &context.plan_input,
+                "realtime-overlay.missing-support",
+            ),
+            &support,
+        )
         .expect("plan input can admit without realtime support row");
     context
         .runtime
@@ -74,10 +82,15 @@ pub(super) fn realtime_denial_for_missing_realtime_support() -> WorthUiHudPlanDe
 pub(super) fn realtime_denial_for_stale_lane_admission() -> WorthUiHudPlanDenial {
     let context = realtime_overlay_context();
     let drifted_plan_input = plan_input_with_duplicate_render_ref(&context.plan_input);
+    let drifted_planning = allocation_planning(
+        &context.runtime,
+        &drifted_plan_input,
+        "realtime-overlay.stale-admission",
+    );
     let stale_admission = context
         .runtime
         .admit_execution_lanes(
-            &drifted_plan_input,
+            &drifted_planning,
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission succeeds");
@@ -100,10 +113,15 @@ pub(super) fn realtime_denial_for_stale_lane_admission_without_render_rows() -> 
         &context.plan_input,
         WorthUiPlanNodeInputFamily::RenderResourceRef,
     );
+    let drifted_planning = allocation_planning(
+        &context.runtime,
+        &drifted_plan_input,
+        "realtime-overlay.stale-admission.no-render",
+    );
     let stale_admission = context
         .runtime
         .admit_execution_lanes(
-            &drifted_plan_input,
+            &drifted_planning,
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission without render rows succeeds");
@@ -122,9 +140,14 @@ pub(super) fn realtime_denial_for_stale_lane_admission_without_render_rows() -> 
 pub(super) fn realtime_denial_for_mismatched_handle_allocation() -> WorthUiHudPlanDenial {
     let context = realtime_overlay_context();
     let drifted_plan_input = plan_input_with_drifted_diagnostics_ref(&context.plan_input);
+    let drifted_planning = allocation_planning(
+        &context.runtime,
+        &drifted_plan_input,
+        "realtime-overlay.drifted-allocation",
+    );
     let drifted_allocation = context
         .runtime
-        .allocate_runtime_handles(&drifted_plan_input)
+        .allocate_runtime_handles(&drifted_planning)
         .expect("drifted handle allocation succeeds");
     context
         .runtime
@@ -144,21 +167,23 @@ pub(super) fn realtime_denial_for_no_hud_rows() -> WorthUiHudPlanDenial {
         &context.plan_input,
         WorthUiPlanNodeInputFamily::RenderResourceRef,
     );
+    let planning = allocation_planning(
+        &context.runtime,
+        &plan_input,
+        "realtime-overlay.no-hud-rows",
+    );
     let allocation = context
         .runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handle allocation succeeds without render resource rows");
     let lane_admission = context
         .runtime
-        .admit_execution_lanes(
-            &plan_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds without render resource rows");
     let execution_plan = context
         .runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )
@@ -216,19 +241,17 @@ fn realtime_overlay_context() -> RealtimeOverlayContext {
             &realtime_component_hooks(),
         )
         .expect("execution plan input prepares");
+    let planning = allocation_planning(&runtime, &plan_input, "realtime-overlay.fixture");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(
-            &plan_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds");
     let hook_admissions = realtime_hook_admissions(&runtime, &lane_admission);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )

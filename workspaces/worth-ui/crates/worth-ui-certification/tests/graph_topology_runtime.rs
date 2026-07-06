@@ -1,14 +1,15 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+mod graph_topology_test_support;
+
+use graph_topology_test_support::{
+    artifact_from_file_provenance, diagnostic_surface_spec, extra_root_page_spec,
+    graph_node_identity, local_composition_spec, mosaic_spec, page_set_spec, panic_message,
+    region_spec, root_page_artifact, slotted_control_spec,
+};
 use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::declaration::UiDeclarationArtifact;
-use worth_ui::facade::graph::{
-    UiGraphContainmentClaim, UiGraphNodeIdentity, UiGraphParentResolutionClaim,
-};
-use worth_ui_dsl::{
-    UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
-};
+use worth_ui::facade::graph::{UiGraphContainmentClaim, UiGraphParentResolutionClaim};
+use worth_ui_dsl::WorthUiDslPackage;
 
 #[test]
 fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
@@ -32,6 +33,11 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
         .inspection()
         .inspect_topology_node(control_id)
         .expect("topology inspection should resolve admitted node topology")
+        .value();
+    let control_node = graph
+        .inspection()
+        .inspect_graph_node(control_id)
+        .expect("graph node inspection should resolve admitted node")
         .value();
 
     assert_eq!(root_topology.parent_node_identity(), None);
@@ -76,6 +82,7 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
             .page_node_identity(),
         root_page_id
     );
+    assert_eq!(format!("{:?}", control_node.operator_kind()), "Stack");
 
     assert!(graph
         .lookup()
@@ -284,125 +291,4 @@ fn freeze_panics_when_topology_cannot_resolve_to_one_root_page() {
         panic_message.contains("freeze path must deny before publishing graph authority"),
         "expected topology denial panic to name unresolved topology path, got: {panic_message}"
     );
-}
-
-fn graph_node_identity(
-    graph: worth_ui::facade::graph::UiGraphAuthority<'_>,
-    artifact: &UiDeclarationArtifact,
-) -> UiGraphNodeIdentity {
-    graph
-        .lookup()
-        .declaration_instances(artifact.identity())
-        .value()
-        .first()
-        .copied()
-        .expect("declaration should admit one graph node")
-}
-
-fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            artifact
-                .graph_handoff()
-                .map(|handoff| {
-                    handoff.role()
-                        == worth_ui::facade::declaration::UiDeclarationStructuralRole::Page
-                })
-                .unwrap_or(false)
-        })
-        .expect("bootstrap root page artifact should exist")
-}
-
-fn artifact_from_file_provenance<'a>(
-    app: &'a worth_ui::facade::app::WorthUiApp,
-    module_path: &str,
-    declaration_index: usize,
-) -> &'a UiDeclarationArtifact {
-    app.declaration_artifacts()
-        .iter()
-        .find(|artifact| {
-            let provenance = artifact.provenance().source_provenance();
-            provenance.module_path() == module_path
-                && provenance.declaration_index() == declaration_index
-        })
-        .unwrap_or_else(|| {
-            panic!("expected declaration artifact for {module_path}#{declaration_index} on freeze path")
-        })
-}
-
-fn slotted_control_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.save"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/graph_topology.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_structural_token(UiDslStructuralToken::new("slot:footer"))
-    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-    .with_posture_token(UiDslPostureToken::new("service:portal"))
-}
-
-fn region_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.region.sidebar"),
-        UiDslSemanticFamily::Region,
-        UiDslSourceProvenance::file_authored("app/graph_topology.wui", 1),
-    )
-    .with_structural_token(UiDslStructuralToken::new("region:sidebar"))
-}
-
-fn mosaic_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.mosaic.workspace"),
-        UiDslSemanticFamily::Mosaic,
-        UiDslSourceProvenance::file_authored("app/graph_topology.wui", 2),
-    )
-    .with_structural_token(UiDslStructuralToken::new("mosaic:workspace"))
-}
-
-fn page_set_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.page_set.shell"),
-        UiDslSemanticFamily::PageSet,
-        UiDslSourceProvenance::file_authored("app/graph_topology_claims.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("page-set:shell"))
-}
-
-fn local_composition_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.local_composition.inspector"),
-        UiDslSemanticFamily::LocalComposition,
-        UiDslSourceProvenance::file_authored("app/graph_topology_claims.wui", 1),
-    )
-    .with_structural_token(UiDslStructuralToken::new("local-composition:inspector"))
-}
-
-fn diagnostic_surface_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.diagnostic_surface.lint"),
-        UiDslSemanticFamily::DiagnosticSurface,
-        UiDslSourceProvenance::file_authored("app/graph_topology_claims.wui", 2),
-    )
-    .with_structural_token(UiDslStructuralToken::new("diagnostic-surface:lint"))
-}
-
-fn extra_root_page_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.page.authored_root"),
-        UiDslSemanticFamily::Page,
-        UiDslSourceProvenance::file_authored("app/graph_topology_root_denial.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("page:product-root"))
-}
-
-fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    match payload.downcast::<String>() {
-        Ok(message) => *message,
-        Err(payload) => match payload.downcast::<&'static str>() {
-            Ok(message) => (*message).to_string(),
-            Err(_) => "<non-string panic payload>".to_string(),
-        },
-    }
 }

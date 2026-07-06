@@ -257,6 +257,12 @@ fn classify_matched_identities(
             Some(candidate_node.kind()),
             active_node.durable_state_eligible(),
             candidate_node.durable_state_eligible(),
+            active_node.resize_contract_id().cloned(),
+            candidate_node.resize_contract_id().cloned(),
+            active_node.resize_permission().cloned(),
+            candidate_node.resize_permission().cloned(),
+            active_node.resize_shape_digest(),
+            candidate_node.resize_shape_digest(),
         ))?;
     }
     Ok(())
@@ -333,6 +339,12 @@ fn classify_dropped_identities(
             None,
             active_node.durable_state_eligible(),
             false,
+            active_node.resize_contract_id().cloned(),
+            None,
+            active_node.resize_permission().cloned(),
+            None,
+            active_node.resize_shape_digest(),
+            None,
         ))?;
     }
     Ok(())
@@ -355,6 +367,12 @@ fn classify_created_identities(
             Some(candidate_node.kind()),
             false,
             candidate_node.durable_state_eligible(),
+            None,
+            candidate_node.resize_contract_id().cloned(),
+            None,
+            candidate_node.resize_permission().cloned(),
+            None,
+            candidate_node.resize_shape_digest(),
         ))?;
     }
     Ok(())

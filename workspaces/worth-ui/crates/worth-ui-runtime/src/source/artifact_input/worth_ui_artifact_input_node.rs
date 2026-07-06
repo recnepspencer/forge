@@ -10,7 +10,7 @@ pub(crate) enum WorthUiArtifactInputNodeKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum WorthUiArtifactInputBodyAtom {
+pub enum WorthUiArtifactInputBodyAtom {
     Identifier(String),
     StringLiteral(String),
     KeywordImport,

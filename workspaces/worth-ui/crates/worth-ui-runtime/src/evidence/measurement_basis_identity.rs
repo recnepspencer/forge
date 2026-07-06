@@ -18,7 +18,7 @@ pub(super) fn basis_generation(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     query_receipt: Option<&UiProjectionFactReceipt>,
     host_capability_report: Option<&WorthUiHostCapabilityReport>,
-    host_results: [Option<&UiMeasurementResult>; 4],
+    host_results: [Option<&UiMeasurementResult>; 6],
 ) -> UiMeasurementBasisGeneration {
     UiMeasurementBasisGeneration::new(
         declaration_support_authority_generation.as_u64()
@@ -44,6 +44,12 @@ pub(super) fn basis_generation(
                 .unwrap_or_default()
             ^ host_results[3]
                 .map(|result| result.evidence_generation().as_u64().rotate_left(29))
+                .unwrap_or_default()
+            ^ host_results[4]
+                .map(|result| result.evidence_generation().as_u64().rotate_left(31))
+                .unwrap_or_default()
+            ^ host_results[5]
+                .map(|result| result.evidence_generation().as_u64().rotate_left(37))
                 .unwrap_or_default(),
     )
 }
@@ -251,7 +257,11 @@ fn slot_digest(slot: super::UiMeasurementEvidenceSlot) -> u64 {
             "query-projection-fact-receipt"
         }
         super::UiMeasurementEvidenceSlot::HostCapabilityReport => "host-capability-report",
+        super::UiMeasurementEvidenceSlot::HostTextIntrinsicSize => "host-text-intrinsic-size",
         super::UiMeasurementEvidenceSlot::HostFontMetrics => "host-font-metrics",
+        super::UiMeasurementEvidenceSlot::HostNativeControlIntrinsicSize => {
+            "host-native-control-intrinsic-size"
+        }
         super::UiMeasurementEvidenceSlot::ViewportExtent => "viewport-extent",
         super::UiMeasurementEvidenceSlot::PortalAnchorRect => "portal-anchor-rect",
         super::UiMeasurementEvidenceSlot::ScrollContainerViewport => "scroll-container-viewport",

@@ -1,13 +1,16 @@
+use crate::capability::MosaicSizingContractId;
 use crate::declaration::{
     UiDeclarationContainmentIntent, UiDeclarationFamilyKind, UiDeclarationOrderingGuarantee,
-    UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
-    UiDeclarationStructuralRole,
+    UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
+    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiDeclarationStructuralSemantics {
     family_kind: UiDeclarationFamilyKind,
     role: UiDeclarationStructuralRole,
+    operator_kind: UiDeclarationPlanningOperatorKind,
+    mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
     containment_intent: UiDeclarationContainmentIntent,
     slot_participation_intent: UiDeclarationSlotParticipationIntent,
     ordering_guarantee: UiDeclarationOrderingGuarantee,
@@ -18,6 +21,8 @@ impl UiDeclarationStructuralSemantics {
     pub(crate) fn new(
         family_kind: UiDeclarationFamilyKind,
         role: UiDeclarationStructuralRole,
+        operator_kind: UiDeclarationPlanningOperatorKind,
+        mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
         containment_intent: UiDeclarationContainmentIntent,
         slot_participation_intent: UiDeclarationSlotParticipationIntent,
         ordering_guarantee: UiDeclarationOrderingGuarantee,
@@ -26,6 +31,8 @@ impl UiDeclarationStructuralSemantics {
         Self {
             family_kind,
             role,
+            operator_kind,
+            mosaic_sizing_contract_id,
             containment_intent,
             slot_participation_intent,
             ordering_guarantee,
@@ -43,6 +50,14 @@ impl UiDeclarationStructuralSemantics {
 
     pub const fn role(&self) -> UiDeclarationStructuralRole {
         self.role
+    }
+
+    pub const fn operator_kind(&self) -> UiDeclarationPlanningOperatorKind {
+        self.operator_kind
+    }
+
+    pub fn mosaic_sizing_contract_id(&self) -> Option<&MosaicSizingContractId> {
+        self.mosaic_sizing_contract_id.as_ref()
     }
 
     pub fn containment_intent(&self) -> &UiDeclarationContainmentIntent {

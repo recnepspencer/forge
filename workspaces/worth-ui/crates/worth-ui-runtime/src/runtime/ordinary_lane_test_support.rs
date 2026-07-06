@@ -1,3 +1,4 @@
+use super::allocation_planning_test_support::allocation_planning;
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
@@ -25,10 +26,15 @@ pub(super) fn ordinary_lane_denial_for_missing_family(
 ) -> WorthUiOrdinaryLanePlanDenial {
     let context = ordinary_execution_context();
     let narrower_plan_input = plan_input_without_family(&context.plan_input, removed_family);
+    let narrower_planning = allocation_planning(
+        &context.runtime,
+        &narrower_plan_input,
+        "ordinary-lane.missing-family",
+    );
     let narrower_admission = context
         .runtime
         .admit_execution_lanes(
-            &narrower_plan_input,
+            &narrower_planning,
             &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
         )
         .expect("narrower input can be admitted without removed lane");
@@ -104,12 +110,17 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
         )
         .expect("execution plan input prepares");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&allocation_planning(
+            &runtime,
+            &plan_input,
+            "ordinary-lane.fixture",
+        ))
         .expect("handle allocation succeeds");
-    let lane_admission = ordinary_lane_admission(&runtime, &plan_input);
+    let planning = allocation_planning(&runtime, &plan_input, "ordinary-lane.fixture");
+    let lane_admission = ordinary_lane_admission(&runtime, &planning);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )
@@ -161,10 +172,10 @@ fn ordinary_component_hooks() -> [WorthUiComponentLoweringHook; 2] {
 
 fn ordinary_lane_admission(
     runtime: &WorthUiRuntimeHost,
-    plan_input: &WorthUiExecutionPlanInput,
+    planning: &crate::runtime::WorthUiAllocationPlanning,
 ) -> WorthUiLaneAdmission {
     runtime
-        .admit_execution_lanes(plan_input, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds")
 }
 

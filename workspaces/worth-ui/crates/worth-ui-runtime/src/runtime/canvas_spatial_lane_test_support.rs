@@ -1,3 +1,4 @@
+use super::allocation_planning_test_support::allocation_planning;
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
@@ -31,10 +32,15 @@ pub(super) fn canvas_spatial_denial_for_missing_hook() -> WorthUiCanvasSpatialPl
 pub(super) fn canvas_spatial_denial_for_stale_lane_admission() -> WorthUiCanvasSpatialPlanDenial {
     let context = canvas_spatial_context();
     let drifted_plan_input = plan_input_with_duplicate_lane_ref(&context.plan_input);
+    let drifted_planning = allocation_planning(
+        &context.runtime,
+        &drifted_plan_input,
+        "canvas-spatial.stale-admission",
+    );
     let stale_admission = context
         .runtime
         .admit_execution_lanes(
-            &drifted_plan_input,
+            &drifted_planning,
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission succeeds");
@@ -53,9 +59,14 @@ pub(super) fn canvas_spatial_denial_for_mismatched_handle_allocation(
 ) -> WorthUiCanvasSpatialPlanDenial {
     let context = canvas_spatial_context();
     let drifted_plan_input = plan_input_with_drifted_diagnostics_ref(&context.plan_input);
+    let drifted_planning = allocation_planning(
+        &context.runtime,
+        &drifted_plan_input,
+        "canvas-spatial.drifted-allocation",
+    );
     let drifted_allocation = context
         .runtime
-        .allocate_runtime_handles(&drifted_plan_input)
+        .allocate_runtime_handles(&drifted_planning)
         .expect("drifted handle allocation succeeds");
     context
         .runtime
@@ -73,7 +84,11 @@ pub(super) fn canvas_spatial_denial_for_missing_support() -> WorthUiCanvasSpatia
     let no_canvas_support = context
         .runtime
         .admit_execution_lanes(
-            &context.plan_input,
+            &allocation_planning(
+                &context.runtime,
+                &context.plan_input,
+                "canvas-spatial.missing-support",
+            ),
             &WorthUiExecutionLaneSupport::without_lane_for_test(
                 WorthUiExecutionLane::CanvasSpatial,
             ),
@@ -130,18 +145,20 @@ fn canvas_spatial_context() -> CanvasSpatialContext {
         )
         .expect("execution plan input prepares");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
-        .expect("handle allocation succeeds");
-    let lane_admission = runtime
-        .admit_execution_lanes(
+        .allocate_runtime_handles(&allocation_planning(
+            &runtime,
             &plan_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+            "canvas-spatial.fixture",
+        ))
+        .expect("handle allocation succeeds");
+    let planning = allocation_planning(&runtime, &plan_input, "canvas-spatial.fixture");
+    let lane_admission = runtime
+        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds");
     let hook_admissions = canvas_hook_admissions(&runtime, &lane_admission);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )

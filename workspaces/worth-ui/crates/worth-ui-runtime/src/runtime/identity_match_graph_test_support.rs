@@ -14,8 +14,8 @@ use crate::source::{
     WorthUiArtifactIdentitySeed, WorthUiArtifactImportHandle, WorthUiArtifactImportNode,
     WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactSurfaceHandle,
     WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
-    WorthUiBoundSurfaceSemantics, WorthUiDurableStateEligibility, WorthUiMosaicStructureFacts,
-    WorthUiSourceModuleId,
+    WorthUiBoundSurfaceSemantics, WorthUiDurableStateEligibility, WorthUiMosaicMountFacts,
+    WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts, WorthUiSourceModuleId,
 };
 use crate::{capability::*, facade::WorthUiApp};
 
@@ -134,6 +134,25 @@ pub(super) fn surface_node(seed: &str, surface_id: &str, index: usize) -> WorthU
     ))
 }
 
+pub(super) fn splitter_surface_node(
+    seed: &str,
+    surface_id: &str,
+    sizing_contract_id: &str,
+    index: usize,
+) -> WorthUiArtifactNode {
+    let module_id = module_id("placeholder.wui");
+    WorthUiArtifactNode::Surface(WorthUiArtifactSurfaceNode::new(
+        WorthUiArtifactHandle::Surface(WorthUiArtifactSurfaceHandle::new(module_id, index)),
+        AdmittedCapability::from_checked_id(SurfaceId::new(surface_id).unwrap()),
+        surface(surface_id, "workspace.component.dashboard"),
+        splitter_structure(surface_id, sizing_contract_id),
+        WorthUiBoundSurfaceSemantics::default(),
+        0,
+        WorthUiArtifactIdentitySeed::authored(seed.to_owned()),
+        durable_eligible(),
+    ))
+}
+
 fn rehandle_nodes(
     module_id: WorthUiSourceModuleId,
     nodes: Vec<WorthUiArtifactNode>,
@@ -238,6 +257,68 @@ fn durable_eligible() -> WorthUiDurableStateEligibility {
 
 fn empty_structure() -> WorthUiMosaicStructureFacts {
     WorthUiMosaicStructureFacts::new(Vec::new())
+}
+
+fn splitter_structure(surface_id: &str, sizing_contract_id: &str) -> WorthUiMosaicStructureFacts {
+    let surface_id = SurfaceId::new(surface_id).unwrap();
+    let region_id = MosaicRegionKindId::new("workspace.region.splitter").unwrap();
+    let sizing_contract_id = MosaicSizingContractId::new(sizing_contract_id).unwrap();
+    let state_slot_id = MosaicStateSlotId::new("workspace.state.splitter.position").unwrap();
+
+    let region = MosaicRegionKindDescriptor::new(region_id.clone(), MosaicRegionRole::split())
+        .with_sizing_behavior(MosaicSizingBehavior::fills_available_space())
+        .with_scroll_ownership(MosaicScrollOwnership::region_owned())
+        .with_focus_scope(MosaicFocusScopeKind::active_surface_scope())
+        .with_child_rule(MosaicChildRule::accepts_surfaces())
+        .with_allowed_surface_class(SurfacePlacementClass::primary_region())
+        .with_persistence(MosaicRegionPersistence::restorable())
+        .with_clipping(MosaicClippingPosture::clip_to_region())
+        .with_hit_test(MosaicHitTestPosture::participates());
+    let sizing = MosaicSizingContractDescriptor::new(sizing_contract_id.clone(), MosaicSizingKind::fill())
+        .with_measurement_authority(MosaicMeasurementAuthority::runtime_token())
+        .with_resize_permission(MosaicResizePermission::user_resizable())
+        .with_persistence(MosaicSizingPersistence::restorable())
+        .with_overflow_behavior(MosaicOverflowBehavior::scroll_when_constrained())
+        .with_parent_growth_behavior(MosaicParentGrowthBehavior::does_not_force_parent())
+        .with_viewport_constraint(MosaicViewportConstraint::clamp_to_viewport())
+        .with_named_measurement(NamedMeasurementDefinition::new(
+            NamedMeasurementToken::new("workspace.measurement.splitter").unwrap(),
+            MeasurementValue::logical_pixels(320),
+            MeasurementConstraint::between(
+                MeasurementValue::logical_pixels(200),
+                MeasurementValue::logical_pixels(640),
+            ),
+        ));
+    let state_slot = MosaicStateSlotDescriptor::new(
+        state_slot_id,
+        MosaicStateSlotKind::splitter_position(),
+    )
+    .with_owner_identity(MosaicStateOwnerIdentity::surface(surface_id.clone()))
+    .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
+    .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
+    .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state());
+
+    WorthUiMosaicStructureFacts::new(vec![WorthUiMosaicRegionFacts::new(
+        AdmittedCapability::from_checked_id(region_id),
+        region,
+        Some((
+            AdmittedCapability::from_checked_id(sizing_contract_id),
+            sizing,
+        )),
+        Some((
+            AdmittedCapability::from_checked_id(
+                MosaicStateSlotId::new("workspace.state.splitter.position").unwrap(),
+            ),
+            state_slot,
+        )),
+        Vec::new(),
+        vec![WorthUiMosaicMountFacts::new(
+            AdmittedCapability::from_checked_id(surface_id.clone()),
+            surface(surface_id.as_str(), "workspace.component.dashboard"),
+            None,
+            None,
+        )],
+    )])
 }
 
 fn identity_narrowing_for(

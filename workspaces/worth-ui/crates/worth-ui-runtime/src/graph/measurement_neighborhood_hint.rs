@@ -16,7 +16,7 @@ pub struct UiGraphMeasurementNeighborhoodHint {
 }
 
 impl UiGraphMeasurementNeighborhoodHint {
-    pub fn from_basis(basis: &UiMeasurementBasis) -> Self {
+    pub(crate) fn from_basis(basis: &UiMeasurementBasis) -> Self {
         Self::new(
             basis.graph_node_identity(),
             basis.world_profile().identity_digest(),

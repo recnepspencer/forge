@@ -1,3 +1,6 @@
+mod allocation_neighborhood;
+#[cfg(test)]
+mod allocation_neighborhood_tests;
 mod measurement_neighborhood_hint;
 #[cfg(test)]
 mod measurement_neighborhood_hint_tests;
@@ -11,7 +14,8 @@ mod touch_target;
 mod touch_timing;
 mod touch_world;
 
-pub use measurement_neighborhood_hint::UiGraphTouchMeasurementNeighborhoodHint;
+pub use allocation_neighborhood::UiGraphTouchAllocationNeighborhood;
+pub(crate) use measurement_neighborhood_hint::UiGraphTouchMeasurementNeighborhoodHint;
 pub use touch_aspect::{
     UiGraphTouchAspectFact, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchRuntimeLane,
 };

@@ -24,12 +24,12 @@ pub(crate) use artifact::{
     WorthUiArtifactNode, WorthUiArtifactNodeKind, WorthUiArtifactSurfaceHandle,
     WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
 };
+pub(crate) use artifact_input::WorthUiArtifactInputBodyAtom;
 pub(crate) use artifact_input::{
-    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom,
-    WorthUiArtifactInputEquivalentShape, WorthUiArtifactInputImportNode,
-    WorthUiArtifactInputModule, WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind,
-    WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance, WorthUiArtifactInputReference,
-    WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputEquivalentShape,
+    WorthUiArtifactInputImportNode, WorthUiArtifactInputModule, WorthUiArtifactInputNode,
+    WorthUiArtifactInputNodeKind, WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance,
+    WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
 };
 pub(crate) use bound::{
     WorthUiBoundArtifactInput, WorthUiBoundArtifactInputBindingNode,
@@ -72,6 +72,7 @@ pub(crate) use inspection::{
     WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
     WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
 };
+pub(crate) use lower::WorthUiRustAuthoredArtifactInputModule;
 #[allow(unused_imports)]
 pub(crate) use lower::{
     WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
@@ -90,12 +91,11 @@ pub(crate) use lower::{
     WorthUiIdentitySeedingReport, WorthUiParsedSourceToArtifactInputLowerer,
     WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
     WorthUiResolutionReport, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,
-    WorthUiRustCompositionReport, WorthUiRustCompositionToArtifactInputLowerer,
-    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
-    WorthUiStructuralLegalityLowerer, WorthUiStructuralLegalityMetrics,
-    WorthUiStructuralLegalityReport,
+    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiRustCompositionInput,
+    WorthUiRustCompositionMetrics, WorthUiRustCompositionModule, WorthUiRustCompositionReport,
+    WorthUiRustCompositionToArtifactInputLowerer, WorthUiStructuralLegalityDiagnostic,
+    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityMetrics, WorthUiStructuralLegalityReport,
 };
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
 #[allow(unused_imports)]

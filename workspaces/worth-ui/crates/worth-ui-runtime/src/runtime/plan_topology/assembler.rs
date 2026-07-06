@@ -1,43 +1,57 @@
 use std::collections::BTreeMap;
 
 use crate::runtime::{
-    WorthUiEguiPlanBoundary, WorthUiExecutionLaneDescriptor, WorthUiExecutionPlan,
-    WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiPlanChildRange,
-    WorthUiPlanExecutionLane, WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNode,
-    WorthUiPlanNodeFamily, WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily,
-    WorthUiPlanRegionStructure, WorthUiPlanTopology, WorthUiPlanTopologyCounters,
-    WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
-    WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiAllocationPlanning, WorthUiEguiPlanBoundary, WorthUiExecutionLaneDescriptor,
+    WorthUiExecutionPlan, WorthUiLaneAdmission, WorthUiPlanChildRange, WorthUiPlanExecutionLane,
+    WorthUiPlanLanePartition, WorthUiPlanLookupIndex, WorthUiPlanNode, WorthUiPlanNodeFamily,
+    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanRegionStructure,
+    WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
+    WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef, WorthUiRuntimeHandle,
+    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) struct WorthUiPlanTopologyAssembler;
 
 impl WorthUiPlanTopologyAssembler {
     pub(crate) fn assemble_with_lane_admission(
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
         handle_allocation: &WorthUiRuntimeHandleAllocation,
         lane_admission: &WorthUiLaneAdmission,
     ) -> Result<WorthUiExecutionPlan, WorthUiPlanTopologyDenial> {
         let mut counters = WorthUiPlanTopologyCounters::default();
-        validate_lane_admission(plan_input, lane_admission, &mut counters)?;
-        validate_receipt(plan_input, handle_allocation, &mut counters)?;
-        validate_runtime_handles(plan_input, handle_allocation, &mut counters)?;
-        validate_child_range_handles(plan_input, handle_allocation, &mut counters)?;
-        assemble_validated_topology(plan_input, handle_allocation, counters)
+        if !allocation_planning.is_admitted() {
+            return Err(denial(
+                WorthUiPlanTopologyDenialReason::AllocationPlanningDenied,
+                counters,
+            ));
+        }
+        let node_inputs = allocation_planning
+            .node_inputs()
+            .expect("admitted allocation planning must expose lowered node inputs");
+        validate_receipt(allocation_planning, handle_allocation, &mut counters)?;
+        validate_lane_admission(
+            node_inputs,
+            lane_admission,
+            handle_allocation.receipt().basis_digest(),
+            &mut counters,
+        )?;
+        validate_runtime_handles(node_inputs, handle_allocation, &mut counters)?;
+        validate_child_range_handles(node_inputs, handle_allocation, &mut counters)?;
+        assemble_validated_topology(node_inputs, handle_allocation, counters)
     }
 }
 
 fn assemble_validated_topology(
-    plan_input: &WorthUiExecutionPlanInput,
+    node_inputs: &[WorthUiPlanNodeInput],
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     mut counters: WorthUiPlanTopologyCounters,
 ) -> Result<WorthUiExecutionPlan, WorthUiPlanTopologyDenial> {
     let mut lookup_index = WorthUiPlanLookupIndex::new();
     let mut child_ranges = Vec::new();
-    let mut nodes = Vec::with_capacity(plan_input.node_inputs().len());
+    let mut nodes = Vec::with_capacity(node_inputs.len());
     let mut lanes = BTreeMap::<WorthUiPlanExecutionLane, Vec<u32>>::new();
 
-    for (position, node_input) in plan_input.node_inputs().iter().enumerate() {
+    for (position, node_input) in node_inputs.iter().enumerate() {
         counters.record_plan_node_input();
         let runtime_handle = handle_allocation.runtime_handles()[position];
         let plan_index = runtime_handle.plan_index();
@@ -86,18 +100,25 @@ fn assemble_validated_topology(
 }
 
 fn validate_lane_admission(
-    plan_input: &WorthUiExecutionPlanInput,
+    node_inputs: &[WorthUiPlanNodeInput],
     lane_admission: &WorthUiLaneAdmission,
+    expected_basis_digest: u64,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    if lane_admission.counters().plan_node_count() != plan_input.node_inputs().len() {
+    if lane_admission.plan_input_basis_digest() != expected_basis_digest {
         return Err(denial(
             WorthUiPlanTopologyDenialReason::LaneAdmissionMismatch,
             *counters,
         ));
     }
-    for node_input in plan_input.node_inputs() {
+    if lane_admission.counters().plan_node_count() != node_inputs.len() {
+        return Err(denial(
+            WorthUiPlanTopologyDenialReason::LaneAdmissionMismatch,
+            *counters,
+        ));
+    }
+    for node_input in node_inputs {
         let descriptor = WorthUiExecutionLaneDescriptor::from_node_input(node_input);
         if !lane_admission.includes_lane(descriptor.lane()) {
             return Err(denial(
@@ -110,12 +131,12 @@ fn validate_lane_admission(
 }
 
 fn validate_receipt(
-    plan_input: &WorthUiExecutionPlanInput,
+    allocation_planning: &WorthUiAllocationPlanning,
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    let basis = WorthUiRuntimeHandleAllocationBasis::from_plan_input(plan_input);
+    let basis = WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
     if handle_allocation.receipt().certifies_basis(&basis) {
         Ok(())
     } else {
@@ -127,20 +148,19 @@ fn validate_receipt(
 }
 
 fn validate_runtime_handles(
-    plan_input: &WorthUiExecutionPlanInput,
+    node_inputs: &[WorthUiPlanNodeInput],
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    if handle_allocation.runtime_handles().len() != plan_input.node_inputs().len() {
+    if handle_allocation.runtime_handles().len() != node_inputs.len() {
         return Err(denial(
             WorthUiPlanTopologyDenialReason::MissingRuntimeHandle,
             *counters,
         ));
     }
     let generation = handle_allocation.receipt().plan_generation();
-    for (position, (node_input, runtime_handle)) in plan_input
-        .node_inputs()
+    for (position, (node_input, runtime_handle)) in node_inputs
         .iter()
         .zip(handle_allocation.runtime_handles())
         .enumerate()
@@ -170,14 +190,14 @@ fn validate_runtime_handles(
 }
 
 fn validate_child_range_handles(
-    plan_input: &WorthUiExecutionPlanInput,
+    node_inputs: &[WorthUiPlanNodeInput],
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
     let generation = handle_allocation.receipt().plan_generation();
     let expected_child_range_plan_indexes =
-        expected_child_range_plan_indexes(plan_input, counters)?;
+        expected_child_range_plan_indexes(node_inputs, counters)?;
     if expected_child_range_plan_indexes.len() != handle_allocation.child_range_handles().len() {
         return Err(denial(
             WorthUiPlanTopologyDenialReason::MissingChildOrLaneLink,
@@ -189,7 +209,7 @@ fn validate_child_range_handles(
         .zip(handle_allocation.child_range_handles())
     {
         let plan_index = handle.plan_index() as usize;
-        let Some(node_input) = plan_input.node_inputs().get(plan_index) else {
+        let Some(node_input) = node_inputs.get(plan_index) else {
             return Err(denial(
                 WorthUiPlanTopologyDenialReason::OrphanedChildRangeHandle,
                 *counters,
@@ -209,11 +229,10 @@ fn validate_child_range_handles(
 }
 
 fn expected_child_range_plan_indexes(
-    plan_input: &WorthUiExecutionPlanInput,
+    node_inputs: &[WorthUiPlanNodeInput],
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<Vec<u32>, WorthUiPlanTopologyDenial> {
-    plan_input
-        .node_inputs()
+    node_inputs
         .iter()
         .enumerate()
         .filter_map(|(position, node_input)| {

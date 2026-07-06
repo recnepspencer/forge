@@ -1,11 +1,12 @@
 use worth_ui_inspection::{
     UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
-    UiInspectionMeasurementBasisSource, UiInspectionMeasurementDenialPosture,
-    UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementDependencyLineageKind,
-    UiInspectionMeasurementEvidenceCategory, UiInspectionMeasurementEvidenceSlot,
-    UiInspectionMeasurementEvidenceView, UiInspectionMeasurementFailureSource,
-    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
-    UiInspectionMeasurementOwnershipPosture, UiInspectionSupportPosture, UiInspectionSupportReport,
+    UiInspectionMeasurementBasisSource, UiInspectionMeasurementChildIntrinsicSource,
+    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
+    UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
+    UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
+    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
+    UiInspectionSupportPosture, UiInspectionSupportReport,
 };
 
 use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementOwnershipPosture};
@@ -153,7 +154,9 @@ fn classify_slot_source(slot: UiMeasurementEvidenceSlot) -> UiInspectionMeasurem
             UiInspectionMeasurementFailureSource::QueryFacts
         }
         UiMeasurementEvidenceSlot::HostCapabilityReport
+        | UiMeasurementEvidenceSlot::HostTextIntrinsicSize
         | UiMeasurementEvidenceSlot::HostFontMetrics
+        | UiMeasurementEvidenceSlot::HostNativeControlIntrinsicSize
         | UiMeasurementEvidenceSlot::ViewportExtent
         | UiMeasurementEvidenceSlot::PortalAnchorRect
         | UiMeasurementEvidenceSlot::ScrollContainerViewport => {
@@ -181,6 +184,49 @@ fn project_basis_input(input: &MeasurementEvidenceInput) -> UiInspectionMeasurem
         MeasurementEvidenceInput::HostMeasurementResult(result) => {
             UiInspectionMeasurementBasisInput::HostMeasurementResult {
                 category: project_evidence_category(result.value().category()),
+                identity_digest: input.identity_digest(),
+            }
+        }
+        MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
+            let source = if evidence.query_projection_fact().is_some() {
+                UiInspectionMeasurementChildIntrinsicSource::QueryProjectionFact
+            } else {
+                let result = evidence
+                    .host_measurement_result()
+                    .expect("child intrinsic evidence must carry query or host authority");
+                UiInspectionMeasurementChildIntrinsicSource::HostMeasurementResult(
+                    project_evidence_category(result.value().category()),
+                )
+            };
+            UiInspectionMeasurementBasisInput::ChildIntrinsicMeasurement {
+                contributor_graph_node_identity_digest: evidence
+                    .contributor_graph_node_identity()
+                    .digest(),
+                source,
+                identity_digest: input.identity_digest(),
+            }
+        }
+        MeasurementEvidenceInput::SiblingResizeSupport(support) => {
+            UiInspectionMeasurementBasisInput::SiblingResizeSupport {
+                axis_scope: match support.axis_scope() {
+                    crate::evidence::UiConstraintAxisScope::Primary => "primary".into(),
+                    crate::evidence::UiConstraintAxisScope::Cross => "cross".into(),
+                    crate::evidence::UiConstraintAxisScope::Both => "both".into(),
+                },
+                target_graph_node_identity_digest: support.target_graph_node_identity().digest(),
+                sizing_contract_id: support
+                    .sizing_contract_id()
+                    .map(|contract_id| contract_id.as_str())
+                    .unwrap_or("none")
+                    .into(),
+                source: match support.source() {
+                    crate::evidence::UiMeasurementSiblingResizeSupportSource::MosaicSizingCapabilitySnapshot => {
+                        "mosaic-sizing-capability-snapshot".into()
+                    }
+                    crate::evidence::UiMeasurementSiblingResizeSupportSource::RuntimeDurableResizeWitness => {
+                        "runtime-durable-resize-witness".into()
+                    }
+                },
                 identity_digest: input.identity_digest(),
             }
         }
@@ -275,8 +321,14 @@ fn project_lineage_kind(
         UiMeasurementDependencyLineageKind::QueryScrollContentExtent => {
             UiInspectionMeasurementDependencyLineageKind::QueryScrollContentExtent
         }
+        UiMeasurementDependencyLineageKind::HostTextIntrinsicSize => {
+            UiInspectionMeasurementDependencyLineageKind::HostTextIntrinsicSize
+        }
         UiMeasurementDependencyLineageKind::HostFontMetrics => {
             UiInspectionMeasurementDependencyLineageKind::HostFontMetrics
+        }
+        UiMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize => {
+            UiInspectionMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize
         }
         UiMeasurementDependencyLineageKind::HostViewportExtent => {
             UiInspectionMeasurementDependencyLineageKind::HostViewportExtent
@@ -329,8 +381,14 @@ fn project_slot(slot: UiMeasurementEvidenceSlot) -> UiInspectionMeasurementEvide
         UiMeasurementEvidenceSlot::HostCapabilityReport => {
             UiInspectionMeasurementEvidenceSlot::HostCapabilityReport
         }
+        UiMeasurementEvidenceSlot::HostTextIntrinsicSize => {
+            UiInspectionMeasurementEvidenceSlot::HostTextIntrinsicSize
+        }
         UiMeasurementEvidenceSlot::HostFontMetrics => {
             UiInspectionMeasurementEvidenceSlot::HostFontMetrics
+        }
+        UiMeasurementEvidenceSlot::HostNativeControlIntrinsicSize => {
+            UiInspectionMeasurementEvidenceSlot::HostNativeControlIntrinsicSize
         }
         UiMeasurementEvidenceSlot::ViewportExtent => {
             UiInspectionMeasurementEvidenceSlot::ViewportExtent

@@ -15,6 +15,8 @@ pub struct WorthUiPlanSwapReceipt {
     prior_valid_plan: WorthUiPriorValidPlanObservation,
     readiness_frame_epoch: WorthUiRuntimeFrameEpoch,
     boundary_frame_epoch: WorthUiRuntimeFrameEpoch,
+    node_classification_count: usize,
+    lane_changed_node_count: usize,
     reconciliation_basis_digest: u64,
     reconciliation_receipt_count: usize,
     query_rebind_basis_digest: u64,
@@ -47,6 +49,8 @@ impl WorthUiPlanSwapReceipt {
             next_active_snapshot_digest: parts.next_active_snapshot_digest,
             readiness_frame_epoch: parts.activation_gate_receipt.readiness_frame_epoch(),
             boundary_frame_epoch: parts.activation_gate_receipt.boundary_frame_epoch(),
+            node_classification_count: parts.activation_gate_receipt.node_classification_count(),
+            lane_changed_node_count: parts.activation_gate_receipt.lane_changed_node_count(),
             reconciliation_basis_digest: parts
                 .activation_gate_receipt
                 .reconciliation_basis_digest(),
@@ -103,6 +107,14 @@ impl WorthUiPlanSwapReceipt {
 
     pub fn boundary_frame_epoch(self) -> WorthUiRuntimeFrameEpoch {
         self.boundary_frame_epoch
+    }
+
+    pub fn node_classification_count(self) -> usize {
+        self.node_classification_count
+    }
+
+    pub fn lane_changed_node_count(self) -> usize {
+        self.lane_changed_node_count
     }
 
     pub fn reconciliation_basis_digest(self) -> u64 {

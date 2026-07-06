@@ -154,7 +154,8 @@ impl<'a> UiAdmissionBoundary<'a> {
                 return Some(admission(posture, None));
             }
             Err(
-                WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource
+                WorthUiQueryMeasurementFactReceiptError::Observation(_)
+                | WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource
                 | WorthUiQueryMeasurementFactReceiptError::ProjectionConsumptionNotAdmitted,
             ) => {
                 return Some(admission(

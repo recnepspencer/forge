@@ -24,6 +24,7 @@ fn control_spec() -> UiDslSemanticArtifactSpec {
         UiDslSourceProvenance::file_authored("app/declaration_support.wui", 0),
     )
     .with_structural_token(UiDslStructuralToken::new("control:save"))
+    .with_structural_token(UiDslStructuralToken::new("operator:stack"))
     .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
     .with_posture_token(UiDslPostureToken::new("service:portal"))
     .with_posture_token(UiDslPostureToken::new("touch:press"))
@@ -117,6 +118,7 @@ fn support_snapshot_preserves_portal_measurement_policy_projection() {
             UiDslSourceProvenance::file_authored("app/declaration_support_portal.wui", 0),
         )
         .with_structural_token(UiDslStructuralToken::new("control:portal"))
+        .with_structural_token(UiDslStructuralToken::new("operator:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new("measurement:portal-anchored")),
     );
     let snapshot = artifact

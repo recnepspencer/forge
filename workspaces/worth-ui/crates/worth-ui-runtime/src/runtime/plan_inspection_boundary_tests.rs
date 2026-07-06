@@ -1,18 +1,20 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::allocation_planning;
 use super::plan_inspection_expected_provenance::{
     expected_provenance_for_node_input, expected_query_links_from_plan_input,
 };
 use crate::runtime::{
-    WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiPlanInspectionDenialReason,
-    WorthUiPlanNodeInputFamily, WorthUiPlanProvenanceSource, WorthUiRuntimeHandleAllocation,
+    WorthUiAllocationPlanning, WorthUiExecutionPlan, WorthUiExecutionPlanInput,
+    WorthUiPlanInspectionDenialReason, WorthUiPlanNodeInputFamily, WorthUiPlanProvenanceSource,
+    WorthUiRuntimeHandleAllocation,
 };
 
 #[test]
 fn plan_inspection_explains_artifact_and_capability_origin() {
-    let (runtime, plan_input, plan) = inspection_fixture();
+    let (runtime, plan_input, planning, plan) = inspection_fixture();
 
     let inspection = runtime
-        .inspect_execution_plan(&plan, &plan_input)
+        .inspect_execution_plan(&plan, &planning)
         .expect("plan inspection succeeds");
 
     assert_eq!(inspection.nodes().len(), plan_input.node_inputs().len());
@@ -108,14 +110,14 @@ fn plan_inspection_explains_artifact_and_capability_origin() {
 
 #[test]
 fn plan_provenance_replay_is_deterministic() {
-    let (left_runtime, left_input, left_plan) = inspection_fixture();
-    let (_, right_input, right_plan) = inspection_fixture();
+    let (left_runtime, _, left_planning, left_plan) = inspection_fixture();
+    let (_, _, right_planning, right_plan) = inspection_fixture();
 
     let left = left_runtime
-        .inspect_execution_plan(&left_plan, &left_input)
+        .inspect_execution_plan(&left_plan, &left_planning)
         .expect("left inspection succeeds");
     let right = left_runtime
-        .inspect_execution_plan(&right_plan, &right_input)
+        .inspect_execution_plan(&right_plan, &right_planning)
         .expect("right inspection succeeds");
 
     assert_eq!(left.plan_digest(), right.plan_digest());
@@ -127,11 +129,11 @@ fn plan_provenance_replay_is_deterministic() {
 
 #[test]
 fn query_owned_inspection_links_are_preserved_not_reauthored() {
-    let (runtime, plan_input, plan) = inspection_fixture();
+    let (runtime, plan_input, planning, plan) = inspection_fixture();
     let expected_query_links = expected_query_links_from_plan_input(&plan_input);
 
     let inspection = runtime
-        .inspect_execution_plan(&plan, &plan_input)
+        .inspect_execution_plan(&plan, &planning)
         .expect("plan inspection succeeds");
     let query_nodes = inspection
         .nodes()
@@ -195,11 +197,13 @@ fn query_owned_inspection_links_are_preserved_not_reauthored() {
 
 #[test]
 fn plan_inspection_rejects_mismatched_plan_input_before_provenance() {
-    let (runtime, plan_input, plan) = inspection_fixture();
+    let (runtime, plan_input, planning, plan) = inspection_fixture();
     let mismatched_input = plan_input_with_first_different_family(plan_input);
+    let mismatched_planning =
+        allocation_planning(&runtime, &mismatched_input, "plan-inspection.mismatch");
 
     let denial = runtime
-        .inspect_execution_plan(&plan, &mismatched_input)
+        .inspect_execution_plan(&plan, &mismatched_planning)
         .expect_err("mismatched plan input denies inspection");
 
     assert_eq!(
@@ -214,11 +218,16 @@ fn plan_inspection_rejects_mismatched_plan_input_before_provenance() {
 
 #[test]
 fn plan_inspection_rejects_same_shape_wrong_plan_input_receipt() {
-    let (runtime, plan_input, plan) = inspection_fixture();
+    let (runtime, plan_input, _planning, plan) = inspection_fixture();
     let wrong_provenance_input = plan_input_with_first_identity_basis_changed(plan_input);
+    let wrong_provenance_planning = allocation_planning(
+        &runtime,
+        &wrong_provenance_input,
+        "plan-inspection.wrong-provenance",
+    );
 
     let denial = runtime
-        .inspect_execution_plan(&plan, &wrong_provenance_input)
+        .inspect_execution_plan(&plan, &wrong_provenance_planning)
         .expect_err("same-shape wrong provenance input denies inspection");
 
     assert_eq!(
@@ -234,26 +243,34 @@ fn plan_inspection_rejects_same_shape_wrong_plan_input_receipt() {
 fn inspection_fixture() -> (
     crate::runtime::WorthUiRuntimeHost,
     WorthUiExecutionPlanInput,
+    WorthUiAllocationPlanning,
     WorthUiExecutionPlan,
 ) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
-        .prepare_execution_plan_input(pending)
+        .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
-    let allocation = allocate_handles(&runtime, &plan_input);
+    let measurement_basis = super::allocation_planning_test_support::admitted_measurement_basis(
+        "plan-inspection.fixture",
+    );
+    let neighborhood = super::allocation_planning_test_support::admitted_allocation_neighborhood(
+        "plan-inspection.fixture",
+    );
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let allocation = allocate_handles(&runtime, &planning);
     let plan = runtime
-        .assemble_execution_plan_topology(&plan_input, &allocation)
+        .assemble_execution_plan_topology(&planning, &allocation)
         .expect("topology assembles");
-    (runtime, plan_input, plan)
+    (runtime, plan_input, planning, plan)
 }
 
 fn allocate_handles(
     runtime: &crate::runtime::WorthUiRuntimeHost,
-    plan_input: &WorthUiExecutionPlanInput,
+    planning: &WorthUiAllocationPlanning,
 ) -> WorthUiRuntimeHandleAllocation {
     runtime
-        .allocate_runtime_handles(plan_input)
+        .allocate_runtime_handles(planning)
         .expect("handles allocate")
 }
 

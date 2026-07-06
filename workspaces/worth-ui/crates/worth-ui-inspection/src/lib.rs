@@ -38,10 +38,10 @@ pub use posture::{
     UiInspectionUnsupportedPosture, UiInspectionWrongWorldPosture,
 };
 pub use query::{
-    UiEvidenceBudget, UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionEvidenceSource,
-    UiInspectionObligationRelevanceDetail, UiInspectionQuery, UiInspectionRelevance,
-    UiInspectionRelevanceAdmission, UiInspectionRelevanceOutcome, UiInspectionTargetClass,
-    UiRelevanceFamily, UiRelevanceFilter,
+    UiAllocationPlanningQuestion, UiEvidenceBudget, UiEvidenceLinkKind, UiEvidenceRichness,
+    UiInspectionEvidenceSource, UiInspectionObligationRelevanceDetail, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionRelevanceAdmission, UiInspectionRelevanceOutcome,
+    UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
 };
 pub use receipt::evidence::{
     UiEvidenceSliceOmission, UiInspectionAdmissionHostCapability, UiInspectionAdmissionQueryBasis,
@@ -59,14 +59,15 @@ pub use receipt::{
     UiInspectionCloseoutNonGoal, UiInspectionCloseoutReport, UiInspectionClosureReport,
     UiInspectionCostLane, UiInspectionCostReceipt, UiInspectionDerivedIndexLane,
     UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
-    UiInspectionMeasurementBasisSource, UiInspectionMeasurementDenialPosture,
-    UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementDependencyLineageKind,
-    UiInspectionMeasurementEvidenceCategory, UiInspectionMeasurementEvidenceSlot,
-    UiInspectionMeasurementEvidenceView, UiInspectionMeasurementFailureSource,
-    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
-    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
-    UiInspectionMeasurementQueryUnsupportedReason, UiInspectionRefLifecycleLane,
-    UiInspectionScopeSupportRow, UiInspectionSliceLane, UiInspectionSupportReport,
+    UiInspectionMeasurementBasisSource, UiInspectionMeasurementChildIntrinsicSource,
+    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
+    UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
+    UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
+    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
+    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionRefLifecycleLane, UiInspectionScopeSupportRow, UiInspectionSliceLane,
+    UiInspectionSupportReport,
 };
 pub use scope::UiInspectionScope;
 pub use source_artifact_generation::UiSourceArtifactGeneration;

@@ -1,3 +1,4 @@
+use super::allocation_planning_test_support::allocation_planning;
 use super::frame_activation_gate_test_support::ready_activation_fixture;
 use super::reload_failure_test_support::missing_artifact_candidate_denial;
 use super::runtime_diagnostics_projection_test_support::{
@@ -261,7 +262,14 @@ fn diagnostics_projection_rejects_plan_inspection_from_different_plan() {
         .materialize();
     let candidate_inspection = fixture
         .runtime
-        .inspect_execution_plan(&fixture.candidate_plan, &fixture.plan_input)
+        .inspect_execution_plan(
+            &fixture.candidate_plan,
+            &allocation_planning(
+                &fixture.runtime,
+                &fixture.plan_input,
+                "runtime-diagnostics-projection.candidate-plan",
+            ),
+        )
         .expect("candidate plan inspection succeeds");
 
     let denial = fixture

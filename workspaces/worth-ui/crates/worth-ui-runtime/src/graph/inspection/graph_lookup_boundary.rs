@@ -124,6 +124,7 @@ fn family_matches(evidence_family: UiEvidenceFamily, relevance_family: UiRelevan
             )
             | (UiEvidenceFamily::Admission, UiRelevanceFamily::Admission)
             | (UiEvidenceFamily::Obligation, UiRelevanceFamily::Obligation)
+            | (UiEvidenceFamily::Planning, UiRelevanceFamily::Planning)
     )
 }
 

@@ -5,6 +5,7 @@ from typing import Any
 from event_types import PHASE_PROGRESS_EVENTS
 
 TURN_OUTCOME_EVENTS = {
+    "boundary_review": {"boundary_review_completed"},
     "plan": {"plan_posted"},
     "implement": {"implementation_completed"},
     "review": {"review_failed", "review_passed"},
@@ -37,6 +38,8 @@ def validate_projected_transition(projection: dict[str, Any], event: dict[str, A
         raise ValueError(
             f"{event_type} targets phase {phase_id!r} while current phase is {current.get('phase')!r}"
         )
+    if current.get("turn") == "boundary_review" and turn == "plan" and event_type == "plan_posted":
+        return
     if current.get("turn") != turn:
         raise ValueError(
             f"{event_type} targets turn {turn!r} while current turn is {current.get('turn')!r}"
@@ -63,6 +66,9 @@ def apply_phase_progress(
     if isinstance(verification, list):
         phase["notes"]["verification"] = verification
 
+    if event_type == "boundary_review_completed":
+        projection["current"] = {"phase": phase_id, "turn": "plan"}
+        return
     if event_type == "plan_posted":
         phase["status"] = "in_progress"
         phase["qa_status"] = "not_started"
@@ -128,4 +134,17 @@ def advance_after_phase_close(
     if next_phase_id > len(config["phases"]):
         projection["current"] = None
         return
-    projection["current"] = {"phase": next_phase_id, "turn": "plan"}
+    projection["current"] = {"phase": next_phase_id, "turn": first_turn(config, next_phase_id)}
+
+
+def first_turn(config: dict[str, Any], phase_id: int) -> str:
+    turn_templates = config.get("turn_templates", {})
+    runner_control = config.get("runner_control", {})
+    boundary_review_start_phase = runner_control.get("boundary_review_start_phase")
+    if (
+        "boundary_review" in turn_templates
+        and isinstance(boundary_review_start_phase, int)
+        and phase_id >= boundary_review_start_phase
+    ):
+        return "boundary_review"
+    return "plan"

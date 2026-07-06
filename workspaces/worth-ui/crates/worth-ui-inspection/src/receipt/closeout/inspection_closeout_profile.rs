@@ -13,6 +13,7 @@ const MILESTONE35_EVIDENCE_FAMILIES: &[UiEvidenceFamily] = &[
     UiEvidenceFamily::Declaration,
     UiEvidenceFamily::Admission,
     UiEvidenceFamily::Graph,
+    UiEvidenceFamily::Planning,
     UiEvidenceFamily::Aspect,
     UiEvidenceFamily::Obligation,
 ];

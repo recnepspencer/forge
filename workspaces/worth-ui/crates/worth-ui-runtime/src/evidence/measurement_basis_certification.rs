@@ -130,12 +130,17 @@ fn lineage_entry_has_supporting_input(
     inputs: &[MeasurementEvidenceInput],
 ) -> bool {
     match kind {
-        UiMeasurementDependencyLineageKind::QueryScrollContentExtent => inputs
-            .iter()
-            .any(|input| matches!(input, MeasurementEvidenceInput::QueryProjectionFact(_))),
+        UiMeasurementDependencyLineageKind::QueryScrollContentExtent => has_query_support(inputs),
+        UiMeasurementDependencyLineageKind::HostTextIntrinsicSize => {
+            has_host_result(inputs, UiMeasurementEvidenceCategory::TextIntrinsicSize)
+        }
         UiMeasurementDependencyLineageKind::HostFontMetrics => {
             has_host_result(inputs, UiMeasurementEvidenceCategory::FontMetrics)
         }
+        UiMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize => has_host_result(
+            inputs,
+            UiMeasurementEvidenceCategory::NativeControlIntrinsicSize,
+        ),
         UiMeasurementDependencyLineageKind::HostViewportExtent => {
             has_host_result(inputs, UiMeasurementEvidenceCategory::ViewportExtent)
         }
@@ -149,16 +154,32 @@ fn lineage_entry_has_supporting_input(
     }
 }
 
+fn has_query_support(inputs: &[MeasurementEvidenceInput]) -> bool {
+    inputs.iter().any(|input| match input {
+        MeasurementEvidenceInput::QueryProjectionFact(_) => true,
+        MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => {
+            evidence.query_projection_fact().is_some()
+        }
+        MeasurementEvidenceInput::HostCapabilityReport(_)
+        | MeasurementEvidenceInput::HostMeasurementResult(_)
+        | MeasurementEvidenceInput::SiblingResizeSupport(_) => false,
+    })
+}
+
 fn has_host_result(
     inputs: &[MeasurementEvidenceInput],
     category: UiMeasurementEvidenceCategory,
 ) -> bool {
-    inputs.iter().any(|input| {
-        matches!(
-            input,
-            MeasurementEvidenceInput::HostMeasurementResult(result)
-                if result.evidence_category() == category
-        )
+    inputs.iter().any(|input| match input {
+        MeasurementEvidenceInput::HostMeasurementResult(result) => {
+            result.evidence_category() == category
+        }
+        MeasurementEvidenceInput::ChildIntrinsicMeasurement(evidence) => evidence
+            .host_measurement_result()
+            .is_some_and(|result| result.evidence_category() == category),
+        MeasurementEvidenceInput::QueryProjectionFact(_)
+        | MeasurementEvidenceInput::HostCapabilityReport(_)
+        | MeasurementEvidenceInput::SiblingResizeSupport(_) => false,
     })
 }
 

@@ -39,9 +39,9 @@ pub(crate) use identity_seeding::{
     WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingDiagnosticCode,
     WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport,
 };
+pub use rust_authored::WorthUiRustAuthoredArtifactInputModule;
 pub(crate) use rust_authored::{
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer,
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredToArtifactInputLowerer,
 };
 pub(crate) use rust_composition::{
     WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,

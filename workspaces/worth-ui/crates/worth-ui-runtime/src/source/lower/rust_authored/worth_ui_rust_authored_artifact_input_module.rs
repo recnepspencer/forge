@@ -1,7 +1,7 @@
 use crate::source::WorthUiArtifactInputBodyAtom;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct WorthUiRustAuthoredArtifactInputModule {
+pub struct WorthUiRustAuthoredArtifactInputModule {
     relative_module_path: String,
     declarations: Vec<WorthUiRustAuthoredDeclaration>,
 }
@@ -34,14 +34,14 @@ pub(crate) enum WorthUiRustAuthoredDeclaration {
 }
 
 impl WorthUiRustAuthoredArtifactInputModule {
-    pub(crate) fn new(relative_module_path: impl Into<String>) -> Self {
+    pub fn new(relative_module_path: impl Into<String>) -> Self {
         Self {
             relative_module_path: relative_module_path.into(),
             declarations: Vec::new(),
         }
     }
 
-    pub(crate) fn with_import(mut self, target_module_path: impl Into<String>) -> Self {
+    pub fn with_import(mut self, target_module_path: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Import {
                 target_module_path: target_module_path.into(),
@@ -49,7 +49,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_component(mut self, name_text: impl Into<String>) -> Self {
+    pub fn with_component(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Component {
                 name_text: name_text.into(),
@@ -59,7 +59,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_component_authored_identity(
+    pub fn with_component_authored_identity(
         mut self,
         name_text: impl Into<String>,
         authored_identity: impl Into<String>,
@@ -73,7 +73,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_component_body_atoms(
+    pub fn with_component_body_atoms(
         mut self,
         name_text: impl Into<String>,
         body_atoms: impl IntoIterator<Item = WorthUiArtifactInputBodyAtom>,
@@ -87,7 +87,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_component_body_atoms_and_authored_identity(
+    pub fn with_component_body_atoms_and_authored_identity(
         mut self,
         name_text: impl Into<String>,
         authored_identity: impl Into<String>,
@@ -102,7 +102,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_surface(mut self, name_text: impl Into<String>) -> Self {
+    pub fn with_surface(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Surface {
                 name_text: name_text.into(),
@@ -112,7 +112,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_surface_body_atoms(
+    pub fn with_surface_body_atoms(
         mut self,
         name_text: impl Into<String>,
         body_atoms: impl IntoIterator<Item = WorthUiArtifactInputBodyAtom>,
@@ -126,7 +126,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_binding(mut self, name_text: impl Into<String>) -> Self {
+    pub fn with_binding(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Binding {
                 name_text: name_text.into(),
@@ -136,7 +136,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_binding_authored_identity(
+    pub fn with_binding_authored_identity(
         mut self,
         name_text: impl Into<String>,
         authored_identity: impl Into<String>,
@@ -150,7 +150,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_binding_body_atoms(
+    pub fn with_binding_body_atoms(
         mut self,
         name_text: impl Into<String>,
         body_atoms: impl IntoIterator<Item = WorthUiArtifactInputBodyAtom>,
@@ -164,7 +164,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_token(
+    pub fn with_token(
         mut self,
         name_text: impl Into<String>,
         value_text: impl Into<String>,
@@ -178,7 +178,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_surface_authored_identity(
+    pub fn with_surface_authored_identity(
         mut self,
         name_text: impl Into<String>,
         authored_identity: impl Into<String>,
@@ -192,7 +192,7 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
-    pub(crate) fn with_token_authored_identity(
+    pub fn with_token_authored_identity(
         mut self,
         name_text: impl Into<String>,
         authored_identity: impl Into<String>,

@@ -33,6 +33,8 @@ fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_a
         receipt.required_query_fact_families(),
         receipt.consumed_fact_families()
     );
+    assert_eq!(receipt.observations().len(), 1);
+    assert_eq!(receipt.observations()[0].extent(), 240.0);
     assert_eq!(
         receipt.required_query_fact_family_set_digest(),
         receipt.consumed_fact_family_set_digest()
@@ -169,8 +171,8 @@ fn measurement_projection_workspace(
         forge_query::facade::consumer_kit::ForgeQueryTestBackendSchema::single_collection("task")
             .aspect("identity.id", "identity.id")
             .expect("identity aspect should admit")
-            .aspect("title.value", "title.value")
-            .expect("title aspect should admit");
+            .aspect("size.value", "size.value")
+            .expect("size aspect should admit");
     let mut workspace = forge_query::facade::consumer_kit::in_memory_test_runtime()
         .with_schema(schema)
         .workspace(&format!(
@@ -184,23 +186,21 @@ fn measurement_projection_workspace(
                 forge_query::facade::ForgeQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
-                aspect_touch("title.value"),
-                forge_query::facade::ForgeQueryAuthoredAspectValue::string(format!(
-                    "title-{lane_label}"
-                )),
+                aspect_touch("size.value"),
+                forge_query::facade::ForgeQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("fixture insert should admit");
     let family = workspace
         .define_read_family(
             &format!("worth-ui.phase8.projection-fact-receipt.{lane_label}"),
-            title_family_graph,
+            size_family_graph,
         )
         .expect("query read family should admit");
     (workspace, family)
 }
 
-fn title_family_graph(
+fn size_family_graph(
     read: forge_query::facade::runtime::ForgeQueryReadBuilder,
 ) -> Result<
     forge_query::facade::runtime::ForgeQueryReadGraph,
@@ -219,9 +219,9 @@ fn title_family_graph(
                     )
                     .expect("identity anchor predicate should build"),
                 )
-                .project(field("title", "value"))
+                .project(field("size", "value"))
         },
-        |shape| shape.field(result_field("title", "value", "title.value")),
+        |shape| shape.field(result_field("size", "value", "size.value")),
     )
 }
 
@@ -236,7 +236,7 @@ fn task_query_schema() -> forge_query::facade::runtime::QuerySchemaView {
                 forge_query::facade::runtime::SchemaFieldKind::String,
             ),
             forge_query::facade::runtime::SchemaFieldView::new(
-                forge_query::facade::AspectName::new("title").expect("schema aspect should admit"),
+                forge_query::facade::AspectName::new("size").expect("schema aspect should admit"),
                 forge_query::facade::FieldName::new("value").expect("schema field should admit"),
                 forge_query::facade::runtime::SchemaFieldKind::String,
             ),

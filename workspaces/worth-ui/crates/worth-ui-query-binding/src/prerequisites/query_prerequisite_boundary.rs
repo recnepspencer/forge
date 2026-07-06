@@ -1,14 +1,15 @@
 use forge_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
+#[cfg(feature = "certification-construction")]
+use super::WorthUiQueryMeasurementFactFamily;
 use super::{
     WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError,
+    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
     WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
     WorthUiQueryPrerequisiteEvidence, WorthUiQueryPrerequisiteEvidenceError,
     WorthUiQueryProjectionConsumptionLane,
 };
-#[cfg(feature = "certification-construction")]
-use super::WorthUiQueryMeasurementFactFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryPrerequisiteBoundary {
@@ -153,6 +154,21 @@ impl WorthUiQueryPrerequisiteBoundary {
         )
     }
 
+    pub fn measurement_fact_observation_from_projection_consumption(
+        self,
+        prerequisites: WorthUiQueryPrerequisiteEvidence,
+        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+    ) -> Result<
+        Box<[WorthUiQueryMeasurementFactObservation]>,
+        WorthUiQueryMeasurementFactObservationError,
+    > {
+        let _ = self;
+        WorthUiQueryMeasurementFactObservation::from_projection_consumption_attempt(
+            prerequisites,
+            consumption,
+        )
+    }
+
     #[cfg(feature = "certification-construction")]
     pub fn bind_projection_contract_for_certification(
         self,
@@ -188,6 +204,7 @@ impl WorthUiQueryPrerequisiteBoundary {
         projection_fact_set_digest: impl Into<Box<str>>,
         projection_source_identity: impl Into<Box<str>>,
         consumed_families: Vec<WorthUiQueryMeasurementFactFamily>,
+        observations: Vec<WorthUiQueryMeasurementFactObservation>,
     ) -> WorthUiQueryMeasurementFactReceipt {
         let _ = self;
         WorthUiQueryMeasurementFactReceipt::for_certification(
@@ -198,6 +215,7 @@ impl WorthUiQueryPrerequisiteBoundary {
             projection_fact_set_digest,
             projection_source_identity,
             consumed_families,
+            observations,
         )
     }
 }

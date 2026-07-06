@@ -1,3 +1,5 @@
+mod allocation_planning_anti_bypass_audit;
+mod allocation_planning_boundary_certification;
 mod admission_boundary_audit;
 mod admission_boundary_certification;
 mod admission_public_surface_audit;
@@ -20,6 +22,14 @@ mod obligation_residue_audit;
 mod ownership_audit;
 mod public_surface_audit;
 
+pub use allocation_planning_anti_bypass_audit::audit_allocation_planning_anti_bypass_boundaries;
+pub use allocation_planning_boundary_certification::{
+    activation_boundary_suite, allocation_inspection_suite, allocation_neighborhood_suite,
+    bounded_reconciliation_suite, certify_allocation_anti_bypass_boundaries,
+    constraint_edge_suite, durable_resize_input_suite, equal_share_suite,
+    intrinsic_return_flow_suite, parent_child_propagation_suite, plan_handoff_suite,
+    sibling_negotiation_suite, special_input_suite,
+};
 pub use admission_boundary_audit::audit_consumers_route_admission_through_worth_ui_facade;
 pub use admission_boundary_certification::certify_consumers_route_admission_through_worth_ui_facade;
 pub use admission_public_surface_audit::{

@@ -8,6 +8,7 @@ pub struct WorthUiPlanTopologyDenial {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiPlanTopologyDenialReason {
+    AllocationPlanningDenied,
     HandleAllocationReceiptMismatch,
     MissingRuntimeHandle,
     RuntimeHandleOutOfBounds,

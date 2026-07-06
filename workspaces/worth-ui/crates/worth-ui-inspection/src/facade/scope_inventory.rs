@@ -7,6 +7,7 @@ use crate::{
 pub(crate) struct UiInspectionScopeInventoryFields {
     pub(crate) graph: [UiInspectionScopeSupportRow; 4],
     pub(crate) measurement: [UiInspectionScopeSupportRow; 4],
+    pub(crate) planning: [UiInspectionScopeSupportRow; 4],
     pub(crate) mounting: [UiInspectionScopeSupportRow; 4],
     pub(crate) rebind: [UiInspectionScopeSupportRow; 4],
 }
@@ -15,9 +16,10 @@ pub(crate) struct UiInspectionScopeInventoryFields {
 pub struct UiInspectionScopeInventory {
     graph: [UiInspectionScopeSupportRow; 4],
     measurement: [UiInspectionScopeSupportRow; 4],
+    planning: [UiInspectionScopeSupportRow; 4],
     mounting: [UiInspectionScopeSupportRow; 4],
     rebind: [UiInspectionScopeSupportRow; 4],
-    rows: [UiInspectionScopeSupportRow; 16],
+    rows: [UiInspectionScopeSupportRow; 20],
 }
 
 impl UiInspectionScopeInventory {
@@ -25,23 +27,28 @@ impl UiInspectionScopeInventory {
         Self {
             graph: fields.graph,
             measurement: fields.measurement,
+            planning: fields.planning,
             mounting: fields.mounting,
             rebind: fields.rebind,
             rows: [
                 fields.graph[0],
                 fields.measurement[0],
+                fields.planning[0],
                 fields.mounting[0],
                 fields.rebind[0],
                 fields.graph[1],
                 fields.measurement[1],
+                fields.planning[1],
                 fields.mounting[1],
                 fields.rebind[1],
                 fields.graph[2],
                 fields.measurement[2],
+                fields.planning[2],
                 fields.mounting[2],
                 fields.rebind[2],
                 fields.graph[3],
                 fields.measurement[3],
+                fields.planning[3],
                 fields.mounting[3],
                 fields.rebind[3],
             ],
@@ -51,12 +58,14 @@ impl UiInspectionScopeInventory {
     pub const fn from_scope_rows(
         graph: [UiInspectionScopeSupportRow; 4],
         measurement: [UiInspectionScopeSupportRow; 4],
+        planning: [UiInspectionScopeSupportRow; 4],
         mounting: [UiInspectionScopeSupportRow; 4],
         rebind: [UiInspectionScopeSupportRow; 4],
     ) -> Self {
         Self::new(UiInspectionScopeInventoryFields {
             graph,
             measurement,
+            planning,
             mounting,
             rebind,
         })
@@ -73,6 +82,9 @@ impl UiInspectionScopeInventory {
             }
             UiInspectionScope::Measurement => {
                 UiInspectionSupportReport::from_scope_rows(scope, &self.measurement)
+            }
+            UiInspectionScope::Planning => {
+                UiInspectionSupportReport::from_scope_rows(scope, &self.planning)
             }
             UiInspectionScope::Mounting => {
                 UiInspectionSupportReport::from_scope_rows(scope, &self.mounting)
@@ -143,6 +155,7 @@ pub const RUNTIME_INSPECTION_SCOPE_INVENTORY: UiInspectionScopeInventory =
     UiInspectionScopeInventory::new(UiInspectionScopeInventoryFields {
         graph: unsupported_scope_rows(UiInspectionScope::Graph),
         measurement: unsupported_scope_rows(UiInspectionScope::Measurement),
+        planning: supported_scope_rows(UiInspectionScope::Planning),
         mounting: unsupported_scope_rows(UiInspectionScope::Mounting),
         rebind: unsupported_scope_rows(UiInspectionScope::Rebind),
     });

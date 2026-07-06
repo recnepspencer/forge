@@ -5,7 +5,8 @@ use crate::runtime::{
 };
 
 use super::identity_match_graph_test_support::{
-    artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing, surface_node,
+    artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing,
+    splitter_surface_node,
 };
 use super::node_replacement_classification_test_support::{narrowing_for, no_op_impact_for};
 
@@ -18,7 +19,12 @@ pub(super) fn deterministic_replacement_plan() -> (
         "app/main.wui",
         vec![
             component_node("component:dashboard", 0),
-            surface_node("surface:main", "workspace.surface.main", 1),
+            splitter_surface_node(
+                "surface:main",
+                "workspace.surface.main",
+                "workspace.sizing.splitter.main",
+                1,
+            ),
         ],
     )]);
     let candidate = active.clone();

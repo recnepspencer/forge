@@ -25,6 +25,8 @@ use crate::graph::{
 };
 use crate::obligations::closeout::UiObligationCloseoutReport;
 use crate::obligations::touch::UiGraphTouchDescriptor;
+use crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry;
+use std::rc::Rc;
 
 /// Runtime facade entrypoint for building Worth UI applications.
 pub struct WorthUi {
@@ -48,6 +50,7 @@ pub struct WorthUiApp {
     graph_node_evidence_index: UiGraphNodeEvidenceIndex,
     graph_aspect_evidence_indexes: UiGraphAspectEvidenceIndexes,
     retained_obligations: WorthUiRetainedObligationRegistry,
+    retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
 }
 
 impl WorthUiApp {
@@ -90,6 +93,7 @@ impl WorthUiApp {
             graph_snapshot,
             lifecycle,
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
+            retained_allocation_planning_evidence: Rc::default(),
         }
     }
 
@@ -203,6 +207,14 @@ impl WorthUiApp {
                 query.clone(),
                 authority_generation.expect("graph-backed inspection has one active generation"),
             ) {
+                return receipt;
+            }
+        }
+        if query.scope() == UiInspectionScope::Planning {
+            if let Some(receipt) =
+                self.planning_inspection_boundary()
+                    .inspect(self, query.clone())
+            {
                 return receipt;
             }
         }
@@ -375,6 +387,9 @@ impl WorthUiApp {
 
     pub fn discard_evidence_slice(&self, slice_ref: crate::evidence::UiEvidenceSliceRef) -> bool {
         self.retained_obligations.discard_slice(slice_ref)
+            || self
+                .retained_allocation_planning_registry()
+                .discard_slice(slice_ref)
     }
 
     pub fn inspection_support_report(&self, scope: UiInspectionScope) -> UiInspectionSupportReport {
@@ -421,10 +436,20 @@ impl WorthUiApp {
         &self,
         launch: WorthUiRuntimeLaunch,
     ) -> Result<WorthUiRuntimeHost, WorthUiRuntimeLaunchDenial> {
-        WorthUiRuntimeHost::launch(launch, self.capability_snapshot.digest())
+        WorthUiRuntimeHost::launch(
+            launch,
+            self.capability_snapshot.digest(),
+            Rc::clone(&self.retained_allocation_planning_evidence),
+        )
     }
     pub(crate) fn retained_obligation_registry(&self) -> &WorthUiRetainedObligationRegistry {
         &self.retained_obligations
+    }
+
+    pub(crate) fn retained_allocation_planning_registry(
+        &self,
+    ) -> &WorthUiRetainedAllocationPlanningEvidenceRegistry {
+        self.retained_allocation_planning_evidence.as_ref()
     }
 
     pub(crate) fn expand_retained_obligation_ref(
@@ -454,5 +479,46 @@ impl WorthUiApp {
             Box::new([]),
             None,
         )
+    }
+
+    pub(crate) fn expand_retained_allocation_planning_ref(
+        &self,
+        evidence_ref: UiEvidenceRef,
+        requested_richness: worth_ui_inspection::UiEvidenceRichness,
+    ) -> UiEvidenceExpansion {
+        let current_generation = self
+            .retained_allocation_planning_registry()
+            .current_generation_for(evidence_ref.handle().handle_digest())
+            .unwrap_or_else(|| evidence_ref.authority_generation());
+        let evidence_ref = self
+            .retained_allocation_planning_registry()
+            .discarded_ref(evidence_ref)
+            .unwrap_or(evidence_ref);
+        if let Some(preflight) =
+            crate::evidence::preflight_evidence_expansion(current_generation, evidence_ref, requested_richness)
+        {
+            return preflight;
+        }
+
+        let retained_receipt: Option<crate::evidence::UiAllocationPlanningInspectionReceipt> = self
+            .retained_allocation_planning_registry()
+            .retained_receipt(evidence_ref.handle().handle_digest());
+        match retained_receipt {
+            Some(receipt) => {
+                let expansion = receipt.expand_evidence_ref(evidence_ref, requested_richness);
+                if expansion.outcome().is_available() {
+                    self.lifecycle.record_rich_artifact_materialization();
+                }
+                expansion
+            }
+            None => UiEvidenceExpansion::new(
+                evidence_ref,
+                requested_richness,
+                worth_ui_inspection::UiEvidenceExpansionOutcome::Unsupported,
+                None,
+                Box::new([]),
+                None,
+            ),
+        }
     }
 }

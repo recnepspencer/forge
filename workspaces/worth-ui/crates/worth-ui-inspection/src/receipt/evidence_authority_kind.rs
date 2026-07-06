@@ -4,6 +4,7 @@ pub enum UiEvidenceAuthorityKind {
     DeclarationArtifact,
     AdmissionReport,
     GraphSnapshot,
+    AllocationPlanning,
     AspectAuthority,
     ObligationAuthority,
 }

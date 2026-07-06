@@ -1,3 +1,4 @@
+use crate::capability::{MosaicResizePermission, MosaicSizingContractId};
 use crate::runtime::{WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,6 +10,12 @@ pub struct WorthUiNodeReplacementClassification {
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
     active_durable_state_eligible: bool,
     candidate_durable_state_eligible: bool,
+    active_resize_contract_id: Option<MosaicSizingContractId>,
+    candidate_resize_contract_id: Option<MosaicSizingContractId>,
+    active_resize_permission: Option<MosaicResizePermission>,
+    candidate_resize_permission: Option<MosaicResizePermission>,
+    active_resize_shape_digest: Option<u64>,
+    candidate_resize_shape_digest: Option<u64>,
 }
 
 impl WorthUiNodeReplacementClassification {
@@ -20,6 +27,12 @@ impl WorthUiNodeReplacementClassification {
         candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
         active_durable_state_eligible: bool,
         candidate_durable_state_eligible: bool,
+        active_resize_contract_id: Option<MosaicSizingContractId>,
+        candidate_resize_contract_id: Option<MosaicSizingContractId>,
+        active_resize_permission: Option<MosaicResizePermission>,
+        candidate_resize_permission: Option<MosaicResizePermission>,
+        active_resize_shape_digest: Option<u64>,
+        candidate_resize_shape_digest: Option<u64>,
     ) -> Self {
         Self {
             identity_basis,
@@ -29,6 +42,12 @@ impl WorthUiNodeReplacementClassification {
             candidate_kind,
             active_durable_state_eligible,
             candidate_durable_state_eligible,
+            active_resize_contract_id,
+            candidate_resize_contract_id,
+            active_resize_permission,
+            candidate_resize_permission,
+            active_resize_shape_digest,
+            candidate_resize_shape_digest,
         }
     }
 
@@ -58,6 +77,30 @@ impl WorthUiNodeReplacementClassification {
 
     pub fn candidate_durable_state_eligible(&self) -> bool {
         self.candidate_durable_state_eligible
+    }
+
+    pub fn active_resize_contract_id(&self) -> Option<&MosaicSizingContractId> {
+        self.active_resize_contract_id.as_ref()
+    }
+
+    pub fn candidate_resize_contract_id(&self) -> Option<&MosaicSizingContractId> {
+        self.candidate_resize_contract_id.as_ref()
+    }
+
+    pub fn active_resize_permission(&self) -> Option<&MosaicResizePermission> {
+        self.active_resize_permission.as_ref()
+    }
+
+    pub fn candidate_resize_permission(&self) -> Option<&MosaicResizePermission> {
+        self.candidate_resize_permission.as_ref()
+    }
+
+    pub fn active_resize_shape_digest(&self) -> Option<u64> {
+        self.active_resize_shape_digest
+    }
+
+    pub fn candidate_resize_shape_digest(&self) -> Option<u64> {
+        self.candidate_resize_shape_digest
     }
 
     pub fn unrestored_durable_state_carry_permitted(&self) -> bool {

@@ -31,6 +31,7 @@ impl UiDeclarationInspectionSupportProjection {
         let rows = match scope {
             UiInspectionScope::Graph => return None,
             UiInspectionScope::Measurement => &self.measurement,
+            UiInspectionScope::Planning => return None,
             UiInspectionScope::Mounting => &self.mounting,
             UiInspectionScope::Rebind => &self.rebind,
             _ => return None,

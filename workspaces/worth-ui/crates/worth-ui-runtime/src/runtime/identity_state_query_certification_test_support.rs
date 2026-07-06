@@ -108,6 +108,12 @@ pub(super) fn ambiguous_plan_for_same_active(
             Some(WorthUiIdentityMatchNodeKind::Binding),
             true,
             true,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )],
         counters,
     )

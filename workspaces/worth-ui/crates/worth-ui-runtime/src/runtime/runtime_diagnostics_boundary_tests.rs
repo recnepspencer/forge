@@ -1,4 +1,5 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::allocation_planning;
 use super::frame_activation_gate_test_support::ready_activation_fixture;
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, phase11_pipeline, query_artifact, standard_query_app,
@@ -184,10 +185,11 @@ fn diagnostics_never_depend_on_error_message_substrings() {
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let planning = allocation_planning(&runtime, &plan_input, "runtime-diagnostics.lane-admission");
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(&plan_input, &support_without_query)
+        .admit_execution_lanes(&planning, &support_without_query)
         .expect_err("unsupported Query lane denies");
 
     let report = runtime

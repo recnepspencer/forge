@@ -40,6 +40,26 @@ pub enum UiDeclarationStructuralSemanticsAdmissionDenial {
         family: UiDeclarationFamilyKind,
         observed: Vec<String>,
     },
+    ContradictoryPlanningOperatorClaims {
+        family: UiDeclarationFamilyKind,
+        observed: Vec<String>,
+    },
+    InvalidPlanningOperatorClaim {
+        family: UiDeclarationFamilyKind,
+        observed: Vec<String>,
+    },
+    ContradictoryMosaicSizingContractClaims {
+        family: UiDeclarationFamilyKind,
+        observed: Vec<String>,
+    },
+    InvalidMosaicSizingContractClaim {
+        family: UiDeclarationFamilyKind,
+        observed: Vec<String>,
+    },
+    PlanningOperatorNotAdmittedForFamily {
+        family: UiDeclarationFamilyKind,
+        observed: Vec<String>,
+    },
     InvalidStructuralMembershipClaim {
         family: UiDeclarationFamilyKind,
         observed: Vec<String>,

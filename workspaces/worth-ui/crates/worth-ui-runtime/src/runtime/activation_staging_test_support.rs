@@ -1,5 +1,6 @@
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
+use crate::facade::WorthUiApp;
 use crate::runtime::{
     WorthUiActivationStagingDenial, WorthUiAdmittedReplacementCandidate,
     WorthUiDurableStateReconciliationPlan, WorthUiNodeReplacementPlan, WorthUiPendingActivation,
@@ -49,6 +50,7 @@ pub(super) fn activation_staging_inputs() -> ActivationStagingInputs {
         );
 
     ActivationStagingInputs {
+        app,
         runtime,
         admitted,
         impact,
@@ -61,6 +63,7 @@ pub(super) fn activation_staging_inputs() -> ActivationStagingInputs {
 }
 
 pub(super) struct ActivationStagingInputs {
+    pub(super) app: WorthUiApp,
     pub(super) runtime: WorthUiRuntimeHost,
     pub(super) admitted: WorthUiAdmittedReplacementCandidate,
     pub(super) impact: WorthUiReplacementImpactClassification,
@@ -72,6 +75,24 @@ pub(super) struct ActivationStagingInputs {
 }
 
 impl ActivationStagingInputs {
+    pub(super) fn into_app_runtime_and_pending(
+        self,
+    ) -> (WorthUiApp, WorthUiRuntimeHost, WorthUiPendingActivation) {
+        let pending = self
+            .runtime
+            .stage_replacement_activation(
+                self.admitted,
+                &self.impact,
+                &self.narrowing,
+                &self.node_plan,
+                Some(&self.reconciliation_plan),
+                Some(&self.query_rebind_plan),
+                Some(&self.pending_execution_plan_lowering_input),
+            )
+            .expect("activation staging succeeds");
+        (self.app, self.runtime, pending)
+    }
+
     pub(super) fn into_runtime_and_pending(self) -> (WorthUiRuntimeHost, WorthUiPendingActivation) {
         let pending = self
             .runtime

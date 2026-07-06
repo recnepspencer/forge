@@ -1,6 +1,6 @@
 use crate::{
-    UiEvidenceBudget, UiEvidenceRichness, UiInspectionRelevance, UiInspectionRelevanceAdmission,
-    UiInspectionScope, UiInspectionTarget,
+    UiAllocationPlanningQuestion, UiEvidenceBudget, UiEvidenceRichness, UiInspectionRelevance,
+    UiInspectionRelevanceAdmission, UiInspectionScope, UiInspectionTarget,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,6 +10,7 @@ pub struct UiInspectionQuery {
     richness: UiEvidenceRichness,
     budget: UiEvidenceBudget,
     relevance: UiInspectionRelevance,
+    allocation_planning_question: Option<UiAllocationPlanningQuestion>,
 }
 
 impl UiInspectionQuery {
@@ -20,6 +21,7 @@ impl UiInspectionQuery {
             richness: UiEvidenceRichness::summary(),
             budget: UiEvidenceBudget::default(),
             relevance: UiInspectionRelevance::default(),
+            allocation_planning_question: None,
         }
     }
 
@@ -35,6 +37,14 @@ impl UiInspectionQuery {
 
     pub fn with_relevance(mut self, relevance: UiInspectionRelevance) -> Self {
         self.relevance = relevance;
+        self
+    }
+
+    pub fn with_allocation_planning_question(
+        mut self,
+        question: UiAllocationPlanningQuestion,
+    ) -> Self {
+        self.allocation_planning_question = Some(question);
         self
     }
 
@@ -56,6 +66,10 @@ impl UiInspectionQuery {
 
     pub fn relevance(&self) -> UiInspectionRelevance {
         self.relevance
+    }
+
+    pub fn allocation_planning_question(&self) -> Option<UiAllocationPlanningQuestion> {
+        self.allocation_planning_question
     }
 
     pub fn admit_relevance(&self) -> UiInspectionRelevanceAdmission {

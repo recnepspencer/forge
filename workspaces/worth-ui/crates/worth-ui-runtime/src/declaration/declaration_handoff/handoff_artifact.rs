@@ -1,7 +1,9 @@
+use crate::capability::MosaicSizingContractId;
 use crate::declaration::{
     UiAspectContract, UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyKind,
-    UiDeclarationIdentity, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
-    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole, UiDeclaredAspectPayload,
+    UiDeclarationIdentity, UiDeclarationOrderingGuarantee, UiDeclarationPlanningOperatorKind,
+    UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
+    UiDeclarationStructuralDigest, UiDeclarationStructuralRole, UiDeclaredAspectPayload,
     UiDeclaredHostCapabilityPosture, UiDeclaredMeasurementPolicyPosture, UiDeclaredPostureContract,
     UiDeclaredPostureLane, UiDeclaredPosturePayload, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, UiStructuralDeclarationPayload,
@@ -49,8 +51,20 @@ impl UiDeclarationGraphHandoff {
         self.structural.family_kind()
     }
 
+    pub const fn structural_digest(&self) -> UiDeclarationStructuralDigest {
+        self.structural.structural_digest()
+    }
+
     pub const fn role(&self) -> UiDeclarationStructuralRole {
         self.structural.role()
+    }
+
+    pub const fn operator_kind(&self) -> UiDeclarationPlanningOperatorKind {
+        self.structural.operator_kind()
+    }
+
+    pub fn mosaic_sizing_contract_id(&self) -> Option<&MosaicSizingContractId> {
+        self.structural.mosaic_sizing_contract_id()
     }
 
     pub fn containment_intent(&self) -> &UiDeclarationContainmentIntent {

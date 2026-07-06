@@ -26,6 +26,8 @@ impl WorthUiFrameActivationGate {
                 candidate_artifact_digest: ready.candidate_artifact_digest(),
                 candidate_execution_plan_digest: ready.candidate_execution_plan_digest(),
                 handle_allocation_basis_digest: ready.handle_allocation_basis_digest(),
+                node_classification_count: ready.node_classification_count(),
+                lane_changed_node_count: ready.lane_changed_node_count(),
                 reconciliation_basis_digest: ready.reconciliation_basis_digest(),
                 reconciliation_receipt_count: ready.reconciliation_receipt_count(),
                 query_rebind_basis_digest: ready.query_rebind_basis_digest(),

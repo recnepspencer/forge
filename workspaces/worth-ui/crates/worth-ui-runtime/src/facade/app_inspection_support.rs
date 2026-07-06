@@ -76,6 +76,14 @@ impl WorthUiApp {
         )
     }
 
+    pub(crate) fn planning_inspection_boundary(
+        &self,
+    ) -> crate::facade::inspection::WorthUiPlanningInspectionBoundary<'_> {
+        crate::facade::inspection::WorthUiPlanningInspectionBoundary::new(
+            self.retained_allocation_planning_registry(),
+        )
+    }
+
     pub(crate) fn declaration_artifact_for_graph_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,

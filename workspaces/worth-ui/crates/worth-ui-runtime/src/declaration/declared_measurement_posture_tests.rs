@@ -40,6 +40,7 @@ fn additive_measurement_claims_admit_as_one_declared_posture_lane() {
             UiDslSourceProvenance::file_authored("app/measurement.wui", 0),
         )
         .with_structural_token(UiDslStructuralToken::new("control:body"))
+        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
         .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height"))
         .with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"))
         .with_posture_token(UiDslPostureToken::new("measurement:scroll-owned"))
@@ -65,6 +66,7 @@ fn equivalent_measurement_claim_order_converges_to_same_posture() {
             UiDslSourceProvenance::file_authored("app/measurement_equivalence.wui", 0),
         )
         .with_structural_token(UiDslStructuralToken::new("control:left"))
+        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
         .with_posture_token(UiDslPostureToken::new("measurement:scroll-owned"))
         .with_posture_token(UiDslPostureToken::new(
             "measurement:evidence:font-metrics-required",
@@ -79,6 +81,7 @@ fn equivalent_measurement_claim_order_converges_to_same_posture() {
             UiDslSourceProvenance::file_authored("app/measurement_equivalence.wui", 1),
         )
         .with_structural_token(UiDslStructuralToken::new("control:right"))
+        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
         .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height"))
         .with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"))
         .with_posture_token(UiDslPostureToken::new("measurement:basis:scroll-viewport"))
@@ -156,6 +159,7 @@ fn contradictory_same_axis_measurement_claims_deny_structurally() {
             UiDslSourceProvenance::file_authored("app/measurement_denials.wui", 2),
         )
         .with_structural_token(UiDslStructuralToken::new("control:duplicate-mode"))
+        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
         .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height"))
         .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height")),
     );
@@ -166,6 +170,7 @@ fn contradictory_same_axis_measurement_claims_deny_structurally() {
             UiDslSourceProvenance::file_authored("app/measurement_denials.wui", 3),
         )
         .with_structural_token(UiDslStructuralToken::new("control:duplicate-evidence"))
+        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
         .with_posture_token(UiDslPostureToken::new("measurement:font-metrics-required"))
         .with_posture_token(UiDslPostureToken::new("measurement:font-metrics-required")),
     );
@@ -203,6 +208,7 @@ fn roadmap_shorthand_lowers_to_explicit_planning_axes() {
             UiDslSourceProvenance::file_authored("app/measurement_shorthand.wui", 0),
         )
         .with_structural_token(UiDslStructuralToken::new("control:scroll-owned"))
+        .with_structural_token(UiDslStructuralToken::new("operator:scroll"))
         .with_posture_token(UiDslPostureToken::new("measurement:scroll-owned")),
     );
     let explicit = lower(
@@ -212,6 +218,7 @@ fn roadmap_shorthand_lowers_to_explicit_planning_axes() {
             UiDslSourceProvenance::file_authored("app/measurement_shorthand.wui", 1),
         )
         .with_structural_token(UiDslStructuralToken::new("control:scroll-explicit"))
+        .with_structural_token(UiDslStructuralToken::new("operator:scroll"))
         .with_posture_token(UiDslPostureToken::new("measurement:basis:scroll-viewport"))
         .with_posture_token(UiDslPostureToken::new(
             "measurement:ownership:scroll-container-basis",
@@ -244,6 +251,7 @@ fn portal_shorthand_lowers_to_explicit_planning_axes() {
             UiDslSourceProvenance::file_authored("app/measurement_shorthand.wui", 2),
         )
         .with_structural_token(UiDslStructuralToken::new("control:portal-anchor"))
+        .with_structural_token(UiDslStructuralToken::new("operator:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new("measurement:portal-anchored")),
     );
     let explicit = lower(
@@ -253,6 +261,7 @@ fn portal_shorthand_lowers_to_explicit_planning_axes() {
             UiDslSourceProvenance::file_authored("app/measurement_shorthand.wui", 3),
         )
         .with_structural_token(UiDslStructuralToken::new("control:portal-explicit"))
+        .with_structural_token(UiDslStructuralToken::new("operator:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new("measurement:basis:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new(
             "measurement:ownership:portal-anchor-basis-required",
@@ -285,6 +294,7 @@ fn impossible_measurement_axis_combinations_deny_before_planning() {
             UiDslSourceProvenance::file_authored("app/measurement_denials.wui", 4),
         )
         .with_structural_token(UiDslStructuralToken::new("control:impossible-measurement"))
+        .with_structural_token(UiDslStructuralToken::new("operator:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new("measurement:basis:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new(
             "measurement:ownership:scroll-container-basis",
@@ -316,6 +326,7 @@ fn portal_shorthand_with_conflicting_basis_denies_before_planning() {
             UiDslSourceProvenance::file_authored("app/measurement_denials.wui", 5),
         )
         .with_structural_token(UiDslStructuralToken::new("control:portal-conflict"))
+        .with_structural_token(UiDslStructuralToken::new("operator:portal-anchor"))
         .with_posture_token(UiDslPostureToken::new("measurement:portal-anchored"))
         .with_posture_token(UiDslPostureToken::new("measurement:basis:scroll-viewport")),
     );

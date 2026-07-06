@@ -3,11 +3,11 @@ mod inspection_measurement_evidence_receipt;
 
 pub use inspection_measurement_evidence_receipt::{
     UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
-    UiInspectionMeasurementBasisSource, UiInspectionMeasurementDenialPosture,
-    UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementDependencyLineageKind,
-    UiInspectionMeasurementEvidenceCategory, UiInspectionMeasurementEvidenceSlot,
-    UiInspectionMeasurementEvidenceView, UiInspectionMeasurementFailureSource,
-    UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
-    UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
-    UiInspectionMeasurementQueryUnsupportedReason,
+    UiInspectionMeasurementBasisSource, UiInspectionMeasurementChildIntrinsicSource,
+    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementDependencyLineageEntry,
+    UiInspectionMeasurementDependencyLineageKind, UiInspectionMeasurementEvidenceCategory,
+    UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
+    UiInspectionMeasurementNeighborhoodClassHint, UiInspectionMeasurementOwnershipPosture,
+    UiInspectionMeasurementQueryFactFamily, UiInspectionMeasurementQueryUnsupportedReason,
 };

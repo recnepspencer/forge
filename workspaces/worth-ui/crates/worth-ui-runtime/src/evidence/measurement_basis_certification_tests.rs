@@ -179,3 +179,48 @@ fn certification_preserves_typed_compatibility_on_denied_bases() {
     assert_eq!(report.first_compatibility(), report.second_compatibility());
     assert!(report.lineage_is_narrow());
 }
+
+#[test]
+fn certification_treats_child_intrinsic_evidence_as_real_lineage_support() {
+    let generation = UiEvidenceAuthorityGeneration::new(27);
+    let declaration_identity = synthetic_declaration_identity("basis-certification-child");
+    let child_node = UiGraphNodeIdentity::new(801);
+    let (prerequisites, attempt, world_profile) =
+        display_field_projection_context("basis-certification-child");
+    let receipt = consume_declared_measurement_projection_facts(
+        declaration_identity.clone(),
+        generation,
+        &scroll_viewport_policy(),
+        prerequisites,
+        &attempt,
+    )
+    .expect("query receipt should admit");
+
+    let first = admit_measurement_basis(
+        declaration_identity.clone(),
+        UiGraphNodeIdentity::new(800),
+        world_profile.clone(),
+        generation,
+        &scroll_viewport_policy(),
+        &[MeasurementEvidenceInput::child_query_projection_fact(
+            child_node, &receipt,
+        )],
+    );
+    let second = admit_measurement_basis(
+        declaration_identity,
+        UiGraphNodeIdentity::new(800),
+        world_profile,
+        generation,
+        &scroll_viewport_policy(),
+        &[MeasurementEvidenceInput::child_query_projection_fact(
+            child_node, &receipt,
+        )],
+    );
+    let report = certify_measurement_basis_determinism(&first, &second);
+
+    assert_eq!(
+        report.determinism_posture(),
+        UiMeasurementBasisDeterminismPosture::Equivalent
+    );
+    assert!(report.lineage_is_narrow());
+}

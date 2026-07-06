@@ -4,9 +4,11 @@ use crate::admission::UiSupportSnapshot;
 use crate::declaration::stable_text_digest;
 use crate::declaration::UiDeclarationIdentity;
 use crate::evidence::{
-    preflight_evidence_expansion, UiEvidenceAuthorityGeneration, UiEvidenceExpansion,
-    UiEvidenceExpansionOutcome, UiEvidenceMaterializedDetail, UiEvidenceRef,
+    preflight_evidence_expansion, UiAllocationNeighborhood, UiEvidenceAuthorityGeneration,
+    UiEvidenceExpansion, UiEvidenceExpansionOutcome, UiEvidenceMaterializedDetail, UiEvidenceRef,
+    UiMeasurementBasis,
 };
+use crate::graph::{UiAllocationNeighborhoodDenial, UiGraphSnapshot};
 use crate::obligations::closeout::UiObligationSelectionHandoff;
 use crate::obligations::inspection::{UiObligationEvidenceIndex, UiObligationEvidenceQuery};
 use crate::obligations::touch::UiGraphTouchDescriptor;
@@ -176,6 +178,14 @@ impl UiSelectedObligationSet {
 
     pub fn handoff(&self) -> UiObligationSelectionHandoff<'_> {
         UiObligationSelectionHandoff::new(self)
+    }
+
+    pub(crate) fn admit_allocation_neighborhood(
+        &self,
+        snapshot: &UiGraphSnapshot,
+        measurement_basis: &UiMeasurementBasis,
+    ) -> Result<UiAllocationNeighborhood, UiAllocationNeighborhoodDenial> {
+        measurement_basis.admit_allocation_neighborhood(snapshot, self)
     }
 
     pub fn inspect(&self, query: UiInspectionQuery) -> UiInspectionReceipt {

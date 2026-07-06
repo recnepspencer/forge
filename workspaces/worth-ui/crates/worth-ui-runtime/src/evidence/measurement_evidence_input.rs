@@ -1,9 +1,13 @@
+use crate::capability::{CapabilitySnapshot, MosaicSizingContractId};
 use crate::declaration::stable_text_digest;
+use crate::graph::UiGraphNodeIdentity;
 use crate::host::UiHostMeasurementAssumptionProfile;
+use crate::runtime::WorthUiAdmittedDurableResizeInput;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 
 use super::{
-    UiMeasurementEvidenceCategory, UiMeasurementResult, UiMeasurementValue, UiProjectionFactReceipt,
+    UiChildIntrinsicMeasurementEvidence, UiMeasurementEvidenceCategory, UiMeasurementResult,
+    UiMeasurementSiblingResizeSupport, UiMeasurementValue, UiProjectionFactReceipt,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11,6 +15,8 @@ pub enum MeasurementEvidenceInput {
     QueryProjectionFact(UiProjectionFactReceipt),
     HostMeasurementResult(UiMeasurementResult),
     HostCapabilityReport(WorthUiHostCapabilityReport),
+    ChildIntrinsicMeasurement(UiChildIntrinsicMeasurementEvidence),
+    SiblingResizeSupport(UiMeasurementSiblingResizeSupport),
 }
 
 impl MeasurementEvidenceInput {
@@ -26,6 +32,58 @@ impl MeasurementEvidenceInput {
         Self::HostCapabilityReport(report.clone())
     }
 
+    pub fn child_query_projection_fact(
+        contributor_graph_node_identity: UiGraphNodeIdentity,
+        receipt: &UiProjectionFactReceipt,
+    ) -> Self {
+        Self::ChildIntrinsicMeasurement(
+            UiChildIntrinsicMeasurementEvidence::for_query_projection_fact(
+                contributor_graph_node_identity,
+                receipt,
+            ),
+        )
+    }
+
+    pub fn child_host_measurement_result(
+        contributor_graph_node_identity: UiGraphNodeIdentity,
+        result: &UiMeasurementResult,
+    ) -> Self {
+        Self::ChildIntrinsicMeasurement(
+            UiChildIntrinsicMeasurementEvidence::for_host_measurement_result(
+                contributor_graph_node_identity,
+                result,
+            ),
+        )
+    }
+
+    pub fn mosaic_sibling_resize_support(
+        snapshot: &CapabilitySnapshot,
+        target_graph_node_identity: UiGraphNodeIdentity,
+        sizing_contract_id: &MosaicSizingContractId,
+    ) -> Option<Self> {
+        UiMeasurementSiblingResizeSupport::from_mosaic_sizing_snapshot(
+            snapshot,
+            target_graph_node_identity,
+            sizing_contract_id,
+        )
+        .map(Self::SiblingResizeSupport)
+    }
+
+    pub fn runtime_durable_resize_support(
+        input: &WorthUiAdmittedDurableResizeInput,
+        target_graph_node_identity: UiGraphNodeIdentity,
+        axis_scope: crate::evidence::UiConstraintAxisScope,
+        sizing_contract_id: Option<&MosaicSizingContractId>,
+    ) -> Option<Self> {
+        UiMeasurementSiblingResizeSupport::from_runtime_durable_resize_input(
+            input,
+            target_graph_node_identity,
+            axis_scope,
+            sizing_contract_id,
+        )
+        .map(Self::SiblingResizeSupport)
+    }
+
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
             Self::QueryProjectionFact(receipt) => {
@@ -39,6 +97,7 @@ impl MeasurementEvidenceInput {
                         .required_query_fact_family_set_digest()
                         .rotate_left(29)
                     ^ receipt.consumed_fact_family_set_digest().rotate_left(31)
+                    ^ receipt.observation_identity_digest().rotate_left(37)
             }
             Self::HostMeasurementResult(result) => {
                 stable_text_digest("measurement-evidence-input:host-measurement-result")
@@ -55,6 +114,14 @@ impl MeasurementEvidenceInput {
                 stable_text_digest("measurement-evidence-input:host-capability-report")
                     ^ report.profile_identity_digest().rotate_left(7)
                     ^ report.observation_generation().as_u64().rotate_left(13)
+            }
+            Self::ChildIntrinsicMeasurement(evidence) => {
+                stable_text_digest("measurement-evidence-input:child-intrinsic-measurement")
+                    ^ evidence.identity_digest().rotate_left(7)
+            }
+            Self::SiblingResizeSupport(support) => {
+                stable_text_digest("measurement-evidence-input:sibling-resize-support")
+                    ^ support.identity_digest().rotate_left(7)
             }
         }
     }
@@ -76,6 +143,22 @@ impl MeasurementEvidenceInput {
     pub(crate) fn as_host_capability_report(&self) -> Option<&WorthUiHostCapabilityReport> {
         match self {
             Self::HostCapabilityReport(report) => Some(report),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_child_intrinsic_measurement(
+        &self,
+    ) -> Option<&UiChildIntrinsicMeasurementEvidence> {
+        match self {
+            Self::ChildIntrinsicMeasurement(evidence) => Some(evidence),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_sibling_resize_support(&self) -> Option<&UiMeasurementSiblingResizeSupport> {
+        match self {
+            Self::SiblingResizeSupport(support) => Some(support),
             _ => None,
         }
     }

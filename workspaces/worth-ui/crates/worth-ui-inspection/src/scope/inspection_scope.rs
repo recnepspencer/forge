@@ -3,6 +3,7 @@
 pub enum UiInspectionScope {
     Graph,
     Measurement,
+    Planning,
     Mounting,
     Rebind,
 }
@@ -14,6 +15,10 @@ impl UiInspectionScope {
 
     pub fn measurement() -> Self {
         Self::Measurement
+    }
+
+    pub fn planning() -> Self {
+        Self::Planning
     }
 
     pub fn mounting() -> Self {

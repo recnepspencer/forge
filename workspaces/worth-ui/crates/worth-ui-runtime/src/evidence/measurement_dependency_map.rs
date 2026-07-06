@@ -126,7 +126,11 @@ fn classify_lineage(
 ) -> UiMeasurementNeighborhoodClassHint {
     match lineage.kind() {
         UiMeasurementDependencyLineageKind::QueryScrollContentExtent
+        | UiMeasurementDependencyLineageKind::HostTextIntrinsicSize
         | UiMeasurementDependencyLineageKind::HostFontMetrics => {
+            UiMeasurementNeighborhoodClassHint::LocalIntrinsicContentDependency
+        }
+        UiMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize => {
             UiMeasurementNeighborhoodClassHint::LocalIntrinsicContentDependency
         }
         UiMeasurementDependencyLineageKind::HostViewportExtent => {

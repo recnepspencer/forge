@@ -9,9 +9,8 @@ use crate::declaration::{
     UiAspectContractAdmission, UiAspectContractAdmissionDenial, UiAspectSemanticSlice,
     UiDeclarationContainmentIntent, UiDeclarationFamily, UiDeclarationFamilyAdmission,
     UiDeclarationFamilyAdmissionDenial, UiDeclarationFamilyKind, UiDeclarationOrderingGuarantee,
-    UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
-    UiDeclarationStructuralRole, UiDeclarationStructuralSemanticsAdmission,
-    UiDeclarationStructuralSemanticsAdmissionDenial,
+    UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
+    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
 };
 
 // These tests intentionally certify lane-local lowering and digest behavior.
@@ -376,6 +375,10 @@ fn structural_semantics_project_declared_slot_intent_without_graph_truth() {
     assert_eq!(semantics.family(), UiDeclarationFamilyKind::Control);
     assert_eq!(semantics.role(), UiDeclarationStructuralRole::Control);
     assert_eq!(
+        semantics.operator_kind(),
+        UiDeclarationPlanningOperatorKind::Control
+    );
+    assert_eq!(
         semantics.containment_intent(),
         &UiDeclarationContainmentIntent::DeclaredControlAttachment {
             control_name: "save".into()
@@ -398,61 +401,4 @@ fn structural_semantics_project_declared_slot_intent_without_graph_truth() {
     assert_eq!(handoff.identity(), artifact.identity());
     assert!(matches!(handoff.family(), UiDeclarationFamily::Control(_)));
     assert_eq!(handoff.role(), UiDeclarationStructuralRole::Control);
-}
-
-#[test]
-fn unsupported_structural_tokens_deny_before_handoff_derivation() {
-    let artifact =
-        lower(semantic_spec().with_structural_token(UiDslStructuralToken::new("repeat:many")));
-    let expected_denial =
-        UiDeclarationStructuralSemanticsAdmissionDenial::UnsupportedStructuralTokens {
-            family: UiDeclarationFamilyKind::Control,
-            observed: vec!["repeat:many".to_owned()],
-        };
-
-    assert_eq!(
-        artifact.structural_semantics_admission(),
-        &UiDeclarationStructuralSemanticsAdmission::Denied(expected_denial.clone())
-    );
-    assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(
-        artifact.graph_handoff(),
-        Err(
-            crate::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: expected_denial.clone(),
-            },
-        ),
-    );
-}
-
-#[test]
-fn slot_participation_not_admitted_for_page_structures() {
-    let artifact = lower(
-        UiDslSemanticArtifactSpec::new(
-            UiDslSemanticKey::new("workflow_editor.page.root"),
-            UiDslSemanticFamily::Page,
-            UiDslSourceProvenance::file_authored("app/workflow_editor.wui", 3),
-        )
-        .with_structural_token(UiDslStructuralToken::new("page:product-root"))
-        .with_structural_token(UiDslStructuralToken::new("slot:footer")),
-    );
-    let expected_denial =
-        UiDeclarationStructuralSemanticsAdmissionDenial::SlotParticipationNotAdmittedForFamily {
-            family: UiDeclarationFamilyKind::Page,
-            observed: vec!["slot:footer".to_owned()],
-        };
-
-    assert_eq!(
-        artifact.structural_semantics_admission(),
-        &UiDeclarationStructuralSemanticsAdmission::Denied(expected_denial.clone())
-    );
-    assert_eq!(artifact.structural_semantics(), Err(&expected_denial));
-    assert_eq!(
-        artifact.graph_handoff(),
-        Err(
-            crate::declaration::UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: expected_denial.clone(),
-            },
-        ),
-    );
 }

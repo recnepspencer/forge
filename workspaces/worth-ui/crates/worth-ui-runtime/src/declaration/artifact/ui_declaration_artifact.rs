@@ -1,14 +1,17 @@
+use crate::capability::MosaicSizingContractId;
 use crate::declaration::declaration_handoff::derive_declaration_graph_handoff;
 use crate::declaration::{
     UiAspectContract, UiAspectContractAdmission, UiAspectContractAdmissionDenial,
-    UiAspectCoverageReport, UiDeclarationArtifactDigest, UiDeclarationDigestProjection,
-    UiDeclarationFamily, UiDeclarationFamilyAdmission, UiDeclarationFamilyAdmissionDenial,
-    UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial, UiDeclarationIdentity,
-    UiDeclarationProvenance, UiDeclarationStructuralSemantics,
+    UiAspectCoverageReport, UiDeclarationArtifactDigest, UiDeclarationContainmentIntent,
+    UiDeclarationDigestProjection, UiDeclarationFamily, UiDeclarationFamilyAdmission,
+    UiDeclarationFamilyAdmissionDenial, UiDeclarationGraphHandoff,
+    UiDeclarationGraphHandoffDenial, UiDeclarationIdentity, UiDeclarationProvenance,
+    UiDeclarationStructuralSemantics,
     UiDeclarationStructuralSemanticsAdmission, UiDeclarationStructuralSemanticsAdmissionDenial,
     UiDeclarationSupportSnapshot, UiDeclarationSupportSnapshotAdmission,
     UiDeclarationSupportSnapshotAdmissionDenial, UiDeclaredPostureAdmission,
-    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureContract,
+    UiDeclaredMeasurementConstraintModifier, UiDeclaredMeasurementPolicyPosture,
+    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureContract, UiDeclaredPostureLane,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +24,9 @@ pub struct UiDeclarationArtifact {
     structural_semantics_admission: UiDeclarationStructuralSemanticsAdmission,
     family_admission: UiDeclarationFamilyAdmission,
     provenance: UiDeclarationProvenance,
+    source_backed_mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
+    source_backed_mosaic_membership_name: Option<Box<str>>,
+    source_backed_measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
 }
 
 impl UiDeclarationArtifact {
@@ -43,6 +49,9 @@ impl UiDeclarationArtifact {
             structural_semantics_admission,
             family_admission,
             provenance,
+            source_backed_mosaic_sizing_contract_id: None,
+            source_backed_mosaic_membership_name: None,
+            source_backed_measurement_constraint_modifier: None,
         }
     }
 
@@ -119,6 +128,109 @@ impl UiDeclarationArtifact {
     pub fn graph_handoff(
         &self,
     ) -> Result<UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial> {
+        let admitted = self.admitted_graph_handoff_inputs()?;
+        let semantics = self.effective_structural_semantics(admitted.semantics)?;
+        let declared_posture = self.effective_declared_posture(admitted.declared_posture);
+
+        Ok(derive_declaration_graph_handoff(
+            &self.identity,
+            &self.provenance,
+            admitted.aspect_contract,
+            admitted.family,
+            self.digests.structural(),
+            &semantics,
+            &declared_posture,
+        ))
+    }
+
+    pub(crate) fn admit_source_backed_mosaic_sizing_contract_id(
+        &mut self,
+        source_mosaic_sizing_contract_id: MosaicSizingContractId,
+    ) -> Result<(), UiDeclarationGraphHandoffDenial> {
+        if let Some(declared_mosaic_sizing_contract_id) = self
+            .structural_semantics()
+            .map_err(
+                |denial| UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
+                    denial: denial.clone(),
+                },
+            )?
+            .mosaic_sizing_contract_id()
+        {
+            if declared_mosaic_sizing_contract_id != &source_mosaic_sizing_contract_id {
+                return Err(
+                    UiDeclarationGraphHandoffDenial::SourceBackedMosaicSizingContractConflict {
+                        declared: declared_mosaic_sizing_contract_id.clone(),
+                        sourced: source_mosaic_sizing_contract_id,
+                    },
+                );
+            }
+        }
+        self.source_backed_mosaic_sizing_contract_id = Some(source_mosaic_sizing_contract_id);
+        Ok(())
+    }
+
+    pub(crate) fn admit_source_backed_mosaic_membership_name(
+        &mut self,
+        source_mosaic_membership_name: impl Into<Box<str>>,
+    ) {
+        self.source_backed_mosaic_membership_name = Some(source_mosaic_membership_name.into());
+    }
+
+    pub(crate) fn admit_source_backed_measurement_constraint_modifier(
+        &mut self,
+        modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    ) {
+        self.source_backed_measurement_constraint_modifier = modifier;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn structural_handoff(
+        &self,
+    ) -> Result<UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial> {
+        self.graph_handoff()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn family_admission(&self) -> &UiDeclarationFamilyAdmission {
+        &self.family_admission
+    }
+
+    pub fn family(&self) -> Result<&UiDeclarationFamily, &UiDeclarationFamilyAdmissionDenial> {
+        self.family_admission.admitted_family()
+    }
+
+    pub fn provenance(&self) -> &UiDeclarationProvenance {
+        &self.provenance
+    }
+}
+
+struct AdmittedGraphHandoffInputs<'a> {
+    aspect_contract: &'a UiAspectContract,
+    family: &'a UiDeclarationFamily,
+    semantics: &'a UiDeclarationStructuralSemantics,
+    declared_posture: &'a UiDeclaredPostureContract,
+}
+
+impl UiDeclarationArtifact {
+    fn effective_structural_semantics(
+        &self,
+        admitted: &UiDeclarationStructuralSemantics,
+    ) -> Result<UiDeclarationStructuralSemantics, UiDeclarationGraphHandoffDenial> {
+        let Some(source_backed_mosaic_sizing_contract_id) =
+            self.source_backed_mosaic_sizing_contract_id.clone()
+        else {
+            return Ok(self.override_source_backed_membership(admitted, None));
+        };
+
+        Ok(self.override_source_backed_membership(
+            admitted,
+            Some(source_backed_mosaic_sizing_contract_id),
+        ))
+    }
+
+    fn admitted_graph_handoff_inputs(
+        &self,
+    ) -> Result<AdmittedGraphHandoffInputs<'_>, UiDeclarationGraphHandoffDenial> {
         let aspect_contract = self.aspect_contract().map_err(|denial| {
             UiDeclarationGraphHandoffDenial::AspectContractNotAdmitted {
                 denial: denial.clone(),
@@ -141,33 +253,80 @@ impl UiDeclarationArtifact {
             }
         })?;
 
-        Ok(derive_declaration_graph_handoff(
-            &self.identity,
-            &self.provenance,
+        Ok(AdmittedGraphHandoffInputs {
             aspect_contract,
             family,
             semantics,
             declared_posture,
-        ))
+        })
     }
 
-    #[cfg(test)]
-    pub(crate) fn structural_handoff(
+    fn override_source_backed_membership(
         &self,
-    ) -> Result<UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial> {
-        self.graph_handoff()
+        admitted: &UiDeclarationStructuralSemantics,
+        mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
+    ) -> UiDeclarationStructuralSemantics {
+        let containment_intent = self
+            .source_backed_mosaic_membership_name
+            .clone()
+            .map(|mosaic_name| UiDeclarationContainmentIntent::DeclaredMosaicMembership {
+                mosaic_name,
+            })
+            .unwrap_or_else(|| admitted.containment_intent().clone());
+
+        UiDeclarationStructuralSemantics::new(
+            admitted.family_kind(),
+            admitted.role(),
+            admitted.operator_kind(),
+            mosaic_sizing_contract_id.or_else(|| admitted.mosaic_sizing_contract_id().cloned()),
+            containment_intent,
+            admitted.slot_participation_intent().clone(),
+            admitted.ordering_guarantee(),
+            admitted.repetition_posture(),
+        )
     }
 
-    #[cfg(test)]
-    pub(crate) fn family_admission(&self) -> &UiDeclarationFamilyAdmission {
-        &self.family_admission
-    }
+    fn effective_declared_posture(
+        &self,
+        admitted: &UiDeclaredPostureContract,
+    ) -> UiDeclaredPostureContract {
+        let Some(modifier) = self.source_backed_measurement_constraint_modifier else {
+            return admitted.clone();
+        };
+        let measurement_lane = admitted.measurement_policy();
+        let measurement_policy = measurement_lane.admitted().cloned().or_else(|| {
+            UiDeclaredMeasurementPolicyPosture::new(
+                None,
+                Some(modifier),
+                None,
+                None,
+                vec![],
+            )
+        });
+        let measurement_policy = measurement_policy.map(|policy| {
+            if policy.constraint_modifier().is_some() {
+                policy
+            } else {
+                UiDeclaredMeasurementPolicyPosture::new(
+                    policy.mode(),
+                    Some(modifier),
+                    policy.basis_source(),
+                    policy.ownership_posture(),
+                    policy.evidence_requirements().to_vec(),
+                )
+                .expect("source-backed measurement modifier should preserve admitted policy shape")
+            }
+        });
 
-    pub fn family(&self) -> Result<&UiDeclarationFamily, &UiDeclarationFamilyAdmissionDenial> {
-        self.family_admission.admitted_family()
-    }
-
-    pub fn provenance(&self) -> &UiDeclarationProvenance {
-        &self.provenance
+        UiDeclaredPostureContract::new(
+            admitted.query_binding().clone(),
+            admitted.service_usage().clone(),
+            admitted.touch_meaning().clone(),
+            UiDeclaredPostureLane::new(
+                measurement_lane.applicability(),
+                measurement_policy,
+            ),
+            admitted.host_capability().clone(),
+        )
     }
 }

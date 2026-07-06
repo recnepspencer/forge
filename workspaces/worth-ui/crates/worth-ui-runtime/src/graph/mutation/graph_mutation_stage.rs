@@ -38,6 +38,11 @@ impl UiGraphMutationStage {
             let node = UiGraphNode::new(
                 graph_node_identity,
                 entry.declaration_identity().clone(),
+                entry.topology_seed().structural_digest(),
+                entry.topology_seed().role(),
+                entry.topology_seed().operator_kind(),
+                entry.topology_seed().repetition_posture(),
+                entry.measurement_constraint_modifier(),
                 entry.authored_provenance_digest(),
                 entry.repeated_instance_basis().clone(),
                 entry.attachment_posture(),

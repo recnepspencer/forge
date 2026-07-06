@@ -1,9 +1,10 @@
-use super::UiInspectionObligationEvidenceReceipt;
+use super::{UiAllocationPlanningEvidenceDetail, UiInspectionObligationEvidenceReceipt};
 use worth_ui_inspection::UiInspectionMeasurementEvidenceView;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum UiEvidenceMaterializedDetail {
+    AllocationPlanning(UiAllocationPlanningEvidenceDetail),
     Obligation(UiInspectionObligationEvidenceReceipt),
     Measurement(UiInspectionMeasurementEvidenceView),
 }

@@ -3,13 +3,17 @@ use forge_query::facade::{
     ProjectionFactConsumptionAttempt, ProjectionFactKind,
 };
 
-use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
+use super::{
+    WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
+    WorthUiQueryMeasurementFactObservationError, WorthUiQueryPrerequisiteEvidence,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryMeasurementFactReceiptError {
     NonQueryOwnedProjectionSource,
     BasisDigestMismatch,
     ProjectionConsumptionNotAdmitted,
+    Observation(WorthUiQueryMeasurementFactObservationError),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +25,7 @@ pub struct WorthUiQueryMeasurementFactReceipt {
     projection_fact_set_digest: Box<str>,
     projection_source_identity: Box<str>,
     consumed_families: Box<[WorthUiQueryMeasurementFactFamily]>,
+    observations: Box<[WorthUiQueryMeasurementFactObservation]>,
 }
 
 impl WorthUiQueryMeasurementFactReceipt {
@@ -39,8 +44,8 @@ impl WorthUiQueryMeasurementFactReceipt {
         completed: &CompletedProjectionFactConsumption,
     ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
         validate_projection_contract(&prerequisites, completed)?;
-        let prerequisites = prerequisites
-            .bound_to_projection_contract(completed.contract().contract_digest());
+        let prerequisites =
+            prerequisites.bound_to_projection_contract(completed.contract().contract_digest());
         let mut consumed_families = completed
             .contract()
             .fact_families()
@@ -60,6 +65,12 @@ impl WorthUiQueryMeasurementFactReceipt {
             .collect::<Vec<_>>();
         consumed_families.sort_unstable();
         consumed_families.dedup();
+        let observations =
+            WorthUiQueryMeasurementFactObservation::from_completed_projection_consumption(
+                prerequisites.clone(),
+                completed,
+            )
+            .map_err(WorthUiQueryMeasurementFactReceiptError::Observation)?;
 
         Ok(Self {
             prerequisites,
@@ -72,6 +83,7 @@ impl WorthUiQueryMeasurementFactReceipt {
             projection_fact_set_digest: completed.receipt().fact_set_digest().into(),
             projection_source_identity: completed.receipt().source_identity().into(),
             consumed_families: consumed_families.into_boxed_slice(),
+            observations,
         })
     }
 
@@ -103,6 +115,10 @@ impl WorthUiQueryMeasurementFactReceipt {
         &self.consumed_families
     }
 
+    pub fn observations(&self) -> &[WorthUiQueryMeasurementFactObservation] {
+        &self.observations
+    }
+
     #[cfg(feature = "certification-construction")]
     pub(crate) fn for_certification(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
@@ -112,6 +128,7 @@ impl WorthUiQueryMeasurementFactReceipt {
         projection_fact_set_digest: impl Into<Box<str>>,
         projection_source_identity: impl Into<Box<str>>,
         mut consumed_families: Vec<WorthUiQueryMeasurementFactFamily>,
+        observations: Vec<WorthUiQueryMeasurementFactObservation>,
     ) -> Self {
         consumed_families.sort_unstable();
         consumed_families.dedup();
@@ -126,6 +143,7 @@ impl WorthUiQueryMeasurementFactReceipt {
             projection_fact_set_digest: projection_fact_set_digest.into(),
             projection_source_identity: projection_source_identity.into(),
             consumed_families: consumed_families.into_boxed_slice(),
+            observations: observations.into_boxed_slice(),
         }
     }
 }
@@ -134,7 +152,8 @@ fn validate_projection_contract(
     prerequisites: &WorthUiQueryPrerequisiteEvidence,
     completed: &CompletedProjectionFactConsumption,
 ) -> Result<(), WorthUiQueryMeasurementFactReceiptError> {
-    if completed.contract().source_posture() != ProjectionContractSourcePosture::QueryOwnedReceiptSource
+    if completed.contract().source_posture()
+        != ProjectionContractSourcePosture::QueryOwnedReceiptSource
     {
         return Err(WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource);
     }

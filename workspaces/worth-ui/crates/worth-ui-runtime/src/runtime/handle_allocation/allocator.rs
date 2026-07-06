@@ -1,13 +1,12 @@
 use super::claim_validation::reject_invalid_specialized_handle_claims;
 use crate::runtime::{
-    WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle,
-    WorthUiExecutionPlanInput, WorthUiHandlePlanGeneration, WorthUiLaneHandle,
-    WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle,
-    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationBasis,
-    WorthUiRuntimeHandleAllocationCounters, WorthUiRuntimeHandleAllocationDenial,
-    WorthUiRuntimeHandleAllocationDenialReason, WorthUiRuntimeHandleAllocationReceipt,
-    WorthUiRuntimeHandleFamilyWidths, WorthUiStateSlotHandle, WorthUiTokenHandle,
-    WorthUiViewBindingHandle,
+    WorthUiAllocationPlanning, WorthUiChildRangeHandle, WorthUiCommandHandle,
+    WorthUiComponentHandle, WorthUiHandlePlanGeneration, WorthUiLaneHandle, WorthUiPlanNodeInput,
+    WorthUiPlanNodeInputFamily, WorthUiRuntimeHandle, WorthUiRuntimeHandleAllocation,
+    WorthUiRuntimeHandleAllocationBasis, WorthUiRuntimeHandleAllocationCounters,
+    WorthUiRuntimeHandleAllocationDenial, WorthUiRuntimeHandleAllocationDenialReason,
+    WorthUiRuntimeHandleAllocationReceipt, WorthUiRuntimeHandleFamilyWidths,
+    WorthUiStateSlotHandle, WorthUiTokenHandle, WorthUiViewBindingHandle,
 };
 
 pub(crate) struct WorthUiRuntimeHandleAllocator;
@@ -28,14 +27,24 @@ struct HandleAllocationAccumulator {
 
 impl WorthUiRuntimeHandleAllocator {
     pub(crate) fn allocate(
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
     ) -> Result<WorthUiRuntimeHandleAllocation, WorthUiRuntimeHandleAllocationDenial> {
-        let basis = WorthUiRuntimeHandleAllocationBasis::from_plan_input(plan_input);
+        if !allocation_planning.is_admitted() {
+            return Err(denial(
+                WorthUiRuntimeHandleAllocationDenialReason::StalePlanInputReceipt,
+                WorthUiRuntimeHandleAllocationCounters::default(),
+            ));
+        }
+        let node_inputs = allocation_planning
+            .node_inputs()
+            .expect("admitted allocation planning must expose lowered node inputs");
+        let basis =
+            WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
         let receipt = WorthUiRuntimeHandleAllocationReceipt::from_basis(&basis);
-        let counters = reject_invalid_specialized_handle_claims(plan_input.node_inputs())?;
+        let counters = reject_invalid_specialized_handle_claims(node_inputs)?;
         let mut allocation = HandleAllocationAccumulator::new(receipt.plan_generation(), counters);
 
-        for (plan_index, node_input) in plan_input.node_inputs().iter().enumerate() {
+        for (plan_index, node_input) in node_inputs.iter().enumerate() {
             allocation.record_plan_node_input(plan_index, node_input)?;
         }
 
