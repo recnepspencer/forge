@@ -14,7 +14,8 @@ this phase.
 
 Run the focused verification commands named by the plan. Summarize the result in
 chat. In the JSON state, add only compact `notes.done` and `notes.verification`
-markers, keep `status: complete` and `qa_status: passed`, and advance the
+markers. Set `status: complete` and `qa_status: passed` only after the blocking
+test-quality or missing-production-surface findings are fixed, then advance the
 cursor to `close_quality_qa`.
 
 Do not put logs, artifacts, command tails, long findings, or plans into the

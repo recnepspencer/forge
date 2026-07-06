@@ -34,8 +34,8 @@ Roadmap 2 inserts this required aspect-native and physical foundation gate:
 
 `Milestone 13.3` -> `Aspect-Native Workspace Gate` -> `S.0` -> `S.1`
 -> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.5.1`
--> `S.6` -> `S.7` -> `S.8` -> `S.9` -> `S.10` -> `S.11`
--> `S.12` -> `Milestone 14`
+-> `S.6` -> `S.7` -> `S.7.1` -> `S.8` -> `S.9` -> `S.10`
+-> `S.11` -> `S.12` -> `Milestone 14`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
@@ -845,6 +845,83 @@ after interruption, deduped, exported, imported, tier-moved, partially
 replicated, and reclaimed with constant memory and chunk-level corruption
 localization.
 
+## S.7.1: Proof-Flow And Domain-Structure Cleanup Gate
+
+Engineering spec: [storage-foundation-s7-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s7-1.md)
+
+### Goal
+
+Convert the S.7 blob substrate and any critical supporting Store subsystems
+that it exposed into auditable proof-flow state machines with phase-shaped
+directories, narrow public facades, and mechanically enforced structural QA
+before S.8 builds access-path and layout discipline on top of them.
+
+### Boundary
+
+This is not new blob functionality and not a second attempt to finish S.7. This
+is a consolidation gate for code that already grew enough proof vocabulary to
+expose a structural problem: authority objects, receipts, counters, handoffs,
+and tests must read as named transitions rather than bags of impressive nouns.
+
+### Adversarial Constraint
+
+No Store flow may claim proof-bearing authority if a reviewer must reconstruct
+the proof transition from raw predicates, copied fields, broad exports, flat
+directories, `mod.rs` business logic, certification-only contracts, or
+test-only helpers that bypass production topology.
+
+### Must Ship
+
+- inventory of critical proof-flow and topology violations across S.7 blob
+  chunks, certification, physical format, physical isolation, recovery physics,
+  I/O scheduler, physical backend, buffer pool, and physical integrity surfaces
+- S.7 blob-chunk lifecycle tree shaped by source authority, evidence
+  collection, classification, verification, receipt construction, and next
+  capability
+- certification crate cleanup so certification acts as courtroom and harness,
+  not as the lower law or production contract warehouse
+- physical-format and critical adjacent Store crate cleanup where flat roots,
+  broad `lib.rs`/`exports.rs`, wildcard exports, or `mod.rs` business logic hide
+  responsibility
+- public facades split by lifecycle phase, authority class, and production vs
+  certification/test authority
+- cleanup evidence, including compile-fail, structural scan, or runtime tests
+  only where they are the right proof, showing the cleaned topology cannot be
+  bypassed through raw constructors, helper crates, broad exports, or copied
+  proof fields
+
+### Must Preserve
+
+- S.7 blob semantics, security-scope posture, constant-memory claims,
+  corruption-localization behavior, and recovery evidence
+- Store owns physical byte survival and blob substrate authority
+- Foundational and Proof provide shared vocabulary where appropriate without
+  becoming Store's physical law
+- certification proves behavior in court; it must not become the source of
+  production authority
+- no new blob product surface is introduced in this cleanup gate
+
+### Proof Obligations
+
+- every cleaned flow exposes the proof grammar:
+  collect evidence -> classify case -> verify transition -> construct receipt
+  -> expose next capability
+- directories with more than ten local files are subdivided or explicitly
+  exempted by a narrow structural reason
+- public aggregation files aggregate only and do not implement business logic
+- test helpers cannot mint proof objects that production code could not obtain
+- S.7 hostile lanes remain protected, and new construction or facade
+  boundaries receive mechanical proof where the cleanup creates or changes
+  those boundaries
+
+### Closeout Gate
+
+`S.7.1` is not closed until the critical Store proof flows are structurally
+auditable as named transitions, S.7 blob chunks no longer present as a flat
+ontology dump, certification is clearly courtroom rather than law, and the
+remaining public surfaces expose lifecycle order rather than accidental
+ontology.
+
 ## S.8: Index, Layout, And Access-Path Discipline
 
 ### Goal
@@ -1142,8 +1219,8 @@ work, blob scale, cross-backend parity, and hazard-analysis residual risk.
 
 - the Aspect-Native Workspace Gate is closed, proving JSON is confined to
   terminal projection or hostile/readmission boundaries
-- `S.0` through `S.12`, including `S.4.5` and `S.5.1`, are implemented or
-  explicitly scoped with named, non-platform-grade debt
+- `S.0` through `S.12`, including `S.4.5`, `S.5.1`, and `S.7.1`, are
+  implemented or explicitly scoped with named, non-platform-grade debt
 - [test-requirements-2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/test-requirements-2.md)
   adversarial harness requirements are satisfied for every closed `S.*`
   sequence
