@@ -51,10 +51,15 @@ pub(super) fn assemble_ledger_bundle(
         .iter()
         .collect::<Vec<_>>();
     persistent_name_rows.sort_by(|left, right| {
-        left.propagation_identity().cmp(right.propagation_identity())
+        left.propagation_identity()
+            .cmp(right.propagation_identity())
     });
 
-    let mut signature_rows = bundle.subshape_signature_map().rows().iter().collect::<Vec<_>>();
+    let mut signature_rows = bundle
+        .subshape_signature_map()
+        .rows()
+        .iter()
+        .collect::<Vec<_>>();
     signature_rows.sort_by(|left, right| left.signature_identity().cmp(right.signature_identity()));
 
     let persistent_name_rows_owned = persistent_name_rows
@@ -143,12 +148,16 @@ pub(super) fn assemble_ledger_bundle(
             identity_row.canonical_winding_identity().to_string(),
             identity_row.source_kind(),
             identity_row.source_identity().to_string(),
-            identity_row.area_overlap_component_identity().map(str::to_string),
+            identity_row
+                .area_overlap_component_identity()
+                .map(str::to_string),
             signature_row.correspondence_only(),
             persistent_name_identities,
             signature_row.signature_identity().to_string(),
             identity_row.lineage_identities().to_vec(),
-            identity_row.canonical_boundary_segment_identities().to_vec(),
+            identity_row
+                .canonical_boundary_segment_identities()
+                .to_vec(),
             identity_row.canonical_source_loop_identities().to_vec(),
         ));
         counters.admitted_ledger_row();
@@ -171,7 +180,12 @@ pub(super) fn assemble_ledger_bundle(
     let receipt_id = receipt_identity(&request_identity, &decision_identity, &ledger_id);
 
     Ok(PlanarBooleanOverlapRegionLedgerAssemblyBundle::new(
-        bundle_identity(&request_identity, &decision_identity, &ledger_id, &receipt_id),
+        bundle_identity(
+            &request_identity,
+            &decision_identity,
+            &ledger_id,
+            &receipt_id,
+        ),
         PlanarBooleanOverlapRegionDecisionLog::new(
             decision_identity.clone(),
             request_identity.clone(),
@@ -190,7 +204,10 @@ pub(super) fn assemble_ledger_bundle(
             request_identity,
             decision_identity,
             ledger_id,
-            bundle.overlap_region_identity_map().map_identity().to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .map_identity()
+                .to_string(),
             bundle
                 .persistent_name_propagation_map()
                 .map_identity()

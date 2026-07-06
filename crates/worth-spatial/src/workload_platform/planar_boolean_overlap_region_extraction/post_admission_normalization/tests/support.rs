@@ -18,7 +18,7 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 pub(super) fn canonical_winding_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
@@ -101,7 +101,8 @@ pub(super) fn admitted_region_candidate_bundle(
         .expect("fixture bundle should promote overlap-region candidates")
 }
 
-pub(super) fn boundary_only_region_candidate_bundle() -> PlanarBooleanOverlapRegionCandidateBoundaryBundle {
+pub(super) fn boundary_only_region_candidate_bundle(
+) -> PlanarBooleanOverlapRegionCandidateBoundaryBundle {
     let shared_area_bundle = admitted_shared_area_bundle(&multi_cell_graph());
     let empty_set = PlanarBooleanOppositeSenseOverlapNormalizationSet::new(
         "synthetic-empty-normalization-set".to_string(),
@@ -191,7 +192,8 @@ pub(super) fn ambiguous_admitted_region_bundle(
     )
 }
 
-pub(super) fn ambiguous_boundary_only_bundle() -> PlanarBooleanOverlapRegionCandidateBoundaryBundle {
+pub(super) fn ambiguous_boundary_only_bundle() -> PlanarBooleanOverlapRegionCandidateBoundaryBundle
+{
     let bundle = boundary_only_region_candidate_bundle();
     let row = bundle.boundary_only_overlap_outcomes().rows()[0].clone();
     let duplicate_row = PlanarBooleanBoundaryOnlyOverlapOutcomeRow::new(
@@ -211,10 +213,22 @@ pub(super) fn ambiguous_boundary_only_bundle() -> PlanarBooleanOverlapRegionCand
     rows.push(duplicate_row);
     let boundary_only = PlanarBooleanBoundaryOnlyOverlapOutcomeSet::new(
         "synthetic-ambiguous-boundary-only-set".to_string(),
-        bundle.boundary_only_overlap_outcomes().request_identity().to_string(),
-        bundle.boundary_only_overlap_outcomes().arrangement_graph_identity().to_string(),
-        bundle.boundary_only_overlap_outcomes().cell_set_identity().to_string(),
-        bundle.boundary_only_overlap_outcomes().ordering_basis_identity().to_string(),
+        bundle
+            .boundary_only_overlap_outcomes()
+            .request_identity()
+            .to_string(),
+        bundle
+            .boundary_only_overlap_outcomes()
+            .arrangement_graph_identity()
+            .to_string(),
+        bundle
+            .boundary_only_overlap_outcomes()
+            .cell_set_identity()
+            .to_string(),
+        bundle
+            .boundary_only_overlap_outcomes()
+            .ordering_basis_identity()
+            .to_string(),
         rows,
     );
     PlanarBooleanOverlapRegionCandidateBoundaryBundle::new(

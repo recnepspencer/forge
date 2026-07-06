@@ -95,9 +95,11 @@ impl PlanarBooleanBoundaryContactClassificationBundle {
     pub fn from_island_component_bundle(
         island_component_bundle: &PlanarBooleanOverlapIslandComponentBundle,
     ) -> Result<Self, PlanarBooleanBoundaryContactClassificationDenial> {
-        Self::admit(PlanarBooleanBoundaryContactClassificationInput::from_island_component_bundle(
-            island_component_bundle,
-        ))
+        Self::admit(
+            PlanarBooleanBoundaryContactClassificationInput::from_island_component_bundle(
+                island_component_bundle,
+            ),
+        )
     }
 
     pub fn admit(
@@ -126,7 +128,9 @@ impl PlanarBooleanBoundaryContactClassificationBundle {
         &self.bundle_identity
     }
 
-    pub fn shared_boundary_contact_outcomes(&self) -> &PlanarBooleanSharedBoundaryContactOutcomeSet {
+    pub fn shared_boundary_contact_outcomes(
+        &self,
+    ) -> &PlanarBooleanSharedBoundaryContactOutcomeSet {
         &self.shared_boundary_contact_outcomes
     }
 
@@ -158,7 +162,8 @@ impl PlanarBooleanBoundaryContactClassificationBundle {
         &self,
         containment_map: &PlanarBooleanOverlapCellContainmentMap,
         winding_field: &PlanarBooleanOverlapCellWindingField,
-    ) -> Result<PlanarBooleanSharedAreaAdmissionBundle, PlanarBooleanSharedAreaAdmissionDenial> {
+    ) -> Result<PlanarBooleanSharedAreaAdmissionBundle, PlanarBooleanSharedAreaAdmissionDenial>
+    {
         PlanarBooleanSharedAreaAdmissionBundle::from_boundary_contact_classification(
             self,
             containment_map,

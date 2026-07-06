@@ -48,9 +48,7 @@ impl<'a> PlanarBooleanBoundaryContactClassificationInput<'a> {
         self.overlap_islands
     }
 
-    pub fn boundary_contact_components(
-        self,
-    ) -> &'a PlanarBooleanBoundaryContactComponentSet {
+    pub fn boundary_contact_components(self) -> &'a PlanarBooleanBoundaryContactComponentSet {
         self.boundary_contact_components
     }
 

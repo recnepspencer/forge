@@ -1,7 +1,8 @@
 use super::rows::PlanarBooleanOverlapRegionDecisionKind;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 fn digest(parts: &[String]) -> String {
-    parts.join("|")
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
 }
 
 pub(super) fn decision_row_identity(
@@ -32,12 +33,20 @@ pub(super) fn ledger_row_identity(
     signature_identity: &str,
 ) -> String {
     format!(
-        "overlap-ledger-row:{region_identity}:{canonical_winding_identity}:{signature_identity}"
+        "overlap-ledger-row:{}",
+        digest(&[
+            region_identity.to_string(),
+            canonical_winding_identity.to_string(),
+            signature_identity.to_string(),
+        ])
     )
 }
 
 pub(super) fn ledger_identity(request_identity: &str, row_identities: &[String]) -> String {
-    format!("overlap-ledger:{request_identity}:{}", digest(row_identities))
+    format!(
+        "overlap-ledger:{request_identity}:{}",
+        digest(row_identities)
+    )
 }
 
 pub(super) fn receipt_identity(
@@ -45,7 +54,14 @@ pub(super) fn receipt_identity(
     decision_log_identity: &str,
     ledger_identity: &str,
 ) -> String {
-    format!("overlap-ledger-receipt:{request_identity}:{decision_log_identity}|{ledger_identity}")
+    format!(
+        "overlap-ledger-receipt:{}",
+        digest(&[
+            request_identity.to_string(),
+            decision_log_identity.to_string(),
+            ledger_identity.to_string(),
+        ])
+    )
 }
 
 pub(super) fn bundle_identity(
@@ -55,6 +71,12 @@ pub(super) fn bundle_identity(
     receipt_identity: &str,
 ) -> String {
     format!(
-        "overlap-ledger-assembly:{request_identity}:{decision_log_identity}|{ledger_identity}|{receipt_identity}"
+        "overlap-ledger-assembly:{}",
+        digest(&[
+            request_identity.to_string(),
+            decision_log_identity.to_string(),
+            ledger_identity.to_string(),
+            receipt_identity.to_string(),
+        ])
     )
 }

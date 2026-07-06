@@ -1,15 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanBoundaryContactClassificationBundle, PlanarBooleanOverlapCellContainmentEvidenceKind,
-    PlanarBooleanOverlapCellContainmentMap, PlanarBooleanOverlapCellWindingEvidenceKind,
-    PlanarBooleanOverlapCellWindingField,
+    PlanarBooleanBoundaryContactClassificationBundle,
+    PlanarBooleanOverlapCellContainmentEvidenceKind, PlanarBooleanOverlapCellContainmentMap,
+    PlanarBooleanOverlapCellWindingEvidenceKind, PlanarBooleanOverlapCellWindingField,
 };
 
 use super::counters::PlanarBooleanSharedAreaAdmissionCounters;
 use super::denial::{
-    PlanarBooleanSharedAreaAdmissionDenial,
-    PlanarBooleanSharedAreaAdmissionDenialKind as Kind,
+    PlanarBooleanSharedAreaAdmissionDenial, PlanarBooleanSharedAreaAdmissionDenialKind as Kind,
 };
 use super::input::PlanarBooleanSharedAreaAdmissionInput;
 
@@ -46,24 +45,123 @@ pub(super) fn validate_pure_boundary_absence(
     boundary: &PlanarBooleanBoundaryContactClassificationBundle,
     counters: &mut PlanarBooleanSharedAreaAdmissionCounters,
 ) -> Result<(), PlanarBooleanSharedAreaAdmissionDenial> {
-    let pure_boundary_islands = boundary
-        .pure_boundary_only_outcomes()
-        .rows()
-        .iter()
-        .map(|row| row.island_identity())
-        .collect::<BTreeSet<_>>();
+    let pure_boundary_cells_by_island = boundary.pure_boundary_only_outcomes().rows().iter().fold(
+        BTreeMap::<&str, BTreeSet<&str>>::new(),
+        |mut grouped, row| {
+            let entry = grouped.entry(row.island_identity()).or_default();
+            for cell_identity in row.cell_identities() {
+                entry.insert(cell_identity);
+            }
+            grouped
+        },
+    );
     for component in boundary.area_overlap_components().rows() {
-        if pure_boundary_islands.contains(component.island_identity()) {
+        if pure_boundary_cells_by_island
+            .get(component.island_identity())
+            .is_some_and(|pure_boundary_cells| {
+                component
+                    .cell_identities()
+                    .iter()
+                    .any(|cell_identity| pure_boundary_cells.contains(cell_identity.as_str()))
+            })
+        {
             counters.denied_admission();
             return Err(PlanarBooleanSharedAreaAdmissionDenial::new(
                 Kind::ContradictoryIslandComponentMembershipDenied,
                 component.island_identity(),
                 *counters,
-                "shared area admission denies any island that simultaneously claims pure-boundary-only and area-overlap component membership",
+                "shared area admission denies any locality that simultaneously claims pure-boundary-only and area-overlap cell membership",
             ));
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_pure_boundary_absence;
+    use super::PlanarBooleanSharedAreaAdmissionCounters;
+    use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+        PlanarBooleanAreaOverlapComponentRow, PlanarBooleanAreaOverlapComponentSet,
+        PlanarBooleanBoundaryContactClassificationBundle,
+        PlanarBooleanBoundaryContactClassificationCounters,
+        PlanarBooleanPureBoundaryOnlyOutcomeRow, PlanarBooleanPureBoundaryOnlyOutcomeSet,
+        PlanarBooleanSharedBoundaryContactOutcomeSet,
+    };
+
+    fn boundary_bundle(
+        pure_boundary_cells: Vec<&str>,
+        area_cells: Vec<&str>,
+    ) -> PlanarBooleanBoundaryContactClassificationBundle {
+        PlanarBooleanBoundaryContactClassificationBundle::new(
+            "boundary-bundle".to_string(),
+            PlanarBooleanSharedBoundaryContactOutcomeSet::new(
+                "shared-boundary".to_string(),
+                "request".to_string(),
+                "arrangement".to_string(),
+                "cell-set".to_string(),
+                "order".to_string(),
+                Vec::new(),
+            ),
+            PlanarBooleanPureBoundaryOnlyOutcomeSet::new(
+                "pure-boundary".to_string(),
+                "request".to_string(),
+                "arrangement".to_string(),
+                "cell-set".to_string(),
+                "order".to_string(),
+                vec![PlanarBooleanPureBoundaryOnlyOutcomeRow::new(
+                    "pure-row".to_string(),
+                    "island".to_string(),
+                    "neighborhood".to_string(),
+                    vec!["boundary-contact-component".to_string()],
+                    pure_boundary_cells
+                        .into_iter()
+                        .map(str::to_string)
+                        .collect(),
+                    vec!["boundary-component".to_string()],
+                    vec!["boundary-segment".to_string()],
+                    vec!["loop".to_string()],
+                )],
+            ),
+            PlanarBooleanAreaOverlapComponentSet::new(
+                "area-components".to_string(),
+                "request".to_string(),
+                "arrangement".to_string(),
+                "cell-set".to_string(),
+                "order".to_string(),
+                vec![PlanarBooleanAreaOverlapComponentRow::new(
+                    "area-component".to_string(),
+                    "island".to_string(),
+                    "neighborhood".to_string(),
+                    area_cells.into_iter().map(str::to_string).collect(),
+                    vec!["boundary-component".to_string()],
+                    vec!["boundary-segment".to_string()],
+                    vec!["loop".to_string()],
+                )],
+            ),
+            PlanarBooleanBoundaryContactClassificationCounters::default(),
+        )
+    }
+
+    #[test]
+    fn pure_boundary_locality_may_coexist_with_disjoint_area_cells() {
+        let bundle = boundary_bundle(vec!["boundary-cell"], vec!["area-cell"]);
+        let mut counters = PlanarBooleanSharedAreaAdmissionCounters::default();
+
+        let result = validate_pure_boundary_absence(&bundle, &mut counters);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn overlapping_boundary_and_area_cells_still_deny() {
+        let bundle = boundary_bundle(vec!["shared-cell"], vec!["shared-cell"]);
+        let mut counters = PlanarBooleanSharedAreaAdmissionCounters::default();
+
+        let result = validate_pure_boundary_absence(&bundle, &mut counters);
+
+        assert!(result.is_err());
+    }
 }
 
 pub(super) fn validate_area_component_cell_proof(
@@ -112,19 +210,7 @@ pub(super) fn validate_area_component_cell_proof(
                 .get(cell_identity.as_str())
                 .into_iter()
                 .flatten()
-                .any(|row| {
-                    matches!(
-                        row.evidence_kind(),
-                        PlanarBooleanOverlapCellWindingEvidenceKind::SupportingIslandTopology
-                            | PlanarBooleanOverlapCellWindingEvidenceKind::BoundaryTopologyAndSupportingIslandTopology
-                    )
-                        && row.winding_number() > 0
-                        && row.neighborhood_identity() == component.neighborhood_identity()
-                        && row
-                            .source_loop_identities()
-                            .iter()
-                            .any(|identity| component_loops.contains(identity.as_str()))
-                });
+                .any(|row| area_component_has_winding_support(row, component, &component_loops));
 
             if !containment_supported || !winding_supported {
                 counters.denied_admission();
@@ -132,13 +218,36 @@ pub(super) fn validate_area_component_cell_proof(
                     Kind::AreaComponentMissingSupportingCellProofDenied,
                     cell_identity,
                     *counters,
-                    "shared area admission denies any area-overlap component whose cells do not carry matching containment-inside and supporting-island winding proof",
+                    "shared area admission denies any area-overlap component whose cells do not carry matching containment-inside and nonzero supporting-island winding proof",
                 ));
             }
         }
     }
 
     Ok(())
+}
+
+fn area_component_has_winding_support(
+    row: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapCellWindingRow,
+    component: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanAreaOverlapComponentRow,
+    component_loops: &BTreeSet<&str>,
+) -> bool {
+    if row.winding_number() == 0
+        || row.neighborhood_identity() != component.neighborhood_identity()
+        || !row
+            .source_loop_identities()
+            .iter()
+            .any(|identity| component_loops.contains(identity.as_str()))
+    {
+        return false;
+    }
+
+    matches!(
+        row.evidence_kind(),
+        PlanarBooleanOverlapCellWindingEvidenceKind::SupportingIslandTopology
+            | PlanarBooleanOverlapCellWindingEvidenceKind::BoundaryTopologyAndSupportingIslandTopology
+    ) || (row.evidence_kind() == PlanarBooleanOverlapCellWindingEvidenceKind::BoundaryTopology
+        && row.supporting_island_identity().is_some())
 }
 
 pub(super) fn mixed_boundary_components_by_island(

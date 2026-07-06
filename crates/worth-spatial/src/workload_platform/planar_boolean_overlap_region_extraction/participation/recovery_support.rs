@@ -12,10 +12,15 @@ use super::denial::{
     PlanarBooleanOverlapParticipationRecoveryDenialKind as Kind,
 };
 use super::island_participation::PlanarBooleanLoopIslandOverlapParticipationRow;
+use super::lineage_binding::{
+    ledger_source_edge_identities, lineage_binds_to_loop, lineage_touches_participating_surface,
+};
 use super::loop_participation::{
     PlanarBooleanLoopOverlapParticipationMap, PlanarBooleanLoopOverlapParticipationRow,
 };
-use super::source_loop_witnesses::{witnesses_for_lineage_row, SourceLoopWitness};
+use super::source_loop_witnesses::{
+    aligned_witnesses_for_lineage_row, witnesses_for_lineage_row, SourceLoopWitness,
+};
 
 pub(super) fn recover_island_row<'a>(
     ledger_row: &PlanarBooleanLoopReconstructionLedgerRow,
@@ -119,6 +124,13 @@ pub(super) fn recover_chain_lineage_rows(
     Vec<PlanarBooleanOverlapChainRegionLineageRow>,
     PlanarBooleanOverlapParticipationRecoveryDenial,
 > {
+    if loop_map.rows().is_empty()
+        && support.ledger_rows().is_empty()
+        && !support.overlap_chain_lineage_map().rows().is_empty()
+    {
+        return recover_source_only_boundary_lineage_rows(support, counters);
+    }
+
     let ledger_rows_by_canonical = support
         .ledger_rows()
         .iter()
@@ -135,6 +147,12 @@ pub(super) fn recover_chain_lineage_rows(
         .filter_map(|row| ledger_rows_by_canonical.get(row.canonical_loop_identity()))
         .flat_map(|row| row.fragment_identities().iter().cloned())
         .collect::<BTreeSet<_>>();
+    let participating_source_edge_identities = loop_map
+        .rows()
+        .iter()
+        .filter_map(|row| ledger_rows_by_canonical.get(row.canonical_loop_identity()))
+        .flat_map(|ledger_row| ledger_source_edge_identities(ledger_row, support))
+        .collect::<BTreeSet<_>>();
     let mut recovered = Vec::new();
     for lineage_row in support.overlap_chain_lineage_map().rows() {
         let matched_rows = loop_map
@@ -143,7 +161,9 @@ pub(super) fn recover_chain_lineage_rows(
             .filter(|row| {
                 ledger_rows_by_canonical
                     .get(row.canonical_loop_identity())
-                    .is_some_and(|ledger_row| lineage_binds_to_loop(ledger_row, lineage_row))
+                    .is_some_and(|ledger_row| {
+                        lineage_binds_to_loop(ledger_row, lineage_row, support)
+                    })
             })
             .collect::<Vec<_>>();
         if matched_rows.is_empty()
@@ -151,6 +171,7 @@ pub(super) fn recover_chain_lineage_rows(
                 lineage_row,
                 &participating_source_loop_identities,
                 &participating_fragment_identities,
+                &participating_source_edge_identities,
             )
         {
             counters.denied_participation();
@@ -164,8 +185,7 @@ pub(super) fn recover_chain_lineage_rows(
         if matched_rows.is_empty() {
             continue;
         }
-        let source_loop_witnesses =
-            witnesses_for_lineage_row(lineage_row, support, counters)?;
+        let source_loop_witnesses = witnesses_for_lineage_row(lineage_row, support, counters)?;
         let mut propagated_names = matched_rows
             .iter()
             .flat_map(|row| row.propagated_persistent_name_identities().iter().cloned())
@@ -209,6 +229,47 @@ pub(super) fn recover_chain_lineage_rows(
     Ok(recovered)
 }
 
+fn recover_source_only_boundary_lineage_rows(
+    support: &PlanarBooleanLoopReconstructionParticipationSupport,
+    counters: &mut PlanarBooleanOverlapParticipationRecoveryCounters,
+) -> Result<
+    Vec<PlanarBooleanOverlapChainRegionLineageRow>,
+    PlanarBooleanOverlapParticipationRecoveryDenial,
+> {
+    let mut recovered = Vec::new();
+    for lineage_row in support.overlap_chain_lineage_map().rows() {
+        let aligned_witnesses = aligned_witnesses_for_lineage_row(lineage_row, support, counters)?;
+        recovered.push(PlanarBooleanOverlapChainRegionLineageRow::new(
+            format!(
+                "overlap-participation:source-only-chain:{}",
+                lineage_row.chain_identity()
+            ),
+            lineage_row.lineage_identity().to_string(),
+            lineage_row.chain_identity().to_string(),
+            lineage_row.fragment_identities().to_vec(),
+            aligned_witnesses
+                .iter()
+                .map(|witness| witness.source_loop_identity.clone())
+                .collect(),
+            aligned_witnesses
+                .iter()
+                .map(|witness| witness.operand_side)
+                .collect(),
+            aligned_witnesses
+                .iter()
+                .map(|witness| witness.winding_sign)
+                .collect(),
+            lineage_row.source_edge_identities().to_vec(),
+            lineage_row.boundary_roles().to_vec(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        ));
+        counters.recovered_chain_row();
+    }
+    Ok(recovered)
+}
+
 pub(super) fn persistent_names_by_canonical_loop(
     support: &PlanarBooleanLoopReconstructionParticipationSupport,
 ) -> BTreeMap<&str, Vec<&PlanarBooleanLoopPersistentNamePropagationRow>> {
@@ -231,7 +292,7 @@ pub(super) fn matching_chain_lineage_identities(
         .overlap_chain_lineage_map()
         .rows()
         .iter()
-        .filter(|row| lineage_binds_to_loop(ledger_row, row))
+        .filter(|row| lineage_binds_to_loop(ledger_row, row, support))
         .map(|row| row.lineage_identity().to_string())
         .collect()
 }
@@ -254,44 +315,6 @@ pub(super) fn island_membership_counts(
         }
     }
     counts
-}
-
-fn lineage_binds_to_loop(
-    ledger_row: &PlanarBooleanLoopReconstructionLedgerRow,
-    lineage_row: &crate::workload_platform::planar_boolean_loop_reconstruction::PlanarBooleanLoopOverlapChainLineageRow,
-) -> bool {
-    let ledger_fragments = ledger_row
-        .fragment_identities()
-        .iter()
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    let lineage_fragments = lineage_row
-        .fragment_identities()
-        .iter()
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    let shares_source_loop = ledger_row
-        .source_loop_identities()
-        .iter()
-        .any(|identity| lineage_row.source_loop_identities().contains(identity));
-    shares_source_loop
-        && !lineage_fragments.is_empty()
-        && lineage_fragments.is_subset(&ledger_fragments)
-}
-
-fn lineage_touches_participating_surface(
-    lineage_row: &crate::workload_platform::planar_boolean_loop_reconstruction::PlanarBooleanLoopOverlapChainLineageRow,
-    participating_source_loop_identities: &BTreeSet<String>,
-    participating_fragment_identities: &BTreeSet<String>,
-) -> bool {
-    lineage_row
-        .source_loop_identities()
-        .iter()
-        .any(|identity| participating_source_loop_identities.contains(identity))
-        || lineage_row
-            .fragment_identities()
-            .iter()
-            .any(|identity| participating_fragment_identities.contains(identity))
 }
 
 fn unique_source_loop_witnesses(

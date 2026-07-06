@@ -19,7 +19,7 @@ use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPl
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan;
 
 pub(super) fn region_candidate_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
@@ -248,7 +248,9 @@ pub(super) fn mixed_boundary_shared_area_bundle(
         "synthetic-mixed-boundary-area-outcome".to_string(),
         shared_area_row.island_identity().to_string(),
         shared_area_row.neighborhood_identity().to_string(),
-        vec![shared_area_row.area_overlap_component_identity().to_string()],
+        vec![shared_area_row
+            .area_overlap_component_identity()
+            .to_string()],
         vec!["synthetic-boundary-contact-component".to_string()],
         shared_area_row.cell_identities().to_vec(),
     );

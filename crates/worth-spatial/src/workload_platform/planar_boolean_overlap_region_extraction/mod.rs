@@ -11,8 +11,8 @@ mod participation;
 mod post_admission_normalization;
 mod pre_region_normalization;
 mod readiness_boundary;
-mod replay_closeout;
 mod region_candidate_boundary;
+mod replay_closeout;
 mod shared_area_admission;
 
 pub use adjacency_index::{
@@ -34,6 +34,13 @@ pub use arrangement_graph::{
     PlanarBooleanOverlapCellWindingFieldInput, PlanarBooleanOverlapCellWindingRow,
 };
 pub use closeout::{
+    PlanarBooleanOverlapRegionBoundaryOnlyOutcomeWitness,
+    PlanarBooleanOverlapRegionCanonicalWindingOutcomeWitness,
+    PlanarBooleanOverlapRegionCheckpointOutcomeWitness,
+    PlanarBooleanOverlapRegionMixedBoundaryAreaWitness,
+    PlanarBooleanOverlapRegionNestedIdentityOutcomeWitness,
+    PlanarBooleanOverlapRegionOrderingParityWitness, PlanarBooleanOverlapRegionReplayParityWitness,
+    PlanarBooleanOverlapRegionSharedAreaOutcomeWitness, PlanarBooleanOverlapRegionStormWitness,
     PlanarBooleanOverlapRegionSummumBonumCloseout,
     PlanarBooleanOverlapRegionSummumBonumCloseoutCounters,
     PlanarBooleanOverlapRegionSummumBonumCloseoutDenial,
@@ -63,21 +70,9 @@ pub use identity_naming_lineage::{
     PlanarBooleanOverlapRegionIdentityLineageDenial,
     PlanarBooleanOverlapRegionIdentityLineageDenialKind,
     PlanarBooleanOverlapRegionIdentityLineageInput, PlanarBooleanOverlapRegionIdentityMap,
-    PlanarBooleanOverlapRegionIdentityRow,
-    PlanarBooleanOverlapRegionPersistentNamePropagationMap,
+    PlanarBooleanOverlapRegionIdentityRow, PlanarBooleanOverlapRegionPersistentNamePropagationMap,
     PlanarBooleanOverlapRegionPersistentNamePropagationRow,
-    PlanarBooleanOverlapRegionSubshapeSignatureMap,
-    PlanarBooleanOverlapRegionSubshapeSignatureRow,
-};
-pub use overlap_ledger::{
-    PlanarBooleanOverlapRegionDecisionKind, PlanarBooleanOverlapRegionDecisionLog,
-    PlanarBooleanOverlapRegionDecisionLogRow, PlanarBooleanOverlapRegionLedger,
-    PlanarBooleanOverlapRegionLedgerAssemblyBundle,
-    PlanarBooleanOverlapRegionLedgerAssemblyCounters,
-    PlanarBooleanOverlapRegionLedgerAssemblyDenial,
-    PlanarBooleanOverlapRegionLedgerAssemblyDenialKind,
-    PlanarBooleanOverlapRegionLedgerAssemblyInput, PlanarBooleanOverlapRegionLedgerReceipt,
-    PlanarBooleanOverlapRegionLedgerRow,
+    PlanarBooleanOverlapRegionSubshapeSignatureMap, PlanarBooleanOverlapRegionSubshapeSignatureRow,
 };
 pub use island_components::{
     PlanarBooleanAreaOverlapComponentRow, PlanarBooleanAreaOverlapComponentSet,
@@ -92,6 +87,16 @@ pub use island_components::{
 pub use legacy_operator_surface::{
     CoplanarOverlapOperatorDenial, CoplanarOverlapOperatorReceipt, CoplanarOverlapWorkloadOperator,
 };
+pub use overlap_ledger::{
+    PlanarBooleanOverlapRegionDecisionKind, PlanarBooleanOverlapRegionDecisionLog,
+    PlanarBooleanOverlapRegionDecisionLogRow, PlanarBooleanOverlapRegionLedger,
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle,
+    PlanarBooleanOverlapRegionLedgerAssemblyCounters,
+    PlanarBooleanOverlapRegionLedgerAssemblyDenial,
+    PlanarBooleanOverlapRegionLedgerAssemblyDenialKind,
+    PlanarBooleanOverlapRegionLedgerAssemblyInput, PlanarBooleanOverlapRegionLedgerReceipt,
+    PlanarBooleanOverlapRegionLedgerRow,
+};
 pub use participation::{
     PlanarBooleanLoopIslandOverlapParticipationMap, PlanarBooleanLoopIslandOverlapParticipationRow,
     PlanarBooleanLoopOverlapParticipationMap, PlanarBooleanLoopOverlapParticipationRow,
@@ -102,11 +107,9 @@ pub use participation::{
     PlanarBooleanOverlapParticipationRecoveryInput,
 };
 pub use post_admission_normalization::{
-    PlanarBooleanOverlapRegionCanonicalWindingRow,
-    PlanarBooleanOverlapRegionCanonicalWindingSet,
+    PlanarBooleanOverlapRegionCanonicalWindingRow, PlanarBooleanOverlapRegionCanonicalWindingSet,
     PlanarBooleanOverlapRegionCanonicalWindingSourceKind,
-    PlanarBooleanPostAdmissionNormalizationBundle,
-    PlanarBooleanPostAdmissionNormalizationCounters,
+    PlanarBooleanPostAdmissionNormalizationBundle, PlanarBooleanPostAdmissionNormalizationCounters,
     PlanarBooleanPostAdmissionNormalizationDenial,
     PlanarBooleanPostAdmissionNormalizationDenialKind,
     PlanarBooleanPostAdmissionNormalizationInput,
@@ -125,32 +128,27 @@ pub use readiness_boundary::{
     PlanarBooleanOverlapRegionExtractionRequestDenialKind,
     PlanarBooleanOverlapRegionExtractionRequestInput,
 };
-pub use replay_closeout::{
-    ComparePlanarBooleanOverlapRegionCheckpointParity,
-    ComparePlanarBooleanOverlapRegionReplayParity,
-    PlanarBooleanOverlapRegionCheckpointParityReceipt,
-    PlanarBooleanOverlapRegionEvidenceDenial,
-    PlanarBooleanOverlapRegionEvidenceInput,
-    PlanarBooleanOverlapRegionEvidenceReceipt,
-    PlanarBooleanOverlapRegionReplayParityCounters,
-    PlanarBooleanOverlapRegionReplayParityDenial,
-    PlanarBooleanOverlapRegionReplayParityDenialKind,
-    PlanarBooleanOverlapRegionReplayParityInput,
-    PlanarBooleanOverlapRegionReplayParityReceipt,
-    PlanarBooleanOverlapRegionReplayParityRow,
-    PlanarBooleanOverlapRegionReplayParityRowKind,
-};
 pub use region_candidate_boundary::{
     PlanarBooleanAdmittedOverlapRegionRow, PlanarBooleanAdmittedOverlapRegionSet,
     PlanarBooleanBoundaryOnlyOverlapOutcomeRow, PlanarBooleanBoundaryOnlyOverlapOutcomeSet,
-    PlanarBooleanDeniedOverlapRegionCandidateKind,
-    PlanarBooleanDeniedOverlapRegionCandidateRow, PlanarBooleanDeniedOverlapRegionCandidateSet,
+    PlanarBooleanDeniedOverlapRegionCandidateKind, PlanarBooleanDeniedOverlapRegionCandidateRow,
+    PlanarBooleanDeniedOverlapRegionCandidateSet,
     PlanarBooleanOverlapRegionCandidateBoundaryBundle,
     PlanarBooleanOverlapRegionCandidateBoundaryCounters,
     PlanarBooleanOverlapRegionCandidateBoundaryDenial,
     PlanarBooleanOverlapRegionCandidateBoundaryDenialKind,
     PlanarBooleanOverlapRegionCandidateBoundaryInput, PlanarBooleanOverlapRegionCandidateRow,
     PlanarBooleanOverlapRegionCandidateSet,
+};
+pub use replay_closeout::{
+    ComparePlanarBooleanOverlapRegionCheckpointParity,
+    ComparePlanarBooleanOverlapRegionReplayParity,
+    PlanarBooleanOverlapRegionCheckpointParityReceipt, PlanarBooleanOverlapRegionEvidenceDenial,
+    PlanarBooleanOverlapRegionEvidenceInput, PlanarBooleanOverlapRegionEvidenceReceipt,
+    PlanarBooleanOverlapRegionReplayParityCounters, PlanarBooleanOverlapRegionReplayParityDenial,
+    PlanarBooleanOverlapRegionReplayParityDenialKind, PlanarBooleanOverlapRegionReplayParityInput,
+    PlanarBooleanOverlapRegionReplayParityReceipt, PlanarBooleanOverlapRegionReplayParityRow,
+    PlanarBooleanOverlapRegionReplayParityRowKind,
 };
 pub use shared_area_admission::{
     PlanarBooleanMixedBoundaryAreaOutcomeRow, PlanarBooleanMixedBoundaryAreaOutcomeSet,

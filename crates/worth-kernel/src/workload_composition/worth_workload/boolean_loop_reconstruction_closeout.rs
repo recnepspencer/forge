@@ -266,6 +266,43 @@ impl CompletedBooleanSplitHandoff {
         .map_err(|denial| {
             WorkloadCompositionError::LoopReconstructionCloseout(denial.human_reason().to_string())
         })?;
+        trace_loop_reconstruction_counts(
+            source_provenance.source_loop_carriers().rows().len(),
+            source_provenance.fragment_membership_map().rows().len(),
+            source_provenance.overlap_chain_lineage_map().rows().len(),
+            continuation_index.rows().len(),
+            walk_candidate_assembly
+                .closed_walk_candidates()
+                .rows()
+                .len(),
+            walk_outcomes.rows().len(),
+            candidate_boundary.loop_candidates().rows().len(),
+            candidate_boundary.denied_loop_candidates().rows().len(),
+            reconstructed_boundary.reconstructed_loops().rows().len(),
+            reconstructed_boundary.born_loops().rows().len(),
+            island_partition.rows().len(),
+            role_boundary.role_outcomes().rows().len(),
+            role_boundary.containment_evidence_postures().rows().len(),
+            degenerate_boundary.outcomes().rows().len(),
+            degenerate_boundary
+                .counters()
+                .admitted_for_identity_minting(),
+            degenerate_boundary
+                .counters()
+                .tiny_cardinality_outcomes_emitted(),
+            degenerate_boundary
+                .counters()
+                .self_touching_outcomes_emitted(),
+            degenerate_boundary.counters().zero_area_outcomes_emitted(),
+            degenerate_boundary
+                .counters()
+                .geometry_policy_required_outcomes_emitted(),
+            degenerate_boundary
+                .counters()
+                .policy_required_outcomes_emitted(),
+            identity_boundary.loop_identity_map().rows().len(),
+            loop_ledger.rows().len(),
+        );
 
         let evidence_receipt = PlanarBooleanLoopReconstructionEvidenceReceipt::admit(
             PlanarBooleanLoopReconstructionEvidenceInput::from_phase_sixteen_products(
@@ -324,4 +361,37 @@ impl CompletedBooleanSplitHandoff {
             replay_undo_transaction_boundary_packet,
         ))
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn trace_loop_reconstruction_counts(
+    source_carriers: usize,
+    fragment_memberships: usize,
+    overlap_lineage: usize,
+    continuation_rows: usize,
+    closed_walk_candidates: usize,
+    walk_outcomes: usize,
+    loop_candidates: usize,
+    denied_loop_candidates: usize,
+    reconstructed_loops: usize,
+    born_loops: usize,
+    island_rows: usize,
+    role_outcomes: usize,
+    containment_postures: usize,
+    degenerate_outcomes: usize,
+    degenerate_admitted: usize,
+    degenerate_tiny: usize,
+    degenerate_self_touching: usize,
+    degenerate_zero_area: usize,
+    degenerate_geometry_policy: usize,
+    degenerate_policy: usize,
+    identity_rows: usize,
+    ledger_rows: usize,
+) {
+    if std::env::var_os("WORTH_TRACE_LOOP_RECONSTRUCTION").is_none() {
+        return;
+    }
+    eprintln!(
+        "loop reconstruction counts: source_carriers={source_carriers} fragment_memberships={fragment_memberships} overlap_lineage={overlap_lineage} continuation_rows={continuation_rows} closed_walk_candidates={closed_walk_candidates} walk_outcomes={walk_outcomes} loop_candidates={loop_candidates} denied_loop_candidates={denied_loop_candidates} reconstructed_loops={reconstructed_loops} born_loops={born_loops} island_rows={island_rows} role_outcomes={role_outcomes} containment_postures={containment_postures} degenerate_outcomes={degenerate_outcomes} degenerate_admitted={degenerate_admitted} degenerate_tiny={degenerate_tiny} degenerate_self_touching={degenerate_self_touching} degenerate_zero_area={degenerate_zero_area} degenerate_geometry_policy={degenerate_geometry_policy} degenerate_policy={degenerate_policy} identity_rows={identity_rows} ledger_rows={ledger_rows}",
+    );
 }

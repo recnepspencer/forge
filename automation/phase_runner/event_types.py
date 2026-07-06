@@ -29,6 +29,7 @@ EVENT_TYPES = {
     "recovery_completed",
     "operator_override",
     "legacy_imported",
+    "boundary_review_completed",
 }
 
 PHASE_PROGRESS_EVENTS = {

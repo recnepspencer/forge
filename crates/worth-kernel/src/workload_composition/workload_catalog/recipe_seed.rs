@@ -4,6 +4,7 @@ use topology::facade::{
 
 use super::error::WorkloadCatalogError;
 use super::recipe_kind::{WorkloadCatalogRecipeKind, WorkloadTopologyBreadth};
+use crate::workload_composition::{trace_note, trace_scope};
 
 pub(super) fn build_topology_seed(
     recipe: WorkloadCatalogRecipeKind,
@@ -11,26 +12,35 @@ pub(super) fn build_topology_seed(
     topology_breadth: WorkloadTopologyBreadth,
     topology_construction: Option<&NmtTopologyConstructionReceipt>,
 ) -> Result<TopologySeedReceipt, WorkloadCatalogError> {
-    if let Some(construction) = topology_construction {
-        if !recipe.consumes_nmt_topology_construction() {
+    trace_scope("build_topology_seed", || {
+        if let Some(construction) = topology_construction {
+            if !recipe.consumes_nmt_topology_construction() {
+                return Err(WorkloadCatalogError::UnsupportedRecipe {
+                    recipe,
+                    reason: "NMT topology construction receipts can only enter catalog recipes that explicitly consume the generic NMT topology construction boundary".to_string(),
+                });
+            }
+            trace_note(format!(
+                "reuse nmt topology construction seed for {declaration}"
+            ));
+            return Ok(construction.topology_seed_receipt().clone());
+        }
+        if recipe.consumes_nmt_topology_construction() {
             return Err(WorkloadCatalogError::UnsupportedRecipe {
                 recipe,
-                reason: "NMT topology construction receipts can only enter catalog recipes that explicitly consume the generic NMT topology construction boundary".to_string(),
+                reason: "NMT topology construction workloads require a production NmtTopologyConstructionReceipt before spatial binding".to_string(),
             });
         }
-        return Ok(construction.topology_seed_receipt().clone());
-    }
-    if recipe.consumes_nmt_topology_construction() {
-        return Err(WorkloadCatalogError::UnsupportedRecipe {
-            recipe,
-            reason: "NMT topology construction workloads require a production NmtTopologyConstructionReceipt before spatial binding".to_string(),
-        });
-    }
 
-    let seed = topology_seed_for_breadth(recipe, topology_breadth)?;
-    seed.with_declaration(format!("topology seed for {declaration}"))
-        .build()
-        .map_err(WorkloadCatalogError::from)
+        let seed = trace_scope("topology_seed_select_recipe", || {
+            topology_seed_for_breadth(recipe, topology_breadth)
+        })?;
+        trace_scope("topology_seed_build_receipt", || {
+            seed.with_declaration(format!("topology seed for {declaration}"))
+                .build()
+                .map_err(WorkloadCatalogError::from)
+        })
+    })
 }
 
 fn topology_seed_for_breadth(
@@ -84,6 +94,8 @@ fn default_topology_seed(recipe: WorkloadCatalogRecipeKind) -> TopologySeedRecip
         | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
         | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
         | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair
+        | WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair
+        | WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair
         | WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair
         | WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair => unreachable!(
             "boolean operand-pair recipes must build through the dedicated pair orchestrator"

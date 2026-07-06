@@ -39,7 +39,7 @@ pub(super) fn replayed_shared_area_bundles() -> (
 }
 
 pub(super) fn shared_area_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
@@ -59,7 +59,7 @@ pub(super) fn synthetic_chain_lineage_map(
             if reverse_source_edge_sense {
                 source_edges.reverse();
             }
-            let source_loops = if unstable_orientation {
+            let source_loops = if unstable_orientation || ambiguous_ordering {
                 vec![
                     row.source_loop_identities()[0].clone(),
                     row.source_loop_identities()[0].clone(),

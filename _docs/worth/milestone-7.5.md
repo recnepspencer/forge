@@ -1,6 +1,9 @@
 # Worth Milestone 7.5: Coplanar Overlap Region Extraction
 
-> **Status:** Draft
+> **Status:** Closed
+>
+> **Closeout:** Phase 16 summum-bonum certification closed on 2026-07-06.
+> The overlap-region ledger is the exclusive overlap-truth boundary for `7.6+`.
 >
 > **Purpose:** freeze the canonical overlap-region products that consume the
 > Milestone 16 touched-graph readiness handoff and the `7.4` loop
@@ -1562,6 +1565,45 @@ proof:
     - `synthetic_readiness_or_mismatched_loop_ledger_is_rejected`
     - `checkpoint_replay_preserves_region_identity_and_names`
     - `overlap_storm_uses_index_not_pairwise_rediscovery`
+
+## Closeout Evidence
+
+Milestone `7.5` is closed by the Phase 16 summum-bonum certification path. The
+closeout consumes the real Milestone 16 touched-graph readiness handoff, the
+`TopologyMilestoneSevenFiveOverlapReadinessConsumer`, the readiness-to-loop
+ledger binding, the `7.4` loop ledger receipt, the overlap-region ledger
+receipt, Phase 15 evidence, replay parity, checkpoint parity, public-contract
+fence rows, and anti-theatre guard rows.
+
+The closeout proves:
+
+- boundary-only coincident edges remain boundary-only outcomes and do not admit
+  area
+- opposite-sense shared area receives stable canonical winding
+- nested overlap lineage preserves region identity
+- mixed boundary/area contact remains typed instead of collapsing into pure
+  boundary or pure area
+- benign loop-order variation preserves the ordering digest
+- synthetic overlap-ledger and mismatched readiness/loop-ledger attempts deny
+  with typed localization
+- checkpoint replay preserves region identity and naming evidence
+- overlap-storm pressure stays on the indexed overlap-ledger path with zero
+  pairwise rediscovery attempts
+
+The closeout was verified with:
+
+```text
+cargo check -p worth-spatial -p worth-kernel
+cargo test -p worth-spatial region_candidate --lib -- --nocapture
+cargo test -p worth-spatial pre_region_normalization --lib -- --nocapture
+cargo test -p worth-kernel overlap_closeout -- --nocapture
+cargo test -p worth-kernel summum_bonum -- --nocapture
+cargo test -p worth-kernel planar_boolean_overlap_region_metaboss_is_canonical_replayable_area_honest_and_unforgeable -- --nocapture
+```
+
+`7.6` must consume `PlanarBooleanOverlapRegionLedgerReceipt`; it must not
+reopen touched graph, selected route, Query posture, loops, islands,
+arrangement cells, containment/winding fields, or pairwise overlap scans.
 
 ## Non-Goals
 

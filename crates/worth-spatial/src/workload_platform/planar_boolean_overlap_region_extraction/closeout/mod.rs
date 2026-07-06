@@ -1,8 +1,11 @@
 mod denial;
 mod subcases;
 mod summum_bonum;
+mod summum_bonum_witnesses;
 #[cfg(test)]
 mod tests;
+mod verification;
+mod witness_material;
 
 pub use denial::{
     PlanarBooleanOverlapRegionSummumBonumCloseoutDenial,
@@ -14,6 +17,15 @@ pub use subcases::{
 };
 pub use summum_bonum::{
     PlanarBooleanOverlapRegionSummumBonumCloseout,
-    PlanarBooleanOverlapRegionSummumBonumCloseoutCounters,
     PlanarBooleanOverlapRegionSummumBonumCloseoutInput,
+};
+pub use summum_bonum_witnesses::{
+    PlanarBooleanOverlapRegionBoundaryOnlyOutcomeWitness,
+    PlanarBooleanOverlapRegionCanonicalWindingOutcomeWitness,
+    PlanarBooleanOverlapRegionCheckpointOutcomeWitness,
+    PlanarBooleanOverlapRegionMixedBoundaryAreaWitness,
+    PlanarBooleanOverlapRegionNestedIdentityOutcomeWitness,
+    PlanarBooleanOverlapRegionOrderingParityWitness, PlanarBooleanOverlapRegionReplayParityWitness,
+    PlanarBooleanOverlapRegionSharedAreaOutcomeWitness, PlanarBooleanOverlapRegionStormWitness,
+    PlanarBooleanOverlapRegionSummumBonumCloseoutCounters,
 };

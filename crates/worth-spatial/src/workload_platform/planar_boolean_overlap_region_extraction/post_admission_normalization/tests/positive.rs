@@ -1,12 +1,12 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOverlapRegionCanonicalWindingSourceKind, PlanarBooleanPostAdmissionNormalizationBundle,
-    PlanarBooleanPostAdmissionNormalizationInput,
+    PlanarBooleanOverlapRegionCanonicalWindingSourceKind,
+    PlanarBooleanPostAdmissionNormalizationBundle, PlanarBooleanPostAdmissionNormalizationInput,
 };
 
 use super::support::{
-    admitted_post_admission_bundle, admitted_region_candidate_bundle, boundary_only_region_candidate_bundle,
-    canonical_winding_graph, canonical_winding_set, payload_permuted_region_candidate_bundle,
-    replayed_inputs,
+    admitted_post_admission_bundle, admitted_region_candidate_bundle,
+    boundary_only_region_candidate_bundle, canonical_winding_graph, canonical_winding_set,
+    payload_permuted_region_candidate_bundle, replayed_inputs,
 };
 
 #[test]
@@ -24,7 +24,10 @@ fn admitted_regions_receive_canonical_winding_products() {
     let bundle = admitted_post_admission_bundle(&canonical_winding_graph());
     let row = &canonical_winding_set(&bundle).rows()[0];
 
-    assert_eq!(row.source_kind(), PlanarBooleanOverlapRegionCanonicalWindingSourceKind::AdmittedRegion);
+    assert_eq!(
+        row.source_kind(),
+        PlanarBooleanOverlapRegionCanonicalWindingSourceKind::AdmittedRegion
+    );
     assert!(row.canonical_winding_sign().is_some());
     assert!(!row.canonical_boundary_segment_identities().is_empty());
     assert!(!row.canonical_source_loop_identities().is_empty());
@@ -37,7 +40,10 @@ fn boundary_only_outcomes_are_carried_into_the_canonical_product_without_area_wi
         .expect("boundary-only fixture should still canonicalize");
     let row = &canonical_winding_set(&bundle).rows()[0];
 
-    assert_eq!(row.source_kind(), PlanarBooleanOverlapRegionCanonicalWindingSourceKind::BoundaryOnlyOutcome);
+    assert_eq!(
+        row.source_kind(),
+        PlanarBooleanOverlapRegionCanonicalWindingSourceKind::BoundaryOnlyOutcome
+    );
     assert_eq!(row.canonical_winding_sign(), None);
     assert_eq!(row.canonical_operand_side(), None);
 }

@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
-use std::sync::{Mutex, OnceLock};
 
+#[path = "public_api_planar_boolean_event_predicate_binding_handles.rs"]
+mod handles;
 #[path = "public_api_planar_boolean_event_predicate_binding_predicate_cache.rs"]
 mod predicate_cache;
 #[path = "public_api_planar_boolean_event_predicate_binding_projection_cache.rs"]
 mod projection_cache;
-use forge_query::facade::ForgeQueryApplicationFacade;
+use handles::{
+    frame_handle, precision_handle, predicate_consumption_handle, predicate_handle,
+    projection_handle, segment_handle,
+};
 use worth_kernel::workload_composition::PlanarBooleanCommonPlaneReducedOperandPairRequest;
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanSegmentPairEnumerationReceipt;
 use worth_spatial::facade::planar_local_frame::{
@@ -20,23 +24,18 @@ use worth_spatial::facade::planar_precision::{
 };
 use worth_spatial::facade::planar_predicate_consumption::{
     PredicateCertificateConsumption, PredicateCertificateConsumptionContracts,
-    PredicateCertificateConsumptionQueryDomain, PredicateCertificateConsumptionQueryWorld,
     PredicateCertificateConsumptionReceipt,
 };
 use worth_spatial::facade::planar_predicates::{
     planar_predicate_authority_entry, planar_predicate_authority_facts,
-    PlanarPredicateAuthorityCase, PlanarPredicateAuthorityQueryDomain,
-    PlanarPredicateAuthorityQueryWorld, PlanarPredicateFactReceipt, PlanarPredicateInputBasis,
-};
-use worth_spatial::facade::planar_projection::{
-    ProjectPointToCertifiedPlane2DQueryDomain, ProjectPointToCertifiedPlane2DQueryWorld,
+    PlanarPredicateAuthorityCase, PlanarPredicateFactReceipt, PlanarPredicateInputBasis,
 };
 use worth_spatial::facade::planar_segment_segment::{
-    CertifiedSegmentSegment2DContracts, CertifiedSegmentSegment2DQueryDomain,
-    CertifiedSegmentSegment2DQueryWorld, CertifiedSegmentSegment2DReceipt,
+    CertifiedSegmentSegment2DContracts, CertifiedSegmentSegment2DReceipt,
 };
 
 use super::reduced_pair_support;
+use worth_kernel::workload_composition::trace_scope;
 
 const MOVEMENT: &str = "movement:event-predicate-binding";
 const TOPOLOGY: &str = "topology:event-predicate-binding";
@@ -54,16 +53,29 @@ pub(crate) struct BindingSubject {
 
 pub(crate) fn binding_subject(readiness_scope: &'static str) -> BindingSubject {
     let (pair, operand_a, operand_b) =
-        reduced_pair_support::event_carrier_projected_operand_requests_from_catalog(
-            readiness_scope,
-        );
+        trace_scope("binding_subject_event_carrier_operands", || {
+            reduced_pair_support::event_carrier_projected_operand_requests_from_catalog(
+                readiness_scope,
+            )
+        });
     binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
 }
 
 #[allow(dead_code)]
 pub(crate) fn metaboss_binding_subject(readiness_scope: &'static str) -> BindingSubject {
-    let (pair, operand_a, operand_b) =
-        reduced_pair_support::metaboss_projected_operand_requests_from_catalog(readiness_scope);
+    let (pair, operand_a, operand_b) = trace_scope("binding_subject_metaboss_operands", || {
+        reduced_pair_support::metaboss_projected_operand_requests_from_catalog(readiness_scope)
+    });
+    binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
+}
+
+pub(crate) fn binding_subject_from_pair(
+    readiness_scope: &'static str,
+    pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
+) -> BindingSubject {
+    let (pair, operand_a, operand_b) = trace_scope("binding_subject_custom_pair_operands", || {
+        reduced_pair_support::projected_operand_requests_from_pair(readiness_scope, pair)
+    });
     binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
 }
 
@@ -73,54 +85,70 @@ fn binding_subject_from_projected_operands(
     operand_a: worth_kernel::workload_composition::PlanarBooleanCommonPlaneOperandAProjectedRequest,
     operand_b: worth_kernel::workload_composition::PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) -> BindingSubject {
-    let reduced_pair =
-        PlanarBooleanCommonPlaneReducedOperandPairRequest::from_operand_projection_requests(
-            operand_a, operand_b,
-        )
-        .expect("reduced pair should certify");
-    let pair_worklist = reduced_pair
-        .segment_carrier_set()
-        .expect("carrier set should certify")
-        .canonical_segment_set()
-        .expect("canonical segments should certify")
-        .segment_pair_enumeration_receipt()
-        .expect("pair worklist should certify");
-    let frame = certified_frame(
-        readiness_scope,
-        pair_worklist.work_items()[0].left().local_frame_identity(),
-        pair_worklist.work_items()[0]
-            .left()
-            .precision_basis_identity(),
-    );
-    let segment_contracts = CertifiedSegmentSegment2DContracts::new(
-        segment_handle(readiness_scope),
-        predicate_handle(),
-    );
-    let projection_handle = projection_handle(readiness_scope);
-    let mut projection_cache = BTreeMap::new();
-    let mut segment_receipts = Vec::with_capacity(pair_worklist.work_items().len());
-    for work_item in pair_worklist.work_items() {
-        segment_receipts.push(projection_cache::segment_receipt_from_cached_projection(
-            &frame,
-            work_item,
-            TOPOLOGY,
-            &segment_contracts,
-            &projection_handle,
-            &mut projection_cache,
-        ));
-    }
-    let predicates =
-        predicate_cache::unique_orientation_predicates_from_segment_receipts(&segment_receipts);
-    let predicate_consumption =
-        predicate_consumption_receipt(readiness_scope, segment_receipts.clone(), predicates);
-    BindingSubject {
-        pair,
-        reduced_pair: reduced_pair.clone(),
-        reduced_pair_identity: reduced_pair.reduced_operand_pair_identity().to_string(),
-        pair_worklist,
-        segment_receipts,
-        predicate_consumption,
-    }
+    trace_scope("binding_subject_from_projected_operands", || {
+        let reduced_pair = trace_scope("binding_subject_reduced_pair", || {
+            PlanarBooleanCommonPlaneReducedOperandPairRequest::from_operand_projection_requests(
+                operand_a, operand_b,
+            )
+            .expect("reduced pair should certify")
+        });
+        let pair_worklist = trace_scope("binding_subject_pair_worklist", || {
+            reduced_pair
+                .segment_carrier_set()
+                .expect("carrier set should certify")
+                .canonical_segment_set()
+                .expect("canonical segments should certify")
+                .segment_pair_enumeration_receipt()
+                .expect("pair worklist should certify")
+        });
+        let frame = trace_scope("binding_subject_certified_frame", || {
+            certified_frame(
+                readiness_scope,
+                pair_worklist.work_items()[0].left().local_frame_identity(),
+                pair_worklist.work_items()[0]
+                    .left()
+                    .precision_basis_identity(),
+            )
+        });
+        let segment_contracts = trace_scope("binding_subject_segment_contract_handles", || {
+            CertifiedSegmentSegment2DContracts::new(
+                segment_handle(readiness_scope),
+                predicate_handle(),
+            )
+        });
+        let projection_handle = trace_scope("binding_subject_projection_handle", || {
+            projection_handle(readiness_scope)
+        });
+        let mut projection_cache = BTreeMap::new();
+        let segment_receipts = trace_scope("binding_subject_segment_receipts", || {
+            let mut receipts = Vec::with_capacity(pair_worklist.work_items().len());
+            for work_item in pair_worklist.work_items() {
+                receipts.push(projection_cache::segment_receipt_from_cached_projection(
+                    &frame,
+                    work_item,
+                    TOPOLOGY,
+                    &segment_contracts,
+                    &projection_handle,
+                    &mut projection_cache,
+                ));
+            }
+            receipts
+        });
+        let predicates = trace_scope("binding_subject_unique_predicates", || {
+            predicate_cache::unique_orientation_predicates_from_segment_receipts(&segment_receipts)
+        });
+        let predicate_consumption = trace_scope("binding_subject_predicate_consumption", || {
+            predicate_consumption_receipt(readiness_scope, segment_receipts.clone(), predicates)
+        });
+        BindingSubject {
+            pair,
+            reduced_pair: reduced_pair.clone(),
+            reduced_pair_identity: reduced_pair.reduced_operand_pair_identity().to_string(),
+            pair_worklist,
+            segment_receipts,
+            predicate_consumption,
+        }
+    })
 }
 
 pub(crate) fn binding_subject_with_segment_contract_frame_mismatch(
@@ -286,106 +314,4 @@ fn predicate_receipt(
         &predicate_handle(),
     )
     .expect("predicate receipt")
-}
-
-macro_rules! handle {
-    ($name:ident, $cache:ident, $domain:expr, $world:expr, $domain_ty:ty, $world_ty:ty) => {
-        fn $name(
-            world: &'static str,
-        ) -> forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<$domain_ty, $world_ty> {
-            static $cache: OnceLock<
-                Mutex<
-                    BTreeMap<
-                        &'static str,
-                        forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
-                            $domain_ty,
-                            $world_ty,
-                        >,
-                    >,
-                >,
-            > = OnceLock::new();
-            let mut cache = $cache
-                .get_or_init(|| Mutex::new(BTreeMap::new()))
-                .lock()
-                .expect("predicate-binding handle cache lock");
-            cache
-                .entry(world)
-                .or_insert_with(|| {
-                    ForgeQueryApplicationFacade::runtime_backed_default()
-                        .domain($domain)
-                        .with_operating_context($world(world))
-                        .validate()
-                        .expect("validated predicate-binding contract domain")
-                        .admit()
-                        .expect("admitted predicate-binding contract domain")
-                })
-                .clone()
-        }
-    };
-}
-
-handle!(
-    frame_handle,
-    FRAME_HANDLE_CACHE,
-    PlanarLocalFrameCertificateQueryDomain,
-    PlanarLocalFrameCertificateQueryWorld::new,
-    PlanarLocalFrameCertificateQueryDomain,
-    PlanarLocalFrameCertificateQueryWorld
-);
-handle!(
-    precision_handle,
-    PRECISION_HANDLE_CACHE,
-    PlanarPrecisionCertificationQueryDomain,
-    PlanarPrecisionCertificationQueryWorld::new,
-    PlanarPrecisionCertificationQueryDomain,
-    PlanarPrecisionCertificationQueryWorld
-);
-handle!(
-    projection_handle,
-    PROJECTION_HANDLE_CACHE,
-    ProjectPointToCertifiedPlane2DQueryDomain,
-    ProjectPointToCertifiedPlane2DQueryWorld::new,
-    ProjectPointToCertifiedPlane2DQueryDomain,
-    ProjectPointToCertifiedPlane2DQueryWorld
-);
-handle!(
-    segment_handle,
-    SEGMENT_HANDLE_CACHE,
-    CertifiedSegmentSegment2DQueryDomain,
-    CertifiedSegmentSegment2DQueryWorld::new,
-    CertifiedSegmentSegment2DQueryDomain,
-    CertifiedSegmentSegment2DQueryWorld
-);
-handle!(
-    predicate_consumption_handle,
-    PREDICATE_CONSUMPTION_HANDLE_CACHE,
-    PredicateCertificateConsumptionQueryDomain,
-    PredicateCertificateConsumptionQueryWorld::new,
-    PredicateCertificateConsumptionQueryDomain,
-    PredicateCertificateConsumptionQueryWorld
-);
-
-fn predicate_handle() -> forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
-    PlanarPredicateAuthorityQueryDomain,
-    PlanarPredicateAuthorityQueryWorld,
-> {
-    static PREDICATE_HANDLE_CACHE: OnceLock<
-        forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
-            PlanarPredicateAuthorityQueryDomain,
-            PlanarPredicateAuthorityQueryWorld,
-        >,
-    > = OnceLock::new();
-    PREDICATE_HANDLE_CACHE
-        .get_or_init(|| {
-            ForgeQueryApplicationFacade::runtime_backed_default()
-                .domain(PlanarPredicateAuthorityQueryDomain)
-                .with_operating_context(PlanarPredicateAuthorityQueryWorld::new(
-                    "event-predicate-binding",
-                ))
-                .validate()
-                .expect("validated predicate domain")
-                .admit()
-                .expect("admitted predicate domain")
-        })
-        .clone()
 }

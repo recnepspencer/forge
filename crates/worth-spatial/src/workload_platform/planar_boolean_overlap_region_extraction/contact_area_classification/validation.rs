@@ -28,7 +28,8 @@ pub(super) fn validate_input_identities(
             != area_components.arrangement_graph_identity()
         || overlap_islands.cell_set_identity() != boundary_components.cell_set_identity()
         || overlap_islands.cell_set_identity() != area_components.cell_set_identity()
-        || overlap_islands.ordering_basis_identity() != boundary_components.ordering_basis_identity()
+        || overlap_islands.ordering_basis_identity()
+            != boundary_components.ordering_basis_identity()
         || overlap_islands.ordering_basis_identity() != area_components.ordering_basis_identity()
     {
         counters.denied_classification();

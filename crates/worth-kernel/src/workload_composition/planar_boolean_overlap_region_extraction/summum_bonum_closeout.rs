@@ -23,7 +23,14 @@ impl CompletedPlanarBooleanOverlapRegionExtractionHandoff {
             input.readiness(),
             input.readiness_consumer(),
             input.readiness_binding(),
+            self.shared_area_bundle(),
+            self.canonical_winding_bundle(),
             self.overlap_ledger_bundle(),
+            self.replay_certified_peer().replayed_shared_area_bundle(),
+            self.replay_certified_peer()
+                .replayed_canonical_winding_bundle(),
+            self.replay_certified_peer()
+                .replayed_overlap_ledger_bundle(),
             self.evidence_receipt(),
             self.replay_parity_receipt(),
             self.checkpoint_parity_receipt(),

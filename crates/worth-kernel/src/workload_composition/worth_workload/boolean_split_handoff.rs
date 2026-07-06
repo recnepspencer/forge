@@ -71,7 +71,7 @@ impl CompletedBooleanSplitHandoff {
             .require_boolean_split(&self.split_ledger_receipt)
     }
 
-    pub(crate) fn with_batch_admission_execution(
+    pub fn with_batch_admission_execution(
         &self,
         batch_execution: &BatchAdmissionExecutionReceipt,
     ) -> Result<Self, WorkloadCompositionError> {

@@ -6,14 +6,17 @@ use super::denial::{
     PlanarBooleanOverlapRegionCandidateBoundaryDenialKind,
 };
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOppositeSenseOverlapNormalizationRow, PlanarBooleanOverlapRegionCandidateBoundaryInput,
+    PlanarBooleanOppositeSenseOverlapNormalizationRow,
+    PlanarBooleanOverlapRegionCandidateBoundaryInput,
 };
 
 pub(super) fn validate_input_identities(
     input: PlanarBooleanOverlapRegionCandidateBoundaryInput<'_>,
 ) -> Result<(), PlanarBooleanOverlapRegionCandidateBoundaryDenial> {
     let shared_area = input.shared_area_admission();
-    let normalization = input.pre_region_normalization().opposite_sense_overlap_normalizations();
+    let normalization = input
+        .pre_region_normalization()
+        .opposite_sense_overlap_normalizations();
     if shared_area.request_identity() != normalization.request_identity()
         || shared_area.arrangement_graph_identity() != normalization.arrangement_graph_identity()
         || shared_area.cell_set_identity() != normalization.cell_set_identity()
@@ -44,7 +47,8 @@ pub(super) fn validate_normalization_coverage(
         .opposite_sense_overlap_normalizations()
         .rows()
     {
-        if !shared_area_outcome_ids.contains(normalization.shared_area_admission_outcome_identity()) {
+        if !shared_area_outcome_ids.contains(normalization.shared_area_admission_outcome_identity())
+        {
             return Err(orphan_normalization_denial(normalization));
         }
     }

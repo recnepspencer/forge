@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryApplicationFacade;
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
-use worth_kernel::workload_composition::{TransformRecipe, WorkloadCatalog};
+use worth_kernel::workload_composition::{trace_scope, TransformRecipe, WorkloadCatalog};
 use worth_spatial::facade::boolean_readiness_workload::{
     PlanarBooleanReadinessEvidenceBasis, PlanarBooleanReadinessWorkload,
     PlanarBooleanReadinessWorkloadReceipt,
@@ -54,67 +54,106 @@ pub(crate) fn certified_boolean_readiness_workload_receipt_from_ledger(
     world: &'static str,
     ledger: CompleteWorkloadEvidenceLedger,
 ) -> PlanarBooleanReadinessWorkloadReceipt {
-    let bundle_receipt = readiness_receipt();
-    let retained = retained_planar_facts(bundle_receipt.clone());
-    let projected = ProjectionConsumedPlanarFacts::from_retained_planar_facts(retained.clone())
-        .consume_bundle_projection_receipts(bundle_receipt.basis().projection_receipts().to_vec())
-        .compile(&ProjectionConsumedPlanarFactsContracts::new(
-            projection_consumption_handle(),
-        ))
-        .expect("projection-consumed planar facts plan")
-        .consume()
-        .expect("projection-consumed planar facts receipt");
-    let recovery = recovery_receipt(world, retained.clone(), projected.clone());
-    let diagnostics = diagnostics_receipt(world, retained.clone(), projected.clone());
-    let local_rebuild = local_rebuild_receipt(
-        world,
-        retained.clone(),
-        projected.clone(),
-        recovery.clone(),
-        diagnostics.clone(),
-    );
-    let parity = ProjectionFactParityWorkload::from_evidence_basis(
-        ProjectionFactParityEvidenceBasis::from_evidence_ledger(ledger.clone())
-            .with_live_lane_from_ledger()
-            .with_projected_lane_from_ledger()
-            .with_projection_consumed_facts(&projected)
-            .with_retained_workload(&retained)
-            .with_replay(
-                &retained
-                    .historical_replay(&retained.replay_subject())
-                    .expect("historical replay from retained facts"),
+    let cache_key = format!("{}::{}", world, ledger.stage_index().index_identity());
+    if let Some(receipt) = readiness_receipt_cache()
+        .lock()
+        .expect("readiness receipt cache lock")
+        .get(&cache_key)
+        .cloned()
+    {
+        return receipt;
+    }
+    let bundle_receipt = trace_scope("boolean_readiness_bundle_receipt", readiness_receipt);
+    let retained = trace_scope("boolean_readiness_retained_planar_facts", || {
+        retained_planar_facts(bundle_receipt.clone())
+    });
+    let projected = trace_scope("boolean_readiness_projection_consumed_facts", || {
+        ProjectionConsumedPlanarFacts::from_retained_planar_facts(retained.clone())
+            .consume_bundle_projection_receipts(
+                bundle_receipt.basis().projection_receipts().to_vec(),
             )
-            .with_transformed_lane_from_ledger()
-            .with_recovery(&recovery)
-            .with_local_rebuild(&local_rebuild)
-            .with_diagnostics(&diagnostics),
-    )
-    .declared(format!("phase-1 boolean parity {world}"))
-    .compare_lanes()
-    .certify()
-    .expect("projection fact parity receipt");
-    let readiness_bundle = PlanarM7ReadinessBundle::from_certified_planar_bundle(bundle_receipt)
-        .with_structural_identity(retained.basis().structural_identity_receipt().clone())
-        .with_motion_posture(retained.basis().motion_posture_receipt().clone())
-        .with_retained_planar_facts(retained)
-        .with_projection_consumed_facts(projected)
-        .with_recovery_posture(recovery)
-        .with_diagnostics(diagnostics)
-        .with_support_posture(PlanarM7ReadinessSupportPosture::support_gated(
-            "Milestone 7.0 keeps boolean execution support-gated while declaration lanes harden",
-        ));
+            .compile(&ProjectionConsumedPlanarFactsContracts::new(
+                projection_consumption_handle(),
+            ))
+            .expect("projection-consumed planar facts plan")
+            .consume()
+            .expect("projection-consumed planar facts receipt")
+    });
+    let recovery = trace_scope("boolean_readiness_recovery_receipt", || {
+        recovery_receipt(world, retained.clone(), projected.clone())
+    });
+    let diagnostics = trace_scope("boolean_readiness_diagnostics_receipt", || {
+        diagnostics_receipt(world, retained.clone(), projected.clone())
+    });
+    let local_rebuild = trace_scope("boolean_readiness_local_rebuild_receipt", || {
+        local_rebuild_receipt(
+            world,
+            retained.clone(),
+            projected.clone(),
+            recovery.clone(),
+            diagnostics.clone(),
+        )
+    });
+    let parity = trace_scope("boolean_readiness_projection_fact_parity", || {
+        ProjectionFactParityWorkload::from_evidence_basis(
+            ProjectionFactParityEvidenceBasis::from_evidence_ledger(ledger.clone())
+                .with_live_lane_from_ledger()
+                .with_projected_lane_from_ledger()
+                .with_projection_consumed_facts(&projected)
+                .with_retained_workload(&retained)
+                .with_replay(
+                    &retained
+                        .historical_replay(&retained.replay_subject())
+                        .expect("historical replay from retained facts"),
+                )
+                .with_transformed_lane_from_ledger()
+                .with_recovery(&recovery)
+                .with_local_rebuild(&local_rebuild)
+                .with_diagnostics(&diagnostics),
+        )
+        .declared(format!("phase-1 boolean parity {world}"))
+        .compare_lanes()
+        .certify()
+        .expect("projection fact parity receipt")
+    });
+    let readiness_bundle = trace_scope("boolean_readiness_bundle_assembly", || {
+        PlanarM7ReadinessBundle::from_certified_planar_bundle(bundle_receipt)
+            .with_structural_identity(retained.basis().structural_identity_receipt().clone())
+            .with_motion_posture(retained.basis().motion_posture_receipt().clone())
+            .with_retained_planar_facts(retained)
+            .with_projection_consumed_facts(projected)
+            .with_recovery_posture(recovery)
+            .with_diagnostics(diagnostics)
+            .with_support_posture(PlanarM7ReadinessSupportPosture::support_gated(
+                "Milestone 7.0 keeps boolean execution support-gated while declaration lanes harden",
+            ))
+    });
     let basis = PlanarBooleanReadinessEvidenceBasis::from_real_workload_evidence(
         ledger,
         readiness_bundle,
         parity,
     );
 
-    PlanarBooleanReadinessWorkload::from_real_workload_evidence(basis)
-        .declared(format!("phase-1 planar boolean readiness workload {world}"))
-        .certify_pre_boolean_readiness(&PlanarContractBundleValidationContracts::new(
-            bundle_handle(),
-        ))
-        .expect("boolean readiness workload receipt")
+    let receipt = trace_scope("boolean_readiness_certify_workload", || {
+        PlanarBooleanReadinessWorkload::from_real_workload_evidence(basis)
+            .declared(format!("phase-1 planar boolean readiness workload {world}"))
+            .certify_pre_boolean_readiness(&PlanarContractBundleValidationContracts::new(
+                bundle_handle(),
+            ))
+            .expect("boolean readiness workload receipt")
+    });
+    readiness_receipt_cache()
+        .lock()
+        .expect("readiness receipt cache lock")
+        .insert(cache_key, receipt.clone());
+    receipt
+}
+
+fn readiness_receipt_cache(
+) -> &'static Mutex<BTreeMap<String, PlanarBooleanReadinessWorkloadReceipt>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<String, PlanarBooleanReadinessWorkloadReceipt>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
 }
 
 fn workload_ledger(

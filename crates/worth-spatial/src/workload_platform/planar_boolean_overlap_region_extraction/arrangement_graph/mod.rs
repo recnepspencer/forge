@@ -7,8 +7,10 @@ mod identity;
 mod input;
 mod lookup;
 mod product;
+mod source_only_topology;
 #[cfg(test)]
 pub(crate) mod tests;
+mod topology_ordering;
 mod topology_validation;
 mod validation;
 

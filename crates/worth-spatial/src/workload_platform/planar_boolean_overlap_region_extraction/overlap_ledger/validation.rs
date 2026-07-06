@@ -8,8 +8,8 @@ use super::denial::{
 use super::rows::PlanarBooleanOverlapRegionLedgerRow;
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
     PlanarBooleanAdmittedOverlapRegionSet, PlanarBooleanBoundaryOnlyOverlapOutcomeSet,
-    PlanarBooleanOverlapRegionCanonicalWindingRow,
-    PlanarBooleanOverlapRegionIdentityRow, PlanarBooleanOverlapRegionPersistentNamePropagationRow,
+    PlanarBooleanOverlapRegionCanonicalWindingRow, PlanarBooleanOverlapRegionIdentityRow,
+    PlanarBooleanOverlapRegionPersistentNamePropagationRow,
     PlanarBooleanOverlapRegionSubshapeSignatureRow,
 };
 
@@ -116,7 +116,8 @@ pub(super) fn signature_rows_by_region<'a>(
 pub(super) fn persistent_names_by_region<'a>(
     rows: &'a [PlanarBooleanOverlapRegionPersistentNamePropagationRow],
 ) -> BTreeMap<&'a str, Vec<&'a PlanarBooleanOverlapRegionPersistentNamePropagationRow>> {
-    let mut grouped = BTreeMap::<&str, Vec<&PlanarBooleanOverlapRegionPersistentNamePropagationRow>>::new();
+    let mut grouped =
+        BTreeMap::<&str, Vec<&PlanarBooleanOverlapRegionPersistentNamePropagationRow>>::new();
     for row in rows {
         grouped.entry(row.region_identity()).or_default().push(row);
     }
@@ -135,7 +136,10 @@ pub(super) fn require_canonical_row<'a>(
     identity_row: &PlanarBooleanOverlapRegionIdentityRow,
     canonical_rows: &'a BTreeMap<&str, &'a PlanarBooleanOverlapRegionCanonicalWindingRow>,
     counters: &mut PlanarBooleanOverlapRegionLedgerAssemblyCounters,
-) -> Result<&'a PlanarBooleanOverlapRegionCanonicalWindingRow, PlanarBooleanOverlapRegionLedgerAssemblyDenial> {
+) -> Result<
+    &'a PlanarBooleanOverlapRegionCanonicalWindingRow,
+    PlanarBooleanOverlapRegionLedgerAssemblyDenial,
+> {
     canonical_rows
         .get(identity_row.canonical_winding_identity())
         .copied()
@@ -154,7 +158,10 @@ pub(super) fn require_signature_row<'a>(
     region_identity: &str,
     signature_rows: &'a BTreeMap<&str, &'a PlanarBooleanOverlapRegionSubshapeSignatureRow>,
     counters: &mut PlanarBooleanOverlapRegionLedgerAssemblyCounters,
-) -> Result<&'a PlanarBooleanOverlapRegionSubshapeSignatureRow, PlanarBooleanOverlapRegionLedgerAssemblyDenial> {
+) -> Result<
+    &'a PlanarBooleanOverlapRegionSubshapeSignatureRow,
+    PlanarBooleanOverlapRegionLedgerAssemblyDenial,
+> {
     signature_rows.get(region_identity).copied().ok_or_else(|| {
         counters.denied_row();
         PlanarBooleanOverlapRegionLedgerAssemblyDenial::new(

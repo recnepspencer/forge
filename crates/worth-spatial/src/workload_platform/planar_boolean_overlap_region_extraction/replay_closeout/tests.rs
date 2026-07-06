@@ -39,8 +39,7 @@ fn identity_lineage_for_order(
     PlanarBooleanOverlapRegionExtractionRequest,
     PlanarBooleanOverlapRegionIdentityLineageBundle,
 ) {
-    let (request, support) =
-        overlap_request_and_support(clone_loop_entry_order(loop_entry_order));
+    let (request, support) = overlap_request_and_support(clone_loop_entry_order(loop_entry_order));
 
     let participation = PlanarBooleanOverlapParticipationRecovery::recover(
         PlanarBooleanOverlapParticipationRecoveryInput::from_request_and_loop_support(

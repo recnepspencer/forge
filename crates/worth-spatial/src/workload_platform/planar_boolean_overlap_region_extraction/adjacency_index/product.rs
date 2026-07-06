@@ -18,6 +18,7 @@ pub struct PlanarBooleanOverlapRegionAdjacencyIndex {
     chain_lineage_map_identity: String,
     rows: Vec<PlanarBooleanOverlapAdjacencyRow>,
     ordering_basis: PlanarBooleanOverlapAdjacencyOrderingBasis,
+    source_only_boundary_lane: bool,
     neighborhoods_by_chain: BTreeMap<String, Vec<usize>>,
     neighborhoods_by_loop: BTreeMap<String, Vec<usize>>,
     neighborhoods_by_island: BTreeMap<String, Vec<usize>>,
@@ -40,6 +41,31 @@ impl PlanarBooleanOverlapRegionAdjacencyIndex {
         chain_lineage_map_identity: String,
         rows: Vec<PlanarBooleanOverlapAdjacencyRow>,
         ordering_basis: PlanarBooleanOverlapAdjacencyOrderingBasis,
+        counters: PlanarBooleanOverlapAdjacencyIndexCounters,
+    ) -> Self {
+        Self::new_with_source_only_boundary_lane(
+            adjacency_index_identity,
+            request_identity,
+            loop_participation_map_identity,
+            island_participation_map_identity,
+            chain_lineage_map_identity,
+            rows,
+            ordering_basis,
+            false,
+            counters,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_with_source_only_boundary_lane(
+        adjacency_index_identity: String,
+        request_identity: String,
+        loop_participation_map_identity: String,
+        island_participation_map_identity: String,
+        chain_lineage_map_identity: String,
+        rows: Vec<PlanarBooleanOverlapAdjacencyRow>,
+        ordering_basis: PlanarBooleanOverlapAdjacencyOrderingBasis,
+        source_only_boundary_lane: bool,
         counters: PlanarBooleanOverlapAdjacencyIndexCounters,
     ) -> Self {
         let mut neighborhoods_by_chain = BTreeMap::<String, Vec<usize>>::new();
@@ -73,6 +99,7 @@ impl PlanarBooleanOverlapRegionAdjacencyIndex {
             chain_lineage_map_identity,
             rows,
             ordering_basis,
+            source_only_boundary_lane,
             neighborhoods_by_chain,
             neighborhoods_by_loop,
             neighborhoods_by_island,
@@ -106,6 +133,10 @@ impl PlanarBooleanOverlapRegionAdjacencyIndex {
 
     pub fn ordering_basis(&self) -> &PlanarBooleanOverlapAdjacencyOrderingBasis {
         &self.ordering_basis
+    }
+
+    pub fn source_only_boundary_lane(&self) -> bool {
+        self.source_only_boundary_lane
     }
 
     pub fn counters(&self) -> PlanarBooleanOverlapAdjacencyIndexCounters {

@@ -5,63 +5,77 @@ use worth_kernel::workload_composition::{
 };
 
 #[test]
-fn common_plane_scope_admission_preserves_one_narrow_admitted_shape() {
+fn common_plane_scope_admission_converges_closed_planar_body_pair_families() {
     super::run_with_large_stack(|| {
-        let ordinary_pair = WorkloadCatalog::planar_boolean_clean_planar_body_pair()
-            .declared("phase7.1 scope admission convergence")
-            .build()
-            .expect("ordinary clean planar body pair should build");
-        let advanced_pair = WorkloadCatalog::planar_boolean_clean_planar_body_pair()
-            .declared("phase7.1 scope admission convergence")
-            .build()
-            .expect("advanced clean planar body pair should build");
-
-        let ordinary = PlanarBooleanCommonPlaneScopeAdmittedRequest::from_reduction_request(
-            PlanarBooleanCommonPlaneReductionRequest::from_operand_pair_recipe(ordinary_pair)
-                .expect("ordinary reduction request should build"),
-        )
-        .expect("ordinary clean planar body pair should admit");
-        let advanced = PlanarBooleanCommonPlaneScopeAdmittedRequest::from_reduction_request(
-            PlanarBooleanCommonPlaneReductionRequest::from_built_pair_and_construction(
-                advanced_pair.clone(),
-                advanced_pair.construction_receipt(),
+        for pair in [
+            WorkloadCatalog::planar_boolean_clean_planar_body_pair()
+                .declared("phase7.1 scope admission clean")
+                .build()
+                .expect("clean planar body pair should build"),
+            WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
+                .declared("phase7.1 scope admission event carrier")
+                .build()
+                .expect("event-carrier planar body pair should build"),
+            WorkloadCatalog::planar_boolean_event_extraction_metaboss_pair()
+                .declared("phase7.1 scope admission metaboss")
+                .build()
+                .expect("event-extraction metaboss pair should build"),
+            WorkloadCatalog::planar_boolean_boundary_only_coincident_pair()
+                .declared("phase7.1 scope admission boundary-only")
+                .build()
+                .expect("boundary-only pair should build"),
+            WorkloadCatalog::planar_boolean_mixed_boundary_area_pair()
+                .declared("phase7.1 scope admission mixed boundary-area")
+                .build()
+                .expect("mixed boundary-area pair should build"),
+        ] {
+            let ordinary = PlanarBooleanCommonPlaneScopeAdmittedRequest::from_reduction_request(
+                PlanarBooleanCommonPlaneReductionRequest::from_operand_pair_recipe(pair.clone())
+                    .expect("ordinary reduction request should build"),
             )
-            .expect("advanced reduction request should build"),
-        )
-        .expect("advanced clean planar body pair should admit");
+            .expect("closed planar body pair family should admit");
+            let advanced = PlanarBooleanCommonPlaneScopeAdmittedRequest::from_reduction_request(
+                PlanarBooleanCommonPlaneReductionRequest::from_built_pair_and_construction(
+                    pair.clone(),
+                    pair.construction_receipt(),
+                )
+                .expect("advanced reduction request should build"),
+            )
+            .expect("closed planar body pair family should admit");
 
-        assert_eq!(
-            ordinary.admitted_scope(),
-            PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair
-        );
-        assert_eq!(
-            advanced.admitted_scope(),
-            PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair
-        );
-        assert_eq!(
-            ordinary.admitted_scope(),
-            advanced.admitted_scope(),
-            "equivalent admitted recipes must converge to the same admitted scope class"
-        );
-        assert_eq!(
-            ordinary.scope_admission_identity(),
-            advanced.scope_admission_identity(),
-            "ordinary and advanced request construction must converge to one scope-admission identity"
-        );
-        assert_eq!(
-            ordinary.request_identity(),
-            ordinary.reduction_request().request_identity()
-        );
-        assert_eq!(
-            advanced.request_identity(),
-            advanced.reduction_request().request_identity()
-        );
-        assert_eq!(
-            ordinary.operand_pair_identity(),
-            advanced.operand_pair_identity()
-        );
-        assert!(!ordinary.scope_admission_identity().trim().is_empty());
-        assert!(!advanced.scope_admission_identity().trim().is_empty());
+            assert_eq!(
+                ordinary.admitted_scope(),
+                PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair
+            );
+            assert_eq!(
+                advanced.admitted_scope(),
+                PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair
+            );
+            assert_eq!(
+                ordinary.admitted_scope(),
+                advanced.admitted_scope(),
+                "equivalent admitted recipes must converge to the same admitted scope class"
+            );
+            assert_eq!(
+                ordinary.scope_admission_identity(),
+                advanced.scope_admission_identity(),
+                "ordinary and advanced request construction must converge to one scope-admission identity"
+            );
+            assert_eq!(
+                ordinary.request_identity(),
+                ordinary.reduction_request().request_identity()
+            );
+            assert_eq!(
+                advanced.request_identity(),
+                advanced.reduction_request().request_identity()
+            );
+            assert_eq!(
+                ordinary.operand_pair_identity(),
+                advanced.operand_pair_identity()
+            );
+            assert!(!ordinary.scope_admission_identity().trim().is_empty());
+            assert!(!advanced.scope_admission_identity().trim().is_empty());
+        }
     });
 }
 

@@ -59,8 +59,12 @@ impl PlanarBooleanOverlapRegionPublicContractProofRow {
         Self { kind, identity }
     }
 
-    pub fn kind(&self) -> PlanarBooleanOverlapRegionPublicContractProofRowKind { self.kind }
-    pub fn identity(&self) -> &str { &self.identity }
+    pub fn kind(&self) -> PlanarBooleanOverlapRegionPublicContractProofRowKind {
+        self.kind
+    }
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
 }
 
 impl PlanarBooleanOverlapRegionPublicContractFenceProof {
@@ -74,21 +78,34 @@ impl PlanarBooleanOverlapRegionPublicContractFenceProof {
             || evidence_receipt.readiness_consumer_identity().is_empty()
             || evidence_receipt.readiness_binding_identity().is_empty()
         {
-            return Err(PlanarBooleanOverlapRegionPublicContractFenceDenial::ReadinessAuthorityMismatch);
+            return Err(
+                PlanarBooleanOverlapRegionPublicContractFenceDenial::ReadinessAuthorityMismatch,
+            );
         }
         if evidence_receipt.overlap_ledger_receipt_identity() != ledger_receipt.receipt_identity() {
-            return Err(PlanarBooleanOverlapRegionPublicContractFenceDenial::OverlapEvidenceMismatch);
+            return Err(
+                PlanarBooleanOverlapRegionPublicContractFenceDenial::OverlapEvidenceMismatch,
+            );
         }
         if evidence_receipt.request_identity() != ledger_receipt.request_identity() {
-            return Err(PlanarBooleanOverlapRegionPublicContractFenceDenial::RequestIdentityMismatch);
+            return Err(
+                PlanarBooleanOverlapRegionPublicContractFenceDenial::RequestIdentityMismatch,
+            );
         }
-        if runtime_registration_proof.evidence_receipt_identity() != evidence_receipt.receipt_identity()
-            || runtime_registration_proof.overlap_ledger_receipt_identity() != ledger_receipt.receipt_identity()
+        if runtime_registration_proof.evidence_receipt_identity()
+            != evidence_receipt.receipt_identity()
+            || runtime_registration_proof.overlap_ledger_receipt_identity()
+                != ledger_receipt.receipt_identity()
             || runtime_registration_proof.request_identity() != evidence_receipt.request_identity()
         {
-            return Err(PlanarBooleanOverlapRegionPublicContractFenceDenial::RuntimeRegistrationMismatch);
+            return Err(
+                PlanarBooleanOverlapRegionPublicContractFenceDenial::RuntimeRegistrationMismatch,
+            );
         }
-        let workload_stage_index_identity = completed_workload.evidence_ledger().stage_index().index_identity();
+        let workload_stage_index_identity = completed_workload
+            .evidence_ledger()
+            .stage_index()
+            .index_identity();
         if runtime_registration_proof.stage_index_identity() != workload_stage_index_identity {
             return Err(PlanarBooleanOverlapRegionPublicContractFenceDenial::WorkloadStageMismatch);
         }
@@ -144,8 +161,12 @@ impl PlanarBooleanOverlapRegionPublicContractFenceProof {
         })
     }
 
-    pub fn proof_identity(&self) -> &str { &self.proof_identity }
-    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionPublicContractProofRow] { &self.rows }
+    pub fn proof_identity(&self) -> &str {
+        &self.proof_identity
+    }
+    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionPublicContractProofRow] {
+        &self.rows
+    }
 }
 
 impl PlanarBooleanOverlapRegionAntiTheatreFenceProof {
@@ -164,9 +185,14 @@ impl PlanarBooleanOverlapRegionAntiTheatreFenceProof {
             PlanarBooleanOverlapRegionPublicContractProofRowKind::RequestIdentity,
         ];
         if required_row_kinds.iter().any(|required_kind| {
-            public_contract_fence.rows().iter().all(|row| row.kind() != *required_kind)
+            public_contract_fence
+                .rows()
+                .iter()
+                .all(|row| row.kind() != *required_kind)
         }) {
-            return Err(PlanarBooleanOverlapRegionAntiTheatreFenceDenial::PublicContractFenceMismatch);
+            return Err(
+                PlanarBooleanOverlapRegionAntiTheatreFenceDenial::PublicContractFenceMismatch,
+            );
         }
         let guard_names = vec![
             "synthetic_readiness_rejected".to_string(),
@@ -201,7 +227,13 @@ impl PlanarBooleanOverlapRegionAntiTheatreFenceProof {
         })
     }
 
-    pub fn proof_identity(&self) -> &str { &self.proof_identity }
-    pub fn guard_names(&self) -> &[String] { &self.guard_names }
-    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionPublicContractProofRow] { &self.rows }
+    pub fn proof_identity(&self) -> &str {
+        &self.proof_identity
+    }
+    pub fn guard_names(&self) -> &[String] {
+        &self.guard_names
+    }
+    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionPublicContractProofRow] {
+        &self.rows
+    }
 }

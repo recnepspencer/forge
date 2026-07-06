@@ -48,14 +48,23 @@ pub struct PlanarBooleanOverlapRegionIdentityLineageBundle {
 macro_rules! impl_identity_product {
     ($name:ident, $row:ty) => {
         impl $name {
-            pub fn map_identity(&self) -> &str { &self.map_identity }
-            pub fn request_identity(&self) -> &str { &self.request_identity }
-            pub fn rows(&self) -> &[$row] { &self.rows }
+            pub fn map_identity(&self) -> &str {
+                &self.map_identity
+            }
+            pub fn request_identity(&self) -> &str {
+                &self.request_identity
+            }
+            pub fn rows(&self) -> &[$row] {
+                &self.rows
+            }
         }
     };
 }
 
-impl_identity_product!(PlanarBooleanOverlapRegionIdentityMap, PlanarBooleanOverlapRegionIdentityRow);
+impl_identity_product!(
+    PlanarBooleanOverlapRegionIdentityMap,
+    PlanarBooleanOverlapRegionIdentityRow
+);
 
 impl PlanarBooleanOverlapRegionIdentityMap {
     pub(crate) fn new(
@@ -76,9 +85,15 @@ impl PlanarBooleanOverlapRegionIdentityMap {
         }
     }
 
-    pub fn arrangement_graph_identity(&self) -> &str { &self.arrangement_graph_identity }
-    pub fn cell_set_identity(&self) -> &str { &self.cell_set_identity }
-    pub fn ordering_basis_identity(&self) -> &str { &self.ordering_basis_identity }
+    pub fn arrangement_graph_identity(&self) -> &str {
+        &self.arrangement_graph_identity
+    }
+    pub fn cell_set_identity(&self) -> &str {
+        &self.cell_set_identity
+    }
+    pub fn ordering_basis_identity(&self) -> &str {
+        &self.ordering_basis_identity
+    }
 }
 
 impl_identity_product!(
@@ -123,9 +138,11 @@ impl PlanarBooleanOverlapRegionIdentityLineageBundle {
     pub fn from_post_admission_normalization(
         post_admission_normalization: &PlanarBooleanPostAdmissionNormalizationBundle,
     ) -> Result<Self, PlanarBooleanOverlapRegionIdentityLineageDenial> {
-        Self::admit(PlanarBooleanOverlapRegionIdentityLineageInput::from_post_admission_normalization(
-            post_admission_normalization,
-        ))
+        Self::admit(
+            PlanarBooleanOverlapRegionIdentityLineageInput::from_post_admission_normalization(
+                post_admission_normalization,
+            ),
+        )
     }
 
     pub fn admit(

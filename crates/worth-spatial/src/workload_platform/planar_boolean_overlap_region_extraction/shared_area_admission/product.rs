@@ -113,11 +113,13 @@ impl PlanarBooleanSharedAreaAdmissionBundle {
         containment_map: &PlanarBooleanOverlapCellContainmentMap,
         winding_field: &PlanarBooleanOverlapCellWindingField,
     ) -> Result<Self, PlanarBooleanSharedAreaAdmissionDenial> {
-        Self::admit(PlanarBooleanSharedAreaAdmissionInput::from_boundary_contact_classification(
-            boundary_contact_classification,
-            containment_map,
-            winding_field,
-        ))
+        Self::admit(
+            PlanarBooleanSharedAreaAdmissionInput::from_boundary_contact_classification(
+                boundary_contact_classification,
+                containment_map,
+                winding_field,
+            ),
+        )
     }
 
     pub fn admit(
@@ -159,7 +161,8 @@ impl PlanarBooleanSharedAreaAdmissionBundle {
     }
 
     pub fn arrangement_graph_identity(&self) -> &str {
-        self.shared_area_admission_outcomes.arrangement_graph_identity()
+        self.shared_area_admission_outcomes
+            .arrangement_graph_identity()
     }
 
     pub fn cell_set_identity(&self) -> &str {
@@ -167,7 +170,8 @@ impl PlanarBooleanSharedAreaAdmissionBundle {
     }
 
     pub fn ordering_basis_identity(&self) -> &str {
-        self.shared_area_admission_outcomes.ordering_basis_identity()
+        self.shared_area_admission_outcomes
+            .ordering_basis_identity()
     }
 
     pub fn normalize_pre_region_coincidence(

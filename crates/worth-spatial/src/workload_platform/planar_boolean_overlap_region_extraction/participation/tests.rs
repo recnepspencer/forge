@@ -10,7 +10,8 @@ use crate::workload_platform::planar_boolean_loop_reconstruction::{
     PlanarBooleanLoopDecisionLog, PlanarBooleanLoopIslandPartition,
     PlanarBooleanLoopIslandPartitionRow, PlanarBooleanLoopOverlapChainLineageMap,
     PlanarBooleanLoopOverlapChainLineageRow, PlanarBooleanLoopReconstructionLedger,
-    PlanarBooleanLoopReconstructionParticipationSupport, PlanarBooleanLoopRoleOutcomeSet,
+    PlanarBooleanLoopReconstructionLedgerRow, PlanarBooleanLoopReconstructionParticipationSupport,
+    PlanarBooleanLoopRoleOutcomeSet,
 };
 
 use super::{
@@ -257,6 +258,69 @@ fn overlap_participation_rejects_foreign_overlap_chain_lineage_before_adjacency(
     assert_eq!(
         denial.kind(),
         PlanarBooleanOverlapParticipationRecoveryDenialKind::ForeignOverlapChainLineageDenied
+    );
+}
+
+#[test]
+fn overlap_participation_binds_real_lineage_through_source_edges_when_fragment_identity_drops() {
+    let readiness = current_touched_graph_readiness_handoff()
+        .expect("current readiness handoff should assemble");
+    let (request, support) =
+        overlap_request_and_support(LoopFixtureEntryOrder::Canonical, &readiness);
+    let preserved_row = support
+        .ledger_rows()
+        .iter()
+        .find(|row| {
+            !row.fragment_identities().is_empty()
+                && support
+                    .overlap_chain_lineage_map()
+                    .rows()
+                    .iter()
+                    .any(|lineage| lineage.source_loop_identities() == row.source_loop_identities())
+        })
+        .expect("real support should expose a fragment-backed lineage row")
+        .clone();
+    let hostile_rows = support
+        .ledger_rows()
+        .iter()
+        .map(|row| {
+            if row.ledger_row_identity() != preserved_row.ledger_row_identity() {
+                return row.clone();
+            }
+            PlanarBooleanLoopReconstructionLedgerRow::new(
+                row.ledger_row_identity().to_string(),
+                row.canonical_loop_identity().to_string(),
+                row.tracked_loop_identity().to_string(),
+                row.loop_kind(),
+                row.source_loop_identities().to_vec(),
+                row.source_face_identities().to_vec(),
+                Vec::new(),
+                row.split_vertex_identities().to_vec(),
+                row.island_identities().to_vec(),
+                row.role_outcome_identity().to_string(),
+                row.degenerate_outcome_identity().to_string(),
+                row.propagated_persistent_name_identities().to_vec(),
+                row.propagated_signature_identities().to_vec(),
+                row.decision_identities().to_vec(),
+            )
+        })
+        .collect();
+    let hostile_support = support.with_ledger_rows_for_tests(hostile_rows);
+
+    let recovered = PlanarBooleanOverlapParticipationRecovery::recover(
+        PlanarBooleanOverlapParticipationRecoveryInput::from_request_and_loop_support(
+            &request,
+            &hostile_support,
+        ),
+    )
+    .expect("participation should preserve real lineage through source-edge authority");
+
+    assert!(
+        recovered.chain_lineage_map().rows().iter().any(|row| {
+            row.participating_loop_identities()
+                .contains(&preserved_row.canonical_loop_identity().to_string())
+        }),
+        "source-edge fallback should preserve lineage binding when fragment identity is absent"
     );
 }
 

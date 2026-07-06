@@ -52,6 +52,15 @@ impl WorkloadCatalog {
         boolean_pair(WorkloadCatalogRecipeKind::BooleanHighValenceContactPair)
     }
 
+    pub fn planar_boolean_boundary_only_coincident_pair() -> WorkloadCatalogBooleanOperandPairRecipe
+    {
+        boolean_pair(WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair)
+    }
+
+    pub fn planar_boolean_mixed_boundary_area_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
+        boolean_pair(WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair)
+    }
+
     pub fn planar_boolean_dirty_clean_fail_pair() -> WorkloadCatalogBooleanOperandPairRecipe {
         boolean_pair(WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair)
     }

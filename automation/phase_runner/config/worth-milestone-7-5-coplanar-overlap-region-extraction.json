@@ -31,16 +31,17 @@
     ]
   },
   "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
     "plan": "templates/plan.md",
     "implement": "templates/implement.md",
-    "review": "templates/review_test_hardening.md",
-    "repair": "templates/repair.md",
+    "review": "templates/review_worth_geometry.md",
+    "repair": "templates/repair_worth_geometry.md",
     "test_review": "templates/test_review.md",
     "test_repair_plan": "templates/test_repair_plan.md",
     "test_repair_implement": "templates/test_repair_implement.md",
     "code_quality_review": "templates/code_quality_review.md"
   },
-  "contract_template": "templates/_contract_test_hardening.md",
+  "contract_template": "templates/_contract_worth_geometry.md",
   "session_defaults": {
     "provider": "codex",
     "command": "C:/nvm4w/nodejs/codex.cmd",

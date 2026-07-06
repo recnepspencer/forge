@@ -72,7 +72,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_seven_island_co
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_eight_boundary_contact_classification_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_eight_boundary_contact_classification_surfaces(
+) {
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanBoundaryContactClassificationBundle,
         PlanarBooleanBoundaryContactClassificationInput, PlanarBooleanPureBoundaryOnlyOutcomeSet,
@@ -86,7 +87,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_eight_boundary_
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_nine_shared_area_admission_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_nine_shared_area_admission_surfaces(
+) {
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanMixedBoundaryAreaOutcomeSet, PlanarBooleanSharedAreaAdmissionBundle,
         PlanarBooleanSharedAreaAdmissionInput, PlanarBooleanSharedAreaAdmissionOutcomeSet,
@@ -99,7 +101,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_nine_shared_are
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_ten_pre_region_normalization_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_ten_pre_region_normalization_surfaces(
+) {
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanOppositeSenseOverlapNormalizationSet,
         PlanarBooleanPreRegionNormalizationBundle, PlanarBooleanPreRegionNormalizationInput,
@@ -111,7 +114,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_ten_pre_region_
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_eleven_region_candidate_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_eleven_region_candidate_surfaces()
+{
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanAdmittedOverlapRegionSet, PlanarBooleanBoundaryOnlyOverlapOutcomeSet,
         PlanarBooleanDeniedOverlapRegionCandidateSet,
@@ -128,10 +132,12 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_eleven_region_c
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_twelve_post_admission_normalization_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_twelve_post_admission_normalization_surfaces(
+) {
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanOverlapRegionCanonicalWindingSet,
-        PlanarBooleanPostAdmissionNormalizationBundle, PlanarBooleanPostAdmissionNormalizationInput,
+        PlanarBooleanPostAdmissionNormalizationBundle,
+        PlanarBooleanPostAdmissionNormalizationInput,
     };
 
     let _: Option<PlanarBooleanPostAdmissionNormalizationInput<'static>> = None;
@@ -140,7 +146,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_twelve_post_adm
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_thirteen_identity_lineage_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_thirteen_identity_lineage_surfaces(
+) {
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanOverlapRegionIdentityLineageBundle,
         PlanarBooleanOverlapRegionIdentityLineageInput, PlanarBooleanOverlapRegionIdentityMap,
@@ -156,7 +163,8 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_thirteen_identi
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_fourteen_overlap_ledger_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_fourteen_overlap_ledger_surfaces()
+{
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
         PlanarBooleanOverlapRegionDecisionLog, PlanarBooleanOverlapRegionLedger,
         PlanarBooleanOverlapRegionLedgerAssemblyBundle,
@@ -171,11 +179,12 @@ fn planar_boolean_overlap_region_extraction_facade_exports_phase_fourteen_overla
 }
 
 #[test]
-fn planar_boolean_overlap_region_extraction_facade_exports_phase_fifteen_replay_closeout_surfaces() {
+fn planar_boolean_overlap_region_extraction_facade_exports_phase_fifteen_replay_closeout_surfaces()
+{
     use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
-        PlanarBooleanOverlapRegionCheckpointParityReceipt,
-        PlanarBooleanOverlapRegionEvidenceInput, PlanarBooleanOverlapRegionEvidenceReceipt,
-        PlanarBooleanOverlapRegionReplayParityInput, PlanarBooleanOverlapRegionReplayParityReceipt,
+        PlanarBooleanOverlapRegionCheckpointParityReceipt, PlanarBooleanOverlapRegionEvidenceInput,
+        PlanarBooleanOverlapRegionEvidenceReceipt, PlanarBooleanOverlapRegionReplayParityInput,
+        PlanarBooleanOverlapRegionReplayParityReceipt,
     };
 
     let _: Option<PlanarBooleanOverlapRegionEvidenceInput<'static>> = None;

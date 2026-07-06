@@ -14,21 +14,21 @@ use super::replay_undo_route_authority::{
 use crate::workload_composition::performance_trace::trace_scope;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) enum WorthWorkloadOrdinaryConsumerRouteKind {
+pub enum WorthWorkloadOrdinaryConsumerRouteKind {
     LookupConsumedBatchExecutionCluster,
     CompletedSplitBatchExecutionCluster,
     ReplayUndoBoundaryBatchExecutionCluster,
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct WorthWorkloadOrdinaryConsumerCurrentRouteWitness {
+pub struct WorthWorkloadOrdinaryConsumerCurrentRouteWitness {
     route_kind: WorthWorkloadOrdinaryConsumerRouteKind,
     route_lineage_digest: String,
     route_authority_digest: String,
     route_authority: WorthWorkloadCurrentOrdinaryRouteAuthority,
 }
 
-pub(crate) fn current_lookup_consumed_batch_execution_cluster_witness() -> Result<
+pub fn current_lookup_consumed_batch_execution_cluster_witness() -> Result<
     WorthWorkloadOrdinaryConsumerCurrentRouteWitness,
     WorthWorkloadOrdinaryConsumerCutoverError,
 > {
@@ -45,7 +45,7 @@ pub(crate) fn current_lookup_consumed_batch_execution_cluster_witness() -> Resul
     )
 }
 
-pub(crate) fn current_completed_split_batch_execution_cluster_witness() -> Result<
+pub fn current_completed_split_batch_execution_cluster_witness() -> Result<
     WorthWorkloadOrdinaryConsumerCurrentRouteWitness,
     WorthWorkloadOrdinaryConsumerCutoverError,
 > {
@@ -62,7 +62,7 @@ pub(crate) fn current_completed_split_batch_execution_cluster_witness() -> Resul
     )
 }
 
-pub(crate) fn current_replay_undo_boundary_batch_execution_cluster_witness() -> Result<
+pub fn current_replay_undo_boundary_batch_execution_cluster_witness() -> Result<
     WorthWorkloadOrdinaryConsumerCurrentRouteWitness,
     WorthWorkloadOrdinaryConsumerCutoverError,
 > {
@@ -101,15 +101,15 @@ impl WorthWorkloadOrdinaryConsumerCurrentRouteWitness {
         }
     }
 
-    pub(crate) const fn route_kind(&self) -> WorthWorkloadOrdinaryConsumerRouteKind {
+    pub const fn route_kind(&self) -> WorthWorkloadOrdinaryConsumerRouteKind {
         self.route_kind
     }
 
-    pub(crate) fn route_lineage_digest(&self) -> &str {
+    pub fn route_lineage_digest(&self) -> &str {
         &self.route_lineage_digest
     }
 
-    pub(crate) fn route_authority_digest(&self) -> &str {
+    pub fn route_authority_digest(&self) -> &str {
         &self.route_authority_digest
     }
 

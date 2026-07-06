@@ -1,9 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanOverlapChainBoundaryRole::{
-    FullOverlapSpan, OverlapEndBoundary, OverlapInteriorFragment, OverlapStartBoundary,
-};
-
 use super::counters::PlanarBooleanOverlapArrangementGraphCounters;
 use super::denial::{
     PlanarBooleanOverlapArrangementGraphDenial,
@@ -11,8 +7,8 @@ use super::denial::{
 };
 use super::input::PlanarBooleanOverlapArrangementGraphInput;
 use super::lookup::{
-    ValidatedArrangementBoundaryComponent, ValidatedArrangementBoundarySegment,
-    ValidatedArrangementCell, ValidatedArrangementNeighborhood, ValidatedOverlapArrangementLookup,
+    ValidatedArrangementBoundarySegment, ValidatedArrangementNeighborhood,
+    ValidatedOverlapArrangementLookup,
 };
 use super::topology_validation::{validate_boundary_components, validate_cells};
 
@@ -78,7 +74,11 @@ pub(crate) fn validate_input<'a>(
             .get(identity)
             .copied()
             .expect("validated ordered neighborhood identity should resolve");
-        ordered_neighborhoods.push(validate_adjacency_row(row, counters)?);
+        ordered_neighborhoods.push(validate_adjacency_row(
+            row,
+            input.adjacency_index().source_only_boundary_lane(),
+            counters,
+        )?);
     }
 
     Ok(ValidatedOverlapArrangementLookup::new(
@@ -88,13 +88,10 @@ pub(crate) fn validate_input<'a>(
 
 fn validate_adjacency_row<'a>(
     row: &'a crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapAdjacencyRow,
+    source_only_boundary_lane: bool,
     counters: &mut PlanarBooleanOverlapArrangementGraphCounters,
 ) -> Result<ValidatedArrangementNeighborhood<'a>, PlanarBooleanOverlapArrangementGraphDenial> {
-    if row.chain_identities().is_empty()
-        || row.lineage_identities().is_empty()
-        || row.participating_loop_identities().is_empty()
-        || row.participating_island_identities().is_empty()
-    {
+    if row.chain_identities().is_empty() || row.lineage_identities().is_empty() {
         return Err(deny(
             Kind::ContradictoryArrangementNeighborhoodDenied,
             row.neighborhood_identity(),
@@ -106,6 +103,7 @@ fn validate_adjacency_row<'a>(
     let segment_count = row.source_loop_identities().len();
     if segment_count == 0
         || row.source_loop_operand_sides().len() != segment_count
+        || row.source_loop_winding_signs().len() != segment_count
         || row.source_edge_identities().len() != segment_count
         || row.fragment_identities().len() != segment_count
         || row.boundary_roles().len() != segment_count
@@ -117,7 +115,6 @@ fn validate_adjacency_row<'a>(
             "overlap arrangement denies neighborhoods that do not carry one aligned segment substrate across source loops, source edges, fragments, and boundary roles",
         ));
     }
-
     let certified_source_loop_identities = row
         .participating_loop_identities()
         .iter()
@@ -128,16 +125,28 @@ fn validate_adjacency_row<'a>(
                 .map(String::as_str),
         )
         .collect::<BTreeSet<_>>();
-    if row
-        .source_loop_identities()
-        .iter()
-        .any(|identity| !certified_source_loop_identities.contains(identity.as_str()))
+    if !source_only_boundary_lane
+        && row
+            .source_loop_identities()
+            .iter()
+            .any(|identity| !certified_source_loop_identities.contains(identity.as_str()))
     {
         return Err(deny(
             Kind::ContradictoryArrangementNeighborhoodDenied,
             row.neighborhood_identity(),
             counters,
             "overlap arrangement denies segment source-loop identities that are not certified by the admitted adjacency-carried loop provenance",
+        ));
+    }
+    if !source_only_boundary_lane
+        && (row.participating_loop_identities().is_empty()
+            || row.participating_island_identities().is_empty())
+    {
+        return Err(deny(
+            Kind::ContradictoryArrangementNeighborhoodDenied,
+            row.neighborhood_identity(),
+            counters,
+            "overlap arrangement denies adjacency neighborhoods missing certified participation or lineage authority",
         ));
     }
     if row.participating_island_identities().len() != row.island_origin_loop_identities().len()
@@ -209,8 +218,12 @@ fn validate_adjacency_row<'a>(
             },
         )
         .collect::<Vec<_>>();
-    let components =
-        validate_boundary_components(row.neighborhood_identity(), &segments, counters)?;
+    let components = validate_boundary_components(
+        row.neighborhood_identity(),
+        &segments,
+        source_only_boundary_lane,
+        counters,
+    )?;
     let cells = validate_cells(row, row.neighborhood_identity(), &components, counters)?;
 
     Ok(ValidatedArrangementNeighborhood::new(

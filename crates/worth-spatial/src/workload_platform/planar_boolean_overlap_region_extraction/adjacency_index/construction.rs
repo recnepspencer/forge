@@ -176,16 +176,21 @@ pub(crate) fn build_adjacency_index(
         &index_identity,
         ordered_neighborhood_identities,
     );
-    Ok(PlanarBooleanOverlapRegionAdjacencyIndex::new(
-        index_identity,
-        input.chain_lineage_map().request_identity().to_string(),
-        input.loop_participation_map().map_identity().to_string(),
-        input.island_participation_map().map_identity().to_string(),
-        input.chain_lineage_map().map_identity().to_string(),
-        ordered_rows,
-        ordering_basis,
-        counters,
-    ))
+    let source_only_boundary_lane = input.loop_participation_map().rows().is_empty()
+        && input.island_participation_map().rows().is_empty();
+    Ok(
+        PlanarBooleanOverlapRegionAdjacencyIndex::new_with_source_only_boundary_lane(
+            index_identity,
+            input.chain_lineage_map().request_identity().to_string(),
+            input.loop_participation_map().map_identity().to_string(),
+            input.island_participation_map().map_identity().to_string(),
+            input.chain_lineage_map().map_identity().to_string(),
+            ordered_rows,
+            ordering_basis,
+            source_only_boundary_lane,
+            counters,
+        ),
+    )
 }
 
 fn aggregate_persistent_name_identities(
