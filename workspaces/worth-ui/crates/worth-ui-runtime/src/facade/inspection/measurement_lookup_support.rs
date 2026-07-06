@@ -304,6 +304,7 @@ fn family_matches(evidence_family: UiEvidenceFamily, relevance_family: UiRelevan
             UiRelevanceFamily::Declaration
         ) | (UiEvidenceFamily::Admission, UiRelevanceFamily::Admission)
             | (UiEvidenceFamily::Graph, UiRelevanceFamily::Graph)
+            | (UiEvidenceFamily::Planning, UiRelevanceFamily::Planning)
     )
 }
 

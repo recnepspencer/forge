@@ -6,6 +6,7 @@ use crate::source::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
     WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
 };
+use std::rc::Rc;
 
 pub(crate) fn file_import_provider() -> WorthUiSourceProvider {
     file_import_provider_for("app/panels/inspector.wui")
@@ -52,6 +53,7 @@ pub(crate) fn runtime_from_artifact(artifact: WorthUiArtifact) -> WorthUiRuntime
     WorthUiRuntimeHost::launch(
         WorthUiRuntimeLaunch::from_canonical_artifact(artifact),
         app.capabilities().digest(),
+        Rc::default(),
     )
     .expect("runtime launches")
 }

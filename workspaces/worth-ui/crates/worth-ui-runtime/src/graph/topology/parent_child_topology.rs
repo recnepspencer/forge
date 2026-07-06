@@ -179,9 +179,17 @@ impl UiGraphContainmentClaim {
                 stable_text_digest("graph-topology:region")
                     ^ stable_text_digest(region_name).rotate_left(7)
             }
-            Self::Mosaic { mosaic_name } => {
+            Self::Mosaic {
+                mosaic_name,
+                sizing_contract_id,
+            } => {
                 stable_text_digest("graph-topology:mosaic")
                     ^ stable_text_digest(mosaic_name).rotate_left(7)
+                    ^ sizing_contract_id
+                        .as_ref()
+                        .map(|id| stable_text_digest(id.as_str()))
+                        .unwrap_or_else(|| stable_text_digest("graph-topology:mosaic:no-sizing"))
+                        .rotate_left(13)
             }
             Self::LocalComposition {
                 local_composition_name,

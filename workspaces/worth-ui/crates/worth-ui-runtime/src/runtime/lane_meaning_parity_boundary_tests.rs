@@ -341,6 +341,12 @@ fn all_lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplace
                 classification.candidate_kind(),
                 classification.active_durable_state_eligible(),
                 classification.candidate_durable_state_eligible(),
+                classification.active_resize_contract_id().cloned(),
+                classification.candidate_resize_contract_id().cloned(),
+                classification.active_resize_permission().cloned(),
+                classification.candidate_resize_permission().cloned(),
+                classification.active_resize_shape_digest(),
+                classification.candidate_resize_shape_digest(),
             )
         })
         .collect();

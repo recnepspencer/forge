@@ -1,4 +1,5 @@
 use super::activation_staging_test_support::{activation_staging_inputs, ActivationStagingInputs};
+use super::allocation_planning_test_support::allocation_planning;
 use crate::runtime::{
     WorthUiExecutionPlan, WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
     WorthUiNodeReplacementCounters, WorthUiNodeReplacementPlan, WorthUiPlanExecutionLane,
@@ -92,6 +93,12 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
                 classification.candidate_kind(),
                 classification.active_durable_state_eligible(),
                 classification.candidate_durable_state_eligible(),
+                classification.active_resize_contract_id().cloned(),
+                classification.candidate_resize_contract_id().cloned(),
+                classification.active_resize_permission().cloned(),
+                classification.candidate_resize_permission().cloned(),
+                classification.active_resize_shape_digest(),
+                classification.candidate_resize_shape_digest(),
             )
         })
         .collect();
@@ -110,11 +117,12 @@ fn assemble_plan_from_pending_activation(
     let plan_input = runtime
         .prepare_execution_plan_input(pending)
         .expect("plan input prepares");
+    let planning = allocation_planning(&runtime, &plan_input, "lane-meaning.active");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(&plan_input, &allocation)
+        .assemble_execution_plan_topology(&planning, &allocation)
         .expect("topology assembles")
 }
 

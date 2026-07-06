@@ -53,12 +53,32 @@ Repair rules:
   naming the root cause category: wrong ownership boundary, forgeable authority,
   certification-overreach, count/projection pretending to be proof, adoption not
   tied to production API, or missing non-forgeability proof.
+- If this phase has already failed review two or more times, assume the current
+  defects may be one unresolved seam unless you can prove they are unrelated.
+- Before editing after repeated review failures, answer briefly in chat:
+  - what is the one canonical artifact/witness/contract that should own the
+    truth
+  - what still derives from a proxy, heuristic, mutable field, raw digest, or
+    displaced legacy lane instead
+  - whether the hostile proof currently exercises the real production derivation
+    path or a synthetic shortcut
 - When the root cause is architectural, repair the architecture. You have
   permission to create or move a lower Store vocabulary/contract surface, seal
   constructors, replace public data bags with private-field witnesses, move
   authority from certification into the owning runtime/lower crate, replace
   count summaries with typed lower evidence, and add compile-fail/API-misuse
   tests proving the old shortcut is impossible.
+- Do not satisfy a review finding by replacing one proxy with a slightly nicer
+  proxy if the spec requires a runtime-owned admitted artifact.
+- Do not patch hostile proofs with synthetic inputs when the review says the
+  production derivation seam is still unsealed.
+- When the defect family is forgeable authority, proxy identity, weak
+  equivalence, mutable-boundary leakage, or displaced ordinary authority,
+  prefer one end-to-end seam rewrite over multiple local edits that leave the
+  same weaker source alive underneath.
+- Mint canonical witnesses once, admit them once, preserve them end-to-end, and
+  cut downstream identity/equivalence/inspection consumers over to them
+  directly.
 - Do not add another denial wrapper around a forgeable path. Remove or seal the
   path that made the impossible state constructible.
 - Certification is the courtroom, not the law. It may materialize and prove

@@ -14,6 +14,8 @@ pub struct WorthUiReadyActivation {
     pending_activation: WorthUiPendingActivation,
     candidate_execution_plan_digest: WorthUiExecutionPlanDigest,
     handle_allocation_basis_digest: u64,
+    node_classification_count: usize,
+    lane_changed_node_count: usize,
     reconciliation_basis_digest: u64,
     query_rebind_basis_digest: u64,
     query_rebind_denied_count: usize,
@@ -43,13 +45,27 @@ impl WorthUiReadyActivation {
         )?;
         let candidate_execution_plan_digest =
             WorthUiExecutionPlanDigestor::digest(candidate_plan).0;
-        let staged = pending_activation.staged_replacement();
-        let reconciliation_basis_digest = reconciliation_basis_digest(staged.reconciliation_plan());
-        let query_rebind_basis_digest = query_rebind_basis_digest(staged.query_rebind_plan());
+        let (
+            node_classification_count,
+            lane_changed_node_count,
+            reconciliation_basis_digest,
+            query_rebind_basis_digest,
+        ) = {
+            let staged = pending_activation.staged_replacement();
+            let node_plan_counters = staged.node_plan().counters();
+            (
+                staged.node_plan().classifications().len(),
+                node_plan_counters.lane_changed_node_count(),
+                reconciliation_basis_digest(staged.reconciliation_plan()),
+                query_rebind_basis_digest(staged.query_rebind_plan()),
+            )
+        };
         Ok(Self {
             pending_activation,
             candidate_execution_plan_digest,
             handle_allocation_basis_digest: handle_allocation.receipt().basis_digest(),
+            node_classification_count,
+            lane_changed_node_count,
             reconciliation_basis_digest,
             query_rebind_basis_digest,
             query_rebind_denied_count,
@@ -80,6 +96,14 @@ impl WorthUiReadyActivation {
 
     pub fn handle_allocation_basis_digest(&self) -> u64 {
         self.handle_allocation_basis_digest
+    }
+
+    pub fn node_classification_count(&self) -> usize {
+        self.node_classification_count
+    }
+
+    pub fn lane_changed_node_count(&self) -> usize {
+        self.lane_changed_node_count
     }
 
     pub fn reconciliation_basis_digest(&self) -> u64 {
@@ -171,8 +195,10 @@ fn reject_handle_receipt_mismatch(
     counters: &mut WorthUiActivationGateCounters,
 ) -> Result<(), WorthUiActivationGateDenial> {
     counters.record_digest_check();
-    let basis = crate::runtime::WorthUiRuntimeHandleAllocationBasis::from_plan_input(plan_input);
-    if handle_allocation.receipt().certifies_basis(&basis) {
+    if handle_allocation
+        .receipt()
+        .certifies_basis(handle_allocation.basis())
+    {
         Ok(())
     } else {
         Err(denial_from_basis(

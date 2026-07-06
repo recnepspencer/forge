@@ -11,7 +11,7 @@ use super::durable_state_inventory_test_support::{
 };
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, component_node_with_descriptor, identity_match_app,
-    runtime_and_narrowing, surface_node,
+    runtime_and_narrowing, splitter_surface_node, surface_node,
 };
 use super::node_replacement_classification_test_support::{
     lane_affecting_impact_for, lane_narrowing_for, narrowing_for, narrowing_for_identity,
@@ -113,7 +113,12 @@ pub(super) fn lane_change_inputs() -> (
     let app = identity_match_app();
     let active = artifact_from_nodes([(
         "app/main.wui",
-        vec![surface_node("surface:stable", "workspace.surface.main", 0)],
+        vec![splitter_surface_node(
+            "surface:stable",
+            "workspace.surface.main",
+            "workspace.sizing.splitter.main",
+            0,
+        )],
     )]);
     let candidate = active.clone();
     let (runtime, admitted, identity_narrowing) = runtime_and_narrowing(&app, active, candidate);
@@ -184,6 +189,26 @@ pub(super) fn rebind_plan_with_inventory() -> (
     (runtime, plan, inventory)
 }
 
+pub(super) fn splitter_replace_inputs() -> (
+    crate::runtime::WorthUiRuntimeHost,
+    WorthUiNodeReplacementPlan,
+    WorthUiDurableStateInventory,
+) {
+    let (runtime, base_plan) = deterministic_replacement_plan();
+    let plan = plan_from_single_transition(
+        base_plan.active_artifact_digest(),
+        base_plan.candidate_artifact_digest(),
+        "surface:main",
+        WorthUiNodeLifecycleTransition::Replace,
+        Some(WorthUiIdentityMatchNodeKind::Surface),
+        Some(WorthUiIdentityMatchNodeKind::Surface),
+    );
+    let inventory = platform_inventory(&runtime)
+        .build_for_replacement(&plan)
+        .expect("inventory builds");
+    (runtime, plan, inventory)
+}
+
 pub(super) fn ambiguous_plan_with_inventory() -> (
     crate::runtime::WorthUiRuntimeHost,
     WorthUiNodeReplacementPlan,
@@ -206,6 +231,12 @@ pub(super) fn ambiguous_plan_with_inventory() -> (
             Some(WorthUiIdentityMatchNodeKind::Component),
             true,
             true,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )],
         counters,
     );
@@ -303,6 +334,12 @@ fn plan_from_single_transition(
             candidate_kind,
             true,
             true,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         )],
         counters,
     )

@@ -6,6 +6,14 @@ mod activation_staging_boundary_tests;
 mod activation_staging_test_support;
 #[path = "active_runtime_authority_tests.rs"]
 mod active_runtime_authority_tests;
+#[path = "allocation_constraint_boundary_tests.rs"]
+mod allocation_constraint_boundary_tests;
+#[path = "allocation_planning_boundary_tests.rs"]
+mod allocation_planning_boundary_tests;
+#[path = "allocation_planning_inspection_boundary_tests.rs"]
+mod allocation_planning_inspection_boundary_tests;
+#[path = "allocation_planning_test_support.rs"]
+pub(crate) mod allocation_planning_test_support;
 #[path = "artifact_equivalence_boundary_tests.rs"]
 mod artifact_equivalence_boundary_tests;
 #[path = "atomic_plan_swap_boundary_tests.rs"]
@@ -30,6 +38,8 @@ mod durable_state_inventory_test_support;
 mod durable_state_reconciliation_boundary_tests;
 #[path = "durable_state_reconciliation_test_support.rs"]
 mod durable_state_reconciliation_test_support;
+#[path = "durable_resize_input_boundary_tests.rs"]
+mod durable_resize_input_boundary_tests;
 #[path = "execution_plan_input_boundary_tests.rs"]
 mod execution_plan_input_boundary_tests;
 #[path = "file_rust_replacement_parity_boundary_tests.rs"]
@@ -82,6 +92,8 @@ mod plan_inspection_boundary_tests;
 mod plan_inspection_expected_provenance;
 #[path = "plan_topology_boundary_tests.rs"]
 mod plan_topology_boundary_tests;
+#[path = "plan_topology_identity_boundary_tests.rs"]
+mod plan_topology_identity_boundary_tests;
 #[path = "query_binding_comparison_boundary_tests.rs"]
 mod query_binding_comparison_boundary_tests;
 #[path = "query_binding_comparison_test_support.rs"]
@@ -122,6 +134,10 @@ mod runtime_diagnostics_projection_boundary_tests;
 mod runtime_diagnostics_projection_test_support;
 #[path = "source_ingress_boundary_tests.rs"]
 mod source_ingress_boundary_tests;
+#[path = "source_backed_package_boundary_tests.rs"]
+mod source_backed_package_boundary_tests;
+#[path = "source_backed_graph_identity_boundary_tests.rs"]
+mod source_backed_graph_identity_boundary_tests;
 #[path = "source_ingress_test_support.rs"]
 pub(crate) mod source_ingress_test_support;
 #[path = "steady_frame_counter_boundary_tests.rs"]

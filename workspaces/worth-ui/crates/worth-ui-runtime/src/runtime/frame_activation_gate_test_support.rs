@@ -1,4 +1,7 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::{
+    admitted_allocation_neighborhood, admitted_measurement_basis,
+};
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::query_binding_comparison_test_support::{
     basis_drift_query_app, denial_presentation_drift_query_app, query_artifact, standard_query_app,
@@ -73,11 +76,14 @@ fn ready_activation_fixture_from(
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("frame-activation.ready");
+    let allocation_neighborhood = admitted_allocation_neighborhood("frame-activation.ready");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
     let handle_allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("runtime handles allocate");
     let candidate_plan = runtime
-        .assemble_execution_plan_topology(&plan_input, &handle_allocation)
+        .assemble_execution_plan_topology(&planning, &handle_allocation)
         .expect("execution plan topology assembles");
     let ready = runtime
         .prepare_ready_activation(
@@ -108,11 +114,15 @@ pub(super) fn denied_query_ready_activation() -> WorthUiActivationGateDenial {
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("frame-activation.denied-query");
+    let allocation_neighborhood =
+        admitted_allocation_neighborhood("frame-activation.denied-query");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
     let handles = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
     let plan = runtime
-        .assemble_execution_plan_topology(&plan_input, &handles)
+        .assemble_execution_plan_topology(&planning, &handles)
         .expect("topology assembles");
     runtime
         .prepare_ready_activation(pending, &plan_input, &handles, &plan, None)
@@ -221,11 +231,15 @@ pub(super) fn lane_change_fixture(include_parity: bool) -> LaneChangeFixture {
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("frame-activation.lane-change");
+    let allocation_neighborhood =
+        admitted_allocation_neighborhood("frame-activation.lane-change");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
     let handle_allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
     let candidate_plan = runtime
-        .assemble_execution_plan_topology(&plan_input, &handle_allocation)
+        .assemble_execution_plan_topology(&planning, &handle_allocation)
         .expect("topology assembles");
     let parity_report = include_parity.then(|| {
         runtime
@@ -264,6 +278,12 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
                 classification.candidate_kind(),
                 classification.active_durable_state_eligible(),
                 classification.candidate_durable_state_eligible(),
+                classification.active_resize_contract_id().cloned(),
+                classification.candidate_resize_contract_id().cloned(),
+                classification.active_resize_permission().cloned(),
+                classification.candidate_resize_permission().cloned(),
+                classification.active_resize_shape_digest(),
+                classification.candidate_resize_shape_digest(),
             )
         })
         .collect();

@@ -1,3 +1,4 @@
+use super::allocation_planning_test_support::allocation_planning;
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
@@ -76,18 +77,16 @@ fn realtime_scale_context(duplicate_render_resource: bool) -> RealtimeScaleConte
     if duplicate_render_resource {
         plan_input = plan_input_with_duplicate_render_ref(&plan_input);
     }
+    let planning = allocation_planning(&runtime, &plan_input, "lane-frame-cost.realtime");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(
-            &plan_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds");
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )

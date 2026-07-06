@@ -8,6 +8,7 @@ use crate::facade::{
 };
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
+use crate::runtime::runtime_test_modules::allocation_planning_test_support::allocation_planning;
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiComponentLoweringHook, WorthUiDiagnosticProjectionHook,
     WorthUiDurableStateFamily, WorthUiExecutionLaneSupport, WorthUiExecutionPlanInspection,
@@ -130,24 +131,22 @@ pub fn runtime_origin_fixture(
         &component_hooks_for_variant(variant),
     )
     .expect("plan input prepares");
+    let planning = allocation_planning(&runtime, &plan_input, "touch-origin.fixture");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("runtime handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(
-            &plan_input,
-            &WorthUiExecutionLaneSupport::platform_default(),
-        )
+        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds");
     let plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &plan_input,
+            &planning,
             &allocation,
             &lane_admission,
         )
         .expect("execution plan topology assembles");
     let inspection = runtime
-        .inspect_execution_plan(&plan, &plan_input)
+        .inspect_execution_plan(&plan, &planning)
         .expect("plan inspection succeeds");
     let ordinary_plan = runtime
         .prepare_ordinary_lane_plan(&plan, &lane_admission)

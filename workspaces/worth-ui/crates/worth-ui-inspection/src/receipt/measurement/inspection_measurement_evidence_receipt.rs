@@ -28,10 +28,18 @@ pub enum UiInspectionMeasurementEvidenceCategory {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiInspectionMeasurementChildIntrinsicSource {
+    QueryProjectionFact,
+    HostMeasurementResult(UiInspectionMeasurementEvidenceCategory),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiInspectionMeasurementEvidenceSlot {
     QueryProjectionFactReceipt,
     HostCapabilityReport,
+    HostTextIntrinsicSize,
     HostFontMetrics,
+    HostNativeControlIntrinsicSize,
     ViewportExtent,
     PortalAnchorRect,
     ScrollContainerViewport,
@@ -66,7 +74,9 @@ pub enum UiInspectionMeasurementOwnershipPosture {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum UiInspectionMeasurementDependencyLineageKind {
     QueryScrollContentExtent,
+    HostTextIntrinsicSize,
     HostFontMetrics,
+    HostNativeControlIntrinsicSize,
     HostViewportExtent,
     HostPortalAnchorRect,
     HostScrollContainerViewport,
@@ -164,6 +174,18 @@ pub enum UiInspectionMeasurementBasisInput {
     },
     HostMeasurementResult {
         category: UiInspectionMeasurementEvidenceCategory,
+        identity_digest: u64,
+    },
+    ChildIntrinsicMeasurement {
+        contributor_graph_node_identity_digest: u64,
+        source: UiInspectionMeasurementChildIntrinsicSource,
+        identity_digest: u64,
+    },
+    SiblingResizeSupport {
+        axis_scope: Box<str>,
+        target_graph_node_identity_digest: u64,
+        sizing_contract_id: Box<str>,
+        source: Box<str>,
         identity_digest: u64,
     },
 }

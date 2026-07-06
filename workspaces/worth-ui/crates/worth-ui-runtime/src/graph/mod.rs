@@ -1,4 +1,47 @@
 mod admission;
+#[cfg(test)]
+mod allocation_constraint_downward_tests;
+#[cfg(test)]
+mod allocation_constraint_bound_reconciliation_tests;
+#[cfg(test)]
+mod allocation_constraint_bound_reconciliation_test_support;
+#[cfg(test)]
+mod allocation_constraint_bound_reconciliation_boundary_tests;
+#[cfg(test)]
+mod allocation_constraint_intrinsic_multichild_tests;
+#[cfg(test)]
+mod allocation_constraint_intrinsic_tests;
+#[cfg(test)]
+mod allocation_constraint_projection_cycle_tests;
+#[cfg(test)]
+mod allocation_constraint_projection_tests;
+#[cfg(test)]
+mod allocation_constraint_equal_share_tests;
+#[cfg(test)]
+mod allocation_constraint_equal_share_test_support;
+#[cfg(test)]
+mod allocation_constraint_equal_share_boundary_tests;
+#[cfg(test)]
+mod allocation_constraint_viewport_planning_tests;
+#[cfg(test)]
+mod allocation_constraint_scroll_owner_planning_tests;
+#[cfg(test)]
+mod allocation_constraint_portal_anchor_planning_tests;
+#[cfg(test)]
+mod allocation_constraint_sibling_support_test_support;
+#[cfg(test)]
+mod allocation_constraint_sibling_support_tests;
+#[cfg(test)]
+mod allocation_constraint_sibling_tests;
+mod allocation_neighborhood;
+#[cfg(test)]
+mod allocation_neighborhood_identity_tests;
+#[cfg(test)]
+mod allocation_neighborhood_scope_tests;
+#[cfg(test)]
+pub(crate) mod allocation_neighborhood_test_support;
+#[cfg(test)]
+mod allocation_neighborhood_tests;
 mod closeout;
 mod identity;
 mod indexes;
@@ -19,6 +62,7 @@ pub use admission::{
     UiGraphParticipationSeed, UiGraphTopologyLocalDenial, UiGraphTopologySeed,
     UiRuntimeInstanceBasisAdmission,
 };
+pub use allocation_neighborhood::UiAllocationNeighborhoodDenial;
 pub use closeout::{
     UiGraphAuthority, UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee, UiGraphCloseoutNonGoal,
     UiGraphCloseoutReport, UiGraphInspectionStopPoint, UiGraphInspectionSupportReport,
@@ -49,7 +93,7 @@ pub(crate) use inspection::{
     UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, WorthUiAspectInspectionBoundary,
     WorthUiGraphInspectionBoundary,
 };
-pub use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
+pub(crate) use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
 pub(crate) use mounted_receipt::materialize_graph_mounted_receipts;
 pub use mounted_receipt::{
     UiGraphMountedPostureRelationship, UiGraphMountedReceiptAuthoritySeed,

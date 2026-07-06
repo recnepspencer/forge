@@ -134,10 +134,17 @@ def advance_after_phase_close(
     if next_phase_id > len(config["phases"]):
         projection["current"] = None
         return
-    projection["current"] = {"phase": next_phase_id, "turn": first_turn(config)}
+    projection["current"] = {"phase": next_phase_id, "turn": first_turn(config, next_phase_id)}
 
 
-def first_turn(config: dict[str, Any]) -> str:
-    if "boundary_review" in config.get("turn_templates", {}):
+def first_turn(config: dict[str, Any], phase_id: int) -> str:
+    turn_templates = config.get("turn_templates", {})
+    runner_control = config.get("runner_control", {})
+    boundary_review_start_phase = runner_control.get("boundary_review_start_phase")
+    if (
+        "boundary_review" in turn_templates
+        and isinstance(boundary_review_start_phase, int)
+        and phase_id >= boundary_review_start_phase
+    ):
         return "boundary_review"
     return "plan"

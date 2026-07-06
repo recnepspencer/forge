@@ -1,4 +1,7 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::{
+    admitted_allocation_neighborhood, admitted_measurement_basis, allocation_planning,
+};
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::query_binding_comparison_test_support::{query_artifact, standard_query_app};
 use super::replacement_impact_test_support::admitted_candidate;
@@ -41,11 +44,13 @@ fn same_runtime_meaning_has_same_digest_and_reuse_classification() {
 fn lane_or_handle_meaning_change_changes_equivalence() {
     let (runtime, stable_plan) = execution_plan_fixture();
     let changed_input = plan_input_with_first_family(WorthUiPlanNodeInputFamily::TokenStyle);
+    let changed_planning =
+        allocation_planning(&runtime, &changed_input, "plan-equivalence.changed");
     let changed_allocation = runtime
-        .allocate_runtime_handles(&changed_input)
+        .allocate_runtime_handles(&changed_planning)
         .expect("changed handles allocate");
     let changed_plan = runtime
-        .assemble_execution_plan_topology(&changed_input, &changed_allocation)
+        .assemble_execution_plan_topology(&changed_planning, &changed_allocation)
         .expect("changed topology assembles");
 
     let equivalence = runtime.compare_execution_plans(&stable_plan, &changed_plan);
@@ -251,14 +256,14 @@ fn assemble_plan_from_pending_activation(
     runtime: &WorthUiRuntimeHost,
     pending: WorthUiPendingActivation,
 ) -> WorthUiExecutionPlan {
-    let plan_input = runtime
-        .prepare_execution_plan_input(pending)
-        .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("plan-equivalence.fixture");
+    let neighborhood = admitted_allocation_neighborhood("plan-equivalence.fixture");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
     runtime
-        .assemble_execution_plan_topology(&plan_input, &allocation)
+        .assemble_execution_plan_topology(&planning, &allocation)
         .expect("topology assembles")
 }
 

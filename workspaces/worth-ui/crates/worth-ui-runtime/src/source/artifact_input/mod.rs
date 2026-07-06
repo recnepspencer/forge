@@ -9,9 +9,10 @@ mod worth_ui_artifact_input_reference;
 pub(crate) use worth_ui_artifact_input::WorthUiArtifactInput;
 pub(crate) use worth_ui_artifact_input_equivalence::WorthUiArtifactInputEquivalentShape;
 pub(crate) use worth_ui_artifact_input_module::WorthUiArtifactInputModule;
+pub use worth_ui_artifact_input_node::WorthUiArtifactInputBodyAtom;
 pub(crate) use worth_ui_artifact_input_node::{
-    WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom, WorthUiArtifactInputImportNode,
-    WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind, WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInputBlockNode, WorthUiArtifactInputImportNode, WorthUiArtifactInputNode,
+    WorthUiArtifactInputNodeKind, WorthUiArtifactInputTokenNode,
 };
 pub(crate) use worth_ui_artifact_input_normalizer::WorthUiArtifactInputNormalizer;
 pub(crate) use worth_ui_artifact_input_provenance::WorthUiArtifactInputProvenance;

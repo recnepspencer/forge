@@ -3,7 +3,9 @@ use crate::declaration::stable_text_digest;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum UiMeasurementDependencyLineageKind {
     QueryScrollContentExtent,
+    HostTextIntrinsicSize,
     HostFontMetrics,
+    HostNativeControlIntrinsicSize,
     HostViewportExtent,
     HostPortalAnchorRect,
     HostScrollContainerViewport,
@@ -65,7 +67,13 @@ impl UiMeasurementDependencyLineage {
                         UiMeasurementDependencyLineageKind::QueryScrollContentExtent => {
                             "query-scroll-content-extent"
                         }
+                        UiMeasurementDependencyLineageKind::HostTextIntrinsicSize => {
+                            "host-text-intrinsic-size"
+                        }
                         UiMeasurementDependencyLineageKind::HostFontMetrics => "host-font-metrics",
+                        UiMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize => {
+                            "host-native-control-intrinsic-size"
+                        }
                         UiMeasurementDependencyLineageKind::HostViewportExtent => {
                             "host-viewport-extent"
                         }

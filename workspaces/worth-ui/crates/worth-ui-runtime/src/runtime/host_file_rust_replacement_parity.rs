@@ -1,5 +1,8 @@
 use crate::runtime::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
 use crate::runtime::host::WorthUiRuntimeHost;
+use crate::runtime::runtime_test_modules::allocation_planning_test_support::{
+    admitted_allocation_neighborhood, admitted_measurement_basis,
+};
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiDurableStateFamily,
     WorthUiExecutionLaneSupport, WorthUiFileRustReplacementParityCounters,
@@ -157,7 +160,12 @@ impl WorthUiRuntimeHost {
             })?;
 
         counters.record_plan_lowering();
-        let plan_input = self.prepare_execution_plan_input(&pending).map_err(|_| {
+        let measurement_basis = admitted_measurement_basis("file-rust-parity.activation");
+        let allocation_neighborhood =
+            admitted_allocation_neighborhood("file-rust-parity.activation");
+        let allocation_planning =
+            self.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
+        let plan_input = allocation_planning.lowered_input().ok_or_else(|| {
             denial(
                 WorthUiFileRustReplacementParityDenialReason::PlanLoweringDenied,
                 counters,
@@ -165,17 +173,19 @@ impl WorthUiRuntimeHost {
         })?;
 
         counters.record_handle_allocation();
-        let handles = self.allocate_runtime_handles(&plan_input).map_err(|_| {
-            denial(
-                WorthUiFileRustReplacementParityDenialReason::HandleAllocationDenied,
-                counters,
-            )
-        })?;
+        let handles = self
+            .allocate_runtime_handles(&allocation_planning)
+            .map_err(|_| {
+                denial(
+                    WorthUiFileRustReplacementParityDenialReason::HandleAllocationDenied,
+                    counters,
+                )
+            })?;
 
         counters.record_lane_admission();
         let lane_admission = self
             .admit_execution_lanes(
-                &plan_input,
+                &allocation_planning,
                 &WorthUiExecutionLaneSupport::platform_default(),
             )
             .map_err(|_| {
@@ -188,7 +198,7 @@ impl WorthUiRuntimeHost {
         counters.record_topology_assembly();
         let candidate_plan = self
             .assemble_execution_plan_topology_with_lane_admission(
-                &plan_input,
+                &allocation_planning,
                 &handles,
                 &lane_admission,
             )

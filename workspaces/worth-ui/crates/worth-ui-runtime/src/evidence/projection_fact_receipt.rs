@@ -2,12 +2,12 @@ use forge_query::facade::BasisResolutionMode;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 use worth_ui_query_binding::{
     WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,
-    WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
-    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactReceipt,
+    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryPrerequisiteEvidence,
 };
 
 use crate::declaration::{
-    declared_query_measurement_dependencies, UiDeclarationIdentity,
+    declared_query_measurement_dependencies, stable_text_digest, UiDeclarationIdentity,
     UiDeclaredMeasurementEvidenceRequirement, UiDeclaredMeasurementPolicyPosture,
     UiDeclaredMeasurementQueryDependencySet,
 };
@@ -22,6 +22,13 @@ pub enum UiProjectionFactReceiptDenial {
         required: Box<[WorthUiQueryMeasurementFactFamily]>,
         consumed: Box<[WorthUiQueryMeasurementFactFamily]>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiProjectionFactObservation {
+    family: WorthUiQueryMeasurementFactFamily,
+    extent_bits: u32,
+    identity_digest: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,6 +47,34 @@ pub struct UiProjectionFactReceipt {
     required_query_fact_family_set_digest: u64,
     consumed_fact_families: Box<[WorthUiQueryMeasurementFactFamily]>,
     consumed_fact_family_set_digest: u64,
+    observations: Box<[UiProjectionFactObservation]>,
+    observation_identity_digest: u64,
+}
+
+impl UiProjectionFactObservation {
+    fn from_query_observation(observation: WorthUiQueryMeasurementFactObservation) -> Self {
+        let identity_digest = stable_text_digest("worth-ui.projection-fact-observation")
+            ^ stable_text_digest(query_measurement_family_name(observation.family()))
+                .rotate_left(7)
+            ^ (observation.extent().to_bits() as u64).rotate_left(13);
+        Self {
+            family: observation.family(),
+            extent_bits: observation.extent().to_bits(),
+            identity_digest,
+        }
+    }
+
+    pub fn family(&self) -> WorthUiQueryMeasurementFactFamily {
+        self.family
+    }
+
+    pub fn extent(&self) -> f32 {
+        f32::from_bits(self.extent_bits)
+    }
+
+    pub fn identity_digest(&self) -> u64 {
+        self.identity_digest
+    }
 }
 
 impl UiProjectionFactReceipt {
@@ -97,6 +132,14 @@ impl UiProjectionFactReceipt {
 
     pub fn consumed_fact_family_set_digest(&self) -> u64 {
         self.consumed_fact_family_set_digest
+    }
+
+    pub fn observations(&self) -> &[UiProjectionFactObservation] {
+        &self.observations
+    }
+
+    pub fn observation_identity_digest(&self) -> u64 {
+        self.observation_identity_digest
     }
 }
 
@@ -169,6 +212,16 @@ fn receipt_from_query_fact_receipt(
         query_measurement_fact_family_set_digest(dependencies.fact_families());
     let consumed_fact_family_set_digest =
         query_measurement_fact_family_set_digest(query_receipt.consumed_families());
+    let observations = query_receipt
+        .observations()
+        .iter()
+        .copied()
+        .map(UiProjectionFactObservation::from_query_observation)
+        .collect::<Vec<_>>();
+    let observation_identity_digest = observations.iter().fold(
+        stable_text_digest("worth-ui.projection-fact-observations"),
+        |digest, observation| digest ^ observation.identity_digest().rotate_left(17),
+    );
     UiProjectionFactReceipt {
         declaration_identity,
         declaration_support_authority_generation,
@@ -203,5 +256,13 @@ fn receipt_from_query_fact_receipt(
             .to_vec()
             .into_boxed_slice(),
         consumed_fact_family_set_digest,
+        observations: observations.into_boxed_slice(),
+        observation_identity_digest,
+    }
+}
+
+fn query_measurement_family_name(family: WorthUiQueryMeasurementFactFamily) -> &'static str {
+    match family {
+        WorthUiQueryMeasurementFactFamily::ScrollContentExtent => "scroll-content-extent",
     }
 }

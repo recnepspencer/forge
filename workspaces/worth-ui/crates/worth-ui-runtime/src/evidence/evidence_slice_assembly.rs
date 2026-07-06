@@ -53,6 +53,11 @@ impl UiEvidenceSliceAssemblyInput {
         self
     }
 
+    pub(crate) fn with_omission(mut self, omission: Option<UiEvidenceSliceOmission>) -> Self {
+        self.omission = omission;
+        self
+    }
+
     pub(crate) fn with_cost_metrics(mut self, cost_metrics: UiInspectionCostMetrics) -> Self {
         self.cost_metrics = cost_metrics;
         self
@@ -138,6 +143,7 @@ impl UiEvidenceSliceAssembly {
 
 fn materialized_record_count(detail: &UiEvidenceMaterializedDetail) -> usize {
     match detail {
+        UiEvidenceMaterializedDetail::AllocationPlanning(_) => 1,
         UiEvidenceMaterializedDetail::Obligation(receipt) => receipt.projections().len(),
         UiEvidenceMaterializedDetail::Measurement(detail) => {
             detail.basis_inputs().len() + detail.dependency_lineage().len()

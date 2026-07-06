@@ -12,7 +12,8 @@ use forge_query::facade::{
 };
 
 use crate::{
-    WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,
+    WorthUiQueryPrerequisiteEvidence,
 };
 
 #[test]
@@ -22,7 +23,9 @@ fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_ide
     let receipt = WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
         .measurement_fact_receipt_from_projection_consumption(prerequisites, &attempt)
-        .expect("display-field projection consumption should admit a query measurement fact receipt");
+        .expect(
+            "display-field projection consumption should admit a query measurement fact receipt",
+        );
 
     assert_eq!(
         receipt.consumed_families(),
@@ -32,7 +35,11 @@ fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_ide
         receipt.prerequisites().projection_contract_digest(),
         Some(receipt.projection_contract_digest())
     );
-    assert!(!receipt.projection_consumption_declaration_digest().is_empty());
+    assert_eq!(receipt.observations().len(), 1);
+    assert_eq!(receipt.observations()[0].extent(), 240.0);
+    assert!(!receipt
+        .projection_consumption_declaration_digest()
+        .is_empty());
     assert!(!receipt.projection_consumption_receipt_digest().is_empty());
     assert!(!receipt.projection_fact_set_digest().is_empty());
     assert!(!receipt.projection_source_identity().is_empty());
@@ -57,7 +64,10 @@ fn equivalent_projection_consumption_paths_yield_equivalent_measurement_fact_rec
 
 fn display_field_projection_consumption(
     lane_label: &str,
-) -> (WorthUiQueryPrerequisiteEvidence, ProjectionFactConsumptionAttempt) {
+) -> (
+    WorthUiQueryPrerequisiteEvidence,
+    ProjectionFactConsumptionAttempt,
+) {
     let (mut workspace, family) = measurement_projection_workspace(lane_label);
     let read_result = workspace
         .execute_read_family(&family)
@@ -68,7 +78,7 @@ fn display_field_projection_consumption(
         .consume_projection_facts(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+            ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
         )
         .expect("real query read should consume projection facts");
     let basis = resolve_runtime_current_snapshot_basis(
@@ -83,12 +93,14 @@ fn display_field_projection_consumption(
     (prerequisites, attempt)
 }
 
-fn measurement_projection_workspace(lane_label: &str) -> (ForgeQueryWorkspace, ForgeQueryReadFamily) {
+fn measurement_projection_workspace(
+    lane_label: &str,
+) -> (ForgeQueryWorkspace, ForgeQueryReadFamily) {
     let schema = ForgeQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
-        .aspect("title.value", "title.value")
-        .expect("title aspect should admit");
+        .aspect("size.value", "size.value")
+        .expect("size aspect should admit");
     let mut workspace = in_memory_test_runtime()
         .with_schema(schema)
         .workspace(&format!("worth-ui.phase8.query-fact-receipt.{lane_label}"))
@@ -100,21 +112,21 @@ fn measurement_projection_workspace(lane_label: &str) -> (ForgeQueryWorkspace, F
                 ForgeQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
-                aspect_touch("title.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("title-{lane_label}")),
+                aspect_touch("size.value"),
+                ForgeQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("fixture insert should admit");
     let family = workspace
         .define_read_family(
             &format!("worth-ui.phase8.query-fact-receipt.{lane_label}"),
-            title_family_graph,
+            size_family_graph,
         )
         .expect("query read family should admit");
     (workspace, family)
 }
 
-fn title_family_graph(
+fn size_family_graph(
     read: ForgeQueryReadBuilder,
 ) -> Result<ForgeQueryReadGraph, ForgeQueryReadDenial> {
     read.local_detail(
@@ -130,9 +142,9 @@ fn title_family_graph(
                     )
                     .expect("identity anchor predicate should build"),
                 )
-                .project(field("title", "value"))
+                .project(field("size", "value"))
         },
-        |shape| shape.field(result_field("title", "value", "title.value")),
+        |shape| shape.field(result_field("size", "value", "size.value")),
     )
 }
 
@@ -147,7 +159,7 @@ fn task_query_schema() -> QuerySchemaView {
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                forge_query::facade::AspectName::new("title").expect("schema aspect should admit"),
+                forge_query::facade::AspectName::new("size").expect("schema aspect should admit"),
                 forge_query::facade::FieldName::new("value").expect("schema field should admit"),
                 SchemaFieldKind::String,
             ),
@@ -156,13 +168,13 @@ fn task_query_schema() -> QuerySchemaView {
     )
 }
 
-fn title_value_field_path() -> ProjectionFactFieldPath {
+fn size_value_field_path() -> ProjectionFactFieldPath {
     ProjectionFactFieldPath::from_canonical_field_path(
         CanonicalFieldPath::new(vec![
-            FieldKey::new("title").expect("field key should admit"),
+            FieldKey::new("size").expect("field key should admit"),
             FieldKey::new("value").expect("field key should admit"),
         ])
-        .expect("canonical title.value path should admit"),
+        .expect("canonical size.value path should admit"),
     )
 }
 
@@ -177,21 +189,17 @@ fn result_field(aspect: &str, field: &str, delivered: &str) -> AuthoredResultSha
 
 fn aspect_touch(authored_touch_text: &str) -> ForgeQueryAspectTouch {
     let mut segments = authored_touch_text.split('.');
-    let aspect = segments
-        .next()
-        .expect("touch aspect should exist");
+    let aspect = segments.next().expect("touch aspect should exist");
     let fields = segments
         .map(|segment| FieldKey::new(segment).expect("touch field should admit"))
         .collect::<Vec<_>>();
     if fields.is_empty() {
         ForgeQueryAspectTouch::whole_aspect(
-            forge_foundational::facade::AspectKey::new(aspect)
-                .expect("touch aspect should admit"),
+            forge_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
         )
     } else {
         ForgeQueryAspectTouch::aspect_field_path(
-            forge_foundational::facade::AspectKey::new(aspect)
-                .expect("touch aspect should admit"),
+            forge_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
             CanonicalFieldPath::new(fields).expect("touch field path should admit"),
         )
     }

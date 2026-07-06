@@ -1,4 +1,4 @@
-use super::frame_activation_gate_test_support::ready_activation_fixture;
+use super::frame_activation_gate_test_support::{lane_change_fixture, ready_activation_fixture};
 use super::lane_meaning_parity_test_support::plan_with_command_semantics_changed;
 use crate::runtime::atomic_plan_swap::WorthUiPlanSwapFailureInjection;
 use crate::runtime::WorthUiPlanSwapDenialReason;
@@ -15,6 +15,8 @@ fn atomic_swap_replaces_artifact_plan_state_and_bindings_together() {
         .raw();
     let expected_query_basis = fixture.ready.query_rebind_basis_digest();
     let expected_reconciliation_basis = fixture.ready.reconciliation_basis_digest();
+    let expected_node_classification_count = fixture.ready.node_classification_count();
+    let expected_lane_changed_node_count = fixture.ready.lane_changed_node_count();
 
     let receipt = fixture
         .runtime
@@ -52,6 +54,14 @@ fn atomic_swap_replaces_artifact_plan_state_and_bindings_together() {
     assert_eq!(
         receipt.reconciliation_basis_digest(),
         expected_reconciliation_basis
+    );
+    assert_eq!(
+        receipt.node_classification_count(),
+        expected_node_classification_count
+    );
+    assert_eq!(
+        receipt.lane_changed_node_count(),
+        expected_lane_changed_node_count
     );
     assert_eq!(receipt.counters().active_state_mutation_count(), 1);
     assert_eq!(receipt.counters().source_reparse_count(), 0);
@@ -309,4 +319,36 @@ fn stale_gate_denial_does_not_touch_active_state() {
         rollback.restored_active_plan_digest(),
         previous.active_plan_digest()
     );
+}
+
+#[test]
+fn lane_change_swap_receipt_preserves_candidate_breadth_without_commit_shortcut() {
+    let mut fixture = lane_change_fixture(true);
+    let previous = fixture.runtime.inspect_active();
+    let boundary = fixture.runtime.safe_frame_boundary();
+    let expected_next_plan = fixture
+        .runtime
+        .digest_execution_plan(&fixture.candidate_plan)
+        .raw();
+
+    let ready = fixture
+        .runtime
+        .prepare_ready_activation(
+            fixture.pending,
+            &fixture.plan_input,
+            &fixture.handle_allocation,
+            &fixture.candidate_plan,
+            fixture.parity_report.as_ref(),
+        )
+        .expect("lane-change candidate becomes ready");
+
+    let receipt = fixture
+        .runtime
+        .swap_ready_activation_at_frame_boundary(ready, fixture.candidate_plan, boundary)
+        .expect("lane-change candidate swaps through atomic commit");
+
+    assert_eq!(receipt.previous_active_plan_digest(), previous.active_plan_digest());
+    assert_eq!(receipt.next_active_plan_digest(), expected_next_plan);
+    assert!(receipt.node_classification_count() > 0);
+    assert!(receipt.lane_changed_node_count() > 0);
 }

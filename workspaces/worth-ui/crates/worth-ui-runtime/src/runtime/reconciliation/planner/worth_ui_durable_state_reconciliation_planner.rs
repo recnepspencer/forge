@@ -1,17 +1,20 @@
 use crate::runtime::{
-    WorthUiDurableStateCarryForward, WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
+    WorthUiAdmittedDurableResizeInput, WorthUiDurableStateCarryForward, WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
     WorthUiDurableStateInventory, WorthUiDurableStateReconciliationCounters,
     WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationOutcome,
     WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationReceipt,
     WorthUiDurableStateReplacement, WorthUiDurableStateReplacementPolicy,
-    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
-    WorthUiNodeReplacementPlan,
+    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification, WorthUiNodeReplacementPlan,
 };
 use crate::runtime::{
     WorthUiFocusChainReconciliation, WorthUiPanelVisibilityReconciliation,
     WorthUiScrollAnchorReconciliation, WorthUiSelectionRangeReconciliation,
     WorthUiSplitterPositionReconciliation, WorthUiTabStateReconciliation,
     WorthUiTextEditStateReconciliation,
+};
+use super::worth_ui_durable_resize_reconciliation_support::{
+    classification_targets_splitter_surface, splitter_resize_input_for_carry,
+    splitter_resize_input_for_replacement,
 };
 
 pub(crate) struct WorthUiDurableStateReconciliationPlanner;
@@ -28,21 +31,26 @@ impl WorthUiDurableStateReconciliationPlanner {
         reject_missing_platform_families(inventory, &mut counters)?;
 
         let mut receipts = Vec::new();
+        let mut durable_resize_inputs = Vec::new();
         for family in inventory.families() {
             counters.record_family();
             for classification in node_plan.classifications() {
                 counters.record_node();
-                let receipt =
+                let (receipt, durable_resize_input) =
                     reconcile_classification_family(classification, family, &mut counters);
                 counters.record_receipt(receipt.outcome());
                 receipts.push(receipt);
+                if let Some(durable_resize_input) = durable_resize_input {
+                    durable_resize_inputs.push(durable_resize_input);
+                }
             }
         }
 
-        Ok(WorthUiDurableStateReconciliationPlan::new(
+        Ok(WorthUiDurableStateReconciliationPlan::new_with_durable_resize_inputs(
             node_plan.active_artifact_digest(),
             node_plan.candidate_artifact_digest(),
             receipts,
+            durable_resize_inputs,
             counters,
         ))
     }
@@ -105,14 +113,21 @@ fn reconcile_classification_family(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
     counters: &mut WorthUiDurableStateReconciliationCounters,
-) -> WorthUiDurableStateReconciliationReceipt {
+) -> (
+    WorthUiDurableStateReconciliationReceipt,
+    Option<WorthUiAdmittedDurableResizeInput>,
+) {
     if classification.unrestored_durable_state_carry_permitted()
         && family_allows_carry_for_transition(family, classification.transition())
     {
-        return carry_receipt(classification, family);
+        let receipt = carry_receipt(classification, family);
+        return (receipt, splitter_resize_input_for_carry(classification, family));
     }
 
-    replacement_receipt(classification, family, counters)
+    let receipt = replacement_receipt(classification, family, counters);
+    let durable_resize_input =
+        splitter_resize_input_for_replacement(classification, family, &receipt);
+    (receipt, durable_resize_input)
 }
 
 fn family_allows_carry_for_transition(
@@ -222,6 +237,18 @@ fn replacement_outcome(
         }
         WorthUiDurableStateFamilyId::SelectionRange => {
             if let Some(outcome) = WorthUiSelectionRangeReconciliation::replacement_outcome(
+                classification.transition(),
+                counters,
+            ) {
+                outcome
+            } else {
+                platform_replacement_outcome(classification, family)
+            }
+        }
+        WorthUiDurableStateFamilyId::SplitterPosition if classification_targets_splitter_surface(
+            classification,
+        ) => {
+            if let Some(outcome) = WorthUiSplitterPositionReconciliation::replacement_outcome(
                 classification.transition(),
                 counters,
             ) {

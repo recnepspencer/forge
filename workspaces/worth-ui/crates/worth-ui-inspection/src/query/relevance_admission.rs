@@ -134,7 +134,9 @@ fn target_supports_family(target: &UiInspectionTarget, family: UiRelevanceFamily
     match target {
         UiInspectionTarget::ProductRoot => matches!(
             family,
-            UiRelevanceFamily::Declaration | UiRelevanceFamily::Admission
+            UiRelevanceFamily::Declaration
+                | UiRelevanceFamily::Admission
+                | UiRelevanceFamily::Planning
         ),
         UiInspectionTarget::GraphNodeIdentity { .. } => matches!(
             family,
@@ -142,6 +144,7 @@ fn target_supports_family(target: &UiInspectionTarget, family: UiRelevanceFamily
                 | UiRelevanceFamily::Declaration
                 | UiRelevanceFamily::Admission
                 | UiRelevanceFamily::Obligation
+                | UiRelevanceFamily::Planning
         ),
         UiInspectionTarget::PublishedAspect { .. } | UiInspectionTarget::ConsumedAspect { .. } => {
             matches!(family, UiRelevanceFamily::Aspect)

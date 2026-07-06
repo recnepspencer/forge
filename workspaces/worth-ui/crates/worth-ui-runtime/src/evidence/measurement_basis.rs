@@ -69,7 +69,9 @@ pub fn admit_measurement_basis(
         selected.query_receipt,
         selected.host_capability_report,
         [
+            selected.host_results.text_intrinsic_size,
             selected.host_results.font_metrics,
+            selected.host_results.native_control_intrinsic_size,
             selected.host_results.viewport_extent,
             selected.host_results.portal_anchor_rect,
             selected.host_results.scroll_container_viewport,

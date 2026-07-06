@@ -14,6 +14,7 @@ pub use outcome::{
     WorthUiDurableStateReplacement,
 };
 pub use plan::{
+    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
     WorthUiDurableStateReconciliationCounters, WorthUiDurableStateReconciliationDenial,
     WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationReceipt,
 };

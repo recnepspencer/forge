@@ -9,6 +9,7 @@ use crate::facade::{
     ViewBindingDescriptor, WorthUiApp, WorthUiDslPackage, WorthUiHostAdapter, WorthUiHostContract,
 };
 use crate::graph::UiGraphWorldProfile;
+use crate::runtime::{WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage};
 use worth_ui_inspection::UiInspectionScopeInventory;
 
 /// Builder for a Worth UI application definition.
@@ -18,6 +19,7 @@ pub struct WorthUiBuilder {
     host_contract: WorthUiHostContract,
     graph_world_profile: UiGraphWorldProfile,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
+    source_backed_declaration_witness: Option<WorthUiSourceBackedDeclarationWitness>,
 }
 
 pub type WorthUiAppBuilder = WorthUiBuilder;
@@ -30,11 +32,13 @@ impl WorthUiBuilder {
             host_contract: WorthUiHostContract::headless(),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             measurement_inspection_evidence: Vec::new(),
+            source_backed_declaration_witness: None,
         }
     }
 
     pub fn with_dsl_package(mut self, dsl_package: WorthUiDslPackage) -> Self {
         self.dsl_package = dsl_package;
+        self.source_backed_declaration_witness = None;
         self
     }
 
@@ -48,6 +52,16 @@ impl WorthUiBuilder {
 
     pub fn with_graph_world_profile(mut self, graph_world_profile: UiGraphWorldProfile) -> Self {
         self.graph_world_profile = graph_world_profile;
+        self
+    }
+
+    pub fn with_source_backed_dsl_package(
+        mut self,
+        source_backed_package: WorthUiSourceBackedDslPackage,
+    ) -> Self {
+        let (dsl_package, source_backed_declaration_witness) = source_backed_package.into_parts();
+        self.dsl_package = dsl_package;
+        self.source_backed_declaration_witness = Some(source_backed_declaration_witness);
         self
     }
 
@@ -159,6 +173,7 @@ impl WorthUiBuilder {
             self.host_contract,
             self.graph_world_profile,
             self.measurement_inspection_evidence.into_boxed_slice(),
+            self.source_backed_declaration_witness,
         ))
     }
 
@@ -191,6 +206,7 @@ impl WorthUiBuilder {
                 self.host_contract,
                 self.graph_world_profile,
                 self.measurement_inspection_evidence.into_boxed_slice(),
+                self.source_backed_declaration_witness,
                 inspection_scope_inventory,
             ),
         )

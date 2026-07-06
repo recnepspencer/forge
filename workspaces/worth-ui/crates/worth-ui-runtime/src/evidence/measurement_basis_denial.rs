@@ -6,7 +6,9 @@ use super::{UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility}
 pub enum UiMeasurementEvidenceSlot {
     QueryProjectionFactReceipt,
     HostCapabilityReport,
+    HostTextIntrinsicSize,
     HostFontMetrics,
+    HostNativeControlIntrinsicSize,
     ViewportExtent,
     PortalAnchorRect,
     ScrollContainerViewport,

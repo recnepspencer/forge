@@ -1,6 +1,7 @@
 mod activation_staging;
 mod active;
 mod admission;
+mod allocation_planning;
 mod atomic_plan_swap;
 mod candidate;
 mod canvas_spatial_lane;
@@ -15,6 +16,7 @@ mod host;
 mod host_atomic_plan_swap;
 mod host_canvas_spatial_lane;
 mod host_diagnostics;
+#[cfg(test)]
 mod host_file_rust_replacement_parity;
 mod host_frame_activation_gate;
 mod host_identity_state_query_certification;
@@ -22,12 +24,15 @@ mod host_lane_admission;
 mod host_lane_frame_cost_certification;
 mod host_lane_meaning_parity;
 mod host_ordinary_lane;
+mod host_plan_inspection;
 mod host_realtime_overlay_lane;
 mod host_reload_failure;
+#[cfg(test)]
 mod host_reload_storm_certification;
 mod host_virtualized_data_lane;
 mod identity_state_query_certification;
 mod impact;
+mod inspection_ai_harness;
 mod lane_admission;
 mod lane_frame_cost_certification;
 mod lane_meaning_parity;
@@ -51,6 +56,7 @@ mod replacement;
 mod source_ingress;
 mod state_inventory;
 mod steady_frame_counter_boundary;
+#[cfg(test)]
 mod touch_origin_certification_support;
 mod virtualized_data_lane;
 
@@ -66,6 +72,14 @@ pub use admission::{
     WorthUiCandidateAdmissionReport, WorthUiQuerySupportReceipt, WorthUiQuerySupportStatus,
     WorthUiRuntimeReplacementPosture,
 };
+pub use allocation_planning::{
+    WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis, WorthUiAllocationPlanningCounters,
+    WorthUiAllocationPlanningDenial, WorthUiAllocationPlanningDenialReason,
+    WorthUiAllocationPlanningInspection, WorthUiAllocationPlanningLoweringMismatch,
+};
+pub(crate) use allocation_planning::{
+    planning_pair_for_certification_suite, WorthUiRetainedAllocationPlanningEvidenceRegistry,
+};
 pub use atomic_plan_swap::{
     WorthUiAtomicPlanSwapCounters, WorthUiPlanSwapDenialReason, WorthUiPlanSwapReceipt,
     WorthUiPlanSwapRollback, WorthUiPriorValidPlanObservation,
@@ -76,6 +90,7 @@ pub use candidate::{
     WorthUiCandidateProvenanceHandle, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
 };
+pub(crate) use candidate::rust_authored_replacement_candidate;
 pub use canvas_spatial_lane::{
     WorthUiCanvasDrawHook, WorthUiCanvasOverlayPlan, WorthUiCanvasSpatialCertification,
     WorthUiCanvasSpatialCounters, WorthUiCanvasSpatialFrameDenial,
@@ -152,6 +167,7 @@ pub use impact::{
     WorthUiReplacementImpactCounters, WorthUiReplacementImpactDenial, WorthUiReplacementScope,
     WorthUiTokenThemeImpact, WorthUiUnsupportedReplacementImpact,
 };
+pub use inspection_ai_harness::WorthUiRuntimeInspectionAiHarness;
 pub use lane_admission::{
     WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
     WorthUiExtensionHookAdmission, WorthUiLaneAdapterHook, WorthUiLaneAdapterHookKind,
@@ -247,6 +263,7 @@ pub use realtime_overlay_lane::{
     WorthUiRendererSurfaceHandle,
 };
 pub use reconciliation::{
+    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
     WorthUiDurableStateCarryForward, WorthUiDurableStateReconciliationCounters,
     WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationOutcome,
     WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationReceipt,
@@ -282,12 +299,13 @@ pub use replacement::{
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
     WorthUiNodeReplacementPlan,
 };
+pub(crate) use source_ingress::WorthUiSourceBackedDeclarationWitness;
 pub use source_ingress::{
     WorthUiCandidateOrderingReceipt, WorthUiDebouncedWatcherBatch, WorthUiReloadDebounce,
-    WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
-    WorthUiSourceIngressHook, WorthUiSourceIngressSession, WorthUiSourcePackageRevision,
-    WorthUiSourceProvider, WorthUiSourceProviderKind, WorthUiSourceWatcher,
-    WorthUiWatchedArtifactInput, WorthUiWatchedCandidateSubmission,
+    WorthUiSourceBackedDslPackage, WorthUiSourceIngressCounters, WorthUiSourceIngressDenial,
+    WorthUiSourceIngressDenialReason, WorthUiSourceIngressHook, WorthUiSourceIngressSession,
+    WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,
+    WorthUiSourceWatcher, WorthUiWatchedArtifactInput, WorthUiWatchedCandidateSubmission,
     WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
 pub use state_inventory::{
@@ -308,6 +326,7 @@ pub use steady_frame_counter_boundary::{
     WorthUiSteadyFrameFoundationalEvidence, WorthUiSteadyFrameReportPlan,
     WorthUiSteadyFrameReportPlanner,
 };
+#[cfg(test)]
 pub use touch_origin_certification_support::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,

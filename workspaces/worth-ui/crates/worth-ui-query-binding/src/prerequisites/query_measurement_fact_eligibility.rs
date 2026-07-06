@@ -25,8 +25,7 @@ impl WorthUiQueryMeasurementFactEligibility {
         contract: &MaterializedProjectionContract,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         validate_projection_contract(&prerequisites, contract)?;
-        let prerequisites =
-            prerequisites.bound_to_projection_contract(contract.contract_digest());
+        let prerequisites = prerequisites.bound_to_projection_contract(contract.contract_digest());
 
         let mut available_families = contract
             .fact_families()

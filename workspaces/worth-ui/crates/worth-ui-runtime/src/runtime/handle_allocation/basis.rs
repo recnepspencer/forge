@@ -1,5 +1,4 @@
-use super::fingerprint::plan_input_fingerprint;
-use crate::runtime::{WorthUiExecutionPlanInput, WorthUiRuntimeFrameEpoch};
+use crate::runtime::{WorthUiAllocationPlanning, WorthUiRuntimeFrameEpoch};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeHandleAllocationBasis {
@@ -8,18 +7,26 @@ pub struct WorthUiRuntimeHandleAllocationBasis {
     frame_epoch: WorthUiRuntimeFrameEpoch,
     plan_node_input_count: usize,
     query_binding_input_count: usize,
-    plan_input_fingerprint: u64,
+    allocation_planning_identity_digest: u64,
 }
 
 impl WorthUiRuntimeHandleAllocationBasis {
-    pub(crate) fn from_plan_input(plan_input: &WorthUiExecutionPlanInput) -> Self {
+    pub(crate) fn from_allocation_planning(
+        allocation_planning: &WorthUiAllocationPlanning,
+    ) -> Self {
+        let lowering_basis = allocation_planning
+            .lowering_basis()
+            .expect("allocation planning basis requires lowered input");
+        let node_inputs = allocation_planning
+            .node_inputs()
+            .expect("allocation planning basis requires lowered input");
         Self {
-            active_artifact_digest: plan_input.basis().active_artifact_digest(),
-            candidate_artifact_digest: plan_input.basis().candidate_artifact_digest(),
-            frame_epoch: plan_input.basis().frame_epoch(),
-            plan_node_input_count: plan_input.node_inputs().len(),
-            query_binding_input_count: plan_input.basis().staged_query_rebind_entry_count(),
-            plan_input_fingerprint: plan_input_fingerprint(plan_input.node_inputs()),
+            active_artifact_digest: lowering_basis.active_artifact_digest(),
+            candidate_artifact_digest: lowering_basis.candidate_artifact_digest(),
+            frame_epoch: lowering_basis.frame_epoch(),
+            plan_node_input_count: node_inputs.len(),
+            query_binding_input_count: lowering_basis.staged_query_rebind_entry_count(),
+            allocation_planning_identity_digest: allocation_planning.planning_identity_digest(),
         }
     }
 
@@ -30,7 +37,7 @@ impl WorthUiRuntimeHandleAllocationBasis {
             ^ (self.frame_epoch.as_u64()).rotate_left(31)
             ^ (self.plan_node_input_count as u64).rotate_left(43)
             ^ (self.query_binding_input_count as u64).rotate_left(53)
-            ^ self.plan_input_fingerprint.rotate_left(3)
+            ^ self.allocation_planning_identity_digest.rotate_left(3)
     }
 
     pub fn active_artifact_digest(&self) -> u64 {
@@ -53,7 +60,7 @@ impl WorthUiRuntimeHandleAllocationBasis {
         self.query_binding_input_count
     }
 
-    pub fn plan_input_fingerprint(&self) -> u64 {
-        self.plan_input_fingerprint
+    pub fn allocation_planning_identity_digest(&self) -> u64 {
+        self.allocation_planning_identity_digest
     }
 }

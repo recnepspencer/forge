@@ -1,4 +1,5 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::allocation_planning;
 use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, stale_inventory_for,
 };
@@ -258,15 +259,22 @@ fn plan_inspection_report() -> WorthUiRuntimeDiagnosticReport {
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let planning =
+        allocation_planning(&runtime, &plan_input, "runtime-diagnostics.plan-inspection");
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("runtime handles allocate");
     let plan = runtime
-        .assemble_execution_plan_topology(&plan_input, &allocation)
+        .assemble_execution_plan_topology(&planning, &allocation)
         .expect("execution plan topology assembles");
     let wrong_receipt_input = plan_input_with_first_family_changed(plan_input);
+    let wrong_planning = allocation_planning(
+        &runtime,
+        &wrong_receipt_input,
+        "runtime-diagnostics.plan-inspection.wrong",
+    );
     let denial = runtime
-        .inspect_execution_plan(&plan, &wrong_receipt_input)
+        .inspect_execution_plan(&plan, &wrong_planning)
         .expect_err("wrong plan input receipt denies inspection");
     runtime
         .diagnostics()
@@ -302,10 +310,11 @@ fn lane_admission_report() -> WorthUiRuntimeDiagnosticReport {
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let planning = allocation_planning(&runtime, &plan_input, "runtime-diagnostics.lane-admission");
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(&plan_input, &support_without_query)
+        .admit_execution_lanes(&planning, &support_without_query)
         .expect_err("unsupported Query lane denies");
     runtime
         .diagnostics()

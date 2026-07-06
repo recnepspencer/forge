@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::runtime::{
-    WorthUiExecutionLane, WorthUiExecutionLaneDescriptor, WorthUiExecutionLaneSupport,
-    WorthUiLaneAdmission, WorthUiLaneAdmissionCounters, WorthUiLaneAdmissionDenial,
-    WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic, WorthUiLaneSupportStatus,
-    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
+    WorthUiAllocationPlanning, WorthUiExecutionLane, WorthUiExecutionLaneDescriptor,
+    WorthUiExecutionLaneSupport, WorthUiLaneAdmission, WorthUiLaneAdmissionCounters,
+    WorthUiLaneAdmissionDenial, WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic,
+    WorthUiLaneSupportStatus, WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) struct WorthUiLaneAdmissionPlanner;
@@ -17,13 +17,21 @@ struct WorthUiPlanLaneAdmissionEvidence {
 
 impl WorthUiLaneAdmissionPlanner {
     pub(crate) fn admit(
-        plan_input: &crate::runtime::WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
         support: &WorthUiExecutionLaneSupport,
     ) -> Result<WorthUiLaneAdmission, WorthUiLaneAdmissionDenial> {
         let mut counters = WorthUiLaneAdmissionCounters::default();
         counters.record_admission();
+        let node_inputs = allocation_planning.node_inputs().ok_or_else(|| {
+            denial(
+                WorthUiLaneAdmissionDenialReason::UnsupportedLaneReference,
+                None,
+                None,
+                counters,
+            )
+        })?;
 
-        let lane_evidence = collect_plan_lane_admission_evidence(plan_input, &mut counters);
+        let lane_evidence = collect_plan_lane_admission_evidence(node_inputs, &mut counters);
         counters.record_distinct_lanes(lane_evidence.descriptors.len());
 
         verify_supported_plan_lanes(&lane_evidence, support, &mut counters)?;
@@ -32,14 +40,15 @@ impl WorthUiLaneAdmissionPlanner {
         Ok(WorthUiLaneAdmission::new(
             support.rows().cloned().collect(),
             lane_evidence.query_support_links,
-            WorthUiRuntimeHandleAllocationBasis::from_plan_input(plan_input).digest(),
+            WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning)
+                .digest(),
             counters,
         ))
     }
 }
 
 fn collect_plan_lane_admission_evidence(
-    plan_input: &crate::runtime::WorthUiExecutionPlanInput,
+    node_inputs: &[crate::runtime::WorthUiPlanNodeInput],
     counters: &mut WorthUiLaneAdmissionCounters,
 ) -> WorthUiPlanLaneAdmissionEvidence {
     let mut evidence = WorthUiPlanLaneAdmissionEvidence {
@@ -48,7 +57,7 @@ fn collect_plan_lane_admission_evidence(
         missing_query_owned_support_link: false,
     };
 
-    for (position, node_input) in plan_input.node_inputs().iter().enumerate() {
+    for (position, node_input) in node_inputs.iter().enumerate() {
         counters.record_plan_node();
         let descriptor = WorthUiExecutionLaneDescriptor::from_node_input(node_input);
         record_query_lane_support_evidence(position, node_input, &mut evidence, counters);

@@ -60,6 +60,8 @@ fn activation_gate_receipt_names_plan_state_and_reconciliation_basis() {
     let active = fixture.runtime.inspect_active();
     let expected_reconciliation_basis_digest = fixture.ready.reconciliation_basis_digest();
     let expected_query_rebind_basis_digest = fixture.ready.query_rebind_basis_digest();
+    let expected_node_classification_count = fixture.ready.node_classification_count();
+    let expected_lane_changed_node_count = fixture.ready.lane_changed_node_count();
     let receipt = fixture
         .runtime
         .activate_ready_at_frame_boundary(fixture.ready, fixture.runtime.safe_frame_boundary())
@@ -87,6 +89,14 @@ fn activation_gate_receipt_names_plan_state_and_reconciliation_basis() {
     assert_eq!(
         receipt.query_rebind_entry_count(),
         fixture.query_rebind_entry_count
+    );
+    assert_eq!(
+        receipt.node_classification_count(),
+        expected_node_classification_count
+    );
+    assert_eq!(
+        receipt.lane_changed_node_count(),
+        expected_lane_changed_node_count
     );
 }
 
@@ -249,5 +259,30 @@ fn lane_parity_digest_must_match_candidate_execution_plan() {
     assert_eq!(
         denial.reason(),
         WorthUiActivationGateDenialReason::LaneParityDigestMismatch
+    );
+}
+
+#[test]
+fn lane_change_ready_activation_keeps_local_replanning_breadth_explicit() {
+    let fixture = lane_change_fixture(true);
+    let ready = fixture
+        .runtime
+        .prepare_ready_activation(
+            fixture.pending,
+            &fixture.plan_input,
+            &fixture.handle_allocation,
+            &fixture.candidate_plan,
+            fixture.parity_report.as_ref(),
+        )
+        .expect("lane-change candidate becomes ready");
+    let receipt = fixture
+        .runtime
+        .activate_ready_at_frame_boundary(ready, fixture.runtime.safe_frame_boundary())
+        .expect("lane-change candidate activates at safe boundary");
+
+    assert!(receipt.node_classification_count() > 0);
+    assert!(receipt.lane_changed_node_count() > 0);
+    assert!(
+        receipt.lane_changed_node_count() <= receipt.node_classification_count()
     );
 }

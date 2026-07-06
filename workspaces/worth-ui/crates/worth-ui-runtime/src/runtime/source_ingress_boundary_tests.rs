@@ -300,6 +300,82 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
 }
 
 #[test]
+fn file_authored_source_ingress_emits_the_sealed_source_backed_package_on_the_ordinary_lane() {
+    let snapshot = WorthUi::app()
+        .register_component(source_backed_package_component(
+            "workspace.component.workflow_editor",
+        ))
+        .register_component(source_backed_package_component(
+            "workspace.component.workflow_editor.peer_a",
+        ))
+        .register_component(source_backed_package_component(
+            "workspace.component.workflow_editor.peer_b",
+        ))
+        .register_mosaic_region_kind(source_backed_package_region())
+        .register_mosaic_sizing_contract(source_backed_package_sizing())
+        .freeze();
+    let provider = WorthUiSourceProvider::in_memory("source-backed-package").with_file(
+        "app/source_backed_package.wui",
+        r#"
+component workspace.component.workflow_editor {
+    region workspace.region.primary {
+        sizing workspace.sizing.mosaic_support;
+    }
+}
+component workspace.component.workflow_editor.peer_a {
+    region workspace.region.primary {
+        sizing workspace.sizing.mosaic_support;
+    }
+}
+component workspace.component.workflow_editor.peer_b {
+    region workspace.region.primary {
+        sizing workspace.sizing.mosaic_support;
+    }
+}
+"#,
+    );
+    let submission = lower_file_submission(
+        provider,
+        [WorthUiWatcherEvent::provider_revision(
+            "source-backed-package",
+        )],
+        snapshot.capabilities(),
+    );
+    let source_backed_package = submission
+        .source_backed_dsl_package()
+        .expect("ordinary file-authored ingress should emit the sealed source-backed package");
+
+    let mut observed = source_backed_package
+        .dsl_package()
+        .admitted_declarations()
+        .iter()
+        .map(|receipt| {
+            (
+                receipt.source_provenance().module_path().to_owned(),
+                receipt.source_provenance().declaration_index(),
+            )
+        })
+        .collect::<Vec<_>>();
+    observed.sort();
+
+    assert_eq!(
+        observed,
+        vec![
+            ("app/source_backed_package.wui".to_owned(), 0),
+            ("app/source_backed_package.wui".to_owned(), 1),
+            ("app/source_backed_package.wui".to_owned(), 2),
+        ]
+    );
+    assert_eq!(
+        source_backed_package
+            .declaration_witness()
+            .claims_for("app/source_backed_package.wui", 0)
+            .map(|claims| claims.mosaic_sizing_contract_id().as_str()),
+        Some("workspace.sizing.mosaic_support")
+    );
+}
+
+#[test]
 fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
     let snapshot = WorthUi::app().freeze();
     let mut session = runtime_from_artifact(empty_artifact())
@@ -358,4 +434,52 @@ fn assert_source_denial_reason(
             panic!("expected source ingress denial, got {candidate_denial:?}");
         }
     }
+}
+
+fn source_backed_package_component(id: &str) -> crate::capability::ComponentDescriptor {
+    crate::capability::ComponentDescriptor::new(
+        crate::capability::ComponentId::new(id).unwrap(),
+        crate::capability::ComponentPropSchema::named(format!("{id}.props")),
+        crate::capability::ComponentChildPolicy::no_children(),
+        crate::capability::ComponentStateOwnership::runtime_owned(),
+    )
+}
+
+fn source_backed_package_region() -> crate::capability::MosaicRegionKindDescriptor {
+    crate::capability::MosaicRegionKindDescriptor::new(
+        crate::capability::MosaicRegionKindId::new("workspace.region.primary").unwrap(),
+        crate::capability::MosaicRegionRole::primary(),
+    )
+    .with_sizing_behavior(crate::capability::MosaicSizingBehavior::fills_available_space())
+    .with_scroll_ownership(crate::capability::MosaicScrollOwnership::region_owned())
+    .with_focus_scope(crate::capability::MosaicFocusScopeKind::active_surface_scope())
+    .with_child_rule(crate::capability::MosaicChildRule::accepts_surfaces())
+    .with_allowed_surface_class(crate::capability::SurfacePlacementClass::primary_region())
+    .with_persistence(crate::capability::MosaicRegionPersistence::restorable())
+    .with_clipping(crate::capability::MosaicClippingPosture::clip_to_region())
+    .with_hit_test(crate::capability::MosaicHitTestPosture::participates())
+}
+
+fn source_backed_package_sizing() -> crate::capability::MosaicSizingContractDescriptor {
+    crate::capability::MosaicSizingContractDescriptor::new(
+        crate::capability::MosaicSizingContractId::new("workspace.sizing.mosaic_support").unwrap(),
+        crate::capability::MosaicSizingKind::fill(),
+    )
+    .with_measurement_authority(crate::capability::MosaicMeasurementAuthority::runtime_token())
+    .with_resize_permission(crate::capability::MosaicResizePermission::user_resizable())
+    .with_persistence(crate::capability::MosaicSizingPersistence::restorable())
+    .with_overflow_behavior(crate::capability::MosaicOverflowBehavior::scroll_when_constrained())
+    .with_parent_growth_behavior(
+        crate::capability::MosaicParentGrowthBehavior::does_not_force_parent(),
+    )
+    .with_viewport_constraint(crate::capability::MosaicViewportConstraint::clamp_to_viewport())
+    .with_named_measurement(crate::capability::NamedMeasurementDefinition::new(
+        crate::capability::NamedMeasurementToken::new("workspace.measurement.mosaic_support")
+            .unwrap(),
+        crate::capability::MeasurementValue::logical_pixels(320),
+        crate::capability::MeasurementConstraint::between(
+            crate::capability::MeasurementValue::logical_pixels(200),
+            crate::capability::MeasurementValue::logical_pixels(640),
+        ),
+    ))
 }

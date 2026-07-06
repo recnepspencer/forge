@@ -1,6 +1,6 @@
 use crate::runtime::plan_equivalence::WorthUiExecutionPlanDigestor;
 use crate::runtime::{
-    WorthUiArtifactToPlanProvenance, WorthUiExecutionPlan, WorthUiExecutionPlanInput,
+    WorthUiAllocationPlanning, WorthUiArtifactToPlanProvenance, WorthUiExecutionPlan,
     WorthUiExecutionPlanInspection, WorthUiLaneInspection, WorthUiPlanInspectionCounters,
     WorthUiPlanInspectionDenial, WorthUiPlanInspectionDenialReason, WorthUiPlanNode,
     WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanNodeInspection,
@@ -12,20 +12,21 @@ pub(crate) struct WorthUiExecutionPlanInspector;
 impl WorthUiExecutionPlanInspector {
     pub(crate) fn inspect(
         plan: &WorthUiExecutionPlan,
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
     ) -> Result<WorthUiExecutionPlanInspection, WorthUiPlanInspectionDenial> {
+        let lowering_basis = allocation_planning
+            .lowering_basis()
+            .expect("admitted allocation planning must expose lowered basis");
+        let node_inputs = allocation_planning
+            .node_inputs()
+            .expect("admitted allocation planning must expose lowered node inputs");
         let mut counters = WorthUiPlanInspectionCounters::default();
         counters.record_inspection();
-        validate_plan_input_alignment(plan, plan_input, counters)?;
+        validate_plan_input_alignment(plan, allocation_planning, counters)?;
 
-        let mut provenance = Vec::with_capacity(plan_input.node_inputs().len());
+        let mut provenance = Vec::with_capacity(node_inputs.len());
         let mut nodes = Vec::with_capacity(plan.topology().traversal_order().len());
-        for (node, node_input) in plan
-            .topology()
-            .traversal_order()
-            .iter()
-            .zip(plan_input.node_inputs())
-        {
+        for (node, node_input) in plan.topology().traversal_order().iter().zip(node_inputs) {
             let node_provenance = provenance_for_node(node, node_input, &mut counters);
             counters.record_provenance_link();
             counters.record_node_inspection();
@@ -55,7 +56,7 @@ impl WorthUiExecutionPlanInspector {
             })
             .collect();
         counters.record_plan_digest();
-        let active_artifact_digest = plan_input.basis().active_artifact_digest();
+        let active_artifact_digest = lowering_basis.active_artifact_digest();
         let handle_basis_digest = plan.handle_receipt().basis_digest();
         let plan_digest = WorthUiExecutionPlanDigestor::digest(plan).0;
 
@@ -73,17 +74,21 @@ impl WorthUiExecutionPlanInspector {
 
 fn validate_plan_input_alignment(
     plan: &WorthUiExecutionPlan,
-    plan_input: &WorthUiExecutionPlanInput,
+    allocation_planning: &WorthUiAllocationPlanning,
     counters: WorthUiPlanInspectionCounters,
 ) -> Result<(), WorthUiPlanInspectionDenial> {
-    let allocation_basis = WorthUiRuntimeHandleAllocationBasis::from_plan_input(plan_input);
+    let node_inputs = allocation_planning
+        .node_inputs()
+        .expect("admitted allocation planning must expose lowered node inputs");
+    let allocation_basis =
+        WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
     if !plan.handle_receipt().certifies_basis(&allocation_basis) {
         return Err(denial(
             WorthUiPlanInspectionDenialReason::PlanInputReceiptMismatch,
             counters,
         ));
     }
-    if plan.topology().traversal_order().len() != plan_input.node_inputs().len() {
+    if plan.topology().traversal_order().len() != node_inputs.len() {
         return Err(denial(
             WorthUiPlanInspectionDenialReason::PlanInputNodeCountMismatch,
             counters,
@@ -93,7 +98,7 @@ fn validate_plan_input_alignment(
         .topology()
         .traversal_order()
         .iter()
-        .zip(plan_input.node_inputs())
+        .zip(node_inputs)
         .enumerate()
     {
         let plan_index = u32::try_from(position).map_err(|_| {

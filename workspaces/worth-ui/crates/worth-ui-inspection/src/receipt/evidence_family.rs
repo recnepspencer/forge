@@ -4,6 +4,7 @@ pub enum UiEvidenceFamily {
     Declaration,
     Admission,
     Graph,
+    Planning,
     Aspect,
     Obligation,
 }

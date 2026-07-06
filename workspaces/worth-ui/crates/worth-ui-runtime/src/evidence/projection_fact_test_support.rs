@@ -3,9 +3,10 @@
 use worth_ui_host_contract::{
     UiFontMeasurementKey, UiFontMetricsObservation, UiFontMetricsRequest, UiHostObservation,
     UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
-    UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
-    UiViewportExtentObservation, UiViewportExtentRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
+    UiMeasurementRequestIdentity, UiNativeControlIntrinsicSizeObservation,
+    UiPortalAnchorRectObservation, UiPortalAnchorRectRequest, UiTextIntrinsicSizeObservation,
+    UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
+    WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -66,7 +67,9 @@ pub(crate) fn capability_report(generation: u64) -> WorthUiHostCapabilityReport 
     capability_report_with_capabilities(
         generation,
         vec![
+            WorthUiHostCapability::TextIntrinsicMeasurement,
             WorthUiHostCapability::FontMetrics,
+            WorthUiHostCapability::NativeControlIntrinsicMeasurement,
             WorthUiHostCapability::PortalAnchorObservation,
             WorthUiHostCapability::ScrollContainerObservation,
             WorthUiHostCapability::ViewportObservation,
@@ -91,6 +94,39 @@ pub(crate) fn host_result_font_metrics(
         request_seed,
         report,
         generation,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
+pub(crate) fn host_result_text_intrinsic_size(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    host_result_text_intrinsic_size_with_value(request_seed, report, generation, 240.0, 48.0)
+}
+
+pub(crate) fn host_result_text_intrinsic_size_with_value(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+    width: f32,
+    height: f32,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::text_intrinsic_size(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::TextIntrinsicSize,
+        UiTextIntrinsicSizeRequest::single_line("Inbox", UiFontMeasurementKey::new("body-md")),
+        report,
+    )
+    .expect("text intrinsic request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::TextIntrinsicSize(UiTextIntrinsicSizeObservation { width, height }),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::GraphNodeLocal,
+        UiMeasurementRoundingPosture::ExactFloat,
         UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
     )
 }
@@ -184,10 +220,57 @@ pub(crate) fn host_result_portal_anchor(
     )
 }
 
+pub(crate) fn host_result_native_control_intrinsic_size(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    let request = UiMeasurementRequest::native_control_intrinsic_size(
+        UiMeasurementRequestIdentity::new(request_seed),
+        UiMeasurementEvidenceFamily::NativeControlIntrinsicSize,
+        worth_ui_host_contract::UiNativeControlIntrinsicSizeRequest::new(
+            worth_ui_host_contract::UiNativeControlKind::Button,
+            Some("Save"),
+        ),
+        report,
+    )
+    .expect("native intrinsic request should admit");
+    host_result(
+        request,
+        UiHostObservationValue::NativeControlIntrinsicSize(
+            UiNativeControlIntrinsicSizeObservation {
+                width: 240.0,
+                height: 48.0,
+            },
+        ),
+        generation,
+        UiMeasurementUnitPosture::LogicalPx,
+        UiMeasurementCoordinateSpace::GraphNodeLocal,
+        UiMeasurementRoundingPosture::ExactFloat,
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
+    )
+}
+
 pub(crate) fn host_result_scroll_container_viewport(
     request_seed: u64,
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
+    host_result_scroll_container_viewport_with_value(
+        request_seed,
+        report,
+        generation,
+        120.0,
+        60.0,
+    )
+}
+
+pub(crate) fn host_result_scroll_container_viewport_with_value(
+    request_seed: u64,
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+    width: f32,
+    height: f32,
 ) -> UiMeasurementResult {
     let request = UiMeasurementRequest::scroll_container_viewport(
         UiMeasurementRequestIdentity::new(request_seed),
@@ -200,8 +283,8 @@ pub(crate) fn host_result_scroll_container_viewport(
         request,
         UiHostObservationValue::ScrollContainerViewport(
             worth_ui_host_contract::UiScrollContainerViewportObservation {
-                width: 120.0,
-                height: 60.0,
+                width,
+                height,
             },
         ),
         generation,

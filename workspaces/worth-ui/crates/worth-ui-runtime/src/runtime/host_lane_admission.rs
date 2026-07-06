@@ -4,7 +4,7 @@ use crate::runtime::lane_admission::{
 };
 use crate::runtime::plan_topology::WorthUiPlanTopologyAssembler;
 use crate::runtime::{
-    WorthUiExecutionLaneSupport, WorthUiExecutionPlan, WorthUiExecutionPlanInput,
+    WorthUiAllocationPlanning, WorthUiExecutionLaneSupport, WorthUiExecutionPlan,
     WorthUiExtensionHookAdmission, WorthUiLaneAdapterHook, WorthUiLaneAdmission,
     WorthUiLaneAdmissionDenial, WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason,
     WorthUiRuntimeHandleAllocation, WorthUiUnsupportedHookDenial,
@@ -13,10 +13,10 @@ use crate::runtime::{
 impl WorthUiRuntimeHost {
     pub fn admit_execution_lanes(
         &self,
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
         support: &WorthUiExecutionLaneSupport,
     ) -> Result<WorthUiLaneAdmission, WorthUiLaneAdmissionDenial> {
-        WorthUiLaneAdmissionPlanner::admit(plan_input, support)
+        WorthUiLaneAdmissionPlanner::admit(allocation_planning, support)
     }
 
     pub fn admit_extension_hook(
@@ -29,11 +29,17 @@ impl WorthUiRuntimeHost {
 
     pub fn assemble_execution_plan_topology(
         &self,
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
         handle_allocation: &WorthUiRuntimeHandleAllocation,
     ) -> Result<WorthUiExecutionPlan, WorthUiPlanTopologyDenial> {
+        if !allocation_planning.is_admitted() {
+            return Err(WorthUiPlanTopologyDenial::new(
+                WorthUiPlanTopologyDenialReason::AllocationPlanningDenied,
+                Default::default(),
+            ));
+        }
         let lane_admission = WorthUiLaneAdmissionPlanner::admit(
-            plan_input,
+            allocation_planning,
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .map_err(|_| {
@@ -43,7 +49,7 @@ impl WorthUiRuntimeHost {
             )
         })?;
         WorthUiPlanTopologyAssembler::assemble_with_lane_admission(
-            plan_input,
+            allocation_planning,
             handle_allocation,
             &lane_admission,
         )
@@ -51,12 +57,18 @@ impl WorthUiRuntimeHost {
 
     pub fn assemble_execution_plan_topology_with_lane_admission(
         &self,
-        plan_input: &WorthUiExecutionPlanInput,
+        allocation_planning: &WorthUiAllocationPlanning,
         handle_allocation: &WorthUiRuntimeHandleAllocation,
         lane_admission: &WorthUiLaneAdmission,
     ) -> Result<WorthUiExecutionPlan, WorthUiPlanTopologyDenial> {
+        if !allocation_planning.is_admitted() {
+            return Err(WorthUiPlanTopologyDenial::new(
+                WorthUiPlanTopologyDenialReason::AllocationPlanningDenied,
+                Default::default(),
+            ));
+        }
         WorthUiPlanTopologyAssembler::assemble_with_lane_admission(
-            plan_input,
+            allocation_planning,
             handle_allocation,
             lane_admission,
         )

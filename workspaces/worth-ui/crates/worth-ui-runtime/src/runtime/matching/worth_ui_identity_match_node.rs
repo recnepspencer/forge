@@ -1,3 +1,4 @@
+use crate::capability::{MosaicResizePermission, MosaicSizingContractId};
 use crate::source::{WorthUiArtifactHandle, WorthUiArtifactNodeKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,6 +25,9 @@ pub struct WorthUiIdentityMatchNode {
     authored_provenance_digest: u64,
     stable_identity: bool,
     durable_state_eligible: bool,
+    resize_contract_id: Option<MosaicSizingContractId>,
+    resize_permission: Option<MosaicResizePermission>,
+    resize_shape_digest: Option<u64>,
 }
 
 impl WorthUiIdentityMatchNode {
@@ -34,6 +38,9 @@ impl WorthUiIdentityMatchNode {
         authored_provenance_digest: u64,
         stable_identity: bool,
         durable_state_eligible: bool,
+        resize_contract_id: Option<MosaicSizingContractId>,
+        resize_permission: Option<MosaicResizePermission>,
+        resize_shape_digest: Option<u64>,
     ) -> Self {
         let kind = WorthUiIdentityMatchNodeKind::from_artifact_kind(handle.kind());
         Self {
@@ -44,6 +51,9 @@ impl WorthUiIdentityMatchNode {
             authored_provenance_digest,
             stable_identity,
             durable_state_eligible,
+            resize_contract_id,
+            resize_permission,
+            resize_shape_digest,
         }
     }
 
@@ -69,6 +79,18 @@ impl WorthUiIdentityMatchNode {
 
     pub fn durable_state_eligible(&self) -> bool {
         self.durable_state_eligible
+    }
+
+    pub fn resize_contract_id(&self) -> Option<&MosaicSizingContractId> {
+        self.resize_contract_id.as_ref()
+    }
+
+    pub fn resize_permission(&self) -> Option<&MosaicResizePermission> {
+        self.resize_permission.as_ref()
+    }
+
+    pub fn resize_shape_digest(&self) -> Option<u64> {
+        self.resize_shape_digest
     }
 
     pub fn node_summary(&self) -> String {

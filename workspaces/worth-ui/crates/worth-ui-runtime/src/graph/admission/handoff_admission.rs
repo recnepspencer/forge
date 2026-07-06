@@ -47,14 +47,24 @@ pub(crate) fn admit_graph_handoffs(
         node_entries.push(UiGraphNodeInstantiationEntry::new(
             declaration_identity,
             handoff.authored_provenance_digest(),
+            handoff
+                .measurement_policy()
+                .admitted()
+                .and_then(|policy| policy.constraint_modifier()),
             handoff.aspect_contract().clone(),
             repeated_instance_basis,
             UiGraphTopologySeed::new(
+                handoff.structural_digest(),
                 handoff.role(),
-                UiGraphContainmentClaim::from_declaration_intent(handoff.containment_intent()),
+                handoff.operator_kind(),
+                UiGraphContainmentClaim::from_declaration_intent(
+                    handoff.containment_intent(),
+                    handoff.mosaic_sizing_contract_id().cloned(),
+                ),
                 parent_resolution_claim_for_handoff(handoff),
                 handoff.slot_participation_intent().clone(),
                 handoff.ordering_guarantee(),
+                handoff.repetition_posture(),
             ),
             UiGraphParticipationSeed::from_attachment_and_role(
                 handoff.query_binding().admitted().is_some(),

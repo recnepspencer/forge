@@ -699,7 +699,7 @@ refresh.
 - resize invalidates allocation without broad graph rebind
 - invalid hot edits preserve the last admitted mounted truth
 
-### Milestone 3.11: Query Binding and Projection Consumption Substrate
+### Milestone 3.12: Query Binding and Projection Consumption Substrate
 
 This slice broadens Milestone 2's declared binding references into a minimal
 runtime binding substrate, but not yet the full product surface richness of
@@ -733,7 +733,7 @@ Milestone 6.
 - no local loading/error enum replaces Query posture
 - no renderer-side query builder exists
 
-### Milestone 3.12: Intent, Operability, and Interaction Substrate
+### Milestone 3.13: Intent, Operability, and Interaction Substrate
 
 This slice turns host observations into runtime-routed intents instead of
 widget callbacks.
@@ -773,7 +773,7 @@ widget callbacks.
 - click success is not treated as mutation success
 - invalid submits emit typed intent denials
 
-### Milestone 3.13: Runtime Services Foundation
+### Milestone 3.14: Runtime Services Foundation
 
 This slice closes the cross-cutting service lanes that the certification
 vertical slice depends on.
@@ -799,7 +799,111 @@ vertical slice depends on.
 - motion projections derive from previous receipt + next receipt + motion
   declaration rather than host-local animation meaning
 
-### Milestone 3.14: Diagnostics, Inspection, and Evidence Closure
+### Milestone 3.15: Appearance, Theme, and Visual State Projection
+
+This slice closes runtime-owned visual semantics before Milestone 9 broadens
+into a professional component set. Theme and style meaning already belong to
+Worth UI; this milestone makes that meaning admitted, inspectable, and
+rebind-safe rather than renderer-local or component-folklore.
+
+**Must ship**
+
+- `UiAppearanceRole`
+- `UiAppearanceProjection`
+- `UiAppearanceStateAxis`
+- `UiThemeCapabilityReceipt`
+- typed appearance coverage for semantic aspects such as:
+  - `appearance.background`
+  - `appearance.foreground`
+  - `appearance.border`
+  - `appearance.radius`
+  - `appearance.opacity`
+  - `appearance.outline`
+- typed state-axis projection for at least:
+  - `operability`
+  - `focus`
+  - `validation`
+  - `selection`
+  - `hover`
+  - `pressed`
+- explicit theme-capability consumption and invalidation posture
+- mounted visual-projection facts that let hosts render runtime-decided visual
+  outcomes without deciding semantic appearance locally
+- typed denial posture for missing appearance coverage, unsupported state axes,
+  or wrong-world theme consumption
+
+**Acceptance evidence**
+
+- a node's visual outcome is derived from declaration + appearance role + theme
+  capability + state-axis posture rather than adapter-local style logic
+- theme changes invalidate only the affected appearance consumers instead of
+  widening immediately to unrelated structure or Query-binding neighborhoods
+- disabled, focused, selected, and validation-bearing visual states are runtime
+  projections rather than host-local booleans or component conventions
+- Milestone 9 can consume appearance and theme runtime lanes without reopening
+  their authority as design-system folklore
+
+### Milestone 3.16: DSL Expressions, Conditions, and Semantic Evaluation
+
+This slice makes authored conditions and computed semantic values part of the
+real language rather than helper sugar or renderer-side convenience.
+
+**Must ship**
+
+- canonical expression artifact families for pure DSL evaluation
+- typed expression evaluation for:
+  - conditional presence
+  - conditional participation
+  - operability projection
+  - projected options or payload shaping
+  - simple derived scalar selection
+- explicit consumed-fact and consumed-aspect capture for every admitted
+  expression
+- denial posture for unsupported, impure, ambiguous, or wrong-world
+  expressions
+- source-span-preserving diagnostics for expression admission and evaluation
+- rebind classification that treats expression invalidation as a first-class
+  runtime lane instead of rediscovering it from mounted behavior
+
+**Acceptance evidence**
+
+- `when`-style authored conditions lower into canonical artifacts with typed
+  fact consumption and bounded invalidation
+- expression changes can invalidate presence, operability, appearance, or
+  payload lanes without forcing unrelated declaration rediscovery
+- the runtime can explain why an authored condition evaluated true, false,
+  denied, or stale without reading renderer code
+- no authored expression requires arbitrary code execution, hidden closures, or
+  ambient environment fog
+
+### Milestone 3.17: DSL Composition, Modules, and Lowering Equivalence
+
+This slice makes the DSL feel like a real language with reusable composition,
+module-scale structure, and honest sugar that lowers into the same runtime
+truth rather than creating a second semantic path.
+
+**Must ship**
+
+- module and import boundaries for authored DSL source
+- symbol resolution for declarations, fragments, roles, tokens, and bindings
+- parameterized composition or fragment expansion with typed inputs
+- canonical source-span and expansion provenance for lowered artifacts
+- duplicate-name, unresolved-symbol, and import-conflict diagnostics
+- lowering-equivalence proof for semantic sugar and fragment expansion
+- stable canonical identity rules for cross-file and expanded declarations
+
+**Acceptance evidence**
+
+- multi-file DSL source can be authored with imports and reusable composition
+  without smuggling meaning through local widget helpers
+- fragments and sugar lower to the same declaration, aspect, and graph truth as
+  their fully expanded equivalents
+- diagnostics on expanded or imported constructs still point back to authored
+  spans rather than only lowered artifacts
+- the language can broaden in ergonomics without creating a second authority
+  lane beside canonical lowering
+
+### Milestone 3.18: Diagnostics, Inspection, and Evidence Closure
 
 This slice makes denials, support gaps, and rebind decisions typed, mountable,
 and inspectable instead of spooky.
@@ -822,7 +926,7 @@ and inspectable instead of spooky.
   distinct
 - inspection explains why a node rebound, preserved, remounted, or denied
 
-### Milestone 3.15: Visual Geometry, Design Invariants, and Perceptual Inspection
+### Milestone 3.19: Visual Geometry, Design Invariants, and Perceptual Inspection
 
 This slice lets the runtime answer alignment, spacing, symmetry, and visual
 consistency questions from receipt-backed geometry first and screenshot pixels
@@ -855,7 +959,7 @@ second.
 - screenshot-confirmed visual inspection remains secondary to receipt-backed
   geometry rather than replacing it
 
-### Milestone 3.16: AI Agent Inspection Tools and Replay Protocol
+### Milestone 3.20: AI Agent Inspection Tools and Replay Protocol
 
 This slice turns the evidence substrate into a real agent-facing repair and
 inspection interface.
@@ -882,7 +986,7 @@ inspection interface.
 - an agent can replay the last edit to the first denial point
 - an agent can compare before/after frames or receipts by aspect scope
 
-### Milestone 3.17: Worth Inspector Surface
+### Milestone 3.21: Worth Inspector Surface
 
 This slice adds the human-facing runtime inspector as a projection over the
 same evidence substrate the AI harness already uses.
@@ -908,7 +1012,7 @@ same evidence substrate the AI harness already uses.
 - the inspector can be authored through Worth UI where feasible
 - the inspector does not become the source of diagnostic truth
 
-### Milestone 3.18: Hot Composition Certification Vertical Slice
+### Milestone 3.22: Hot Composition Certification Vertical Slice
 
 This slice is certification, not product scope broadening. It proves the
 runtime architecture through one hostile, realistic workflow.
@@ -955,7 +1059,7 @@ Workflow Editor Page
 
 ### Sequencing Notes
 
-- Milestone 3.1 through 3.18 replace the old single Milestone 3 runtime lump
+- Milestone 3.1 through 3.22 replace the old single Milestone 3 runtime lump
   with a narrower authority-first sequence
 - `ai-diagnostics.md` co-develops across the full 3.x series; each runtime
   family must become inspectable as it lands instead of waiting for the end
@@ -963,7 +1067,7 @@ Workflow Editor Page
   enrich it with real evidence families, visual capture, replay, and inspector
   projections
 - the DSL vision must co-develop with Milestone 2 and Milestone 3.2 through
-  3.17; sugar follows admitted runtime lanes instead of running ahead of them
+  3.21; sugar follows admitted runtime lanes instead of running ahead of them
 - Milestones 4 through 7 now build on this substrate instead of reopening
   runtime authority, layout truth, Query posture, or interaction ownership
 - detailed specs should split into milestone-3.x docs as each slice begins
@@ -1024,7 +1128,7 @@ semantics rather than leaving them to every downstream application.
 
 ### Goal
 
-Broaden the interaction substrate closed in Milestones 3.12 and 3.13 so
+Broaden the interaction substrate closed in Milestones 3.13 and 3.14 so
 actions, focus, selection, and keyboard workflows become rich platform
 semantics instead of widget-local conventions.
 
@@ -1068,7 +1172,7 @@ semantics instead of widget-local conventions.
 ### Goal
 
 Broaden the minimal Query binding and projection-consumption substrate from
-Milestone 3.11 into serious data surfaces that bind to declared Query meaning
+Milestone 3.12 into serious data surfaces that bind to declared Query meaning
 instead of app-local caches, host-shaped events, or widget-owned live-update
 folklore.
 
@@ -1116,7 +1220,7 @@ folklore.
 ### Goal
 
 Broaden the interaction, Query-binding, and diagnostic substrate from
-Milestones 3.11, 3.12, and 3.14 so forms and editing become a platform
+Milestones 3.12, 3.13, and 3.18 so forms and editing become a platform
 capability rather than a loose pile of input widgets, local booleans, and
 submission folklore.
 

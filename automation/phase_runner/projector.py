@@ -29,7 +29,7 @@ def project_run(
 ) -> dict[str, Any]:
     projection = empty_projection(config, run_id)
     if projection["phases"]:
-        projection["current"] = {"phase": 1, "turn": first_turn(config)}
+        projection["current"] = {"phase": 1, "turn": first_turn(config, 1)}
 
     for event in events:
         if event.get("thread_id"):
@@ -88,7 +88,10 @@ def project_run(
     if projection["current"] is None and projection["completed_at"] is None and projection["phases"]:
         first_unfinished = find_first_unfinished_phase(projection)
         if first_unfinished is not None:
-            projection["current"] = {"phase": first_unfinished["id"], "turn": first_turn(config)}
+            projection["current"] = {
+                "phase": first_unfinished["id"],
+                "turn": first_turn(config, first_unfinished["id"]),
+            }
     normalize_current_from_phase_state(projection)
 
     projection["last_event"] = events[-1] if events else None
@@ -158,12 +161,18 @@ def normalize_current_from_phase_state(projection: dict[str, Any]) -> None:
         return
     current_phase = phase_by_id(projection, current.get("phase"))
     if current_phase is None:
-        projection["current"] = {"phase": first_unfinished["id"], "turn": first_turn(projection)}
+        projection["current"] = {
+            "phase": first_unfinished["id"],
+            "turn": first_turn(projection, first_unfinished["id"]),
+        }
         projection["current_turn_instance_id"] = None
         return
     if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
         if current_phase["id"] != first_unfinished["id"]:
-            projection["current"] = {"phase": first_unfinished["id"], "turn": first_turn(projection)}
+            projection["current"] = {
+                "phase": first_unfinished["id"],
+                "turn": first_turn(projection, first_unfinished["id"]),
+            }
             projection["current_turn_instance_id"] = None
 
 
@@ -178,7 +187,7 @@ def prompt_cursor_match_current(
     first_unfinished = find_first_unfinished_phase(projection)
     if first_unfinished is None:
         return current
-    expected_first_turn = first_turn(projection)
+    expected_first_turn = first_turn(projection, first_unfinished["id"])
     if event_phase_id == first_unfinished["id"] and event_turn == expected_first_turn:
         return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     if expected_first_turn != "plan" and event_phase_id == first_unfinished["id"] and event_turn == "plan":

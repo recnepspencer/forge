@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use worth_ui_inspection::{
-    UiInspectionMeasurementBasisPosture, UiInspectionMeasurementDenialPosture,
+    UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
+    UiInspectionMeasurementChildIntrinsicSource, UiInspectionMeasurementDenialPosture,
     UiInspectionMeasurementEvidenceSlot, UiInspectionMeasurementFailureSource,
     UiInspectionMeasurementGenerationCompatibility, UiInspectionMeasurementNeighborhoodClassHint,
     UiInspectionScope, UiInspectionScopeSupportRow, UiInspectionSupportWorld,
@@ -168,6 +169,53 @@ fn measurement_inspection_view_materializes_successful_basis_lineage() {
         Some(&UiInspectionMeasurementGenerationCompatibility::Compatible)
     );
     assert!(view.denial_posture().is_none());
+}
+
+#[test]
+fn measurement_inspection_view_preserves_child_intrinsic_identity() {
+    let declaration_identity = synthetic_declaration_identity("measurement-inspection-child");
+    let policy = scroll_viewport_policy();
+    let support_report = supported_measurement_report();
+    let child_node = UiGraphNodeIdentity::new(31);
+    let (prerequisites, consumption, world_profile) =
+        display_field_projection_context("measurement-inspection-child");
+    let projection_receipt = consume_declared_measurement_projection_facts(
+        declaration_identity.clone(),
+        worth_ui_inspection::UiEvidenceAuthorityGeneration::new(9),
+        &policy,
+        prerequisites,
+        &consumption,
+    )
+    .expect("projection receipt should admit");
+    let basis = admit_measurement_basis(
+        declaration_identity,
+        UiGraphNodeIdentity::new(29),
+        world_profile,
+        worth_ui_inspection::UiEvidenceAuthorityGeneration::new(9),
+        &policy,
+        &[MeasurementEvidenceInput::child_query_projection_fact(
+            child_node,
+            &projection_receipt,
+        )],
+    );
+
+    let view = project_measurement_inspection_view(support_report, Some(&basis));
+
+    assert_eq!(view.basis_inputs().len(), 1);
+    match &view.basis_inputs()[0] {
+        UiInspectionMeasurementBasisInput::ChildIntrinsicMeasurement {
+            contributor_graph_node_identity_digest,
+            source,
+            ..
+        } => {
+            assert_eq!(*contributor_graph_node_identity_digest, child_node.digest());
+            assert_eq!(
+                *source,
+                UiInspectionMeasurementChildIntrinsicSource::QueryProjectionFact
+            );
+        }
+        other => panic!("expected child intrinsic basis input, got {other:?}"),
+    }
 }
 
 fn supported_measurement_report() -> worth_ui_inspection::UiInspectionSupportReport {

@@ -107,7 +107,7 @@ fn membership_facts(
     };
 
     let mosaic_membership = match containment_claim {
-        UiGraphContainmentClaim::Mosaic { mosaic_name } => {
+        UiGraphContainmentClaim::Mosaic { mosaic_name, .. } => {
             Some(UiGraphMosaicMembership::new(mosaic_name.clone()))
         }
         _ => None,

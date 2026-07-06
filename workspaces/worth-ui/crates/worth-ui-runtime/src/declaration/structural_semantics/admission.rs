@@ -1,9 +1,11 @@
 use worth_ui_dsl::UiDslLoweringReceipt;
 
+use crate::capability::MosaicSizingContractId;
 use crate::declaration::{
     UiDeclarationContainmentIntent, UiDeclarationFamilyAdmission, UiDeclarationFamilyKind,
-    UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
-    UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
+    UiDeclarationOrderingGuarantee, UiDeclarationPlanningOperatorKind,
+    UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
+    UiDeclarationStructuralRole,
 };
 
 use super::{
@@ -53,6 +55,16 @@ pub(crate) fn admit_declaration_structural_semantics(
         .copied()
         .filter(|token| token.starts_with("slot:"))
         .collect::<Vec<_>>();
+    let operator_claims = structural_tokens
+        .iter()
+        .copied()
+        .filter(|token| token.starts_with("operator:"))
+        .collect::<Vec<_>>();
+    let mosaic_sizing_claims = structural_tokens
+        .iter()
+        .copied()
+        .filter(|token| token.starts_with("mosaic-sizing:"))
+        .collect::<Vec<_>>();
 
     let slot_participation_intent = match slot_claims.as_slice() {
         [] => UiDeclarationSlotParticipationIntent::None,
@@ -84,11 +96,96 @@ pub(crate) fn admit_declaration_structural_semantics(
             );
         }
     };
+    let operator_kind = match operator_claims.as_slice() {
+        [] => default_operator_kind_for_family(family_kind),
+        claims if !planning_operator_is_admitted_for_family(family_kind) => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::PlanningOperatorNotAdmittedForFamily {
+                    family: family_kind,
+                    observed: claims.iter().map(|claim| (*claim).to_owned()).collect(),
+                },
+            );
+        }
+        [claim] if claim.len() == "operator:".len() => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::InvalidPlanningOperatorClaim {
+                    family: family_kind,
+                    observed: vec![(*claim).to_owned()],
+                },
+            );
+        }
+        [claim] => {
+            let claim_name = &claim["operator:".len()..];
+            let Some(operator_kind) =
+                UiDeclarationPlanningOperatorKind::admit_explicit_claim(claim_name)
+            else {
+                return UiDeclarationStructuralSemanticsAdmission::Denied(
+                    UiDeclarationStructuralSemanticsAdmissionDenial::InvalidPlanningOperatorClaim {
+                        family: family_kind,
+                        observed: vec![(*claim).to_owned()],
+                    },
+                );
+            };
+            operator_kind
+        }
+        claims => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::ContradictoryPlanningOperatorClaims {
+                    family: family_kind,
+                    observed: claims.iter().map(|claim| (*claim).to_owned()).collect(),
+                },
+            );
+        }
+    };
+    let mosaic_sizing_contract_id = match mosaic_sizing_claims.as_slice() {
+        [] => None,
+        claims if !matches!(family_kind, UiDeclarationFamilyKind::Mosaic) => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::UnsupportedStructuralTokens {
+                    family: family_kind,
+                    observed: claims.iter().map(|claim| (*claim).to_owned()).collect(),
+                },
+            );
+        }
+        [claim] if claim.len() == "mosaic-sizing:".len() => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::InvalidMosaicSizingContractClaim {
+                    family: family_kind,
+                    observed: vec![(*claim).to_owned()],
+                },
+            );
+        }
+        [claim] => {
+            let raw_id = &claim["mosaic-sizing:".len()..];
+            let Ok(sizing_contract_id) = MosaicSizingContractId::new(raw_id) else {
+                return UiDeclarationStructuralSemanticsAdmission::Denied(
+                    UiDeclarationStructuralSemanticsAdmissionDenial::InvalidMosaicSizingContractClaim {
+                        family: family_kind,
+                        observed: vec![(*claim).to_owned()],
+                    },
+                );
+            };
+            Some(sizing_contract_id)
+        }
+        claims => {
+            return UiDeclarationStructuralSemanticsAdmission::Denied(
+                UiDeclarationStructuralSemanticsAdmissionDenial::ContradictoryMosaicSizingContractClaims {
+                    family: family_kind,
+                    observed: claims.iter().map(|claim| (*claim).to_owned()).collect(),
+                },
+            );
+        }
+    };
 
     let unsupported_tokens = structural_tokens
         .iter()
         .copied()
-        .filter(|token| Some(*token) != family_claim && !token.starts_with("slot:"))
+        .filter(|token| {
+            Some(*token) != family_claim
+                && !token.starts_with("slot:")
+                && !token.starts_with("operator:")
+                && !token.starts_with("mosaic-sizing:")
+        })
         .collect::<Vec<_>>();
     if !unsupported_tokens.is_empty() {
         return UiDeclarationStructuralSemanticsAdmission::Denied(
@@ -121,10 +218,11 @@ pub(crate) fn admit_declaration_structural_semantics(
             },
         );
     };
-
     UiDeclarationStructuralSemanticsAdmission::Admitted(UiDeclarationStructuralSemantics::new(
         family_kind,
         structural_role,
+        operator_kind,
+        mosaic_sizing_contract_id,
         containment_intent,
         slot_participation_intent,
         UiDeclarationOrderingGuarantee::NotSemanticallyClaimed,
@@ -199,6 +297,31 @@ fn containment_intent_for_family(
 }
 
 fn slot_participation_is_admitted_for_family(family: UiDeclarationFamilyKind) -> bool {
+    matches!(family, UiDeclarationFamilyKind::Control)
+}
+
+fn default_operator_kind_for_family(
+    family: UiDeclarationFamilyKind,
+) -> UiDeclarationPlanningOperatorKind {
+    match family {
+        UiDeclarationFamilyKind::Page => UiDeclarationPlanningOperatorKind::PageRoot,
+        UiDeclarationFamilyKind::PageSet => UiDeclarationPlanningOperatorKind::PageSet,
+        UiDeclarationFamilyKind::Region => UiDeclarationPlanningOperatorKind::Region,
+        UiDeclarationFamilyKind::Mosaic => UiDeclarationPlanningOperatorKind::Mosaic,
+        UiDeclarationFamilyKind::LocalComposition => {
+            UiDeclarationPlanningOperatorKind::LocalComposition
+        }
+        UiDeclarationFamilyKind::Control => UiDeclarationPlanningOperatorKind::Control,
+        UiDeclarationFamilyKind::DiagnosticSurface => {
+            UiDeclarationPlanningOperatorKind::DiagnosticSurface
+        }
+        UiDeclarationFamilyKind::QueryBinding | UiDeclarationFamilyKind::Intent => {
+            unreachable!("non-structural families do not admit structural semantics")
+        }
+    }
+}
+
+fn planning_operator_is_admitted_for_family(family: UiDeclarationFamilyKind) -> bool {
     matches!(family, UiDeclarationFamilyKind::Control)
 }
 

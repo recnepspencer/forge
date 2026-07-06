@@ -15,7 +15,7 @@ certification-construction = []
 workspace = true
 
 [dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-query = { path = "../../../../crates/forge-query" }
 
 [dev-dependencies]
-forge-foundational = { path = "../../../../crates/forge-foundational" }

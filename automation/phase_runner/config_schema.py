@@ -145,6 +145,7 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
         errors.append("runner_control must be an object when present")
     elif isinstance(runner_control, dict):
         validate_optional_positive_int(runner_control, "stop_before_phase", errors)
+        validate_optional_positive_int(runner_control, "boundary_review_start_phase", errors)
         validate_optional_positive_int(runner_control, "turn_timeout_seconds", errors)
         validate_optional_positive_int(runner_control, "idle_timeout_seconds", errors)
         stop_reason = runner_control.get("stop_reason")

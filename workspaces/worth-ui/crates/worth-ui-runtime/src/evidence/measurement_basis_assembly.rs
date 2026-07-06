@@ -1,13 +1,15 @@
+use super::measurement_basis_assembly_support::{
+    assign_slot, basis_source_denial, child_intrinsic_host_compatibility,
+    child_intrinsic_query_compatibility, host_result_compatibility, ownership_posture_denial,
+    push_child_intrinsic_lineage, push_host_lineage, query_receipt_compatibility,
+};
 use super::{
-    MeasurementEvidenceInput, UiMeasurementBasisDenial, UiMeasurementBasisPosture,
-    UiMeasurementDependencyLineage, UiMeasurementDependencyLineageEntry,
+    MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence, UiMeasurementBasisDenial,
+    UiMeasurementBasisPosture, UiMeasurementDependencyLineage, UiMeasurementDependencyLineageEntry,
     UiMeasurementDependencyLineageKind, UiMeasurementEvidenceCategory, UiMeasurementEvidenceSlot,
     UiMeasurementGenerationCompatibility, UiMeasurementResult, UiProjectionFactReceipt,
 };
-use crate::declaration::{
-    UiDeclaredMeasurementBasisRequirementSet, UiDeclaredMeasurementBasisSource,
-    UiDeclaredMeasurementOwnershipPosture,
-};
+use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
@@ -16,12 +18,16 @@ pub(super) struct SelectedEvidence<'a> {
     pub query_receipt: Option<&'a UiProjectionFactReceipt>,
     pub host_capability_report: Option<&'a WorthUiHostCapabilityReport>,
     pub host_results: HostResultSlots<'a>,
+    pub child_intrinsic_measurements: Vec<&'a UiChildIntrinsicMeasurementEvidence>,
+    pub sibling_resize_support: Option<&'a crate::evidence::UiMeasurementSiblingResizeSupport>,
     conflicting_slot: Option<UiMeasurementEvidenceSlot>,
 }
 
 #[derive(Clone, Copy, Default)]
 pub(super) struct HostResultSlots<'a> {
+    pub text_intrinsic_size: Option<&'a UiMeasurementResult>,
     pub font_metrics: Option<&'a UiMeasurementResult>,
+    pub native_control_intrinsic_size: Option<&'a UiMeasurementResult>,
     pub viewport_extent: Option<&'a UiMeasurementResult>,
     pub portal_anchor_rect: Option<&'a UiMeasurementResult>,
     pub scroll_container_viewport: Option<&'a UiMeasurementResult>,
@@ -31,10 +37,24 @@ impl<'a> SelectedEvidence<'a> {
         requirements: &UiDeclaredMeasurementBasisRequirementSet,
         evidence_inputs: &'a [MeasurementEvidenceInput],
     ) -> Self {
+        let has_intrinsic_host_input = evidence_inputs.iter().any(|input| {
+            matches!(
+                input
+                    .as_host_measurement_result()
+                    .map(|result| result.evidence_category()),
+                Some(UiMeasurementEvidenceCategory::TextIntrinsicSize)
+                    | Some(UiMeasurementEvidenceCategory::NativeControlIntrinsicSize)
+            ) || input
+                .as_child_intrinsic_measurement()
+                .and_then(UiChildIntrinsicMeasurementEvidence::host_measurement_result)
+                .is_some()
+        });
         let mut selected = Self {
             query_receipt: None,
             host_capability_report: None,
             host_results: HostResultSlots::default(),
+            child_intrinsic_measurements: Vec::new(),
+            sibling_resize_support: None,
             conflicting_slot: None,
         };
         for input in evidence_inputs {
@@ -49,9 +69,8 @@ impl<'a> SelectedEvidence<'a> {
                 }
                 continue;
             }
-
             if let Some(report) = input.as_host_capability_report() {
-                if requirements.requires_host_measurement_evidence() {
+                if requirements.requires_host_measurement_evidence() || has_intrinsic_host_input {
                     assign_slot(
                         &mut selected.host_capability_report,
                         report,
@@ -61,9 +80,16 @@ impl<'a> SelectedEvidence<'a> {
                 }
                 continue;
             }
-
             if let Some(result) = input.as_host_measurement_result() {
                 match result.evidence_category() {
+                    UiMeasurementEvidenceCategory::TextIntrinsicSize => {
+                        assign_slot(
+                            &mut selected.host_results.text_intrinsic_size,
+                            result,
+                            &mut selected.conflicting_slot,
+                            UiMeasurementEvidenceSlot::HostTextIntrinsicSize,
+                        );
+                    }
                     UiMeasurementEvidenceCategory::FontMetrics
                         if requirements.requires_host_font_metrics() =>
                     {
@@ -72,6 +98,14 @@ impl<'a> SelectedEvidence<'a> {
                             result,
                             &mut selected.conflicting_slot,
                             UiMeasurementEvidenceSlot::HostFontMetrics,
+                        );
+                    }
+                    UiMeasurementEvidenceCategory::NativeControlIntrinsicSize => {
+                        assign_slot(
+                            &mut selected.host_results.native_control_intrinsic_size,
+                            result,
+                            &mut selected.conflicting_slot,
+                            UiMeasurementEvidenceSlot::HostNativeControlIntrinsicSize,
                         );
                     }
                     UiMeasurementEvidenceCategory::ViewportExtent
@@ -106,6 +140,15 @@ impl<'a> SelectedEvidence<'a> {
                     }
                     _ => {}
                 }
+                continue;
+            }
+
+            if let Some(evidence) = input.as_child_intrinsic_measurement() {
+                selected.child_intrinsic_measurements.push(evidence);
+                continue;
+            }
+            if let Some(support) = input.as_sibling_resize_support() {
+                selected.sibling_resize_support.get_or_insert(support);
             }
         }
         selected
@@ -117,32 +160,31 @@ impl<'a> SelectedEvidence<'a> {
         declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     ) -> UiMeasurementGenerationCompatibility {
         if let Some(receipt) = self.query_receipt {
-            if receipt.declaration_support_authority_generation()
-                != declaration_support_authority_generation
-            {
-                return UiMeasurementGenerationCompatibility::StaleQueryFactReceipt {
-                    expected: declaration_support_authority_generation,
-                    observed: receipt.declaration_support_authority_generation(),
-                };
-            }
-
-            let observed_world_basis_digest = match world_profile {
-                UiGraphWorldProfile::QuerySnapshotBasis {
-                    resolution_report, ..
-                } => Some(resolution_report.basis_digest().as_str()),
-                _ => None,
-            };
-            if observed_world_basis_digest != Some(receipt.query_basis_digest()) {
-                return UiMeasurementGenerationCompatibility::IncompatibleWorld {
-                    expected_query_basis_digest: receipt.query_basis_digest().into(),
-                    observed_world_basis_digest: observed_world_basis_digest.map(Into::into),
-                };
+            if let Some(compatibility) = query_receipt_compatibility(
+                receipt,
+                world_profile,
+                declaration_support_authority_generation,
+            ) {
+                return compatibility;
             }
         }
-
         if let Some(report) = self.host_capability_report {
             if let Some(compatibility) = host_result_compatibility(
+                self.host_results.text_intrinsic_size,
+                report,
+                declaration_support_authority_generation,
+            ) {
+                return compatibility;
+            }
+            if let Some(compatibility) = host_result_compatibility(
                 self.host_results.font_metrics,
+                report,
+                declaration_support_authority_generation,
+            ) {
+                return compatibility;
+            }
+            if let Some(compatibility) = host_result_compatibility(
+                self.host_results.native_control_intrinsic_size,
                 report,
                 declaration_support_authority_generation,
             ) {
@@ -170,6 +212,24 @@ impl<'a> SelectedEvidence<'a> {
                 return compatibility;
             }
         }
+        for evidence in &self.child_intrinsic_measurements {
+            if let Some(compatibility) = child_intrinsic_query_compatibility(
+                evidence,
+                world_profile,
+                declaration_support_authority_generation,
+            ) {
+                return compatibility;
+            }
+            if let Some(report) = self.host_capability_report {
+                if let Some(compatibility) = child_intrinsic_host_compatibility(
+                    evidence,
+                    report,
+                    declaration_support_authority_generation,
+                ) {
+                    return compatibility;
+                }
+            }
+        }
         UiMeasurementGenerationCompatibility::Compatible
     }
 
@@ -184,6 +244,16 @@ impl<'a> SelectedEvidence<'a> {
         for result in self.host_results.relevant_results().into_iter().flatten() {
             inputs.push(MeasurementEvidenceInput::host_measurement_result(result));
         }
+        for evidence in &self.child_intrinsic_measurements {
+            inputs.push(MeasurementEvidenceInput::ChildIntrinsicMeasurement(
+                (*evidence).clone(),
+            ));
+        }
+        if let Some(support) = self.sibling_resize_support {
+            inputs.push(MeasurementEvidenceInput::SiblingResizeSupport(
+                (*support).clone(),
+            ));
+        }
         inputs.into_boxed_slice()
     }
 
@@ -192,14 +262,24 @@ impl<'a> SelectedEvidence<'a> {
         if let Some(receipt) = self.query_receipt {
             entries.push(UiMeasurementDependencyLineageEntry::new(
                 UiMeasurementDependencyLineageKind::QueryScrollContentExtent,
-                receipt.consumed_fact_family_set_digest(),
+                receipt.observation_identity_digest(),
                 receipt.declaration_support_authority_generation().as_u64(),
             ));
         }
         push_host_lineage(
             &mut entries,
+            self.host_results.text_intrinsic_size,
+            UiMeasurementDependencyLineageKind::HostTextIntrinsicSize,
+        );
+        push_host_lineage(
+            &mut entries,
             self.host_results.font_metrics,
             UiMeasurementDependencyLineageKind::HostFontMetrics,
+        );
+        push_host_lineage(
+            &mut entries,
+            self.host_results.native_control_intrinsic_size,
+            UiMeasurementDependencyLineageKind::HostNativeControlIntrinsicSize,
         );
         push_host_lineage(
             &mut entries,
@@ -216,14 +296,24 @@ impl<'a> SelectedEvidence<'a> {
             self.host_results.scroll_container_viewport,
             UiMeasurementDependencyLineageKind::HostScrollContainerViewport,
         );
+        for evidence in &self.child_intrinsic_measurements {
+            push_child_intrinsic_lineage(&mut entries, evidence);
+        }
         UiMeasurementDependencyLineage::new(entries)
     }
 
     pub(super) fn basis_posture(&self) -> UiMeasurementBasisPosture {
-        match (
-            self.query_receipt.is_some(),
-            self.host_capability_report.is_some(),
-        ) {
+        let has_query = self.query_receipt.is_some()
+            || self
+                .child_intrinsic_measurements
+                .iter()
+                .any(|evidence| evidence.query_projection_fact().is_some());
+        let has_host = self.host_capability_report.is_some()
+            || self
+                .child_intrinsic_measurements
+                .iter()
+                .any(|evidence| evidence.host_measurement_result().is_some());
+        match (has_query, has_host) {
             (true, true) => UiMeasurementBasisPosture::QueryAndHost,
             (true, false) => UiMeasurementBasisPosture::QueryOnly,
             (false, true) | (false, false) => UiMeasurementBasisPosture::HostOnly,
@@ -235,6 +325,10 @@ impl<'a> SelectedEvidence<'a> {
         requirements: &UiDeclaredMeasurementBasisRequirementSet,
         generation_compatibility: &UiMeasurementGenerationCompatibility,
     ) -> Option<UiMeasurementBasisDenial> {
+        let has_child_query_measurement = self
+            .child_intrinsic_measurements
+            .iter()
+            .any(|evidence| evidence.query_projection_fact().is_some());
         if !generation_compatibility.is_compatible() {
             return Some(UiMeasurementBasisDenial::GenerationIncompatible {
                 compatibility: generation_compatibility.clone(),
@@ -243,12 +337,30 @@ impl<'a> SelectedEvidence<'a> {
         if let Some(slot) = self.conflicting_slot {
             return Some(UiMeasurementBasisDenial::ConflictingEvidenceInputs { slot });
         }
-        if requirements.requires_query_projection_receipt() && self.query_receipt.is_none() {
+        if requirements.requires_query_projection_receipt()
+            && self.query_receipt.is_none()
+            && !has_child_query_measurement
+        {
             return Some(UiMeasurementBasisDenial::MissingEvidence {
                 slot: UiMeasurementEvidenceSlot::QueryProjectionFactReceipt,
             });
         }
         if requirements.requires_host_measurement_evidence()
+            && self.host_capability_report.is_none()
+        {
+            return Some(UiMeasurementBasisDenial::MissingEvidence {
+                slot: UiMeasurementEvidenceSlot::HostCapabilityReport,
+            });
+        }
+        if self.host_results.has_intrinsic_results() && self.host_capability_report.is_none() {
+            return Some(UiMeasurementBasisDenial::MissingEvidence {
+                slot: UiMeasurementEvidenceSlot::HostCapabilityReport,
+            });
+        }
+        if self
+            .child_intrinsic_measurements
+            .iter()
+            .any(|evidence| evidence.host_measurement_result().is_some())
             && self.host_capability_report.is_none()
         {
             return Some(UiMeasurementBasisDenial::MissingEvidence {
@@ -282,130 +394,5 @@ impl<'a> SelectedEvidence<'a> {
             );
         }
         None
-    }
-}
-
-impl<'a> HostResultSlots<'a> {
-    fn relevant_results(self) -> [Option<&'a UiMeasurementResult>; 4] {
-        [
-            self.font_metrics,
-            self.viewport_extent,
-            self.portal_anchor_rect,
-            self.scroll_container_viewport,
-        ]
-    }
-}
-
-fn assign_slot<'a, T>(
-    slot: &mut Option<&'a T>,
-    value: &'a T,
-    conflicting_slot: &mut Option<UiMeasurementEvidenceSlot>,
-    evidence_slot: UiMeasurementEvidenceSlot,
-) {
-    if slot.is_none() {
-        *slot = Some(value);
-    } else if conflicting_slot.is_none() {
-        *conflicting_slot = Some(evidence_slot);
-    }
-}
-
-fn basis_source_denial(
-    basis_source: Option<UiDeclaredMeasurementBasisSource>,
-    host_results: &HostResultSlots<'_>,
-) -> Option<UiMeasurementBasisDenial> {
-    match basis_source {
-        Some(UiDeclaredMeasurementBasisSource::ScrollViewport)
-            if host_results.viewport_extent.is_none() =>
-        {
-            Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence {
-                basis_source: UiDeclaredMeasurementBasisSource::ScrollViewport,
-                slot: UiMeasurementEvidenceSlot::ViewportExtent,
-            })
-        }
-        Some(UiDeclaredMeasurementBasisSource::PortalAnchor)
-            if host_results.portal_anchor_rect.is_none() =>
-        {
-            Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence {
-                basis_source: UiDeclaredMeasurementBasisSource::PortalAnchor,
-                slot: UiMeasurementEvidenceSlot::PortalAnchorRect,
-            })
-        }
-        _ => None,
-    }
-}
-
-fn ownership_posture_denial(
-    ownership_posture: Option<UiDeclaredMeasurementOwnershipPosture>,
-    host_results: &HostResultSlots<'_>,
-) -> Option<UiMeasurementBasisDenial> {
-    match ownership_posture {
-        Some(UiDeclaredMeasurementOwnershipPosture::ScrollContainerBasis)
-            if host_results.scroll_container_viewport.is_none() =>
-        {
-            Some(UiMeasurementBasisDenial::MissingOwnershipEvidence {
-                ownership_posture: UiDeclaredMeasurementOwnershipPosture::ScrollContainerBasis,
-                slot: UiMeasurementEvidenceSlot::ScrollContainerViewport,
-            })
-        }
-        Some(UiDeclaredMeasurementOwnershipPosture::PortalAnchorBasisRequired)
-            if host_results.portal_anchor_rect.is_none() =>
-        {
-            Some(UiMeasurementBasisDenial::MissingOwnershipEvidence {
-                ownership_posture: UiDeclaredMeasurementOwnershipPosture::PortalAnchorBasisRequired,
-                slot: UiMeasurementEvidenceSlot::PortalAnchorRect,
-            })
-        }
-        _ => None,
-    }
-}
-
-fn host_result_compatibility(
-    result: Option<&UiMeasurementResult>,
-    report: &WorthUiHostCapabilityReport,
-    declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-) -> Option<UiMeasurementGenerationCompatibility> {
-    let Some(result) = result else {
-        return None;
-    };
-    if result.evidence_generation() != declaration_support_authority_generation {
-        return Some(UiMeasurementGenerationCompatibility::StaleHostEvidence {
-            expected: declaration_support_authority_generation,
-            observed: result.evidence_generation(),
-        });
-    }
-    if result
-        .assumption_profile()
-        .capability_observation_generation()
-        != report.observation_generation()
-    {
-        return Some(UiMeasurementGenerationCompatibility::StaleHostCapability {
-            expected: report.observation_generation(),
-            observed: result
-                .assumption_profile()
-                .capability_observation_generation(),
-        });
-    }
-    if result.assumption_profile().capability_profile_digest() != report.profile_identity_digest() {
-        return Some(
-            UiMeasurementGenerationCompatibility::IncompatibleHostProfile {
-                expected_profile_digest: report.profile_identity_digest(),
-                observed_profile_digest: result.assumption_profile().capability_profile_digest(),
-            },
-        );
-    }
-    None
-}
-
-fn push_host_lineage(
-    entries: &mut Vec<UiMeasurementDependencyLineageEntry>,
-    result: Option<&UiMeasurementResult>,
-    kind: UiMeasurementDependencyLineageKind,
-) {
-    if let Some(result) = result {
-        entries.push(UiMeasurementDependencyLineageEntry::new(
-            kind,
-            MeasurementEvidenceInput::host_measurement_result(result).identity_digest(),
-            result.evidence_generation().as_u64(),
-        ));
     }
 }

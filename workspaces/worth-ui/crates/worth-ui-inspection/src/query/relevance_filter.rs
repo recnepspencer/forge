@@ -6,6 +6,7 @@ pub enum UiRelevanceFamily {
     Graph,
     Aspect,
     Obligation,
+    Planning,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

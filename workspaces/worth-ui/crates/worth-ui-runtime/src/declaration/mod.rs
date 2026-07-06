@@ -54,7 +54,8 @@ pub use measurement_dependency::{
 };
 pub(crate) use structural_semantics::UiDeclarationStructuralSemanticsAdmission;
 pub use structural_semantics::{
-    UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee, UiDeclarationRepetitionPosture,
+    UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,
+    UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralRole,
     UiDeclarationStructuralSemantics, UiDeclarationStructuralSemanticsAdmissionDenial,
 };
@@ -74,6 +75,8 @@ mod declaration_measurement_registration_tests;
 mod declared_measurement_posture_tests;
 #[cfg(test)]
 mod declared_posture_tests;
+#[cfg(test)]
+mod structural_operator_tests;
 #[cfg(test)]
 mod support_inspection_tests;
 #[cfg(test)]

@@ -12,8 +12,19 @@ pub(crate) fn expand_evidence_ref(
     evidence_ref: UiEvidenceRef,
     requested_richness: UiEvidenceRichness,
 ) -> UiEvidenceExpansion {
-    let current_generation =
-        worth_ui_inspection::UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64());
+    let current_generation = match evidence_ref.family() {
+        UiEvidenceFamily::Planning => app
+            .retained_allocation_planning_registry()
+            .current_generation_for(evidence_ref.handle().handle_digest())
+            .unwrap_or_else(|| evidence_ref.authority_generation()),
+        _ => {
+            worth_ui_inspection::UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64())
+        }
+    };
+    let evidence_ref = app
+        .retained_allocation_planning_registry()
+        .discarded_ref(evidence_ref)
+        .unwrap_or(evidence_ref);
     let evidence_ref = app
         .retained_obligation_registry()
         .discarded_ref(evidence_ref)
@@ -38,6 +49,9 @@ pub(crate) fn expand_evidence_ref(
     }
 
     match evidence_ref.family() {
+        UiEvidenceFamily::Planning => {
+            app.expand_retained_allocation_planning_ref(evidence_ref, requested_richness)
+        }
         UiEvidenceFamily::Obligation => {
             app.expand_retained_obligation_ref(evidence_ref, requested_richness)
         }
@@ -97,7 +111,9 @@ fn relevance_family_for_ref(family: UiEvidenceFamily) -> UiRelevanceFamily {
         UiEvidenceFamily::Declaration => UiRelevanceFamily::Declaration,
         UiEvidenceFamily::Graph => UiRelevanceFamily::Graph,
         UiEvidenceFamily::Aspect => UiRelevanceFamily::Aspect,
-        UiEvidenceFamily::Admission | UiEvidenceFamily::Obligation => unreachable!(),
+        UiEvidenceFamily::Admission | UiEvidenceFamily::Obligation | UiEvidenceFamily::Planning => {
+            unreachable!()
+        }
         _ => unreachable!(),
     }
 }

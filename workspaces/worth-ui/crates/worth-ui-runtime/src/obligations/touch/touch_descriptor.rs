@@ -1,8 +1,10 @@
 use crate::declaration::stable_text_digest;
+use crate::evidence::UiAllocationNeighborhood;
 use crate::graph::UiGraphMeasurementNeighborhoodHint;
 use crate::obligations::touch::{
-    UiGraphTouchAspectFact, UiGraphTouchMeasurementNeighborhoodHint, UiGraphTouchOriginReceipt,
-    UiGraphTouchTarget, UiGraphTouchTiming, UiGraphTouchWorld,
+    UiGraphTouchAllocationNeighborhood, UiGraphTouchAspectFact,
+    UiGraphTouchMeasurementNeighborhoodHint, UiGraphTouchOriginReceipt, UiGraphTouchTarget,
+    UiGraphTouchTiming, UiGraphTouchWorld,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,10 +73,17 @@ impl UiGraphTouchDescriptor {
         self.identity_digest
     }
 
-    pub fn project_measurement_neighborhood_hint(
+    pub(crate) fn project_measurement_neighborhood_hint(
         &self,
         neighborhood_hint: &UiGraphMeasurementNeighborhoodHint,
     ) -> Option<UiGraphTouchMeasurementNeighborhoodHint> {
         UiGraphTouchMeasurementNeighborhoodHint::from_touch(self, neighborhood_hint)
+    }
+
+    pub fn project_allocation_neighborhood(
+        &self,
+        neighborhood: &UiAllocationNeighborhood,
+    ) -> Option<UiGraphTouchAllocationNeighborhood> {
+        UiGraphTouchAllocationNeighborhood::from_touch(self, neighborhood)
     }
 }

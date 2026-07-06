@@ -6,6 +6,13 @@ use crate::capability::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum WorthUiMosaicSizingContractProjectionDenial {
+    ContradictoryRootSizingContracts {
+        observed: Vec<MosaicSizingContractId>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiMosaicStructureFacts {
     root_regions: Vec<WorthUiMosaicRegionFacts>,
 }
@@ -47,6 +54,32 @@ impl WorthUiMosaicStructureFacts {
 
     pub(crate) fn root_regions(&self) -> &[WorthUiMosaicRegionFacts] {
         &self.root_regions
+    }
+
+    pub(crate) fn unique_root_sizing_contract_id(
+        &self,
+    ) -> Result<Option<MosaicSizingContractId>, WorthUiMosaicSizingContractProjectionDenial> {
+        let mut observed = self
+            .root_regions
+            .iter()
+            .filter_map(|region| {
+                region
+                    .sizing_contract()
+                    .map(|(contract, _)| contract.id().clone())
+            })
+            .collect::<Vec<_>>();
+        observed.sort_by(|left, right| left.as_str().cmp(right.as_str()));
+        observed.dedup_by(|left, right| left.as_str() == right.as_str());
+
+        match observed.len() {
+            0 => Ok(None),
+            1 => Ok(observed.into_iter().next()),
+            _ => Err(
+                WorthUiMosaicSizingContractProjectionDenial::ContradictoryRootSizingContracts {
+                    observed,
+                },
+            ),
+        }
     }
 }
 

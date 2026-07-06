@@ -75,6 +75,22 @@ Root-cause review rule:
   authority-topology repair. Review for the owning law surface: which lower
   crate should define the sealed witness, which crate may consume it, and which
   public constructors must become impossible.
+- If this phase has already failed review two or more times, stop treating each
+  new leak as a separate bug unless it is clearly unrelated. Assume there may be
+  one unresolved seam still generating sibling failures.
+- In that situation, explicitly answer:
+  - what canonical artifact, admitted witness, or production contract should own
+    the truth
+  - what proxy, heuristic, mutable field, digest wrapper, legacy lane, or
+    synthetic proof still stands in for it
+  - whether the current proof exercises the real production derivation path or a
+    test-only shortcut
+- Prefer findings that expose proxy-derived identity, forgeable authority,
+  synthetic hostile proof, mutable-boundary leakage, displaced ordinary lanes,
+  or weak equivalence contracts over findings that only describe downstream
+  symptoms.
+- Do not recommend another symptom patch when the visible problem is that the
+  phase still reconstructs truth from a weaker source than the spec allows.
 
 If the phase is not actually done, finish with:
 

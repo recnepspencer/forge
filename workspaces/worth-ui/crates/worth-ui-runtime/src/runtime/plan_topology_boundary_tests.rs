@@ -1,16 +1,19 @@
 use super::activation_staging_test_support::activation_staging_inputs;
+use super::allocation_planning_test_support::{
+    admitted_allocation_neighborhood, admitted_measurement_basis, allocation_planning,
+};
 use crate::runtime::{
-    WorthUiChildRangeHandle, WorthUiEguiBoundaryContact, WorthUiEguiBoundaryInput,
-    WorthUiExecutionPlanInput, WorthUiPlanNodeInputFamily, WorthUiPlanTopologyDenialReason,
-    WorthUiRuntimeHandleAllocation,
+    WorthUiAllocationPlanning, WorthUiChildRangeHandle, WorthUiEguiBoundaryContact,
+    WorthUiEguiBoundaryInput, WorthUiExecutionPlanInput, WorthUiPlanNodeInputFamily,
+    WorthUiPlanTopologyDenialReason, WorthUiRuntimeHandleAllocation,
 };
 
 #[test]
 fn equivalent_plan_inputs_assemble_equivalent_topology() {
-    let (_, left_input, left_handles) = topology_fixture();
-    let (_, right_input, right_handles) = topology_fixture();
-    let left = assemble(&left_input, &left_handles);
-    let right = assemble(&right_input, &right_handles);
+    let (_, _, left_planning, left_handles) = topology_fixture();
+    let (_, _, right_planning, right_handles) = topology_fixture();
+    let left = assemble(&left_planning, &left_handles);
+    let right = assemble(&right_planning, &right_handles);
 
     assert_eq!(left.handle_receipt(), right.handle_receipt());
     assert_eq!(left.topology(), right.topology());
@@ -21,12 +24,12 @@ fn equivalent_plan_inputs_assemble_equivalent_topology() {
 
 #[test]
 fn plan_topology_assembly_rejects_missing_child_or_lane_links() {
-    let (_, plan_input, allocation) = topology_fixture();
+    let (_, plan_input, planning, allocation) = topology_fixture();
     let mut runtime_handles = allocation.runtime_handles().to_vec();
     runtime_handles.pop();
     let broken = allocation_with_runtime_handles(&allocation, runtime_handles);
 
-    let denial = assemble_err(&plan_input, &broken);
+    let denial = assemble_err(&planning, &broken);
 
     assert_eq!(
         denial.reason(),
@@ -38,8 +41,8 @@ fn plan_topology_assembly_rejects_missing_child_or_lane_links() {
 
 #[test]
 fn frame_traversal_uses_plan_topology_without_artifact_tree_scan() {
-    let (_, plan_input, allocation) = topology_fixture();
-    let plan = assemble(&plan_input, &allocation);
+    let (_, plan_input, planning, allocation) = topology_fixture();
+    let plan = assemble(&planning, &allocation);
     let counters = plan.counters();
 
     assert_eq!(
@@ -107,13 +110,14 @@ fn frame_traversal_uses_plan_topology_without_artifact_tree_scan() {
 
 #[test]
 fn plan_topology_rejects_missing_child_range_handles() {
-    let (_, plan_input, _) = topology_fixture();
+    let (_, plan_input, _, _) = topology_fixture();
     let plan_input = plan_input_with_first_child_range_family(plan_input);
-    let allocation = allocate_handles(&plan_input);
+    let allocation_planning = topology_planning(&plan_input, "plan-topology.missing-child-range");
+    let allocation = allocate_handles(&allocation_planning);
     assert!(!allocation.child_range_handles().is_empty());
     let broken = allocation_with_child_ranges(&allocation, Vec::new());
 
-    let denial = assemble_err(&plan_input, &broken);
+    let denial = assemble_err(&allocation_planning, &broken);
 
     assert_eq!(
         denial.reason(),
@@ -124,15 +128,16 @@ fn plan_topology_rejects_missing_child_range_handles() {
 
 #[test]
 fn plan_topology_rejects_orphaned_child_range_handles() {
-    let (_, plan_input, _) = topology_fixture();
+    let (_, plan_input, _, _) = topology_fixture();
     let plan_input = plan_input_with_first_child_range_family(plan_input);
-    let allocation = allocate_handles(&plan_input);
+    let allocation_planning = topology_planning(&plan_input, "plan-topology.orphaned-child-range");
+    let allocation = allocate_handles(&allocation_planning);
     let mut child_ranges = allocation.child_range_handles().to_vec();
     child_ranges[0] =
         WorthUiChildRangeHandle::new(u32::MAX, allocation.receipt().plan_generation());
     let broken = allocation_with_child_ranges(&allocation, child_ranges);
 
-    let denial = assemble_err(&plan_input, &broken);
+    let denial = assemble_err(&allocation_planning, &broken);
 
     assert_eq!(
         denial.reason(),
@@ -162,11 +167,13 @@ fn plan_input_with_first_child_range_family(
 
 #[test]
 fn plan_topology_rejects_missing_declared_region_structure() {
-    let (_, plan_input, _) = topology_fixture();
+    let (_, plan_input, _, _) = topology_fixture();
     let broken_input = plan_input_without_first_region_structure(plan_input);
-    let broken_allocation = allocate_handles(&broken_input);
+    let broken_planning =
+        topology_planning(&broken_input, "plan-topology.missing-region-structure");
+    let broken_allocation = allocate_handles(&broken_planning);
 
-    let denial = assemble_err(&broken_input, &broken_allocation);
+    let denial = assemble_err(&broken_planning, &broken_allocation);
 
     assert_eq!(
         denial.reason(),
@@ -177,8 +184,8 @@ fn plan_topology_rejects_missing_declared_region_structure() {
 
 #[test]
 fn egui_boundary_contact_is_plan_declared_not_ambient() {
-    let (_, plan_input, allocation) = topology_fixture();
-    let plan = assemble(&plan_input, &allocation);
+    let (_, plan_input, planning, allocation) = topology_fixture();
+    let plan = assemble(&planning, &allocation);
     let egui_nodes = plan
         .topology()
         .traversal_order()
@@ -197,8 +204,9 @@ fn egui_boundary_contact_is_plan_declared_not_ambient() {
         .all(|boundary| boundary.contacts() == expected_contacts(boundary.input())));
 
     let broken_input = plan_input_without_first_egui_boundary(plan_input);
-    let broken_allocation = allocate_handles(&broken_input);
-    let denial = assemble_err(&broken_input, &broken_allocation);
+    let broken_planning = topology_planning(&broken_input, "plan-topology.missing-egui-boundary");
+    let broken_allocation = allocate_handles(&broken_planning);
+    let denial = assemble_err(&broken_planning, &broken_allocation);
     assert_eq!(
         denial.reason(),
         WorthUiPlanTopologyDenialReason::MissingEguiBoundaryDeclaration
@@ -244,43 +252,55 @@ fn expected_contacts(input: WorthUiEguiBoundaryInput) -> &'static [WorthUiEguiBo
 fn topology_fixture() -> (
     crate::runtime::WorthUiRuntimeHost,
     WorthUiExecutionPlanInput,
+    WorthUiAllocationPlanning,
     WorthUiRuntimeHandleAllocation,
 ) {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
-        .prepare_execution_plan_input(pending)
+        .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
+    let measurement_basis = admitted_measurement_basis("plan-topology.fixture");
+    let neighborhood = admitted_allocation_neighborhood("plan-topology.fixture");
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     let allocation = runtime
-        .allocate_runtime_handles(&plan_input)
+        .allocate_runtime_handles(&planning)
         .expect("handles allocate");
-    (runtime, plan_input, allocation)
+    (runtime, plan_input, planning, allocation)
 }
 
-fn allocate_handles(plan_input: &WorthUiExecutionPlanInput) -> WorthUiRuntimeHandleAllocation {
-    let (runtime, _, _) = topology_fixture();
+fn topology_planning(
+    plan_input: &WorthUiExecutionPlanInput,
+    label: &str,
+) -> WorthUiAllocationPlanning {
+    let (runtime, _, _, _) = topology_fixture();
+    allocation_planning(&runtime, plan_input, label)
+}
+
+fn allocate_handles(planning: &WorthUiAllocationPlanning) -> WorthUiRuntimeHandleAllocation {
+    let (runtime, _, _, _) = topology_fixture();
     runtime
-        .allocate_runtime_handles(plan_input)
+        .allocate_runtime_handles(planning)
         .expect("handles allocate")
 }
 
 fn assemble(
-    plan_input: &WorthUiExecutionPlanInput,
+    planning: &WorthUiAllocationPlanning,
     allocation: &WorthUiRuntimeHandleAllocation,
 ) -> crate::runtime::WorthUiExecutionPlan {
-    let (runtime, _, _) = topology_fixture();
+    let (runtime, _, _, _) = topology_fixture();
     runtime
-        .assemble_execution_plan_topology(plan_input, allocation)
+        .assemble_execution_plan_topology(planning, allocation)
         .expect("topology assembles")
 }
 
 fn assemble_err(
-    plan_input: &WorthUiExecutionPlanInput,
+    planning: &WorthUiAllocationPlanning,
     allocation: &WorthUiRuntimeHandleAllocation,
 ) -> crate::runtime::WorthUiPlanTopologyDenial {
-    let (runtime, _, _) = topology_fixture();
+    let (runtime, _, _, _) = topology_fixture();
     runtime
-        .assemble_execution_plan_topology(plan_input, allocation)
+        .assemble_execution_plan_topology(planning, allocation)
         .expect_err("topology assembly denies")
 }
 

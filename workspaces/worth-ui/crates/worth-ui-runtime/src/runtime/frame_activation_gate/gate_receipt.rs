@@ -8,6 +8,8 @@ pub struct WorthUiActivationGateReceipt {
     candidate_artifact_digest: u64,
     candidate_execution_plan_digest: u64,
     handle_allocation_basis_digest: u64,
+    node_classification_count: usize,
+    lane_changed_node_count: usize,
     reconciliation_basis_digest: u64,
     reconciliation_receipt_count: usize,
     query_rebind_basis_digest: u64,
@@ -26,6 +28,8 @@ pub(crate) struct WorthUiActivationGateReceiptParts {
     pub(crate) candidate_artifact_digest: u64,
     pub(crate) candidate_execution_plan_digest: u64,
     pub(crate) handle_allocation_basis_digest: u64,
+    pub(crate) node_classification_count: usize,
+    pub(crate) lane_changed_node_count: usize,
     pub(crate) reconciliation_basis_digest: u64,
     pub(crate) reconciliation_receipt_count: usize,
     pub(crate) query_rebind_basis_digest: u64,
@@ -46,6 +50,8 @@ impl WorthUiActivationGateReceipt {
             candidate_artifact_digest: parts.candidate_artifact_digest,
             candidate_execution_plan_digest: parts.candidate_execution_plan_digest,
             handle_allocation_basis_digest: parts.handle_allocation_basis_digest,
+            node_classification_count: parts.node_classification_count,
+            lane_changed_node_count: parts.lane_changed_node_count,
             reconciliation_basis_digest: parts.reconciliation_basis_digest,
             reconciliation_receipt_count: parts.reconciliation_receipt_count,
             query_rebind_basis_digest: parts.query_rebind_basis_digest,
@@ -80,6 +86,14 @@ impl WorthUiActivationGateReceipt {
 
     pub fn handle_allocation_basis_digest(self) -> u64 {
         self.handle_allocation_basis_digest
+    }
+
+    pub fn node_classification_count(self) -> usize {
+        self.node_classification_count
+    }
+
+    pub fn lane_changed_node_count(self) -> usize {
+        self.lane_changed_node_count
     }
 
     pub fn reconciliation_basis_digest(self) -> u64 {
