@@ -1,0 +1,60 @@
+// Hostile-lane constructors: typed rejections for forgeable authority paths.
+// Grouped by lifecycle stage; not mixed with capability admission exports.
+
+// --- Identity ---
+pub use crate::chunk_identity::{
+    reject_application_org_claim_as_blob_chunk_security_scope,
+    reject_deserialized_metadata_as_blob_chunk_security_scope,
+    reject_iam_role_as_blob_chunk_security_scope, reject_jwt_claim_as_blob_chunk_security_scope,
+    reject_kms_key_id_as_blob_chunk_security_scope,
+    reject_operator_identity_as_blob_chunk_security_scope,
+};
+// --- Integrity ---
+pub use crate::chunk_integrity::{
+    reject_checksum_only_evidence_as_blob_chunk_integrity,
+    reject_checksum_only_evidence_as_chunk_root_publication,
+    reject_digest_only_evidence_as_blob_chunk_integrity,
+    reject_digest_only_evidence_as_chunk_root_publication,
+};
+// --- Lifecycle ---
+pub use crate::lifecycle::{
+    reject_chunk_tree_equality_as_blob_identity, reject_copied_counters_as_lifecycle_receipt,
+    reject_copied_digest_string_as_lifecycle_receipt,
+    reject_copied_lifecycle_receipt_as_blob_identity, reject_digest_equality_as_blob_identity,
+    reject_imported_manifest_text_as_lifecycle_receipt,
+    reject_physical_generation_as_blob_generation, reject_raw_generation_number_as_blob_identity,
+    reject_s3_integrity_report_as_lifecycle_receipt, reject_s6_placement_seed_as_lifecycle_receipt,
+    reject_semantic_reference_id_as_blob_identity, reject_terminal_projection_row_as_blob_identity,
+    reject_terminal_projection_row_as_lifecycle_receipt,
+};
+// --- Publication ---
+pub use crate::publication::{
+    reject_copied_publication_record_as_blob_visibility, reject_root_candidate_as_blob_visibility,
+    reject_semantic_reference_as_blob_visibility, reject_staged_reachability_as_blob_visibility,
+};
+// --- Reachability ---
+pub use crate::reachability::{
+    reject_backend_residue_as_blob_reachability, reject_copied_refcount_row_as_reachability,
+    reject_empty_reference_proof_as_reachability, reject_terminal_projection_as_blob_reachability,
+};
+// --- Corruption ---
+pub use crate::corruption::{
+    reject_chunk_integrity_report_as_blob_corruption_authority,
+    reject_copied_counters_as_blob_corruption_authority,
+    reject_offline_observation_as_blob_corruption_authority,
+    reject_physical_quarantine_record_as_blob_corruption_authority,
+    reject_raw_digest_as_blob_corruption_authority,
+};
+// --- Retention / reclaim ---
+pub use crate::retention_reclaim::{
+    reject_backend_residue_as_retention_reclaim_authority,
+    reject_copied_counter_as_retention_reclaim_authority,
+    reject_copied_receipt_as_retention_reclaim_authority,
+    reject_s6_reclaim_handoff_as_retention_reclaim_authority,
+    reject_terminal_projection_as_retention_reclaim_authority,
+};
+// --- Streaming ---
+pub use crate::streaming::{
+    reject_allocation_denial_as_streaming_ingest, reject_full_blob_vec_as_streaming_ingest,
+    reject_full_blob_vec_as_streaming_read, reject_scalar_backend_api_as_streaming_ingest,
+};

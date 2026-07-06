@@ -11,6 +11,7 @@ use crate::{
     PhysicalSubstrateCertificationDenial,
 };
 use forge_store_contracts::StableArtifactId;
+use forge_store_readiness::S2PhysicalSubstrateReadiness;
 
 pub fn certify_physical_page_segment_extent_substrate(
 ) -> Result<crate::PhysicalPageSegmentExtentSubstrateCloseout, PhysicalSubstrateCertificationDenial>
@@ -19,79 +20,165 @@ pub fn certify_physical_page_segment_extent_substrate(
         .map_err(PhysicalSubstrateCertificationDenial::CloseoutDenied)
 }
 
-pub fn certify_s2_physical_substrate_readiness(
-) -> Result<crate::S2PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
+pub(crate) fn certify_s2_physical_substrate_readiness(
+) -> Result<S2PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
     Ok(certify_physical_page_segment_extent_substrate()?.into_s2_readiness())
 }
 
 pub(crate) fn closeout_run(
 ) -> Result<PhysicalPageSegmentExtentSubstrateRun, PhysicalSubstrateCertificationDenial> {
-    let scan = PhysicalSubstrateCertificationScan::with_page_and_extent()?;
-    Ok(PhysicalPageSegmentExtentSubstrateRun::new(
+    let scan = scan_closeout_substrate()?;
+    Ok(construct_closeout_run(
         run_id()?,
+        &scan,
+        collect_story_reports()?,
+        collect_facade_reports(&scan)?,
+        collect_manifest_reports()?,
+        collect_offline_reports(&scan)?,
+        collect_page_record_reports()?,
+        collect_extent_record_reports()?,
+        collect_identity_reports()?,
+        collect_complexity_reports()?,
+        collect_foundation_bundle()?,
+    ))
+}
+
+fn scan_closeout_substrate(
+) -> Result<PhysicalSubstrateCertificationScan, PhysicalSubstrateCertificationDenial> {
+    PhysicalSubstrateCertificationScan::with_page_and_extent()
+}
+
+fn collect_story_reports(
+) -> Result<
+    Vec<crate::PhysicalSubstrateCloseoutStoryReport>,
+    PhysicalSubstrateCertificationDenial,
+> {
+    story_reports()
+}
+
+fn collect_facade_reports(
+    scan: &PhysicalSubstrateCertificationScan,
+) -> Result<Vec<crate::PlatformPhysicalFacadeEvidenceReport>, PhysicalSubstrateCertificationDenial>
+{
+    facade_reports(scan.scan(), scan.shortcut_counters())
+}
+
+fn collect_manifest_reports(
+) -> Result<
+    Vec<crate::PhysicalManifestDiscoveryEvidenceReport>,
+    PhysicalSubstrateCertificationDenial,
+> {
+    manifest_reports()
+}
+
+fn collect_offline_reports(
+    scan: &PhysicalSubstrateCertificationScan,
+) -> Result<Vec<crate::PhysicalOfflineVerifierEvidenceReport>, PhysicalSubstrateCertificationDenial>
+{
+    offline_reports(scan.scan())
+}
+
+fn collect_page_record_reports(
+) -> Result<Vec<crate::PhysicalPageRecordFramingEvidenceReport>, PhysicalSubstrateCertificationDenial>
+{
+    page_record_reports()
+}
+
+fn collect_extent_record_reports(
+) -> Result<
+    Vec<crate::PhysicalExtentRecordFramingEvidenceReport>,
+    PhysicalSubstrateCertificationDenial,
+> {
+    extent_record_reports()
+}
+
+fn collect_identity_reports(
+) -> Result<Vec<crate::PhysicalIdentityEvidenceReport>, PhysicalSubstrateCertificationDenial> {
+    identity_reports()
+}
+
+fn collect_complexity_reports(
+) -> Result<Vec<crate::PhysicalComplexityEvidenceReport>, PhysicalSubstrateCertificationDenial> {
+    complexity_reports()
+}
+
+fn collect_foundation_bundle(
+) -> Result<crate::PhysicalFoundationEvidenceBundle, PhysicalSubstrateCertificationDenial> {
+    foundation_bundle()
+}
+
+fn construct_closeout_run(
+    run: StableArtifactId,
+    scan: &PhysicalSubstrateCertificationScan,
+    story: Vec<crate::PhysicalSubstrateCloseoutStoryReport>,
+    facade: Vec<crate::PlatformPhysicalFacadeEvidenceReport>,
+    manifest: Vec<crate::PhysicalManifestDiscoveryEvidenceReport>,
+    offline: Vec<crate::PhysicalOfflineVerifierEvidenceReport>,
+    page_record: Vec<crate::PhysicalPageRecordFramingEvidenceReport>,
+    extent_record: Vec<crate::PhysicalExtentRecordFramingEvidenceReport>,
+    identity: Vec<crate::PhysicalIdentityEvidenceReport>,
+    complexity: Vec<crate::PhysicalComplexityEvidenceReport>,
+    foundation: crate::PhysicalFoundationEvidenceBundle,
+) -> PhysicalPageSegmentExtentSubstrateRun {
+    PhysicalPageSegmentExtentSubstrateRun::new(
+        run,
         PhysicalPageSegmentExtentSubstrateEvidence::new(
-            story_reports()?,
-            facade_reports(scan.scan(), scan.shortcut_counters())?,
-            manifest_reports()?,
-            offline_reports(scan.scan())?,
-            page_record_reports()?,
-            extent_record_reports()?,
-            identity_reports()?,
-            complexity_reports()?,
-            foundation_bundle()?,
+            story,
+            facade,
+            manifest,
+            offline,
+            page_record,
+            extent_record,
+            identity,
+            complexity,
+            foundation,
             scan.platform_grade_witness(),
             scan.s2_readiness(),
         ),
-    ))
+    )
 }
 
 #[cfg(test)]
 pub(crate) fn closeout_run_without_shortcut_row(
 ) -> Result<PhysicalPageSegmentExtentSubstrateRun, PhysicalSubstrateCertificationDenial> {
-    let scan = PhysicalSubstrateCertificationScan::with_page_and_extent()?;
-    let mut facade = facade_reports(scan.scan(), scan.shortcut_counters())?;
+    let scan = scan_closeout_substrate()?;
+    let mut facade = collect_facade_reports(&scan)?;
     facade.retain(|row| row.row() != crate::PlatformPhysicalFacadeEvidenceRow::ShortcutRejections);
-    Ok(PhysicalPageSegmentExtentSubstrateRun::new(
+    Ok(construct_closeout_run(
         run_id()?,
-        PhysicalPageSegmentExtentSubstrateEvidence::new(
-            story_reports()?,
-            facade,
-            manifest_reports()?,
-            offline_reports(scan.scan())?,
-            page_record_reports()?,
-            extent_record_reports()?,
-            identity_reports()?,
-            complexity_reports()?,
-            foundation_bundle()?,
-            scan.platform_grade_witness(),
-            scan.s2_readiness(),
-        ),
+        &scan,
+        story_reports()?,
+        facade,
+        collect_manifest_reports()?,
+        collect_offline_reports(&scan)?,
+        collect_page_record_reports()?,
+        collect_extent_record_reports()?,
+        collect_identity_reports()?,
+        collect_complexity_reports()?,
+        collect_foundation_bundle()?,
     ))
 }
 
 #[cfg(test)]
 pub(crate) fn closeout_run_without_legacy_overclaim_row(
 ) -> Result<PhysicalPageSegmentExtentSubstrateRun, PhysicalSubstrateCertificationDenial> {
-    let scan = PhysicalSubstrateCertificationScan::with_page_and_extent()?;
-    let mut story = story_reports()?;
+    let scan = scan_closeout_substrate()?;
+    let mut story = collect_story_reports()?;
     story.retain(|row| {
         row.row() != crate::PhysicalSubstrateCloseoutStoryRow::LegacyOverclaimRejected
     });
-    Ok(PhysicalPageSegmentExtentSubstrateRun::new(
+    Ok(construct_closeout_run(
         run_id()?,
-        PhysicalPageSegmentExtentSubstrateEvidence::new(
-            story,
-            facade_reports(scan.scan(), scan.shortcut_counters())?,
-            manifest_reports()?,
-            offline_reports(scan.scan())?,
-            page_record_reports()?,
-            extent_record_reports()?,
-            identity_reports()?,
-            complexity_reports()?,
-            foundation_bundle()?,
-            scan.platform_grade_witness(),
-            scan.s2_readiness(),
-        ),
+        &scan,
+        story,
+        collect_facade_reports(&scan)?,
+        collect_manifest_reports()?,
+        collect_offline_reports(&scan)?,
+        collect_page_record_reports()?,
+        collect_extent_record_reports()?,
+        collect_identity_reports()?,
+        collect_complexity_reports()?,
+        collect_foundation_bundle()?,
     ))
 }
 

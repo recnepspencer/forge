@@ -1,7 +1,7 @@
 use super::evidence::resolve_future_chunk_stability_recipe;
 use super::{
     FoundationalTierMovementNonClaimEvidence, FutureBlobMigrationNonClaimReport,
-    FutureChunkStabilityRecipe, MovablePhysicalRef, PhysicalChunkStabilityPlaceholder,
+    FutureChunkStabilityRecipe, PhysicalChunkStabilityPlaceholder,
     TierMovementReadInterlockPlan, TierMovementStabilityCounterSnapshot,
     TierMovementStabilityDenial,
 };
@@ -18,15 +18,21 @@ impl ChunkMigrationReadInterlockPlan {
     pub fn admit(
         placeholder: PhysicalChunkStabilityPlaceholder,
     ) -> Result<Self, TierMovementStabilityDenial> {
-        let movable = MovablePhysicalRef::future_chunk_from_placeholder(placeholder);
-        let tier_plan = TierMovementReadInterlockPlan::admit(movable)?;
-        let counters = placeholder.counters().with_stability_admission();
-        Ok(Self {
+        super::transitions::admit_chunk_migration_interlock(placeholder)
+    }
+
+    pub(crate) const fn from_admitted_transition(
+        placeholder: PhysicalChunkStabilityPlaceholder,
+        tier_plan: TierMovementReadInterlockPlan,
+        non_claim: FutureBlobMigrationNonClaimReport,
+        counters: TierMovementStabilityCounterSnapshot,
+    ) -> Self {
+        Self {
             placeholder,
             tier_plan,
-            non_claim: FutureBlobMigrationNonClaimReport::s5_stability_only(),
+            non_claim,
             counters,
-        })
+        }
     }
 
     pub const fn placeholder(self) -> PhysicalChunkStabilityPlaceholder {

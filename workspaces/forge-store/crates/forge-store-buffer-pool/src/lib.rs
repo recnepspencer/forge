@@ -52,6 +52,7 @@ mod speculative_work_counters;
 mod speculative_work_denials;
 mod speculative_work_plan;
 mod speculative_work_request;
+mod streaming_allocation;
 
 #[cfg(test)]
 mod allocation_scope_tests;
@@ -164,4 +165,7 @@ pub use speculative_work_plan::{
 pub use speculative_work_request::{
     PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativePhysicalWorkKind,
     SpeculativeWorkRequestDenial, WriteBehindRequest,
+};
+pub use streaming_allocation::{
+    streaming_allocation_kind, streaming_window_allocation_receipt,
 };

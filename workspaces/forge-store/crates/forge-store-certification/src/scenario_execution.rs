@@ -14,17 +14,7 @@ pub struct PhysicalScenarioExecution {
 
 impl PhysicalScenarioExecution {
     pub(crate) fn from_plan(plan: PhysicalScenarioPlan) -> Self {
-        let report = PhysicalScenarioExecutionReport {
-            executed_driver_requirements: plan.driver_requirements().to_vec(),
-            executed_observer_requirements: plan.observer_requirements().to_vec(),
-            judged_oracles: plan.required_oracles().to_vec(),
-            resolved_capability: plan.resolved_capability(),
-            cost_class: plan.cost_class(),
-            expected_physical_footprint: plan.expected_physical_footprint(),
-            observed_counters: execute_counter_observers(&plan),
-            observed_denials: execute_denial_observers(&plan),
-            observed_shortcut_rejections: execute_shortcut_attempt_observers(&plan),
-        };
+        let report = construct_execution_report(&plan);
         Self { plan, report }
     }
 
@@ -95,7 +85,36 @@ impl PhysicalScenarioExecutionReport {
     }
 }
 
-fn execute_counter_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounterObservation> {
+fn construct_execution_report(plan: &PhysicalScenarioPlan) -> PhysicalScenarioExecutionReport {
+    let requirements = collect_requirements(plan);
+    PhysicalScenarioExecutionReport {
+        executed_driver_requirements: requirements.drivers,
+        executed_observer_requirements: requirements.observers,
+        judged_oracles: requirements.oracles,
+        resolved_capability: plan.resolved_capability(),
+        cost_class: plan.cost_class(),
+        expected_physical_footprint: plan.expected_physical_footprint(),
+        observed_counters: observe_counters(plan),
+        observed_denials: observe_denials(plan),
+        observed_shortcut_rejections: observe_shortcuts(plan),
+    }
+}
+
+struct CollectedRequirements {
+    drivers: Vec<PhysicalScenarioDriverRequirement>,
+    observers: Vec<PhysicalScenarioObserverRequirement>,
+    oracles: Vec<PhysicalProofOracleKind>,
+}
+
+fn collect_requirements(plan: &PhysicalScenarioPlan) -> CollectedRequirements {
+    CollectedRequirements {
+        drivers: plan.driver_requirements().to_vec(),
+        observers: plan.observer_requirements().to_vec(),
+        oracles: plan.required_oracles().to_vec(),
+    }
+}
+
+fn observe_counters(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounterObservation> {
     let Some(fixture) = plan.large_store_pressure_fixture() else {
         return plan
             .expected_counters()
@@ -118,7 +137,7 @@ fn execute_counter_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioCounter
         .collect()
 }
 
-fn execute_denial_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
+fn observe_denials(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
     let mut denials = Vec::new();
     if let Some(fixture) = plan.large_store_pressure_fixture() {
         match fixture.class() {
@@ -149,7 +168,7 @@ fn execute_denial_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBo
     denials
 }
 
-fn execute_shortcut_attempt_observers(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
+fn observe_shortcuts(plan: &PhysicalScenarioPlan) -> Vec<ScenarioDenialBoundary> {
     let mut rejections = Vec::new();
     if plan
         .story_steps()

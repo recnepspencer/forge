@@ -124,7 +124,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         &self.foundation
     }
 
-    pub const fn s2_readiness(&self) -> S2PhysicalSubstrateReadiness {
+    pub(crate) const fn s2_readiness(&self) -> S2PhysicalSubstrateReadiness {
         self.s2_readiness
     }
 }
@@ -172,7 +172,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
         self.run.evidence()
     }
 
-    pub fn into_s2_readiness(self) -> S2PhysicalSubstrateReadiness {
+    pub(crate) fn into_s2_readiness(self) -> S2PhysicalSubstrateReadiness {
         self.evidence().s2_readiness()
     }
 }

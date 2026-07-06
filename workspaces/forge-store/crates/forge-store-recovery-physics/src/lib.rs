@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod blob_replay;
+mod corruption_readmission;
 mod checkpoint_cutover;
 mod durable_publication;
 mod integrity_damage_map;
@@ -38,6 +39,9 @@ mod source_precedence;
 mod wal_durability;
 mod wal_topology;
 
+pub use corruption_readmission::{
+    verify_quarantine_handoff_for_readmission, verify_store_authority_for_readmission,
+};
 pub use blob_replay::{
     BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, BlobReplaySourceAdmission,
     BlobReplaySourceKind, BlobReplaySourceOutcome, BlobReplaySourceOutcomeKind,
@@ -66,7 +70,10 @@ pub use durable_publication::{
     DurableCheckpointPublication, DurableManifestPublication, DurableWalPublication,
     StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
-pub use integrity_damage_map::{IntegrityDamageMap, QuarantineSummary};
+pub use integrity_damage_map::{
+    classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
+    RecoveryBlockingDamageCase,
+};
 pub use integrity_input::RecoveryPhysicsIntegrityInput;
 pub use integrity_vetted_records::{
     IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,

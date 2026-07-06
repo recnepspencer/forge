@@ -3,7 +3,7 @@ use forge_store_buffer_pool::{
 };
 
 use crate::{
-    record_view_evidence_test_support::{
+    courtroom::harness::test_support::record_view_evidence_test_support::{
         admit_payload_frame, allocation_admission, framed_record, resident_frame_table,
     },
     RecordViewEvidenceReport, RecordViewEvidenceRow,

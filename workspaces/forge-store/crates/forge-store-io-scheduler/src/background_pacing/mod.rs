@@ -13,6 +13,7 @@ mod outcome;
 mod proof;
 mod request;
 mod shape;
+mod streaming_pressure_link;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod test_authority;
 
@@ -44,6 +45,9 @@ pub use request::{
     reject_worker_local_queue_as_background_pacing_authority, BackgroundIdleCapacityLeaseRequest,
 };
 pub use shape::BackgroundIoPressureShape;
+pub use streaming_pressure_link::{
+    admits_blob_ingest_pressure, admits_verification_pressure, ingest_pressure_foreground_lane_admits,
+};
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use test_authority::{
     blob_ingest_background_capacity_for_certification_test,

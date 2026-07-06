@@ -13,6 +13,7 @@ mod receipt;
 mod request;
 mod resource_contract;
 mod resource_units;
+mod streaming_read_lane_link;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod test_authority;
 mod violation;
@@ -36,6 +37,7 @@ pub use receipt::{
     ForegroundReservationReceipt, ForegroundReservationStaleRebindRequired,
     ForegroundReservationState,
 };
+pub use streaming_read_lane_link::admits_streaming_read_lane;
 pub use request::{
     reject_copied_s5_counters_as_foreground_reservation,
     reject_copied_security_scope_fields_as_foreground_reservation,

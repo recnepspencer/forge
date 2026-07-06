@@ -1,9 +1,9 @@
 use crate::{
-    bounded_memory_closeout_test_support::{
+    courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, pressure_bundles, s2_readiness, synthetic_rejections,
     },
-    record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
+    courtroom::harness::test_support::record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, S2BoundaryDenialKind,
 };
@@ -161,7 +161,7 @@ fn suite() -> BoundedMemoryResidencySuite {
 
 fn operation_reports() -> Vec<BoundedOperationEnvelopeReport> {
     let background = background_bundle();
-    crate::bounded_memory_closeout_test_support::operation_reports(
+    crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::operation_reports(
         &foundational_receipt(),
         &background,
     )

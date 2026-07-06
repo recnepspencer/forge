@@ -1,5 +1,5 @@
 use crate::{
-    dirty_publication_evidence_test_support::{admit_payload_frame, resident_frame_table},
+    courtroom::harness::test_support::dirty_publication_evidence_test_support::{admit_payload_frame, resident_frame_table},
     DirtyPublicationEvidenceDenial, DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow,
 };
 use forge_store_buffer_pool::ResidentFrameDenialKind;

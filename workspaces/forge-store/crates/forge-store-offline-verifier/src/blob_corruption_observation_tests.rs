@@ -13,7 +13,7 @@ use forge_store_security::{
 
 use crate::{
     OfflineBlobCorruptionEvidenceKind, OfflineBlobCorruptionObservation,
-    OfflineBlobCorruptionObservationDenial,
+    OfflineBlobCorruptionObservationDenial, OfflineBlobDamageCaseHint,
 };
 
 #[test]
@@ -58,6 +58,16 @@ fn offline_blob_corruption_observation_accepts_only_raw_unadmitted_reports() {
             OfflineBlobCorruptionEvidenceKind::QuarantineReport,
         ),
         Err(OfflineBlobCorruptionObservationDenial::NotRawReportInput)
+    );
+
+    let classified = OfflineBlobCorruptionObservation::admit_and_classify_offline_corruption_report(
+        raw,
+        OfflineBlobCorruptionEvidenceKind::Import,
+    )
+    .expect("import report should classify");
+    assert_eq!(
+        classified.damage_case_hint(),
+        OfflineBlobDamageCaseHint::CrossScopeImport
     );
 }
 

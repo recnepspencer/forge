@@ -15,8 +15,9 @@ mod s6_background_pressure;
 use forge_store_physical_format::PhysicalReference;
 
 pub use blob_corruption_observation::{
+    classify_offline_damage_case, OfflineBlobCorruptionClassification,
     OfflineBlobCorruptionEvidenceKind, OfflineBlobCorruptionObservation,
-    OfflineBlobCorruptionObservationDenial,
+    OfflineBlobCorruptionObservationDenial, OfflineBlobDamageCaseHint,
 };
 pub use boundary::OfflineVerifierBoundarySeam;
 pub use custody_capsule_observation::{

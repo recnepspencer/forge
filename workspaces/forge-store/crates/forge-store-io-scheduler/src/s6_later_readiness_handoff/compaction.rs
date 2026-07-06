@@ -1,3 +1,7 @@
+//! S.10 compaction I/O readiness handoff — admission evidence for background pacing and
+//! foreground yield cost during rewrite. Does not prove compaction equivalence or semantic
+//! validity of rewritten roots; carries explicit non-claims.
+
 use forge_store_readiness::{S10CompactionReadinessNonClaim, S6LaterMilestoneDestination};
 
 use crate::{

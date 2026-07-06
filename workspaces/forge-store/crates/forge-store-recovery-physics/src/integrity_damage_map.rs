@@ -50,6 +50,40 @@ pub struct IntegrityDamageMap {
     quarantine_summaries: Vec<QuarantineSummary>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecoveryBlockingDamageCase {
+    ChecksumMismatch,
+    AuthenticityFailure,
+    MissingChunk,
+    StaleGeneration,
+    CrossScopeImport,
+}
+
+pub fn classify_recovery_blocking_damage(
+    source: RecoveryBlockingIntegritySource,
+    damage: &RecoveryBlockedByIntegrityDamage,
+) -> RecoveryBlockingDamageCase {
+    match source {
+        RecoveryBlockingIntegritySource::UnresolvedAuthorityDamage => {
+            RecoveryBlockingDamageCase::CrossScopeImport
+        }
+        RecoveryBlockingIntegritySource::ManifestRoot => RecoveryBlockingDamageCase::StaleGeneration,
+        RecoveryBlockingIntegritySource::CheckpointAdjacentRecord => {
+            RecoveryBlockingDamageCase::AuthenticityFailure
+        }
+        RecoveryBlockingIntegritySource::WalFrame => match damage.wal_kind() {
+            Some(forge_store_physical_integrity::WalFrameDamageDenialKind::ChecksumFailure) => {
+                RecoveryBlockingDamageCase::ChecksumMismatch
+            }
+            Some(forge_store_physical_integrity::WalFrameDamageDenialKind::TornWalFrame)
+            | Some(forge_store_physical_integrity::WalFrameDamageDenialKind::MismatchedLength) => {
+                RecoveryBlockingDamageCase::MissingChunk
+            }
+            _ => RecoveryBlockingDamageCase::ChecksumMismatch,
+        },
+    }
+}
+
 impl IntegrityDamageMap {
     pub fn new() -> Self {
         Self::default()

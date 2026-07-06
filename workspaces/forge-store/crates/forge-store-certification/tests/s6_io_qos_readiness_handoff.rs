@@ -13,7 +13,7 @@ mod source_precedence_fixture;
 #[path = "s5_epoch_scope_and_root_kind/support.rs"]
 mod support;
 
-use forge_store_certification::materialize_s6_io_qos_isolation_readiness;
+use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_from_s5_closeout;
 use forge_store_io_scheduler::{
     admit_store_published_s6_io_qos_isolation_readiness,
     reject_hardware_queue_depth_claim_as_s6_readiness,
@@ -230,6 +230,6 @@ fn scheduler_denies_projection_and_claim_shortcuts() {
 fn readiness_from_executed_s5_closeout(
     closeout: ExecutedS5IsolationCloseout,
 ) -> S6IoQosIsolationReadiness {
-    materialize_s6_io_qos_isolation_readiness(closeout)
+    publish_s6_io_qos_isolation_readiness_from_s5_closeout(closeout)
         .expect("executed S5 physical closeout publishes S6 readiness")
 }

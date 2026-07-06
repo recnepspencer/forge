@@ -1,7 +1,7 @@
-use crate::physical_container_integrity_test_support::{
+use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     inspect_page_report, page_payload_with_record,
 };
-use crate::physical_scope_admission_test_support::{
+use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
     page_cell, page_request, root_with_slot, scope_membership, validation, with_checked_frame,
     with_checked_page,
 };

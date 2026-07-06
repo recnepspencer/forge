@@ -1,6 +1,6 @@
 use crate::{
-    s4_integrity_handoff_test_support::{admit_s4_handoff_payload, intact_readiness},
-    s4_recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map,
+    courtroom::harness::test_support::s4_integrity_handoff_test_support::{admit_s4_handoff_payload, intact_readiness},
+    courtroom::harness::test_support::s4_recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map,
 };
 use forge_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,

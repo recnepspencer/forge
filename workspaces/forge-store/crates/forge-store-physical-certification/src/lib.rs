@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod harness;
+
 mod actors;
 mod authoring;
 mod closeout;
@@ -18,32 +20,49 @@ mod s5_executed_isolation_contract;
 mod s5_executed_isolation_source;
 mod s5_handoff;
 mod s5_physical_isolation_mutation;
+#[path = "harness/by_milestone/s6/s6_backend_qualification/mod.rs"]
 mod s6_backend_qualification;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_cross_backend_tests.rs"]
 mod s6_backend_qualification_cross_backend_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_matrix_surface_tests.rs"]
 mod s6_backend_qualification_matrix_surface_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_negative_tests.rs"]
 mod s6_backend_qualification_negative_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_residual_debt_tests.rs"]
 mod s6_backend_qualification_residual_debt_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_tests.rs"]
 mod s6_backend_qualification_tests;
+#[path = "harness/by_milestone/s6/s6_io_pressure_coverage.rs"]
 mod s6_io_pressure_coverage;
+#[path = "harness/by_milestone/s6/s6_io_pressure_execution.rs"]
 mod s6_io_pressure_execution;
+#[path = "harness/by_milestone/s6/s6_io_pressure_harness.rs"]
 mod s6_io_pressure_harness;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_negative_tests.rs"]
 mod s6_io_pressure_harness_negative_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_tests.rs"]
 mod s6_io_pressure_harness_tests;
+#[path = "harness/by_milestone/s6/s6_io_pressure_replay.rs"]
 mod s6_io_pressure_replay;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_replay_tests.rs"]
 mod s6_io_pressure_replay_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_shortcut_tests.rs"]
 mod s6_io_pressure_shortcut_tests;
 #[cfg(any(test, feature = "certification-test-support"))]
+#[path = "harness/by_milestone/s6/s6_io_pressure_test_support.rs"]
 mod s6_io_pressure_test_support;
+#[path = "harness/by_milestone/s6/s6_io_pressure_vocab.rs"]
 mod s6_io_pressure_vocab;
+#[path = "harness/by_milestone/s7_blob_harness/mod.rs"]
 mod s7_blob_harness;
 mod scenario;
 mod schedule;

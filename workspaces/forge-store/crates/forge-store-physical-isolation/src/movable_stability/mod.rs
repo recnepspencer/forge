@@ -5,7 +5,9 @@ mod evidence;
 mod movable_reference;
 mod non_claim;
 mod physical_execution;
+mod receipt_construction;
 mod tier_plan;
+mod transitions;
 
 pub use chunk_placeholder::{FutureChunkStabilityBasis, PhysicalChunkStabilityPlaceholder};
 pub use chunk_plan::ChunkMigrationReadInterlockPlan;
