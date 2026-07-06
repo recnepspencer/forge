@@ -28,7 +28,11 @@ impl<'a> PlanarBooleanSharedAreaAdmissionInput<'a> {
         containment_map: &'a PlanarBooleanOverlapCellContainmentMap,
         winding_field: &'a PlanarBooleanOverlapCellWindingField,
     ) -> Self {
-        Self::new(boundary_contact_classification, containment_map, winding_field)
+        Self::new(
+            boundary_contact_classification,
+            containment_map,
+            winding_field,
+        )
     }
 
     pub fn boundary_contact_classification(

@@ -5,12 +5,14 @@ mod replay_undo_boundary_proof;
 mod replay_undo_route_authority;
 mod route_witness;
 
-pub(crate) use batch_execution_receipt::current_worth_workload_ordinary_consumer_batch_execution_receipt;
+pub use batch_execution_receipt::current_worth_workload_ordinary_consumer_batch_execution_receipt;
 pub(crate) use cutover::{
     current_worth_workload_ordinary_consumer_cutover, ordinary_consumer_cutover_from_inventory,
-    WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverError,
-    WorthWorkloadOrdinaryConsumerCutoverErrorKind, WorthWorkloadOrdinaryConsumerCutoverPosture,
+    WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
     WorthWorkloadOrdinaryConsumerCutoverRow,
+};
+pub use cutover::{
+    WorthWorkloadOrdinaryConsumerCutoverError, WorthWorkloadOrdinaryConsumerCutoverErrorKind,
 };
 pub(crate) use lookup_route_authority::{
     current_completed_split_route_authority, current_lookup_consumed_route_authority,
@@ -24,7 +26,7 @@ pub(crate) use replay_undo_route_authority::{
     current_replay_undo_boundary_route_authority, WorthWorkloadCurrentOrdinaryRouteAuthority,
     WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority,
 };
-pub(crate) use route_witness::{
+pub use route_witness::{
     current_completed_split_batch_execution_cluster_witness,
     current_lookup_consumed_batch_execution_cluster_witness,
     current_replay_undo_boundary_batch_execution_cluster_witness,

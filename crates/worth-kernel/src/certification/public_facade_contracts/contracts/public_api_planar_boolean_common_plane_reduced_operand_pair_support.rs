@@ -15,6 +15,7 @@ use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceRow;
 
 #[path = "public_api_planar_boolean_entry/tests/support.rs"]
 mod entry_support;
+use worth_kernel::workload_composition::trace_scope;
 
 pub(crate) fn projected_operand_requests(
     readiness_scope: &'static str,
@@ -51,21 +52,16 @@ pub(crate) fn projected_operand_requests_from_catalog(
     (pair, operand_a, operand_b)
 }
 
-pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
+pub(crate) fn projected_operand_requests_from_pair(
     readiness_scope: &'static str,
+    pair: BuiltBooleanOperandPairRecipe,
 ) -> (
     BuiltBooleanOperandPairRecipe,
     PlanarBooleanCommonPlaneOperandAProjectedRequest,
     PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) {
-    let pair = WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
-        .with_retained_replay_artifacts()
-        .declared(readiness_scope)
-        .build()
-        .expect("event carrier pair should build");
     let declaration = bind_boolean_declaration(readiness_scope, &pair);
     let local_frame = select_common_plane_local_frame(declaration, pair.clone());
-
     let operand_a =
         PlanarBooleanCommonPlaneOperandAProjectedRequest::from_local_frame_selected_request(
             local_frame.clone(),
@@ -80,6 +76,43 @@ pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
     (pair, operand_a, operand_b)
 }
 
+pub(crate) fn event_carrier_projected_operand_requests_from_catalog(
+    readiness_scope: &'static str,
+) -> (
+    BuiltBooleanOperandPairRecipe,
+    PlanarBooleanCommonPlaneOperandAProjectedRequest,
+    PlanarBooleanCommonPlaneOperandBProjectedRequest,
+) {
+    let pair = trace_scope("event_carrier_pair_build", || {
+        WorkloadCatalog::planar_boolean_event_carrier_clean_planar_body_pair()
+            .with_retained_replay_artifacts()
+            .declared(readiness_scope)
+            .build()
+            .expect("event carrier pair should build")
+    });
+    let declaration = trace_scope("event_carrier_boolean_declaration", || {
+        bind_boolean_declaration(readiness_scope, &pair)
+    });
+    let local_frame = trace_scope("event_carrier_local_frame_selection", || {
+        select_common_plane_local_frame(declaration, pair.clone())
+    });
+
+    let operand_a = trace_scope("event_carrier_operand_a_projection", || {
+        PlanarBooleanCommonPlaneOperandAProjectedRequest::from_local_frame_selected_request(
+            local_frame.clone(),
+        )
+        .expect("operand A should certify")
+    });
+    let operand_b = trace_scope("event_carrier_operand_b_projection", || {
+        PlanarBooleanCommonPlaneOperandBProjectedRequest::from_local_frame_selected_request(
+            local_frame,
+        )
+        .expect("operand B should certify")
+    });
+
+    (pair, operand_a, operand_b)
+}
+
 pub(crate) fn metaboss_projected_operand_requests_from_catalog(
     readiness_scope: &'static str,
 ) -> (
@@ -87,23 +120,31 @@ pub(crate) fn metaboss_projected_operand_requests_from_catalog(
     PlanarBooleanCommonPlaneOperandAProjectedRequest,
     PlanarBooleanCommonPlaneOperandBProjectedRequest,
 ) {
-    let pair = WorkloadCatalog::planar_boolean_event_extraction_metaboss_pair()
-        .declared(readiness_scope)
-        .build()
-        .expect("metaboss event extraction pair should build");
-    let declaration = bind_boolean_declaration(readiness_scope, &pair);
-    let local_frame = select_common_plane_local_frame(declaration, pair.clone());
+    let pair = trace_scope("metaboss_pair_build", || {
+        WorkloadCatalog::planar_boolean_event_extraction_metaboss_pair()
+            .declared(readiness_scope)
+            .build()
+            .expect("metaboss event extraction pair should build")
+    });
+    let declaration = trace_scope("metaboss_boolean_declaration", || {
+        bind_boolean_declaration(readiness_scope, &pair)
+    });
+    let local_frame = trace_scope("metaboss_local_frame_selection", || {
+        select_common_plane_local_frame(declaration, pair.clone())
+    });
 
-    let operand_a =
+    let operand_a = trace_scope("metaboss_operand_a_projection", || {
         PlanarBooleanCommonPlaneOperandAProjectedRequest::from_local_frame_selected_request(
             local_frame.clone(),
         )
-        .expect("operand A should certify");
-    let operand_b =
+        .expect("operand A should certify")
+    });
+    let operand_b = trace_scope("metaboss_operand_b_projection", || {
         PlanarBooleanCommonPlaneOperandBProjectedRequest::from_local_frame_selected_request(
             local_frame,
         )
-        .expect("operand B should certify");
+        .expect("operand B should certify")
+    });
 
     (pair, operand_a, operand_b)
 }

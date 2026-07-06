@@ -75,10 +75,12 @@ impl PlanarBooleanPreRegionNormalizationBundle {
         shared_area_admission: &PlanarBooleanSharedAreaAdmissionBundle,
         chain_lineage_map: &PlanarBooleanOverlapChainRegionLineageMap,
     ) -> Result<Self, PlanarBooleanPreRegionNormalizationDenial> {
-        Self::admit(PlanarBooleanPreRegionNormalizationInput::from_shared_area_admission(
-            shared_area_admission,
-            chain_lineage_map,
-        ))
+        Self::admit(
+            PlanarBooleanPreRegionNormalizationInput::from_shared_area_admission(
+                shared_area_admission,
+                chain_lineage_map,
+            ),
+        )
     }
 
     pub fn admit(

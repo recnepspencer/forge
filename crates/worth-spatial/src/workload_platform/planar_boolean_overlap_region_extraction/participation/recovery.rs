@@ -1,24 +1,15 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
-use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPlaneOperandSide;
-use crate::workload_platform::planar_boolean_loop_reconstruction::{
-    PlanarBooleanLoopIslandPartitionRow, PlanarBooleanLoopPersistentNamePropagationRow,
-    PlanarBooleanLoopReconstructionLedgerRow, PlanarBooleanLoopReconstructionParticipationSupport,
-    PlanarBooleanLoopRoleOutcome,
-};
+use crate::workload_platform::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionParticipationSupport;
 
-use super::chain_lineage::{
-    PlanarBooleanOverlapChainRegionLineageMap, PlanarBooleanOverlapChainRegionLineageRow,
-};
+use super::chain_lineage::PlanarBooleanOverlapChainRegionLineageMap;
 use super::counters::PlanarBooleanOverlapParticipationRecoveryCounters;
 use super::denial::{
     PlanarBooleanOverlapParticipationRecoveryDenial,
     PlanarBooleanOverlapParticipationRecoveryDenialKind as Kind,
 };
 use super::input::PlanarBooleanOverlapParticipationRecoveryInput;
-use super::island_participation::{
-    PlanarBooleanLoopIslandOverlapParticipationMap, PlanarBooleanLoopIslandOverlapParticipationRow,
-};
+use super::island_participation::PlanarBooleanLoopIslandOverlapParticipationMap;
 use super::loop_participation::{
     PlanarBooleanLoopOverlapParticipationMap, PlanarBooleanLoopOverlapParticipationRow,
 };
@@ -145,11 +136,8 @@ impl PlanarBooleanOverlapParticipationRecovery {
             island_participation_rows,
         );
 
-        let chain_lineage_rows = recover_chain_lineage_rows(
-            &loop_participation_map,
-            support,
-            &mut counters,
-        )?;
+        let chain_lineage_rows =
+            recover_chain_lineage_rows(&loop_participation_map, support, &mut counters)?;
         let chain_lineage_map = PlanarBooleanOverlapChainRegionLineageMap::new(
             map_identity(
                 input.request().request_identity(),

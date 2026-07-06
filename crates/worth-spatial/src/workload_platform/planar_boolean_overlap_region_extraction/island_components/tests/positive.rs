@@ -41,13 +41,25 @@ fn overlap_island_partition_is_stable_under_benign_order_variation() {
 fn overlap_island_partition_keeps_boundary_contact_and_area_components_separate() {
     let area_partition = admitted_partition(&area_graph());
     assert_eq!(area_partition.overlap_islands().rows().len(), 1);
-    assert!(area_partition.boundary_contact_components().rows().is_empty());
+    assert!(area_partition
+        .boundary_contact_components()
+        .rows()
+        .is_empty());
     assert_eq!(area_partition.area_overlap_components().rows().len(), 1);
 
     let boundary_partition = admitted_partition(&boundary_graph());
     assert_eq!(boundary_partition.overlap_islands().rows().len(), 1);
-    assert_eq!(boundary_partition.boundary_contact_components().rows().len(), 2);
-    assert!(boundary_partition.area_overlap_components().rows().is_empty());
+    assert_eq!(
+        boundary_partition
+            .boundary_contact_components()
+            .rows()
+            .len(),
+        2
+    );
+    assert!(boundary_partition
+        .area_overlap_components()
+        .rows()
+        .is_empty());
 }
 
 #[test]
@@ -236,5 +248,61 @@ fn overlap_island_partition_keeps_same_loop_mixed_candidates_separable_without_c
 
     assert_eq!(partition.overlap_islands().rows().len(), 1);
     assert_eq!(partition.boundary_contact_components().rows().len(), 1);
+    assert_eq!(partition.area_overlap_components().rows().len(), 1);
+}
+
+#[test]
+fn overlap_island_partition_keeps_area_envelope_separate_from_boundary_edges() {
+    let candidates = PlanarBooleanOverlapIslandCandidateSet::new(
+        "area-envelope-candidate-set".to_string(),
+        "area-envelope-request".to_string(),
+        "area-envelope-arrangement".to_string(),
+        "area-envelope-cell-set".to_string(),
+        "area-envelope-order".to_string(),
+        vec![
+            PlanarBooleanOverlapIslandCandidateRow::new(
+                "area-envelope-candidate".to_string(),
+                "shared-island".to_string(),
+                "area-cell".to_string(),
+                "shared-neighborhood".to_string(),
+                vec![
+                    "boundary-component-a".to_string(),
+                    "boundary-component-b".to_string(),
+                ],
+                vec!["segment-a".to_string(), "segment-b".to_string()],
+                vec!["left-loop".to_string(), "right-loop".to_string()],
+                vec!["shared-name".to_string()],
+                AreaOverlap,
+            ),
+            PlanarBooleanOverlapIslandCandidateRow::new(
+                "boundary-candidate-a".to_string(),
+                "shared-island".to_string(),
+                "boundary-cell-a".to_string(),
+                "shared-neighborhood".to_string(),
+                vec!["boundary-component-a".to_string()],
+                vec!["segment-a".to_string()],
+                vec!["left-loop".to_string()],
+                vec!["shared-name".to_string()],
+                BoundaryContact,
+            ),
+            PlanarBooleanOverlapIslandCandidateRow::new(
+                "boundary-candidate-b".to_string(),
+                "shared-island".to_string(),
+                "boundary-cell-b".to_string(),
+                "shared-neighborhood".to_string(),
+                vec!["boundary-component-b".to_string()],
+                vec!["segment-b".to_string()],
+                vec!["right-loop".to_string()],
+                vec!["shared-name".to_string()],
+                BoundaryContact,
+            ),
+        ],
+        PlanarBooleanOverlapIslandComponentCounters::default(),
+    );
+    let partition = PlanarBooleanOverlapIslandPartition::admit(&candidates)
+        .expect("area envelope should partition separately from its boundary-edge witnesses");
+
+    assert_eq!(partition.overlap_islands().rows().len(), 1);
+    assert_eq!(partition.boundary_contact_components().rows().len(), 2);
     assert_eq!(partition.area_overlap_components().rows().len(), 1);
 }

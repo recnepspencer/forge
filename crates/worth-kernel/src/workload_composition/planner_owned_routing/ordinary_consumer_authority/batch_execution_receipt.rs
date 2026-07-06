@@ -15,7 +15,7 @@ use crate::workload_composition::{
     BatchAdmissionPairwiseIndependenceProof, SpatialConflictIndependenceRequest,
 };
 
-pub(crate) fn current_worth_workload_ordinary_consumer_batch_execution_receipt(
+pub fn current_worth_workload_ordinary_consumer_batch_execution_receipt(
     route_witnesses: &[WorthWorkloadOrdinaryConsumerCurrentRouteWitness],
 ) -> Result<BatchAdmissionExecutionReceipt, WorthWorkloadOrdinaryConsumerCutoverError> {
     trace_scope(

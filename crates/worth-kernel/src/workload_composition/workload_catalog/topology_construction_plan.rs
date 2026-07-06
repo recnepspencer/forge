@@ -14,6 +14,16 @@ pub(super) enum WorkloadCatalogTopologyConstructionPlan {
 }
 
 impl WorkloadCatalogTopologyConstructionPlan {
+    pub(super) fn cache_key(&self) -> Option<String> {
+        match self {
+            Self::Receipt(_) => None,
+            Self::OpenWire(spec) => Some(format!("open-wire:{spec:?}")),
+            Self::OpenSheet(spec) => Some(format!("open-sheet:{spec:?}")),
+            Self::OpenRadialFan(spec) => Some(format!("open-radial-fan:{spec:?}")),
+            Self::OpenLayerStack(spec) => Some(format!("open-layer-stack:{spec:?}")),
+        }
+    }
+
     pub(super) fn support_denial(&self) -> Option<String> {
         match self {
             Self::Receipt(_) => None,

@@ -199,6 +199,16 @@ impl PlanarBooleanLoopReconstructionParticipationSupport {
         cloned.loop_ledger_receipt = loop_ledger_receipt;
         cloned
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_ledger_rows_for_tests(
+        &self,
+        ledger_rows: Vec<PlanarBooleanLoopReconstructionLedgerRow>,
+    ) -> Self {
+        let mut cloned = self.clone();
+        cloned.ledger_rows = ledger_rows;
+        cloned
+    }
 }
 
 impl PlanarBooleanLoopReconstructionParticipationSupportDenial {

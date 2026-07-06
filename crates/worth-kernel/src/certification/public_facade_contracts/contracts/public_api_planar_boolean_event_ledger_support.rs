@@ -11,6 +11,7 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanIntervalEventExtraction, PlanarBooleanPointEventExtraction,
 };
 
+#[derive(Clone)]
 pub(crate) struct CertifiedEventLedgerInputs {
     pub(crate) event_request: PlanarBooleanEventExtractionRequest,
     pub(crate) carriers:

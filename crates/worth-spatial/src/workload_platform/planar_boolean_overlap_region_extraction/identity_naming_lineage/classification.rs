@@ -98,9 +98,7 @@ pub(super) fn build_identity_lineage_bundle(
         left.propagation_identity()
             .cmp(right.propagation_identity())
     });
-    signature_rows.sort_by(|left, right| {
-        left.signature_identity().cmp(right.signature_identity())
-    });
+    signature_rows.sort_by(|left, right| left.signature_identity().cmp(right.signature_identity()));
 
     validate_unique_region_identities(&identity_rows, &mut counters)?;
     validate_persistent_name_rows(&persistent_name_rows, &identity_rows, &mut counters)?;
@@ -117,15 +115,12 @@ pub(super) fn build_identity_lineage_bundle(
         .iter()
         .map(|row| row.signature_identity().to_string())
         .collect::<Vec<_>>();
-    let identity_map_identity = identity_map_set_identity(&request_identity, &identity_row_identities);
-    let persistent_name_map_identity = persistent_name_map_set_identity(
-        &request_identity,
-        &persistent_name_row_identities,
-    );
-    let subshape_signature_map_identity = subshape_signature_map_set_identity(
-        &request_identity,
-        &signature_row_identities,
-    );
+    let identity_map_identity =
+        identity_map_set_identity(&request_identity, &identity_row_identities);
+    let persistent_name_map_identity =
+        persistent_name_map_set_identity(&request_identity, &persistent_name_row_identities);
+    let subshape_signature_map_identity =
+        subshape_signature_map_set_identity(&request_identity, &signature_row_identities);
 
     Ok(PlanarBooleanOverlapRegionIdentityLineageBundle::new(
         bundle_identity(

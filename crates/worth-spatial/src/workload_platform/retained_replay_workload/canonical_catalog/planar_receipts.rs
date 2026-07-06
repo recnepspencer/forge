@@ -1,5 +1,5 @@
 use super::query_handles::*;
-use super::{canonical_retained_replay_error, MOVEMENT, NEIGHBORHOOD, TOPOLOGY};
+use super::{canonical_retained_replay_error, trace_scope, MOVEMENT, NEIGHBORHOOD, TOPOLOGY};
 use crate::workload_platform::retained_replay_workload::UnsupportedReplayWorkload;
 
 use crate::facade::planar_contract_bundle::PlanarContractBundleValidationReceipt;
@@ -307,18 +307,25 @@ pub(super) fn predicate_consumption_receipt(
     segment: CertifiedSegmentSegment2DReceipt,
     predicates: Vec<PlanarPredicateFactReceipt>,
 ) -> Result<PredicateCertificateConsumptionReceipt, UnsupportedReplayWorkload> {
-    PredicateCertificateConsumption::for_planar_workload()
-        .expecting_topology_basis(TOPOLOGY)
-        .expecting_movement_rotation_posture(MOVEMENT)
-        .expecting_local_frame("frame:canonical-retained")
-        .with_predicate_authority(predicates)
-        .with_segment_contacts(vec![segment])
-        .compile(&PredicateCertificateConsumptionContracts::new(
-            predicate_consumption_handle(world),
-        ))
-        .map_err(|_| canonical_retained_replay_error("Could not compile predicate consumption."))?
-        .certify()
-        .map_err(|_| canonical_retained_replay_error("Could not certify predicate consumption."))
+    let contracts =
+        PredicateCertificateConsumptionContracts::new(predicate_consumption_handle(world));
+    let plan = trace_scope("canonical_predicate_consumption_compile", || {
+        PredicateCertificateConsumption::for_planar_workload()
+            .expecting_topology_basis(TOPOLOGY)
+            .expecting_movement_rotation_posture(MOVEMENT)
+            .expecting_local_frame("frame:canonical-retained")
+            .with_predicate_authority(predicates)
+            .with_segment_contacts(vec![segment])
+            .compile(&contracts)
+            .map_err(|_| {
+                canonical_retained_replay_error("Could not compile predicate consumption.")
+            })
+    })?;
+    trace_scope("canonical_predicate_consumption_certify", || {
+        plan.certify().map_err(|_| {
+            canonical_retained_replay_error("Could not certify predicate consumption.")
+        })
+    })
 }
 
 pub(super) fn motion_receipt(

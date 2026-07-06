@@ -30,6 +30,8 @@ impl WorkloadCatalogRecipeKind {
         match self {
             Self::CoplanarOverlapStorm
             | Self::BooleanCoplanarOverlapPair
+            | Self::BooleanBoundaryOnlyCoincidentPair
+            | Self::BooleanMixedBoundaryAreaPair
             | Self::TransformCycle
             | Self::RetainedCancellationChain => TransformRecipe::HostileCancellation,
             _ => TransformRecipe::MovementRotationStack,
@@ -41,6 +43,8 @@ impl WorkloadCatalogRecipeKind {
             Self::CoplanarOverlapStorm
             | Self::BooleanCoplanarOverlapPair
             | Self::BooleanHighValenceContactPair
+            | Self::BooleanBoundaryOnlyCoincidentPair
+            | Self::BooleanMixedBoundaryAreaPair
             | Self::BooleanOpenUnboundedDenialPair
             | Self::HighValenceVertex
             | Self::MixedSurfaceKillBox

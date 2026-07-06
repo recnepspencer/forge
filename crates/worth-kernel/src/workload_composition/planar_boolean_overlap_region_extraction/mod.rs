@@ -1,21 +1,20 @@
 mod closeout;
-mod hostile_recipes;
 mod handoff;
 mod public_contract;
-mod replay_authority;
 mod registration_contract;
+mod replay_authority;
 mod runtime_registration;
 mod summum_bonum_closeout;
 mod summum_bonum_input;
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
 mod summum_bonum_tests;
 #[cfg(test)]
 mod test_support;
+#[cfg(test)]
+mod tests;
 
+pub use super::workload_catalog::PlanarBooleanOverlapRegionMetabossSubcase;
 pub use closeout::PlanarBooleanOverlapRegionCloseoutInput;
-pub use hostile_recipes::PlanarBooleanOverlapRegionMetabossSubcase;
 pub use handoff::CompletedPlanarBooleanOverlapRegionExtractionHandoff;
 pub use public_contract::{
     PlanarBooleanOverlapRegionAntiTheatreFenceDenial,

@@ -2,7 +2,8 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBo
     ConflictingPersistentNamePropagationDenied, DuplicateRegionIdentityDenied,
 };
 
-use super::support::{canonical_graph, conflicting_persistent_name_bundle, duplicate_identity_bundle};
+use super::support::canonical_graph;
+use super::support_mutations::{conflicting_persistent_name_bundle, duplicate_identity_bundle};
 
 #[test]
 fn conflicting_name_propagation_denies_before_decision_log_assembly() {

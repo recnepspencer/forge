@@ -15,6 +15,10 @@ REQUIRED_TURNS = (
     "code_quality_review",
 )
 
+OPTIONAL_TURNS = (
+    "boundary_review",
+)
+
 STATIC_TOP_LEVEL_KEYS = {
     "schema_version",
     "project",
@@ -82,6 +86,16 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
             template_name = templates.get(turn)
             if not isinstance(template_name, str) or not template_name:
                 errors.append(f"turn_templates.{turn} must name a template file")
+                continue
+            template_path = resolve_config_path(config_path, template_name)
+            if not template_path.exists():
+                errors.append(f"template not found for {turn}: {template_path}")
+        for turn in OPTIONAL_TURNS:
+            template_name = templates.get(turn)
+            if template_name is None:
+                continue
+            if not isinstance(template_name, str) or not template_name:
+                errors.append(f"turn_templates.{turn} must name a template file when present")
                 continue
             template_path = resolve_config_path(config_path, template_name)
             if not template_path.exists():

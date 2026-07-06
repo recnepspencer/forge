@@ -55,9 +55,6 @@ impl<'a> PlanarBooleanOverlapCellEvidenceLookup<'a> {
     }
 }
 
-fn evidence_key(
-    cell_identity: &str,
-    operand_side: PlanarBooleanCommonPlaneOperandSide,
-) -> String {
+fn evidence_key(cell_identity: &str, operand_side: PlanarBooleanCommonPlaneOperandSide) -> String {
     format!("{cell_identity}:{operand_side:?}")
 }

@@ -203,4 +203,10 @@ impl PlanarBooleanOverlapReadinessLoopLedgerBinding {
     pub fn counters(&self) -> PlanarBooleanOverlapReadinessLoopLedgerBindingCounters {
         self.counters
     }
+
+    #[doc(hidden)]
+    pub fn with_test_selected_route_identity_digest(mut self, digest: impl Into<String>) -> Self {
+        self.selected_route_identity_digest = digest.into();
+        self
+    }
 }

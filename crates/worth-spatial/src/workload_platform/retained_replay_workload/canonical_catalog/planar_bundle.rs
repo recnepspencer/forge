@@ -5,7 +5,7 @@ use topology::facade::{
 use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
 
 use super::super::UnsupportedReplayWorkload;
-use super::{canonical_retained_replay_error, MOVEMENT, NEIGHBORHOOD, TOPOLOGY};
+use super::{canonical_retained_replay_error, trace_scope, MOVEMENT, NEIGHBORHOOD, TOPOLOGY};
 use crate::facade::planar_contract_bundle::{
     PlanarBooleanReadinessBundle, PlanarContractBundleValidationContracts,
     PlanarContractBundleValidationReceipt, PlanarContractBundleValidator,
@@ -44,43 +44,68 @@ pub(crate) struct CanonicalPlanarBundleParts {
 pub(crate) fn canonical_planar_bundle_parts(
     world: &'static str,
 ) -> Result<CanonicalPlanarBundleParts, UnsupportedReplayWorkload> {
-    let admission = admission_receipt()?;
-    let topology_contract = topology_contract_receipt(world)?;
-    let predicate = predicate_receipt()?;
-    let precision = precision_receipt(world, &predicate)?;
-    let frame = frame_receipt(world, &precision)?;
-    let projections = projected_face_pair(world, &frame)?;
-    let left_winding = winding_receipt(world, "face:left", projections[0..4].to_vec())?;
-    let right_winding = winding_receipt(world, "face:right", projections[4..8].to_vec())?;
-    let signed_area = signed_area_receipt(world, left_winding.clone(), precision.clone())?;
-    let right_area = signed_area_receipt(world, right_winding, precision.clone())?;
-    let overlap = overlap_receipt(world, signed_area.clone(), right_area)?;
-    let segment = segment_receipt(
-        world,
-        projections[1].clone(),
-        projections[2].clone(),
-        projections[7].clone(),
-        projections[4].clone(),
-    )?;
-    let segment_predicates = segment_orientation_predicates(&segment)?;
-    let predicate_consumption =
-        predicate_consumption_receipt(world, segment.clone(), segment_predicates.clone())?;
+    let admission = trace_scope("canonical_admission_receipt", admission_receipt)?;
+    let topology_contract = trace_scope("canonical_topology_contract_receipt", || {
+        topology_contract_receipt(world)
+    })?;
+    let predicate = trace_scope("canonical_predicate_receipt", predicate_receipt)?;
+    let precision = trace_scope("canonical_precision_receipt", || {
+        precision_receipt(world, &predicate)
+    })?;
+    let frame = trace_scope("canonical_frame_receipt", || {
+        frame_receipt(world, &precision)
+    })?;
+    let projections = trace_scope("canonical_projected_face_pair", || {
+        projected_face_pair(world, &frame)
+    })?;
+    let left_winding = trace_scope("canonical_left_winding_receipt", || {
+        winding_receipt(world, "face:left", projections[0..4].to_vec())
+    })?;
+    let right_winding = trace_scope("canonical_right_winding_receipt", || {
+        winding_receipt(world, "face:right", projections[4..8].to_vec())
+    })?;
+    let signed_area = trace_scope("canonical_left_signed_area_receipt", || {
+        signed_area_receipt(world, left_winding.clone(), precision.clone())
+    })?;
+    let right_area = trace_scope("canonical_right_signed_area_receipt", || {
+        signed_area_receipt(world, right_winding, precision.clone())
+    })?;
+    let overlap = trace_scope("canonical_overlap_receipt", || {
+        overlap_receipt(world, signed_area.clone(), right_area)
+    })?;
+    let segment = trace_scope("canonical_segment_receipt", || {
+        segment_receipt(
+            world,
+            projections[1].clone(),
+            projections[2].clone(),
+            projections[7].clone(),
+            projections[4].clone(),
+        )
+    })?;
+    let segment_predicates = trace_scope("canonical_segment_orientation_predicates", || {
+        segment_orientation_predicates(&segment)
+    })?;
+    let predicate_consumption = trace_scope("canonical_predicate_consumption_receipt", || {
+        predicate_consumption_receipt(world, segment.clone(), segment_predicates.clone())
+    })?;
     let mut predicates = vec![predicate];
     predicates.extend(segment_predicates);
-    let readiness = certify_boolean_readiness(
-        world,
-        admission,
-        topology_contract.clone(),
-        precision,
-        frame,
-        projections.clone(),
-        predicates,
-        vec![segment],
-        left_winding,
-        signed_area,
-        overlap,
-        predicate_consumption,
-    )?;
+    let readiness = trace_scope("canonical_certify_boolean_readiness", || {
+        certify_boolean_readiness(
+            world,
+            admission,
+            topology_contract.clone(),
+            precision,
+            frame,
+            projections.clone(),
+            predicates,
+            vec![segment],
+            left_winding,
+            signed_area,
+            overlap,
+            predicate_consumption,
+        )
+    })?;
     Ok(CanonicalPlanarBundleParts {
         readiness,
         topology_contract,
@@ -92,19 +117,29 @@ pub(crate) fn retained_canonical_planar_facts(
     world: &'static str,
     parts: &CanonicalPlanarBundleParts,
 ) -> Result<RetainedPlanarFactsReceipt, UnsupportedReplayWorkload> {
-    let motion = motion_receipt(world, parts.readiness.clone())?;
-    let structural = structural_receipt(world, parts.readiness.clone(), motion.clone())?;
-    RetainedPlanarFacts::from_boolean_readiness(parts.readiness.clone())
-        .retain_planar_classification()
-        .retain_structural_identity(structural)
-        .retain_motion_posture(motion)
-        .retain_topology_contract(parts.topology_contract.clone())
-        .compile(&RetainedPlanarFactsContracts::new(retained_planar_handle(
-            world,
-        )))
-        .map_err(|_| canonical_retained_replay_error("Could not compile retained planar facts."))?
-        .retain()
-        .map_err(|_| canonical_retained_replay_error("Could not retain planar facts."))
+    let motion = trace_scope("retained_motion_receipt", || {
+        motion_receipt(world, parts.readiness.clone())
+    })?;
+    let structural = trace_scope("retained_structural_receipt", || {
+        structural_receipt(world, parts.readiness.clone(), motion.clone())
+    })?;
+    let retained_contracts = RetainedPlanarFactsContracts::new(retained_planar_handle(world));
+    let compiled = trace_scope("retained_planar_facts_compile", || {
+        RetainedPlanarFacts::from_boolean_readiness(parts.readiness.clone())
+            .retain_planar_classification()
+            .retain_structural_identity(structural)
+            .retain_motion_posture(motion)
+            .retain_topology_contract(parts.topology_contract.clone())
+            .compile(&retained_contracts)
+            .map_err(|_| {
+                canonical_retained_replay_error("Could not compile retained planar facts.")
+            })
+    })?;
+    trace_scope("retained_planar_facts_retain", || {
+        compiled
+            .retain()
+            .map_err(|_| canonical_retained_replay_error("Could not retain planar facts."))
+    })
 }
 
 pub(crate) fn projection_consumed_canonical_planar_facts(
@@ -112,19 +147,24 @@ pub(crate) fn projection_consumed_canonical_planar_facts(
     parts: &CanonicalPlanarBundleParts,
     retained: &RetainedPlanarFactsReceipt,
 ) -> Result<ProjectionConsumedPlanarFactsReceipt, UnsupportedReplayWorkload> {
-    ProjectionConsumedPlanarFacts::from_retained_planar_facts(retained.clone())
-        .consume_bundle_projection_receipts(parts.projections.clone())
-        .materialize_as(format!("materialization:canonical-retained:{world}"))
-        .compile(&ProjectionConsumedPlanarFactsContracts::new(
-            projection_consumption_handle(world),
-        ))
-        .map_err(|_| {
-            canonical_retained_replay_error("Could not compile projection-consumed planar facts.")
-        })?
-        .consume()
-        .map_err(|_| {
+    let projection_contracts =
+        ProjectionConsumedPlanarFactsContracts::new(projection_consumption_handle(world));
+    let compiled = trace_scope("projection_consumed_planar_facts_compile", || {
+        ProjectionConsumedPlanarFacts::from_retained_planar_facts(retained.clone())
+            .consume_bundle_projection_receipts(parts.projections.clone())
+            .materialize_as(format!("materialization:canonical-retained:{world}"))
+            .compile(&projection_contracts)
+            .map_err(|_| {
+                canonical_retained_replay_error(
+                    "Could not compile projection-consumed planar facts.",
+                )
+            })
+    })?;
+    trace_scope("projection_consumed_planar_facts_consume", || {
+        compiled.consume().map_err(|_| {
             canonical_retained_replay_error("Could not consume projection receipts for replay.")
         })
+    })
 }
 
 #[allow(clippy::too_many_arguments)]

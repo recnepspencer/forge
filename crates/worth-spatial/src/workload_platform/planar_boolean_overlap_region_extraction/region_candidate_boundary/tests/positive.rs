@@ -1,5 +1,6 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOverlapRegionCandidateBoundaryBundle, PlanarBooleanOverlapRegionCandidateBoundaryInput,
+    PlanarBooleanOverlapRegionCandidateBoundaryBundle,
+    PlanarBooleanOverlapRegionCandidateBoundaryInput,
 };
 
 use super::support::{
@@ -31,7 +32,10 @@ fn overlap_region_candidate_bundle_is_the_ordinary_phase_eleven_lowering_surface
     let shared_area_bundle = admitted_shared_area_bundle(&region_candidate_graph());
     let pre_region_bundle = admitted_pre_region_bundle(&region_candidate_graph());
     let direct = PlanarBooleanOverlapRegionCandidateBoundaryBundle::admit(
-        PlanarBooleanOverlapRegionCandidateBoundaryInput::new(&pre_region_bundle, &shared_area_bundle),
+        PlanarBooleanOverlapRegionCandidateBoundaryInput::new(
+            &pre_region_bundle,
+            &shared_area_bundle,
+        ),
     )
     .expect("direct phase-eleven admission should succeed");
     let ordinary = pre_region_bundle

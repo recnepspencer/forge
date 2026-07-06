@@ -45,9 +45,16 @@ pub use derived_diagnostics::{
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
     WorthTouchedGraphConflictDerivedDiagnosticProjection,
 };
+pub use ordinary_consumer_authority::{
+    current_completed_split_batch_execution_cluster_witness,
+    current_lookup_consumed_batch_execution_cluster_witness,
+    current_replay_undo_boundary_batch_execution_cluster_witness,
+    current_worth_workload_ordinary_consumer_batch_execution_receipt,
+    WorthWorkloadOrdinaryConsumerCurrentRouteWitness, WorthWorkloadOrdinaryConsumerCutoverError,
+    WorthWorkloadOrdinaryConsumerCutoverErrorKind, WorthWorkloadOrdinaryConsumerRouteKind,
+};
 pub(crate) use ordinary_consumer_authority::{
     current_worth_workload_ordinary_consumer_cutover, WorthWorkloadOrdinaryConsumerCutover,
-    WorthWorkloadOrdinaryConsumerCutoverError, WorthWorkloadOrdinaryConsumerCutoverErrorKind,
     WorthWorkloadOrdinaryConsumerCutoverPosture, WorthWorkloadOrdinaryConsumerCutoverRow,
 };
 #[cfg(test)]

@@ -1,7 +1,6 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
     PlanarBooleanDeniedOverlapRegionCandidateKind::{
-        ContradictoryPromotionPostureDenied,
-        MissingNormalizationDenied,
+        ContradictoryPromotionPostureDenied, MissingNormalizationDenied,
         MixedBoundaryAreaRequiresFurtherDecompositionDenied,
     },
     PlanarBooleanOverlapRegionCandidateBoundaryDenialKind,
@@ -38,13 +37,13 @@ fn mixed_boundary_area_rows_stay_denied_candidates() {
         .promote_overlap_region_candidates(&shared_area_bundle)
         .expect("mixed boundary area should deny locally, not fail the whole phase");
 
-    assert_eq!(bundle.overlap_region_candidates().rows().len(), 0);
-    assert_eq!(bundle.admitted_overlap_regions().rows().len(), 0);
-    assert_eq!(denied_candidate_set(&bundle).rows().len(), 2);
-    assert!(denied_candidate_set(&bundle)
-        .rows()
-        .iter()
-        .all(|row| row.denial_kind() == MixedBoundaryAreaRequiresFurtherDecompositionDenied));
+    assert_eq!(bundle.overlap_region_candidates().rows().len(), 1);
+    assert_eq!(bundle.admitted_overlap_regions().rows().len(), 1);
+    assert_eq!(denied_candidate_set(&bundle).rows().len(), 1);
+    assert_eq!(
+        denied_candidate_set(&bundle).rows()[0].denial_kind(),
+        MixedBoundaryAreaRequiresFurtherDecompositionDenied
+    );
 }
 
 #[test]

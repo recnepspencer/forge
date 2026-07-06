@@ -14,7 +14,7 @@ impl PlanarBooleanCommonPlaneScopeAdmissionError {
     pub fn human_reason(&self) -> &'static str {
         match self {
             Self::UnsupportedOperandPairRecipe { .. } => {
-                "Common-plane scope admission currently only admits one closed planar body-pair class before plane agreement begins."
+                "Common-plane scope admission only admits closed planar body pair families before plane agreement begins."
             }
         }
     }

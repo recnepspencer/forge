@@ -1,7 +1,8 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionLedgerAssemblyDenialKind;
 
 use super::support::{
-    canonical_graph, foreign_lineage_bundle, missing_signature_bundle, synthetic_identity_row_bundle,
+    canonical_graph, foreign_lineage_bundle, missing_signature_bundle,
+    synthetic_identity_row_bundle,
 };
 
 #[test]

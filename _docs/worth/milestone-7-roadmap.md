@@ -216,6 +216,10 @@ Done when:
 
 ## Milestone 7.5: Coplanar Overlap Region Extraction
 
+Status:
+- Closed by [milestone-7.5.md](./milestone-7.5.md) Phase 16 summum-bonum
+  certification.
+
 Freeze overlap-region extraction as its own closure surface.
 
 Closes:
@@ -229,6 +233,9 @@ Closes:
 Done when:
 - coplanar overlap is a first-class product of the boolean pipeline rather than
   a special-case side helper
+- `7.6+` consumes `PlanarBooleanOverlapRegionLedgerReceipt` as the exclusive
+  overlap-truth boundary and does not reopen touched graph, selected route,
+  Query posture, loops, islands, arrangement cells, or pairwise overlap scans
 
 ## Milestone 7.6: Fragment Classification
 

@@ -76,9 +76,11 @@ impl PlanarBooleanPostAdmissionNormalizationBundle {
     pub fn from_region_candidate_boundary(
         region_candidate_boundary: &PlanarBooleanOverlapRegionCandidateBoundaryBundle,
     ) -> Result<Self, PlanarBooleanPostAdmissionNormalizationDenial> {
-        Self::admit(PlanarBooleanPostAdmissionNormalizationInput::from_region_candidate_boundary(
-            region_candidate_boundary,
-        ))
+        Self::admit(
+            PlanarBooleanPostAdmissionNormalizationInput::from_region_candidate_boundary(
+                region_candidate_boundary,
+            ),
+        )
     }
 
     pub fn admit(

@@ -1,7 +1,8 @@
 use topology::facade::{
     PlanarBooleanOverlapOperatorClassification as Class,
     PlanarBooleanOverlapOperatorClassificationMatrix,
-    PlanarBooleanOverlapValidatorRegistrationPlan, PlanarBooleanOverlapValidatorRuntimeLane as Lane,
+    PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapValidatorRuntimeLane as Lane,
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
@@ -61,7 +62,10 @@ impl PlanarBooleanOverlapRuntimeRegistrationProof {
                     format!("request:{}", evidence_receipt.request_identity()),
                     format!(
                         "stage-index:{}",
-                        completed_workload.evidence_ledger().stage_index().index_identity()
+                        completed_workload
+                            .evidence_ledger()
+                            .stage_index()
+                            .index_identity()
                     ),
                     format!("operators:{}", operator_names.join("|")),
                     format!("validators:{}", validator_names.join("|")),
@@ -80,11 +84,21 @@ impl PlanarBooleanOverlapRuntimeRegistrationProof {
         })
     }
 
-    pub fn proof_identity(&self) -> &str { &self.proof_identity }
-    pub fn evidence_receipt_identity(&self) -> &str { &self.evidence_receipt_identity }
-    pub fn overlap_ledger_receipt_identity(&self) -> &str { &self.overlap_ledger_receipt_identity }
-    pub fn request_identity(&self) -> &str { &self.request_identity }
-    pub fn stage_index_identity(&self) -> &str { &self.stage_index_identity }
+    pub fn proof_identity(&self) -> &str {
+        &self.proof_identity
+    }
+    pub fn evidence_receipt_identity(&self) -> &str {
+        &self.evidence_receipt_identity
+    }
+    pub fn overlap_ledger_receipt_identity(&self) -> &str {
+        &self.overlap_ledger_receipt_identity
+    }
+    pub fn request_identity(&self) -> &str {
+        &self.request_identity
+    }
+    pub fn stage_index_identity(&self) -> &str {
+        &self.stage_index_identity
+    }
 }
 
 fn certify_required_phase_15_operators(

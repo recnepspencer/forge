@@ -147,19 +147,18 @@ pub use operator_harness::{
     OperatorSupportReceipt, OperatorWorkloadError, OperatorWorkloadReceipt,
     UnsupportedOperatorFamily, WorkloadOperator, WorkloadOperatorFamily,
 };
+#[doc(hidden)]
+pub use performance_trace::{trace_note, trace_scope};
 pub use planar_boolean_overlap_region_extraction::{
     CompletedPlanarBooleanOverlapRegionExtractionHandoff,
     PlanarBooleanOverlapRegionAntiTheatreFenceDenial,
-    PlanarBooleanOverlapRegionAntiTheatreFenceProof,
-    PlanarBooleanOverlapRegionCloseoutInput,
-    PlanarBooleanOverlapRegionPublicContractFenceDenial,
+    PlanarBooleanOverlapRegionAntiTheatreFenceProof, PlanarBooleanOverlapRegionCloseoutInput,
+    PlanarBooleanOverlapRegionMetabossSubcase, PlanarBooleanOverlapRegionPublicContractFenceDenial,
     PlanarBooleanOverlapRegionPublicContractFenceProof,
     PlanarBooleanOverlapRegionPublicContractProofRow,
     PlanarBooleanOverlapRegionPublicContractProofRowKind,
-    PlanarBooleanOverlapRegistrationContract, PlanarBooleanOverlapRegistrationContractError,
-    PlanarBooleanOverlapRegionMetabossSubcase,
-    PlanarBooleanOverlapRuntimeRegistrationProof,
-    PlanarBooleanOverlapRegionSummumBonumCloseoutInput,
+    PlanarBooleanOverlapRegionSummumBonumCloseoutInput, PlanarBooleanOverlapRegistrationContract,
+    PlanarBooleanOverlapRegistrationContractError, PlanarBooleanOverlapRuntimeRegistrationProof,
 };
 pub(crate) use planner_owned_routing::{
     admit_worth_touched_graph_conflict_public_proof_input,
@@ -173,6 +172,14 @@ pub(crate) use planner_owned_routing::{
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
     WorthTouchedGraphConflictDerivedDiagnosticProjection,
     WorthTouchedGraphConflictSelectedRoutePacket,
+};
+pub use planner_owned_routing::{
+    current_completed_split_batch_execution_cluster_witness,
+    current_lookup_consumed_batch_execution_cluster_witness,
+    current_replay_undo_boundary_batch_execution_cluster_witness,
+    current_worth_workload_ordinary_consumer_batch_execution_receipt,
+    WorthWorkloadOrdinaryConsumerCurrentRouteWitness, WorthWorkloadOrdinaryConsumerCutoverError,
+    WorthWorkloadOrdinaryConsumerCutoverErrorKind, WorthWorkloadOrdinaryConsumerRouteKind,
 };
 pub use planner_owned_routing::{
     current_worth_touched_graph_conflict_public_facade,
@@ -238,13 +245,13 @@ pub use touched_graph_parity_closeout::{
     WorthTouchedGraphRoadmapCompletionGateError, WorthTouchedGraphRoadmapCompletionGateErrorKind,
 };
 pub use workload_catalog::{
-    BuiltBooleanCleanFailCatalogRecipe, BuiltBooleanDeniedCatalogRecipe,
-    BuiltBooleanOperandPairRecipe, BuiltCleanFailCatalogRecipe, BuiltOpenClassTriadCatalog,
-    BuiltWorkloadCatalogRecipe, GrazingBasketStackSpec, OpenClassTriadCatalogRecipe,
-    TransformRecipe, WorkloadCatalog, WorkloadCatalogBooleanOperandPairRecipe,
-    WorkloadCatalogDeclarationReceipt, WorkloadCatalogError, WorkloadCatalogRecipe,
-    WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture, WorkloadCatalogSupportReceipt,
-    WorkloadTopologyBreadth,
+    admitted_metaboss_bundle_operand_pair_recipe, BuiltBooleanCleanFailCatalogRecipe,
+    BuiltBooleanDeniedCatalogRecipe, BuiltBooleanOperandPairRecipe, BuiltCleanFailCatalogRecipe,
+    BuiltOpenClassTriadCatalog, BuiltWorkloadCatalogRecipe, GrazingBasketStackSpec,
+    OpenClassTriadCatalogRecipe, TransformRecipe, WorkloadCatalog,
+    WorkloadCatalogBooleanOperandPairRecipe, WorkloadCatalogDeclarationReceipt,
+    WorkloadCatalogError, WorkloadCatalogRecipe, WorkloadCatalogRecipeKind,
+    WorkloadCatalogSupportPosture, WorkloadCatalogSupportReceipt, WorkloadTopologyBreadth,
 };
 pub use worth_workload::{
     current_worth_workload_ordinary_consumer_sweep_closeout,

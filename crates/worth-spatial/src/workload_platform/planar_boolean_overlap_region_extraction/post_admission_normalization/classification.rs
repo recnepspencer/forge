@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use super::counters::PlanarBooleanPostAdmissionNormalizationCounters;
 use super::denial::{
-    PlanarBooleanPostAdmissionNormalizationDenial, PlanarBooleanPostAdmissionNormalizationDenialKind,
+    PlanarBooleanPostAdmissionNormalizationDenial,
+    PlanarBooleanPostAdmissionNormalizationDenialKind,
 };
 use super::identity::{canonical_row_identity, canonical_set_identity};
 use super::input::PlanarBooleanPostAdmissionNormalizationInput;
@@ -10,7 +11,8 @@ use super::product::{
     PlanarBooleanOverlapRegionCanonicalWindingSet, PlanarBooleanPostAdmissionNormalizationBundle,
 };
 use super::rows::{
-    PlanarBooleanOverlapRegionCanonicalWindingRow, PlanarBooleanOverlapRegionCanonicalWindingSourceKind,
+    PlanarBooleanOverlapRegionCanonicalWindingRow,
+    PlanarBooleanOverlapRegionCanonicalWindingSourceKind,
 };
 use super::validation::{
     admitted_witness_key, boundary_only_witness_key, boundary_witness_mismatch_denial,
@@ -35,14 +37,22 @@ pub(super) fn build_post_admission_normalization_bundle(
     ensure_unique_admitted_witnesses(admitted.rows(), &mut counters)?;
     for row in admitted.rows() {
         counters.examined_admitted_region();
-        rows.push(canonicalize_admitted_region_row(&request_identity, row, &mut counters)?);
+        rows.push(canonicalize_admitted_region_row(
+            &request_identity,
+            row,
+            &mut counters,
+        )?);
         counters.admitted_canonical_row();
     }
 
     ensure_unique_boundary_only_witnesses(boundary_only.rows(), &mut counters)?;
     for row in boundary_only.rows() {
         counters.examined_boundary_only_outcome();
-        rows.push(canonicalize_boundary_only_row(&request_identity, row, &mut counters)?);
+        rows.push(canonicalize_boundary_only_row(
+            &request_identity,
+            row,
+            &mut counters,
+        )?);
         counters.admitted_canonical_row();
     }
 
@@ -119,26 +129,26 @@ fn canonicalize_admitted_region_row(
     PlanarBooleanOverlapRegionCanonicalWindingRow,
     PlanarBooleanPostAdmissionNormalizationDenial,
 > {
-    let canonical_boundary_segment_identities = ordered_witness_strings(
-        row.canonical_boundary_segment_witness(),
-    );
-    let canonical_source_loop_identities = ordered_witness_strings(
-        row.canonical_source_loop_witness(),
-    );
+    let canonical_boundary_segment_identities =
+        ordered_witness_strings(row.canonical_boundary_segment_witness());
+    let canonical_source_loop_identities =
+        ordered_witness_strings(row.canonical_source_loop_witness());
     let canonical_source_edge_identities = canonicalized_strings(row.source_edge_identities());
 
-    let (canonical_boundary_segment_identities, canonical_source_loop_identities) =
-        match (canonical_boundary_segment_identities, canonical_source_loop_identities) {
-            (Some(boundary_segments), Some(source_loops)) => (boundary_segments, source_loops),
-            _ => {
-                counters.denied_canonical_row();
-                return Err(boundary_witness_mismatch_denial(
-                    PlanarBooleanOverlapRegionCanonicalWindingSourceKind::AdmittedRegion,
-                    row.admitted_region_identity(),
-                    counters,
-                ));
-            }
-        };
+    let (canonical_boundary_segment_identities, canonical_source_loop_identities) = match (
+        canonical_boundary_segment_identities,
+        canonical_source_loop_identities,
+    ) {
+        (Some(boundary_segments), Some(source_loops)) => (boundary_segments, source_loops),
+        _ => {
+            counters.denied_canonical_row();
+            return Err(boundary_witness_mismatch_denial(
+                PlanarBooleanOverlapRegionCanonicalWindingSourceKind::AdmittedRegion,
+                row.admitted_region_identity(),
+                counters,
+            ));
+        }
+    };
 
     if canonical_source_edge_identities.is_empty() {
         counters.denied_canonical_row();
@@ -182,26 +192,28 @@ fn canonicalize_boundary_only_row(
     PlanarBooleanOverlapRegionCanonicalWindingRow,
     PlanarBooleanPostAdmissionNormalizationDenial,
 > {
-    let canonical_boundary_segment_identities = ordered_witness_strings(
-        row.canonical_boundary_segment_witness(),
-    );
-    let canonical_source_loop_identities = ordered_witness_strings(
-        row.canonical_source_loop_witness(),
-    );
-    let (canonical_boundary_segment_identities, canonical_source_loop_identities) =
-        match (canonical_boundary_segment_identities, canonical_source_loop_identities) {
-            (Some(boundary_segments), Some(source_loops)) => (boundary_segments, source_loops),
-            _ => {
-                counters.denied_canonical_row();
-                return Err(boundary_witness_mismatch_denial(
-                    PlanarBooleanOverlapRegionCanonicalWindingSourceKind::BoundaryOnlyOutcome,
-                    row.outcome_identity(),
-                    counters,
-                ));
-            }
-        };
+    let canonical_boundary_segment_identities =
+        ordered_witness_strings(row.canonical_boundary_segment_witness());
+    let canonical_source_loop_identities =
+        ordered_witness_strings(row.canonical_source_loop_witness());
+    let (canonical_boundary_segment_identities, canonical_source_loop_identities) = match (
+        canonical_boundary_segment_identities,
+        canonical_source_loop_identities,
+    ) {
+        (Some(boundary_segments), Some(source_loops)) => (boundary_segments, source_loops),
+        _ => {
+            counters.denied_canonical_row();
+            return Err(boundary_witness_mismatch_denial(
+                PlanarBooleanOverlapRegionCanonicalWindingSourceKind::BoundaryOnlyOutcome,
+                row.outcome_identity(),
+                counters,
+            ));
+        }
+    };
 
-    if canonical_boundary_segment_identities.is_empty() || canonical_source_loop_identities.is_empty() {
+    if canonical_boundary_segment_identities.is_empty()
+        || canonical_source_loop_identities.is_empty()
+    {
         counters.denied_canonical_row();
         return Err(boundary_witness_mismatch_denial(
             PlanarBooleanOverlapRegionCanonicalWindingSourceKind::BoundaryOnlyOutcome,

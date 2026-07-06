@@ -8,6 +8,7 @@ use planar_bundle::{
 };
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Instant;
 
 mod planar_bundle;
 mod planar_receipts;
@@ -46,16 +47,26 @@ pub fn canonical_retained_cancellation_chain_capture(
 fn build_canonical_retained_cancellation_chain_capture(
     world: &'static str,
 ) -> Result<CapturedRetainedWorkload, UnsupportedReplayWorkload> {
-    let bundle = canonical_planar_bundle_parts(world)?;
-    let retained = retained_canonical_planar_facts(world, &bundle)?;
-    let projection_consumed =
-        projection_consumed_canonical_planar_facts(world, &bundle, &retained)?;
-    RetainedWorkload::from_retained_planar_facts(retained)
-        .declared(format!(
-            "capture canonical retained cancellation chain artifacts for {world}"
-        ))
-        .with_projection_consumed_facts(projection_consumed)
-        .capture()
+    trace_scope("canonical_retained_capture_build", || {
+        let bundle = trace_scope("canonical_planar_bundle_parts", || {
+            canonical_planar_bundle_parts(world)
+        })?;
+        let retained = trace_scope("retained_canonical_planar_facts", || {
+            retained_canonical_planar_facts(world, &bundle)
+        })?;
+        let projection_consumed =
+            trace_scope("projection_consumed_canonical_planar_facts", || {
+                projection_consumed_canonical_planar_facts(world, &bundle, &retained)
+            })?;
+        trace_scope("retained_workload_capture", || {
+            RetainedWorkload::from_retained_planar_facts(retained)
+                .declared(format!(
+                    "capture canonical retained cancellation chain artifacts for {world}"
+                ))
+                .with_projection_consumed_facts(projection_consumed)
+                .capture()
+        })
+    })
 }
 
 pub(crate) fn canonical_retained_replay_error(
@@ -65,4 +76,23 @@ pub(crate) fn canonical_retained_replay_error(
         UnsupportedReplayReasonCode::MissingRetainedArtifacts,
         human_reason,
     )
+}
+
+pub(super) fn trace_scope<T>(label: &str, action: impl FnOnce() -> T) -> T {
+    if !trace_enabled() {
+        return action();
+    }
+    eprintln!("[worth-perf]       start {label}");
+    let start = Instant::now();
+    let result = action();
+    eprintln!(
+        "[worth-perf]       finish {label} ({:.3}s)",
+        start.elapsed().as_secs_f64()
+    );
+    result
+}
+
+fn trace_enabled() -> bool {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var_os("WORTH_TRACE_PERFORMANCE").is_some())
 }

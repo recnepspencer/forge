@@ -20,9 +20,7 @@ impl<'a> PlanarBooleanOverlapRegionIdentityLineageInput<'a> {
         Self::new(post_admission_normalization)
     }
 
-    pub fn post_admission_normalization(
-        self,
-    ) -> &'a PlanarBooleanPostAdmissionNormalizationBundle {
+    pub fn post_admission_normalization(self) -> &'a PlanarBooleanPostAdmissionNormalizationBundle {
         self.post_admission_normalization
     }
 }

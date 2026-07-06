@@ -1,17 +1,23 @@
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
-
+use super::boolean_operand_pair_cache::{
+    boolean_operand_pair_cache_key, cache_boolean_operand_pair, cached_boolean_operand_pair,
+};
+use super::boolean_operand_pair_support::{
+    ensure_clean_fail_member_support, ensure_member_support, operand_pair_identity,
+    require_admitted_pair_support,
+};
 use super::built_recipe::{
     BuiltBooleanCleanFailCatalogRecipe, BuiltBooleanDeniedCatalogRecipe,
     BuiltBooleanOperandPairRecipe,
 };
 use super::catalog::WorkloadCatalog;
 use super::error::WorkloadCatalogError;
+use super::recipe_kind::WorkloadCatalogRecipeKind;
 use super::recipe_kind::WorkloadTopologyBreadth;
-use super::recipe_kind::{WorkloadCatalogRecipeKind, WorkloadCatalogSupportPosture};
 use super::support_receipt::{
     WorkloadCatalogDeclarationReceipt, WorkloadCatalogSupportDecision,
     WorkloadCatalogSupportReceipt,
 };
+use crate::workload_composition::trace_scope;
 use worth_spatial::facade::workload_binding::PlanarLoopBoundaryCatalogProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,34 +52,56 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
     }
 
     pub fn build(self) -> Result<BuiltBooleanOperandPairRecipe, WorkloadCatalogError> {
-        let declaration = self.declaration_receipt()?;
-        let support = WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision()?)?;
-        require_admitted_pair_support(&support)?;
-
-        match self.kind {
-            WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair
-            | WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair => {
-                return Err(WorkloadCatalogError::UnsupportedRecipe {
-                    recipe: self.kind,
-                    reason: self.product_lane_reason(),
-                });
-            }
-            _ => {}
+        let cache_key = boolean_operand_pair_cache_key(
+            self.kind,
+            &self.declaration,
+            self.retained_replay_artifacts,
+        );
+        if let Some(cached) = cached_boolean_operand_pair(&cache_key) {
+            return Ok(cached);
         }
 
-        let left = self.left_member_recipe().build()?;
-        let right = self.right_member_recipe().build()?;
-        let operand_pair_identity =
-            operand_pair_identity(self.kind, left.declaration(), right.declaration());
+        trace_scope("workload_catalog_boolean_pair_build", || {
+            let declaration = trace_scope("boolean_pair_declaration_receipt", || {
+                self.declaration_receipt()
+            })?;
+            match self.kind {
+                WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair
+                | WorkloadCatalogRecipeKind::BooleanOpenUnboundedDenialPair => {
+                    return Err(WorkloadCatalogError::UnsupportedRecipe {
+                        recipe: self.kind,
+                        reason: self.product_lane_reason(),
+                    });
+                }
+                _ => {}
+            }
 
-        Ok(BuiltBooleanOperandPairRecipe::new(
-            self.kind,
-            declaration,
-            support,
-            operand_pair_identity,
-            left,
-            right,
-        ))
+            let left = trace_scope("boolean_pair_left_member_build", || {
+                self.left_member_recipe().build()
+            })?;
+            let right = trace_scope("boolean_pair_right_member_build", || {
+                self.right_member_recipe().build()
+            })?;
+            let support = trace_scope("boolean_pair_support_receipt", || {
+                WorkloadCatalogSupportReceipt::new(&declaration, self.admitted_build_decision())
+            })?;
+            trace_scope("boolean_pair_require_support", || {
+                require_admitted_pair_support(&support)
+            })?;
+            let operand_pair_identity =
+                operand_pair_identity(self.kind, left.declaration(), right.declaration());
+
+            let built = BuiltBooleanOperandPairRecipe::new(
+                self.kind,
+                declaration,
+                support,
+                operand_pair_identity,
+                left,
+                right,
+            );
+            cache_boolean_operand_pair(cache_key, built.clone());
+            Ok(built)
+        })
     }
 
     pub fn build_clean_fail(
@@ -161,7 +189,9 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair
             | WorkloadCatalogRecipeKind::BooleanCoplanarOverlapPair
             | WorkloadCatalogRecipeKind::BooleanThinFeaturePair
-            | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair => {
+            | WorkloadCatalogRecipeKind::BooleanHighValenceContactPair
+            | WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair
+            | WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair => {
                 ensure_member_support(self.left_member_recipe())?;
                 ensure_member_support(self.right_member_recipe())?;
                 WorkloadCatalogSupportDecision::admitted(format!(
@@ -190,6 +220,13 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
                 })
             }
         })
+    }
+
+    fn admitted_build_decision(&self) -> WorkloadCatalogSupportDecision {
+        WorkloadCatalogSupportDecision::admitted(format!(
+            "{} is admitted as a real workload-backed boolean operand pair",
+            self.kind.human_name()
+        ))
     }
 
     fn left_member_recipe(&self) -> super::catalog::WorkloadCatalogRecipe {
@@ -224,6 +261,24 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             }
             WorkloadCatalogRecipeKind::BooleanHighValenceContactPair => {
                 WorkloadCatalog::high_valence_vertex()
+            }
+            WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 4,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanBoundaryOnlyLeft,
+                    )
+            }
+            WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 6,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanMixedBoundaryAreaLeft,
+                    )
             }
             WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair => {
                 WorkloadCatalog::dirty_self_intersecting_loop()
@@ -271,6 +326,24 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             WorkloadCatalogRecipeKind::BooleanHighValenceContactPair => {
                 WorkloadCatalog::single_face_loop()
             }
+            WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 4,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanBoundaryOnlyRight,
+                    )
+            }
+            WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair => {
+                WorkloadCatalog::single_face_loop()
+                    .with_topology_breadth(WorkloadTopologyBreadth::SingleFaceLoopEdges {
+                        edge_count: 8,
+                    })
+                    .with_planar_loop_boundary_profile(
+                        PlanarLoopBoundaryCatalogProfile::BooleanMixedBoundaryAreaRight,
+                    )
+            }
             WorkloadCatalogRecipeKind::BooleanDirtyCleanFailPair => {
                 WorkloadCatalog::single_face_loop()
             }
@@ -305,53 +378,4 @@ impl WorkloadCatalogBooleanOperandPairRecipe {
             _ => format!("{} must build through the admitted workload pair lane", self.kind.human_name()),
         }
     }
-}
-
-fn ensure_member_support(
-    recipe: super::catalog::WorkloadCatalogRecipe,
-) -> Result<(), WorkloadCatalogError> {
-    let support = recipe.inspect_support()?;
-    if support.posture() == WorkloadCatalogSupportPosture::Admitted {
-        Ok(())
-    } else {
-        Err(WorkloadCatalogError::UnsupportedRecipe {
-            recipe: support.recipe(),
-            reason: support.human_reason().to_string(),
-        })
-    }
-}
-
-fn ensure_clean_fail_member_support(
-    recipe: super::catalog::WorkloadCatalogRecipe,
-) -> Result<(), WorkloadCatalogError> {
-    recipe.inspect_clean_fail_support().map(|_| ())
-}
-
-fn require_admitted_pair_support(
-    support: &WorkloadCatalogSupportReceipt,
-) -> Result<(), WorkloadCatalogError> {
-    if support.posture() == WorkloadCatalogSupportPosture::Admitted {
-        Ok(())
-    } else {
-        Err(WorkloadCatalogError::UnsupportedRecipe {
-            recipe: support.recipe(),
-            reason: support.human_reason().to_string(),
-        })
-    }
-}
-
-fn operand_pair_identity(
-    recipe: WorkloadCatalogRecipeKind,
-    left: &WorkloadCatalogDeclarationReceipt,
-    right: &WorkloadCatalogDeclarationReceipt,
-) -> String {
-    truth_digest_parts(
-        TruthDigestScope::ArtifactIdentity,
-        &[
-            "workload-catalog-boolean-operand-pair".to_string(),
-            format!("recipe:{}", recipe.query_key()),
-            format!("left:{}", left.query_declaration_digest()),
-            format!("right:{}", right.query_declaration_digest()),
-        ],
-    )
 }

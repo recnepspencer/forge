@@ -1,4 +1,7 @@
-pub(super) fn candidate_identity(request_identity: &str, shared_area_outcome_identity: &str) -> String {
+pub(super) fn candidate_identity(
+    request_identity: &str,
+    shared_area_outcome_identity: &str,
+) -> String {
     format!("overlap-region-candidate:{request_identity}:{shared_area_outcome_identity}")
 }
 
@@ -10,7 +13,10 @@ pub(super) fn admitted_region_identity(request_identity: &str, candidate_identit
     format!("admitted-overlap-region:{request_identity}:{candidate_identity}")
 }
 
-pub(super) fn boundary_only_outcome_identity(request_identity: &str, pure_boundary_outcome_identity: &str) -> String {
+pub(super) fn boundary_only_outcome_identity(
+    request_identity: &str,
+    pure_boundary_outcome_identity: &str,
+) -> String {
     format!("boundary-only-overlap-outcome:{request_identity}:{pure_boundary_outcome_identity}")
 }
 

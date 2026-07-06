@@ -10,6 +10,8 @@ pub enum WorkloadCatalogRecipeKind {
     BooleanCoplanarOverlapPair,
     BooleanThinFeaturePair,
     BooleanHighValenceContactPair,
+    BooleanBoundaryOnlyCoincidentPair,
+    BooleanMixedBoundaryAreaPair,
     BooleanDirtyCleanFailPair,
     BooleanOpenUnboundedDenialPair,
     CoplanarOverlapStorm,
@@ -46,6 +48,10 @@ impl WorkloadCatalogRecipeKind {
             Self::BooleanHighValenceContactPair => {
                 "worth.catalog.boolean_high_valence_contact_pair"
             }
+            Self::BooleanBoundaryOnlyCoincidentPair => {
+                "worth.catalog.boolean_boundary_only_coincident_pair"
+            }
+            Self::BooleanMixedBoundaryAreaPair => "worth.catalog.boolean_mixed_boundary_area_pair",
             Self::BooleanDirtyCleanFailPair => "worth.catalog.boolean_dirty_clean_fail_pair",
             Self::BooleanOpenUnboundedDenialPair => {
                 "worth.catalog.boolean_open_unbounded_denial_pair"
@@ -82,6 +88,10 @@ impl WorkloadCatalogRecipeKind {
             Self::BooleanCoplanarOverlapPair => "boolean coplanar overlap pair recipe",
             Self::BooleanThinFeaturePair => "boolean thin feature pair recipe",
             Self::BooleanHighValenceContactPair => "boolean high-valence contact pair recipe",
+            Self::BooleanBoundaryOnlyCoincidentPair => {
+                "boolean boundary-only coincident pair recipe"
+            }
+            Self::BooleanMixedBoundaryAreaPair => "boolean mixed boundary-area pair recipe",
             Self::BooleanDirtyCleanFailPair => "boolean dirty clean-fail pair recipe",
             Self::BooleanOpenUnboundedDenialPair => "boolean open or unbounded denial pair recipe",
             Self::CoplanarOverlapStorm => "coplanar overlap storm workload recipe",
@@ -116,6 +126,10 @@ impl WorkloadCatalogRecipeKind {
             Self::BooleanCoplanarOverlapPair => "catalog boolean coplanar overlap pair",
             Self::BooleanThinFeaturePair => "catalog boolean thin feature pair",
             Self::BooleanHighValenceContactPair => "catalog boolean high-valence contact pair",
+            Self::BooleanBoundaryOnlyCoincidentPair => {
+                "catalog boolean boundary-only coincident pair"
+            }
+            Self::BooleanMixedBoundaryAreaPair => "catalog boolean mixed boundary-area pair",
             Self::BooleanDirtyCleanFailPair => "catalog boolean dirty clean-fail pair",
             Self::BooleanOpenUnboundedDenialPair => "catalog boolean open or unbounded denial pair",
             Self::CoplanarOverlapStorm => "catalog coplanar overlap storm workload",

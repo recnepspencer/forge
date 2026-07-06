@@ -3,6 +3,7 @@ mod counters;
 mod denial;
 mod input;
 mod island_participation;
+mod lineage_binding;
 mod loop_participation;
 mod recovery;
 mod recovery_support;

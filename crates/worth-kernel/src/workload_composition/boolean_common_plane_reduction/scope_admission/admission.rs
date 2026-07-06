@@ -12,6 +12,8 @@ pub(super) fn admit_operand_scope(
         WorkloadCatalogRecipeKind::BooleanCleanPlanarBodyPair
         | WorkloadCatalogRecipeKind::BooleanEventCarrierCleanPlanarBodyPair
         | WorkloadCatalogRecipeKind::BooleanEventExtractionMetabossPair
+        | WorkloadCatalogRecipeKind::BooleanBoundaryOnlyCoincidentPair
+        | WorkloadCatalogRecipeKind::BooleanMixedBoundaryAreaPair
         | WorkloadCatalogRecipeKind::BooleanMismatchedPosturePair => {
             Ok(PlanarBooleanCommonPlaneAdmittedOperandScope::ClosedPlanarBodyPair)
         }

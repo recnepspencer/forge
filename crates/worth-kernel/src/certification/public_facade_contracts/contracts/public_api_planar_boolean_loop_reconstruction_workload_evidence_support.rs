@@ -25,6 +25,8 @@ mod edge_splitting_split_vertex_identity_support;
 mod edge_splitting_support;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/hard_deletion_closeout_assertions.rs"]
 mod hard_deletion_closeout_assertions;
+#[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/loop_replay_boundary_support.rs"]
+mod loop_replay_boundary_support;
 #[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
 mod metaboss_support;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/ordinary_topology_undo_support.rs"]
@@ -67,7 +69,8 @@ pub(crate) use packet_backed_loop_closeout_assertions::{
 };
 pub(crate) use public_closeout_parity_assertions::assert_public_closeout_rejects_mismatched_proof_products;
 pub(crate) use real_handoff_support::{
-    certified_real_loop_handoff, certified_real_loop_replay_closeout_chain,
-    real_loop_handoff_for_branch, with_packet_backed_loop_boundary_basis,
-    CertifiedLoopReplayCloseoutChain, ReplayBranch,
+    certified_event_carrier_loop_replay_closeout_chain,
+    certified_loop_replay_closeout_chain_for_pair, certified_real_loop_handoff,
+    certified_real_loop_replay_closeout_chain, real_loop_handoff_for_branch,
+    with_packet_backed_loop_boundary_basis, CertifiedLoopReplayCloseoutChain, ReplayBranch,
 };

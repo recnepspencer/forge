@@ -3,6 +3,8 @@ use crate::workload_composition::PlanarBooleanEntryBasis;
 use super::super::boolean_outcome::PlanarBooleanOutcomeReceipt;
 use super::query::query_backed_planar_boolean_declaration;
 use super::support::{PlanarBooleanEntryError, PlanarBooleanSupportReceipt};
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlanarBooleanDeclaration {
@@ -91,6 +93,22 @@ impl PlanarBooleanDeclarationReceipt {
             return Err(PlanarBooleanEntryError::MissingQueryDeclaration);
         }
         let basis = basis.ok_or(PlanarBooleanEntryError::MissingEntryBasis)?;
+        let cache_key = boolean_declaration_cache_key(
+            family,
+            operation,
+            &operand_pair_identity,
+            requested_lane,
+            &basis,
+            query_intent.trim(),
+        );
+        if let Some(receipt) = boolean_declaration_cache()
+            .lock()
+            .expect("planar boolean declaration cache should not be poisoned")
+            .get(&cache_key)
+            .cloned()
+        {
+            return Ok(receipt);
+        }
         let query_receipt = query_backed_planar_boolean_declaration(
             family,
             operation,
@@ -100,7 +118,7 @@ impl PlanarBooleanDeclarationReceipt {
             basis.readiness_workload_digest(),
             query_intent.trim(),
         )?;
-        Ok(Self {
+        let receipt = Self {
             family,
             operation,
             operand_pair_identity,
@@ -114,7 +132,12 @@ impl PlanarBooleanDeclarationReceipt {
             query_declaration_digest: query_receipt.declaration_digest().to_string(),
             query_envelope_digest: query_receipt.envelope_digest().to_string(),
             query_handle_digest: query_receipt.handle_digest().to_string(),
-        })
+        };
+        boolean_declaration_cache()
+            .lock()
+            .expect("planar boolean declaration cache should not be poisoned")
+            .insert(cache_key, receipt.clone());
+        Ok(receipt)
     }
 
     pub fn family(&self) -> PlanarBooleanFamily {
@@ -176,6 +199,33 @@ impl PlanarBooleanDeclarationReceipt {
     pub fn classify_outcome(&self) -> Result<PlanarBooleanOutcomeReceipt, PlanarBooleanEntryError> {
         PlanarBooleanOutcomeReceipt::from_declaration_receipt(self)
     }
+}
+
+fn boolean_declaration_cache() -> &'static Mutex<BTreeMap<String, PlanarBooleanDeclarationReceipt>>
+{
+    static CACHE: OnceLock<Mutex<BTreeMap<String, PlanarBooleanDeclarationReceipt>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn boolean_declaration_cache_key(
+    family: PlanarBooleanFamily,
+    operation: PlanarBooleanOperation,
+    operand_pair_identity: &PlanarBooleanOperandPairIdentity,
+    requested_lane: PlanarBooleanExecutionLane,
+    basis: &PlanarBooleanEntryBasis,
+    query_intent: &str,
+) -> String {
+    format!(
+        "{}::{}::{}::{}::{}::{}::{}",
+        family.query_key(),
+        operation.query_key(),
+        requested_lane.query_key(),
+        operand_pair_identity.as_str(),
+        basis.readiness_receipt_identity(),
+        basis.readiness_workload_digest(),
+        query_intent
+    )
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

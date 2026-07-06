@@ -53,6 +53,8 @@ pub(crate) fn validate_input<'a>(
         .iter()
         .flat_map(|row| row.overlap_chain_lineage_identities().iter().cloned())
         .collect::<BTreeSet<_>>();
+    let source_only_boundary_lane = input.loop_participation_map().rows().is_empty()
+        && input.island_participation_map().rows().is_empty();
 
     for lineage_row in input.chain_lineage_map().rows() {
         if !lookup.insert_lineage_row(lineage_row) {
@@ -63,7 +65,11 @@ pub(crate) fn validate_input<'a>(
                 "overlap adjacency denies duplicate chain-lineage identities inside one admitted chain-lineage map",
             ));
         }
-        if !promised_lineage_ids.contains(lineage_row.lineage_identity()) {
+        let source_only_boundary_lineage =
+            source_only_boundary_lane && is_source_only_boundary_lineage(lineage_row);
+        if !promised_lineage_ids.contains(lineage_row.lineage_identity())
+            && !source_only_boundary_lineage
+        {
             return Err(deny(
                 Kind::DanglingAdjacencyLineageDenied,
                 lineage_row.lineage_identity(),
@@ -74,12 +80,14 @@ pub(crate) fn validate_input<'a>(
         if lineage_row.participating_loop_identities().is_empty()
             || lineage_row.participating_island_identities().is_empty()
         {
-            return Err(deny(
-                Kind::UnindexedOverlapNeighborhoodDiscoveryDenied,
-                lineage_row.lineage_identity(),
-                counters,
-                "overlap adjacency denies overlap-chain lineage that would require unindexed neighborhood discovery",
-            ));
+            if !source_only_boundary_lineage {
+                return Err(deny(
+                    Kind::UnindexedOverlapNeighborhoodDiscoveryDenied,
+                    lineage_row.lineage_identity(),
+                    counters,
+                    "overlap adjacency denies overlap-chain lineage that would require unindexed neighborhood discovery",
+                ));
+            }
         }
         for loop_identity in lineage_row.participating_loop_identities() {
             if lookup.loop_row(loop_identity).is_none() {
@@ -152,6 +160,20 @@ pub(crate) fn validate_input<'a>(
     }
 
     Ok(lookup)
+}
+
+fn is_source_only_boundary_lineage(
+    lineage_row: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapChainRegionLineageRow,
+) -> bool {
+    let segment_count = lineage_row.source_loop_identities().len();
+    lineage_row.participating_loop_identities().is_empty()
+        && lineage_row.participating_island_identities().is_empty()
+        && segment_count > 0
+        && lineage_row.source_loop_operand_sides().len() == segment_count
+        && lineage_row.source_loop_winding_signs().len() == segment_count
+        && lineage_row.source_edge_identities().len() == segment_count
+        && lineage_row.fragment_identities().len() == segment_count
+        && lineage_row.boundary_roles().len() == segment_count
 }
 
 fn matches_canonical_membership(

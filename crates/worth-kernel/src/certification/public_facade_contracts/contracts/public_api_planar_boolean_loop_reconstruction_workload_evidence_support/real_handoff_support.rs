@@ -1,27 +1,20 @@
 use topology::facade::PlanarBooleanLoopBlueprintRegistry;
 use worth_kernel::workload_composition::{
-    BooleanSplitReplayUndoBoundaryRequest, PlanarBooleanLoopReconstructionCloseoutInput,
-    WorkloadCompositionError,
+    trace_scope, BooleanSplitReplayUndoBoundaryRequest, WorkloadCompositionError,
 };
+use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitReplayParityReport;
 use worth_spatial::facade::planar_boolean_loop_reconstruction::{
     ComparePlanarBooleanLoopReplayParity, PlanarBooleanLoopReplayParityInput,
     PlanarBooleanLoopReplayParityReceipt,
 };
-use worth_spatial::facade::replay_family_catalog::{
-    admit_spatial_replay_family_identity, current_spatial_replay_family_catalog,
-    SpatialReplayFamilyIdentityAuthority,
-};
-use worth_spatial::facade::replay_undo_semantic_graph::{
-    admit_prepared_spatial_replay_semantic_graph_input,
-    lower_spatial_replay_scope_product_from_admitted_input,
-    lower_spatial_undo_scope_product_from_boolean_event_ledger_request,
-    prepare_spatial_replay_semantic_graph_request, BooleanEventLedgerRollbackRequest,
-    SpatialReplaySemanticGraphPreparationRequest,
-};
 
 use super::continuation_contract_support;
 use super::edge_splitting_replay_parity_support::{
-    build_edge_split_replay_parity_subject, replay_parity_report,
+    build_edge_split_replay_parity_subject, replay_parity_report, EdgeSplitReplayParitySubject,
+};
+use super::loop_replay_boundary_support::{
+    complete_replay_undo_chain_from_boundary, current_ordinary_consumer_batch_execution_receipt,
+    with_matching_spatial_scope_products,
 };
 use super::metaboss_support::MetabossEventExtractionSubject;
 use super::ordinary_topology_undo_support::ordinary_traversal_views_undo_scope_support;
@@ -37,6 +30,7 @@ pub(crate) struct CertifiedLoopReplayCloseoutChain {
     pub(crate) replayed:
         worth_kernel::workload_composition::CompletedBooleanLoopReconstructionHandoff,
     pub(crate) replay_parity: PlanarBooleanLoopReplayParityReceipt,
+    pub(crate) replay_receipts: worth_spatial::facade::retained_replay_workload::ReplayReceiptSet,
 }
 
 pub(crate) fn real_loop_handoff_for_branch(
@@ -89,62 +83,100 @@ pub(crate) fn packet_backed_replay_undo_chain_for_branch(
     worth_kernel::workload_composition::BooleanChainReplayUndoBoundaryHandoff,
     WorkloadCompositionError,
 > {
-    let replay_subject = build_edge_split_replay_parity_subject(subject);
-    let replay_report = replay_parity_report(&replay_subject);
-    let completed_split_handoff =
-        continuation_contract_support::completed_split_handoff_for(subject, &replay_subject);
-    let topology_undo_scope_support = ordinary_traversal_views_undo_scope_support();
-    let topology_undo_scope_product = topology_undo_scope_support
-        .lower_undo_scope_product()
-        .expect("topology undo scope product");
-    with_matching_spatial_scope_products(
+    let replay_subject = trace_scope("loop_handoff_edge_split_replay_subject", || {
+        build_edge_split_replay_parity_subject(subject)
+    });
+    let replay_report = trace_scope("loop_handoff_replay_parity_report", || {
+        replay_parity_report(&replay_subject)
+    });
+    packet_backed_replay_undo_chain_for_branch_with_subject(
         subject,
-        &completed_split_handoff,
-        |replay_scope, undo_scope| match branch {
-            ReplayBranch::Original => complete_replay_undo_chain_from_boundary(
-                subject,
-                &completed_split_handoff,
-                BooleanSplitReplayUndoBoundaryRequest::new(
-                    &topology_undo_scope_product,
-                    replay_scope,
-                    undo_scope,
-                ),
-                replay_report.receipt(),
-                &replay_subject.replay_receipts,
-                replay_subject.original_decision_log.receipt(),
-                &replay_subject.original_products.validation,
-                &replay_subject.original_products.naming,
-                replay_subject.original_ledger.ledger(),
-                &replay_subject.original_products.vertices,
-                &replay_subject.original_products.fragments,
-                &replay_subject.original_products.chains,
-                &replay_subject.original_products.request,
-                matrix,
-                validators,
-            ),
-            ReplayBranch::Replayed => complete_replay_undo_chain_from_boundary(
-                subject,
-                &completed_split_handoff,
-                BooleanSplitReplayUndoBoundaryRequest::new(
-                    &topology_undo_scope_product,
-                    replay_scope,
-                    undo_scope,
-                ),
-                replay_report.receipt(),
-                &replay_subject.replay_receipts,
-                replay_subject.replayed_decision_log.receipt(),
-                &replay_subject.replayed_products.validation,
-                &replay_subject.replayed_products.naming,
-                replay_subject.replayed_ledger.ledger(),
-                &replay_subject.replayed_products.vertices,
-                &replay_subject.replayed_products.fragments,
-                &replay_subject.replayed_products.chains,
-                &replay_subject.replayed_products.request,
-                matrix,
-                validators,
-            ),
-        },
+        branch,
+        matrix,
+        validators,
+        &replay_subject,
+        &replay_report,
     )
+}
+
+fn packet_backed_replay_undo_chain_for_branch_with_subject(
+    subject: &MetabossEventExtractionSubject,
+    branch: ReplayBranch,
+    matrix: &topology::facade::PlanarBooleanLoopOperatorClassificationMatrix,
+    validators: &topology::facade::PlanarBooleanLoopValidatorRegistrationPlan,
+    replay_subject: &EdgeSplitReplayParitySubject,
+    replay_report: &PlanarBooleanEdgeSplitReplayParityReport,
+) -> Result<
+    worth_kernel::workload_composition::BooleanChainReplayUndoBoundaryHandoff,
+    WorkloadCompositionError,
+> {
+    let batch_execution = trace_scope("loop_handoff_current_batch_execution", || {
+        current_ordinary_consumer_batch_execution_receipt()
+    })?;
+    let completed_split_handoff = trace_scope("loop_handoff_completed_split_with_batch", || {
+        continuation_contract_support::completed_split_handoff_for(subject, &replay_subject)
+            .with_batch_admission_execution(&batch_execution)
+    })?;
+    let topology_undo_scope_support =
+        trace_scope("loop_handoff_topology_undo_scope_support", || {
+            ordinary_traversal_views_undo_scope_support()
+        });
+    let topology_undo_scope_product =
+        trace_scope("loop_handoff_topology_undo_scope_product", || {
+            topology_undo_scope_support
+                .lower_undo_scope_product()
+                .expect("topology undo scope product")
+        });
+    trace_scope("loop_handoff_spatial_scope_and_closeout", || {
+        with_matching_spatial_scope_products(
+            subject,
+            &completed_split_handoff,
+            |replay_scope, undo_scope| match branch {
+                ReplayBranch::Original => complete_replay_undo_chain_from_boundary(
+                    subject,
+                    &completed_split_handoff,
+                    BooleanSplitReplayUndoBoundaryRequest::new(
+                        &topology_undo_scope_product,
+                        replay_scope,
+                        undo_scope,
+                    ),
+                    replay_report.receipt(),
+                    &replay_subject.replay_receipts,
+                    replay_subject.original_decision_log.receipt(),
+                    &replay_subject.original_products.validation,
+                    &replay_subject.original_products.naming,
+                    replay_subject.original_ledger.ledger(),
+                    &replay_subject.original_products.vertices,
+                    &replay_subject.original_products.fragments,
+                    &replay_subject.original_products.chains,
+                    &replay_subject.original_products.request,
+                    matrix,
+                    validators,
+                ),
+                ReplayBranch::Replayed => complete_replay_undo_chain_from_boundary(
+                    subject,
+                    &completed_split_handoff,
+                    BooleanSplitReplayUndoBoundaryRequest::new(
+                        &topology_undo_scope_product,
+                        replay_scope,
+                        undo_scope,
+                    ),
+                    replay_report.receipt(),
+                    &replay_subject.replay_receipts,
+                    replay_subject.replayed_decision_log.receipt(),
+                    &replay_subject.replayed_products.validation,
+                    &replay_subject.replayed_products.naming,
+                    replay_subject.replayed_ledger.ledger(),
+                    &replay_subject.replayed_products.vertices,
+                    &replay_subject.replayed_products.fragments,
+                    &replay_subject.replayed_products.chains,
+                    &replay_subject.replayed_products.request,
+                    matrix,
+                    validators,
+                ),
+            },
+        )
+    })
 }
 
 pub(crate) fn with_packet_backed_loop_boundary_basis<T>(
@@ -211,130 +243,93 @@ pub(crate) fn foreign_packet_backed_boundary_error(
 pub(crate) fn certified_real_loop_replay_closeout_chain(
     label: &'static str,
 ) -> CertifiedLoopReplayCloseoutChain {
-    let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
-    let matrix = registry.operator_classification_matrix();
-    let validators = registry.validator_registration_plan();
-    let subject = MetabossEventExtractionSubject::certify(label);
-    let replay_subject = build_edge_split_replay_parity_subject(&subject);
-    let original =
-        real_loop_handoff_for_branch(&subject, ReplayBranch::Original, &matrix, &validators)
-            .expect("original loop handoff should certify through the real closeout seam");
-    let replayed =
-        real_loop_handoff_for_branch(&subject, ReplayBranch::Replayed, &matrix, &validators)
-            .expect("replayed loop handoff should certify through the real closeout seam");
-    let replay_parity = ComparePlanarBooleanLoopReplayParity::compare(
-        PlanarBooleanLoopReplayParityInput::admit_from_ledger_and_evidence(
-            original.loop_ledger_receipt(),
-            replayed.loop_ledger_receipt(),
-            original.evidence_receipt(),
-            replayed.evidence_receipt(),
-            &replay_subject.replay_receipts,
-        )
-        .expect("real loop receipts should admit replay closeout"),
-    )
-    .expect("real loop replay closeout should certify parity over the production chain");
-
-    CertifiedLoopReplayCloseoutChain {
-        original,
-        replayed,
-        replay_parity,
-    }
+    let subject = trace_scope("certified_loop_subject", || {
+        MetabossEventExtractionSubject::certify(label)
+    });
+    certified_loop_replay_closeout_chain_for_subject(subject)
 }
 
-#[allow(clippy::too_many_arguments)]
-fn complete_replay_undo_chain_from_boundary(
-    subject: &MetabossEventExtractionSubject,
-    completed_split_handoff: &worth_kernel::workload_composition::CompletedBooleanSplitHandoff,
-    boundary_request: BooleanSplitReplayUndoBoundaryRequest<'_>,
-    replay_parity_receipt: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitReplayParityReceipt,
-    replay_receipts: &worth_spatial::facade::retained_replay_workload::ReplayReceiptSet,
-    decision_log_receipt: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitDecisionLogReceipt,
-    validation: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitChainValidationReceipt,
-    naming: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitPersistentNamingReceipt,
-    ledger: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeChainLedger,
-    vertices: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitVertexIdentitySet,
-    fragments: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanSplitEdgeFragmentSet,
-    chains: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanOverlapEdgeChainSet,
-    split_request: &worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanEdgeSplitRequest,
-    matrix: &topology::facade::PlanarBooleanLoopOperatorClassificationMatrix,
-    validators: &topology::facade::PlanarBooleanLoopValidatorRegistrationPlan,
-) -> Result<
-    worth_kernel::workload_composition::BooleanChainReplayUndoBoundaryHandoff,
-    WorkloadCompositionError,
-> {
-    let recovered_source_carriers =
-        continuation_contract_support::recovered_source_carriers(subject, split_request);
-    completed_split_handoff
-        .admit_batch_execution_cluster()?
-        .admit_boolean_split_replay_undo_boundary(boundary_request)?
-        .complete_boolean_chain_integration(PlanarBooleanLoopReconstructionCloseoutInput::new(
-            decision_log_receipt,
-            validation,
-            naming,
-            replay_parity_receipt,
-            ledger,
-            &recovered_source_carriers,
-            vertices,
-            fragments,
-            chains,
-            replay_receipts,
-            matrix,
-            validators,
-        ))
+pub(crate) fn certified_loop_replay_closeout_chain_for_pair(
+    label: &'static str,
+    pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
+) -> CertifiedLoopReplayCloseoutChain {
+    let subject = trace_scope("certified_loop_custom_subject", || {
+        MetabossEventExtractionSubject::certify_from_pair(label, pair)
+    });
+    certified_loop_replay_closeout_chain_for_subject(subject)
 }
 
-fn with_matching_spatial_scope_products<T>(
-    subject: &MetabossEventExtractionSubject,
-    completed_split_handoff: &worth_kernel::workload_composition::CompletedBooleanSplitHandoff,
-    f: impl for<'a> FnOnce(
-        &worth_spatial::facade::replay_undo_semantic_graph::SpatialReplayScopeProduct<'a>,
-        &worth_spatial::facade::replay_undo_semantic_graph::SpatialUndoScopeProduct<'a>,
-    ) -> T,
-) -> T {
-    let authority = completed_split_handoff
-        .admit_split_spatial_touch_authority()
-        .expect("split authority");
-    let event_ledger_lookup_packet = subject
-        .pair()
-        .left()
-        .workload()
-        .require_boolean_event_ledger_lookup_execution_packet(subject.ledger())
-        .expect("event-ledger lookup packet");
-    let request = prepare_spatial_replay_semantic_graph_request(
-        SpatialReplaySemanticGraphPreparationRequest::new(
-            admit_spatial_replay_family_identity(
-                SpatialReplayFamilyIdentityAuthority::boolean_event_ledger(),
-            ),
-            &authority,
-            event_ledger_lookup_packet.execution_receipt(),
-            completed_split_handoff.lookup_consumed_workload_handoff(),
-        )
-        .with_retained_replay_receipt(
-            completed_split_handoff
-                .completed_workload()
-                .retained_replay(),
-        ),
-    )
-    .expect("prepared replay request");
-    let admitted = admit_prepared_spatial_replay_semantic_graph_input(
-        &current_spatial_replay_family_catalog(),
-        &request,
-    )
-    .expect("admitted replay input");
-    let replay_scope =
-        lower_spatial_replay_scope_product_from_admitted_input(&admitted).expect("replay scope");
-    let undo_scope = lower_spatial_undo_scope_product_from_boolean_event_ledger_request(
-        BooleanEventLedgerRollbackRequest::new(
-            &authority,
-            event_ledger_lookup_packet.execution_receipt(),
-            completed_split_handoff
-                .completed_workload()
-                .evidence_ledger()
-                .stage_index(),
-            completed_split_handoff.lookup_consumed_workload_handoff(),
-        ),
-    )
-    .expect("undo scope");
+pub(crate) fn certified_event_carrier_loop_replay_closeout_chain(
+    label: &'static str,
+) -> CertifiedLoopReplayCloseoutChain {
+    let subject = trace_scope("certified_event_carrier_loop_subject", || {
+        MetabossEventExtractionSubject::certify_event_carrier(label)
+    });
+    certified_loop_replay_closeout_chain_for_subject(subject)
+}
 
-    f(&replay_scope, &undo_scope)
+fn certified_loop_replay_closeout_chain_for_subject(
+    subject: MetabossEventExtractionSubject,
+) -> CertifiedLoopReplayCloseoutChain {
+    trace_scope("certified_real_loop_replay_closeout_chain", || {
+        let registry = trace_scope("certified_loop_blueprint_registry", || {
+            PlanarBooleanLoopBlueprintRegistry::phase_2()
+        });
+        let matrix = trace_scope("certified_loop_operator_matrix", || {
+            registry.operator_classification_matrix()
+        });
+        let validators = trace_scope("certified_loop_validator_plan", || {
+            registry.validator_registration_plan()
+        });
+        let replay_subject = trace_scope("certified_loop_replay_subject", || {
+            build_edge_split_replay_parity_subject(&subject)
+        });
+        let replay_report = trace_scope("certified_loop_replay_parity_report", || {
+            replay_parity_report(&replay_subject)
+        });
+        let original = trace_scope("certified_loop_original_handoff", || {
+            packet_backed_replay_undo_chain_for_branch_with_subject(
+                &subject,
+                ReplayBranch::Original,
+                &matrix,
+                &validators,
+                &replay_subject,
+                &replay_report,
+            )
+            .map(|handoff| handoff.into_loop_handoff())
+            .expect("original loop handoff should certify through the real closeout seam")
+        });
+        let replayed = trace_scope("certified_loop_replayed_handoff", || {
+            packet_backed_replay_undo_chain_for_branch_with_subject(
+                &subject,
+                ReplayBranch::Replayed,
+                &matrix,
+                &validators,
+                &replay_subject,
+                &replay_report,
+            )
+            .map(|handoff| handoff.into_loop_handoff())
+            .expect("replayed loop handoff should certify through the real closeout seam")
+        });
+        let replay_parity = trace_scope("certified_loop_replay_parity", || {
+            ComparePlanarBooleanLoopReplayParity::compare(
+                PlanarBooleanLoopReplayParityInput::admit_from_ledger_and_evidence(
+                    original.loop_ledger_receipt(),
+                    replayed.loop_ledger_receipt(),
+                    original.evidence_receipt(),
+                    replayed.evidence_receipt(),
+                    &replay_subject.replay_receipts,
+                )
+                .expect("real loop receipts should admit replay closeout"),
+            )
+            .expect("real loop replay closeout should certify parity over the production chain")
+        });
+
+        CertifiedLoopReplayCloseoutChain {
+            original,
+            replayed,
+            replay_parity,
+            replay_receipts: replay_subject.replay_receipts,
+        }
+    })
 }

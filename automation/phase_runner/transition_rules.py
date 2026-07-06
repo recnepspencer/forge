@@ -5,6 +5,7 @@ from typing import Any
 from event_types import PHASE_PROGRESS_EVENTS
 
 TURN_OUTCOME_EVENTS = {
+    "boundary_review": {"boundary_review_completed"},
     "plan": {"plan_posted"},
     "implement": {"implementation_completed"},
     "review": {"review_failed", "review_passed"},
@@ -63,6 +64,11 @@ def apply_phase_progress(
     if isinstance(verification, list):
         phase["notes"]["verification"] = verification
 
+    if event_type == "boundary_review_completed":
+        phase["status"] = "not_started"
+        phase["qa_status"] = "not_started"
+        projection["current"] = {"phase": phase_id, "turn": "plan"}
+        return
     if event_type == "plan_posted":
         phase["status"] = "in_progress"
         phase["qa_status"] = "not_started"
@@ -128,4 +134,5 @@ def advance_after_phase_close(
     if next_phase_id > len(config["phases"]):
         projection["current"] = None
         return
-    projection["current"] = {"phase": next_phase_id, "turn": "plan"}
+    next_turn = "boundary_review" if "boundary_review" in config["turn_templates"] else "plan"
+    projection["current"] = {"phase": next_phase_id, "turn": next_turn}

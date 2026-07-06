@@ -13,13 +13,13 @@ mod ordinary_consumer_sweep;
 mod query_obligation_selection;
 mod replay_undo_boundary;
 mod spatial_touch_authority;
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionEvidenceReceipt;
 use worth_spatial::facade::workload_vocabulary::{
     BooleanEvidenceReceipt, CompleteWorkloadEvidenceLedger, DiagnosticWorkloadReceipt,
     GeometryBindingWorkloadReceipt, ProjectionWorkloadReceipt, ResponseWorkloadReceipt,
     RetainedReplayWorkloadReceipt, SurfaceSupportWorkloadReceipt, TransformWorkloadReceipt,
     WorkloadEvidenceStage, WorkloadStageSupport,
 };
-use worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionEvidenceReceipt;
 
 use super::BatchAdmissionExecutionReceipt;
 use super::{boolean_evidence_requirement::map_boolean_ledger_error, WorkloadStageRequirement};

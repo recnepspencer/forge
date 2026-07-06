@@ -6,7 +6,8 @@ thread_local! {
     static TRACE_DEPTH: Cell<usize> = const { Cell::new(0) };
 }
 
-pub(crate) fn trace_scope<T>(label: &str, action: impl FnOnce() -> T) -> T {
+#[doc(hidden)]
+pub fn trace_scope<T>(label: &str, action: impl FnOnce() -> T) -> T {
     if !trace_enabled() {
         return action();
     }
@@ -27,7 +28,8 @@ pub(crate) fn trace_scope<T>(label: &str, action: impl FnOnce() -> T) -> T {
     })
 }
 
-pub(crate) fn trace_note(message: impl Into<String>) {
+#[doc(hidden)]
+pub fn trace_note(message: impl Into<String>) {
     if !trace_enabled() {
         return;
     }

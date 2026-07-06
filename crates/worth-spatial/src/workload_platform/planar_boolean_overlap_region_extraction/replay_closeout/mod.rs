@@ -1,5 +1,6 @@
 mod checkpoint;
 mod evidence;
+mod evidence_accessors;
 mod replay;
 #[cfg(test)]
 mod tests;
@@ -13,12 +14,8 @@ pub use evidence::{
     PlanarBooleanOverlapRegionEvidenceReceipt,
 };
 pub use replay::{
-    ComparePlanarBooleanOverlapRegionReplayParity,
-    PlanarBooleanOverlapRegionReplayParityCounters,
-    PlanarBooleanOverlapRegionReplayParityDenial,
-    PlanarBooleanOverlapRegionReplayParityDenialKind,
-    PlanarBooleanOverlapRegionReplayParityInput,
-    PlanarBooleanOverlapRegionReplayParityReceipt,
-    PlanarBooleanOverlapRegionReplayParityRow,
-    PlanarBooleanOverlapRegionReplayParityRowKind,
+    ComparePlanarBooleanOverlapRegionReplayParity, PlanarBooleanOverlapRegionReplayParityCounters,
+    PlanarBooleanOverlapRegionReplayParityDenial, PlanarBooleanOverlapRegionReplayParityDenialKind,
+    PlanarBooleanOverlapRegionReplayParityInput, PlanarBooleanOverlapRegionReplayParityReceipt,
+    PlanarBooleanOverlapRegionReplayParityRow, PlanarBooleanOverlapRegionReplayParityRowKind,
 };

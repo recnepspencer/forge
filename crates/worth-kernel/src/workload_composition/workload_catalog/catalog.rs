@@ -10,6 +10,9 @@ use super::support_receipt::{
 };
 use super::topology_construction_plan::WorkloadCatalogTopologyConstructionPlan;
 use super::{BuiltCleanFailCatalogRecipe, BuiltWorkloadCatalogRecipe};
+use crate::workload_composition::trace_scope;
+use std::collections::BTreeMap;
+use std::sync::{Mutex, OnceLock};
 use topology::facade::{NmtTopologyConstructionReceipt, TopologySeed};
 use worth_spatial::facade::workload_binding::PlanarLoopBoundaryCatalogProfile;
 
@@ -83,46 +86,66 @@ impl WorkloadCatalogRecipe {
     }
 
     pub fn build(self) -> Result<BuiltWorkloadCatalogRecipe, WorkloadCatalogError> {
-        let declaration = self.declaration_receipt()?;
-        let support = WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision())?;
-        if support.posture() != WorkloadCatalogSupportPosture::Admitted {
-            return Err(WorkloadCatalogError::UnsupportedRecipe {
-                recipe: self.kind,
-                reason: support.human_reason().to_string(),
-            });
+        let cache_key = self.cache_key();
+        if let Some(cached) = cache_key.as_ref().and_then(|key| cached_catalog_build(key)) {
+            return Ok(cached);
         }
-        let topology_construction = self.compile_topology_construction()?;
-        let workload_build = build_catalog_workload(
-            self.kind,
-            &self.declaration,
-            self.transform_recipe
-                .unwrap_or_else(|| self.kind.default_transform_recipe()),
-            self.retained_replay_recipe
-                .unwrap_or_else(|| self.kind.default_retained_replay_recipe()),
-            self.topology_breadth,
-            self.planar_loop_boundary_profile,
-            topology_construction,
-        )?;
-        let topology_neighborhood = workload_build.topology_neighborhood().cloned();
-        let topology_construction = workload_build.topology_construction().cloned();
-        let bound_geometry = workload_build.bound_geometry().clone();
-        let surface_support = workload_build.surface_support().clone();
-        let projected = workload_build.projected().clone();
-        let transform_receipts = workload_build.transform_receipts().clone();
-        let replay_receipts = workload_build.replay_receipts().cloned();
-        Ok(BuiltWorkloadCatalogRecipe::new(
-            self.kind,
-            declaration,
-            support,
-            workload_build.workload(),
-            topology_neighborhood,
-            topology_construction,
-            bound_geometry,
-            surface_support,
-            projected,
-            transform_receipts,
-            replay_receipts,
-        ))
+
+        trace_scope("workload_catalog_recipe_build", || {
+            let declaration = trace_scope("catalog_recipe_declaration_receipt", || {
+                self.declaration_receipt()
+            })?;
+            let support = trace_scope("catalog_recipe_support_receipt", || {
+                WorkloadCatalogSupportReceipt::new(&declaration, self.support_decision())
+            })?;
+            if support.posture() != WorkloadCatalogSupportPosture::Admitted {
+                return Err(WorkloadCatalogError::UnsupportedRecipe {
+                    recipe: self.kind,
+                    reason: support.human_reason().to_string(),
+                });
+            }
+            let topology_construction =
+                trace_scope("catalog_recipe_topology_construction", || {
+                    self.compile_topology_construction()
+                })?;
+            let workload_build = trace_scope("catalog_recipe_build_catalog_workload", || {
+                build_catalog_workload(
+                    self.kind,
+                    &self.declaration,
+                    self.transform_recipe
+                        .unwrap_or_else(|| self.kind.default_transform_recipe()),
+                    self.retained_replay_recipe
+                        .unwrap_or_else(|| self.kind.default_retained_replay_recipe()),
+                    self.topology_breadth,
+                    self.planar_loop_boundary_profile,
+                    topology_construction,
+                )
+            })?;
+            let topology_neighborhood = workload_build.topology_neighborhood().cloned();
+            let topology_construction = workload_build.topology_construction().cloned();
+            let bound_geometry = workload_build.bound_geometry().clone();
+            let surface_support = workload_build.surface_support().clone();
+            let projected = workload_build.projected().clone();
+            let transform_receipts = workload_build.transform_receipts().clone();
+            let replay_receipts = workload_build.replay_receipts().cloned();
+            let built = BuiltWorkloadCatalogRecipe::new(
+                self.kind,
+                declaration,
+                support,
+                workload_build.workload(),
+                topology_neighborhood,
+                topology_construction,
+                bound_geometry,
+                surface_support,
+                projected,
+                transform_receipts,
+                replay_receipts,
+            );
+            if let Some(key) = cache_key {
+                cache_catalog_build(key, built.clone());
+            }
+            Ok(built)
+        })
     }
 
     fn compile_topology_construction(
@@ -132,6 +155,23 @@ impl WorkloadCatalogRecipe {
             .as_ref()
             .map(|plan| plan.compile(&self.declaration))
             .transpose()
+    }
+
+    fn cache_key(&self) -> Option<String> {
+        let topology_construction = match &self.topology_construction_plan {
+            Some(plan) => plan.cache_key()?,
+            None => "none".to_string(),
+        };
+        Some(format!(
+            "{}::{}::{:?}::{:?}::{:?}::{:?}::{}",
+            self.kind.query_key(),
+            self.declaration,
+            self.transform_recipe,
+            self.retained_replay_recipe,
+            self.topology_breadth,
+            self.planar_loop_boundary_profile,
+            topology_construction
+        ))
     }
 
     pub fn build_clean_fail(self) -> Result<BuiltCleanFailCatalogRecipe, WorkloadCatalogError> {
@@ -246,4 +286,24 @@ fn reject_blank_declaration(declaration: &str) -> Result<(), WorkloadCatalogErro
     } else {
         Ok(())
     }
+}
+
+fn cached_catalog_build(key: &str) -> Option<BuiltWorkloadCatalogRecipe> {
+    catalog_build_cache()
+        .lock()
+        .expect("catalog build cache should not be poisoned")
+        .get(key)
+        .cloned()
+}
+
+fn cache_catalog_build(key: String, built: BuiltWorkloadCatalogRecipe) {
+    catalog_build_cache()
+        .lock()
+        .expect("catalog build cache should not be poisoned")
+        .insert(key, built);
+}
+
+fn catalog_build_cache() -> &'static Mutex<BTreeMap<String, BuiltWorkloadCatalogRecipe>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<String, BuiltWorkloadCatalogRecipe>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
 }

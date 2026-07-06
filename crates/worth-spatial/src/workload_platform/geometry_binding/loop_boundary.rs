@@ -76,6 +76,10 @@ pub enum PlanarLoopBoundaryCatalogProfile {
     Default,
     BooleanEventMetabossLeft,
     BooleanEventMetabossRight,
+    BooleanBoundaryOnlyLeft,
+    BooleanBoundaryOnlyRight,
+    BooleanMixedBoundaryAreaLeft,
+    BooleanMixedBoundaryAreaRight,
 }
 
 pub(crate) fn catalog_loop_boundary_geometry_for_profile(
@@ -97,6 +101,34 @@ pub(crate) fn catalog_loop_boundary_geometry_for_profile(
                 return profiled_boundary_geometry(
                     owning_face_identity,
                     metaboss_right_outer_points(),
+                    edge_identities,
+                );
+            }
+            PlanarLoopBoundaryCatalogProfile::BooleanBoundaryOnlyLeft => {
+                return profiled_boundary_geometry(
+                    owning_face_identity,
+                    boundary_only_left_outer_points(),
+                    edge_identities,
+                );
+            }
+            PlanarLoopBoundaryCatalogProfile::BooleanBoundaryOnlyRight => {
+                return profiled_boundary_geometry(
+                    owning_face_identity,
+                    boundary_only_right_outer_points(),
+                    edge_identities,
+                );
+            }
+            PlanarLoopBoundaryCatalogProfile::BooleanMixedBoundaryAreaLeft => {
+                return profiled_boundary_geometry(
+                    owning_face_identity,
+                    mixed_boundary_area_left_outer_points(),
+                    edge_identities,
+                );
+            }
+            PlanarLoopBoundaryCatalogProfile::BooleanMixedBoundaryAreaRight => {
+                return profiled_boundary_geometry(
+                    owning_face_identity,
+                    mixed_boundary_area_right_outer_points(),
                     edge_identities,
                 );
             }
@@ -169,6 +201,38 @@ fn metaboss_right_outer_points() -> Vec<[f64; 2]> {
         .into_iter()
         .flat_map(|target| [target.right_start, target.right_end])
         .collect()
+}
+
+fn boundary_only_left_outer_points() -> Vec<[f64; 2]> {
+    vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]]
+}
+
+fn boundary_only_right_outer_points() -> Vec<[f64; 2]> {
+    vec![[10.0, 2.0], [20.0, 2.0], [20.0, 8.0], [10.0, 8.0]]
+}
+
+fn mixed_boundary_area_left_outer_points() -> Vec<[f64; 2]> {
+    vec![
+        [0.0, 0.0],
+        [10.0, 0.0],
+        [10.0, 3.0],
+        [10.0, 7.0],
+        [10.0, 10.0],
+        [0.0, 10.0],
+    ]
+}
+
+fn mixed_boundary_area_right_outer_points() -> Vec<[f64; 2]> {
+    vec![
+        [10.0, 0.0],
+        [18.0, 0.0],
+        [18.0, 10.0],
+        [10.0, 10.0],
+        [10.0, 7.0],
+        [8.0, 7.0],
+        [8.0, 3.0],
+        [10.0, 3.0],
+    ]
 }
 
 fn metaboss_target_segments() -> Vec<MetabossTargetSegment> {

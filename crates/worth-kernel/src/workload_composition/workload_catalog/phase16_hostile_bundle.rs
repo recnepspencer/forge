@@ -1,3 +1,5 @@
+use super::{WorkloadCatalog, WorkloadCatalogBooleanOperandPairRecipe};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlanarBooleanOverlapRegionMetabossSubcase {
     BoundaryOnlyCoincidentEdgesDoNotAdmitArea,
@@ -55,4 +57,43 @@ impl PlanarBooleanOverlapRegionMetabossSubcase {
             }
         }
     }
+
+    pub fn admitted_operand_pair_recipe(
+        self,
+        declaration: impl Into<String>,
+    ) -> Option<WorkloadCatalogBooleanOperandPairRecipe> {
+        let declaration = declaration.into();
+        match self {
+            Self::SyntheticOverlapLedgerIsRejected
+            | Self::SyntheticReadinessOrMismatchedLoopLedgerIsRejected => None,
+            Self::BoundaryOnlyCoincidentEdgesDoNotAdmitArea => Some(
+                WorkloadCatalog::planar_boolean_boundary_only_coincident_pair()
+                    .with_retained_replay_artifacts()
+                    .declared(declaration),
+            ),
+            Self::MixedBoundaryAndAreaContactDoesNotCollapse => Some(
+                WorkloadCatalog::planar_boolean_mixed_boundary_area_pair()
+                    .with_retained_replay_artifacts()
+                    .declared(declaration),
+            ),
+            Self::OverlapStormUsesIndexNotPairwiseRediscovery => Some(
+                WorkloadCatalog::planar_boolean_event_extraction_metaboss_pair()
+                    .with_retained_replay_artifacts()
+                    .declared(declaration),
+            ),
+            _ => Some(
+                WorkloadCatalog::planar_boolean_mixed_boundary_area_pair()
+                    .with_retained_replay_artifacts()
+                    .declared(declaration),
+            ),
+        }
+    }
+}
+
+pub fn admitted_metaboss_bundle_operand_pair_recipe(
+    declaration: impl Into<String>,
+) -> WorkloadCatalogBooleanOperandPairRecipe {
+    WorkloadCatalog::planar_boolean_mixed_boundary_area_pair()
+        .with_retained_replay_artifacts()
+        .declared(declaration)
 }

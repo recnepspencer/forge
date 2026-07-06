@@ -75,24 +75,24 @@ pub(super) fn admitted_shared_area_bundle(
 }
 
 pub(super) fn area_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
 pub(super) fn boundary_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     multi_cell_graph()
 }
 
 pub(super) fn permuted_boundary_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     permuted_multi_cell_graph()
 }
 
 pub(super) fn replayed_real_arrangements() -> (
     crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph,
     crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph,
-) {
+){
     (
         admitted_graph(LoopFixtureEntryOrder::Canonical),
         admitted_graph(LoopFixtureEntryOrder::Replayed),
@@ -152,13 +152,13 @@ pub(super) fn synthetic_mixed_boundary_bundle(
     )
 }
 
-pub(super) fn synthetic_boundary_only_promotion_bundle(
-) -> (
+pub(super) fn synthetic_boundary_only_promotion_bundle() -> (
     PlanarBooleanBoundaryContactClassificationBundle,
     PlanarBooleanOverlapCellContainmentMap,
     PlanarBooleanOverlapCellWindingField,
 ) {
-    let (boundary_bundle, containment, winding) = admitted_boundary_contact_bundle(&boundary_graph());
+    let (boundary_bundle, containment, winding) =
+        admitted_boundary_contact_bundle(&boundary_graph());
     let boundary_only_row = &boundary_bundle.pure_boundary_only_outcomes().rows()[0];
     let promoted_area_components = PlanarBooleanAreaOverlapComponentSet::new(
         "synthetic-promoted-area-components".to_string(),
@@ -190,8 +190,7 @@ pub(super) fn synthetic_boundary_only_promotion_bundle(
     )
 }
 
-pub(super) fn synthetic_incoherent_area_cell_proof_bundle(
-) -> (
+pub(super) fn synthetic_incoherent_area_cell_proof_bundle() -> (
     PlanarBooleanBoundaryContactClassificationBundle,
     PlanarBooleanOverlapCellContainmentMap,
     PlanarBooleanOverlapCellWindingField,

@@ -13,15 +13,26 @@ use super::lookup::{
     ValidatedArrangementBoundaryComponent, ValidatedArrangementBoundarySegment,
     ValidatedArrangementCell,
 };
+use super::source_only_topology::{
+    source_only_area_witness, validate_source_only_boundary_components,
+};
+use super::topology_ordering::{
+    canonicalize_components, cell_order_key, sorted_unique_loop_identities,
+};
 
 pub(super) fn validate_boundary_components<'a>(
     neighborhood_identity: &str,
     segments: &[ValidatedArrangementBoundarySegment<'a>],
+    source_only_boundary_lane: bool,
     counters: &mut PlanarBooleanOverlapArrangementGraphCounters,
 ) -> Result<
     Vec<ValidatedArrangementBoundaryComponent<'a>>,
     PlanarBooleanOverlapArrangementGraphDenial,
 > {
+    if source_only_boundary_lane {
+        return validate_source_only_boundary_components(neighborhood_identity, segments, counters);
+    }
+
     let mut components = Vec::new();
     let mut current_component = Vec::new();
     let mut component_ordinal = 0usize;
@@ -147,79 +158,70 @@ pub(super) fn validate_cells<'a>(
         .filter(|component| !is_full_overlap_component(component))
         .cloned()
         .collect::<Vec<_>>();
-    let face_groups = group_walk_components_by_island_witness(
-        row,
-        neighborhood_identity,
-        &walk_components,
-        counters,
-    )?;
-    for (
-        supporting_island_identity,
-        supporting_island_member_source_loop_identities,
-        supporting_island_member_source_loop_operand_sides,
-        supporting_island_member_source_loop_winding_signs,
-        grouped_components,
-    ) in face_groups
-    {
-        let source_loop_identities = sorted_unique_loop_identities(
-            grouped_components
-                .iter()
-                .flat_map(|component| component.source_loop_identities.iter().copied()),
-        );
-        cells.push(ValidatedArrangementCell {
-            source_loop_identities,
-            supporting_island_identity: Some(supporting_island_identity),
+    if row.participating_island_identities().is_empty() {
+        let source_only_components = components.iter().cloned().collect::<Vec<_>>();
+        if let Some(source_witness) = source_only_area_witness(row, &source_only_components) {
+            cells.push(ValidatedArrangementCell {
+                source_loop_identities: source_witness.source_loop_identities.clone(),
+                supporting_island_identity: Some(source_witness.island_identity),
+                supporting_island_member_source_loop_identities: source_witness
+                    .source_loop_identities,
+                supporting_island_member_source_loop_operand_sides: source_witness
+                    .source_loop_operand_sides,
+                supporting_island_member_source_loop_winding_signs: source_witness
+                    .source_loop_winding_signs,
+                components: source_only_components,
+                ordinal: 0,
+            });
+        } else {
+            for component in walk_components {
+                cells.push(ValidatedArrangementCell {
+                    source_loop_identities: component.source_loop_identities.clone(),
+                    supporting_island_identity: None,
+                    supporting_island_member_source_loop_identities: Vec::new(),
+                    supporting_island_member_source_loop_operand_sides: Vec::new(),
+                    supporting_island_member_source_loop_winding_signs: Vec::new(),
+                    components: vec![component],
+                    ordinal: 0,
+                });
+            }
+        }
+    } else {
+        let face_groups = group_walk_components_by_island_witness(
+            row,
+            neighborhood_identity,
+            &walk_components,
+            counters,
+        )?;
+        for (
+            supporting_island_identity,
             supporting_island_member_source_loop_identities,
             supporting_island_member_source_loop_operand_sides,
             supporting_island_member_source_loop_winding_signs,
-            components: grouped_components,
-            ordinal: 0,
-        });
+            grouped_components,
+        ) in face_groups
+        {
+            let source_loop_identities = sorted_unique_loop_identities(
+                grouped_components
+                    .iter()
+                    .flat_map(|component| component.source_loop_identities.iter().copied()),
+            );
+            cells.push(ValidatedArrangementCell {
+                source_loop_identities,
+                supporting_island_identity: Some(supporting_island_identity),
+                supporting_island_member_source_loop_identities,
+                supporting_island_member_source_loop_operand_sides,
+                supporting_island_member_source_loop_winding_signs,
+                components: grouped_components,
+                ordinal: 0,
+            });
+        }
     }
     cells.sort_by(|left, right| cell_order_key(left).cmp(&cell_order_key(right)));
     for (ordinal, cell) in cells.iter_mut().enumerate() {
         cell.ordinal = ordinal;
     }
     Ok(cells)
-}
-
-fn sorted_unique_loop_identities<'a>(values: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
-    let mut values = values.into_iter().collect::<Vec<_>>();
-    values.sort();
-    values.dedup();
-    values
-}
-
-fn canonicalize_components<'a>(
-    mut components: Vec<ValidatedArrangementBoundaryComponent<'a>>,
-) -> Vec<ValidatedArrangementBoundaryComponent<'a>> {
-    components.sort_by(|left, right| component_order_key(left).cmp(&component_order_key(right)));
-    for (ordinal, component) in components.iter_mut().enumerate() {
-        component.ordinal = ordinal;
-    }
-    components
-}
-
-fn component_order_key(component: &ValidatedArrangementBoundaryComponent<'_>) -> String {
-    let segment_key = component
-        .segments
-        .iter()
-        .map(|segment| {
-            format!(
-                "{}|{}|{}|{:?}",
-                segment.source_loop_identity,
-                segment.source_edge_identity,
-                segment.fragment_identity,
-                segment.boundary_role
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("||");
-    format!(
-        "{}|{}",
-        component.source_loop_identities.join("|"),
-        segment_key
-    )
 }
 
 fn is_full_overlap_component(component: &ValidatedArrangementBoundaryComponent<'_>) -> bool {
@@ -353,17 +355,6 @@ fn group_walk_components_by_island_witness<'a>(
             },
         )
         .collect())
-}
-
-fn cell_order_key(cell: &ValidatedArrangementCell<'_>) -> String {
-    let island_key = cell.supporting_island_identity.unwrap_or("");
-    let component_key = cell
-        .components
-        .iter()
-        .map(component_order_key)
-        .collect::<Vec<_>>()
-        .join("||");
-    format!("{island_key}|{component_key}")
 }
 
 fn deny(
