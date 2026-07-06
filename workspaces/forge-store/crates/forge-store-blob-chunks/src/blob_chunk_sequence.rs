@@ -226,6 +226,10 @@ impl BlobChunkProofFrontier {
         &self.first_chunk
     }
 
+    pub fn first_leaf(&self) -> &BlobChunkProofLeaf {
+        &self.ordered_leaves[0]
+    }
+
     pub const fn latest_chunk(&self) -> &BlobChunkIntegrityProof {
         &self.latest_chunk
     }
@@ -261,11 +265,10 @@ impl BlobChunkProofFrontier {
     }
 
     pub(crate) fn logical_content_digest(&self) -> LogicalContentDigest {
-        LogicalContentDigest::from_declared_digest(accumulated_digest(
+        LogicalContentDigest::from_declared_digest(accumulated_logical_digest(
             "logical-content",
             self.logical_content_basis,
             self.total_bytes,
-            self.chunk_count,
         ))
     }
 }
@@ -336,6 +339,18 @@ fn accumulated_digest(
         BlobChunkOrdinal::first(),
         crate::BlobChunkByteRange::new(chunk_count, evidence.len() as u64)
             .expect("finalized sequence has nonempty evidence"),
+        &evidence,
+    )
+}
+
+fn accumulated_logical_digest(lane: &str, accumulator: u64, total_bytes: u64) -> StableDigest {
+    let evidence = format!("{accumulator:016x}:{total_bytes}");
+    stable_digest_for(
+        lane,
+        "s7.sequence.logical.v1",
+        BlobChunkOrdinal::first(),
+        crate::BlobChunkByteRange::new(1, evidence.len() as u64)
+            .expect("finalized logical evidence has nonempty evidence"),
         &evidence,
     )
 }

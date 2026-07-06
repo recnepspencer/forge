@@ -43,7 +43,9 @@ impl PlanarBooleanOverlapBlueprintRegistry {
         Self::from_rows(operators, validators)
     }
 
-    pub fn operator_classification_matrix(&self) -> PlanarBooleanOverlapOperatorClassificationMatrix {
+    pub fn operator_classification_matrix(
+        &self,
+    ) -> PlanarBooleanOverlapOperatorClassificationMatrix {
         PlanarBooleanOverlapOperatorClassificationMatrix {
             operators: self.operators.clone(),
             registry_identity: self.identity.clone(),

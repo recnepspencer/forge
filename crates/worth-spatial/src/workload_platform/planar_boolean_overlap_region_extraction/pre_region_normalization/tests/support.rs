@@ -39,7 +39,7 @@ pub(super) fn replayed_shared_area_bundles() -> (
 }
 
 pub(super) fn shared_area_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 

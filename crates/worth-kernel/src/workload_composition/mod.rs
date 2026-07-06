@@ -150,16 +150,13 @@ pub use operator_harness::{
 pub use planar_boolean_overlap_region_extraction::{
     CompletedPlanarBooleanOverlapRegionExtractionHandoff,
     PlanarBooleanOverlapRegionAntiTheatreFenceDenial,
-    PlanarBooleanOverlapRegionAntiTheatreFenceProof,
-    PlanarBooleanOverlapRegionCloseoutInput,
-    PlanarBooleanOverlapRegionPublicContractFenceDenial,
+    PlanarBooleanOverlapRegionAntiTheatreFenceProof, PlanarBooleanOverlapRegionCloseoutInput,
+    PlanarBooleanOverlapRegionMetabossSubcase, PlanarBooleanOverlapRegionPublicContractFenceDenial,
     PlanarBooleanOverlapRegionPublicContractFenceProof,
     PlanarBooleanOverlapRegionPublicContractProofRow,
     PlanarBooleanOverlapRegionPublicContractProofRowKind,
-    PlanarBooleanOverlapRegistrationContract, PlanarBooleanOverlapRegistrationContractError,
-    PlanarBooleanOverlapRegionMetabossSubcase,
-    PlanarBooleanOverlapRuntimeRegistrationProof,
-    PlanarBooleanOverlapRegionSummumBonumCloseoutInput,
+    PlanarBooleanOverlapRegionSummumBonumCloseoutInput, PlanarBooleanOverlapRegistrationContract,
+    PlanarBooleanOverlapRegistrationContractError, PlanarBooleanOverlapRuntimeRegistrationProof,
 };
 pub(crate) use planner_owned_routing::{
     admit_worth_touched_graph_conflict_public_proof_input,

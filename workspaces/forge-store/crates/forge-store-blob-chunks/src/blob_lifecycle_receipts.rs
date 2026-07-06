@@ -1,11 +1,12 @@
 use crate::{
-    blob_lifecycle_authority::BlobLifecycleExecutedRecipe, BlobLifecycleCounterSnapshot,
-    BlobLifecycleDeclaration, BlobPlacementProof, BlobReachabilityProof, LogicalContentDigest,
+    blob_lifecycle_authority::BlobLifecycleExecutedRecipe, BlobChunkReachabilityProofSet,
+    BlobChunkSecurityMetadataWitness, BlobLifecycleCounterSnapshot, BlobLifecycleDeclaration,
+    BlobPlacementProof, LogicalContentDigest,
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct LifecycleReceipt {
-    reachability: BlobReachabilityProof,
+    reachability: BlobChunkReachabilityProofSet,
     placement: BlobPlacementProof,
     counters: BlobLifecycleCounterSnapshot,
     executed_proof: BlobLifecycleExecutedRecipe,
@@ -13,7 +14,7 @@ pub struct LifecycleReceipt {
 
 impl LifecycleReceipt {
     pub(crate) fn new(
-        reachability: BlobReachabilityProof,
+        reachability: BlobChunkReachabilityProofSet,
         placement: BlobPlacementProof,
         counters: BlobLifecycleCounterSnapshot,
         executed_proof: BlobLifecycleExecutedRecipe,
@@ -30,7 +31,7 @@ impl LifecycleReceipt {
         self.executed_proof.payload().declaration()
     }
 
-    pub const fn reachability(&self) -> &BlobReachabilityProof {
+    pub const fn reachability(&self) -> &BlobChunkReachabilityProofSet {
         &self.reachability
     }
 
@@ -85,6 +86,7 @@ impl BlobDedupeReceipt {
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobReachabilityReceipt {
     logical_content_digest: LogicalContentDigest,
+    security_metadata: BlobChunkSecurityMetadataWitness,
     counters: BlobLifecycleCounterSnapshot,
 }
 
@@ -92,12 +94,17 @@ impl BlobReachabilityReceipt {
     pub(crate) fn from_lifecycle(receipt: &LifecycleReceipt) -> Self {
         Self {
             logical_content_digest: receipt.declaration().logical_content_digest().clone(),
+            security_metadata: receipt.reachability().security_metadata(),
             counters: receipt.counters(),
         }
     }
 
     pub const fn logical_content_digest(&self) -> &LogicalContentDigest {
         &self.logical_content_digest
+    }
+
+    pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
+        self.security_metadata
     }
 
     pub const fn counters(&self) -> BlobLifecycleCounterSnapshot {

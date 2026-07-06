@@ -16,7 +16,9 @@ pub(super) fn overlap_region_identity(
         row.source_identity().to_string(),
         row.island_identity().to_string(),
         row.neighborhood_identity().to_string(),
-        row.area_overlap_component_identity().unwrap_or("boundary-only").to_string(),
+        row.area_overlap_component_identity()
+            .unwrap_or("boundary-only")
+            .to_string(),
         format!("{:?}", row.canonical_operand_side()),
         format!("{:?}", row.canonical_winding_sign()),
     ];
@@ -44,13 +46,13 @@ pub(super) fn overlap_region_identity(
 }
 
 fn digest_rows(rows: &[impl AsRef<str>]) -> String {
-    rows.iter()
-        .map(AsRef::as_ref)
-        .collect::<Vec<_>>()
-        .join("|")
+    rows.iter().map(AsRef::as_ref).collect::<Vec<_>>().join("|")
 }
 
-pub(super) fn identity_map_set_identity(request_identity: &str, row_identities: &[String]) -> String {
+pub(super) fn identity_map_set_identity(
+    request_identity: &str,
+    row_identities: &[String],
+) -> String {
     format!(
         "overlap-region-identity-map:{request_identity}:{}",
         digest_rows(row_identities)

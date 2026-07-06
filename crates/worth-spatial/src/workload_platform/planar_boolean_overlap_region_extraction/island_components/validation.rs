@@ -5,7 +5,8 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBo
 
 use super::counters::PlanarBooleanOverlapIslandComponentCounters;
 use super::denial::{
-    PlanarBooleanOverlapIslandComponentDenial, PlanarBooleanOverlapIslandComponentDenialKind as Kind,
+    PlanarBooleanOverlapIslandComponentDenial,
+    PlanarBooleanOverlapIslandComponentDenialKind as Kind,
 };
 use super::input::PlanarBooleanOverlapIslandCandidateInput;
 use super::lookup::PlanarBooleanOverlapCellEvidenceLookup;

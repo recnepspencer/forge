@@ -1,8 +1,8 @@
 mod admission;
 mod current_boundary;
 mod current_declaration_support;
-mod current_ordinary_undo_scope;
 pub(crate) mod current_invalidation_proof;
+mod current_ordinary_undo_scope;
 mod lowering;
 mod planning;
 mod scope_product;
@@ -27,13 +27,13 @@ pub use current_boundary::{
     CurrentReplayUndoTopologyBoundary, CurrentReplayUndoTopologyBoundaryError,
     CurrentReplayUndoTopologyUndoScopeBoundary,
 };
-pub use current_ordinary_undo_scope::{
-    current_replay_undo_topology_ordinary_undo_scope_boundary,
-    CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary,
-};
 pub(crate) use current_invalidation_proof::{
     current_topology_invalidation_declared_touch_proof, current_topology_invalidation_proof,
     CurrentTopologyInvalidationProofError,
+};
+pub use current_ordinary_undo_scope::{
+    current_replay_undo_topology_ordinary_undo_scope_boundary,
+    CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary,
 };
 pub use lowering::{
     lower_topology_replay_equivalence_basis,

@@ -52,9 +52,12 @@ pub use violation::{ForegroundReservationViolationCause, ReservationViolatedWith
 
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use test_authority::{
+    admitted_page_write_reservation_for_certification_test,
     admitted_point_read_reservation_for_certification_test,
+    admitted_point_read_reservation_for_security_scope_for_certification_test,
     admitted_range_read_reservation_for_certification_test,
     admitted_secure_frame_read_reservation_for_certification_test,
+    admitted_wal_write_reservation_for_certification_test,
 };
 
 #[cfg(test)]

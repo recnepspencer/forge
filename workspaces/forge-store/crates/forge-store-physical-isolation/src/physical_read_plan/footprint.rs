@@ -7,6 +7,9 @@ use super::{
 };
 use crate::{CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference};
 
+#[cfg(any(test, feature = "certification-authority"))]
+mod footprint_test_authority;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProtectedPhysicalReference {
     reference: CurrentGenerationPhysicalReference,

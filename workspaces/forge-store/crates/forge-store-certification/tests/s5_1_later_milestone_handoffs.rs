@@ -13,9 +13,8 @@ use forge_store_io_scheduler::{
     admit_s5_1_security_scope_for_s6_io_qos, S6IoQosSecurityScopeHandoff,
 };
 use forge_store_operations::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
     RepairBlastRadiusDeclaration, RepairBlastRadiusPlan, RepairBlastRadiusReadiness,
-    S10BackupExportCustodyHandoff, S10RepairBlastRadiusHandoff,
+    S10RepairBlastRadiusHandoff,
 };
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
@@ -63,14 +62,6 @@ fn phase_9_publishes_separate_downstream_handoffs_from_real_readiness() {
         StoreKeyScope::BlobChunkEnvelope
     );
     let _blob_scope = BlobChunkSecurityScope::from_s7_handoff(s7);
-
-    let backup = backup_readiness(&authority);
-    let s10_backup = S10BackupExportCustodyHandoff::from_backup_export_readiness(backup);
-    assert_eq!(
-        s10_backup.permission().identity().key_scope(),
-        StoreKeyScope::BackupExportEnvelope
-    );
-    let _backup = BackupExportCustodyReadiness::from_s10_handoff(s10_backup);
 
     let repair = repair_readiness(&authority);
     let s10_repair = S10RepairBlastRadiusHandoff::from_repair_blast_radius_readiness(repair);
@@ -220,20 +211,6 @@ fn correct_family_scope_replay_cannot_publish_s6_or_s11_with_changed_requirement
             )
         },
     );
-}
-
-fn backup_readiness(authority: &StoreCurrentAuthorityWitness) -> BackupExportCustodyReadiness {
-    let declaration = BackupExportCustodyDeclaration::native(
-        authority,
-        BackupExportCustodyMode::Backup,
-        StoreKeyVersionPosture::Current,
-    )
-    .expect("backup declaration should prepare");
-    let admission = declaration
-        .admit_with_current_authority(authority)
-        .expect("backup declaration should admit");
-    BackupExportCustodyReadiness::from_admitted_custody(admission)
-        .expect("backup readiness should admit")
 }
 
 fn repair_readiness(authority: &StoreCurrentAuthorityWitness) -> RepairBlastRadiusReadiness {

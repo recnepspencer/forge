@@ -59,7 +59,9 @@ impl WorkloadStageRequirement {
             Self::BooleanEventLedger => "boolean event ledger receipt",
             Self::BooleanSplit => "boolean split receipt",
             Self::BooleanLoopReconstruction => "boolean loop reconstruction receipt",
-            Self::BooleanOverlapRegionExtraction => "boolean overlap-region extraction evidence receipt",
+            Self::BooleanOverlapRegionExtraction => {
+                "boolean overlap-region extraction evidence receipt"
+            }
             Self::EvidenceLedger => "workload evidence ledger",
         }
     }

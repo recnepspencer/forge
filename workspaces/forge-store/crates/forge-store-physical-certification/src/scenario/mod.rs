@@ -5,6 +5,7 @@ mod certified;
 mod collections;
 mod definition;
 mod denial;
+mod expectation;
 mod identity;
 mod proof_progression;
 mod vocabulary;
@@ -16,12 +17,14 @@ pub use definition::PhysicalSimulationScenarioDefinition;
 pub use denial::{
     JsonScenarioAuthorityDenied, PhysicalScenarioDefinitionDenial, TerminalProjectionScenarioDenied,
 };
+pub use expectation::{
+    PhysicalScenarioExpectation, PhysicalScenarioExpectationKind, PhysicalScenarioNonClaim,
+};
 pub use identity::PhysicalScenarioCanonicalIdentity;
 pub(crate) use proof_progression::certify_scenario_definition;
 pub use proof_progression::reject_raw_json_scenario_authority_attempt;
 pub use vocabulary::{
-    PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioExpectation,
-    PhysicalScenarioExpectationKind, PhysicalScenarioFault, PhysicalScenarioFaultKind,
-    PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalScenarioSchedule,
+    PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioFault,
+    PhysicalScenarioFaultKind, PhysicalScenarioIntent, PhysicalScenarioSchedule,
     PhysicalSimulationScenarioFamily,
 };

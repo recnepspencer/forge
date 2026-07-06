@@ -44,6 +44,22 @@ pub(crate) fn blob_scope(
     .expect("blob scope should admit")
 }
 
+pub(crate) fn admitted_blob_security_scope(
+    identity_key: &str,
+    tenant_scope: StoreTenantScope,
+) -> StoreAdmittedSecurityScope {
+    admitted_security_scope(
+        identity_key,
+        StoreKeyScope::BlobChunkEnvelope,
+        StoreKeyVersionPosture::Current,
+        tenant_scope,
+        StoreAuthenticityRequirement::required(
+            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
 pub(crate) fn blob_scope_from_parts(
     identity_key: &str,
     key_scope: StoreKeyScope,

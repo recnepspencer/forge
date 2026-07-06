@@ -9,9 +9,10 @@ use crate::blob_chunk_test_support::{
 use crate::{
     reject_checksum_only_evidence_as_chunk_root_publication,
     reject_digest_only_evidence_as_chunk_root_publication, BlobChunkDedupeAdmission,
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCandidate, BlobChunkIntegrityDenial,
-    BlobChunkRootCanonicalComparison, BlobChunkRootPublication, BlobChunkRootPublicationDenial,
-    BlobChunkSequenceAdmission, BlobChunkSize, BlobChunkingRuleAdmission,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeByteComparison, BlobChunkDedupeCandidate,
+    BlobChunkIntegrityDenial, BlobChunkRootCanonicalComparison, BlobChunkRootPublication,
+    BlobChunkRootPublicationDenial, BlobChunkSequenceAdmission, BlobChunkSize,
+    BlobChunkingRuleAdmission,
 };
 
 #[test]
@@ -58,7 +59,7 @@ fn same_ordered_scoped_chunks_publish_same_root_digest_basis_and_comparison() {
             .canonical_basis()
             .counters()
             .canonical_basis_entries(),
-        24
+        4
     );
     assert_eq!(comparison.counters().canonical_comparisons(), 1);
 }
@@ -208,17 +209,30 @@ fn forced_digest_collision_requires_root_comparison_before_dedupe_denial() {
     )
     .with_forced_content_digest_for_collision_fixture(existing.content_digest().clone());
     let forced_equivalence = forced_collision_equivalence(&existing, &candidate);
+    let byte_comparison = BlobChunkDedupeByteComparison::compare_chunk_payloads(
+        &existing,
+        &candidate,
+        &physical_payload_for_bytes(b"same-digest-left"),
+        &physical_payload_for_bytes(b"same-digest-right"),
+    )
+    .expect("collision byte comparison is bounded to the chunk payloads");
     let with_root = BlobChunkDedupeAdmission::compare_candidates(existing, candidate)
         .with_foundational_canonical_equivalence(forced_equivalence)
         .with_root_canonical_comparison(root_comparison)
+        .with_byte_comparison(byte_comparison)
         .admit();
-    let TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::ChunkByteVerificationRequired {
+    let TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::DigestCollisionDenied {
         counters,
+        posture,
         ..
     }) = with_root
     else {
-        panic!("collision must require byte verification");
+        panic!("collision must deny after byte verification");
     };
+    assert_eq!(
+        posture,
+        crate::BlobChunkDedupeCollisionPosture::DigestCollisionDenied
+    );
     assert_eq!(counters.byte_verify_probes(), 1);
     assert_eq!(counters.collision_denials(), 1);
 }

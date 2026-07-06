@@ -1,14 +1,15 @@
 use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOverlapRegionLedgerAssemblyBundle,
     PlanarBooleanOverlapRegionCheckpointParityReceipt, PlanarBooleanOverlapRegionEvidenceReceipt,
-    PlanarBooleanOverlapRegionLedgerReceipt, PlanarBooleanOverlapRegionReplayParityReceipt,
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle, PlanarBooleanOverlapRegionLedgerReceipt,
+    PlanarBooleanOverlapRegionReplayParityReceipt,
 };
 
 use crate::workload_composition::WorthWorkload;
 
 use super::{
     PlanarBooleanOverlapRegionAntiTheatreFenceProof,
-    PlanarBooleanOverlapRegionPublicContractFenceProof, PlanarBooleanOverlapRuntimeRegistrationProof,
+    PlanarBooleanOverlapRegionPublicContractFenceProof,
+    PlanarBooleanOverlapRuntimeRegistrationProof,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,17 +50,35 @@ impl CompletedPlanarBooleanOverlapRegionExtractionHandoff {
         }
     }
 
-    pub fn completed_workload(&self) -> &WorthWorkload { &self.completed_workload }
+    pub fn completed_workload(&self) -> &WorthWorkload {
+        &self.completed_workload
+    }
     pub fn overlap_ledger_bundle(&self) -> &PlanarBooleanOverlapRegionLedgerAssemblyBundle {
         &self.overlap_ledger_bundle
     }
-    pub fn overlap_ledger_receipt(&self) -> &PlanarBooleanOverlapRegionLedgerReceipt { &self.overlap_ledger_receipt }
-    pub fn evidence_receipt(&self) -> &PlanarBooleanOverlapRegionEvidenceReceipt { &self.evidence_receipt }
-    pub fn replay_parity_receipt(&self) -> &PlanarBooleanOverlapRegionReplayParityReceipt { &self.replay_parity_receipt }
-    pub fn checkpoint_parity_receipt(&self) -> &PlanarBooleanOverlapRegionCheckpointParityReceipt { &self.checkpoint_parity_receipt }
-    pub fn runtime_registration_proof(&self) -> &PlanarBooleanOverlapRuntimeRegistrationProof { &self.runtime_registration_proof }
-    pub fn public_contract_fence_proof(&self) -> &PlanarBooleanOverlapRegionPublicContractFenceProof { &self.public_contract_fence_proof }
-    pub fn anti_theatre_fence_proof(&self) -> &PlanarBooleanOverlapRegionAntiTheatreFenceProof { &self.anti_theatre_fence_proof }
+    pub fn overlap_ledger_receipt(&self) -> &PlanarBooleanOverlapRegionLedgerReceipt {
+        &self.overlap_ledger_receipt
+    }
+    pub fn evidence_receipt(&self) -> &PlanarBooleanOverlapRegionEvidenceReceipt {
+        &self.evidence_receipt
+    }
+    pub fn replay_parity_receipt(&self) -> &PlanarBooleanOverlapRegionReplayParityReceipt {
+        &self.replay_parity_receipt
+    }
+    pub fn checkpoint_parity_receipt(&self) -> &PlanarBooleanOverlapRegionCheckpointParityReceipt {
+        &self.checkpoint_parity_receipt
+    }
+    pub fn runtime_registration_proof(&self) -> &PlanarBooleanOverlapRuntimeRegistrationProof {
+        &self.runtime_registration_proof
+    }
+    pub fn public_contract_fence_proof(
+        &self,
+    ) -> &PlanarBooleanOverlapRegionPublicContractFenceProof {
+        &self.public_contract_fence_proof
+    }
+    pub fn anti_theatre_fence_proof(&self) -> &PlanarBooleanOverlapRegionAntiTheatreFenceProof {
+        &self.anti_theatre_fence_proof
+    }
     pub fn workload_stage_index_identity(&self) -> &str {
         self.completed_workload
             .evidence_ledger()

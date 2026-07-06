@@ -123,27 +123,18 @@ fn canonical_entries_for_sequence(
     sequence: &AdmittedBlobChunkSequence,
 ) -> Vec<CanonicalBasisEntry> {
     let frontier = sequence.proof_frontier();
-    let mut entries = vec![
-        text_entry("law", "s7.chunk-root-publication"),
-        text_entry(
-            "chunk_tree_root",
-            sequence.chunk_tree_root().digest().as_str(),
-        ),
+    vec![
+        text_entry("law", "s7.chunk-root-export-canonical-basis"),
         text_entry(
             "logical_content_digest",
             sequence.logical_content_digest().digest().as_str(),
         ),
-        text_entry(
-            "chunk_identity_summary",
-            sequence.chunk_identity_summary().as_str(),
-        ),
-        text_entry("chunk_count", &frontier.chunk_count().to_string()),
         text_entry("total_bytes", &frontier.total_bytes().to_string()),
-    ];
-    for leaf in frontier.ordered_leaves() {
-        append_leaf_entries(&mut entries, leaf);
-    }
-    entries
+        text_entry(
+            "security_scope",
+            &security_scope_text(frontier.first_leaf()),
+        ),
+    ]
 }
 
 fn text_entry(locus: impl Into<InternedString>, value: &str) -> CanonicalBasisEntry {
@@ -152,44 +143,6 @@ fn text_entry(locus: impl Into<InternedString>, value: &str) -> CanonicalBasisEn
         CanonicalBasisLocus::Named(locus.into()),
         CanonicalBasisEntryKind::BoundaryArtifact,
         CanonicalBasisValue::ExactText(InternedString::from(value)),
-    )
-}
-
-fn append_leaf_entries(entries: &mut Vec<CanonicalBasisEntry>, leaf: &BlobChunkProofLeaf) {
-    let prefix = format!("chunk.{:020}", leaf.ordinal().get());
-    entries.push(text_entry(
-        owned_locus(&prefix, "identity"),
-        leaf.identity().chunk_digest().as_str(),
-    ));
-    entries.push(text_entry(
-        owned_locus(&prefix, "stored"),
-        leaf.stored_digest().digest().as_str(),
-    ));
-    entries.push(text_entry(
-        owned_locus(&prefix, "content"),
-        leaf.content_digest().digest().as_str(),
-    ));
-    entries.push(text_entry(
-        owned_locus(&prefix, "checksum"),
-        leaf.checksum_digest().as_str(),
-    ));
-    entries.push(text_entry(owned_locus(&prefix, "range"), &range_text(leaf)));
-    entries.push(text_entry(
-        owned_locus(&prefix, "security"),
-        &security_scope_text(leaf),
-    ));
-}
-
-fn owned_locus(prefix: &str, suffix: &str) -> String {
-    format!("{prefix}.{suffix}")
-}
-
-fn range_text(leaf: &BlobChunkProofLeaf) -> String {
-    format!(
-        "{}:{}:{}",
-        leaf.ordinal().get(),
-        leaf.byte_range().start(),
-        leaf.byte_range().len()
     )
 }
 

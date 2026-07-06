@@ -3,9 +3,9 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 use super::support::{
-    boundary_only_bundle, canonical_graph, canonical_identity_map, identity_bundle,
-    equivalent_multi_row_canonical_bundles_with_reversed_order, payload_permuted_canonical_bundle,
-    replayed_inputs, same_row_count_distinct_identity_bundle,
+    boundary_only_bundle, canonical_graph, canonical_identity_map,
+    equivalent_multi_row_canonical_bundles_with_reversed_order, identity_bundle,
+    payload_permuted_canonical_bundle, replayed_inputs, same_row_count_distinct_identity_bundle,
 };
 
 #[test]

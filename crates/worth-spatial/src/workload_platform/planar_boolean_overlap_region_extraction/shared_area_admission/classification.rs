@@ -106,7 +106,10 @@ pub(super) fn build_shared_area_admission_bundle(
 
         counters.admitted_shared_area_outcome();
         shared_area_rows.push(PlanarBooleanSharedAreaAdmissionOutcomeRow::new(
-            shared_area_admission_outcome_identity(&request_identity, component.component_identity()),
+            shared_area_admission_outcome_identity(
+                &request_identity,
+                component.component_identity(),
+            ),
             component.island_identity().to_string(),
             component.neighborhood_identity().to_string(),
             component.component_identity().to_string(),

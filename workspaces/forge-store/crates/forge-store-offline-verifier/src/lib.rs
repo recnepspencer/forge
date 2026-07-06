@@ -1,5 +1,8 @@
 #![forbid(unsafe_code)]
 
+mod blob_corruption_observation;
+#[cfg(test)]
+mod blob_corruption_observation_tests;
 mod boundary;
 mod custody_capsule_observation;
 #[cfg(test)]
@@ -11,6 +14,10 @@ mod s6_background_pressure;
 
 use forge_store_physical_format::PhysicalReference;
 
+pub use blob_corruption_observation::{
+    OfflineBlobCorruptionEvidenceKind, OfflineBlobCorruptionObservation,
+    OfflineBlobCorruptionObservationDenial,
+};
 pub use boundary::OfflineVerifierBoundarySeam;
 pub use custody_capsule_observation::{
     OfflineCustodyCapsuleObservation, OfflineCustodyCapsuleObservationDenial,

@@ -14,7 +14,9 @@ use super::SimulationPlanDenial;
 
 mod replay_requirements;
 mod s5_interleaving_families;
+mod s5_readiness;
 mod s6_io_pressure;
+mod s7_blob_harness;
 mod shortcut_rejection;
 use replay_requirements::{s4_recovery_shape, s5_checkpoint_publication_crash_replay_shape};
 use s5_interleaving_families::{
@@ -22,7 +24,12 @@ use s5_interleaving_families::{
     s5_future_chunk_stability_shape, s5_reclaim_reachability_shape,
     s5_restart_during_cutover_shape, s5_tier_movement_stability_shape,
 };
+use s5_readiness::{
+    s5_readiness_drivers_for_yieldpoint, s5_readiness_shape,
+    s5_readiness_with_shortcut_rejection_shape,
+};
 use s6_io_pressure::s6_io_pressure_shape;
+pub(crate) use s7_blob_harness::s7_blob_harness_shape;
 use shortcut_rejection::shortcut_rejection_shape;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -166,6 +173,16 @@ impl RequiredSimulationPlanShape {
                 PhysicalScenarioExpectationKind::S6IoPressureSimulation,
             ) => s6_io_pressure_shape(actor_step_count),
             (
+                PhysicalSimulationScenarioFamily::S7BlobHarnessSeed,
+                PhysicalScenarioExpectationKind::S7BlobHarnessSeed,
+            ) => {
+                let topology = definition
+                    .expectation()
+                    .s7_blob_harness_topology()
+                    .ok_or(SimulationPlanDenial::MissingS7BlobHarnessTopology)?;
+                s7_blob_harness_shape(actor_step_count, topology)
+            }
+            (
                 PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood,
                 PhysicalScenarioExpectationKind::ShortcutRejectionDogfood,
             ) => shortcut_rejection_shape(),
@@ -279,92 +296,7 @@ impl RequiredActorSet {
     }
 }
 
-fn s5_readiness_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
-    RequiredSimulationPlanShape {
-        capabilities: baseline_capabilities(),
-        actors: RequiredActorSet::from_actors([PhysicalScenarioActor::recovery_driver("recovery")]),
-        drivers: RequiredPhysicalDriverSet::from_drivers([
-            PhysicalDriverKind::ProductionBoundaryYieldpoint,
-        ]),
-        observers: RequiredObserverSet::from_observers([ObserverKind::IndependentPhysicalTrace]),
-        oracle_families: RequiredOracleFamilySet::from_oracles([
-            OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S5ReadinessShape,
-        ]),
-        counter_contracts: RequiredCounterContractSet::from_contracts([
-            PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),
-            PhysicalCounterContract::exact(CounterContractKind::ReplayIdentityExact, 1),
-            PhysicalCounterContract::exact(CounterContractKind::PublicationSwaps, 1),
-            PhysicalCounterContract::profile_scoped(CounterContractKind::ProfileResourceEnvelope),
-            bounded_contract(CounterContractKind::AllocationBytes, 64 * 1024),
-            bounded_contract(CounterContractKind::PagePins, 8),
-            bounded_contract(CounterContractKind::IoQueueDepth, 4),
-            monotonic_contract(CounterContractKind::LatchWaits),
-            monotonic_contract(CounterContractKind::EpochRetries),
-            positive_contract(CounterContractKind::ProtectedReferences),
-            positive_contract(CounterContractKind::CompactionCandidateRanges),
-            positive_contract(CounterContractKind::CopiedPages),
-            monotonic_contract(CounterContractKind::Retries),
-        ]),
-        fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
-            FixtureClassKind::AspectNativeBoundaryFact,
-        ]),
-    }
-}
-
-fn s5_readiness_with_shortcut_rejection_shape(
-    actor_step_count: u64,
-) -> RequiredSimulationPlanShape {
-    RequiredSimulationPlanShape {
-        capabilities: baseline_capabilities(),
-        actors: RequiredActorSet::from_actors([]),
-        drivers: RequiredPhysicalDriverSet::from_drivers([
-            PhysicalDriverKind::ProductionBoundaryYieldpoint,
-            PhysicalDriverKind::ShortcutRejectionBoundary,
-        ]),
-        observers: RequiredObserverSet::from_observers([
-            ObserverKind::IndependentPhysicalTrace,
-            ObserverKind::ShortcutRejectionObserver,
-        ]),
-        oracle_families: RequiredOracleFamilySet::from_oracles([
-            OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S5ReadinessShape,
-            OracleFamilyKind::ForbiddenShortcutRejection,
-        ]),
-        counter_contracts: RequiredCounterContractSet::from_contracts([
-            PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),
-            PhysicalCounterContract::exact(CounterContractKind::ReplayIdentityExact, 1),
-            PhysicalCounterContract::exact(CounterContractKind::ForbiddenShortcutExact, 0),
-            PhysicalCounterContract::exact(CounterContractKind::PublicationSwaps, 1),
-            PhysicalCounterContract::profile_scoped(CounterContractKind::ProfileResourceEnvelope),
-            bounded_contract(CounterContractKind::AllocationBytes, 64 * 1024),
-            bounded_contract(CounterContractKind::PagePins, 8),
-            bounded_contract(CounterContractKind::IoQueueDepth, 4),
-            monotonic_contract(CounterContractKind::LatchWaits),
-            monotonic_contract(CounterContractKind::EpochRetries),
-            positive_contract(CounterContractKind::ProtectedReferences),
-            positive_contract(CounterContractKind::BlockedReclaimAttempts),
-            positive_contract(CounterContractKind::CompactionCandidateRanges),
-            positive_contract(CounterContractKind::CopiedPages),
-        ]),
-        fixture_classes: RequiredFixtureClassSet::from_fixture_classes([
-            FixtureClassKind::AspectNativeBoundaryFact,
-        ]),
-    }
-}
-
-fn s5_readiness_drivers_for_yieldpoint(yieldpoint: &str) -> RequiredPhysicalDriverSet {
-    match yieldpoint {
-        "io-pressure-boundary" => {
-            RequiredPhysicalDriverSet::from_drivers([PhysicalDriverKind::IoPressureBoundary])
-        }
-        _ => RequiredPhysicalDriverSet::from_drivers([
-            PhysicalDriverKind::ProductionBoundaryYieldpoint,
-        ]),
-    }
-}
-
-fn baseline_capabilities() -> PhysicalSimulationCapabilitySet {
+pub(super) fn baseline_capabilities() -> PhysicalSimulationCapabilitySet {
     PhysicalSimulationCapabilitySet::from_capabilities([
         PhysicalSimulationCapability::ProductionBoundaryDriver,
         PhysicalSimulationCapability::IndependentObserver,
@@ -376,16 +308,16 @@ fn baseline_capabilities() -> PhysicalSimulationCapabilitySet {
     ])
 }
 
-fn bounded_contract(kind: CounterContractKind, maximum: u64) -> PhysicalCounterContract {
+pub(super) fn bounded_contract(kind: CounterContractKind, maximum: u64) -> PhysicalCounterContract {
     PhysicalCounterContract::bounded(kind, maximum)
         .expect("static bounded counter contract is valid")
 }
 
-fn positive_contract(kind: CounterContractKind) -> PhysicalCounterContract {
+pub(super) fn positive_contract(kind: CounterContractKind) -> PhysicalCounterContract {
     PhysicalCounterContract::positive(kind).expect("static positive counter contract is valid")
 }
 
-fn monotonic_contract(kind: CounterContractKind) -> PhysicalCounterContract {
+pub(super) fn monotonic_contract(kind: CounterContractKind) -> PhysicalCounterContract {
     PhysicalCounterContract::monotonic(kind).expect("static monotonic counter contract is valid")
 }
 

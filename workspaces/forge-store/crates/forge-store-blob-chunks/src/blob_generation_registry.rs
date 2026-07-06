@@ -61,7 +61,7 @@ impl BlobGenerationRegistry {
         Ok(self.entries.last().expect("entry was just inserted"))
     }
 
-    pub fn observe_published_generation(
+    pub fn observe_registered_generation(
         &self,
         object_id: &BlobObjectId,
         generation: BlobGeneration,

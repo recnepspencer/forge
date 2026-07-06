@@ -73,20 +73,48 @@ impl PlanarBooleanOverlapRegionIdentityRow {
         }
     }
 
-    pub fn region_identity(&self) -> &str { &self.region_identity }
-    pub fn canonical_winding_identity(&self) -> &str { &self.canonical_winding_identity }
-    pub fn source_kind(&self) -> PlanarBooleanOverlapRegionCanonicalWindingSourceKind { self.source_kind }
-    pub fn source_identity(&self) -> &str { &self.source_identity }
-    pub fn island_identity(&self) -> &str { &self.island_identity }
-    pub fn neighborhood_identity(&self) -> &str { &self.neighborhood_identity }
-    pub fn area_overlap_component_identity(&self) -> Option<&str> { self.area_overlap_component_identity.as_deref() }
-    pub fn canonical_operand_side(&self) -> Option<PlanarBooleanCommonPlaneOperandSide> { self.canonical_operand_side }
-    pub fn canonical_winding_sign(&self) -> Option<i8> { self.canonical_winding_sign }
-    pub fn canonical_boundary_segment_identities(&self) -> &[String] { &self.canonical_boundary_segment_identities }
-    pub fn canonical_source_loop_identities(&self) -> &[String] { &self.canonical_source_loop_identities }
-    pub fn lineage_identities(&self) -> &[String] { &self.lineage_identities }
-    pub fn source_edge_identities(&self) -> &[String] { &self.source_edge_identities }
-    pub fn boundary_roles(&self) -> &[PlanarBooleanOverlapChainBoundaryRole] { &self.boundary_roles }
+    pub fn region_identity(&self) -> &str {
+        &self.region_identity
+    }
+    pub fn canonical_winding_identity(&self) -> &str {
+        &self.canonical_winding_identity
+    }
+    pub fn source_kind(&self) -> PlanarBooleanOverlapRegionCanonicalWindingSourceKind {
+        self.source_kind
+    }
+    pub fn source_identity(&self) -> &str {
+        &self.source_identity
+    }
+    pub fn island_identity(&self) -> &str {
+        &self.island_identity
+    }
+    pub fn neighborhood_identity(&self) -> &str {
+        &self.neighborhood_identity
+    }
+    pub fn area_overlap_component_identity(&self) -> Option<&str> {
+        self.area_overlap_component_identity.as_deref()
+    }
+    pub fn canonical_operand_side(&self) -> Option<PlanarBooleanCommonPlaneOperandSide> {
+        self.canonical_operand_side
+    }
+    pub fn canonical_winding_sign(&self) -> Option<i8> {
+        self.canonical_winding_sign
+    }
+    pub fn canonical_boundary_segment_identities(&self) -> &[String] {
+        &self.canonical_boundary_segment_identities
+    }
+    pub fn canonical_source_loop_identities(&self) -> &[String] {
+        &self.canonical_source_loop_identities
+    }
+    pub fn lineage_identities(&self) -> &[String] {
+        &self.lineage_identities
+    }
+    pub fn source_edge_identities(&self) -> &[String] {
+        &self.source_edge_identities
+    }
+    pub fn boundary_roles(&self) -> &[PlanarBooleanOverlapChainBoundaryRole] {
+        &self.boundary_roles
+    }
 }
 
 impl PlanarBooleanOverlapRegionPersistentNamePropagationRow {
@@ -104,10 +132,18 @@ impl PlanarBooleanOverlapRegionPersistentNamePropagationRow {
         }
     }
 
-    pub fn propagation_identity(&self) -> &str { &self.propagation_identity }
-    pub fn region_identity(&self) -> &str { &self.region_identity }
-    pub fn canonical_winding_identity(&self) -> &str { &self.canonical_winding_identity }
-    pub fn persistent_name_identity(&self) -> &str { &self.persistent_name_identity }
+    pub fn propagation_identity(&self) -> &str {
+        &self.propagation_identity
+    }
+    pub fn region_identity(&self) -> &str {
+        &self.region_identity
+    }
+    pub fn canonical_winding_identity(&self) -> &str {
+        &self.canonical_winding_identity
+    }
+    pub fn persistent_name_identity(&self) -> &str {
+        &self.persistent_name_identity
+    }
 }
 
 impl PlanarBooleanOverlapRegionSubshapeSignatureRow {
@@ -127,9 +163,19 @@ impl PlanarBooleanOverlapRegionSubshapeSignatureRow {
         }
     }
 
-    pub fn signature_identity(&self) -> &str { &self.signature_identity }
-    pub fn region_identity(&self) -> &str { &self.region_identity }
-    pub fn canonical_winding_identity(&self) -> &str { &self.canonical_winding_identity }
-    pub fn signature_basis_identity(&self) -> &str { &self.signature_basis_identity }
-    pub fn correspondence_only(&self) -> bool { self.correspondence_only }
+    pub fn signature_identity(&self) -> &str {
+        &self.signature_identity
+    }
+    pub fn region_identity(&self) -> &str {
+        &self.region_identity
+    }
+    pub fn canonical_winding_identity(&self) -> &str {
+        &self.canonical_winding_identity
+    }
+    pub fn signature_basis_identity(&self) -> &str {
+        &self.signature_basis_identity
+    }
+    pub fn correspondence_only(&self) -> bool {
+        self.correspondence_only
+    }
 }

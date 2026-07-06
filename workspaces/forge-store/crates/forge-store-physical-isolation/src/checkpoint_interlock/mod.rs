@@ -4,6 +4,8 @@ mod foundational_evidence;
 mod plan;
 mod readmission;
 mod stability_proof;
+#[cfg(any(test, feature = "certification-authority"))]
+mod test_authority;
 mod transition;
 mod verdict;
 
@@ -18,5 +20,7 @@ pub use foundational_evidence::{
 pub use plan::CheckpointReadInterlockPlan;
 pub use readmission::CheckpointPublicationReadmission;
 pub use stability_proof::CheckpointPublicationStabilityProof;
+#[cfg(any(test, feature = "certification-authority"))]
+pub use test_authority::read_during_checkpoint_verdict_for_certification_test;
 pub use transition::CheckpointRootEpochTransition;
 pub use verdict::ReadDuringCheckpointVerdict;

@@ -157,7 +157,9 @@ impl CompletedBooleanLoopReconstructionProducts {
         &self.loop_identity_map
     }
 
-    pub fn persistent_name_propagation_map(&self) -> &PlanarBooleanLoopPersistentNamePropagationMap {
+    pub fn persistent_name_propagation_map(
+        &self,
+    ) -> &PlanarBooleanLoopPersistentNamePropagationMap {
         &self.persistent_name_propagation_map
     }
 

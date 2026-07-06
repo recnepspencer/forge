@@ -1,15 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanBoundaryContactClassificationBundle, PlanarBooleanOverlapCellContainmentEvidenceKind,
-    PlanarBooleanOverlapCellContainmentMap, PlanarBooleanOverlapCellWindingEvidenceKind,
-    PlanarBooleanOverlapCellWindingField,
+    PlanarBooleanBoundaryContactClassificationBundle,
+    PlanarBooleanOverlapCellContainmentEvidenceKind, PlanarBooleanOverlapCellContainmentMap,
+    PlanarBooleanOverlapCellWindingEvidenceKind, PlanarBooleanOverlapCellWindingField,
 };
 
 use super::counters::PlanarBooleanSharedAreaAdmissionCounters;
 use super::denial::{
-    PlanarBooleanSharedAreaAdmissionDenial,
-    PlanarBooleanSharedAreaAdmissionDenialKind as Kind,
+    PlanarBooleanSharedAreaAdmissionDenial, PlanarBooleanSharedAreaAdmissionDenialKind as Kind,
 };
 use super::input::PlanarBooleanSharedAreaAdmissionInput;
 

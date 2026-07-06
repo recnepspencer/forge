@@ -1,6 +1,7 @@
 use super::counters::PlanarBooleanPostAdmissionNormalizationCounters;
 use super::denial::{
-    PlanarBooleanPostAdmissionNormalizationDenial, PlanarBooleanPostAdmissionNormalizationDenialKind,
+    PlanarBooleanPostAdmissionNormalizationDenial,
+    PlanarBooleanPostAdmissionNormalizationDenialKind,
 };
 use super::rows::PlanarBooleanOverlapRegionCanonicalWindingSourceKind;
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
@@ -13,7 +14,9 @@ pub(super) fn validate_input_identities(
     counters: &PlanarBooleanPostAdmissionNormalizationCounters,
 ) -> Result<(), PlanarBooleanPostAdmissionNormalizationDenial> {
     let admitted = input.region_candidate_boundary().admitted_overlap_regions();
-    let boundary_only = input.region_candidate_boundary().boundary_only_overlap_outcomes();
+    let boundary_only = input
+        .region_candidate_boundary()
+        .boundary_only_overlap_outcomes();
     if admitted.request_identity() != boundary_only.request_identity()
         || admitted.arrangement_graph_identity() != boundary_only.arrangement_graph_identity()
         || admitted.cell_set_identity() != boundary_only.cell_set_identity()
@@ -62,7 +65,9 @@ pub(super) fn admitted_witness_key(row: &PlanarBooleanAdmittedOverlapRegionRow) 
     )
 }
 
-pub(super) fn boundary_only_witness_key(row: &PlanarBooleanBoundaryOnlyOverlapOutcomeRow) -> String {
+pub(super) fn boundary_only_witness_key(
+    row: &PlanarBooleanBoundaryOnlyOverlapOutcomeRow,
+) -> String {
     format!(
         "{}:{}:{}:{}",
         row.island_identity(),

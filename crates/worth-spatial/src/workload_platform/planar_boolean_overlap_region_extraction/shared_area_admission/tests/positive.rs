@@ -58,7 +58,10 @@ fn shared_area_admission_emits_mixed_boundary_area_for_separable_mixed_islands()
         .admit_shared_area_components(&containment, &winding)
         .expect("disjoint mixed island should remain typed rather than denied");
 
-    assert!(mixed_bundle.shared_area_admission_outcomes().rows().is_empty());
+    assert!(mixed_bundle
+        .shared_area_admission_outcomes()
+        .rows()
+        .is_empty());
     assert_eq!(mixed_bundle.mixed_boundary_area_outcomes().rows().len(), 1);
 }
 

@@ -133,6 +133,25 @@ impl IoSchedulerS6ReadinessRequest {
 }
 
 impl IoSchedulerS6CounterSnapshot {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn for_certification_test(
+        wait_count: u64,
+        retry_count: u64,
+        latch_counter_rows: u64,
+        reclaim_counter_rows: u64,
+        blocked_maintenance_count: u64,
+        protected_byte_footprint: u64,
+    ) -> Self {
+        Self {
+            wait_count,
+            retry_count,
+            latch_counter_rows,
+            reclaim_counter_rows,
+            blocked_maintenance_count,
+            protected_byte_footprint,
+        }
+    }
+
     const fn from_store_published_counters(counters: PhysicalIsolationCounterSnapshot) -> Self {
         Self {
             wait_count: counters.wait_count(),
@@ -170,6 +189,18 @@ impl IoSchedulerS6CounterSnapshot {
 }
 
 impl IoSchedulerS6ReadinessAdmission {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn for_certification_test() -> Self {
+        Self {
+            assumptions: IoSchedulerPhysicalStabilityAssumption::required_from_s5(),
+            foreground_interference:
+                IoSchedulerForegroundInterferenceSurface::for_certification_test(1, 1, 1),
+            background_maintenance:
+                IoSchedulerBackgroundMaintenanceAssumption::for_certification_test(1),
+            counters: IoSchedulerS6CounterSnapshot::for_certification_test(1, 1, 1, 1, 1, 1),
+        }
+    }
+
     pub const fn physical_stability_assumptions(
         &self,
     ) -> &[IoSchedulerPhysicalStabilityAssumption; 4] {
@@ -246,6 +277,19 @@ const fn scheduler_non_claim(non_claim: UnsupportedQoSClaim) -> IoSchedulerUnsup
 }
 
 impl IoSchedulerForegroundInterferenceSurface {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn for_certification_test(
+        wait_count: u64,
+        retry_count: u64,
+        protected_byte_footprint: u64,
+    ) -> Self {
+        Self {
+            wait_count,
+            retry_count,
+            protected_byte_footprint,
+        }
+    }
+
     const fn from_counters(counters: IoSchedulerS6CounterSnapshot) -> Self {
         Self {
             wait_count: counters.wait_count(),
@@ -268,6 +312,13 @@ impl IoSchedulerForegroundInterferenceSurface {
 }
 
 impl IoSchedulerBackgroundMaintenanceAssumption {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn for_certification_test(blocked_maintenance_count: u64) -> Self {
+        Self {
+            blocked_maintenance_count,
+        }
+    }
+
     const fn from_counters(counters: IoSchedulerS6CounterSnapshot) -> Self {
         Self {
             blocked_maintenance_count: counters.blocked_maintenance_count(),

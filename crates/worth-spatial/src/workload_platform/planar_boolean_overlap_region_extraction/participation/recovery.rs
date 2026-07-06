@@ -145,11 +145,8 @@ impl PlanarBooleanOverlapParticipationRecovery {
             island_participation_rows,
         );
 
-        let chain_lineage_rows = recover_chain_lineage_rows(
-            &loop_participation_map,
-            support,
-            &mut counters,
-        )?;
+        let chain_lineage_rows =
+            recover_chain_lineage_rows(&loop_participation_map, support, &mut counters)?;
         let chain_lineage_map = PlanarBooleanOverlapChainRegionLineageMap::new(
             map_identity(
                 input.request().request_identity(),

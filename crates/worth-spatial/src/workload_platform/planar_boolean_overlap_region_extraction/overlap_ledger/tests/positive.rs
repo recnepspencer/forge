@@ -1,6 +1,8 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionDecisionKind;
 
-use super::support::{canonical_graph, decision_log, direct_bundle, ledger_bundle, replayed_inputs};
+use super::support::{
+    canonical_graph, decision_log, direct_bundle, ledger_bundle, replayed_inputs,
+};
 
 #[test]
 fn overlap_region_ledger_is_replay_stable() {
@@ -62,11 +64,15 @@ fn ledger_receipt_is_the_exclusive_downstream_overlap_boundary() {
     assert_eq!(receipt.ledger_identity(), bundle.ledger().ledger_identity());
     assert_eq!(
         receipt.overlap_region_identity_map_identity(),
-        identity_lineage.overlap_region_identity_map().map_identity(),
+        identity_lineage
+            .overlap_region_identity_map()
+            .map_identity(),
     );
     assert_eq!(
         receipt.persistent_name_propagation_map_identity(),
-        identity_lineage.persistent_name_propagation_map().map_identity(),
+        identity_lineage
+            .persistent_name_propagation_map()
+            .map_identity(),
     );
     assert_eq!(
         receipt.subshape_signature_map_identity(),

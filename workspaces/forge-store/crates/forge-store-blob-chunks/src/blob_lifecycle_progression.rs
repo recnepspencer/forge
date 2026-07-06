@@ -8,9 +8,10 @@ use crate::{
         prove_lifecycle_resolution, BlobLifecycleExecutionReadyRecipe, BlobLifecycleLoweredRecipe,
         BlobLifecycleResolvedRecipe,
     },
-    BlobLifecycleCounterSnapshot, BlobLifecycleDeclaration, BlobLifecycleDenial,
-    BlobLifecycleLoweringCapability, BlobLifecycleReadinessAuthority, BlobLifecycleStoreAuthority,
-    BlobPlacementProof, BlobReachabilityProof, LifecycleReceipt, ScopedBlobChunk,
+    AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobLifecycleCounterSnapshot,
+    BlobLifecycleDeclaration, BlobLifecycleDenial, BlobLifecycleLoweringCapability,
+    BlobLifecycleReadinessAuthority, BlobLifecycleStoreAuthority, BlobPlacementProof,
+    LifecycleReceipt,
 };
 
 pub type BlobLifecycleExecutionOutcome = TransitionOutcome<
@@ -70,11 +71,11 @@ pub struct BlobLifecycleLowered {
 impl BlobLifecycleLowered {
     pub fn admit_reachability(
         self,
-        scoped_chunk: ScopedBlobChunk,
+        reachability: BlobChunkReachabilityProofSet,
     ) -> BlobLifecycleReachabilityAdmissionOutcome {
         BlobLifecycleReachabilityAdmitted {
             proof_recipe: self.proof_recipe,
-            reachability: BlobReachabilityProof::from_scoped_chunk(scoped_chunk),
+            reachability,
             counters: self
                 .counters
                 .record_scoped_chunk()
@@ -96,25 +97,29 @@ pub type BlobLifecycleReachabilityAdmissionOutcome = TransitionOutcome<
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobLifecycleReachabilityAdmitted {
     proof_recipe: BlobLifecycleLoweredRecipe,
-    reachability: BlobReachabilityProof,
+    reachability: BlobChunkReachabilityProofSet,
     counters: BlobLifecycleCounterSnapshot,
 }
 
 impl BlobLifecycleReachabilityAdmitted {
     pub fn admit_placement(
         self,
-        readiness_authority: &BlobLifecycleReadinessAuthority,
-    ) -> BlobLifecyclePlacementAdmitted {
-        let placement = BlobPlacementProof::from_reachability_and_placement_readiness(
-            &self.reachability,
-            readiness_authority.placement_readiness(),
-        );
-        BlobLifecyclePlacementAdmitted {
+        placement: AdmittedBlobPlacement,
+    ) -> BlobLifecyclePlacementAdmissionOutcome {
+        if !placement.matches_reachability(&self.reachability) {
+            return TransitionOutcome::denied(
+                BlobLifecycleDenial::PlacementReachabilityBasisMismatch {
+                    counters: self.counters.record_denial(),
+                },
+            );
+        }
+        let placement = BlobPlacementProof::from_admitted_placement(&placement);
+        TransitionOutcome::success(BlobLifecyclePlacementAdmitted {
             proof_recipe: self.proof_recipe,
             reachability: self.reachability,
             placement,
             counters: self.counters.record_placement_admission(),
-        }
+        })
     }
 
     fn reject_if_declaration_reachability_digest_mismatch(
@@ -126,6 +131,9 @@ impl BlobLifecycleReachabilityAdmitted {
             .declaration()
             .stored_chunk_digest()
             != self.reachability.stored_digest()
+            || !self
+                .reachability
+                .matches_lifecycle_declaration(self.proof_recipe.payload().declaration())
         {
             return TransitionOutcome::denied(
                 BlobLifecycleDenial::DeclarationReachabilityDigestMismatch {
@@ -137,10 +145,19 @@ impl BlobLifecycleReachabilityAdmitted {
     }
 }
 
+pub type BlobLifecyclePlacementAdmissionOutcome = TransitionOutcome<
+    BlobLifecyclePlacementAdmitted,
+    BlobLifecycleDenial,
+    Infallible,
+    Infallible,
+    Infallible,
+    Infallible,
+>;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobLifecyclePlacementAdmitted {
     proof_recipe: BlobLifecycleLoweredRecipe,
-    reachability: BlobReachabilityProof,
+    reachability: BlobChunkReachabilityProofSet,
     placement: BlobPlacementProof,
     counters: BlobLifecycleCounterSnapshot,
 }
@@ -156,6 +173,10 @@ impl BlobLifecyclePlacementAdmitted {
             .declaration()
             .stored_chunk_digest()
             != self.placement.stored_digest()
+            || readiness_authority.admitted_placement().stored_digest()
+                != self.placement.stored_digest()
+            || readiness_authority.admitted_placement().security_metadata()
+                != self.placement.security_metadata()
         {
             return TransitionOutcome::denied(
                 BlobLifecycleDenial::DeclarationPlacementDigestMismatch {
@@ -187,7 +208,7 @@ pub type BlobLifecycleExecutionReadyOutcome = TransitionOutcome<
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobLifecycleExecutionReady {
     proof_recipe: BlobLifecycleExecutionReadyRecipe,
-    reachability: BlobReachabilityProof,
+    reachability: BlobChunkReachabilityProofSet,
     placement: BlobPlacementProof,
     counters: BlobLifecycleCounterSnapshot,
 }

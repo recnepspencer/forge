@@ -21,7 +21,10 @@ impl ComparePlanarBooleanOverlapRegionCheckpointParity {
         replayed: &PlanarBooleanOverlapRegionEvidenceReceipt,
         replay_receipts: &ReplayReceiptSet,
         counters: &mut PlanarBooleanOverlapRegionReplayParityCounters,
-    ) -> Result<PlanarBooleanOverlapRegionCheckpointParityReceipt, PlanarBooleanOverlapRegionReplayParityDenial> {
+    ) -> Result<
+        PlanarBooleanOverlapRegionCheckpointParityReceipt,
+        PlanarBooleanOverlapRegionReplayParityDenial,
+    > {
         if original.replay_checkpoint_identity() != replay_receipts.replay_checkpoint_identity()
             || replayed.replay_checkpoint_identity() != replay_receipts.replay_checkpoint_identity()
             || original.replay_evidence_identity() != replay_receipts.replay_evidence_identity()
@@ -41,8 +44,14 @@ impl ComparePlanarBooleanOverlapRegionCheckpointParity {
                 TruthDigestScope::ArtifactIdentity,
                 &[
                     "planar-boolean-overlap-region-checkpoint-parity".to_string(),
-                    format!("checkpoint:{}", replay_receipts.replay_checkpoint_identity()),
-                    format!("replay-evidence:{}", replay_receipts.replay_evidence_identity()),
+                    format!(
+                        "checkpoint:{}",
+                        replay_receipts.replay_checkpoint_identity()
+                    ),
+                    format!(
+                        "replay-evidence:{}",
+                        replay_receipts.replay_evidence_identity()
+                    ),
                 ],
             ),
             replay_evidence_identity: replay_receipts.replay_evidence_identity().to_string(),
@@ -51,6 +60,10 @@ impl ComparePlanarBooleanOverlapRegionCheckpointParity {
 }
 
 impl PlanarBooleanOverlapRegionCheckpointParityReceipt {
-    pub fn checkpoint_identity(&self) -> &str { &self.checkpoint_identity }
-    pub fn replay_evidence_identity(&self) -> &str { &self.replay_evidence_identity }
+    pub fn checkpoint_identity(&self) -> &str {
+        &self.checkpoint_identity
+    }
+    pub fn replay_evidence_identity(&self) -> &str {
+        &self.replay_evidence_identity
+    }
 }

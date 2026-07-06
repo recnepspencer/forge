@@ -22,13 +22,14 @@ pub(super) fn build_island_partition(
     let mut islands = Vec::new();
     let mut boundary_contact_components = Vec::new();
     let mut area_overlap_components = Vec::new();
-    let candidates_by_island = island_candidates.rows().iter().fold(
-        BTreeMap::<&str, Vec<_>>::new(),
-        |mut map, row| {
-            map.entry(row.island_identity()).or_default().push(row);
-            map
-        },
-    );
+    let candidates_by_island =
+        island_candidates
+            .rows()
+            .iter()
+            .fold(BTreeMap::<&str, Vec<_>>::new(), |mut map, row| {
+                map.entry(row.island_identity()).or_default().push(row);
+                map
+            });
 
     for (island_identity, candidates) in candidates_by_island {
         let neighborhood_identity = candidates[0].neighborhood_identity().to_string();
@@ -49,8 +50,12 @@ pub(super) fn build_island_partition(
         let connected_groups = connected_candidate_groups(&candidates);
 
         for group in connected_groups {
-            let has_boundary_contact = group.iter().any(|candidate| candidate.kind() == BoundaryContact);
-            let has_area_overlap = group.iter().any(|candidate| candidate.kind() == AreaOverlap);
+            let has_boundary_contact = group
+                .iter()
+                .any(|candidate| candidate.kind() == BoundaryContact);
+            let has_area_overlap = group
+                .iter()
+                .any(|candidate| candidate.kind() == AreaOverlap);
             if has_boundary_contact && has_area_overlap {
                 return Err(mixed_partition(island_identity, &mut counters));
             }
@@ -58,7 +63,11 @@ pub(super) fn build_island_partition(
             let is_area_component = group[0].kind() == AreaOverlap;
             let component_identity = format!(
                 "overlap-component:{}:{}:{}",
-                if is_area_component { "area" } else { "boundary" },
+                if is_area_component {
+                    "area"
+                } else {
+                    "boundary"
+                },
                 island_identity,
                 component_group_key(&group)
             );
@@ -227,16 +236,21 @@ fn shares_partition_basis(
             left.boundary_component_identities(),
             right.boundary_component_identities(),
         )
-        || shares_any_identity(left.boundary_segment_identities(), right.boundary_segment_identities())
+        || shares_any_identity(
+            left.boundary_segment_identities(),
+            right.boundary_segment_identities(),
+        )
 }
 
 fn shares_any_identity(left: &[String], right: &[String]) -> bool {
-    left.iter().any(|identity| right.iter().any(|candidate_identity| candidate_identity == identity))
+    left.iter().any(|identity| {
+        right
+            .iter()
+            .any(|candidate_identity| candidate_identity == identity)
+    })
 }
 
-fn component_group_key(
-    group: &[&super::rows::PlanarBooleanOverlapIslandCandidateRow],
-) -> String {
+fn component_group_key(group: &[&super::rows::PlanarBooleanOverlapIslandCandidateRow]) -> String {
     group
         .iter()
         .map(|candidate| candidate.candidate_identity())

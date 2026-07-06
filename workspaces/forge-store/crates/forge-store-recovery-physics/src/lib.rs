@@ -1,6 +1,7 @@
 #![doc = include_str!("recovery_physics_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
+mod blob_replay;
 mod checkpoint_cutover;
 mod durable_publication;
 mod integrity_damage_map;
@@ -37,6 +38,11 @@ mod source_precedence;
 mod wal_durability;
 mod wal_topology;
 
+pub use blob_replay::{
+    BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, BlobReplaySourceAdmission,
+    BlobReplaySourceKind, BlobReplaySourceOutcome, BlobReplaySourceOutcomeKind,
+    BlobResumeReplayReadmission,
+};
 pub use checkpoint_cutover::{
     CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
     CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverCrashStage,
@@ -95,13 +101,15 @@ pub use page_lsn_publication::{
 pub use partial_publication::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
     NonAuthoritativePublicationDenial, NonAuthoritativePublicationSource,
-    PartialPublicationClassification, PartialPublicationCounterSnapshot,
-    PartialPublicationCrashEdge, PartialPublicationEvidence,
+    PartialPublicationBeforeWalReplayRead, PartialPublicationClassification,
+    PartialPublicationCounterSnapshot, PartialPublicationCrashEdge, PartialPublicationEvidence,
     PartialPublicationObservationAdmission, PartialPublicationObservationSet,
     PartialPublicationObservedSource, PartialPublicationPersistedBytes,
-    RecoveredOrRejectedPartialPublication, RollbackImageRequiredPosture, TornPublicationDenial,
-    UnacknowledgedDurableWal, UnacknowledgedPublicationOutcome,
-    UnadmittedDurablePageMutationDenial,
+    PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,
+    PartialPublicationReplayReadRecord, PartialPublicationReplayReadWitness,
+    PartialPublicationReplayedCrashEdge, RecoveredOrRejectedPartialPublication,
+    RollbackImageRequiredPosture, TornPublicationDenial, UnacknowledgedDurableWal,
+    UnacknowledgedPublicationOutcome, UnadmittedDurablePageMutationDenial,
 };
 pub use recovery_blocking_integrity::{
     RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,

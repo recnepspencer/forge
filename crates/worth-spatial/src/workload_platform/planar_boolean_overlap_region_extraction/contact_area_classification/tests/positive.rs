@@ -1,5 +1,6 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanBoundaryContactClassificationBundle, PlanarBooleanBoundaryContactClassificationInput,
+    PlanarBooleanBoundaryContactClassificationBundle,
+    PlanarBooleanBoundaryContactClassificationInput,
 };
 
 use super::support::{
@@ -28,11 +29,23 @@ fn boundary_contact_classification_is_stable_under_benign_order_variation() {
 #[test]
 fn boundary_contact_classification_keeps_shared_boundary_and_pure_boundary_only_typed_separately() {
     let boundary_bundle = admitted_from_arrangement_boundary();
-    assert_eq!(boundary_bundle.shared_boundary_contact_outcomes().rows().len(), 2);
-    assert_eq!(boundary_bundle.pure_boundary_only_outcomes().rows().len(), 1);
+    assert_eq!(
+        boundary_bundle
+            .shared_boundary_contact_outcomes()
+            .rows()
+            .len(),
+        2
+    );
+    assert_eq!(
+        boundary_bundle.pure_boundary_only_outcomes().rows().len(),
+        1
+    );
 
     let area_bundle = admitted_from_arrangement_area();
-    assert!(area_bundle.shared_boundary_contact_outcomes().rows().is_empty());
+    assert!(area_bundle
+        .shared_boundary_contact_outcomes()
+        .rows()
+        .is_empty());
     assert!(area_bundle.pure_boundary_only_outcomes().rows().is_empty());
 }
 

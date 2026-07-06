@@ -12,6 +12,10 @@ pub(super) fn mixed_boundary_area_outcome_identity(
     format!("mixed-boundary-area-outcome:{request_identity}:{island_identity}")
 }
 
-pub(super) fn outcome_set_identity(request_identity: &str, outcome_kind: &str, count: usize) -> String {
+pub(super) fn outcome_set_identity(
+    request_identity: &str,
+    outcome_kind: &str,
+    count: usize,
+) -> String {
     format!("shared-area-outcome-set:{request_identity}:{outcome_kind}:{count}")
 }

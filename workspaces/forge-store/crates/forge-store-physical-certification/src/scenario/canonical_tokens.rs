@@ -1,6 +1,7 @@
+use super::expectation::{PhysicalScenarioExpectationKind, PhysicalScenarioNonClaim};
 use super::vocabulary::{
-    PhysicalScenarioActorRole, PhysicalScenarioExpectationKind, PhysicalScenarioFaultKind,
-    PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalSimulationScenarioFamily,
+    PhysicalScenarioActorRole, PhysicalScenarioFaultKind, PhysicalScenarioIntent,
+    PhysicalSimulationScenarioFamily,
 };
 
 pub(crate) fn family_token(family: PhysicalSimulationScenarioFamily) -> &'static str {
@@ -19,6 +20,7 @@ pub(crate) fn family_token(family: PhysicalSimulationScenarioFamily) -> &'static
         PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
         PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
         PhysicalSimulationScenarioFamily::S6IoPressureHarness => "s6-io-pressure-harness",
+        PhysicalSimulationScenarioFamily::S7BlobHarnessSeed => "s7-blob-harness-seed",
         PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
     }
@@ -64,6 +66,7 @@ pub(crate) fn intent_token(intent: PhysicalScenarioIntent) -> &'static str {
         PhysicalScenarioIntent::S5FutureChunkStabilityOnly => "s5-future-chunk-stability-only",
         PhysicalScenarioIntent::S5RestartDuringCutover => "s5-restart-during-cutover",
         PhysicalScenarioIntent::S6IoPressureSimulation => "s6-io-pressure-simulation",
+        PhysicalScenarioIntent::S7BlobHarnessSeed => "s7-blob-harness-seed",
         PhysicalScenarioIntent::ForbiddenShortcutRejectionShape => {
             "forbidden-shortcut-rejection-shape"
         }
@@ -133,6 +136,7 @@ pub(crate) fn expectation_token(expectation: PhysicalScenarioExpectationKind) ->
             "s5-physical-isolation-denial"
         }
         PhysicalScenarioExpectationKind::S6IoPressureSimulation => "s6-io-pressure-simulation",
+        PhysicalScenarioExpectationKind::S7BlobHarnessSeed => "s7-blob-harness-seed",
         PhysicalScenarioExpectationKind::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalScenarioExpectationKind::FutureExtensionSlot => "future-extension-slot",
     }
@@ -145,6 +149,9 @@ pub(crate) fn non_claim_token(non_claim: PhysicalScenarioNonClaim) -> &'static s
         }
         PhysicalScenarioNonClaim::NoRealBackendSafetyQualification => {
             "no-real-backend-safety-qualification"
+        }
+        PhysicalScenarioNonClaim::NoS7BlobOperationCorrectnessClaim => {
+            "no-s7-blob-operation-correctness-claim"
         }
         PhysicalScenarioNonClaim::FutureExtensionSlotDoesNotImplementFutureBehavior => {
             "future-extension-slot-does-not-implement-future-behavior"

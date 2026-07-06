@@ -128,11 +128,7 @@ fn assert_has_subcase(
     assert!(!row.detail().is_empty(), "{}", kind.spec_name());
 }
 
-fn assert_overlap_closeout_denial(
-    denial: WorkloadCompositionError,
-    kind: DenialKind,
-    label: &str,
-) {
+fn assert_overlap_closeout_denial(denial: WorkloadCompositionError, kind: DenialKind, label: &str) {
     let denial = denial
         .overlap_region_summum_bonum_closeout_denial()
         .expect(label);

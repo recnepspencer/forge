@@ -1,6 +1,4 @@
-use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanSharedAreaAdmissionDenialKind,
-};
+use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanSharedAreaAdmissionDenialKind;
 
 use super::support::{
     synthetic_boundary_only_promotion_bundle, synthetic_incoherent_area_cell_proof_bundle,

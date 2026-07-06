@@ -11,6 +11,7 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BackupExportCustodyReadiness {
+    mode: Option<crate::BackupExportCustodyMode>,
     identity: StoreSecurityScopeIdentity,
     receipt: StoreSecurityScopeAdmissionReceipt,
     counters: BackupExportCustodyCounterSnapshot,
@@ -21,8 +22,9 @@ impl BackupExportCustodyReadiness {
         admission: BackupExportCustodyAdmission,
     ) -> Result<Self, BackupExportCustodyDenial> {
         let counters = admission.counters();
+        let mode = admission.mode();
         let readiness = admission.into_readiness();
-        Self::from_admitted_readiness(readiness, counters)
+        Self::from_admitted_readiness(readiness, mode, counters)
     }
 
     pub fn from_s10_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
@@ -31,6 +33,7 @@ impl BackupExportCustodyReadiness {
 
     pub(crate) fn from_admitted_readiness(
         readiness: S51AdmittedSecurityScopeReadiness,
+        mode: Option<crate::BackupExportCustodyMode>,
         counters: BackupExportCustodyCounterSnapshot,
     ) -> Result<Self, BackupExportCustodyDenial> {
         reject_wrong_family(&readiness, counters)?;
@@ -41,6 +44,7 @@ impl BackupExportCustodyReadiness {
         reject_wrong_custody(identity, counters)?;
 
         Ok(Self {
+            mode,
             identity,
             receipt: readiness.receipt(),
             counters,
@@ -53,6 +57,19 @@ impl BackupExportCustodyReadiness {
 
     pub const fn custody_posture(&self) -> StoreCustodyPosture {
         self.identity.custody_posture()
+    }
+
+    pub const fn mode(&self) -> Option<crate::BackupExportCustodyMode> {
+        self.mode
+    }
+
+    pub const fn mode_label(&self) -> &'static str {
+        match self.mode {
+            Some(crate::BackupExportCustodyMode::Backup) => "backup",
+            Some(crate::BackupExportCustodyMode::PointInTimeRecovery) => "pitr",
+            Some(crate::BackupExportCustodyMode::Export) => "export",
+            None => "unspecified",
+        }
     }
 
     pub const fn counters(&self) -> BackupExportCustodyCounterSnapshot {

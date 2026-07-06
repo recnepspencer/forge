@@ -5,6 +5,9 @@ version.workspace = true
 license.workspace = true
 description = "Roadmap 1 tiering and durable working-set intelligence."
 
+[features]
+certification-test-authority = []
+
 [dependencies]
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true

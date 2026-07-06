@@ -79,10 +79,18 @@ pub struct PlanarBooleanOverlapRegionReplayParityReceipt {
 pub struct ComparePlanarBooleanOverlapRegionReplayParity;
 
 impl PlanarBooleanOverlapRegionReplayParityCounters {
-    pub fn compared_rows(self) -> usize { self.compared_rows }
-    pub fn rejected_replay_mismatches(self) -> usize { self.rejected_replay_mismatches }
-    fn compared_row(&mut self) { self.compared_rows += 1; }
-    pub(crate) fn rejected_replay_mismatch(&mut self) { self.rejected_replay_mismatches += 1; }
+    pub fn compared_rows(self) -> usize {
+        self.compared_rows
+    }
+    pub fn rejected_replay_mismatches(self) -> usize {
+        self.rejected_replay_mismatches
+    }
+    fn compared_row(&mut self) {
+        self.compared_rows += 1;
+    }
+    pub(crate) fn rejected_replay_mismatch(&mut self) {
+        self.rejected_replay_mismatches += 1;
+    }
 }
 
 impl PlanarBooleanOverlapRegionReplayParityDenial {
@@ -92,11 +100,20 @@ impl PlanarBooleanOverlapRegionReplayParityDenial {
         replayed_identity: impl Into<String>,
         counters: PlanarBooleanOverlapRegionReplayParityCounters,
     ) -> Self {
-        Self { kind, original_identity: original_identity.into(), replayed_identity: replayed_identity.into(), counters }
+        Self {
+            kind,
+            original_identity: original_identity.into(),
+            replayed_identity: replayed_identity.into(),
+            counters,
+        }
     }
 
-    pub fn kind(&self) -> PlanarBooleanOverlapRegionReplayParityDenialKind { self.kind }
-    pub fn counters(&self) -> PlanarBooleanOverlapRegionReplayParityCounters { self.counters }
+    pub fn kind(&self) -> PlanarBooleanOverlapRegionReplayParityDenialKind {
+        self.kind
+    }
+    pub fn counters(&self) -> PlanarBooleanOverlapRegionReplayParityCounters {
+        self.counters
+    }
 }
 
 impl<'a> PlanarBooleanOverlapRegionReplayParityInput<'a> {
@@ -107,7 +124,9 @@ impl<'a> PlanarBooleanOverlapRegionReplayParityInput<'a> {
         replayed_evidence_receipt: &'a PlanarBooleanOverlapRegionEvidenceReceipt,
         replay_receipts: &'a ReplayReceiptSet,
     ) -> Result<Self, PlanarBooleanOverlapRegionReplayParityDenial> {
-        if original_evidence_receipt.overlap_ledger_receipt_identity() != original_ledger_receipt.receipt_identity() {
+        if original_evidence_receipt.overlap_ledger_receipt_identity()
+            != original_ledger_receipt.receipt_identity()
+        {
             return Err(PlanarBooleanOverlapRegionReplayParityDenial::new(
                 PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapEvidenceMismatch,
                 original_ledger_receipt.receipt_identity(),
@@ -115,7 +134,9 @@ impl<'a> PlanarBooleanOverlapRegionReplayParityInput<'a> {
                 Default::default(),
             ));
         }
-        if replayed_evidence_receipt.overlap_ledger_receipt_identity() != replayed_ledger_receipt.receipt_identity() {
+        if replayed_evidence_receipt.overlap_ledger_receipt_identity()
+            != replayed_ledger_receipt.receipt_identity()
+        {
             return Err(PlanarBooleanOverlapRegionReplayParityDenial::new(
                 PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapEvidenceMismatch,
                 replayed_ledger_receipt.receipt_identity(),
@@ -123,27 +144,126 @@ impl<'a> PlanarBooleanOverlapRegionReplayParityInput<'a> {
                 Default::default(),
             ));
         }
-        Ok(Self { original_ledger_receipt, replayed_ledger_receipt, original_evidence_receipt, replayed_evidence_receipt, replay_receipts })
+        Ok(Self {
+            original_ledger_receipt,
+            replayed_ledger_receipt,
+            original_evidence_receipt,
+            replayed_evidence_receipt,
+            replay_receipts,
+        })
     }
 }
 
 impl ComparePlanarBooleanOverlapRegionReplayParity {
     pub fn compare(
         input: PlanarBooleanOverlapRegionReplayParityInput<'_>,
-    ) -> Result<PlanarBooleanOverlapRegionReplayParityReceipt, PlanarBooleanOverlapRegionReplayParityDenial> {
+    ) -> Result<
+        PlanarBooleanOverlapRegionReplayParityReceipt,
+        PlanarBooleanOverlapRegionReplayParityDenial,
+    > {
         let mut counters = PlanarBooleanOverlapRegionReplayParityCounters::default();
         let mut rows = Vec::new();
 
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::OverlapEvidenceReceipt, input.original_evidence_receipt.receipt_identity(), input.replayed_evidence_receipt.receipt_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapEvidenceMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::RequestIdentity, input.original_evidence_receipt.request_identity(), input.replayed_evidence_receipt.request_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::RequestIdentityMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessHandoff, input.original_evidence_receipt.readiness_handoff_identity(), input.replayed_evidence_receipt.readiness_handoff_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessHandoffMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessConsumer, input.original_evidence_receipt.readiness_consumer_identity(), input.replayed_evidence_receipt.readiness_consumer_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessConsumerMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessBinding, input.original_evidence_receipt.readiness_binding_identity(), input.replayed_evidence_receipt.readiness_binding_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessBindingMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::OverlapDecisionLog, input.original_evidence_receipt.overlap_decision_log_identity(), input.replayed_evidence_receipt.overlap_decision_log_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::DecisionLogMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::OverlapLedgerReceipt, input.original_ledger_receipt.receipt_identity(), input.replayed_ledger_receipt.receipt_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapLedgerMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::OverlapIdentityMap, input.original_evidence_receipt.overlap_region_identity_map_identity(), input.replayed_evidence_receipt.overlap_region_identity_map_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::IdentityMapMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::PersistentNamePropagationMap, input.original_evidence_receipt.persistent_name_propagation_map_identity(), input.replayed_evidence_receipt.persistent_name_propagation_map_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::PersistentNameMismatch, &mut counters, &mut rows)?;
-        compare_row(PlanarBooleanOverlapRegionReplayParityRowKind::SubshapeSignatureMap, input.original_evidence_receipt.subshape_signature_map_identity(), input.replayed_evidence_receipt.subshape_signature_map_identity(), PlanarBooleanOverlapRegionReplayParityDenialKind::SubshapeSignatureMismatch, &mut counters, &mut rows)?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::OverlapEvidenceReceipt,
+            input.original_evidence_receipt.receipt_identity(),
+            input.replayed_evidence_receipt.receipt_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapEvidenceMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::RequestIdentity,
+            input.original_evidence_receipt.request_identity(),
+            input.replayed_evidence_receipt.request_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::RequestIdentityMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessHandoff,
+            input.original_evidence_receipt.readiness_handoff_identity(),
+            input.replayed_evidence_receipt.readiness_handoff_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessHandoffMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessConsumer,
+            input
+                .original_evidence_receipt
+                .readiness_consumer_identity(),
+            input
+                .replayed_evidence_receipt
+                .readiness_consumer_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessConsumerMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::ReadinessBinding,
+            input.original_evidence_receipt.readiness_binding_identity(),
+            input.replayed_evidence_receipt.readiness_binding_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::ReadinessBindingMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::OverlapDecisionLog,
+            input
+                .original_evidence_receipt
+                .overlap_decision_log_identity(),
+            input
+                .replayed_evidence_receipt
+                .overlap_decision_log_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::DecisionLogMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::OverlapLedgerReceipt,
+            input.original_ledger_receipt.receipt_identity(),
+            input.replayed_ledger_receipt.receipt_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::OverlapLedgerMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::OverlapIdentityMap,
+            input
+                .original_evidence_receipt
+                .overlap_region_identity_map_identity(),
+            input
+                .replayed_evidence_receipt
+                .overlap_region_identity_map_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::IdentityMapMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::PersistentNamePropagationMap,
+            input
+                .original_evidence_receipt
+                .persistent_name_propagation_map_identity(),
+            input
+                .replayed_evidence_receipt
+                .persistent_name_propagation_map_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::PersistentNameMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
+        compare_row(
+            PlanarBooleanOverlapRegionReplayParityRowKind::SubshapeSignatureMap,
+            input
+                .original_evidence_receipt
+                .subshape_signature_map_identity(),
+            input
+                .replayed_evidence_receipt
+                .subshape_signature_map_identity(),
+            PlanarBooleanOverlapRegionReplayParityDenialKind::SubshapeSignatureMismatch,
+            &mut counters,
+            &mut rows,
+        )?;
 
         let checkpoint_receipt = ComparePlanarBooleanOverlapRegionCheckpointParity::compare(
             input.original_evidence_receipt,
@@ -162,10 +282,22 @@ impl ComparePlanarBooleanOverlapRegionReplayParity {
                 TruthDigestScope::ArtifactIdentity,
                 &[
                     "planar-boolean-overlap-region-replay-parity".to_string(),
-                    format!("evidence:{}", input.original_evidence_receipt.receipt_identity()),
-                    format!("request:{}", input.original_evidence_receipt.request_identity()),
-                    format!("binding:{}", input.original_evidence_receipt.readiness_binding_identity()),
-                    format!("ledger:{}", input.original_ledger_receipt.receipt_identity()),
+                    format!(
+                        "evidence:{}",
+                        input.original_evidence_receipt.receipt_identity()
+                    ),
+                    format!(
+                        "request:{}",
+                        input.original_evidence_receipt.request_identity()
+                    ),
+                    format!(
+                        "binding:{}",
+                        input.original_evidence_receipt.readiness_binding_identity()
+                    ),
+                    format!(
+                        "ledger:{}",
+                        input.original_ledger_receipt.receipt_identity()
+                    ),
                     format!("checkpoint:{}", checkpoint_receipt.checkpoint_identity()),
                 ],
             ),
@@ -203,12 +335,22 @@ fn compare_row(
 }
 
 impl PlanarBooleanOverlapRegionReplayParityRow {
-    pub fn kind(&self) -> PlanarBooleanOverlapRegionReplayParityRowKind { self.kind }
+    pub fn kind(&self) -> PlanarBooleanOverlapRegionReplayParityRowKind {
+        self.kind
+    }
 }
 
 impl PlanarBooleanOverlapRegionReplayParityReceipt {
-    pub fn replay_identity(&self) -> &str { &self.replay_identity }
-    pub fn checkpoint_receipt(&self) -> &PlanarBooleanOverlapRegionCheckpointParityReceipt { &self.checkpoint_receipt }
-    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionReplayParityRow] { &self.rows }
-    pub fn counters(&self) -> PlanarBooleanOverlapRegionReplayParityCounters { self.counters }
+    pub fn replay_identity(&self) -> &str {
+        &self.replay_identity
+    }
+    pub fn checkpoint_receipt(&self) -> &PlanarBooleanOverlapRegionCheckpointParityReceipt {
+        &self.checkpoint_receipt
+    }
+    pub fn rows(&self) -> &[PlanarBooleanOverlapRegionReplayParityRow] {
+        &self.rows
+    }
+    pub fn counters(&self) -> PlanarBooleanOverlapRegionReplayParityCounters {
+        self.counters
+    }
 }

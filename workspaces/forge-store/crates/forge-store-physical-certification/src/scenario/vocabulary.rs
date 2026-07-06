@@ -10,6 +10,7 @@ pub enum PhysicalSimulationScenarioFamily {
     S5FutureChunkStability,
     S5RestartDuringCutover,
     S6IoPressureHarness,
+    S7BlobHarnessSeed,
     ShortcutRejectionDogfood,
     FutureExtensionSlot,
 }
@@ -34,6 +35,7 @@ pub enum PhysicalScenarioIntent {
     S5FutureChunkStabilityOnly,
     S5RestartDuringCutover,
     S6IoPressureSimulation,
+    S7BlobHarnessSeed,
     ForbiddenShortcutRejectionShape,
     FutureExtensionSlot,
 }
@@ -257,128 +259,4 @@ pub enum PhysicalScenarioFaultKind {
     S6PageCachePressure,
     S6BackgroundPacingLateYield,
     FutureExtensionSlot,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PhysicalScenarioExpectation {
-    kind: PhysicalScenarioExpectationKind,
-    non_claims: Vec<PhysicalScenarioNonClaim>,
-}
-
-impl PhysicalScenarioExpectation {
-    pub fn s4_recovery_dogfood() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S4RecoveryDogfood,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn shortcut_rejection_dogfood() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::ShortcutRejectionDogfood,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn non_claiming_s5_readiness_shape() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S5ReadinessShapeProbe,
-            non_claims: vec![PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim],
-        }
-    }
-
-    pub fn non_claiming_s5_readiness_with_shortcut_rejection() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S5ReadinessWithShortcutRejectionProbe,
-            non_claims: vec![PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim],
-        }
-    }
-
-    pub fn non_claiming_s5_checkpoint_publication_crash_replay() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S5CheckpointPublicationCrashReplay,
-            non_claims: vec![PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim],
-        }
-    }
-
-    pub fn stable_read_plan_counter_contracts() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::StableReadPlanCounterContracts,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn stable_read_plan_transcript_replay() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::StableReadPlanTranscriptReplay,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn stable_read_plan_denial() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::StableReadPlanDenial,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn s5_physical_isolation_interleaving() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S5PhysicalIsolationInterleaving,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn s5_physical_isolation_denial() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S5PhysicalIsolationDenial,
-            non_claims: Vec::new(),
-        }
-    }
-
-    pub fn s6_io_pressure_simulation() -> Self {
-        Self {
-            kind: PhysicalScenarioExpectationKind::S6IoPressureSimulation,
-            non_claims: vec![PhysicalScenarioNonClaim::NoRealBackendSafetyQualification],
-        }
-    }
-
-    pub fn with_future_extension_non_claim(mut self) -> Self {
-        let non_claim = PhysicalScenarioNonClaim::FutureExtensionSlotDoesNotImplementFutureBehavior;
-        if !self.non_claims.contains(&non_claim) {
-            self.non_claims.push(non_claim);
-        }
-        self
-    }
-
-    pub const fn kind(&self) -> PhysicalScenarioExpectationKind {
-        self.kind
-    }
-
-    pub fn non_claims(&self) -> &[PhysicalScenarioNonClaim] {
-        &self.non_claims
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum PhysicalScenarioExpectationKind {
-    S4RecoveryDogfood,
-    S5ReadinessShapeProbe,
-    S5ReadinessWithShortcutRejectionProbe,
-    S5CheckpointPublicationCrashReplay,
-    StableReadPlanCounterContracts,
-    StableReadPlanTranscriptReplay,
-    StableReadPlanDenial,
-    S5PhysicalIsolationInterleaving,
-    S5PhysicalIsolationDenial,
-    S6IoPressureSimulation,
-    ShortcutRejectionDogfood,
-    FutureExtensionSlot,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum PhysicalScenarioNonClaim {
-    NoS5PhysicalIsolationCorrectnessClaim,
-    NoRealBackendSafetyQualification,
-    FutureExtensionSlotDoesNotImplementFutureBehavior,
 }

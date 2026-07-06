@@ -1,6 +1,7 @@
 use super::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
     NonAuthoritativePublicationDenial, PartialPublicationCounterSnapshot, TornPublicationDenial,
+    UnacknowledgedDurableWal,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +26,7 @@ pub enum RecoveredOrRejectedPartialPublication {
         counters: PartialPublicationCounterSnapshot,
     },
     ReplayableUnacknowledgedWal {
+        durable_wal: UnacknowledgedDurableWal,
         counters: PartialPublicationCounterSnapshot,
     },
     AcknowledgedWorkAwaitingPageFlush {
@@ -61,10 +63,17 @@ impl RecoveredOrRejectedPartialPublication {
         matches!(self, Self::ReplayableUnacknowledgedWal { .. })
     }
 
+    pub const fn replayable_durable_wal(&self) -> Option<&UnacknowledgedDurableWal> {
+        match self {
+            Self::ReplayableUnacknowledgedWal { durable_wal, .. } => Some(durable_wal),
+            _ => None,
+        }
+    }
+
     pub const fn counters(&self) -> PartialPublicationCounterSnapshot {
         match self {
             Self::NoRecoveredWork { counters }
-            | Self::ReplayableUnacknowledgedWal { counters }
+            | Self::ReplayableUnacknowledgedWal { counters, .. }
             | Self::AcknowledgedWorkAwaitingPageFlush { counters }
             | Self::RejectedTornPublication { counters, .. }
             | Self::RejectedNonAuthoritativePromotion { counters, .. }

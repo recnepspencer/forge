@@ -133,13 +133,6 @@ pub use crate::projection::planner_owned_routing::{
     TopologyMilestoneSevenFiveOverlapReadinessConsumer, TopologyMilestoneSevenFiveReadinessError,
     TopologyMilestoneSevenFiveReadinessErrorKind,
 };
-pub use crate::topology_operators::{
-    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
-    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
-    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
-    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
-    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
-};
 pub use crate::projection::query_backed_consumer_cutover::{
     admit_topology_query_backed_consumer_cutover, current_query_backed_consumer_residue_manifest,
     current_topology_query_backed_consumer_cutover, QueryBackedConsumerResidueDisposition,
@@ -322,6 +315,13 @@ pub use crate::topology_operators::{
     TopologyTouchedScope, TopologyWireRehomeHalfEdgeMember, TopologyWireSplitHalfEdgeMember,
     TOPOLOGY_OPERATOR_GRAPH_OBLIGATION_FAMILY, TOPOLOGY_OPERATOR_RELATION_COLLECTION,
     TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_OPERATION, TOPOLOGY_REWIRE_LOOP_SUCCESSOR_ASPECT_PATH,
+};
+pub use crate::topology_operators::{
+    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
+    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
+    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
+    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
 };
 pub use crate::touched_graph_parity_closeout::{
     current_topology_invalidation_coverage_contributor, TOPOLOGY_INVALIDATION_CLAIM_PATH,

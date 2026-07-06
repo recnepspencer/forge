@@ -82,30 +82,56 @@ macro_rules! impl_product_set {
                 }
             }
 
-            pub fn rows(&self) -> &[$row] { &self.rows }
-            pub fn set_identity(&self) -> &str { &self.set_identity }
-            pub fn request_identity(&self) -> &str { &self.request_identity }
-            pub fn arrangement_graph_identity(&self) -> &str { &self.arrangement_graph_identity }
-            pub fn cell_set_identity(&self) -> &str { &self.cell_set_identity }
-            pub fn ordering_basis_identity(&self) -> &str { &self.ordering_basis_identity }
+            pub fn rows(&self) -> &[$row] {
+                &self.rows
+            }
+            pub fn set_identity(&self) -> &str {
+                &self.set_identity
+            }
+            pub fn request_identity(&self) -> &str {
+                &self.request_identity
+            }
+            pub fn arrangement_graph_identity(&self) -> &str {
+                &self.arrangement_graph_identity
+            }
+            pub fn cell_set_identity(&self) -> &str {
+                &self.cell_set_identity
+            }
+            pub fn ordering_basis_identity(&self) -> &str {
+                &self.ordering_basis_identity
+            }
         }
     };
 }
 
-impl_product_set!(PlanarBooleanOverlapRegionCandidateSet, PlanarBooleanOverlapRegionCandidateRow);
-impl_product_set!(PlanarBooleanDeniedOverlapRegionCandidateSet, PlanarBooleanDeniedOverlapRegionCandidateRow);
-impl_product_set!(PlanarBooleanAdmittedOverlapRegionSet, PlanarBooleanAdmittedOverlapRegionRow);
-impl_product_set!(PlanarBooleanBoundaryOnlyOverlapOutcomeSet, PlanarBooleanBoundaryOnlyOverlapOutcomeRow);
+impl_product_set!(
+    PlanarBooleanOverlapRegionCandidateSet,
+    PlanarBooleanOverlapRegionCandidateRow
+);
+impl_product_set!(
+    PlanarBooleanDeniedOverlapRegionCandidateSet,
+    PlanarBooleanDeniedOverlapRegionCandidateRow
+);
+impl_product_set!(
+    PlanarBooleanAdmittedOverlapRegionSet,
+    PlanarBooleanAdmittedOverlapRegionRow
+);
+impl_product_set!(
+    PlanarBooleanBoundaryOnlyOverlapOutcomeSet,
+    PlanarBooleanBoundaryOnlyOverlapOutcomeRow
+);
 
 impl PlanarBooleanOverlapRegionCandidateBoundaryBundle {
     pub fn from_pre_region_normalization(
         pre_region_normalization: &PlanarBooleanPreRegionNormalizationBundle,
         shared_area_admission: &PlanarBooleanSharedAreaAdmissionBundle,
     ) -> Result<Self, PlanarBooleanOverlapRegionCandidateBoundaryDenial> {
-        Self::admit(PlanarBooleanOverlapRegionCandidateBoundaryInput::from_pre_region_normalization(
-            pre_region_normalization,
-            shared_area_admission,
-        ))
+        Self::admit(
+            PlanarBooleanOverlapRegionCandidateBoundaryInput::from_pre_region_normalization(
+                pre_region_normalization,
+                shared_area_admission,
+            ),
+        )
     }
 
     pub fn admit(
@@ -136,7 +162,9 @@ impl PlanarBooleanOverlapRegionCandidateBoundaryBundle {
         &self.overlap_region_candidates
     }
 
-    pub fn denied_overlap_region_candidates(&self) -> &PlanarBooleanDeniedOverlapRegionCandidateSet {
+    pub fn denied_overlap_region_candidates(
+        &self,
+    ) -> &PlanarBooleanDeniedOverlapRegionCandidateSet {
         &self.denied_overlap_region_candidates
     }
 

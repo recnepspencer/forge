@@ -17,6 +17,18 @@ pub enum S6ColdTierIoPostureDenial {
 }
 
 impl S6ColdTierIoPosture {
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub const fn for_certification_test_authority(
+        security_scope: StoreSecurityScopeIdentity,
+        counters: ReclaimPolicyCounterSnapshot,
+    ) -> Self {
+        Self {
+            interpretation: ReclaimedByteInterpretation::NonObservableReclaimedStorage,
+            security_scope,
+            counters,
+        }
+    }
+
     pub fn from_reclaim_receipt(
         receipt: ReclaimPolicyExecutionReceipt,
     ) -> Result<Self, S6ColdTierIoPostureDenial> {

@@ -157,11 +157,12 @@ pub use crate::evidence_identity::{
 pub use crate::integration_harness::public_bridge_hostile_certification::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
-    public_bridge_projection_artifacts_for_declarative_request,
-    public_bridge_projection_artifacts_for_canonical_bundle,
-    public_bridge_projection_artifacts_for_read_graph,
     public_bridge_hostile_published_artifact_component_digest,
-    public_bridge_hostile_title_projection_artifacts, PublicBridgeHostileCertificationComposeInput,
+    public_bridge_hostile_title_projection_artifacts,
+    public_bridge_projection_artifacts_for_canonical_bundle,
+    public_bridge_projection_artifacts_for_declarative_request,
+    public_bridge_projection_artifacts_for_read_graph,
+    PublicBridgeHostileCertificationComposeInput,
 };
 pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionMutationProofCase, ForgeQueryIntentAdmissionSlopeLane,

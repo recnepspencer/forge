@@ -1,29 +1,27 @@
-use forge_store_readiness::{S6LaterMilestoneDestination, S7PlacementReadinessNonClaim};
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
-    blob_lifecycle_authority::BlobLifecyclePlacementReadiness, BlobChunkSecurityMetadataWitness,
-    BlobReachabilityProof, StoredChunkDigest,
+    AdmittedBlobPlacement, BlobChunkSecurityMetadataWitness, BlobPlacementClass,
+    BlobPlacementCounterSnapshot, BlobPlacementNonClaim, StoredChunkDigest,
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlobPlacementProof {
     stored_digest: StoredChunkDigest,
     security_metadata: BlobChunkSecurityMetadataWitness,
-    destination: S6LaterMilestoneDestination,
-    s6_non_claims: [S7PlacementReadinessNonClaim; 3],
+    class: BlobPlacementClass,
+    counters: BlobPlacementCounterSnapshot,
+    non_claims: [BlobPlacementNonClaim; 3],
 }
 
 impl BlobPlacementProof {
-    pub(crate) fn from_reachability_and_placement_readiness(
-        reachability: &BlobReachabilityProof,
-        readiness: BlobLifecyclePlacementReadiness,
-    ) -> Self {
+    pub(crate) fn from_admitted_placement(placement: &AdmittedBlobPlacement) -> Self {
         Self {
-            stored_digest: reachability.stored_digest().clone(),
-            security_metadata: reachability.security_metadata(),
-            destination: readiness.destination(),
-            s6_non_claims: *readiness.s6_non_claims(),
+            stored_digest: placement.stored_digest().clone(),
+            security_metadata: placement.security_metadata(),
+            class: placement.class(),
+            counters: placement.counters(),
+            non_claims: *placement.non_claims(),
         }
     }
 
@@ -39,11 +37,15 @@ impl BlobPlacementProof {
         self.security_metadata
     }
 
-    pub const fn destination(&self) -> S6LaterMilestoneDestination {
-        self.destination
+    pub const fn placement_class(&self) -> BlobPlacementClass {
+        self.class
     }
 
-    pub const fn s6_non_claims(&self) -> &[S7PlacementReadinessNonClaim; 3] {
-        &self.s6_non_claims
+    pub const fn counters(&self) -> BlobPlacementCounterSnapshot {
+        self.counters
+    }
+
+    pub const fn non_claims(&self) -> &[BlobPlacementNonClaim; 3] {
+        &self.non_claims
     }
 }

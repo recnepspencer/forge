@@ -19,7 +19,7 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 pub(crate) fn canonical_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
@@ -90,7 +90,7 @@ fn synthetic_chain_lineage_map(
 
 fn canonical_bundle(
     arrangement: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph,
-) -> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanPostAdmissionNormalizationBundle {
+) -> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanPostAdmissionNormalizationBundle{
     let shared_area_bundle = admitted_shared_area_bundle(arrangement);
     let pre_region_bundle = PlanarBooleanPreRegionNormalizationBundle::from_shared_area_admission(
         &shared_area_bundle,
@@ -139,7 +139,10 @@ pub(super) fn missing_signature_bundle(
         bundle.persistent_name_propagation_map().clone(),
         PlanarBooleanOverlapRegionSubshapeSignatureMap::new(
             "synthetic-empty-signature-map".to_string(),
-            bundle.subshape_signature_map().request_identity().to_string(),
+            bundle
+                .subshape_signature_map()
+                .request_identity()
+                .to_string(),
             Vec::new(),
         ),
         bundle.source_post_admission_normalization().clone(),
@@ -154,10 +157,19 @@ pub(super) fn foreign_lineage_bundle(
     PlanarBooleanOverlapRegionIdentityLineageBundle::new(
         "synthetic-foreign-lineage-bundle".to_string(),
         PlanarBooleanOverlapRegionIdentityMap::new(
-            bundle.overlap_region_identity_map().map_identity().to_string(),
-            bundle.overlap_region_identity_map().request_identity().to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .map_identity()
+                .to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .request_identity()
+                .to_string(),
             "synthetic-foreign-arrangement".to_string(),
-            bundle.overlap_region_identity_map().cell_set_identity().to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .cell_set_identity()
+                .to_string(),
             bundle
                 .overlap_region_identity_map()
                 .ordering_basis_identity()
@@ -195,13 +207,22 @@ pub(super) fn synthetic_identity_row_bundle(
     PlanarBooleanOverlapRegionIdentityLineageBundle::new(
         "synthetic-overlap-row-bundle".to_string(),
         PlanarBooleanOverlapRegionIdentityMap::new(
-            bundle.overlap_region_identity_map().map_identity().to_string(),
-            bundle.overlap_region_identity_map().request_identity().to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .map_identity()
+                .to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .request_identity()
+                .to_string(),
             bundle
                 .overlap_region_identity_map()
                 .arrangement_graph_identity()
                 .to_string(),
-            bundle.overlap_region_identity_map().cell_set_identity().to_string(),
+            bundle
+                .overlap_region_identity_map()
+                .cell_set_identity()
+                .to_string(),
             bundle
                 .overlap_region_identity_map()
                 .ordering_basis_identity()

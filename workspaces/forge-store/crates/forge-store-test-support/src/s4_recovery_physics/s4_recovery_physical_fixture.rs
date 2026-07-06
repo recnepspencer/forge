@@ -1,0 +1,202 @@
+use forge_store_buffer_pool::{
+    BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameLoadRequest,
+    ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
+};
+use forge_store_physical_format::{
+    PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness,
+    PhysicalPageId, PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalRootManifest,
+    PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
+};
+use forge_store_physical_integrity::ProtectedPhysicalByteView;
+
+use super::s4_recovery_readiness_fixture::s2_readiness;
+
+pub(super) fn with_protected_payload_view(
+    payload: &[u8],
+    run: impl FnOnce(ProtectedPhysicalByteView<'_>),
+) {
+    let mut table = resident_frame_table();
+    let frame = admit_payload_frame(&mut table, 7, 2, payload);
+    let lease = table.lease_page(frame.resident_frame_token()).unwrap();
+    let pinned = lease.pin().unwrap();
+    let view = pinned.view().unwrap();
+    run(ProtectedPhysicalByteView::from_pinned_frame(&view));
+}
+
+pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
+    let records = forge_store_physical_format::PhysicalPageRecordAuthority::s1(header_authority());
+    let cell = page_cell(1, 2, 7);
+    let empty = page_bytes(7, &[]);
+    let header = records
+        .decode_record_page_header(cell, &empty, PhysicalPageKind::DataPage)
+        .unwrap();
+    let admitted = records
+        .admit_record_page_payload(&empty, header.witness())
+        .unwrap();
+    records
+        .append_record(
+            admitted,
+            forge_store_physical_format::SlotAppendRequest::ordinary(
+                slot_cell(1, 2, 3, 7),
+                payload,
+            ),
+        )
+        .unwrap()
+        .page_payload()
+        .to_vec()
+}
+
+pub(super) fn root_with_slot(
+    segment: u64,
+    page: u64,
+    slot: u64,
+    generation: u64,
+) -> PhysicalRootManifest {
+    forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root_publication(99))
+        .segment(segment_cell(segment))
+        .ordinary_page(slot_cell(segment, page, slot, generation))
+        .publish()
+}
+
+pub(super) fn validation(
+    segment: u64,
+    page: u64,
+    slot: u64,
+    generation: u64,
+) -> PhysicalReferenceValidationWitness {
+    let references = PhysicalReferenceAuthority::s1();
+    let cell = slot_cell(segment, page, slot, generation);
+    references
+        .validate_page_slot(references.admit_page_slot(cell), cell)
+        .unwrap()
+}
+
+pub(super) fn page_witness(
+    payload: &[u8],
+    cell: PageGenerationCell,
+) -> PhysicalHeaderDecodeWitness {
+    header_authority()
+        .decode_page_header(
+            cell,
+            &page_bytes(cell.generation().get(), payload),
+            PhysicalPageKind::DataPage,
+        )
+        .unwrap()
+        .witness()
+}
+
+pub(super) fn frame_witness(
+    payload: &[u8],
+    validation: PhysicalReferenceValidationWitness,
+) -> PhysicalHeaderDecodeWitness {
+    header_authority()
+        .decode_frame_header(
+            validation,
+            &frame_bytes(validation.owner().generation().get(), payload),
+            PhysicalFrameKind::RecordFrame,
+        )
+        .unwrap()
+        .witness()
+}
+
+pub(super) fn page_cell(segment: u64, page: u64, generation: u64) -> PageGenerationCell {
+    PhysicalGenerationAuthority::s1()
+        .page_cell(segment_id(segment), page_id(page))
+        .with_page_generation(physical_generation(generation))
+}
+
+pub(super) fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {
+    PhysicalGenerationAuthority::s1()
+        .slot_cell(segment_id(segment), page_id(page), record_slot(slot))
+        .with_slot_generation(physical_generation(generation))
+}
+
+fn resident_frame_table() -> ResidentFrameTable {
+    let admitted = S2PhysicalResidencyEntry::from_s1_readiness(s2_readiness())
+        .unwrap()
+        .with_budget(BufferPoolBudget::declare(
+            ResidentMemoryBudget::bytes(8192).unwrap(),
+            PinnedPageBudget::pages(4).unwrap(),
+            DirtyPageBudget::pages(1).unwrap(),
+        ))
+        .admit()
+        .unwrap();
+    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
+}
+
+fn admit_payload_frame(
+    table: &mut ResidentFrameTable,
+    generation: u64,
+    page: u64,
+    payload: &[u8],
+) -> forge_store_buffer_pool::ResidentFrameAdmission {
+    let frame = frame_bytes(generation, payload);
+    let request = ResidentFrameLoadRequest::from_s1_physical_frame(
+        validation(1, page, 3, generation),
+        frame_witness(payload, validation(1, page, 3, generation)),
+    )
+    .unwrap();
+    let view = header_authority()
+        .payload_view(&frame, request.header())
+        .unwrap();
+    table.admit_resident_frame_bytes(request, view).unwrap()
+}
+
+fn header_authority() -> PhysicalHeaderAuthority {
+    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+}
+
+fn segment_cell(segment: u64) -> forge_store_physical_format::SegmentGenerationCell {
+    PhysicalGenerationAuthority::s1()
+        .segment_cell(segment_id(segment))
+        .with_segment_generation(physical_generation(1))
+}
+
+fn root_publication(root: u64) -> forge_store_physical_format::RootPublicationCell {
+    PhysicalGenerationAuthority::s1()
+        .root_publication_cell(PhysicalRootReference::from_raw(root).unwrap())
+        .with_root_publication_generation(physical_generation(1))
+}
+
+fn frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
+    bytes.push(PhysicalFrameKind::RecordFrame.tag());
+    write_header_tail(&mut bytes, generation, payload);
+    bytes
+}
+
+fn page_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
+    bytes.push(PhysicalPageKind::DataPage.tag());
+    write_header_tail(&mut bytes, generation, payload);
+    bytes
+}
+
+fn write_header_tail(bytes: &mut Vec<u8>, generation: u64, payload: &[u8]) {
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&PHYSICAL_HEADER_LENGTH.to_le_bytes());
+    bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+    bytes.extend_from_slice(&generation.to_le_bytes());
+    bytes.push(PhysicalPublicationState::Published.code());
+    bytes.extend_from_slice(&0u32.to_le_bytes());
+    bytes.extend_from_slice(&0u64.to_le_bytes());
+    bytes.extend_from_slice(payload);
+}
+
+fn segment_id(value: u64) -> PhysicalSegmentId {
+    PhysicalSegmentId::from_raw(value).unwrap()
+}
+
+fn page_id(value: u64) -> PhysicalPageId {
+    PhysicalPageId::from_raw(value).unwrap()
+}
+
+fn record_slot(value: u64) -> PhysicalRecordSlot {
+    PhysicalRecordSlot::from_raw(value as u16).unwrap()
+}
+
+fn physical_generation(value: u64) -> PhysicalGeneration {
+    PhysicalGeneration::from_raw(value).unwrap()
+}

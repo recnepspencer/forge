@@ -36,7 +36,10 @@ fn missing_required_operator_is_rejected() {
 #[test]
 fn unnamed_helper_operator_is_rejected() {
     let registry = PlanarBooleanOverlapBlueprintRegistry::phase_2();
-    let mut operators = registry.operator_classification_matrix().operators().to_vec();
+    let mut operators = registry
+        .operator_classification_matrix()
+        .operators()
+        .to_vec();
     operators.push(PlanarBooleanOverlapOperatorRow::new(
         "LocalOverlapHelper",
         Class::PreparedSpatialOnly,

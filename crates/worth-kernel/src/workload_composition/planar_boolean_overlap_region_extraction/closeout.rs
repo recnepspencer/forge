@@ -1,14 +1,13 @@
 use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityReadinessInput;
 use topology::facade::{
-    PlanarBooleanOverlapOperatorClassificationMatrix, PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapOperatorClassificationMatrix,
+    PlanarBooleanOverlapValidatorRegistrationPlan,
     TopologyMilestoneSevenFiveOverlapReadinessConsumer,
 };
 use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
-    ComparePlanarBooleanOverlapRegionReplayParity,
-    PlanarBooleanOverlapRegionEvidenceInput,
-    PlanarBooleanOverlapRegionEvidenceReceipt,
-    PlanarBooleanOverlapRegionExtractionRequest, PlanarBooleanOverlapRegionLedgerAssemblyBundle,
-    PlanarBooleanOverlapRegionLedgerReceipt,
+    ComparePlanarBooleanOverlapRegionReplayParity, PlanarBooleanOverlapRegionEvidenceInput,
+    PlanarBooleanOverlapRegionEvidenceReceipt, PlanarBooleanOverlapRegionExtractionRequest,
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle, PlanarBooleanOverlapRegionLedgerReceipt,
     PlanarBooleanOverlapRegionReplayParityInput,
 };
 use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
@@ -19,9 +18,8 @@ use crate::workload_composition::{
 
 use super::{
     CompletedPlanarBooleanOverlapRegionExtractionHandoff,
-    PlanarBooleanOverlapReplayCertifiedPeer,
     PlanarBooleanOverlapRegionAntiTheatreFenceProof,
-    PlanarBooleanOverlapRegionPublicContractFenceProof,
+    PlanarBooleanOverlapRegionPublicContractFenceProof, PlanarBooleanOverlapReplayCertifiedPeer,
     PlanarBooleanOverlapRuntimeRegistrationProof,
 };
 
@@ -64,7 +62,8 @@ impl CompletedBooleanLoopReconstructionHandoff {
     pub fn complete_planar_boolean_overlap_region_extraction(
         &self,
         input: PlanarBooleanOverlapRegionCloseoutInput<'_>,
-    ) -> Result<CompletedPlanarBooleanOverlapRegionExtractionHandoff, WorkloadCompositionError> {
+    ) -> Result<CompletedPlanarBooleanOverlapRegionExtractionHandoff, WorkloadCompositionError>
+    {
         self.require_boolean_loop_reconstruction()?;
         if input
             .overlap_request
@@ -76,13 +75,16 @@ impl CompletedBooleanLoopReconstructionHandoff {
                 "overlap closeout requires the request readiness binding to consume the completed loop-ledger receipt".to_string(),
             ));
         }
-        let replay_certified_peer = PlanarBooleanOverlapReplayCertifiedPeer::certify_from_loop_handoffs(
-            self,
-            input.replayed_loop_handoff,
-            input.readiness_consumer,
-            input.replay_receipts,
-        )
-        .map_err(|denial| WorkloadCompositionError::OverlapRegionCloseout(format!("{denial:?}")))?;
+        let replay_certified_peer =
+            PlanarBooleanOverlapReplayCertifiedPeer::certify_from_loop_handoffs(
+                self,
+                input.replayed_loop_handoff,
+                input.readiness_consumer,
+                input.replay_receipts,
+            )
+            .map_err(|denial| {
+                WorkloadCompositionError::OverlapRegionCloseout(format!("{denial:?}"))
+            })?;
         let evidence_receipt = PlanarBooleanOverlapRegionEvidenceReceipt::admit(
             PlanarBooleanOverlapRegionEvidenceInput::from_readiness_and_request_and_ledger(
                 input.readiness,
@@ -127,13 +129,16 @@ impl CompletedBooleanLoopReconstructionHandoff {
             input.operator_matrix,
             input.validator_plan,
         )?;
-        let public_contract_fence_proof = PlanarBooleanOverlapRegionPublicContractFenceProof::certify(
-            input.overlap_ledger_bundle.receipt(),
-            &evidence_receipt,
-            &runtime_registration_proof,
-            &completed_workload,
-        )
-        .map_err(|denial| WorkloadCompositionError::OverlapRegionCloseout(format!("{denial:?}")))?;
+        let public_contract_fence_proof =
+            PlanarBooleanOverlapRegionPublicContractFenceProof::certify(
+                input.overlap_ledger_bundle.receipt(),
+                &evidence_receipt,
+                &runtime_registration_proof,
+                &completed_workload,
+            )
+            .map_err(|denial| {
+                WorkloadCompositionError::OverlapRegionCloseout(format!("{denial:?}"))
+            })?;
         let anti_theatre_fence_proof = PlanarBooleanOverlapRegionAntiTheatreFenceProof::certify(
             &evidence_receipt,
             &public_contract_fence_proof,

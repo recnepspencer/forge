@@ -11,8 +11,10 @@ use crate::blob_chunk_test_support::{
 };
 use crate::{
     BlobChunkCanonicalComparisonBasis, BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial,
-    BlobChunkSecurityScope, BlobChunkSecurityScopeDenial, BlobChunkStreamingDenial,
-    BlobChunkStreamingOperation, BlobChunkStreamingOperationKind, BlobChunkStreamingResidencyProof,
+    BlobChunkDedupeCollisionPosture, BlobChunkDedupePolicy, BlobChunkDedupeReclaimDecision,
+    BlobChunkDedupeReferenceRegistry, BlobChunkDedupeShareClaim, BlobChunkSecurityScope,
+    BlobChunkSecurityScopeDenial, BlobChunkStreamingDenial, BlobChunkStreamingOperation,
+    BlobChunkStreamingOperationKind, BlobChunkStreamingResidencyProof,
 };
 
 #[test]
@@ -138,6 +140,52 @@ fn same_scope_dedupe_requires_candidate_derived_foundational_equivalence() {
             && counters.digest_only_denials() == 1
     ));
 
+    let share_claim = same_scope_dedupe_claim();
+    let counters = share_claim.counters();
+    assert_eq!(counters.digest_comparisons(), 1);
+    assert_eq!(counters.foundational_equivalence_comparisons(), 1);
+    assert_eq!(
+        share_claim.policy(),
+        BlobChunkDedupePolicy::SameTenantSameKeyScope
+    );
+    assert_eq!(
+        share_claim.collision_posture(),
+        BlobChunkDedupeCollisionPosture::VerifiedEquivalent
+    );
+    assert_eq!(counters.same_scope_admissions(), 1);
+    assert_eq!(counters.dedupe_hits(), 1);
+    assert_eq!(counters.reference_edges_admitted(), 1);
+    let shared_identity = share_claim.existing_identity().clone();
+    let first_candidate = share_claim.candidate_identity().clone();
+    let metadata = share_claim.security_metadata();
+    let mut registry = BlobChunkDedupeReferenceRegistry::new_store_owned();
+    share_claim
+        .admit_into_reference_registry(&mut registry)
+        .expect("receipt admits into Store reference registry");
+    same_scope_dedupe_claim()
+        .admit_into_reference_registry(&mut registry)
+        .expect("second receipt admits into Store reference registry");
+    assert_eq!(registry.live_edges_for(&shared_identity, metadata), Some(2));
+    assert!(matches!(
+        registry.reclaim_decision_for(&shared_identity, metadata),
+        Some(BlobChunkDedupeReclaimDecision::ReclaimDenied(counters))
+            if counters.reclaim_blocked_by_reference_edges() == 1
+    ));
+    registry
+        .deny_candidate_edge_for(&shared_identity, &first_candidate, metadata)
+        .expect("one admitted edge can be denied without releasing all");
+    assert!(matches!(
+        registry.reclaim_decision_for(&shared_identity, metadata),
+        Some(BlobChunkDedupeReclaimDecision::ReclaimDenied(counters))
+            if counters.reclaim_blocked_by_reference_edges() == 1
+    ));
+    let release = registry
+        .deny_all_edges_for(&shared_identity, metadata)
+        .expect("tracked shared identity can release all denied edges");
+    assert_eq!(release.released_edges(), 2);
+    assert_eq!(release.counters().reference_edges_denied(), 2);
+}
+fn same_scope_dedupe_claim() -> BlobChunkDedupeShareClaim {
     let existing = candidate_for_scope(blob_scope(
         "store.s51.blob.same_scope",
         StoreTenantScope::TenantPhysicalBoundary,
@@ -147,22 +195,40 @@ fn same_scope_dedupe_requires_candidate_derived_foundational_equivalence() {
         StoreTenantScope::TenantPhysicalBoundary,
     ));
     let equivalence = canonical_equivalence(&existing, &candidate);
-    let admitted = BlobChunkDedupeAdmission::compare_candidates(existing, candidate)
+    match BlobChunkDedupeAdmission::compare_candidates(existing, candidate)
         .with_foundational_canonical_equivalence(equivalence)
-        .admit();
-
-    let share_claim = match admitted {
+        .admit()
+    {
         TransitionOutcome::Success(claim) => claim,
         outcome => panic!("same-scope canonical equivalence should admit: {outcome:?}"),
-    };
-    assert_eq!(share_claim.counters().digest_comparisons(), 1);
-    assert_eq!(
-        share_claim
-            .counters()
-            .foundational_equivalence_comparisons(),
-        1
-    );
-    assert_eq!(share_claim.counters().same_scope_admissions(), 1);
+    }
+}
+#[test]
+fn explicit_dedupe_policy_can_deny_otherwise_equivalent_same_scope_chunks() {
+    let existing = candidate_for_scope(blob_scope(
+        "store.s51.blob.policy",
+        StoreTenantScope::TenantPhysicalBoundary,
+    ));
+    let candidate = candidate_for_scope(blob_scope(
+        "store.s51.blob.policy",
+        StoreTenantScope::TenantPhysicalBoundary,
+    ));
+    let equivalence = canonical_equivalence(&existing, &candidate);
+
+    match BlobChunkDedupeAdmission::compare_candidates(existing, candidate)
+        .with_foundational_canonical_equivalence(equivalence)
+        .with_policy(BlobChunkDedupePolicy::NoDedupe)
+        .admit()
+    {
+        TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::DedupePolicyDenied {
+            policy,
+            counters,
+        }) => {
+            assert_eq!(policy, BlobChunkDedupePolicy::NoDedupe);
+            assert_eq!(counters.dedupe_misses(), 1);
+        }
+        other => panic!("explicit no-dedupe policy must deny sharing: {other:?}"),
+    }
 }
 
 #[test]

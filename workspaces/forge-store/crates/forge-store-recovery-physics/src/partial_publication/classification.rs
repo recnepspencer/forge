@@ -14,6 +14,7 @@ pub struct PartialPublicationClassification {
     recovered_or_rejected: RecoveredOrRejectedPartialPublication,
     counters: PartialPublicationCounterSnapshot,
     classification_digest: String,
+    before_wal_append_operation_digest: Option<String>,
 }
 
 impl PartialPublicationClassification {
@@ -79,6 +80,10 @@ impl PartialPublicationClassification {
         &self.classification_digest
     }
 
+    pub fn before_wal_append_operation_digest(&self) -> Option<&str> {
+        self.before_wal_append_operation_digest.as_deref()
+    }
+
     pub fn recover_or_reject_without_live_ack_memory(
         self,
     ) -> RecoveredOrRejectedPartialPublication {
@@ -92,23 +97,29 @@ fn classify_persisted_crash_edge(
 ) -> PartialPublicationClassification {
     let counters = PartialPublicationCounterSnapshot::default().with_observed_crash_edge();
     match edge {
-        PartialPublicationCrashEdge::BeforeWalAppend { .. } => classification(
-            UnacknowledgedPublicationOutcome::NoWalAppendObserved,
-            RecoveredOrRejectedPartialPublication::NoRecoveredWork { counters },
-            counters,
-            digest,
-        ),
+        PartialPublicationCrashEdge::BeforeWalAppend { operation_digest } => {
+            classification_with_before_wal_operation_digest(
+                UnacknowledgedPublicationOutcome::NoWalAppendObserved,
+                RecoveredOrRejectedPartialPublication::NoRecoveredWork { counters },
+                counters,
+                digest,
+                operation_digest.clone(),
+            )
+        }
         PartialPublicationCrashEdge::AfterWalAppendBeforeDurability { .. } => classification(
             UnacknowledgedPublicationOutcome::WalAppendedButNotDurable,
             RecoveredOrRejectedPartialPublication::NoRecoveredWork { counters },
             counters,
             digest,
         ),
-        PartialPublicationCrashEdge::AfterDurabilityBeforeAck { .. } => {
+        PartialPublicationCrashEdge::AfterDurabilityBeforeAck { durable_wal } => {
             let counters = counters.with_replayable_unacknowledged_wal();
             classification(
                 UnacknowledgedPublicationOutcome::DurableWalReplayable,
-                RecoveredOrRejectedPartialPublication::ReplayableUnacknowledgedWal { counters },
+                RecoveredOrRejectedPartialPublication::ReplayableUnacknowledgedWal {
+                    durable_wal: durable_wal.clone(),
+                    counters,
+                },
                 counters,
                 digest,
             )
@@ -266,5 +277,22 @@ fn classification(
         recovered_or_rejected,
         counters,
         classification_digest: format!("{outcome:?}:{digest}"),
+        before_wal_append_operation_digest: None,
+    }
+}
+
+fn classification_with_before_wal_operation_digest(
+    outcome: UnacknowledgedPublicationOutcome,
+    recovered_or_rejected: RecoveredOrRejectedPartialPublication,
+    counters: PartialPublicationCounterSnapshot,
+    digest: &str,
+    operation_digest: String,
+) -> PartialPublicationClassification {
+    PartialPublicationClassification {
+        outcome,
+        recovered_or_rejected,
+        counters,
+        classification_digest: format!("{outcome:?}:{digest}"),
+        before_wal_append_operation_digest: Some(operation_digest),
     }
 }

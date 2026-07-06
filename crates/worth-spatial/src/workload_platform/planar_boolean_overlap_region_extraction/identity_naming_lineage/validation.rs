@@ -34,12 +34,16 @@ pub(super) fn validate_input_identities(
     Ok(())
 }
 
-pub(super) fn canonical_signature_basis(row: &PlanarBooleanOverlapRegionCanonicalWindingRow) -> String {
+pub(super) fn canonical_signature_basis(
+    row: &PlanarBooleanOverlapRegionCanonicalWindingRow,
+) -> String {
     let mut parts = vec![
         row.canonical_winding_identity().to_string(),
         row.island_identity().to_string(),
         row.neighborhood_identity().to_string(),
-        row.area_overlap_component_identity().unwrap_or("boundary-only").to_string(),
+        row.area_overlap_component_identity()
+            .unwrap_or("boundary-only")
+            .to_string(),
     ];
     parts.extend(row.canonical_boundary_segment_identities().iter().cloned());
     parts.extend(row.canonical_source_loop_identities().iter().cloned());
@@ -82,7 +86,9 @@ pub(super) fn validate_persistent_name_rows(
     let mut names_to_regions = BTreeMap::<&str, Vec<&str>>::new();
 
     for row in rows {
-        if row.persistent_name_identity().is_empty() || !valid_region_identities.contains(row.region_identity()) {
+        if row.persistent_name_identity().is_empty()
+            || !valid_region_identities.contains(row.region_identity())
+        {
             counters.denied_row();
             return Err(PlanarBooleanOverlapRegionIdentityLineageDenial::new(
                 PlanarBooleanOverlapRegionIdentityLineageDenialKind::DanglingPersistentNameReferenceDenied,

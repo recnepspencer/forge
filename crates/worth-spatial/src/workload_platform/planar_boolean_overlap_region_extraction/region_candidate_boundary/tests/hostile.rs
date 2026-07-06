@@ -1,7 +1,6 @@
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
     PlanarBooleanDeniedOverlapRegionCandidateKind::{
-        ContradictoryPromotionPostureDenied,
-        MissingNormalizationDenied,
+        ContradictoryPromotionPostureDenied, MissingNormalizationDenied,
         MixedBoundaryAreaRequiresFurtherDecompositionDenied,
     },
     PlanarBooleanOverlapRegionCandidateBoundaryDenialKind,

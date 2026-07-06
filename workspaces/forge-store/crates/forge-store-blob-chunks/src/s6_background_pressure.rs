@@ -4,6 +4,7 @@ use forge_store_contracts::{S6BackgroundPressureDeclaration, S6BackgroundPressur
 pub enum BlobBackgroundPressureKind {
     Ingest,
     Migration,
+    Compaction,
 }
 
 pub const fn blob_ingest_background_pressure_shape(bytes: u64) -> S6BackgroundPressureDeclaration {
@@ -16,10 +17,15 @@ pub const fn blob_migration_background_pressure_shape(
     S6BackgroundPressureDeclaration::blob_migration_pressure(bytes)
 }
 
+pub const fn blob_compaction_background_pressure_shape() -> S6BackgroundPressureDeclaration {
+    S6BackgroundPressureDeclaration::compaction_rewrite()
+}
+
 pub const fn blob_background_pressure_kind(
     declaration: S6BackgroundPressureDeclaration,
 ) -> Option<BlobBackgroundPressureKind> {
     match declaration.kind() {
+        S6BackgroundPressureKind::CompactionRewrite => Some(BlobBackgroundPressureKind::Compaction),
         S6BackgroundPressureKind::BlobIngestPressure => Some(BlobBackgroundPressureKind::Ingest),
         S6BackgroundPressureKind::BlobMigrationPressure => {
             Some(BlobBackgroundPressureKind::Migration)

@@ -23,6 +23,9 @@ pub enum BlobLifecycleDenial {
     DeclarationPlacementDigestMismatch {
         counters: BlobLifecycleCounterSnapshot,
     },
+    PlacementReachabilityBasisMismatch {
+        counters: BlobLifecycleCounterSnapshot,
+    },
 }
 
 pub const fn reject_copied_digest_string_as_lifecycle_receipt(_: &str) -> BlobLifecycleDenial {

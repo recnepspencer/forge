@@ -14,7 +14,9 @@ use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_fo
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::{
+    admitted_store_internal_security_scope_for_s6_test, StoreSecurityScopeIdentity,
+};
 
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_s5_1_security_scope_for_s6_io_qos,
@@ -24,10 +26,10 @@ use crate::{
 
 use super::{
     admit_foreground_reservation, admit_foreground_reservation_capacity, BandwidthToken,
-    CacheResidencyHint, ForegroundArbitrationDeclaration, ForegroundLaneDeclaration,
-    ForegroundLatencyEnvelope, ForegroundReservationAdmissionRequest,
+    CacheResidencyHint, DirtyPageBudget, FlushPermit, ForegroundArbitrationDeclaration,
+    ForegroundLaneDeclaration, ForegroundLatencyEnvelope, ForegroundReservationAdmissionRequest,
     ForegroundReservationCapacityAdmissionRequest, ForegroundReservationReceipt,
-    ForegroundResourceBudget, QueueSlot, ReadAheadWindow, WorkerPermit,
+    ForegroundResourceBudget, QueueSlot, ReadAheadWindow, SyncDebt, WorkerPermit, WriteBackWindow,
 };
 
 pub fn admitted_point_read_reservation_for_certification_test() -> ForegroundReservationReceipt {
@@ -41,6 +43,22 @@ pub fn admitted_point_read_reservation_for_certification_test() -> ForegroundRes
     )
 }
 
+pub fn admitted_point_read_reservation_for_security_scope_for_certification_test(
+    security_scope_identity: StoreSecurityScopeIdentity,
+) -> ForegroundReservationReceipt {
+    let receipt = admitted_point_read_reservation_for_certification_test();
+    ForegroundReservationReceipt::admitted(
+        receipt.lane(),
+        receipt.backend_requirement(),
+        receipt.backend_profile(),
+        receipt.backend_evidence_class(),
+        receipt.envelope(),
+        receipt.arbitration(),
+        receipt.counters(),
+        security_scope_identity,
+    )
+}
+
 pub fn admitted_range_read_reservation_for_certification_test() -> ForegroundReservationReceipt {
     admitted_reservation_for_certification_test(
         ForegroundLaneDeclaration::range_read()
@@ -49,6 +67,28 @@ pub fn admitted_range_read_reservation_for_certification_test() -> ForegroundRes
                 2,
             ))
             .with_budget(point_read_budget()),
+    )
+}
+
+pub fn admitted_wal_write_reservation_for_certification_test() -> ForegroundReservationReceipt {
+    admitted_reservation_for_certification_test(
+        ForegroundLaneDeclaration::commit_critical_wal_write()
+            .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
+                "certification-wal-write",
+                2,
+            ))
+            .with_budget(wal_write_budget()),
+    )
+}
+
+pub fn admitted_page_write_reservation_for_certification_test() -> ForegroundReservationReceipt {
+    admitted_reservation_for_certification_test(
+        ForegroundLaneDeclaration::ordinary_page_write()
+            .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
+                "certification-page-write",
+                2,
+            ))
+            .with_budget(page_write_budget()),
     )
 }
 
@@ -70,7 +110,7 @@ fn admitted_reservation_for_certification_test(
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
     let readiness = s6_readiness_admission();
     let security = security_scope_admission();
-    let backend_witness = admitted_backend_witness();
+    let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
         admit_backend_capability_for_scheduler_claim(&backend_witness, lane.backend_requirement())
             .expect("test backend should admit for scheduler claim");
@@ -102,7 +142,7 @@ fn admitted_secure_frame_reservation_for_certification_test(
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
     let readiness = s6_readiness_admission();
     let security = security_scope_admission();
-    let backend_witness = admitted_backend_witness();
+    let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
         admit_secure_frame_backend_capability_for_scheduler_claim(&backend_witness, &security)
             .expect("secure-frame backend should admit for scheduler claim");
@@ -235,10 +275,12 @@ fn freshness_units(budget: ForegroundResourceBudget) -> u32 {
     (budget.flush_permits() + budget.sync_debt()) as u32
 }
 
-fn admitted_backend_witness() -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {
+fn admitted_backend_witness(
+    requirement: crate::IoSchedulerBackendCapabilityRequirement,
+) -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {
     let request = BackendCapabilityAdmissionRequest::new(
         BackendTargetProfile::PosixFileFsyncDirSync,
-        BackendCapabilityEvidenceBasis::certified_backend_profile(),
+        backend_evidence_basis(requirement),
         BackendCapabilitySupportSet::all_supported(),
         BackendMediaAssumptionSet::platform_file_defaults()
             .with_direct_io_alignment()
@@ -254,6 +296,26 @@ fn admitted_backend_witness() -> forge_store_physical_backend::AdmittedBackendCa
     PhysicalBackendCapabilityAdmissionAuthority::store_owned()
         .admit_backend_capability(request)
         .expect("test backend should admit")
+}
+
+fn backend_evidence_basis(
+    requirement: crate::IoSchedulerBackendCapabilityRequirement,
+) -> BackendCapabilityEvidenceBasis {
+    match requirement.required_evidence() {
+        forge_store_physical_backend::CapabilityEvidenceClass::DeclaredByConfig => {
+            BackendCapabilityEvidenceBasis::declared_by_config(1)
+        }
+        forge_store_physical_backend::CapabilityEvidenceClass::CertifiedBackendProfile
+        | forge_store_physical_backend::CapabilityEvidenceClass::ExternallyGuaranteed => {
+            BackendCapabilityEvidenceBasis::certified_backend_profile()
+        }
+        forge_store_physical_backend::CapabilityEvidenceClass::ObservedByProbe => {
+            BackendCapabilityEvidenceBasis::observed_by_probe(1)
+        }
+        forge_store_physical_backend::CapabilityEvidenceClass::UnverifiableAssumption => {
+            BackendCapabilityEvidenceBasis::unverifiable_assumption()
+        }
+    }
 }
 
 fn security_scope_admission() -> crate::IoSchedulerS6SecurityScopeAdmission {
@@ -275,11 +337,33 @@ fn point_read_budget() -> ForegroundResourceBudget {
         .with_cache_residency(CacheResidencyHint::frames(1).unwrap())
 }
 
+fn wal_write_budget() -> ForegroundResourceBudget {
+    ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).unwrap())
+        .with_bandwidth(BandwidthToken::bytes(4096).unwrap())
+        .with_flush_permits(FlushPermit::new(1).unwrap())
+        .with_sync_debt(SyncDebt::units(1).unwrap())
+        .with_worker_permits(WorkerPermit::new(1).unwrap())
+}
+
+fn page_write_budget() -> ForegroundResourceBudget {
+    ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).unwrap())
+        .with_bandwidth(BandwidthToken::bytes(4096).unwrap())
+        .with_write_back(WriteBackWindow::pages(1).unwrap())
+        .with_dirty_pages(DirtyPageBudget::pages(1).unwrap())
+        .with_worker_permits(WorkerPermit::new(1).unwrap())
+}
+
 fn full_capacity() -> ForegroundResourceBudget {
     ForegroundResourceBudget::new()
         .with_queue_slots(QueueSlot::new(4).unwrap())
         .with_bandwidth(BandwidthToken::bytes(16_384).unwrap())
+        .with_flush_permits(FlushPermit::new(4).unwrap())
+        .with_sync_debt(SyncDebt::units(4).unwrap())
         .with_read_ahead(ReadAheadWindow::pages(4).unwrap())
+        .with_write_back(WriteBackWindow::pages(4).unwrap())
+        .with_dirty_pages(DirtyPageBudget::pages(4).unwrap())
         .with_worker_permits(WorkerPermit::new(4).unwrap())
         .with_cache_residency(CacheResidencyHint::frames(4).unwrap())
 }

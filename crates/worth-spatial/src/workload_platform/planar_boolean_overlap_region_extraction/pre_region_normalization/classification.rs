@@ -4,6 +4,7 @@ use crate::workload_platform::planar_boolean_common_plane::PlanarBooleanCommonPl
 use crate::workload_platform::planar_boolean_edge_splitting::PlanarBooleanOverlapChainBoundaryRole;
 
 use super::counters::PlanarBooleanPreRegionNormalizationCounters;
+use super::denial::PlanarBooleanPreRegionNormalizationDenial;
 use super::identity::{normalization_outcome_identity, normalization_set_identity};
 use super::input::PlanarBooleanPreRegionNormalizationInput;
 use super::product::{
@@ -13,21 +14,22 @@ use super::rows::PlanarBooleanOppositeSenseOverlapNormalizationRow;
 use super::validation::{
     ambiguous_ordering, relevant_lineage_rows, unstable_tie_breaker, validate_input_identities,
 };
-use super::denial::PlanarBooleanPreRegionNormalizationDenial;
 
 pub(super) fn build_pre_region_normalization_bundle(
     input: PlanarBooleanPreRegionNormalizationInput<'_>,
-) -> Result<PlanarBooleanPreRegionNormalizationBundle, PlanarBooleanPreRegionNormalizationDenial>
-{
+) -> Result<PlanarBooleanPreRegionNormalizationBundle, PlanarBooleanPreRegionNormalizationDenial> {
     let mut counters = PlanarBooleanPreRegionNormalizationCounters::default();
     validate_input_identities(input, &mut counters)?;
 
-    let shared_area = input.shared_area_admission().shared_area_admission_outcomes();
+    let shared_area = input
+        .shared_area_admission()
+        .shared_area_admission_outcomes();
     let request_identity = input.shared_area_admission().request_identity().to_string();
     let mut rows = Vec::new();
 
     for shared_area_row in shared_area.rows() {
-        let relevant = relevant_lineage_rows(shared_area_row, input.chain_lineage_map(), &mut counters)?;
+        let relevant =
+            relevant_lineage_rows(shared_area_row, input.chain_lineage_map(), &mut counters)?;
         rows.push(normalize_row(
             &request_identity,
             shared_area_row,
@@ -40,9 +42,18 @@ pub(super) fn build_pre_region_normalization_bundle(
     let set = PlanarBooleanOppositeSenseOverlapNormalizationSet::new(
         normalization_set_identity(&request_identity, rows.len()),
         request_identity.clone(),
-        input.shared_area_admission().arrangement_graph_identity().to_string(),
-        input.shared_area_admission().cell_set_identity().to_string(),
-        input.shared_area_admission().ordering_basis_identity().to_string(),
+        input
+            .shared_area_admission()
+            .arrangement_graph_identity()
+            .to_string(),
+        input
+            .shared_area_admission()
+            .cell_set_identity()
+            .to_string(),
+        input
+            .shared_area_admission()
+            .ordering_basis_identity()
+            .to_string(),
         rows,
     );
 
@@ -62,8 +73,10 @@ fn normalize_row(
     shared_area_row: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanSharedAreaAdmissionOutcomeRow,
     relevant: &[&crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapChainRegionLineageRow],
     counters: &mut PlanarBooleanPreRegionNormalizationCounters,
-) -> Result<PlanarBooleanOppositeSenseOverlapNormalizationRow, PlanarBooleanPreRegionNormalizationDenial>
-{
+) -> Result<
+    PlanarBooleanOppositeSenseOverlapNormalizationRow,
+    PlanarBooleanPreRegionNormalizationDenial,
+> {
     let mut saw_left = false;
     let mut saw_right = false;
     let mut saw_positive = false;
@@ -129,14 +142,13 @@ fn normalize_row(
     }
 
     Ok(PlanarBooleanOppositeSenseOverlapNormalizationRow::new(
-        normalization_outcome_identity(
-            request_identity,
-            shared_area_row.outcome_identity(),
-        ),
+        normalization_outcome_identity(request_identity, shared_area_row.outcome_identity()),
         shared_area_row.outcome_identity().to_string(),
         shared_area_row.island_identity().to_string(),
         shared_area_row.neighborhood_identity().to_string(),
-        shared_area_row.area_overlap_component_identity().to_string(),
+        shared_area_row
+            .area_overlap_component_identity()
+            .to_string(),
         if saw_left {
             PlanarBooleanCommonPlaneOperandSide::Left
         } else {

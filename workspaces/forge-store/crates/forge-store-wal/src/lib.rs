@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+mod blob_records;
 mod durable_publication;
 mod s6_queue_work;
 mod security_metadata;
@@ -14,6 +15,9 @@ pub enum DurablePublicationPhase {
     Recovered,
 }
 
+pub use blob_records::{
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
+};
 pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
     WalFrameDurablePublicationScope,

@@ -15,7 +15,10 @@ pub(crate) fn candidate_set_identity(
     request_identity: &str,
     candidate_identities: impl IntoIterator<Item = String>,
 ) -> String {
-    let joined = candidate_identities.into_iter().collect::<Vec<_>>().join("|");
+    let joined = candidate_identities
+        .into_iter()
+        .collect::<Vec<_>>()
+        .join("|");
     format!("overlap-island-candidate-set:{request_identity}:{joined}")
 }
 

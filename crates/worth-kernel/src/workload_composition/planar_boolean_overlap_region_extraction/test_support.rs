@@ -1,15 +1,13 @@
-#[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
-mod workload_evidence_support;
 #[path = "../operator_harness/tests_vertical_migration/support/spatial_batch_execution_slice.rs"]
 mod spatial_batch_execution_slice_support;
+#[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
+mod workload_evidence_support;
 
 use topology::facade::{
     admit_milestone_seven_five_overlap_readiness_consumer, PlanarBooleanLoopBlueprintRegistry,
     PlanarBooleanOverlapBlueprintRegistry, TopologyMilestoneSevenFiveOverlapReadinessConsumer,
 };
-use worth_spatial::facade::planar_boolean_loop_reconstruction::{
-    PlanarBooleanLoopReconstructionParticipationSupport,
-};
+use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionParticipationSupport;
 use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     PlanarBooleanBoundaryContactClassificationBundle, PlanarBooleanCoplanarOverlapArrangementGraph,
     PlanarBooleanOverlapAdjacencyIndexInput, PlanarBooleanOverlapArrangementGraphInput,
@@ -18,15 +16,16 @@ use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     PlanarBooleanOverlapIslandCandidateInput, PlanarBooleanOverlapIslandComponentBundle,
     PlanarBooleanOverlapParticipationRecovery, PlanarBooleanOverlapParticipationRecoveryInput,
     PlanarBooleanOverlapReadinessLoopLedgerBinding, PlanarBooleanOverlapRegionAdjacencyIndex,
-    PlanarBooleanOverlapRegionExtractionRequest,
-    PlanarBooleanOverlapRegionExtractionRequestInput, PlanarBooleanOverlapRegionLedgerAssemblyBundle,
-    PlanarBooleanPreRegionNormalizationBundle, PlanarBooleanSharedAreaAdmissionBundle,
+    PlanarBooleanOverlapRegionExtractionRequest, PlanarBooleanOverlapRegionExtractionRequestInput,
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle, PlanarBooleanPreRegionNormalizationBundle,
+    PlanarBooleanSharedAreaAdmissionBundle,
 };
 use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
 
 use crate::workload_composition::{
     current_touched_graph_readiness_handoff, BooleanSplitReplayUndoBoundaryRequest,
-    CompletedBooleanLoopReconstructionHandoff, CompletedPlanarBooleanOverlapRegionExtractionHandoff,
+    CompletedBooleanLoopReconstructionHandoff,
+    CompletedPlanarBooleanOverlapRegionExtractionHandoff,
     PlanarBooleanLoopReconstructionCloseoutInput, PlanarBooleanOverlapRegionCloseoutInput,
 };
 
@@ -39,7 +38,9 @@ pub(crate) struct RealOverlapOwnerSeamFixture {
     pub(crate) replay_receipts: ReplayReceiptSet,
 }
 
-pub(crate) fn completed_overlap_owner_seam_fixture(label: &'static str) -> RealOverlapOwnerSeamFixture {
+pub(crate) fn completed_overlap_owner_seam_fixture(
+    label: &'static str,
+) -> RealOverlapOwnerSeamFixture {
     let loop_handoff = completed_loop_handoff_with_real_batch_authority(
         label,
         workload_evidence_support::ReplayBranch::Original,
@@ -57,16 +58,18 @@ pub(crate) fn completed_overlap_owner_seam_fixture(label: &'static str) -> RealO
     let (request, ledger_bundle) = overlap_request_and_ledger(&loop_handoff);
     let overlap_registry = PlanarBooleanOverlapBlueprintRegistry::phase_2();
     let completed = loop_handoff
-        .complete_planar_boolean_overlap_region_extraction(PlanarBooleanOverlapRegionCloseoutInput::new(
-            &readiness,
-            &readiness_consumer,
-            &request,
-            &ledger_bundle,
-            &replayed_loop_handoff,
-            &replay_subject.replay_receipts,
-            &overlap_registry.operator_classification_matrix(),
-            &overlap_registry.validator_registration_plan(),
-        ))
+        .complete_planar_boolean_overlap_region_extraction(
+            PlanarBooleanOverlapRegionCloseoutInput::new(
+                &readiness,
+                &readiness_consumer,
+                &request,
+                &ledger_bundle,
+                &replayed_loop_handoff,
+                &replay_subject.replay_receipts,
+                &overlap_registry.operator_classification_matrix(),
+                &overlap_registry.validator_registration_plan(),
+            ),
+        )
         .expect("overlap closeout should certify through the real owner seam");
     RealOverlapOwnerSeamFixture {
         readiness,
@@ -90,37 +93,44 @@ pub(crate) fn completed_loop_handoff_with_real_batch_authority(
     let matrix = registry.operator_classification_matrix();
     let validators = registry.validator_registration_plan();
     let subject = workload_evidence_support::MetabossEventExtractionSubject::certify(label);
-    let replay_subject = workload_evidence_support::build_edge_split_replay_parity_subject(&subject);
+    let replay_subject =
+        workload_evidence_support::build_edge_split_replay_parity_subject(&subject);
     let replay_report = workload_evidence_support::replay_parity_report(&replay_subject);
-    let completed_split_handoff = workload_evidence_support::completed_split_handoff_for(
-        &subject,
-        &replay_subject,
-    )
-    .with_batch_admission_execution(&batch_execution)
-    .expect("real loop owner-seam proof requires explicit batch-admission authority");
-    let (decision_log_receipt, validation, naming, ledger, vertices, fragments, chains, split_request) =
-        match branch {
-            workload_evidence_support::ReplayBranch::Original => (
-                replay_subject.original_decision_log.receipt(),
-                &replay_subject.original_products.validation,
-                &replay_subject.original_products.naming,
-                replay_subject.original_ledger.ledger(),
-                &replay_subject.original_products.vertices,
-                &replay_subject.original_products.fragments,
-                &replay_subject.original_products.chains,
-                &replay_subject.original_products.request,
-            ),
-            workload_evidence_support::ReplayBranch::Replayed => (
-                replay_subject.replayed_decision_log.receipt(),
-                &replay_subject.replayed_products.validation,
-                &replay_subject.replayed_products.naming,
-                replay_subject.replayed_ledger.ledger(),
-                &replay_subject.replayed_products.vertices,
-                &replay_subject.replayed_products.fragments,
-                &replay_subject.replayed_products.chains,
-                &replay_subject.replayed_products.request,
-            ),
-        };
+    let completed_split_handoff =
+        workload_evidence_support::completed_split_handoff_for(&subject, &replay_subject)
+            .with_batch_admission_execution(&batch_execution)
+            .expect("real loop owner-seam proof requires explicit batch-admission authority");
+    let (
+        decision_log_receipt,
+        validation,
+        naming,
+        ledger,
+        vertices,
+        fragments,
+        chains,
+        split_request,
+    ) = match branch {
+        workload_evidence_support::ReplayBranch::Original => (
+            replay_subject.original_decision_log.receipt(),
+            &replay_subject.original_products.validation,
+            &replay_subject.original_products.naming,
+            replay_subject.original_ledger.ledger(),
+            &replay_subject.original_products.vertices,
+            &replay_subject.original_products.fragments,
+            &replay_subject.original_products.chains,
+            &replay_subject.original_products.request,
+        ),
+        workload_evidence_support::ReplayBranch::Replayed => (
+            replay_subject.replayed_decision_log.receipt(),
+            &replay_subject.replayed_products.validation,
+            &replay_subject.replayed_products.naming,
+            replay_subject.replayed_ledger.ledger(),
+            &replay_subject.replayed_products.vertices,
+            &replay_subject.replayed_products.fragments,
+            &replay_subject.replayed_products.chains,
+            &replay_subject.replayed_products.request,
+        ),
+    };
     let recovered_source_carriers =
         workload_evidence_support::recovered_source_carriers(&subject, split_request);
 
@@ -130,11 +140,13 @@ pub(crate) fn completed_loop_handoff_with_real_batch_authority(
             completed_split_handoff
                 .admit_batch_execution_cluster()
                 .expect("attached split handoff should admit the batch-execution cluster")
-                .admit_boolean_split_replay_undo_boundary(BooleanSplitReplayUndoBoundaryRequest::new(
-                    topology_undo_scope,
-                    replay_scope,
-                    undo_scope,
-                ))
+                .admit_boolean_split_replay_undo_boundary(
+                    BooleanSplitReplayUndoBoundaryRequest::new(
+                        topology_undo_scope,
+                        replay_scope,
+                        undo_scope,
+                    ),
+                )
                 .and_then(|boundary| {
                     boundary.complete_boolean_chain_integration(
                         PlanarBooleanLoopReconstructionCloseoutInput::new(
@@ -161,7 +173,10 @@ pub(crate) fn completed_loop_handoff_with_real_batch_authority(
 
 pub(crate) fn overlap_request_and_ledger(
     loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
-) -> (PlanarBooleanOverlapRegionExtractionRequest, PlanarBooleanOverlapRegionLedgerAssemblyBundle) {
+) -> (
+    PlanarBooleanOverlapRegionExtractionRequest,
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle,
+) {
     let readiness = current_touched_graph_readiness_handoff().expect("readiness handoff");
     let readiness_consumer =
         admit_milestone_seven_five_overlap_readiness_consumer(&readiness).expect("consumer");
@@ -182,7 +197,9 @@ pub(crate) fn overlap_request_and_ledger(
             loop_products.island_partition(),
             loop_products.persistent_name_propagation_map(),
             loop_products.source_provenance().fragment_membership_map(),
-            loop_products.source_provenance().overlap_chain_lineage_map(),
+            loop_products
+                .source_provenance()
+                .overlap_chain_lineage_map(),
             loop_products.source_provenance().source_loop_carriers(),
         )
         .expect("participation support");
@@ -223,7 +240,12 @@ pub(crate) fn overlap_request_and_ledger(
         .mint_overlap_region_identity_lineage()
         .expect("identity lineage");
 
-    (request, identity_lineage.mint_overlap_region_ledger().expect("ledger"))
+    (
+        request,
+        identity_lineage
+            .mint_overlap_region_ledger()
+            .expect("ledger"),
+    )
 }
 
 fn shared_area_bundle_from_arrangement(
@@ -261,8 +283,9 @@ pub(crate) fn foreign_readiness_binding(
         workload_evidence_support::ReplayBranch::Original,
     );
     let foreign_readiness = current_touched_graph_readiness_handoff().expect("readiness handoff");
-    let foreign_consumer = admit_milestone_seven_five_overlap_readiness_consumer(&foreign_readiness)
-        .expect("consumer");
+    let foreign_consumer =
+        admit_milestone_seven_five_overlap_readiness_consumer(&foreign_readiness)
+            .expect("consumer");
     let foreign_request = PlanarBooleanOverlapRegionExtractionRequest::admit(
         PlanarBooleanOverlapRegionExtractionRequestInput::from_readiness_consumer_and_loop_ledger(
             &foreign_consumer,

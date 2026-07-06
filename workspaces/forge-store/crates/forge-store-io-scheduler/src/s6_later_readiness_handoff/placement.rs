@@ -22,6 +22,14 @@ pub fn publish_s7_placement_io_readiness_handoff(
     }
 }
 
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub fn s7_placement_io_readiness_handoff_for_certification_test() -> S7PlacementIoReadinessHandoff {
+    let readiness = IoSchedulerS6ReadinessAdmission::for_certification_test();
+    readmit_s7_placement_io_readiness_after_publication(publish_s7_placement_io_readiness_handoff(
+        &readiness,
+    ))
+}
+
 pub const fn readmit_s7_placement_io_readiness_after_publication(
     handoff: S7PlacementIoReadinessHandoff,
 ) -> S7PlacementIoReadinessHandoff {

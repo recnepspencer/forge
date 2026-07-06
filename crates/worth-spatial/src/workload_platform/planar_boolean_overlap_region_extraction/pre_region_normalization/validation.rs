@@ -12,7 +12,9 @@ pub(super) fn validate_input_identities(
     input: PlanarBooleanPreRegionNormalizationInput<'_>,
     counters: &mut PlanarBooleanPreRegionNormalizationCounters,
 ) -> Result<(), PlanarBooleanPreRegionNormalizationDenial> {
-    if input.shared_area_admission().request_identity() != input.chain_lineage_map().request_identity() {
+    if input.shared_area_admission().request_identity()
+        != input.chain_lineage_map().request_identity()
+    {
         counters.denied_normalization();
         return Err(PlanarBooleanPreRegionNormalizationDenial::new(
             PlanarBooleanPreRegionNormalizationDenialKind::InputIdentityMismatchDenied,
@@ -28,8 +30,10 @@ pub(super) fn relevant_lineage_rows<'a>(
     row: &PlanarBooleanSharedAreaAdmissionOutcomeRow,
     chain_lineage_map: &'a PlanarBooleanOverlapChainRegionLineageMap,
     counters: &mut PlanarBooleanPreRegionNormalizationCounters,
-) -> Result<Vec<&'a PlanarBooleanOverlapChainRegionLineageRow>, PlanarBooleanPreRegionNormalizationDenial>
-{
+) -> Result<
+    Vec<&'a PlanarBooleanOverlapChainRegionLineageRow>,
+    PlanarBooleanPreRegionNormalizationDenial,
+> {
     let relevant = chain_lineage_map
         .rows()
         .iter()

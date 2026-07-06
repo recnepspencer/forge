@@ -168,9 +168,9 @@ impl PlanarBooleanOverlapRegionLedgerAssemblyBundle {
     pub fn from_identity_lineage(
         identity_lineage: &PlanarBooleanOverlapRegionIdentityLineageBundle,
     ) -> Result<Self, PlanarBooleanOverlapRegionLedgerAssemblyDenial> {
-        Self::admit(PlanarBooleanOverlapRegionLedgerAssemblyInput::from_identity_lineage(
-            identity_lineage,
-        ))
+        Self::admit(
+            PlanarBooleanOverlapRegionLedgerAssemblyInput::from_identity_lineage(identity_lineage),
+        )
     }
 
     pub fn admit(

@@ -1,7 +1,7 @@
 use forge_foundational::FoundationalPolicyAdmissionReceipt;
 use forge_store_security::StoreSecurityScopeIdentity;
 
-use crate::foreground_reservation::ForegroundReservationReceipt;
+use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
     IoSchedulerS6ReadinessAdmission, SecureIoOperation, SecureIoPreservationDenial,
@@ -166,7 +166,10 @@ fn require_background_basis(
             admitted: request.backend.requirement(),
         });
     }
-    if request.foreground.backend_requirement() != request.backend.requirement() {
+    let blob_ingest_preserves_foreground = blob_ingest_preserves_page_or_wal_foreground(request);
+    if !blob_ingest_preserves_foreground
+        && request.foreground.backend_requirement() != request.backend.requirement()
+    {
         return Err(
             BackgroundPacingDenial::ForegroundReservationBackendMismatch {
                 reservation_required: request.foreground.backend_requirement(),
@@ -174,13 +177,17 @@ fn require_background_basis(
             },
         );
     }
-    if request.foreground.backend_profile() != request.backend.profile() {
+    if !blob_ingest_preserves_foreground
+        && request.foreground.backend_profile() != request.backend.profile()
+    {
         return Err(BackgroundPacingDenial::BackendProfileMismatch {
             reservation_profile: request.foreground.backend_profile(),
             admitted_profile: request.backend.profile(),
         });
     }
-    if request.foreground.backend_evidence_class() != request.backend.evidence_class() {
+    if !blob_ingest_preserves_foreground
+        && request.foreground.backend_evidence_class() != request.backend.evidence_class()
+    {
         return Err(BackgroundPacingDenial::BackendEvidenceClassMismatch {
             reservation_evidence: request.foreground.backend_evidence_class(),
             admitted_evidence: request.backend.evidence_class(),
@@ -200,6 +207,16 @@ fn require_background_basis(
     require_secure_io_scope(request)?;
     let _readiness = request.readiness.background_maintenance();
     Ok(())
+}
+
+fn blob_ingest_preserves_page_or_wal_foreground(
+    request: &BackgroundCapacityAdmissionRequest<'_>,
+) -> bool {
+    request.pressure.class() == super::BackgroundIoPressureClass::BlobIngestPressure
+        && matches!(
+            request.foreground.lane(),
+            ForegroundIoLaneKind::CommitCriticalWalWrite | ForegroundIoLaneKind::OrdinaryPageWrite
+        )
 }
 
 fn require_secure_io_scope(

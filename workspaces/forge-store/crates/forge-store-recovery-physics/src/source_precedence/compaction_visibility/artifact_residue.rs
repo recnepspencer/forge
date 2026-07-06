@@ -97,6 +97,11 @@ impl CompactionCutoverRecoveryPosture {
         }
     }
 
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn visible_after_admitted_cutover_for_certification_test(generation: u64) -> Self {
+        Self::visible_after_admitted_cutover(generation)
+    }
+
     pub fn residue_rejected(rejection: CompactionArtifactResidueRejection) -> Self {
         Self {
             visibility: CompactionGenerationVisibility::ResidueRejected(rejection),

@@ -1,7 +1,8 @@
 use crate::{
     IntegrityDamageMap, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
-    IntegrityVettedWalFrame, S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind,
+    IntegrityVettedWalFrame, PartialPublicationBeforeWalReplayRead, S4IntegrityHandoffDenial,
+    S4IntegrityHandoffDenialKind,
 };
 use forge_store_contracts::StableDigest;
 use forge_store_physical_integrity::{
@@ -184,6 +185,7 @@ pub struct S4IntegrityHandoffPayload {
     checksum_basis: S4ChecksumAlgorithmScopeBasis,
     counters: S4IntegrityHandoffCounters,
     inspection_envelope: BoundedInspectionEnvelopeEvidence,
+    partial_publication_before_wal_replay_read: Option<PartialPublicationBeforeWalReplayRead>,
     raw_bytes_excluded: RawBytesExcludedFromRecoveryHandoff,
 }
 
@@ -232,6 +234,12 @@ impl S4IntegrityHandoffPayload {
         &self.inspection_envelope
     }
 
+    pub(crate) fn partial_publication_before_wal_replay_read(
+        &self,
+    ) -> Option<&PartialPublicationBeforeWalReplayRead> {
+        self.partial_publication_before_wal_replay_read.as_ref()
+    }
+
     pub const fn proves_no_raw_bytes_crossed(&self) -> bool {
         matches!(self.raw_bytes_excluded, RawBytesExcludedFromRecoveryHandoff)
     }
@@ -250,6 +258,7 @@ pub struct S4IntegrityHandoffPayloadDeclaration {
     checkpoint_records: Vec<IntegrityVettedCheckpointRecord>,
     damage_map: IntegrityDamageMap,
     inspection_envelope: Option<BoundedInspectionEnvelopeEvidence>,
+    partial_publication_before_wal_replay_read: Option<PartialPublicationBeforeWalReplayRead>,
 }
 
 impl S4IntegrityHandoffPayloadDeclaration {
@@ -285,6 +294,14 @@ impl S4IntegrityHandoffPayloadDeclaration {
 
     pub fn inspection_envelope(mut self, evidence: BoundedInspectionEnvelopeEvidence) -> Self {
         self.inspection_envelope = Some(evidence);
+        self
+    }
+
+    pub fn partial_publication_before_wal_replay_read(
+        mut self,
+        replay_read: PartialPublicationBeforeWalReplayRead,
+    ) -> Self {
+        self.partial_publication_before_wal_replay_read = Some(replay_read);
         self
     }
 
@@ -332,6 +349,7 @@ impl S4IntegrityHandoffPayloadDeclaration {
             &checksum_basis,
             counters,
             &inspection_envelope,
+            self.partial_publication_before_wal_replay_read.as_ref(),
         );
         Ok(S4IntegrityHandoffPayload {
             identity,
@@ -344,6 +362,8 @@ impl S4IntegrityHandoffPayloadDeclaration {
             checksum_basis,
             counters,
             inspection_envelope,
+            partial_publication_before_wal_replay_read: self
+                .partial_publication_before_wal_replay_read,
             raw_bytes_excluded: RawBytesExcludedFromRecoveryHandoff,
         })
     }
@@ -359,9 +379,10 @@ fn payload_identity(
     checksum_basis: &S4ChecksumAlgorithmScopeBasis,
     counters: S4IntegrityHandoffCounters,
     inspection_envelope: &BoundedInspectionEnvelopeEvidence,
+    partial_publication_before_wal_replay_read: Option<&PartialPublicationBeforeWalReplayRead>,
 ) -> StableDigest {
     StableDigest::new(format!(
-        "s4-handoff:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}",
+        "s4-handoff:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}",
         root_manifest,
         segment_manifest,
         page_frames,
@@ -370,7 +391,8 @@ fn payload_identity(
         damage_map.basis(),
         checksum_basis,
         counters,
-        inspection_envelope
+        inspection_envelope,
+        partial_publication_before_wal_replay_read
     ))
     .expect("S.4 integrity handoff identity basis is non-empty")
 }

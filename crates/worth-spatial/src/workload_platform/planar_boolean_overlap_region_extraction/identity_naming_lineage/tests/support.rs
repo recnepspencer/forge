@@ -18,7 +18,7 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 pub(super) fn canonical_graph()
--> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph {
+-> crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanCoplanarOverlapArrangementGraph{
     inside_both_multi_boundary_graph()
 }
 
@@ -150,7 +150,7 @@ pub(super) fn identity_bundle(
 
 pub(super) fn canonical_identity_map(
     bundle: &PlanarBooleanOverlapRegionIdentityLineageBundle,
-) -> &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionIdentityMap {
+) -> &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionIdentityMap{
     bundle.overlap_region_identity_map()
 }
 
@@ -180,12 +180,18 @@ pub(super) fn conflicting_persistent_name_bundle(
     );
     let canonical = PlanarBooleanOverlapRegionCanonicalWindingSet::new(
         "synthetic-conflicting-name-set".to_string(),
-        bundle.overlap_region_canonical_winding().request_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .request_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .arrangement_graph_identity()
             .to_string(),
-        bundle.overlap_region_canonical_winding().cell_set_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .cell_set_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .ordering_basis_identity()
@@ -207,12 +213,18 @@ pub(super) fn duplicate_identity_bundle(
     let row = bundle.overlap_region_canonical_winding().rows()[0].clone();
     let canonical = PlanarBooleanOverlapRegionCanonicalWindingSet::new(
         "synthetic-duplicate-identity-set".to_string(),
-        bundle.overlap_region_canonical_winding().request_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .request_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .arrangement_graph_identity()
             .to_string(),
-        bundle.overlap_region_canonical_winding().cell_set_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .cell_set_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .ordering_basis_identity()
@@ -257,12 +269,18 @@ pub(super) fn payload_permuted_canonical_bundle(
     );
     let canonical = PlanarBooleanOverlapRegionCanonicalWindingSet::new(
         "synthetic-payload-permuted-canonical-set".to_string(),
-        bundle.overlap_region_canonical_winding().request_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .request_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .arrangement_graph_identity()
             .to_string(),
-        bundle.overlap_region_canonical_winding().cell_set_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .cell_set_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .ordering_basis_identity()
@@ -303,12 +321,18 @@ pub(super) fn same_row_count_distinct_identity_bundle(
     );
     let canonical = PlanarBooleanOverlapRegionCanonicalWindingSet::new(
         "synthetic-same-row-count-distinct-set".to_string(),
-        bundle.overlap_region_canonical_winding().request_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .request_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .arrangement_graph_identity()
             .to_string(),
-        bundle.overlap_region_canonical_winding().cell_set_identity().to_string(),
+        bundle
+            .overlap_region_canonical_winding()
+            .cell_set_identity()
+            .to_string(),
         bundle
             .overlap_region_canonical_winding()
             .ordering_basis_identity()
@@ -350,12 +374,18 @@ pub(super) fn equivalent_multi_row_canonical_bundles_with_reversed_order(
         row.boundary_roles().to_vec(),
         vec!["synthetic-second-name".to_string()],
     );
-    let request_identity = bundle.overlap_region_canonical_winding().request_identity().to_string();
+    let request_identity = bundle
+        .overlap_region_canonical_winding()
+        .request_identity()
+        .to_string();
     let arrangement_graph_identity = bundle
         .overlap_region_canonical_winding()
         .arrangement_graph_identity()
         .to_string();
-    let cell_set_identity = bundle.overlap_region_canonical_winding().cell_set_identity().to_string();
+    let cell_set_identity = bundle
+        .overlap_region_canonical_winding()
+        .cell_set_identity()
+        .to_string();
     let ordering_basis_identity = bundle
         .overlap_region_canonical_winding()
         .ordering_basis_identity()

@@ -7,11 +7,8 @@ use forge_proof::{
     Lowered, Recipe, Resolved,
 };
 use forge_store_authority::StoreCurrentAuthorityWitness;
-use forge_store_readiness::{
-    S6ClosedS7PlacementAdmissionSeed, S6LaterMilestoneDestination, S7PlacementReadinessNonClaim,
-};
 
-use crate::BlobLifecycleDeclaration;
+use crate::{AdmittedBlobPlacement, BlobLifecycleDeclaration};
 
 #[derive(Debug)]
 struct BlobLifecycleResolutionAuthorityMarker;
@@ -38,7 +35,7 @@ pub struct BlobLifecycleLoweringCapability {
 
 #[derive(Debug)]
 pub struct BlobLifecycleReadinessAuthority {
-    placement_readiness: BlobLifecyclePlacementReadiness,
+    admitted_placement: AdmittedBlobPlacement,
     readiness_authority: AuthorityWitness<BlobLifecycleReadinessAuthorityMarker>,
 }
 
@@ -77,44 +74,26 @@ impl BlobLifecycleLoweringCapability {
 }
 
 impl BlobLifecycleReadinessAuthority {
-    pub fn from_s6_placement_seed(placement_seed: S6ClosedS7PlacementAdmissionSeed) -> Self {
+    pub fn from_admitted_placement(admitted_placement: AdmittedBlobPlacement) -> Self {
         Self {
-            placement_readiness: BlobLifecyclePlacementReadiness::from_s6_seed(placement_seed),
+            admitted_placement,
             readiness_authority: AuthorityWitness::from_authority_marker(
                 BlobLifecycleReadinessAuthorityMarker,
             ),
         }
     }
 
-    pub(crate) const fn placement_readiness(&self) -> BlobLifecyclePlacementReadiness {
-        self.placement_readiness
+    pub(crate) const fn admitted_placement(&self) -> &AdmittedBlobPlacement {
+        &self.admitted_placement
     }
 
-    fn into_readiness_authority(self) -> AuthorityWitness<BlobLifecycleReadinessAuthorityMarker> {
-        self.readiness_authority
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct BlobLifecyclePlacementReadiness {
-    destination: S6LaterMilestoneDestination,
-    s6_non_claims: [S7PlacementReadinessNonClaim; 3],
-}
-
-impl BlobLifecyclePlacementReadiness {
-    const fn from_s6_seed(seed: S6ClosedS7PlacementAdmissionSeed) -> Self {
-        Self {
-            destination: seed.destination(),
-            s6_non_claims: *seed.non_claims(),
-        }
-    }
-
-    pub(crate) const fn destination(&self) -> S6LaterMilestoneDestination {
-        self.destination
-    }
-
-    pub(crate) const fn s6_non_claims(&self) -> &[S7PlacementReadinessNonClaim; 3] {
-        &self.s6_non_claims
+    fn into_readiness_parts(
+        self,
+    ) -> (
+        AdmittedBlobPlacement,
+        AuthorityWitness<BlobLifecycleReadinessAuthorityMarker>,
+    ) {
+        (self.admitted_placement, self.readiness_authority)
     }
 }
 
@@ -163,13 +142,10 @@ pub(crate) fn prove_lifecycle_lowering(
 pub(crate) fn prove_lifecycle_readiness(
     lowered: BlobLifecycleLoweredRecipe,
     readiness: BlobLifecycleReadinessAuthority,
-) -> (
-    BlobLifecyclePlacementReadiness,
-    BlobLifecycleExecutionReadyRecipe,
-) {
-    let placement_readiness = readiness.placement_readiness();
-    let ready = lowered.ready_with(readiness.into_readiness_authority(), placement_readiness);
-    (placement_readiness, ready)
+) -> (AdmittedBlobPlacement, BlobLifecycleExecutionReadyRecipe) {
+    let (admitted_placement, readiness_authority) = readiness.into_readiness_parts();
+    let ready = lowered.ready_with(readiness_authority, admitted_placement.clone());
+    (admitted_placement, ready)
 }
 
 pub(crate) fn execute_lifecycle_proof(

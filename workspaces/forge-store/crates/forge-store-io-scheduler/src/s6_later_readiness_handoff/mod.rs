@@ -28,6 +28,8 @@ pub use operator::{
     readmit_s11_operator_io_readiness_after_publication, S11OperatorIoReadinessHandoff,
     S11OperatorIoReadinessSeed,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use placement::s7_placement_io_readiness_handoff_for_certification_test;
 pub use placement::{
     publish_s7_placement_io_readiness_handoff, readmit_s7_placement_io_readiness_after_publication,
     S7PlacementIoReadinessHandoff,

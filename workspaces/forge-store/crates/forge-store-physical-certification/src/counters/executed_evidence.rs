@@ -231,6 +231,7 @@ fn observed_counter_count(
         CounterContractKind::ReplayIdentityExact => 1,
         CounterContractKind::ForbiddenShortcutExact => 0,
         CounterContractKind::ProfileResourceEnvelope => 1,
+        CounterContractKind::BlobChunkCountExact | CounterContractKind::BlobLogicalBytesExact => 0,
         CounterContractKind::AllocationBytes => allocation_bytes_allocated(sources.allocation),
         CounterContractKind::PagePins => sources.resident.pin_lifecycle().active_pinned_pages(),
         CounterContractKind::IoQueueDepth => u64::from(sources.io.peak_queue_depth()),

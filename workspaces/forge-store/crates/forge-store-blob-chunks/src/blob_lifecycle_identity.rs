@@ -108,6 +108,7 @@ pub struct BlobLifecycleDeclaration {
     generation: BlobGeneration,
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
+    security_metadata: crate::BlobChunkSecurityMetadataWitness,
     stored_chunk_digest: StoredChunkDigest,
     authenticated_frame_digest: AuthenticatedFrameDigest,
     authority_classification: BlobAuthorityClassification,
@@ -120,6 +121,7 @@ impl BlobLifecycleDeclaration {
         generation: BlobGeneration,
         chunk_tree_root: ChunkTreeRoot,
         logical_content_digest: LogicalContentDigest,
+        security_metadata: crate::BlobChunkSecurityMetadataWitness,
         stored_chunk_digest: StoredChunkDigest,
         authenticated_frame_digest: AuthenticatedFrameDigest,
         authority_classification: BlobAuthorityClassification,
@@ -129,6 +131,7 @@ impl BlobLifecycleDeclaration {
             generation,
             chunk_tree_root,
             logical_content_digest,
+            security_metadata,
             stored_chunk_digest,
             authenticated_frame_digest,
             authority_classification,
@@ -149,6 +152,10 @@ impl BlobLifecycleDeclaration {
 
     pub const fn logical_content_digest(&self) -> &LogicalContentDigest {
         &self.logical_content_digest
+    }
+
+    pub const fn security_metadata(&self) -> crate::BlobChunkSecurityMetadataWitness {
+        self.security_metadata
     }
 
     pub const fn stored_chunk_digest(&self) -> &StoredChunkDigest {

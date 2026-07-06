@@ -3,6 +3,7 @@
 mod allocation_counters;
 mod allocation_denial;
 mod allocation_envelope;
+mod blob_harness_envelope;
 mod counter_strength;
 
 #[cfg(test)]
@@ -18,6 +19,7 @@ pub use allocation_envelope::{
     AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationEnvelopeDeclarationBuilder,
     AllocationEnvelopeSet, AllocationScope, FixedMetadataReservation,
 };
+pub use blob_harness_envelope::{BlobHarnessEnvelopeDeclaration, BlobHarnessEnvelopeProfile};
 pub use counter_strength::CounterEvidenceStrength;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -13,12 +13,8 @@ pub use evidence::{
     PlanarBooleanOverlapRegionEvidenceReceipt,
 };
 pub use replay::{
-    ComparePlanarBooleanOverlapRegionReplayParity,
-    PlanarBooleanOverlapRegionReplayParityCounters,
-    PlanarBooleanOverlapRegionReplayParityDenial,
-    PlanarBooleanOverlapRegionReplayParityDenialKind,
-    PlanarBooleanOverlapRegionReplayParityInput,
-    PlanarBooleanOverlapRegionReplayParityReceipt,
-    PlanarBooleanOverlapRegionReplayParityRow,
-    PlanarBooleanOverlapRegionReplayParityRowKind,
+    ComparePlanarBooleanOverlapRegionReplayParity, PlanarBooleanOverlapRegionReplayParityCounters,
+    PlanarBooleanOverlapRegionReplayParityDenial, PlanarBooleanOverlapRegionReplayParityDenialKind,
+    PlanarBooleanOverlapRegionReplayParityInput, PlanarBooleanOverlapRegionReplayParityReceipt,
+    PlanarBooleanOverlapRegionReplayParityRow, PlanarBooleanOverlapRegionReplayParityRowKind,
 };

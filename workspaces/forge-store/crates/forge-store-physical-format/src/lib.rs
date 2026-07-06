@@ -129,6 +129,7 @@ mod binary_format_denials;
 #[cfg(test)]
 mod binary_format_tests;
 mod binary_format_witness;
+mod blob_manifest;
 mod byte_order;
 mod checksum_coverage;
 mod checksum_coverage_denials;
@@ -243,6 +244,10 @@ pub use binary_format::{
 };
 pub use binary_format_denials::PhysicalBinaryFormatError;
 pub use binary_format_witness::PhysicalBinaryEncodingWitness;
+pub use blob_manifest::{
+    BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
+    BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
+};
 pub use byte_order::{PhysicalByteOrder, PhysicalByteOrderDeclaration};
 pub use checksum_coverage::{
     s1_required_covered_header_fields, ChecksumCoverageAuthoritySource, ChecksumCoverageMap,

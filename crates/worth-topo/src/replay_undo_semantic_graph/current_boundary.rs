@@ -1,7 +1,8 @@
 use std::sync::OnceLock;
 
 use schema::facade::platform::authority::replay_undo_semantic_graph_internal::{
-    admit_replay_undo_stage_index_identity, admit_topology_derived_invalidation_prior_proof_identity,
+    admit_replay_undo_stage_index_identity,
+    admit_topology_derived_invalidation_prior_proof_identity,
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
@@ -108,10 +109,22 @@ pub fn current_replay_undo_topology_undo_scope_boundary(
         TruthDigestScope::ArtifactIdentity,
         &[
             "worth-topo:current-replay-undo-topology-undo-scope-boundary:v1".to_string(),
-            format!("selected-plan:{}", proof.selected_plan().selected_plan_digest()),
-            format!("touched-closure:{}", proof.touched_closure().closure_digest()),
-            format!("prior-proof:{}", admitted_input.prior_proof_identity().digest()),
-            format!("stage-index:{}", admitted_input.stage_index_identity().digest()),
+            format!(
+                "selected-plan:{}",
+                proof.selected_plan().selected_plan_digest()
+            ),
+            format!(
+                "touched-closure:{}",
+                proof.touched_closure().closure_digest()
+            ),
+            format!(
+                "prior-proof:{}",
+                admitted_input.prior_proof_identity().digest()
+            ),
+            format!(
+                "stage-index:{}",
+                admitted_input.stage_index_identity().digest()
+            ),
             format!("undo-scope:{}", scope_identity.digest()),
         ],
     );
@@ -160,11 +173,14 @@ impl CurrentReplayUndoTopologyUndoScopeBoundary {
     pub fn lower_undo_scope_product(
         &self,
     ) -> Result<TopologyUndoScopeProduct<'_>, TopologyUndoFamilyExecutionError> {
-        let admitted_input =
-            current_replay_undo_topology_ordinary_admitted_input(&self.touched_closure, &self.selected_plan);
+        let admitted_input = current_replay_undo_topology_ordinary_admitted_input(
+            &self.touched_closure,
+            &self.selected_plan,
+        );
         let equivalence_basis =
             lower_topology_undo_equivalence_basis_from_admitted_input(&admitted_input);
-        let scope_identity = lower_topology_undo_scope_identity_from_admitted_input(&admitted_input);
+        let scope_identity =
+            lower_topology_undo_scope_identity_from_admitted_input(&admitted_input);
         let counters =
             TopologyUndoScopeProductCounters::new(equivalence_basis.touched_subjects().len());
         Ok(TopologyUndoScopeProduct::new(
@@ -243,7 +259,10 @@ fn current_replay_undo_topology_ordinary_admitted_input<'a>(
             format!("selected-plan:{}", selected_plan.selected_plan_digest()),
             format!("touched-closure:{}", touched_closure.closure_digest()),
             format!("query-support:{}", selected_plan.query_support_digest()),
-            format!("legality-support:{}", selected_plan.legality_support_digest()),
+            format!(
+                "legality-support:{}",
+                selected_plan.legality_support_digest()
+            ),
         ],
     );
     let prior_proof_identity =

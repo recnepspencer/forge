@@ -1,4 +1,4 @@
-use forge_store_physical_format::ReclaimedByteInterpretation;
+use forge_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use forge_store_reclaim_policy::{
     ReclaimPolicyCounterSnapshot, ReclaimPolicyExecutionReceipt, ReclaimPolicyOperation,
 };
@@ -7,6 +7,7 @@ use crate::BlobChunkSecurityMetadataWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S6BlobReclaimNonClaimHandoff {
+    region: PhysicalReclaimRegion,
     interpretation: ReclaimedByteInterpretation,
     security_metadata: BlobChunkSecurityMetadataWitness,
     counters: ReclaimPolicyCounterSnapshot,
@@ -38,10 +39,15 @@ impl S6BlobReclaimNonClaimHandoff {
         }
 
         Ok(Self {
+            region: policy.region(),
             interpretation: receipt.observed_interpretation(),
             security_metadata: metadata,
             counters: receipt.counters(),
         })
+    }
+
+    pub const fn region(self) -> PhysicalReclaimRegion {
+        self.region
     }
 
     pub const fn interpretation(self) -> ReclaimedByteInterpretation {

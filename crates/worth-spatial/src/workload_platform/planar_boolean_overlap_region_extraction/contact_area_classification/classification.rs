@@ -37,7 +37,10 @@ pub(super) fn build_boundary_contact_classification_bundle(
         .arrangement_graph_identity()
         .to_string();
     let cell_set_identity = input.overlap_islands().cell_set_identity().to_string();
-    let ordering_basis_identity = input.overlap_islands().ordering_basis_identity().to_string();
+    let ordering_basis_identity = input
+        .overlap_islands()
+        .ordering_basis_identity()
+        .to_string();
 
     let shared_boundary_rows = input
         .boundary_contact_components()
@@ -81,10 +84,18 @@ pub(super) fn build_boundary_contact_classification_bundle(
                 if let Some(shared_boundary_row) =
                     shared_boundary_by_component.get(component_identity.as_str())
                 {
-                    boundary_component_identities
-                        .extend(shared_boundary_row.boundary_component_identities().iter().cloned());
-                    boundary_segment_identities
-                        .extend(shared_boundary_row.boundary_segment_identities().iter().cloned());
+                    boundary_component_identities.extend(
+                        shared_boundary_row
+                            .boundary_component_identities()
+                            .iter()
+                            .cloned(),
+                    );
+                    boundary_segment_identities.extend(
+                        shared_boundary_row
+                            .boundary_segment_identities()
+                            .iter()
+                            .cloned(),
+                    );
                     source_loop_identities
                         .extend(shared_boundary_row.source_loop_identities().iter().cloned());
                 }
@@ -104,7 +115,11 @@ pub(super) fn build_boundary_contact_classification_bundle(
         .collect::<Vec<_>>();
 
     let shared_boundary_contact_outcomes = PlanarBooleanSharedBoundaryContactOutcomeSet::new(
-        outcome_set_identity(&request_identity, "shared-boundary", shared_boundary_rows.len()),
+        outcome_set_identity(
+            &request_identity,
+            "shared-boundary",
+            shared_boundary_rows.len(),
+        ),
         request_identity.clone(),
         arrangement_graph_identity.clone(),
         cell_set_identity.clone(),
@@ -112,7 +127,11 @@ pub(super) fn build_boundary_contact_classification_bundle(
         shared_boundary_rows,
     );
     let pure_boundary_only_outcomes = PlanarBooleanPureBoundaryOnlyOutcomeSet::new(
-        outcome_set_identity(&request_identity, "pure-boundary-only", pure_boundary_rows.len()),
+        outcome_set_identity(
+            &request_identity,
+            "pure-boundary-only",
+            pure_boundary_rows.len(),
+        ),
         request_identity.clone(),
         arrangement_graph_identity,
         cell_set_identity,

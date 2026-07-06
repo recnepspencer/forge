@@ -37,7 +37,10 @@ pub(super) fn ledger_row_identity(
 }
 
 pub(super) fn ledger_identity(request_identity: &str, row_identities: &[String]) -> String {
-    format!("overlap-ledger:{request_identity}:{}", digest(row_identities))
+    format!(
+        "overlap-ledger:{request_identity}:{}",
+        digest(row_identities)
+    )
 }
 
 pub(super) fn receipt_identity(

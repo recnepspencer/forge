@@ -11,14 +11,14 @@ use forge_store_security::StoreTenantScope;
 
 use crate::blob_chunk_test_support::{
     admitted_sequence_for_scope, blob_scope, candidate_for_scope, canonical_equivalence,
-    forced_collision_equivalence,
+    forced_collision_equivalence, physical_payload_for_bytes,
 };
 use crate::{
     reject_checksum_only_evidence_as_blob_chunk_integrity,
     reject_digest_only_evidence_as_blob_chunk_integrity, BlobChunkDedupeAdmission,
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCandidate, BlobChunkIntegrityDenial,
-    BlobChunkRootCanonicalComparison, BlobChunkRootPublication, BlobChunkSequenceAdmission,
-    BlobChunkSize, BlobChunkingRuleAdmission,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeByteComparison, BlobChunkDedupeCandidate,
+    BlobChunkDedupeReferenceRegistry, BlobChunkIntegrityDenial, BlobChunkRootCanonicalComparison,
+    BlobChunkRootPublication, BlobChunkSequenceAdmission, BlobChunkSize, BlobChunkingRuleAdmission,
 };
 
 #[test]
@@ -193,25 +193,65 @@ fn forced_digest_equivalence_collision_requires_chunk_byte_verification() {
         BlobChunkDedupeCandidate::from_integrity_proof(candidate_sequence.first_chunk().clone())
             .with_forced_content_digest_for_collision_fixture(forced_digest);
     let equivalence = forced_collision_equivalence(&existing, &candidate);
+    let byte_comparison = BlobChunkDedupeByteComparison::compare_chunk_payloads(
+        &existing,
+        &candidate,
+        &physical_payload_for_bytes(b"same-collision-bytes"),
+        &physical_payload_for_bytes(b"different-collision-bytes"),
+    )
+    .expect("collision byte comparison is bounded to the chunk payloads");
 
     let outcome = BlobChunkDedupeAdmission::compare_candidates(existing, candidate)
         .with_foundational_canonical_equivalence(equivalence)
         .with_root_canonical_comparison(comparison)
+        .with_byte_comparison(byte_comparison)
         .admit();
-    let TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::ChunkByteVerificationRequired {
+    let TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::DigestCollisionDenied {
         receipt,
+        posture,
         counters,
     }) = outcome
     else {
-        panic!("forced digest collision must deny through byte verification: {outcome:?}");
+        panic!("forced digest collision must deny after byte verification: {outcome:?}");
     };
+    assert_eq!(
+        posture,
+        crate::BlobChunkDedupeCollisionPosture::DigestCollisionDenied
+    );
     assert_eq!(receipt.counters(), counters);
     assert_ne!(receipt.existing_identity(), receipt.candidate_identity());
     assert_eq!(receipt.existing_proof().byte_range().start(), 0);
     assert_eq!(receipt.candidate_proof().byte_range().start(), 0);
+    assert_eq!(
+        receipt.bytes_compared(),
+        b"different-collision-bytes".len() as u64
+    );
     assert_eq!(counters.collision_probes(), 1);
     assert_eq!(counters.byte_verify_probes(), 1);
     assert_eq!(counters.collision_denials(), 1);
+
+    let mut registry = BlobChunkDedupeReferenceRegistry::new_store_owned();
+    let partition = registry.partition_index_after_collision(
+        &receipt,
+        StableDigest::new("phase13.collision.partition").unwrap(),
+    );
+    match BlobChunkDedupeAdmission::deny_for_index_partitioned(partition) {
+        TransitionOutcome::Denied(BlobChunkDedupeAdmissionDenial::DedupeIndexPartitioned {
+            counters,
+            ..
+        }) => assert_eq!(counters.index_partition_denials(), 1),
+        other => panic!("collision receipt must drive partition posture: {other:?}"),
+    }
+    let rewrite = registry.rewrite_chunk_under_new_digest_basis(
+        &receipt,
+        StableDigest::new("phase13.collision.rewrite").unwrap(),
+    );
+    match BlobChunkDedupeAdmission::deny_for_digest_rewrite(rewrite) {
+        TransitionOutcome::Denied(
+            BlobChunkDedupeAdmissionDenial::ChunkRewrittenUnderNewDigestBasis { counters, .. },
+        ) => assert_eq!(counters.digest_rewrites(), 1),
+        other => panic!("collision receipt must drive rewrite posture: {other:?}"),
+    }
 }
 
 fn admitted_sequence(

@@ -164,8 +164,7 @@ pub(super) fn recover_chain_lineage_rows(
         if matched_rows.is_empty() {
             continue;
         }
-        let source_loop_witnesses =
-            witnesses_for_lineage_row(lineage_row, support, counters)?;
+        let source_loop_witnesses = witnesses_for_lineage_row(lineage_row, support, counters)?;
         let mut propagated_names = matched_rows
             .iter()
             .flat_map(|row| row.propagated_persistent_name_identities().iter().cloned())

@@ -38,7 +38,8 @@ pub(super) fn admitted_island_bundle(
     .expect("fixture arrangement should admit island component bundle")
 }
 
-pub(super) fn admitted_from_arrangement_boundary() -> PlanarBooleanBoundaryContactClassificationBundle {
+pub(super) fn admitted_from_arrangement_boundary(
+) -> PlanarBooleanBoundaryContactClassificationBundle {
     let bundle = admitted_island_bundle(&boundary_graph());
     admitted_bundle(&bundle)
 }

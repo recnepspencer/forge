@@ -3,9 +3,9 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 use super::support::{
-    admitted_pre_region_bundle, admitted_shared_area_bundle, chain_lineage_map_with_unrelated_conflict,
-    operand_permuted_chain_lineage_map, replayed_shared_area_bundles, shared_area_graph,
-    synthetic_chain_lineage_map,
+    admitted_pre_region_bundle, admitted_shared_area_bundle,
+    chain_lineage_map_with_unrelated_conflict, operand_permuted_chain_lineage_map,
+    replayed_shared_area_bundles, shared_area_graph, synthetic_chain_lineage_map,
 };
 
 #[test]
@@ -23,7 +23,13 @@ fn pre_region_normalization_is_replay_stable_for_real_shared_area_products() {
 #[test]
 fn pre_region_normalization_has_a_typed_product_before_region_promotion() {
     let normalization = admitted_pre_region_bundle(&shared_area_graph());
-    assert_eq!(normalization.opposite_sense_overlap_normalizations().rows().len(), 1);
+    assert_eq!(
+        normalization
+            .opposite_sense_overlap_normalizations()
+            .rows()
+            .len(),
+        1
+    );
 }
 
 #[test]

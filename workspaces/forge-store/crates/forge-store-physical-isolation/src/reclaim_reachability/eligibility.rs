@@ -106,6 +106,24 @@ impl ReclaimEligibilityProof {
     pub const fn evidence(&self) -> &ExecutedReachabilityEvidence {
         &self.evidence
     }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub fn for_certification_test() -> Self {
+        let evidence = ExecutedReachabilityEvidence::for_certification_test();
+        let capacity = crate::HazardLeaseTableCapacity::bounded_slots(1)
+            .expect("certification test capacity is non-empty");
+        let hazards = crate::HazardLeaseTable::with_capacity(capacity).live_index_snapshot();
+        Self::admit(evidence, hazards).expect("certification test reclaim proof is eligible")
+    }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub fn for_certification_reference(reference: CurrentGenerationPhysicalReference) -> Self {
+        let evidence = ExecutedReachabilityEvidence::for_certification_reference(reference);
+        let capacity = crate::HazardLeaseTableCapacity::bounded_slots(1)
+            .expect("certification test capacity is non-empty");
+        let hazards = crate::HazardLeaseTable::with_capacity(capacity).live_index_snapshot();
+        Self::admit(evidence, hazards).expect("certification test reclaim proof is eligible")
+    }
 }
 
 impl ReclaimReachabilityRemovalReceipt {

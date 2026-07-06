@@ -104,9 +104,13 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
             || input.readiness().selected_family_identity()
                 != input.readiness_consumer().selected_family_identity()
             || input.readiness().selected_product_identity_digest()
-                != input.readiness_consumer().selected_product_identity_digest()
+                != input
+                    .readiness_consumer()
+                    .selected_product_identity_digest()
             || input.readiness().selected_witness_identity_digest()
-                != input.readiness_consumer().selected_witness_identity_digest()
+                != input
+                    .readiness_consumer()
+                    .selected_witness_identity_digest()
             || input.readiness().touched_closure_digest()
                 != input.readiness_consumer().touched_closure_digest()
             || input.readiness().selected_plan_digest()
@@ -123,7 +127,8 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
         {
             return Err(PlanarBooleanOverlapRegionEvidenceDenial::ReadinessConsumerMismatch);
         }
-        if binding.selected_route_identity_digest() != input.readiness().selected_route_identity_digest()
+        if binding.selected_route_identity_digest()
+            != input.readiness().selected_route_identity_digest()
             || binding.selected_family_identity() != input.readiness().selected_family_identity()
             || binding.selected_product_identity_digest()
                 != input.readiness().selected_product_identity_digest()
@@ -137,8 +142,7 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                 != input.readiness().spatial_query_posture_digest()
             || binding.residue_digest() != input.readiness().residue_digest()
             || binding.source_firewall_digest() != input.readiness().source_firewall_digest()
-            || binding.architecture_claim_digest()
-                != input.readiness().architecture_claim_digest()
+            || binding.architecture_claim_digest() != input.readiness().architecture_claim_digest()
         {
             return Err(PlanarBooleanOverlapRegionEvidenceDenial::RequestBindingMismatch);
         }
@@ -149,18 +153,30 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
             TruthDigestScope::ArtifactIdentity,
             &[
                 "planar-boolean-overlap-region-readiness-handoff".to_string(),
-                format!("selected-route:{}", input.readiness().selected_route_identity_digest()),
-                format!("selected-family:{}", input.readiness().selected_family_identity()),
+                format!(
+                    "selected-route:{}",
+                    input.readiness().selected_route_identity_digest()
+                ),
+                format!(
+                    "selected-family:{}",
+                    input.readiness().selected_family_identity()
+                ),
                 format!(
                     "selected-product:{}",
                     input.readiness().selected_product_identity_digest()
                 ),
                 format!(
                     "selected-witness:{}",
-                    input.readiness().selected_witness_identity_digest().unwrap_or("none")
+                    input
+                        .readiness()
+                        .selected_witness_identity_digest()
+                        .unwrap_or("none")
                 ),
                 format!("selected-plan:{}", input.readiness().selected_plan_digest()),
-                format!("touched-closure:{}", input.readiness().touched_closure_digest()),
+                format!(
+                    "touched-closure:{}",
+                    input.readiness().touched_closure_digest()
+                ),
                 format!(
                     "topology-query-posture:{}",
                     input.readiness().topology_query_posture_digest()
@@ -170,7 +186,10 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                     input.readiness().spatial_query_posture_digest()
                 ),
                 format!("residue:{}", input.readiness().residue_digest()),
-                format!("source-firewall:{}", input.readiness().source_firewall_digest()),
+                format!(
+                    "source-firewall:{}",
+                    input.readiness().source_firewall_digest()
+                ),
                 format!(
                     "architecture-claim:{}",
                     input.readiness().architecture_claim_digest()
@@ -191,11 +210,14 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                 ),
                 format!(
                     "selected-product:{}",
-                    input.readiness_consumer().selected_product_identity_digest()
+                    input
+                        .readiness_consumer()
+                        .selected_product_identity_digest()
                 ),
                 format!(
                     "selected-witness:{}",
-                    input.readiness_consumer()
+                    input
+                        .readiness_consumer()
                         .selected_witness_identity_digest()
                         .unwrap_or("none")
                 ),
@@ -234,7 +256,10 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                 format!("readiness-handoff:{readiness_handoff_identity}"),
                 format!("readiness-consumer:{readiness_consumer_identity}"),
                 format!("binding:{}", binding.binding_identity()),
-                format!("selected-route:{}", binding.selected_route_identity_digest()),
+                format!(
+                    "selected-route:{}",
+                    binding.selected_route_identity_digest()
+                ),
                 format!("selected-family:{}", binding.selected_family_identity()),
                 format!(
                     "selected-product:{}",
@@ -258,14 +283,21 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                 format!("source-firewall:{}", binding.source_firewall_digest()),
                 format!("architecture-claim:{}", binding.architecture_claim_digest()),
                 format!("loop-ledger:{}", binding.loop_ledger_receipt_identity()),
-                format!("overlap-ledger:{}", input.ledger_receipt().receipt_identity()),
+                format!(
+                    "overlap-ledger:{}",
+                    input.ledger_receipt().receipt_identity()
+                ),
                 format!(
                     "overlap-identity-map:{}",
-                    input.ledger_receipt().overlap_region_identity_map_identity()
+                    input
+                        .ledger_receipt()
+                        .overlap_region_identity_map_identity()
                 ),
                 format!(
                     "persistent-names:{}",
-                    input.ledger_receipt().persistent_name_propagation_map_identity()
+                    input
+                        .ledger_receipt()
+                        .persistent_name_propagation_map_identity()
                 ),
                 format!(
                     "subshape-signatures:{}",
@@ -289,7 +321,9 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
             readiness_binding_identity: binding.binding_identity().to_string(),
             selected_route_identity_digest: binding.selected_route_identity_digest().to_string(),
             selected_family_identity: binding.selected_family_identity().to_string(),
-            selected_product_identity_digest: binding.selected_product_identity_digest().to_string(),
+            selected_product_identity_digest: binding
+                .selected_product_identity_digest()
+                .to_string(),
             selected_witness_identity_digest: binding
                 .selected_witness_identity_digest()
                 .map(str::to_string),
@@ -302,7 +336,10 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
             architecture_claim_digest: binding.architecture_claim_digest().to_string(),
             loop_ledger_receipt_identity: binding.loop_ledger_receipt_identity().to_string(),
             overlap_ledger_receipt_identity: input.ledger_receipt().receipt_identity().to_string(),
-            overlap_decision_log_identity: input.ledger_receipt().decision_log_identity().to_string(),
+            overlap_decision_log_identity: input
+                .ledger_receipt()
+                .decision_log_identity()
+                .to_string(),
             overlap_ledger_identity: input.ledger_receipt().ledger_identity().to_string(),
             overlap_region_identity_map_identity: input
                 .ledger_receipt()
@@ -320,37 +357,88 @@ impl PlanarBooleanOverlapRegionEvidenceReceipt {
                 .replay_receipts()
                 .replay_checkpoint_identity()
                 .to_string(),
-            replay_evidence_identity: input.replay_receipts().replay_evidence_identity().to_string(),
+            replay_evidence_identity: input
+                .replay_receipts()
+                .replay_evidence_identity()
+                .to_string(),
         })
     }
 
-    pub fn receipt_identity(&self) -> &str { &self.receipt_identity }
-    pub fn request_identity(&self) -> &str { &self.request_identity }
-    pub fn readiness_handoff_identity(&self) -> &str { &self.readiness_handoff_identity }
-    pub fn readiness_consumer_identity(&self) -> &str { &self.readiness_consumer_identity }
-    pub fn readiness_binding_identity(&self) -> &str { &self.readiness_binding_identity }
-    pub fn selected_route_identity_digest(&self) -> &str { &self.selected_route_identity_digest }
-    pub fn selected_family_identity(&self) -> &str { &self.selected_family_identity }
-    pub fn selected_product_identity_digest(&self) -> &str { &self.selected_product_identity_digest }
+    pub fn receipt_identity(&self) -> &str {
+        &self.receipt_identity
+    }
+    pub fn request_identity(&self) -> &str {
+        &self.request_identity
+    }
+    pub fn readiness_handoff_identity(&self) -> &str {
+        &self.readiness_handoff_identity
+    }
+    pub fn readiness_consumer_identity(&self) -> &str {
+        &self.readiness_consumer_identity
+    }
+    pub fn readiness_binding_identity(&self) -> &str {
+        &self.readiness_binding_identity
+    }
+    pub fn selected_route_identity_digest(&self) -> &str {
+        &self.selected_route_identity_digest
+    }
+    pub fn selected_family_identity(&self) -> &str {
+        &self.selected_family_identity
+    }
+    pub fn selected_product_identity_digest(&self) -> &str {
+        &self.selected_product_identity_digest
+    }
     pub fn selected_witness_identity_digest(&self) -> Option<&str> {
         self.selected_witness_identity_digest.as_deref()
     }
-    pub fn selected_plan_digest(&self) -> &str { &self.selected_plan_digest }
-    pub fn touched_closure_digest(&self) -> &str { &self.touched_closure_digest }
-    pub fn topology_query_posture_digest(&self) -> &str { &self.topology_query_posture_digest }
-    pub fn spatial_query_posture_digest(&self) -> &str { &self.spatial_query_posture_digest }
-    pub fn residue_digest(&self) -> &str { &self.residue_digest }
-    pub fn source_firewall_digest(&self) -> &str { &self.source_firewall_digest }
-    pub fn architecture_claim_digest(&self) -> &str { &self.architecture_claim_digest }
-    pub fn loop_ledger_receipt_identity(&self) -> &str { &self.loop_ledger_receipt_identity }
-    pub fn overlap_ledger_receipt_identity(&self) -> &str { &self.overlap_ledger_receipt_identity }
-    pub fn overlap_decision_log_identity(&self) -> &str { &self.overlap_decision_log_identity }
-    pub fn overlap_ledger_identity(&self) -> &str { &self.overlap_ledger_identity }
-    pub fn overlap_region_identity_map_identity(&self) -> &str { &self.overlap_region_identity_map_identity }
-    pub fn persistent_name_propagation_map_identity(&self) -> &str { &self.persistent_name_propagation_map_identity }
-    pub fn subshape_signature_map_identity(&self) -> &str { &self.subshape_signature_map_identity }
-    pub fn replay_checkpoint_identity(&self) -> &str { &self.replay_checkpoint_identity }
-    pub fn replay_evidence_identity(&self) -> &str { &self.replay_evidence_identity }
+    pub fn selected_plan_digest(&self) -> &str {
+        &self.selected_plan_digest
+    }
+    pub fn touched_closure_digest(&self) -> &str {
+        &self.touched_closure_digest
+    }
+    pub fn topology_query_posture_digest(&self) -> &str {
+        &self.topology_query_posture_digest
+    }
+    pub fn spatial_query_posture_digest(&self) -> &str {
+        &self.spatial_query_posture_digest
+    }
+    pub fn residue_digest(&self) -> &str {
+        &self.residue_digest
+    }
+    pub fn source_firewall_digest(&self) -> &str {
+        &self.source_firewall_digest
+    }
+    pub fn architecture_claim_digest(&self) -> &str {
+        &self.architecture_claim_digest
+    }
+    pub fn loop_ledger_receipt_identity(&self) -> &str {
+        &self.loop_ledger_receipt_identity
+    }
+    pub fn overlap_ledger_receipt_identity(&self) -> &str {
+        &self.overlap_ledger_receipt_identity
+    }
+    pub fn overlap_decision_log_identity(&self) -> &str {
+        &self.overlap_decision_log_identity
+    }
+    pub fn overlap_ledger_identity(&self) -> &str {
+        &self.overlap_ledger_identity
+    }
+    pub fn overlap_region_identity_map_identity(&self) -> &str {
+        &self.overlap_region_identity_map_identity
+    }
+    pub fn persistent_name_propagation_map_identity(&self) -> &str {
+        &self.persistent_name_propagation_map_identity
+    }
+    pub fn subshape_signature_map_identity(&self) -> &str {
+        &self.subshape_signature_map_identity
+    }
+    pub fn replay_checkpoint_identity(&self) -> &str {
+        &self.replay_checkpoint_identity
+    }
+    pub fn replay_evidence_identity(&self) -> &str {
+        &self.replay_evidence_identity
+    }
 }
 
 impl BooleanEvidenceReceipt for PlanarBooleanOverlapRegionEvidenceReceipt {

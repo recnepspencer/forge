@@ -44,6 +44,7 @@ mod s6_io_pressure_shortcut_tests;
 #[cfg(any(test, feature = "certification-test-support"))]
 mod s6_io_pressure_test_support;
 mod s6_io_pressure_vocab;
+mod s7_blob_harness;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -240,6 +241,13 @@ pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
 #[cfg(feature = "certification-test-support")]
 pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
 pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
+pub use s7_blob_harness::{
+    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
+    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
+    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
+    BlobHarnessShortcutDenial, S7BlobResumeCrashPoint, S7BlobResumeExpectedOutcome,
+    S7BlobResumeRecoveryScenario,
+};
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
     JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,

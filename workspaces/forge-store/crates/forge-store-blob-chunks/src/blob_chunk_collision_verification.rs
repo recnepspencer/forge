@@ -9,6 +9,7 @@ pub struct BlobChunkCollisionVerificationReceipt {
     candidate_proof: BlobChunkIntegrityProof,
     content_digest: BlobChunkContentDigest,
     security_metadata: BlobChunkSecurityMetadataWitness,
+    bytes_compared: u64,
     counters: BlobChunkDedupeCounterSnapshot,
 }
 
@@ -18,6 +19,7 @@ impl BlobChunkCollisionVerificationReceipt {
         candidate_proof: BlobChunkIntegrityProof,
         content_digest: BlobChunkContentDigest,
         security_metadata: BlobChunkSecurityMetadataWitness,
+        bytes_compared: u64,
         counters: BlobChunkDedupeCounterSnapshot,
     ) -> Self {
         Self {
@@ -25,10 +27,8 @@ impl BlobChunkCollisionVerificationReceipt {
             candidate_proof,
             content_digest,
             security_metadata,
-            counters: counters
-                .record_collision_probe()
-                .record_byte_verify_probe()
-                .record_collision_denial(),
+            bytes_compared,
+            counters,
         }
     }
 
@@ -54,6 +54,10 @@ impl BlobChunkCollisionVerificationReceipt {
 
     pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
         self.security_metadata
+    }
+
+    pub const fn bytes_compared(&self) -> u64 {
+        self.bytes_compared
     }
 
     pub const fn counters(&self) -> BlobChunkDedupeCounterSnapshot {

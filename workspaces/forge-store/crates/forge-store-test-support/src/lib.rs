@@ -14,6 +14,7 @@ mod s5_1_security_scope_harness;
 mod s5_physical_isolation;
 mod s6_interference_profiles;
 mod s6_io_pressure_profiles;
+mod s7_blob_harness_profiles;
 mod terminal_projection_json_fixtures;
 
 use forge_store_physical_format::{
@@ -52,6 +53,7 @@ pub use physical_simulation::{
 };
 pub use resident_pressure_fixtures::{LargeStorePressureClass, LargeStorePressureFixture};
 pub use s4_recovery_physics::{
+    admitted_s4_partial_publication_recovery_entry, admitted_s4_recovery_entry,
     deterministic_s4_fresh_runtime_driver, deterministic_s4_recovery_artifacts,
     duplicate_role_s4_recovery_artifacts, incomplete_s4_recovery_artifacts,
     malformed_s4_recovery_record, reordered_s4_recovery_artifacts,
@@ -76,6 +78,10 @@ pub use s6_interference_profiles::{
 };
 pub use s6_io_pressure_profiles::{
     deterministic_s6_io_pressure_profile, large_s6_io_pressure_profile, S6IoPressureTestProfile,
+};
+pub use s7_blob_harness_profiles::{
+    ci_memory_envelope_s7_blob_harness_seed, heavy_multi_gb_s7_blob_harness_seed,
+    local_s7_blob_harness_seed,
 };
 pub use terminal_projection_json_fixtures::StoreTerminalProjectionJsonFixture;
 

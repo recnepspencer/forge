@@ -1,8 +1,6 @@
 use worth_spatial::facade::planar_boolean_edge_splitting::PlanarBooleanDownstreamSplitConsumptionDenial;
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanEventLedgerLookupExecutionDenial;
-use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOverlapRegionSummumBonumCloseoutDenial,
-};
+use worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionSummumBonumCloseoutDenial;
 use worth_spatial::facade::workload_vocabulary::{
     SpatialEvidenceLookupDenial, SpatialGeometryEvidenceTouchDenial,
     SpatialGeometryEvidenceTouchDenialKind, WorkloadEvidenceStage,

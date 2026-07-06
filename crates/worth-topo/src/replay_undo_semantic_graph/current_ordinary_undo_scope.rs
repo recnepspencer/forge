@@ -11,10 +11,10 @@ use schema::facade::platform::authority::replay_undo_semantic_graph_internal::{
 };
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use super::current_boundary::CurrentReplayUndoTopologyBoundaryError;
 use super::current_invalidation_proof::{
     current_topology_invalidation_proof, CurrentTopologyInvalidationProofError,
 };
-use super::current_boundary::CurrentReplayUndoTopologyBoundaryError;
 use super::lowering::lower_topology_touched_subjects;
 use super::scope_product::TopologyUndoScopeProductCounters;
 use super::TopologyUndoScopeProduct;
@@ -34,9 +34,10 @@ pub struct CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary {
     boundary_digest: String,
 }
 
-pub fn current_replay_undo_topology_ordinary_undo_scope_boundary(
-) -> Result<CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary, CurrentReplayUndoTopologyBoundaryError>
-{
+pub fn current_replay_undo_topology_ordinary_undo_scope_boundary() -> Result<
+    CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary,
+    CurrentReplayUndoTopologyBoundaryError,
+> {
     static CACHE: OnceLock<CurrentReplayUndoTopologyOrdinaryUndoScopeBoundary> = OnceLock::new();
     if let Some(cached) = CACHE.get() {
         return Ok(cached.clone());
@@ -53,7 +54,10 @@ pub fn current_replay_undo_topology_ordinary_undo_scope_boundary(
             format!("selected-plan:{}", selected_plan.selected_plan_digest()),
             format!("touched-closure:{}", selected_plan.touched_closure_digest()),
             format!("query-support:{}", selected_plan.query_support_digest()),
-            format!("legality-support:{}", selected_plan.legality_support_digest()),
+            format!(
+                "legality-support:{}",
+                selected_plan.legality_support_digest()
+            ),
         ],
     );
     let prior_proof_identity =
@@ -75,9 +79,8 @@ pub fn current_replay_undo_topology_ordinary_undo_scope_boundary(
         prior_proof_identity.clone(),
         Some(stage_index_identity.clone()),
     );
-    let scope_identity = admit_undo_scope_identity(UndoScopeIdentityInput::new(
-        equivalence_basis.clone(),
-    ));
+    let scope_identity =
+        admit_undo_scope_identity(UndoScopeIdentityInput::new(equivalence_basis.clone()));
     let counters =
         TopologyUndoScopeProductCounters::new(equivalence_basis.touched_subjects().len());
     let semantic_graph_identity = truth_digest_parts(
@@ -85,7 +88,10 @@ pub fn current_replay_undo_topology_ordinary_undo_scope_boundary(
         &[
             "worth-topo:replay-undo-semantic-graph:ordinary-undo-admitted-input:v1".to_string(),
             format!("family:{}", family_identity.as_str()),
-            format!("touched-closure:{}", proof.touched_closure().closure_digest()),
+            format!(
+                "touched-closure:{}",
+                proof.touched_closure().closure_digest()
+            ),
             format!("prior-proof:{}", prior_proof_identity.digest()),
             format!("stage-index:{}", stage_index_identity.digest()),
         ],
@@ -96,7 +102,10 @@ pub fn current_replay_undo_topology_ordinary_undo_scope_boundary(
             "worth-topo:current-replay-undo-topology-ordinary-undo-scope-boundary:v1".to_string(),
             format!("family:{}", family_identity.as_str()),
             format!("selected-plan:{}", selected_plan.selected_plan_digest()),
-            format!("touched-closure:{}", proof.touched_closure().closure_digest()),
+            format!(
+                "touched-closure:{}",
+                proof.touched_closure().closure_digest()
+            ),
             format!("prior-proof:{}", prior_proof_identity.digest()),
             format!("stage-index:{}", stage_index_identity.digest()),
             format!("scope:{}", scope_identity.digest()),

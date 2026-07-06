@@ -1,15 +1,13 @@
-#[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
-mod workload_evidence_support;
 #[path = "../operator_harness/tests_vertical_migration/support/spatial_batch_execution_slice.rs"]
 mod spatial_batch_execution_slice_support;
+#[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
+mod workload_evidence_support;
 
 use topology::facade::{
     admit_milestone_seven_five_overlap_readiness_consumer, PlanarBooleanLoopBlueprintRegistry,
     PlanarBooleanOverlapBlueprintRegistry,
 };
-use worth_spatial::facade::planar_boolean_loop_reconstruction::{
-    PlanarBooleanLoopReconstructionParticipationSupport,
-};
+use worth_spatial::facade::planar_boolean_loop_reconstruction::PlanarBooleanLoopReconstructionParticipationSupport;
 use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     PlanarBooleanBoundaryContactClassificationBundle, PlanarBooleanCoplanarOverlapArrangementGraph,
     PlanarBooleanOverlapAdjacencyIndexInput, PlanarBooleanOverlapArrangementGraphInput,
@@ -40,14 +38,13 @@ fn completed_loop_handoff_with_real_batch_authority(
     let matrix = registry.operator_classification_matrix();
     let validators = registry.validator_registration_plan();
     let subject = workload_evidence_support::MetabossEventExtractionSubject::certify(label);
-    let replay_subject = workload_evidence_support::build_edge_split_replay_parity_subject(&subject);
+    let replay_subject =
+        workload_evidence_support::build_edge_split_replay_parity_subject(&subject);
     let replay_report = workload_evidence_support::replay_parity_report(&replay_subject);
-    let completed_split_handoff = workload_evidence_support::completed_split_handoff_for(
-        &subject,
-        &replay_subject,
-    )
-    .with_batch_admission_execution(&batch_execution)
-    .expect("real loop owner-seam proof requires explicit batch-admission authority");
+    let completed_split_handoff =
+        workload_evidence_support::completed_split_handoff_for(&subject, &replay_subject)
+            .with_batch_admission_execution(&batch_execution)
+            .expect("real loop owner-seam proof requires explicit batch-admission authority");
     let (
         decision_log_receipt,
         validation,
@@ -151,7 +148,7 @@ fn overlap_request_and_ledger(
 ) -> (
     PlanarBooleanOverlapRegionExtractionRequest,
     worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionLedgerAssemblyBundle,
-) {
+){
     let readiness = current_touched_graph_readiness_handoff().expect("readiness handoff");
     let readiness_consumer =
         admit_milestone_seven_five_overlap_readiness_consumer(&readiness).expect("consumer");
@@ -172,7 +169,9 @@ fn overlap_request_and_ledger(
             loop_products.island_partition(),
             loop_products.persistent_name_propagation_map(),
             loop_products.source_provenance().fragment_membership_map(),
-            loop_products.source_provenance().overlap_chain_lineage_map(),
+            loop_products
+                .source_provenance()
+                .overlap_chain_lineage_map(),
             loop_products.source_provenance().source_loop_carriers(),
         )
         .expect("participation support");
@@ -181,7 +180,9 @@ fn overlap_request_and_ledger(
             &request, &support,
         );
     let participation = PlanarBooleanOverlapParticipationRecovery::recover(participation_input)
-        .expect("real loop handoff should recover overlap participation from carried 7.4 provenance");
+        .expect(
+            "real loop handoff should recover overlap participation from carried 7.4 provenance",
+        );
     let adjacency = PlanarBooleanOverlapRegionAdjacencyIndex::admit(
         PlanarBooleanOverlapAdjacencyIndexInput::from_participation_products(
             participation.loop_participation_map(),
@@ -213,7 +214,12 @@ fn overlap_request_and_ledger(
         .mint_overlap_region_identity_lineage()
         .expect("identity lineage");
 
-    (request, identity_lineage.mint_overlap_region_ledger().expect("ledger"))
+    (
+        request,
+        identity_lineage
+            .mint_overlap_region_ledger()
+            .expect("ledger"),
+    )
 }
 
 #[test]
@@ -236,16 +242,18 @@ fn overlap_closeout_real_owner_seam_exposes_stage_runtime_and_fence_proof() {
     let (request, ledger_bundle) = overlap_request_and_ledger(&loop_handoff);
     let overlap_registry = PlanarBooleanOverlapBlueprintRegistry::phase_2();
     let completed = loop_handoff
-        .complete_planar_boolean_overlap_region_extraction(PlanarBooleanOverlapRegionCloseoutInput::new(
-            &readiness,
-            &readiness_consumer,
-            &request,
-            &ledger_bundle,
-            &replayed_loop_handoff,
-            &replay_subject.replay_receipts,
-            &overlap_registry.operator_classification_matrix(),
-            &overlap_registry.validator_registration_plan(),
-        ))
+        .complete_planar_boolean_overlap_region_extraction(
+            PlanarBooleanOverlapRegionCloseoutInput::new(
+                &readiness,
+                &readiness_consumer,
+                &request,
+                &ledger_bundle,
+                &replayed_loop_handoff,
+                &replay_subject.replay_receipts,
+                &overlap_registry.operator_classification_matrix(),
+                &overlap_registry.validator_registration_plan(),
+            ),
+        )
         .expect("overlap closeout should certify through the real owner seam");
 
     completed
@@ -253,11 +261,15 @@ fn overlap_closeout_real_owner_seam_exposes_stage_runtime_and_fence_proof() {
         .require_boolean_overlap_region_extraction(completed.evidence_receipt())
         .expect("completed workload must require the overlap extraction stage");
     assert_eq!(
-        completed.runtime_registration_proof().evidence_receipt_identity(),
+        completed
+            .runtime_registration_proof()
+            .evidence_receipt_identity(),
         completed.evidence_receipt().receipt_identity()
     );
     assert_eq!(
-        completed.runtime_registration_proof().overlap_ledger_receipt_identity(),
+        completed
+            .runtime_registration_proof()
+            .overlap_ledger_receipt_identity(),
         completed.overlap_ledger_receipt().receipt_identity()
     );
     assert_eq!(
@@ -268,10 +280,7 @@ fn overlap_closeout_real_owner_seam_exposes_stage_runtime_and_fence_proof() {
         completed.replay_parity_receipt().checkpoint_receipt(),
         completed.checkpoint_parity_receipt()
     );
-    assert_eq!(
-        completed.replay_parity_receipt().rows().len(),
-        11
-    );
+    assert_eq!(completed.replay_parity_receipt().rows().len(), 11);
     assert_eq!(
         completed
             .replay_parity_receipt()
@@ -280,7 +289,9 @@ fn overlap_closeout_real_owner_seam_exposes_stage_runtime_and_fence_proof() {
         replay_subject.replay_receipts.replay_evidence_identity()
     );
     assert_eq!(
-        completed.runtime_registration_proof().stage_index_identity(),
+        completed
+            .runtime_registration_proof()
+            .stage_index_identity(),
         completed.workload_stage_index_identity()
     );
     for kind in [
@@ -338,16 +349,18 @@ fn overlap_closeout_rejects_foreign_retained_replay_authority_for_replay_peer() 
     );
 
     let denial = loop_handoff
-        .complete_planar_boolean_overlap_region_extraction(PlanarBooleanOverlapRegionCloseoutInput::new(
-            &readiness,
-            &readiness_consumer,
-            &request,
-            &ledger_bundle,
-            &replayed_loop_handoff,
-            &foreign_replay_subject.replay_receipts,
-            &overlap_registry.operator_classification_matrix(),
-            &overlap_registry.validator_registration_plan(),
-        ))
+        .complete_planar_boolean_overlap_region_extraction(
+            PlanarBooleanOverlapRegionCloseoutInput::new(
+                &readiness,
+                &readiness_consumer,
+                &request,
+                &ledger_bundle,
+                &replayed_loop_handoff,
+                &foreign_replay_subject.replay_receipts,
+                &overlap_registry.operator_classification_matrix(),
+                &overlap_registry.validator_registration_plan(),
+            ),
+        )
         .expect_err("foreign retained replay receipts must not certify the owner-seam replay peer");
 
     assert!(matches!(

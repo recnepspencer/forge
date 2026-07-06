@@ -245,6 +245,22 @@ pub struct LocatedCheckpointCandidate {
 }
 
 impl LocatedCheckpointCandidate {
+    #[cfg(feature = "certification-test-authority")]
+    pub fn from_manifest_for_certification_test(manifest: CheckpointManifest) -> Self {
+        let candidate = CheckpointCandidate::from_manifest(
+            manifest,
+            CheckpointCandidateDiscoverySource::DirectoryListing,
+        );
+        let locator =
+            CheckpointLocator::ManifestPointer(candidate.manifest().checkpoint_id().clone());
+        let counters = candidate.counters().with_locator_check();
+        Self {
+            candidate,
+            locator,
+            counters,
+        }
+    }
+
     pub fn candidate(&self) -> &CheckpointCandidate {
         &self.candidate
     }

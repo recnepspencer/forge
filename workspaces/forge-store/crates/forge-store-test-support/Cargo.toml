@@ -11,6 +11,7 @@ forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
 forge-store-authority.workspace = true
 forge-store-budgets.workspace = true
+forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
 forge-store-physical-certification.workspace = true

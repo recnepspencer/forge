@@ -8,7 +8,8 @@ use forge_store_security::{
 };
 
 use crate::{
-    BlobChunkCollisionVerificationReceipt, BlobChunkDedupeCounterSnapshot,
+    BlobChunkCollisionVerificationReceipt, BlobChunkDedupeCollisionPosture,
+    BlobChunkDedupeCounterSnapshot, BlobChunkDedupePolicy, BlobChunkQuarantine,
     BlobChunkScopeCounterSnapshot,
 };
 
@@ -128,8 +129,18 @@ pub enum BlobChunkDedupeAdmissionDenial {
     UnboundRootCanonicalComparison {
         counters: BlobChunkDedupeCounterSnapshot,
     },
-    ChunkByteVerificationRequired {
+    ChunkByteComparisonRequired {
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    UnboundByteComparison {
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    ByteComparisonPayloadMismatch {
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    DigestCollisionDenied {
         receipt: BlobChunkCollisionVerificationReceipt,
+        posture: BlobChunkDedupeCollisionPosture,
         counters: BlobChunkDedupeCounterSnapshot,
     },
     CrossTenantScopeRequiresExplicitEquivalence {
@@ -143,6 +154,26 @@ pub enum BlobChunkDedupeAdmissionDenial {
         counters: BlobChunkDedupeCounterSnapshot,
     },
     CrossScopeSecurityWitnessMismatch {
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    QuarantinedChunkDenied {
+        quarantine: BlobChunkQuarantine,
+        posture: BlobChunkDedupeCollisionPosture,
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    DedupeIndexPartitioned {
+        posture: BlobChunkDedupeCollisionPosture,
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    ChunkRewrittenUnderNewDigestBasis {
+        posture: BlobChunkDedupeCollisionPosture,
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    DedupePolicyDenied {
+        policy: BlobChunkDedupePolicy,
+        counters: BlobChunkDedupeCounterSnapshot,
+    },
+    DedupeReferenceEdgeMismatch {
         counters: BlobChunkDedupeCounterSnapshot,
     },
     UnboundFoundationalEquivalence {

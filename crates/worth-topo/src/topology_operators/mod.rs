@@ -71,14 +71,6 @@ pub use loop_reconstruction_blueprint::{
     PlanarBooleanLoopRequiredQuerySurface, PlanarBooleanLoopValidatorRegistrationPlan,
     PlanarBooleanLoopValidatorRow, PlanarBooleanLoopValidatorRuntimeLane,
 };
-pub use overlap_region_blueprint::{
-    PlanarBooleanOverlapBlueprintCloseout, PlanarBooleanOverlapBlueprintCloseoutDenial,
-    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
-    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
-    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
-    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
-    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
-};
 pub use mutation_digest::{TopologyMutationDigest, TopologyMutationSequenceDigest};
 pub(crate) use mutation_records::TopologyDeclaredMutationActionRef;
 pub use mutation_records::{
@@ -92,6 +84,14 @@ pub(crate) use mutation_sequence::topology_mutation_digest_for_records;
 pub(crate) use mutation_sequence::TopologyDeclaredMutationMember;
 pub(crate) use mutation_sequence::TopologyDeclaredMutationSequence;
 pub use naming_continuity::NamingMutationContinuityMatrix;
+pub use overlap_region_blueprint::{
+    PlanarBooleanOverlapBlueprintCloseout, PlanarBooleanOverlapBlueprintCloseoutDenial,
+    PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapBlueprintRegistryIdentity,
+    PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorClassificationMatrix,
+    PlanarBooleanOverlapOperatorRow, PlanarBooleanOverlapOperatorTruthAuthority,
+    PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRegistrationPlan,
+    PlanarBooleanOverlapValidatorRow, PlanarBooleanOverlapValidatorRuntimeLane,
+};
 pub use query_workflow::{
     topology_grouped_operator_neighborhood, topology_operator_continuation_target,
     topology_operator_contribution_workflow, topology_operator_signal_workflow,

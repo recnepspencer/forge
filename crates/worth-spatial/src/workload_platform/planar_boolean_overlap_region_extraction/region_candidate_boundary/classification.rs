@@ -5,6 +5,7 @@ use super::denial::PlanarBooleanDeniedOverlapRegionCandidateKind::{
     ContradictoryPromotionPostureDenied, MissingNormalizationDenied,
     MixedBoundaryAreaRequiresFurtherDecompositionDenied,
 };
+use super::denial::PlanarBooleanOverlapRegionCandidateBoundaryDenial;
 use super::identity::{
     admitted_region_identity, boundary_only_outcome_identity, candidate_identity,
     denied_candidate_identity, set_identity,
@@ -12,15 +13,14 @@ use super::identity::{
 use super::input::PlanarBooleanOverlapRegionCandidateBoundaryInput;
 use super::product::{
     PlanarBooleanAdmittedOverlapRegionSet, PlanarBooleanBoundaryOnlyOverlapOutcomeSet,
-    PlanarBooleanDeniedOverlapRegionCandidateSet, PlanarBooleanOverlapRegionCandidateBoundaryBundle,
-    PlanarBooleanOverlapRegionCandidateSet,
+    PlanarBooleanDeniedOverlapRegionCandidateSet,
+    PlanarBooleanOverlapRegionCandidateBoundaryBundle, PlanarBooleanOverlapRegionCandidateSet,
 };
 use super::rows::{
     PlanarBooleanAdmittedOverlapRegionRow, PlanarBooleanBoundaryOnlyOverlapOutcomeRow,
     PlanarBooleanDeniedOverlapRegionCandidateRow, PlanarBooleanOverlapRegionCandidateRow,
 };
 use super::validation::{validate_input_identities, validate_normalization_coverage};
-use super::denial::PlanarBooleanOverlapRegionCandidateBoundaryDenial;
 
 pub(super) fn promote_region_candidate_boundary_bundle(
     input: PlanarBooleanOverlapRegionCandidateBoundaryInput<'_>,
@@ -39,16 +39,16 @@ pub(super) fn promote_region_candidate_boundary_bundle(
     let arrangement_graph_identity = shared_area_bundle.arrangement_graph_identity().to_string();
     let cell_set_identity = shared_area_bundle.cell_set_identity().to_string();
     let ordering_basis_identity = shared_area_bundle.ordering_basis_identity().to_string();
-    let normalizations = normalization_set
-        .rows()
-        .iter()
-        .fold(BTreeMap::<&str, Vec<_>>::new(), |mut grouped, row| {
+    let normalizations = normalization_set.rows().iter().fold(
+        BTreeMap::<&str, Vec<_>>::new(),
+        |mut grouped, row| {
             grouped
                 .entry(row.shared_area_admission_outcome_identity())
                 .or_default()
                 .push(row);
             grouped
-        });
+        },
+    );
     let mut counters = PlanarBooleanOverlapRegionCandidateBoundaryCounters::default();
     let mut candidates = Vec::new();
     let mut denied = Vec::new();
@@ -63,8 +63,7 @@ pub(super) fn promote_region_candidate_boundary_bundle(
             .iter()
             .any(|mixed| mixed_blocks_shared_area(mixed, row));
         let normalization_rows = normalizations.get(row.outcome_identity());
-        let contradictory_normalization = normalization_rows
-            .is_some_and(|rows| rows.len() != 1);
+        let contradictory_normalization = normalization_rows.is_some_and(|rows| rows.len() != 1);
         let localization_mismatch = normalization_rows
             .and_then(|rows| rows.first())
             .is_some_and(|normalization| {
@@ -111,7 +110,9 @@ pub(super) fn promote_region_candidate_boundary_bundle(
                 normalization.lineage_identities().to_vec(),
                 normalization.source_edge_identities().to_vec(),
                 normalization.boundary_roles().to_vec(),
-                normalization.propagated_persistent_name_identities().to_vec(),
+                normalization
+                    .propagated_persistent_name_identities()
+                    .to_vec(),
             ));
             counters.admitted_overlap_region();
             admitted.push(PlanarBooleanAdmittedOverlapRegionRow::new(
@@ -135,7 +136,9 @@ pub(super) fn promote_region_candidate_boundary_bundle(
                 normalization.lineage_identities().to_vec(),
                 normalization.source_edge_identities().to_vec(),
                 normalization.boundary_roles().to_vec(),
-                normalization.propagated_persistent_name_identities().to_vec(),
+                normalization
+                    .propagated_persistent_name_identities()
+                    .to_vec(),
             ));
         } else {
             counters.denied_candidate();

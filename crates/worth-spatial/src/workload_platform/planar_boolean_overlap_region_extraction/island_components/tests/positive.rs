@@ -41,13 +41,25 @@ fn overlap_island_partition_is_stable_under_benign_order_variation() {
 fn overlap_island_partition_keeps_boundary_contact_and_area_components_separate() {
     let area_partition = admitted_partition(&area_graph());
     assert_eq!(area_partition.overlap_islands().rows().len(), 1);
-    assert!(area_partition.boundary_contact_components().rows().is_empty());
+    assert!(area_partition
+        .boundary_contact_components()
+        .rows()
+        .is_empty());
     assert_eq!(area_partition.area_overlap_components().rows().len(), 1);
 
     let boundary_partition = admitted_partition(&boundary_graph());
     assert_eq!(boundary_partition.overlap_islands().rows().len(), 1);
-    assert_eq!(boundary_partition.boundary_contact_components().rows().len(), 2);
-    assert!(boundary_partition.area_overlap_components().rows().is_empty());
+    assert_eq!(
+        boundary_partition
+            .boundary_contact_components()
+            .rows()
+            .len(),
+        2
+    );
+    assert!(boundary_partition
+        .area_overlap_components()
+        .rows()
+        .is_empty());
 }
 
 #[test]

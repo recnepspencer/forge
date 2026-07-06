@@ -8,8 +8,12 @@ use super::identity::{candidate_identity, candidate_set_identity, island_identit
 use super::input::PlanarBooleanOverlapIslandCandidateInput;
 use super::lookup::PlanarBooleanOverlapCellEvidenceLookup;
 use super::product::PlanarBooleanOverlapIslandCandidateSet;
-use super::rows::{PlanarBooleanOverlapIslandCandidateKind as Kind, PlanarBooleanOverlapIslandCandidateRow};
-use super::validation::{contradictory, unsupported, validate_cell_overlap_signal, validate_input_identities};
+use super::rows::{
+    PlanarBooleanOverlapIslandCandidateKind as Kind, PlanarBooleanOverlapIslandCandidateRow,
+};
+use super::validation::{
+    contradictory, unsupported, validate_cell_overlap_signal, validate_input_identities,
+};
 use super::PlanarBooleanOverlapIslandComponentDenial;
 
 pub(super) fn build_island_candidate_set(

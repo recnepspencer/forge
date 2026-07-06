@@ -1,15 +1,16 @@
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::StableDigest;
-use forge_store_readiness::{admit_s6_s7_placement_handoff, S6S7PlacementAdmissionAuthority};
 use forge_store_security::StoreTenantScope;
 
 use crate::blob_chunk_test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
+use crate::blob_placement_admission::test_support::admit_inline_placement;
 use crate::{
-    AuthenticatedFrameDigest, BlobAuthorityClassification, BlobChunkRootPublication,
-    BlobGeneration, BlobGenerationRegistryAdmission, BlobGenerationRegistryAuthority,
-    BlobLifecycleAdmission, BlobLifecycleDeclaration, BlobLifecycleReadinessAuthority,
-    BlobLifecycleStoreAuthority, BlobObjectClassificationAdmission, BlobObjectId, ChunkTreeRoot,
-    LifecycleReceipt, LogicalContentDigest, ScopedBlobChunk, StoredChunkDigest,
+    AuthenticatedFrameDigest, BlobAuthorityClassification, BlobChunkReachabilityRegistry,
+    BlobChunkRootPublication, BlobGeneration, BlobGenerationRegistryAdmission,
+    BlobGenerationRegistryAuthority, BlobLifecycleAdmission, BlobLifecycleDeclaration,
+    BlobLifecycleReadinessAuthority, BlobLifecycleStoreAuthority,
+    BlobObjectClassificationAdmission, BlobObjectId, ChunkTreeRoot, LifecycleReceipt,
+    LogicalContentDigest, ScopedBlobChunk, StoredChunkDigest,
 };
 
 pub(crate) fn registry_admission(
@@ -36,12 +37,20 @@ pub(crate) fn root_publication_with_bytes(
     case: &str,
     bytes: &[u8],
 ) -> (BlobChunkRootPublication, StoredChunkDigest) {
+    root_publication_with_bytes_and_chunk_size(case, bytes, 12)
+}
+
+pub(crate) fn root_publication_with_bytes_and_chunk_size(
+    case: &str,
+    bytes: &[u8],
+    chunk_size: u64,
+) -> (BlobChunkRootPublication, StoredChunkDigest) {
     let sequence = admitted_multichunk_sequence_for_scope(
         blob_scope(case, StoreTenantScope::TenantPhysicalBoundary),
         bytes,
-        12,
+        chunk_size,
     );
-    let stored_digest = sequence.first_chunk().stored_digest().clone();
+    let stored_digest = scoped_chunk_with_bytes(case, bytes).stored_digest().clone();
     (
         BlobChunkRootPublication::publish(sequence).expect("root publication should admit"),
         stored_digest,
@@ -73,36 +82,70 @@ pub(crate) fn lifecycle_receipt_for_publication_with_bytes(
     authority_classification: BlobAuthorityClassification,
     bytes: &[u8],
 ) -> LifecycleReceipt {
-    let store_authority = BlobLifecycleStoreAuthority::from_current_store_authority(
-        current_authority(case, "lifecycle"),
-    );
-    let lowering = store_authority.lowering_capability();
-    let readiness =
-        BlobLifecycleReadinessAuthority::from_s6_placement_seed(admit_s6_s7_placement_handoff(
-            S6S7PlacementAdmissionAuthority::from_current_store_authority(current_authority(
-                &format!("{case}.placement"),
-                "placement",
-            )),
-        ));
-    let ready = BlobLifecycleAdmission::start(declaration(
+    lifecycle_receipt_for_publication_with_identity(
         case,
+        case,
+        1,
         chunk_tree_root,
         logical_content_digest,
         stored_digest,
         authority_classification,
-    ))
-    .resolve_store_authority(store_authority)
-    .lower_lifecycle_plan(lowering)
-    .admit_reachability(scoped_chunk_with_bytes(case, bytes))
-    .success("reachability should admit")
-    .admit_placement(&readiness)
-    .ready_for_execution(readiness)
-    .success("readiness should admit");
+        bytes,
+    )
+}
+
+pub(crate) fn lifecycle_receipt_for_publication_with_identity(
+    case: &str,
+    object_case: &str,
+    generation_sequence: u64,
+    chunk_tree_root: ChunkTreeRoot,
+    logical_content_digest: LogicalContentDigest,
+    stored_digest: StoredChunkDigest,
+    authority_classification: BlobAuthorityClassification,
+    bytes: &[u8],
+) -> LifecycleReceipt {
+    let store_authority = BlobLifecycleStoreAuthority::from_current_store_authority(
+        current_authority(case, "lifecycle"),
+    );
+    let lowering = store_authority.lowering_capability();
+    let scoped_chunk = scoped_chunk_with_bytes(case, bytes);
+    let declaration = declaration_with_identity(
+        case,
+        object_case,
+        generation_sequence,
+        chunk_tree_root,
+        logical_content_digest,
+        scoped_chunk.security_metadata(),
+        stored_digest,
+        authority_classification,
+    );
+    let reachability = reachability_proof_for_declaration(&declaration, scoped_chunk);
+    let placement = admit_inline_placement(&reachability);
+    let readiness = BlobLifecycleReadinessAuthority::from_admitted_placement(placement.clone());
+    let ready = BlobLifecycleAdmission::start(declaration)
+        .resolve_store_authority(store_authority)
+        .lower_lifecycle_plan(lowering)
+        .admit_reachability(reachability)
+        .success("reachability should admit")
+        .admit_placement(placement)
+        .success("placement should admit")
+        .ready_for_execution(readiness)
+        .success("readiness should admit");
     let replay = ready.admitted_replay_input();
     ready
         .execute_lifecycle_replay(replay)
         .success("lifecycle should execute")
         .into_lifecycle_receipt()
+}
+
+fn reachability_proof_for_declaration(
+    declaration: &BlobLifecycleDeclaration,
+    scoped_chunk: ScopedBlobChunk,
+) -> crate::BlobChunkReachabilityProofSet {
+    let mut registry = BlobChunkReachabilityRegistry::new_store_owned();
+    registry
+        .admit_lifecycle_primary_reference(declaration, scoped_chunk)
+        .expect("lifecycle reachability proof should admit")
 }
 
 pub(crate) fn registry_authority(case: &str) -> BlobGenerationRegistryAuthority {
@@ -166,18 +209,22 @@ pub(crate) fn current_authority(
     require_current_store_authority(boundary)
 }
 
-fn declaration(
+fn declaration_with_identity(
     case: &str,
+    object_case: &str,
+    generation_sequence: u64,
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
+    security_metadata: crate::BlobChunkSecurityMetadataWitness,
     stored_digest: StoredChunkDigest,
     authority_classification: BlobAuthorityClassification,
 ) -> BlobLifecycleDeclaration {
     BlobLifecycleDeclaration::new(
-        BlobObjectId::from_declared_digest(digest(&format!("sha256:{case}.object"))),
-        BlobGeneration::published(1),
+        BlobObjectId::from_declared_digest(digest(&format!("sha256:{object_case}.object"))),
+        BlobGeneration::published(generation_sequence),
         chunk_tree_root,
         logical_content_digest,
+        security_metadata,
         stored_digest,
         AuthenticatedFrameDigest::from_declared_digest(digest(&format!("sha256:{case}.frame"))),
         authority_classification,
