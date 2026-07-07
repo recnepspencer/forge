@@ -3,10 +3,8 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanEventPredicateBindingDenialKind,
 };
 
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
+use super::predicate_binding_support;
+use super::reduced_pair_support;
 
 #[test]
 fn boolean_event_pipeline_consumes_candidate_index_product_not_local_work_items() {

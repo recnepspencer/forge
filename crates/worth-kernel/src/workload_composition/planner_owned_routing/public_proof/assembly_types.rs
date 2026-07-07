@@ -1,9 +1,11 @@
 use crate::workload_composition::planner_owned_routing::WorthWorkloadOrdinaryConsumerCutover;
 use crate::workload_composition::{
     WorthTouchedGraphConflictAdmittedPublicProofInput, WorthTouchedGraphConflictDeletionCloseout,
-    WorthTouchedGraphConflictResidueChain, WorthTouchedGraphConflictSelectedRoutePacket,
+    WorthTouchedGraphConflictSelectedRoutePacket,
     WorthTouchedGraphConflictSourceFirewallReport,
 };
+#[cfg(test)]
+use crate::workload_composition::WorthTouchedGraphConflictResidueChain;
 
 use super::types::{
     WorthTouchedGraphConflictPublicCloseoutError, WorthTouchedGraphConflictPublicCloseoutErrorKind,
@@ -73,6 +75,7 @@ impl CurrentWorthTouchedGraphConflictPublicProofAssemblyComponents {
         &self.cutover
     }
 
+    #[cfg(test)]
     pub(crate) fn residue_chain(&self) -> WorthTouchedGraphConflictResidueChain {
         WorthTouchedGraphConflictResidueChain::from_current_live_surfaces(self.cutover.rows())
     }

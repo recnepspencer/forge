@@ -1,5 +1,3 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 use super::placement_motion_anchors::{
     lower_move_anchor_with_catalog, lower_offset_anchor_with_catalog, lower_reorient_anchor,
     lower_rotate_anchor, LoweredReorientAnchor, MotionAnchorDenial,

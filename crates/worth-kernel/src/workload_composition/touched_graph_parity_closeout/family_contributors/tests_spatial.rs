@@ -1,3 +1,4 @@
+
 use schema::facade::platform::authority::touched_graph_parity_closeout::{
     TouchedGraphParityClaimKind, TouchedGraphParityFamilyKind,
 };
@@ -6,17 +7,13 @@ use worth_spatial::facade::evidence_lookup_public_closeout::{
     EvidenceLookupPublicCloseoutResidueDisposition, EvidenceLookupPublicCloseoutResidueOwner,
 };
 use worth_spatial::touched_graph_parity_closeout::{
-    current_spatial_family_contributor_catalog as current_spatial_catalog,
     SpatialContributorCatalogRowKind, SpatialContributorLocalLanguagePosture,
-    SpatialContributorQueryBoundaryAuthority, SPATIAL_EVIDENCE_LOOKUP_REPLACEMENT_LANE,
-    SPATIAL_RETAINED_SURFACE_REPLACEMENT_LANE,
+    SpatialContributorQueryBoundaryAuthority, SpatialFamilyContributorCatalogRow,
+    SPATIAL_EVIDENCE_LOOKUP_REPLACEMENT_LANE, SPATIAL_RETAINED_SURFACE_REPLACEMENT_LANE,
 };
 
-use super::spatial_family_catalog::current_spatial_family_contributor_catalog;
-use super::spatial_family_parity::{
-    current_spatial_family_parity_claim, spatial_family_parity_claim_from_catalog,
-    SpatialFamilyParityErrorKind,
-};
+use super::*;
+
 
 #[test]
 fn spatial_family_parity_preserves_query_owned_support_meaning() {
@@ -34,7 +31,9 @@ fn spatial_family_parity_preserves_query_owned_support_meaning() {
     let evidence_row = catalog
         .rows()
         .iter()
-        .find(|row| row.kind() == SpatialContributorCatalogRowKind::EvidenceLookupFamily)
+        .find(|row: &&SpatialFamilyContributorCatalogRow| {
+            row.kind() == SpatialContributorCatalogRowKind::EvidenceLookupFamily
+        })
         .expect("evidence row");
     assert_eq!(
         evidence_row.current_packet_or_digest_source(),
@@ -54,7 +53,9 @@ fn spatial_family_parity_preserves_query_owned_support_meaning() {
     let retained_row = catalog
         .rows()
         .iter()
-        .find(|row| row.kind() == SpatialContributorCatalogRowKind::RetainedSurfaceFamily)
+        .find(|row: &&SpatialFamilyContributorCatalogRow| {
+            row.kind() == SpatialContributorCatalogRowKind::RetainedSurfaceFamily
+        })
         .expect("retained row");
     assert_eq!(
         retained_row.current_packet_or_digest_source(),
@@ -123,7 +124,9 @@ fn spatial_family_contributors_name_final_closeout_lanes_and_block_legacy_local_
     let evidence_row = catalog
         .rows()
         .iter()
-        .find(|row| row.kind() == SpatialContributorCatalogRowKind::EvidenceLookupFamily)
+        .find(|row: &&SpatialFamilyContributorCatalogRow| {
+            row.kind() == SpatialContributorCatalogRowKind::EvidenceLookupFamily
+        })
         .expect("evidence row");
     assert!(matches!(
         evidence_row.local_language_posture(),

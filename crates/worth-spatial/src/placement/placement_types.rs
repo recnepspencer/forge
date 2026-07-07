@@ -1,10 +1,9 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 use crate::placement::SpatialPlacementSpec;
 use crate::witness_resolution::{
     AdmittedSpatialFrameRef, ResolvedSpatialDirectionWitness, SpatialFrameError,
     SpatialWitnessFailureClass,
 };
+#[cfg(test)]
 use worth_geom::facade::Plane;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -30,7 +29,7 @@ impl SpatialPlacementFrame {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn origin(&self) -> [f64; 3] {
         self.origin
     }
@@ -71,12 +70,12 @@ impl AdmittedSpatialPlacement {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn spec(&self) -> &SpatialPlacementSpec {
         &self.spec
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn origin(&self) -> [f64; 3] {
         self.frame.origin()
     }
@@ -89,17 +88,17 @@ impl AdmittedSpatialPlacement {
         self.frame
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn reference_frame(&self) -> &AdmittedSpatialFrameRef {
         &self.reference_frame
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn resolved_direction_witness(&self) -> &ResolvedSpatialDirectionWitness {
         &self.resolved_direction_witness
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn embed_point(&self, local: [f64; 3]) -> [f64; 3] {
         [
             self.frame.origin[0]
@@ -117,7 +116,7 @@ impl AdmittedSpatialPlacement {
         ]
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn embed_vector(&self, local: [f64; 3]) -> [f64; 3] {
         [
             self.frame.u_axis[0] * local[0]
@@ -133,14 +132,14 @@ impl AdmittedSpatialPlacement {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug)]
-#[allow(dead_code)]
 pub struct SpatialPlacementGeometry {
     support_planes: Vec<Plane>,
     vertex_positions: Vec<[f64; 3]>,
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 impl SpatialPlacementGeometry {
     pub(crate) fn from_parts(support_planes: Vec<Plane>, vertex_positions: Vec<[f64; 3]>) -> Self {
         Self {
@@ -167,7 +166,7 @@ pub enum SpatialPlacementError {
     NonFiniteOrigin,
     DirectionWitnessFailure(SpatialWitnessFailureClass),
     InvalidReferenceFrame(SpatialFrameError),
-    #[allow(dead_code)]
+    #[cfg(test)]
     InvalidEmbeddedPlane,
 }
 
@@ -182,6 +181,7 @@ impl std::fmt::Display for SpatialPlacementError {
                 )
             }
             Self::InvalidReferenceFrame(error) => write!(f, "{error}"),
+            #[cfg(test)]
             Self::InvalidEmbeddedPlane => write!(f, "embedded support plane became invalid"),
         }
     }

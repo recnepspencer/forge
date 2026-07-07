@@ -47,30 +47,37 @@ impl TopologyDerivedRebuildDenial {
         &self.mismatch_loci
     }
 
+    #[cfg(test)]
     pub fn compiled_product_identity_digest(&self) -> Option<&str> {
         self.compiled_product_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub fn equivalence_policy_identity_digest(&self) -> Option<&str> {
         self.equivalence_policy_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub fn selected_equivalence_family_identity(&self) -> Option<&str> {
         self.selected_equivalence_family_identity.as_deref()
     }
 
+    #[cfg(test)]
     pub fn selected_equivalence_basis_identity_digest(&self) -> Option<&str> {
         self.selected_equivalence_basis_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub fn selected_compatibility_basis_identity_digest(&self) -> Option<&str> {
         self.selected_compatibility_basis_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub fn selected_reuse_basis_identity_digest(&self) -> Option<&str> {
         self.selected_reuse_basis_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub const fn counters(&self) -> &TopologyDerivedReuseDecisionCounters {
         &self.counters
     }

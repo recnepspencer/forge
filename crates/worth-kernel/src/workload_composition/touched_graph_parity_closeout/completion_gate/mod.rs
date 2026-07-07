@@ -14,4 +14,3 @@ pub use error::{
 };
 pub use gate::WorthTouchedGraphRoadmapCompletionGate;
 
-pub(crate) use validation::validate_roadmap_completion_gate;

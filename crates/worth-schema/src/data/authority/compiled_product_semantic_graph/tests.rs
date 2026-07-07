@@ -2,8 +2,7 @@ use super::{
     admit_compiled_product_authority_truth_identity,
     admit_compiled_product_authority_truth_identity_with_coordinates,
     admit_compiled_product_equivalence_policy_identity, admit_compiled_product_identity,
-    admit_compiled_product_prior_proof_identity, admit_compiled_product_rebuild_denial_identity,
-    admit_compiled_product_reuse_decision_identity, CompiledProductAuthorityInstanceCoordinate,
+    admit_compiled_product_prior_proof_identity, CompiledProductAuthorityInstanceCoordinate,
     CompiledProductLocalityFootprintIdentity, CompiledProductPriorProofRole,
     CompiledProductSemanticGraphVocabularyErrorKind,
 };

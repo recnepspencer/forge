@@ -216,7 +216,6 @@ fn query_import_for_stage(
         .cloned()
 }
 
-#[allow(dead_code)]
 fn real_support_pin() -> ForgeQueryGraphObligationSupportPin {
     ForgeQueryGraphObligationSupportPin::supported([(
         ForgeQueryGraphObligationKind::OperatingContextGate,

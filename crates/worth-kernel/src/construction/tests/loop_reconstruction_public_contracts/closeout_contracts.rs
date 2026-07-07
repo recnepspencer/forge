@@ -17,8 +17,10 @@ use super::support_phase16::real_loop_replay_closeout_products;
 fn planar_boolean_loop_reconstruction_metaboss_chain_is_canonical_replayable_role_preserving_and_unforgeable(
 ) {
     run_with_large_stack(|| {
-        closeout_support::assert_loop_reconstruction_summum_bonum_closeout_certifies_real_production_chain();
-        closeout_support::assert_loop_reconstruction_summum_bonum_replay_closeout_holds();
+        closeout_support::assertions::assert_loop_reconstruction_summum_bonum_closeout_certifies_real_production_chain();
+        closeout_support::assertions::assert_loop_reconstruction_summum_bonum_replay_closeout_holds();
+        closeout_support::assertions::assert_loop_reconstruction_summum_bonum_public_contract_fences_hold();
+        closeout_support::synthetic_rejection::assert_loop_reconstruction_metaboss_rejects_synthetic_loop_ledgers_raw_fragments_and_hand_filled_evidence();
     });
 }
 

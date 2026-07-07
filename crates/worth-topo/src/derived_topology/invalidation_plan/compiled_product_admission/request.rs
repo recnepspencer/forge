@@ -11,6 +11,7 @@ pub(crate) enum TopologyCompiledProductAdmissionRequest<'a> {
         consumer: TopologyCompiledProductConsumer,
         read_basis: &'a DerivedTopologyReadBasis,
     },
+    #[cfg(test)]
     SelectedPlan {
         consumer: TopologyCompiledProductConsumer,
         read_basis: &'a DerivedTopologyReadBasis,
@@ -30,6 +31,7 @@ impl<'a> TopologyCompiledProductAdmissionRequest<'a> {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn for_selected_plan(
         consumer: TopologyCompiledProductConsumer,
         read_basis: &'a DerivedTopologyReadBasis,
@@ -46,21 +48,24 @@ impl<'a> TopologyCompiledProductAdmissionRequest<'a> {
 
     pub(crate) const fn consumer(self) -> TopologyCompiledProductConsumer {
         match self {
-            Self::ReadBasis { consumer, .. } | Self::SelectedPlan { consumer, .. } => consumer,
+            Self::ReadBasis { consumer, .. } => consumer,
+            #[cfg(test)]
+            Self::SelectedPlan { consumer, .. } => consumer,
         }
     }
 
     pub(crate) const fn read_basis(self) -> &'a DerivedTopologyReadBasis {
         match self {
-            Self::ReadBasis { read_basis, .. } | Self::SelectedPlan { read_basis, .. } => {
-                read_basis
-            }
+            Self::ReadBasis { read_basis, .. } => read_basis,
+            #[cfg(test)]
+            Self::SelectedPlan { read_basis, .. } => read_basis,
         }
     }
 
     pub(crate) const fn selected_plan(self) -> Option<&'a DerivedInvalidationSelectedPlan> {
         match self {
             Self::ReadBasis { .. } => None,
+            #[cfg(test)]
             Self::SelectedPlan { selected_plan, .. } => Some(selected_plan),
         }
     }
@@ -68,6 +73,7 @@ impl<'a> TopologyCompiledProductAdmissionRequest<'a> {
     pub(crate) const fn touched_closure(self) -> Option<&'a DerivedInvalidationTouchedClosure> {
         match self {
             Self::ReadBasis { .. } => None,
+            #[cfg(test)]
             Self::SelectedPlan {
                 touched_closure, ..
             } => Some(touched_closure),

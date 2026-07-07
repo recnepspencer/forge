@@ -68,7 +68,6 @@ pub(crate) use interval_normalization::{
 pub(crate) use pair_enumeration::enumerate_segment_pairs;
 #[cfg(test)]
 pub(crate) use pair_enumeration::PlanarBooleanSegmentCandidateIndexProductInput;
-#[allow(unused_imports)]
 pub use pair_enumeration::{
     PlanarBooleanCandidateBroadPhaseReason, PlanarBooleanCandidateEnvelopeBasis,
     PlanarBooleanCandidateIndexFallbackPosture, PlanarBooleanCandidateIndexLifecycleOutcome,

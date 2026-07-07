@@ -1,8 +1,8 @@
 use crate::data::authority::planner_owned_routing_semantic_graph::{
     admit_planner_admitted_explanation_input, admit_planner_public_proof_identity,
     admit_planner_selected_family_identity, admit_planner_selected_product_identity,
-    admit_planner_selected_route_identity, admit_planner_witness_identity, PlannerMismatchLocus,
-    PlannerWitnessRole,
+    admit_planner_selected_route_identity, admit_planner_witness_identity,
+    PlannerAdmittedExplanationInput, PlannerMismatchLocus, PlannerWitnessRole,
 };
 
 use super::architecture_claim::{
@@ -13,7 +13,7 @@ use super::family_kind::TouchedGraphParityFamilyKind;
 use super::readiness_input::admit_touched_graph_parity_readiness_input;
 use super::residue_classification::TouchedGraphParityResidueClassification;
 
-fn admitted_input() -> crate::data::authority::PlannerAdmittedExplanationInput {
+fn admitted_input() -> PlannerAdmittedExplanationInput {
     admit_planner_admitted_explanation_input("selection-input", "scope-digest").unwrap()
 }
 
@@ -98,6 +98,7 @@ fn readiness_contract_rejects_untyped_helper_inputs() {
         claim,
         TouchedGraphParityResidueClassification::OrdinaryPathCarried,
         "touched-closure",
+        "selected-plan",
         vec!["overlap".to_string()],
         vec![TouchedGraphParityFamilyKind::ReadRouting],
         "topology-query-posture",
@@ -172,6 +173,7 @@ fn readiness_input_requires_full_handoff_fields() {
         claim,
         TouchedGraphParityResidueClassification::OrdinaryPathCarried,
         "",
+        "selected-plan",
         Vec::new(),
         vec![TouchedGraphParityFamilyKind::ReadRouting],
         "topology-query-posture",
@@ -216,6 +218,7 @@ fn readiness_input_derives_selected_authority_from_claim() {
         claim,
         TouchedGraphParityResidueClassification::OrdinaryPathCarried,
         "touched-closure",
+        "selected-plan",
         vec!["overlap".to_string()],
         vec![TouchedGraphParityFamilyKind::ReadRouting],
         "topology-query-posture",

@@ -8,6 +8,7 @@ mod residue_classification;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "touched-graph-parity-internal-authority")]
 pub(crate) use architecture_claim::admit_touched_graph_parity_readiness_claim;
 pub use architecture_claim::{TouchedGraphParityArchitectureClaim, TouchedGraphParityClaimKind};
 pub use coverage_row::{
@@ -16,6 +17,7 @@ pub use coverage_row::{
 };
 pub use error::{TouchedGraphParityReadinessError, TouchedGraphParityReadinessErrorKind};
 pub use family_kind::TouchedGraphParityFamilyKind;
+#[cfg(feature = "touched-graph-parity-internal-authority")]
 pub(crate) use readiness_input::admit_touched_graph_parity_readiness_input;
 pub use readiness_input::TouchedGraphParityReadinessInput;
 pub use residue_classification::TouchedGraphParityResidueClassification;

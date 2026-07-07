@@ -42,7 +42,7 @@ pub(crate) use declared_mutation_artifact::{
 pub(crate) use dependency_paths::topology_relation_dependency_path;
 pub(crate) use error::{TopologyDeclarationEntryStopClass, TopologyMutationApplicationError};
 
-#[allow(dead_code)]
+#[cfg(test)]
 #[derive(Debug)]
 pub(crate) enum TopologyMutationApplicationOutcome {
     Applied(TopologyDeclaredMutationArtifact),
@@ -50,14 +50,14 @@ pub(crate) enum TopologyMutationApplicationOutcome {
     Failed(TopologyMutationApplicationError),
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 #[derive(Debug)]
 pub(crate) struct TopologyMutationApplicationStop {
     error: TopologyMutationApplicationError,
     recovery: Option<forge_query::facade::ForgeQueryRecoveryBrief>,
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 impl TopologyMutationApplicationOutcome {
     pub(crate) fn from_result(
         result: Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>,
@@ -72,7 +72,7 @@ impl TopologyMutationApplicationOutcome {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 impl TopologyMutationApplicationStop {
     fn from_error(error: TopologyMutationApplicationError) -> Self {
         let recovery = error.declaration_entry_recovery_brief().cloned();

@@ -7,15 +7,14 @@ mod row;
 mod tests;
 mod undo_row;
 
+#[cfg(test)]
 pub(crate) use contributor_catalog::{
     current_replay_coverage_contributor, current_undo_coverage_contributor,
 };
 pub use contributor_catalog::{
     current_replay_undo_family_contributor_catalog, ReplayUndoFamilyContributorCatalog,
 };
-pub(crate) use contributor_catalog::{
-    replay_undo_coverage_contributor_rows, replay_undo_coverage_contributor_rows_from_authorities,
-};
+pub(crate) use contributor_catalog::replay_undo_coverage_contributor_rows_from_authorities;
 pub use error::{
     ReplayUndoFamilyContributorCatalogError, ReplayUndoFamilyContributorCatalogErrorKind,
 };

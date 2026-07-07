@@ -3,6 +3,7 @@ use worth_primitives::{truth_digest_parts, TruthDigestScope};
 use schema::facade::platform::authority::compiled_product_semantic_graph::CompiledProductPriorProofRole;
 
 use super::consumer::SpatialCompiledProductConsumer;
+#[cfg(test)]
 use super::error::{SpatialCompiledProductFamilyError, SpatialCompiledProductFamilyErrorKind};
 use super::family_identity::SpatialCompiledProductFamilyIdentity;
 use super::posture::{
@@ -135,6 +136,7 @@ impl SpatialCompiledProductFamilyDeclaration {
     }
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpatialCompiledProductFamilyDeclarationBuilder {
     identity: Option<SpatialCompiledProductFamilyIdentity>,
@@ -148,6 +150,7 @@ pub struct SpatialCompiledProductFamilyDeclarationBuilder {
     equivalence_dimensions: Option<&'static [&'static str]>,
 }
 
+#[cfg(test)]
 impl SpatialCompiledProductFamilyDeclarationBuilder {
     pub fn identity(mut self, identity: SpatialCompiledProductFamilyIdentity) -> Self {
         self.identity = Some(identity);

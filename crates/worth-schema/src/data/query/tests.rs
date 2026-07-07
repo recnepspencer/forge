@@ -1,7 +1,11 @@
 use std::collections::BTreeSet;
 
+use forge_query::facade::foundation::{AspectFieldKey, AspectName};
 use forge_foundational::facade::AspectKey;
-use forge_query::facade::{ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
+use forge_query::facade::{
+    ForgeQueryAspectTouch, ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder,
+};
 
 use crate::facade::platform::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
@@ -113,6 +117,27 @@ fn query_aspect_families_preserve_domain_boundaries_without_runtime_behavior() {
     );
 }
 
+fn query_field_key(path: QueryAspectPath) -> AspectFieldKey {
+    AspectFieldKey::from_authoring_parts(path.section(), path.field())
+        .expect("worth schema query paths should admit as forge-query field keys")
+}
+
+fn live_field_key(field: QueryLiveField) -> AspectFieldKey {
+    AspectFieldKey::from_authoring_parts(field.aspect(), field.field())
+        .expect("worth schema live fields should admit as forge-query field keys")
+}
+
+fn aspect_name(name: &str) -> AspectName {
+    AspectName::new(name).expect("aspect name should admit")
+}
+
+fn aspect_touch(path: QueryAspectPath) -> ForgeQueryAspectTouch {
+    ForgeQueryAspectTouch::aspect_field_path(
+        AspectKey::new(path.section()).expect("aspect key should admit"),
+        CanonicalFieldPath::single(FieldKey::new(path.field()).expect("field key should admit")),
+    )
+}
+
 #[test]
 fn live_query_declarations_lower_with_owned_vocabularies() {
     let declaration = ForgeQueryLiveViewBuilder::surface(".topology.entities")
@@ -121,10 +146,10 @@ fn live_query_declarations_lower_with_owned_vocabularies() {
                 .expect("worth schema query paths should be valid native aspect keys"),
         )
         .select([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            query_field_key(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            query_field_key(QueryAspectPath::NAMING_PERSISTENT_NAME),
         ])
-        .order_by(QueryAspectPath::NAMING_PERSISTENT_NAME.as_str())
+        .order_by(query_field_key(QueryAspectPath::NAMING_PERSISTENT_NAME))
         .from(QueryCollection::TopologyEntity.as_str())
         .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
         .build()
@@ -150,23 +175,25 @@ fn live_query_declarations_lower_with_owned_vocabularies() {
             .ordering()
             .first()
             .expect("live declaration should preserve ordering")
-            .field(),
+            .source_field_key()
+            .field()
+            .as_str(),
         "persistent_name"
     );
-    assert!(declaration.schema_view().has_aspect("topology"));
-    assert!(declaration.schema_view().has_aspect("naming"));
+    assert!(declaration.schema_view().has_aspect(&aspect_name("topology")));
+    assert!(declaration.schema_view().has_aspect(&aspect_name("naming")));
 }
 
 #[test]
 fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
     let declaration = ForgeQueryLiveViewBuilder::surface(".topology.relations")
         .select([
-            QueryLiveField::IdentityId.delivered_name(),
-            QueryLiveField::TopologyKind.delivered_name(),
-            QueryLiveField::TopologySourceIdentity.delivered_name(),
-            QueryLiveField::TopologyTargetIdentity.delivered_name(),
+            live_field_key(QueryLiveField::IdentityId),
+            live_field_key(QueryLiveField::TopologyKind),
+            live_field_key(QueryLiveField::TopologySourceIdentity),
+            live_field_key(QueryLiveField::TopologyTargetIdentity),
         ])
-        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .order_by(live_field_key(QueryLiveField::IdentityId))
         .from(QueryCollection::TopologyRelation.as_str())
         .schema_basis(QuerySchemaBasis::TopologyRelationLiveView.as_str())
         .build()
@@ -174,21 +201,35 @@ fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
 
     assert_eq!(declaration.request().target(), "TopologyRelation");
     assert_eq!(declaration.request().projection().len(), 4);
-    assert_eq!(declaration.request().projection()[0].aspect(), "identity");
-    assert_eq!(declaration.request().projection()[0].field(), "id");
+    assert_eq!(
+        declaration.request().projection()[0]
+            .source_field_key()
+            .aspect()
+            .as_str(),
+        "identity"
+    );
+    assert_eq!(
+        declaration.request().projection()[0]
+            .source_field_key()
+            .field()
+            .as_str(),
+        "id"
+    );
     assert_eq!(
         declaration.request().projection()[1].delivered_name(),
         "topology.kind"
     );
-    assert!(declaration.schema_view().has_aspect("identity"));
-    assert!(declaration.schema_view().has_aspect("topology"));
+    assert!(declaration.schema_view().has_aspect(&aspect_name("identity")));
+    assert!(declaration.schema_view().has_aspect(&aspect_name("topology")));
     assert_eq!(
         declaration
             .request()
             .ordering()
             .first()
             .expect("metadata declaration should preserve ordering")
-            .field(),
+            .source_field_key()
+            .field()
+            .as_str(),
         "id"
     );
 }
@@ -197,12 +238,12 @@ fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
 fn computed_query_declarations_lower_with_owned_aspect_contracts() {
     let declaration = ForgeQueryComputedBuilder::surface(".topology.validation")
         .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            aspect_touch(QueryAspectPath::TOPOLOGY_STRUCTURE),
+            aspect_touch(QueryAspectPath::NAMING_PERSISTENT_NAME),
         ])
         .produces([
-            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
+            aspect_touch(QueryAspectPath::DIAGNOSTICS_DECISIONS),
+            aspect_touch(QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS),
         ])
         .whole_refresh_fallback()
         .build()
@@ -210,15 +251,37 @@ fn computed_query_declarations_lower_with_owned_aspect_contracts() {
 
     assert_eq!(declaration.name(), ".topology.validation");
     assert_eq!(
-        declaration.dependency_aspects(),
-        &[
+        declaration
+            .dependency_aspect_touches()
+            .iter()
+            .map(|touch| format!(
+                "{}.{}",
+                touch.native_aspect_key().as_str(),
+                touch.native_field_path()
+                    .expect("field-level touch")
+                    .fields()[0]
+                    .as_str()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
             "topology.structure".to_string(),
             "naming.persistent_name".to_string(),
         ]
     );
     assert_eq!(
-        declaration.produced_aspects(),
-        &[
+        declaration
+            .produced_aspect_touches()
+            .iter()
+            .map(|touch| format!(
+                "{}.{}",
+                touch.native_aspect_key().as_str(),
+                touch.native_field_path()
+                    .expect("field-level touch")
+                    .fields()[0]
+                    .as_str()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
             "diagnostics.decisions".to_string(),
             "diagnostics.interpretations".to_string(),
         ]

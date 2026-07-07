@@ -1,8 +1,6 @@
 use forge_query::facade::{
     ForgeQueryDerivedView, ForgeQueryRetainedRefreshContext, ForgeQueryRetainedUpstreamInputs,
 };
-#[cfg(test)]
-use serde_json::Value;
 
 use crate::compiled_product_family::{
     current_topology_compiled_product_family_catalog, select_topology_compiled_product_family,
@@ -24,37 +22,9 @@ use crate::selected_equivalence_family::{
 };
 use crate::validation::{DerivedTopologyValidationReport, RegisteredTopologyValidationReport};
 
-#[cfg(test)]
-use super::super::derived_surfaces::decode_query_surface_row;
 use super::super::retained_payload::decode_single_retained_payload_row;
 use super::super::{TopologyQuerySurfaceError, TopologyQuerySurfaceErrorKind};
 use super::{TopologyHistoricalReadBasisMetadata, TopologyQueryMutationEvidence};
-
-#[cfg(test)]
-#[allow(dead_code)]
-pub(crate) fn derived_read_diagnostics_from_query_rows(
-    refresh: &ForgeQueryRetainedRefreshContext,
-    materialized_rows: &[Value],
-    interpreted_rows: &[Value],
-    validation_rows: &[Value],
-) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
-    let read_basis_metadata = TopologyHistoricalReadBasisMetadata::from_refresh(refresh)?;
-    let evidence = TopologyQueryMutationEvidence::from_read_basis(read_basis_metadata.read_basis());
-    let materialized: MaterializedTopologyView =
-        decode_query_surface_row(materialized_rows, "materialized topology")?;
-    let interpreted: InterpretedTopologyView =
-        decode_query_surface_row(interpreted_rows, "interpreted topology")?;
-    let validation: DerivedTopologyValidationReport =
-        decode_query_surface_row(validation_rows, "topology validation")?;
-
-    build_diagnostics_from_decoded_surfaces(
-        read_basis_metadata,
-        evidence,
-        materialized,
-        interpreted,
-        validation,
-    )
-}
 
 pub(super) fn derived_read_diagnostics_from_upstreams(
     refresh: &ForgeQueryRetainedRefreshContext,

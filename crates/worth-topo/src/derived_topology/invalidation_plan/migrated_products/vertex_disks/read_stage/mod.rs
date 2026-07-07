@@ -3,6 +3,7 @@ mod executor;
 mod query_proof;
 mod receipt;
 mod source;
+#[cfg(test)]
 mod touched_topology_selection;
 
 pub use counters::VertexDiskReadStageCounters;

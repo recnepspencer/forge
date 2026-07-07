@@ -1,8 +1,11 @@
 use forge_relational::facade::identity::EntityId;
 use serde::Serialize;
 
+#[cfg(test)]
 use super::relations::relation_rows_from_topology;
+#[cfg(test)]
 use crate::brep::topology_graph::TopologyView;
+#[cfg(test)]
 use crate::derived_topology::invalidation_plan::migrated_products::materialized_graph::MaterializedGraphMigrationError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -13,6 +16,7 @@ pub struct MaterializedGraphReadEntityRow {
 }
 
 impl MaterializedGraphReadEntityRow {
+    #[cfg(test)]
     fn new(entity_id: EntityId, topology_kind: &'static str) -> Self {
         let row_digest = super::super::super::super::catalog::catalog_digest([
             "worth-topo:materialized-graph-read-entity-row:v1".to_string(),
@@ -48,6 +52,7 @@ pub struct MaterializedGraphReadRelationRow {
 }
 
 impl MaterializedGraphReadRelationRow {
+    #[cfg(test)]
     pub(super) fn new(
         relation_kind: &'static str,
         source_entity_id: EntityId,
@@ -94,6 +99,7 @@ pub struct MaterializedGraphReadSource {
 }
 
 impl MaterializedGraphReadSource {
+    #[cfg(test)]
     pub(crate) fn from_topology_view_with_selected_prefix(
         topology: &TopologyView,
         selected_entity_count: usize,
@@ -122,6 +128,7 @@ impl MaterializedGraphReadSource {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_rows(
         selected_entities: Vec<MaterializedGraphReadEntityRow>,
         selected_relations: Vec<MaterializedGraphReadRelationRow>,
@@ -169,6 +176,7 @@ impl MaterializedGraphReadSource {
     }
 }
 
+#[cfg(test)]
 fn entity_rows_from_topology(topology: &TopologyView) -> Vec<MaterializedGraphReadEntityRow> {
     let mut rows = Vec::new();
     rows.extend(
@@ -240,6 +248,7 @@ fn entity_rows_from_topology(topology: &TopologyView) -> Vec<MaterializedGraphRe
     rows
 }
 
+#[cfg(test)]
 fn read_source_digest(
     selected_entities: &[MaterializedGraphReadEntityRow],
     selected_relations: &[MaterializedGraphReadRelationRow],

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_decision_log_support::{
     build_decision_log_products_for_metaboss, DecisionLogMetabossProducts,
 };
@@ -305,3 +303,12 @@ fn ledger_for(
     .execute()
     .expect("split ledger should execute for replay parity")
 }
+
+const _: () = {
+    let _ = build_edge_split_replay_parity_subject;
+    let _ = replay_parity_report;
+    let _ = assert_replay_parity_certifies_split_products;
+    let _ = assert_reversed_source_sense_is_covered;
+    let _ = assert_checkpoint_parity_is_retained_replay_backed;
+    let _ = assert_foreign_retained_replay_receipt_is_rejected;
+};

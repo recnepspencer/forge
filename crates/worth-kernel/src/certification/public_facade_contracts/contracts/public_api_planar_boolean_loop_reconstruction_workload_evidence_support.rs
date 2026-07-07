@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/assertions.rs"]
 mod assertions;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/boolean_chain_assertions.rs"]
@@ -27,10 +24,12 @@ mod edge_splitting_support;
 mod hard_deletion_closeout_assertions;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/loop_replay_boundary_support.rs"]
 mod loop_replay_boundary_support;
-#[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
+#[path = "public_api_planar_boolean_event_extraction_metaboss_subject_support.rs"]
 mod metaboss_support;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/ordinary_topology_undo_support.rs"]
 mod ordinary_topology_undo_support;
+#[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/alternate_ordinary_topology_undo_support.rs"]
+mod alternate_ordinary_topology_undo_support;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/packet_backed_loop_closeout_assertions.rs"]
 mod packet_backed_loop_closeout_assertions;
 #[path = "public_api_planar_boolean_loop_reconstruction_workload_evidence_support/public_closeout_parity_assertions.rs"]
@@ -73,4 +72,53 @@ pub(crate) use real_handoff_support::{
     certified_loop_replay_closeout_chain_for_pair, certified_real_loop_handoff,
     certified_real_loop_replay_closeout_chain, real_loop_handoff_for_branch,
     with_packet_backed_loop_boundary_basis, CertifiedLoopReplayCloseoutChain, ReplayBranch,
+};
+
+fn with_packet_backed_loop_boundary_basis_anchor(subject: &MetabossEventExtractionSubject) {
+    with_packet_backed_loop_boundary_basis(subject, |_, _, _| ());
+}
+
+fn read_certified_loop_replay_closeout_chain(chain: &CertifiedLoopReplayCloseoutChain) {
+    let _ = (
+        &chain.original,
+        &chain.replayed,
+        &chain.replay_parity,
+        &chain.replay_receipts,
+    );
+}
+
+const _: () = {
+    let _ = assert_loop_closeout_exposes_certified_runtime_registration_artifacts;
+    let _ = assert_loop_ledger_rejects_manual_or_counterless_evidence;
+    let _ = assert_loop_ledger_replay_branch_preserves_workload_requirement;
+    let _ = assert_loop_ledger_satisfies_workload_requirement_and_runtime_registration;
+    let _ = assert_loop_replay_closeout_rejects_foreign_loop_authority;
+    let _ = assert_loop_replay_closeout_rejects_foreign_retained_replay_authority;
+    let _ = assert_loop_stage_requirement_maps_only_to_loop_ledger_receipts;
+    let _ = assert_boolean_chain_accepts_only_completed_receipts_and_query_proof;
+    let _ = assert_boolean_chain_query_proof_does_not_rewrite_ledger_identities;
+    let _ = assert_boolean_chain_residue_manifest_is_capped_and_non_authority;
+    let _ = assert_large_admitted_boolean_chain_scales_with_declared_breadth;
+    let _ =
+        continuation_contract_support::assert_loop_reconstruction_continuation_contract_preserves_real_neighborhoods_and_ordering;
+    let _ = completed_split_handoff_for;
+    let _ = recovered_source_carriers;
+    let _ = build_edge_split_replay_parity_subject;
+    let _ = replay_parity_report;
+    let _ = MetabossEventExtractionSubject::certify;
+    let _ = assert_legacy_loop_closeout_cannot_claim_packet_backed_boundary;
+    let _ = assert_packet_backed_loop_closeout_matches_legacy_vertical_slice;
+    let _ = assert_packet_backed_loop_closeout_rejects_foreign_scope_products;
+    let _ = assert_replay_undo_consumer_cutover_closes_from_ordinary_chain;
+    let _ = assert_topology_undo_product_changes_packet_identity;
+    let _ = assert_public_closeout_rejects_mismatched_proof_products;
+    let _ = certified_event_carrier_loop_replay_closeout_chain;
+    let _ = certified_loop_replay_closeout_chain_for_pair;
+    let _ = certified_real_loop_handoff;
+    let _ = certified_real_loop_replay_closeout_chain;
+    let _ = real_loop_handoff_for_branch;
+    let _ = with_packet_backed_loop_boundary_basis_anchor;
+    let _ = read_certified_loop_replay_closeout_chain;
+    let _: Option<CertifiedLoopReplayCloseoutChain> = None;
+    let _: Option<ReplayBranch> = None;
 };

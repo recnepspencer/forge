@@ -1,5 +1,3 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 use super::placement_constraint_anchors::{
     lower_anchor_match_target_with_catalog, lower_points_toward_anchor_with_catalog,
     lower_subject_anchor, ConstraintAnchorDenial,

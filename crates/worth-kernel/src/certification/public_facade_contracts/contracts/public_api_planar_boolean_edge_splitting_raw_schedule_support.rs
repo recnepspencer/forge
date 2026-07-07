@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_support::recovered_carriers_for;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use std::collections::BTreeSet;
@@ -187,3 +185,5 @@ fn distinct_source_edge_carrier_keys(
         })
         .collect()
 }
+
+const _: fn(&MetabossEventExtractionSubject) = assert_raw_edge_split_schedule_matches_metaboss;

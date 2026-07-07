@@ -2,7 +2,8 @@ use super::super::edge_splitting_public_contract_support::completed_split_handof
 use super::super::edge_splitting_replay_parity_support::{
     build_edge_split_replay_parity_subject, replay_parity_report,
 };
-use super::super::metaboss_support::{assert_event_ledger_shape, MetabossEventExtractionSubject};
+use super::super::super::metaboss_assertions_support::assert_event_ledger_shape;
+use super::super::super::metaboss_support::MetabossEventExtractionSubject;
 use super::candidate_manifest_metrics::candidate_rows_have_provenance;
 use super::decision_localization_metrics::{
     decision_kind_count, decision_phase_count, localized_decision_rows,

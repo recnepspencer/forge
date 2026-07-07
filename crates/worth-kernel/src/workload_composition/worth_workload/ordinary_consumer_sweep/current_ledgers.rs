@@ -14,7 +14,7 @@ use super::current_cutover::{
     WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
 };
 use super::workload_composition_explainer_ledger::WorthWorkloadCompositionExplainerLedger;
-use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicFacade;
+use crate::workload_composition::WorthTouchedGraphConflictPublicFacade;
 
 pub(super) fn build_current_cluster_ledgers(
     cutover: &WorthWorkloadOrdinaryConsumerCutover,
@@ -201,7 +201,7 @@ fn query_backed_family_row_to_current_row(
 
 fn current_public_closeout_rows(
     lookup_public_closeout: &EvidenceLookupPublicCloseout,
-    public_proof: &crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicProofInspection,
+    public_proof: &crate::workload_composition::WorthTouchedGraphConflictPublicProofInspection,
 ) -> Vec<WorthWorkloadOrdinaryConsumerSweepResidueRow> {
     let mut rows = lookup_public_closeout
         .family_stage_rows()

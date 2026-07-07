@@ -59,7 +59,8 @@ pub use kind::PlanarBooleanSplitDecisionKind;
 pub use localization::PlanarBooleanSplitFailureLocalization;
 pub use operational_truth_digest::PlanarBooleanSplitOperationalTruthDigest;
 pub use phase::PlanarBooleanSplitDecisionPhase;
-pub use phase_stop::PlanarBooleanEdgeSplitPhaseStop;
+#[cfg(test)]
+pub(crate) use phase_stop::PlanarBooleanEdgeSplitPhaseStop;
 pub use query_declaration::PlanarBooleanSplitDecisionLogDeclaration;
 pub use query_domain::{
     PlanarBooleanSplitDecisionLogLoweredPlan, PlanarBooleanSplitDecisionLogQueryDomain,

@@ -17,6 +17,7 @@ pub(crate) fn admitted_legality_support() -> DerivedInvalidationLegalitySupportE
     )
 }
 
+#[cfg(test)]
 pub(crate) fn query_support_missing_projection_consumption(
 ) -> DerivedInvalidationQuerySupportEvidence {
     DerivedInvalidationQuerySupportEvidence::from_receipt_digests_for_tests(
@@ -26,6 +27,7 @@ pub(crate) fn query_support_missing_projection_consumption(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn query_support_missing_native_read() -> DerivedInvalidationQuerySupportEvidence {
     DerivedInvalidationQuerySupportEvidence::from_receipt_digests_for_tests(
         Some("query.projection.consumption.receipt".to_string()),
@@ -34,6 +36,7 @@ pub(crate) fn query_support_missing_native_read() -> DerivedInvalidationQuerySup
     )
 }
 
+#[cfg(test)]
 pub(crate) fn query_support_missing_native_write() -> DerivedInvalidationQuerySupportEvidence {
     DerivedInvalidationQuerySupportEvidence::from_receipt_digests_for_tests(
         Some("query.projection.consumption.receipt".to_string()),
@@ -42,6 +45,7 @@ pub(crate) fn query_support_missing_native_write() -> DerivedInvalidationQuerySu
     )
 }
 
+#[cfg(test)]
 pub(crate) fn legality_support_missing_selected_legality_plan(
 ) -> DerivedInvalidationLegalitySupportEvidence {
     DerivedInvalidationLegalitySupportEvidence::from_digests_for_tests(
@@ -50,6 +54,7 @@ pub(crate) fn legality_support_missing_selected_legality_plan(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn legality_support_missing_selected_validator_receipt(
 ) -> DerivedInvalidationLegalitySupportEvidence {
     DerivedInvalidationLegalitySupportEvidence::from_digests_for_tests(

@@ -226,44 +226,55 @@ impl WorthTouchedGraphConflictAdmittedPublicProofInput {
         }
     }
 
+    #[cfg(test)]
     pub fn selected_route_packet_digest(&self) -> &str {
         &self.selected_route_packet_digest
     }
+    #[cfg(test)]
     pub fn selected_route_identity_digest(&self) -> &str {
         &self.selected_route_identity_digest
     }
+    #[cfg(test)]
     pub fn batch_admission_route_packet_identity(&self) -> &str {
         &self.batch_admission_route_packet_identity
     }
+    #[cfg(test)]
     pub fn batch_admission_denial_witness_identity(&self) -> Option<&str> {
         self.batch_admission_denial_witness_identity.as_deref()
     }
+    #[cfg(test)]
     pub fn batch_admission_denial_witness_kind(
         &self,
     ) -> Option<BatchAdmissionPlannerRouteWitnessKind> {
         self.batch_admission_denial_witness_kind
     }
+    #[cfg(test)]
     pub fn conflict_independence_route_packet_identity(&self) -> &str {
         &self.conflict_independence_route_packet_identity
     }
+    #[cfg(test)]
     pub fn conflict_independence_denial_witness_identity(&self) -> Option<&str> {
         self.conflict_independence_denial_witness_identity
             .as_deref()
     }
+    #[cfg(test)]
     pub fn conflict_independence_denial_witness_kind(
         &self,
     ) -> Option<ConflictIndependencePlannerRouteWitnessKind> {
         self.conflict_independence_denial_witness_kind
     }
+    #[cfg(test)]
     pub fn replay_undo_route_packet_identity(&self) -> &str {
         &self.replay_undo_route_packet_identity
     }
+    #[cfg(test)]
     pub const fn replay_undo_route_family(&self) -> ReplayUndoPlannerRouteFamily {
         self.replay_undo_route_family
     }
     pub fn selected_family_identity(&self) -> &str {
         &self.selected_family_identity
     }
+    #[cfg(test)]
     pub(crate) fn selected_product_identity_digest(&self) -> &str {
         &self.selected_product_identity_digest
     }
@@ -306,41 +317,51 @@ impl WorthTouchedGraphConflictAdmittedPublicProofInput {
     pub(crate) fn spatial_selected_reuse_basis_identity_digest(&self) -> &str {
         &self.spatial_selected_reuse_basis_identity_digest
     }
+    #[cfg(test)]
     pub(crate) const fn topology_freshness_requirement_posture(
         &self,
     ) -> TopologyPublicCloseoutFreshnessRequirementPosture {
         self.topology_freshness_requirement_posture
     }
+    #[cfg(test)]
     pub(crate) const fn topology_rendered_output_comparison_posture(
         &self,
     ) -> TopologyPublicCloseoutRenderedOutputComparisonPosture {
         self.topology_rendered_output_comparison_posture
     }
+    #[cfg(test)]
     pub(crate) const fn spatial_freshness_requirement_posture(
         &self,
     ) -> SpatialPublicCloseoutFreshnessRequirementPosture {
         self.spatial_freshness_requirement_posture
     }
+    #[cfg(test)]
     pub(crate) const fn spatial_rendered_output_comparison_posture(
         &self,
     ) -> SpatialPublicCloseoutRenderedOutputComparisonPosture {
         self.spatial_rendered_output_comparison_posture
     }
+    #[cfg(test)]
     pub(crate) const fn topology_query_execution_count(&self) -> usize {
         self.topology_query_execution_count
     }
+    #[cfg(test)]
     pub(crate) const fn topology_row_scan_fallback_count(&self) -> usize {
         self.topology_row_scan_fallback_count
     }
+    #[cfg(test)]
     pub(crate) const fn topology_whole_view_fallback_count(&self) -> usize {
         self.topology_whole_view_fallback_count
     }
+    #[cfg(test)]
     pub(crate) const fn topology_repeated_rediscovery_denied_count(&self) -> usize {
         self.topology_repeated_rediscovery_denied_count
     }
+    #[cfg(test)]
     pub(crate) const fn spatial_receipt_proof_row_count(&self) -> usize {
         self.spatial_receipt_proof_row_count
     }
+    #[cfg(test)]
     pub(crate) const fn spatial_non_ordinary_residue_row_count(&self) -> usize {
         self.spatial_non_ordinary_residue_row_count
     }

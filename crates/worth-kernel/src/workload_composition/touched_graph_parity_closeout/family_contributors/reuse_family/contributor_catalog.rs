@@ -37,6 +37,7 @@ pub(crate) fn reuse_family_coverage_contributor_rows(
     reuse_family_coverage_contributor_rows_from_catalog(catalog.rows())
 }
 
+#[cfg(test)]
 pub(crate) fn current_compiled_product_equivalence_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_reuse_family_contributor_catalog()
@@ -52,6 +53,7 @@ pub(crate) fn current_compiled_product_equivalence_coverage_contributor(
         .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))
 }
 
+#[cfg(test)]
 pub(crate) fn current_compiled_product_reuse_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_reuse_family_contributor_catalog()

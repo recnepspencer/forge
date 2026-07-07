@@ -7,7 +7,6 @@ mod full_snapshot;
 
 pub(crate) use derived_snapshot::historical_derived_surface_snapshot_for_read_basis;
 pub(crate) use full_snapshot::historical_query_snapshot_for_read_basis;
-pub(crate) use full_snapshot::HistoricalTopologyQuerySnapshot;
 
 fn ensure_snapshot_matches_read_basis(
     equivalence: &DerivedEquivalenceContractReport,

@@ -3,15 +3,10 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanPointEventExtractionDenialKind, PlanarBooleanPointEventKind,
 };
 
-#[path = "public_api_planar_boolean_point_events_support/mod.rs"]
-mod point_event_support;
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
+use super::point_event_support;
+use super::reduced_pair_support;
 
-use point_event_support::SyntheticPointRelation;
+use super::point_event_support::SyntheticPointRelation;
 
 #[test]
 fn proper_crossing_point_event_is_stable_under_segment_orientation_reversal() {

@@ -45,8 +45,9 @@ pub(crate) use ordinary_consumer_sweep::{
     current_replay_undo_boundary_proof, ordinary_consumer_cutover_from_inventory_for_tests,
     ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
 };
+#[cfg(test)]
+pub(crate) use ordinary_consumer_sweep::current_worth_workload_ordinary_consumer_cutover;
 pub(crate) use ordinary_consumer_sweep::{
-    current_replay_undo_boundary_route_authority, current_worth_workload_ordinary_consumer_cutover,
     WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
     WorthWorkloadOrdinaryConsumerCutoverRow,
 };

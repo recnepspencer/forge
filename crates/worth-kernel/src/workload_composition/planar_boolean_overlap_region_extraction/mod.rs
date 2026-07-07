@@ -30,6 +30,4 @@ pub use registration_contract::{
 pub use runtime_registration::PlanarBooleanOverlapRuntimeRegistrationProof;
 pub use summum_bonum_input::PlanarBooleanOverlapRegionSummumBonumCloseoutInput;
 
-pub(crate) use replay_authority::{
-    PlanarBooleanOverlapReplayCertifiedPeer, PlanarBooleanOverlapReplayCertifiedPeerDenial,
-};
+pub(crate) use replay_authority::PlanarBooleanOverlapReplayCertifiedPeer;

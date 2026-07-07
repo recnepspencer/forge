@@ -36,8 +36,6 @@ pub(crate) use outcome_rejection::{
 };
 #[cfg(test)]
 pub(crate) use rejection_facts::prepare_primitive_construction_rejected_facts;
-#[allow(unused_imports)]
-pub(crate) use rejection_facts::PrimitiveConstructionRejectedFacts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PrimitiveConstructionAcceptedOutcome {

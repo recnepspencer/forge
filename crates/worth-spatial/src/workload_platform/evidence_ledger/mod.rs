@@ -27,7 +27,6 @@ pub use row::{
     WorkloadEvidenceBacking, WorkloadEvidenceRow, WorkloadEvidenceStageBinding,
     WorkloadEvidenceSupport,
 };
-#[allow(unused_imports)]
 pub use selected_lookup_slice_assembly::{
     SelectedLookupSliceLedger, SelectedLookupSliceLedgerAssembly,
 };

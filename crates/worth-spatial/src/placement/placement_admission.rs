@@ -1,5 +1,3 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 #[cfg(test)]
 use super::placement_types::SpatialPlacementGeometry;
 use super::placement_types::{

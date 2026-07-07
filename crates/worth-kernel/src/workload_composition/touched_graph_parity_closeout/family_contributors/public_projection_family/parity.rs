@@ -12,9 +12,7 @@ use super::contributor_catalog::{
     current_public_projection_contributor_catalog, validate_public_projection_contributor_catalog,
     PublicProjectionContributorCatalog,
 };
-use super::error::{
-    PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
-};
+use super::error::PublicProjectionContributorCatalogErrorKind;
 use super::row::{PublicProjectionContributorCatalogRow, PublicProjectionContributorRowKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

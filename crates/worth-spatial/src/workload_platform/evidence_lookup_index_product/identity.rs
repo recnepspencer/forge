@@ -1,7 +1,9 @@
 use schema::facade::platform::authority::compiled_product_semantic_graph::{
-    admit_compiled_product_rebuild_denial_identity, CompiledProductEquivalencePolicyIdentity,
-    CompiledProductIdentity, CompiledProductRebuildDenialIdentity,
+    admit_compiled_product_rebuild_denial_identity, CompiledProductIdentity,
+    CompiledProductRebuildDenialIdentity,
 };
+#[cfg(test)]
+use schema::facade::platform::authority::compiled_product_semantic_graph::CompiledProductEquivalencePolicyIdentity;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use crate::spatial_compiled_product_family::{
@@ -51,6 +53,7 @@ impl AdmittedEvidenceLookupFamilyIdentity {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn lower_index_family_identity(
     selected_plan: &crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan,
     ledger: &SelectedLookupSliceLedger,
@@ -157,6 +160,7 @@ fn lower_index_family_identity_from_request(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn index_compiled_product_identity(
     selected_plan: &crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan,
     ledger: &crate::workload_platform::evidence_ledger::SelectedLookupSliceLedger,
@@ -166,6 +170,7 @@ pub(crate) fn index_compiled_product_identity(
         .clone()
 }
 
+#[cfg(test)]
 pub(crate) fn index_equivalence_policy_identity() -> CompiledProductEquivalencePolicyIdentity {
     let catalog = current_spatial_compiled_product_family_catalog();
     let declaration = catalog

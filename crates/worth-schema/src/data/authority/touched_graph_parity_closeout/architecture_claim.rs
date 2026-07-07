@@ -84,6 +84,7 @@ impl TouchedGraphParityArchitectureClaim {
     ///
     /// let _constructor = TouchedGraphParityArchitectureClaim::readiness_parity;
     /// ```
+    #[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
     pub(crate) fn readiness_parity(
         family_kind: TouchedGraphParityFamilyKind,
         selected_route_identity: PlannerSelectedRouteIdentity,
@@ -132,6 +133,7 @@ impl TouchedGraphParityArchitectureClaim {
     }
 }
 
+#[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
 pub(crate) fn admit_touched_graph_parity_readiness_claim(
     family_kind: TouchedGraphParityFamilyKind,
     selected_route_identity: PlannerSelectedRouteIdentity,

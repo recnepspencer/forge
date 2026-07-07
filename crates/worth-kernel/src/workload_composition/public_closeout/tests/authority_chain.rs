@@ -45,11 +45,11 @@ fn closeout_binds_full_conflict_authority_chain() {
     let route_authority_digests = cutover
         .rows()
         .iter()
-        .filter(|row| {
+        .filter(|row: &&crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverRow| {
             row.posture()
                 == crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverPosture::SelectedPlanDrivenOrdinaryConsumer
         })
-        .map(|row| {
+        .map(|row: &crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverRow| {
             row.selected_plan_witness()
                 .expect("selected-plan ordinary consumer rows should carry a bound receipt witness")
                 .route_authority_digest()
@@ -58,10 +58,12 @@ fn closeout_binds_full_conflict_authority_chain() {
     assert_eq!(route_authority_digests.len(), 3);
     assert_ne!(route_authority_digests[0], route_authority_digests[1]);
     assert_ne!(route_authority_digests[1], route_authority_digests[2]);
-    for row in cutover.rows().iter().filter(|row| {
-        row.posture()
-            == crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverPosture::SelectedPlanDrivenOrdinaryConsumer
-    }) {
+    for row in cutover.rows().iter().filter(
+        |row: &&crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverRow| {
+            row.posture()
+                == crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverPosture::SelectedPlanDrivenOrdinaryConsumer
+        },
+    ) {
         assert_eq!(
             row.selected_plan_witness()
                 .expect("selected-plan ordinary consumer rows should carry a bound receipt witness")
@@ -82,7 +84,11 @@ fn closeout_binds_full_conflict_authority_chain() {
     let replay_undo_row = cutover
         .rows()
         .iter()
-        .find(|row| row.surface_name() == "admit_boolean_split_replay_undo_boundary")
+        .find(
+            |row: &&crate::workload_composition::worth_workload::WorthWorkloadOrdinaryConsumerCutoverRow| {
+                row.surface_name() == "admit_boolean_split_replay_undo_boundary"
+            },
+        )
         .expect("replay/undo selected-plan row should exist");
     let replay_undo_witness = replay_undo_row
         .selected_plan_witness()

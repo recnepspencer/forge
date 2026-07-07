@@ -10,8 +10,8 @@ use super::touched_closure::selected_wire_view_touched_closure;
 use crate::derived_topology::invalidation_plan::selection::DerivedInvalidationSelectedPlan;
 use crate::projection::read_views::domain::request::TopologyReadRequest;
 use crate::projection::read_views::domain::{
-    TopologyReadAnchorIdentity, TopologyReadExecutionEngine, TopologyReadFallbackPosture,
-    TopologyReadGraphAccessProof, TopologyReadRequestReport,
+    read_proof::TopologyReadGraphAccessProof, TopologyReadAnchorIdentity,
+    TopologyReadExecutionEngine, TopologyReadFallbackPosture, TopologyReadRequestReport,
 };
 use crate::projection::runtime_boundary::read_lowering::lower_topology_read;
 

@@ -32,6 +32,9 @@ fn same_admitted_input_selects_same_equivalence_family() {
     let catalog = current_topology_selected_equivalence_family_catalog();
     let left = select_topology_equivalence_family(&catalog, &admitted).expect("left family");
     let right = select_topology_equivalence_family(&catalog, &admitted).expect("right family");
+    let declaration = catalog
+        .declaration(left.family_identity())
+        .expect("catalog should expose the selected family declaration");
 
     assert_eq!(left.family_identity(), right.family_identity());
     assert_eq!(
@@ -42,6 +45,14 @@ fn same_admitted_input_selects_same_equivalence_family() {
         left.reuse_basis_identity().identity_digest(),
         right.reuse_basis_identity().identity_digest()
     );
+    assert_eq!(declaration.identity(), left.family_identity());
+    assert_eq!(
+        catalog.family_for_compiled_product(
+            admitted.family_admitted_input().family_identity()
+        ),
+        Some(declaration)
+    );
+    assert!(!catalog.catalog_digest().is_empty());
 }
 
 #[test]
@@ -114,4 +125,40 @@ fn selected_family_carries_declared_comparator_contract() {
             TopologySelectedEquivalenceDimension::InterpretedTopologyDigest,
         ]
     );
+    assert_eq!(
+        comparator.compatibility_posture(),
+        selected.compatibility_posture()
+    );
+    assert_eq!(
+        comparator.freshness_requirement_posture(),
+        selected.freshness_requirement_posture()
+    );
+    assert_eq!(comparator.ordering_noise_posture(), selected.ordering_noise_posture());
+    assert_eq!(
+        comparator.rendered_output_comparison_posture(),
+        selected.rendered_output_comparison_posture()
+    );
+    assert_eq!(
+        comparator
+            .clone()
+            .with_test_equivalence_dimensions(vec![
+                TopologySelectedEquivalenceDimension::SelectedEquivalenceBasisIdentity,
+            ])
+            .equivalence_dimensions(),
+        &[TopologySelectedEquivalenceDimension::SelectedEquivalenceBasisIdentity]
+    );
+}
+
+#[test]
+fn selected_equivalence_errors_expose_kind_and_detail() {
+    let error = super::error::TopologySelectedEquivalenceFamilyError::new(
+        super::error::TopologySelectedEquivalenceFamilyErrorKind::MissingDeclaredFamily,
+        "fixture detail",
+    );
+
+    assert_eq!(
+        error.kind(),
+        super::error::TopologySelectedEquivalenceFamilyErrorKind::MissingDeclaredFamily
+    );
+    assert_eq!(error.detail(), "fixture detail");
 }

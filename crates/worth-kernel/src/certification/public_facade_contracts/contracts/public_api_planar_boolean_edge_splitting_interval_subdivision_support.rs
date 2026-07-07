@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_raw_schedule_support::build_raw_edge_split_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use std::collections::BTreeMap;
@@ -137,3 +135,6 @@ fn retained_interval_row_count(
         .map(|schedule| schedule.retained_interval_entries().len())
         .sum()
 }
+
+const _: fn(&MetabossEventExtractionSubject) =
+    assert_interval_subdivision_normalization_matches_metaboss;

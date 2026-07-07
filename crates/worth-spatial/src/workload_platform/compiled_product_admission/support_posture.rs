@@ -15,6 +15,7 @@ use crate::workload_platform::retained_cancellation_chain::RetainedCancellationC
 pub(crate) struct EvidenceLookupSupportPosture {
     topology_support_digest: String,
     query_support_digest: String,
+    #[cfg(test)]
     evidence_support_digest: String,
 }
 
@@ -27,6 +28,7 @@ impl EvidenceLookupSupportPosture {
         &self.query_support_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn evidence_support_digest(&self) -> &str {
         &self.evidence_support_digest
     }
@@ -35,6 +37,7 @@ impl EvidenceLookupSupportPosture {
 pub(crate) struct RetainedReplaySupportPosture {
     projection_consumption_digest: String,
     replay_support_digest: String,
+    #[cfg(test)]
     evidence_support_digest: String,
 }
 
@@ -47,6 +50,7 @@ impl RetainedReplaySupportPosture {
         &self.replay_support_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn evidence_support_digest(&self) -> &str {
         &self.evidence_support_digest
     }
@@ -77,6 +81,7 @@ pub(crate) fn evidence_lookup_from_basis(
         ));
     }
     Ok(EvidenceLookupSupportPosture {
+        #[cfg(test)]
         evidence_support_digest: evidence_lookup_support_digest(
             &topology_support_digest,
             &query_support_digest,
@@ -105,6 +110,7 @@ pub(crate) fn evidence_lookup_from_product(
         ));
     }
     Ok(EvidenceLookupSupportPosture {
+        #[cfg(test)]
         evidence_support_digest: evidence_lookup_support_digest(
             &topology_support_digest,
             &query_support_digest,
@@ -121,6 +127,7 @@ pub(crate) fn retained_replay(
     let projection_consumption_digest = projection.projection_consumption_digest().to_string();
     let replay_support_digest = retained.retained_fact_digest().to_string();
     RetainedReplaySupportPosture {
+        #[cfg(test)]
         evidence_support_digest: retained_replay_support_digest(
             &projection_consumption_digest,
             &replay_support_digest,
@@ -137,6 +144,7 @@ pub(crate) fn retained_cancellation(receipt: &RetainedCancellationChainReceipt) 
     )
 }
 
+#[cfg(test)]
 fn evidence_lookup_support_digest(
     topology_support_digest: &str,
     query_support_digest: &str,
@@ -151,6 +159,7 @@ fn evidence_lookup_support_digest(
     )
 }
 
+#[cfg(test)]
 fn retained_replay_support_digest(
     projection_consumption_digest: &str,
     replay_support_digest: &str,

@@ -85,7 +85,7 @@ pub fn current_spatial_public_closeout_alignment_summary(
             error.detail()
         ))
     })?;
-    let route_source = current_evidence_lookup_route_source().map_err(|error| {
+    current_evidence_lookup_route_source().map_err(|error| {
         SpatialPublicCloseoutSeedSupportError::new(format!(
             "spatial public closeout seed support failed to load current route source: {}",
             error.detail()

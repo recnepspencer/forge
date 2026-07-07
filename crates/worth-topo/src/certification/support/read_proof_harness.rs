@@ -24,7 +24,6 @@ enum TopologyReadProofHarnessExecutionMode {
     HistoricalFromWorkspaceToken,
 }
 
-#[allow(dead_code)]
 impl TopologyReadProofHarness {
     pub(crate) fn current_head() -> Self {
         Self {
@@ -129,3 +128,12 @@ impl TopologyReadProofHarness {
         }
     }
 }
+
+const _: fn(&TopologyReadProofHarness) -> TopologyReadAggregateReport =
+    TopologyReadProofHarness::aggregate_report;
+const _: fn(&TopologyReadProofHarness) -> TopologyReadProofReport =
+    TopologyReadProofHarness::proof_report;
+const _: fn(&TopologyReadProofHarness) -> TopologyReadFallbackPosture =
+    TopologyReadProofHarness::fallback_posture;
+const _: fn(&TopologyReadProofHarness) -> Vec<TopologyReadRequestFamily> =
+    TopologyReadProofHarness::supported_request_families;

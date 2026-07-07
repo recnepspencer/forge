@@ -21,7 +21,6 @@ impl SpatialFixtureWitnessCatalog {
         Self::default()
     }
 
-    #[allow(dead_code)]
     pub(crate) fn with_geometric_tag_point(
         mut self,
         tag: impl Into<String>,
@@ -30,28 +29,6 @@ impl SpatialFixtureWitnessCatalog {
         self.tag_entries.push(GeometricTagEntry {
             tag: tag.into(),
             outcome: outcome.map(SpatialCatalogResolvedGeometricTag::PointLike),
-        });
-        self
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn with_geometric_tag_direction(
-        mut self,
-        tag: impl Into<String>,
-        outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.tag_entries.push(GeometricTagEntry {
-            tag: tag.into(),
-            outcome: outcome.map(SpatialCatalogResolvedGeometricTag::DirectionLike),
-        });
-        self
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn with_geometric_tag_unsupported_class(mut self, tag: impl Into<String>) -> Self {
-        self.tag_entries.push(GeometricTagEntry {
-            tag: tag.into(),
-            outcome: Ok(SpatialCatalogResolvedGeometricTag::UnsupportedClass),
         });
         self
     }
@@ -70,7 +47,6 @@ impl SpatialFixtureWitnessCatalog {
         self
     }
 
-    #[allow(dead_code)]
     pub(crate) fn with_parameter_space_point(
         mut self,
         carrier_kind: SpatialCarrierKind,

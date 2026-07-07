@@ -1,3 +1,41 @@
+#[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
+mod collinear_relation_support;
+#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
+mod reduced_pair_support;
+#[path = "public_api_planar_boolean_entry/tests/support.rs"]
+mod entry_support;
+#[path = "public_api_planar_boolean_edge_splitting_decision_log_support.rs"]
+mod edge_splitting_decision_log_support;
+#[path = "public_api_planar_boolean_edge_splitting_endpoint_boundary_support.rs"]
+mod edge_splitting_endpoint_boundary_support;
+#[path = "public_api_planar_boolean_edge_splitting_interval_subdivision_support.rs"]
+mod edge_splitting_interval_subdivision_support;
+#[path = "public_api_planar_boolean_edge_splitting_normalized_schedule_support.rs"]
+mod edge_splitting_normalized_schedule_support;
+#[path = "public_api_planar_boolean_edge_splitting_ordered_schedule_support.rs"]
+mod edge_splitting_ordered_schedule_support;
+#[path = "public_api_planar_boolean_edge_splitting_persistent_naming_support.rs"]
+mod edge_splitting_persistent_naming_support;
+#[path = "public_api_planar_boolean_edge_splitting_public_contract_support/mod.rs"]
+mod edge_splitting_public_contract_support;
+#[path = "public_api_planar_boolean_edge_splitting_raw_schedule_support.rs"]
+mod edge_splitting_raw_schedule_support;
+#[path = "public_api_planar_boolean_edge_splitting_replay_parity_support.rs"]
+mod edge_splitting_replay_parity_support;
+#[path = "public_api_planar_boolean_edge_splitting_split_vertex_identity_support.rs"]
+mod edge_splitting_split_vertex_identity_support;
+#[path = "public_api_planar_boolean_edge_splitting_support.rs"]
+mod edge_splitting_support;
+#[path = "public_api_planar_boolean_event_ledger_support.rs"]
+mod event_ledger_support;
+#[path = "public_api_planar_boolean_event_extraction_metaboss_subject_support.rs"]
+mod metaboss_support;
+#[path = "public_api_planar_boolean_event_extraction_metaboss_assertions_support.rs"]
+mod metaboss_assertions_support;
+#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
+mod predicate_binding_support;
+#[path = "public_api_planar_boolean_point_events_support/mod.rs"]
+mod point_event_support;
 mod public_api_compiled_product_consumer_cutover;
 mod public_api_construction_branch_preview;
 mod public_api_graph_read_access_inventory_milestone_six_closeout;

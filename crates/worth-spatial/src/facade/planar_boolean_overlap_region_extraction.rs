@@ -105,3 +105,57 @@ pub use crate::workload_platform::planar_boolean_overlap_region_extraction::{
     PlanarBooleanSharedAreaAdmissionOutcomeSet, PlanarBooleanSharedBoundaryContactOutcomeRow,
     PlanarBooleanSharedBoundaryContactOutcomeSet,
 };
+
+pub mod legacy_compatibility {
+    pub use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+        CoplanarOverlapOperatorDenial, CoplanarOverlapOperatorReceipt,
+        CoplanarOverlapWorkloadOperator,
+    };
+}
+
+pub mod ledger_authority {
+    pub use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+        PlanarBooleanOverlapRegionDecisionKind, PlanarBooleanOverlapRegionDecisionLog,
+        PlanarBooleanOverlapRegionDecisionLogRow, PlanarBooleanOverlapRegionLedger,
+        PlanarBooleanOverlapRegionLedgerAssemblyBundle,
+        PlanarBooleanOverlapRegionLedgerAssemblyCounters,
+        PlanarBooleanOverlapRegionLedgerAssemblyDenial,
+        PlanarBooleanOverlapRegionLedgerAssemblyDenialKind,
+        PlanarBooleanOverlapRegionLedgerAssemblyInput, PlanarBooleanOverlapRegionLedgerReceipt,
+        PlanarBooleanOverlapRegionLedgerRow,
+    };
+}
+
+pub mod stage_evidence {
+    pub use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+        ComparePlanarBooleanOverlapRegionCheckpointParity,
+        ComparePlanarBooleanOverlapRegionReplayParity,
+        PlanarBooleanOverlapRegionCheckpointParityReceipt,
+        PlanarBooleanOverlapRegionEvidenceDenial, PlanarBooleanOverlapRegionEvidenceInput,
+        PlanarBooleanOverlapRegionEvidenceReceipt, PlanarBooleanOverlapRegionReplayParityCounters,
+        PlanarBooleanOverlapRegionReplayParityDenial,
+        PlanarBooleanOverlapRegionReplayParityDenialKind,
+        PlanarBooleanOverlapRegionReplayParityInput, PlanarBooleanOverlapRegionReplayParityReceipt,
+        PlanarBooleanOverlapRegionReplayParityRow, PlanarBooleanOverlapRegionReplayParityRowKind,
+    };
+}
+
+pub mod closeout_authority {
+    pub use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+        PlanarBooleanOverlapRegionBoundaryOnlyOutcomeWitness,
+        PlanarBooleanOverlapRegionCanonicalWindingOutcomeWitness,
+        PlanarBooleanOverlapRegionCheckpointOutcomeWitness,
+        PlanarBooleanOverlapRegionMixedBoundaryAreaWitness,
+        PlanarBooleanOverlapRegionNestedIdentityOutcomeWitness,
+        PlanarBooleanOverlapRegionOrderingParityWitness,
+        PlanarBooleanOverlapRegionReplayParityWitness,
+        PlanarBooleanOverlapRegionSharedAreaOutcomeWitness, PlanarBooleanOverlapRegionStormWitness,
+        PlanarBooleanOverlapRegionSummumBonumCloseout,
+        PlanarBooleanOverlapRegionSummumBonumCloseoutCounters,
+        PlanarBooleanOverlapRegionSummumBonumCloseoutDenial,
+        PlanarBooleanOverlapRegionSummumBonumCloseoutDenialKind,
+        PlanarBooleanOverlapRegionSummumBonumCloseoutInput,
+        PlanarBooleanOverlapRegionSummumBonumSubcaseKind,
+        PlanarBooleanOverlapRegionSummumBonumSubcaseRow,
+    };
+}

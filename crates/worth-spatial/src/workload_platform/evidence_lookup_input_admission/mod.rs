@@ -15,7 +15,6 @@ mod tests;
 pub use admission::admit_evidence_lookup_input;
 pub use admitted_input::EvidenceLookupAdmittedInput;
 pub use counters::EvidenceLookupInputAdmissionCounters;
-#[allow(unused_imports)]
 pub(crate) use current_query_receipt::current_projection_consumption_receipt;
 #[cfg(test)]
 pub(crate) use current_query_receipt::real_projection_consumption_receipt;

@@ -4,8 +4,8 @@ use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedG
 
 use crate::workload_composition::planner_owned_routing::{
     WorthTouchedGraphConflictDerivedDiagnosticProjection,
-    WorthTouchedGraphConflictPublicProofInspection,
 };
+use crate::workload_composition::WorthTouchedGraphConflictPublicProofInspection;
 
 use super::consumer_step::{
     RepresentativeSelectedRouteAuthority, RepresentativeSelectedRouteConsumerKind,

@@ -47,12 +47,14 @@ pub fn current_evidence_lookup_public_closeout(
     Ok(closeout)
 }
 
+#[cfg(test)]
 pub(crate) fn current_evidence_lookup_public_closeout_assembly_input(
 ) -> Result<EvidenceLookupPublicCloseoutAssemblyInput, EvidenceLookupPublicCloseoutError> {
     current_evidence_lookup_public_closeout_route_input()
         .map(|route_input| route_input.assembly_input().clone())
 }
 
+#[cfg(test)]
 pub(crate) fn current_evidence_lookup_public_closeout_with_selected_route_support(
     selected_route_support: SelectedEvidenceLookupPublicCloseoutRouteSupport,
 ) -> Result<EvidenceLookupPublicCloseout, EvidenceLookupPublicCloseoutError> {
@@ -63,6 +65,7 @@ pub(crate) fn current_evidence_lookup_public_closeout_with_selected_route_suppor
     EvidenceLookupPublicCloseout::assemble_from_route_input(&route_input)
 }
 
+#[cfg(test)]
 pub(crate) fn current_evidence_lookup_public_closeout_route_input_with_selected_route_support(
     selected_route_support: SelectedEvidenceLookupPublicCloseoutRouteSupport,
 ) -> Result<EvidenceLookupPublicCloseoutRouteInput, EvidenceLookupPublicCloseoutError> {

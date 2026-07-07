@@ -32,7 +32,6 @@ pub(crate) use mutation_evidence::TopologyMutationApplicationEvidence;
 #[cfg(test)]
 pub(crate) use query_anchor::TopologyOperatorApplicationQueryAnchor;
 
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone)]
 pub(crate) struct TopologyDeclaredMutationArtifact {
     post_write_query_artifact: TopologyPostWriteQueryArtifact,
@@ -45,7 +44,6 @@ pub(crate) struct TopologyDeclaredMutationArtifact {
     mutation_evidence: TopologyMutationApplicationEvidence,
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 impl TopologyDeclaredMutationArtifact {
     pub(crate) fn from_receipt(
         semantic_family_key: &'static str,
@@ -177,6 +175,28 @@ impl TopologyDeclaredMutationArtifact {
         self.post_write_query_artifact.clone()
     }
 }
+
+const _: () = {
+    let _ = std::mem::size_of::<TopologyDeclaredMutationArtifact>();
+    let _:
+        for<'a, 'b> fn(
+            &'static str,
+            &'a TopologyRetainedApplicationHandoff<
+                crate::topology_operators::TopologyCreateTopologyEntityDeclaration,
+            >,
+            &'b TopologyDeclaredMutationSequence,
+            TopologyPostWriteQueryArtifact,
+        ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> =
+        TopologyDeclaredMutationArtifact::from_receipt;
+    let _ = TopologyDeclaredMutationArtifact::mutation_evidence;
+    let _ = TopologyDeclaredMutationArtifact::declared_touched_basis;
+    let _ = TopologyDeclaredMutationArtifact::bind_derived_invalidation_cutover;
+    let _ = TopologyDeclaredMutationArtifact::graph_obligation_envelope_digest;
+    let _ = TopologyDeclaredMutationArtifact::graph_obligation_orchestration;
+    let _ = TopologyDeclaredMutationArtifact::materialized;
+    let _ = TopologyDeclaredMutationArtifact::into_materialized;
+    let _ = TopologyDeclaredMutationArtifact::accepted_mutation_projection;
+};
 
 #[cfg(test)]
 mod tests {

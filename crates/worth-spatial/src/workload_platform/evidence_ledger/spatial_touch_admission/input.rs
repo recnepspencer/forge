@@ -9,16 +9,23 @@ use crate::workload_platform::evidence_ledger::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum SpatialGeometryEvidenceTouchRejectedInputKind {
+    #[cfg(test)]
     RawId,
+    #[cfg(test)]
     RawString,
+    #[cfg(test)]
     ReceiptOnly,
     WorkloadEvidenceRow,
+    #[cfg(test)]
     BooleanReceiptLookupProduct,
+    #[cfg(test)]
     QueryDescriptor,
+    #[cfg(test)]
     TopologyProof,
+    #[cfg(test)]
     SchemaVocabulary,
+    #[cfg(test)]
     CopiedReceiptFields,
 }
 
@@ -31,14 +38,22 @@ pub(crate) struct SpatialGeometryEvidenceTouchRejectedInput {
 impl SpatialGeometryEvidenceTouchRejectedInputKind {
     pub(crate) fn locality(self) -> &'static str {
         match self {
+            #[cfg(test)]
             Self::RawId => "raw id",
+            #[cfg(test)]
             Self::RawString => "raw string",
+            #[cfg(test)]
             Self::ReceiptOnly => "sealed boolean receipt without complete ledger",
             Self::WorkloadEvidenceRow => "workload evidence row",
+            #[cfg(test)]
             Self::BooleanReceiptLookupProduct => "boolean receipt lookup product",
+            #[cfg(test)]
             Self::QueryDescriptor => "forge-query descriptor",
+            #[cfg(test)]
             Self::TopologyProof => "topology proof",
+            #[cfg(test)]
             Self::SchemaVocabulary => "schema vocabulary",
+            #[cfg(test)]
             Self::CopiedReceiptFields => "copied receipt fields",
         }
     }
@@ -46,6 +61,7 @@ impl SpatialGeometryEvidenceTouchRejectedInputKind {
 
 #[cfg(test)]
 impl SpatialGeometryEvidenceTouchRejectedInput {
+    #[cfg(test)]
     pub(crate) fn raw_id<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::RawId,
@@ -53,6 +69,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn raw_string(_: &str) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::RawString,
@@ -60,6 +77,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn receipt_only<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::ReceiptOnly,
@@ -74,6 +92,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn boolean_receipt_lookup_product(
         _: &WorkloadEvidenceBooleanReceiptLookupProduct,
     ) -> Self {
@@ -83,6 +102,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn query_descriptor<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::QueryDescriptor,
@@ -90,6 +110,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn topology_proof<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::TopologyProof,
@@ -97,6 +118,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn schema_vocabulary<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::SchemaVocabulary,
@@ -104,6 +126,7 @@ impl SpatialGeometryEvidenceTouchRejectedInput {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn copied_receipt_fields<T: 'static>(_: &T) -> Self {
         Self::new(
             SpatialGeometryEvidenceTouchRejectedInputKind::CopiedReceiptFields,

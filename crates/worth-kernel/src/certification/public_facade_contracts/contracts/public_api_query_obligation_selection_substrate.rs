@@ -1,9 +1,5 @@
-#[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
-#[allow(dead_code, unused_imports)]
-mod metaboss_support;
-
 use super::public_api_query_obligation_selection_support::primitive_construction_birth_declared_touched_basis;
-use metaboss_support::MetabossEventExtractionSubject;
+use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_kernel::query_obligation_selection::selection_substrate::{
     deny_copied_query_obligation_selection_parts,
     deny_in_memory_query_obligation_selection_authority,

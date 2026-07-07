@@ -61,6 +61,7 @@ impl MaterializedTopologyView {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn whole_view(topology: TopologyView) -> Self {
         Self::from_complete_topology_view(topology)
     }
@@ -73,7 +74,7 @@ impl MaterializedTopologyView {
         &self.report
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn topology_mut(&mut self) -> &mut TopologyView {
         &mut self.topology
     }

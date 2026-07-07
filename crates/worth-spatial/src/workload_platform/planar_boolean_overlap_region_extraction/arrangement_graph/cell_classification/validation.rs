@@ -154,9 +154,7 @@ pub(crate) fn validate_containment_input<'a>(
 
         validated_cells.push(ValidatedCellClassification {
             cell,
-            boundary_segments,
             boundary_operand_sides,
-            supporting_island_operand_sides,
             left_boundary_winding_sum,
             right_boundary_winding_sum,
             left_supporting_winding_sum,

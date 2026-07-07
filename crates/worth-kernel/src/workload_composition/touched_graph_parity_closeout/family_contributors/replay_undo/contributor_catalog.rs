@@ -55,14 +55,6 @@ pub(crate) fn replay_undo_family_contributor_catalog_from_authorities(
     )
 }
 
-pub(crate) fn replay_undo_coverage_contributor_rows(
-) -> Result<Vec<KernelTouchedGraphParityCoverageContributor>, KernelTouchedGraphParityCoverageError>
-{
-    let catalog = current_replay_undo_family_contributor_catalog()
-        .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))?;
-    replay_undo_coverage_contributor_rows_from_catalog(catalog.rows())
-}
-
 pub(crate) fn replay_undo_coverage_contributor_rows_from_authorities(
     selected_route: &WorthTouchedGraphConflictSelectedRoutePacket,
     cutover: &WorthWorkloadOrdinaryConsumerCutover,
@@ -73,6 +65,7 @@ pub(crate) fn replay_undo_coverage_contributor_rows_from_authorities(
     replay_undo_coverage_contributor_rows_from_catalog(catalog.rows())
 }
 
+#[cfg(test)]
 pub(crate) fn current_replay_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_replay_undo_family_contributor_catalog()
@@ -88,6 +81,7 @@ pub(crate) fn current_replay_coverage_contributor(
         .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))
 }
 
+#[cfg(test)]
 pub(crate) fn current_undo_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_replay_undo_family_contributor_catalog()

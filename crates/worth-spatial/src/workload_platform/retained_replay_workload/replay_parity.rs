@@ -220,6 +220,7 @@ impl ReplayParityReport {
         self.selected_family_identity
     }
 
+    #[cfg(test)]
     pub(crate) fn admission_witness(&self) -> &SpatialCompiledProductAdmissionWitness {
         &self.admission_witness
     }

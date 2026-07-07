@@ -20,14 +20,11 @@ pub(crate) mod touched_graph_basis;
 pub(crate) mod touched_graph_conflict;
 pub(crate) mod touched_graph_parity_closeout;
 
-#[allow(unused_imports)]
 pub(crate) use commit_flow::{
-    AuthoritativeTopologySnapshot, CertifiedTopologyInterpretation, CreateKey,
-    DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference, MutationOrigin,
-    PersistedTopologyTruth, RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
-    TopologyReadArtifact,
+    CertifiedTopologyInterpretation, CreateKey, DerivedTopologyReadBasis,
+    DerivedTruthBasisIdentity, EntityReference, MutationOrigin, PersistedTopologyTruth,
+    RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation, TopologyReadArtifact,
 };
-#[allow(unused_imports)]
 pub use compiled_product_semantic_graph::{
     admit_compiled_product_authority_truth_identity,
     admit_compiled_product_authority_truth_identity_with_coordinates,
@@ -42,42 +39,22 @@ pub use compiled_product_semantic_graph::{
     CompiledProductSemanticGraphVocabularyError, CompiledProductSemanticGraphVocabularyErrorKind,
     CompiledProductStageIdentity,
 };
-#[allow(unused_imports)]
-pub use derived_invalidation::{
-    milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
-    TruthToDerivedInvalidationDeclaration,
-};
-#[allow(unused_imports)]
-pub use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
-#[allow(unused_imports)]
-pub use geometry_binding::{
-    CoedgeCurveKind, CurveBindingKind, CurveProvenanceKind, SurfaceBindingKind,
-    SurfaceRelationKind, VertexGeometryProvenanceKind, VertexToleranceRegime,
-};
-#[allow(unused_imports)]
-pub use interpretation::{
-    ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
-    WireInterpretationClass, WireInterpretationRecord,
-};
-#[allow(unused_imports)]
+pub use gateway::{TopologyAuthority, TopologyAuthorityError};
+pub use interpretation::TopologyInterpretationRecordSet;
 pub use planner_owned_routing_semantic_graph::{
-    admit_planner_admitted_explanation_input, admit_planner_decision_trace_identity,
-    admit_planner_derived_diagnostic_contract_identity, admit_planner_public_proof_identity,
+    admit_planner_admitted_explanation_input, admit_planner_public_proof_identity,
     admit_planner_selected_family_identity, admit_planner_selected_product_identity,
     admit_planner_selected_route_identity, admit_planner_witness_identity,
-    PlannerAdmittedExplanationInput, PlannerDecisionTraceIdentity,
-    PlannerDerivedDiagnosticContractIdentity, PlannerExplanationArtifactKind, PlannerMismatchLocus,
+    PlannerDecisionTraceIdentity, PlannerDerivedDiagnosticContractIdentity,
+    PlannerExplanationArtifactKind, PlannerMismatchLocus,
     PlannerOwnedRoutingSemanticGraphVocabularyError,
     PlannerOwnedRoutingSemanticGraphVocabularyErrorKind, PlannerPublicProofIdentity,
     PlannerSelectedFamilyIdentity, PlannerSelectedProductIdentity, PlannerSelectedRouteIdentity,
     PlannerWitnessIdentity, PlannerWitnessRole,
 };
-#[allow(unused_imports)]
 pub use precision_fallback::{
-    FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
-    PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
+    PrecisionBudgetFallbackRecord, PrecisionFallbackRecord,
 };
-#[allow(unused_imports)]
 pub use replay_undo_semantic_graph::{
     admit_replay_scope_identity, admit_replay_undo_stage_index_identity,
     admit_spatial_evidence_lookup_prior_proof_identity,
@@ -89,15 +66,6 @@ pub use replay_undo_semantic_graph::{
     ReplayUndoTransactionScopeClaim, ReplayUndoTransactionScopeKind, UndoScopeIdentity,
     UndoScopeIdentityInput,
 };
-#[allow(unused_imports)]
-pub use topology_class::TopologyClass;
-#[allow(unused_imports)]
-pub use touched_graph_basis::{
-    worth_topology_touched_graph_digest, WorthTopologyGraphLifecyclePosture,
-    WorthTopologyTouchedAspect, WorthTopologyTouchedGraphCounters,
-    WorthTopologyTouchedOperatingWorldPosture, WorthTopologyTouchedScope,
-};
-#[allow(unused_imports)]
 pub use touched_graph_conflict::{
     admit_conflict_locality_identity, admit_conflict_overlap_identity,
     admit_conflict_participant_identity, admit_conflict_routing_contract,
@@ -110,11 +78,10 @@ pub use touched_graph_conflict::{
     ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
     ConflictRoutingVocabularyError, ConflictTransactionProofInput,
 };
-#[allow(unused_imports)]
+#[cfg(feature = "touched-graph-parity-internal-authority")]
 pub(crate) use touched_graph_parity_closeout::{
     admit_touched_graph_parity_readiness_claim, admit_touched_graph_parity_readiness_input,
 };
-#[allow(unused_imports)]
 pub use touched_graph_parity_closeout::{
     TouchedGraphParityArchitectureClaim, TouchedGraphParityClaimKind,
     TouchedGraphParityCoverageContributor, TouchedGraphParityCoverageRow,

@@ -7,7 +7,6 @@ mod compile_fail_fixture_catalog;
 
 #[path = "contracts/graph_read_access_inventory/fixture_catalog.rs"]
 mod graph_read_access_inventory_contracts;
-#[allow(dead_code)]
 #[path = "contracts/public_api_planar_boolean_loop_reconstruction_guard_coverage.rs"]
 mod loop_reconstruction_guard_coverage;
 
@@ -38,12 +37,6 @@ const PLANAR_BOOLEAN_EVENT_EXTRACTION_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/pb_events/event_row_bypass.rs",
     "src/certification/public_facade_contracts/compile_fail/pb_events/raw_pair_bypass.rs",
     "src/certification/public_facade_contracts/compile_fail/pb_events/split_no_ledger.rs",
-];
-
-const PLANAR_BOOLEAN_EDGE_SPLITTING_FIXTURES: &[&str] = &[
-    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_completed_split_evidence.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/split_request_not_boolean_evidence_row.rs",
-    "src/certification/public_facade_contracts/compile_fail/pb_edge_splitting/fake_split_receipt_not_boolean_evidence_row.rs",
 ];
 
 const PLANAR_BOOLEAN_EDGE_SPLITTING_EXPECTED_ERRORS: &[(&str, &str)] = &[

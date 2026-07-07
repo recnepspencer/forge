@@ -19,7 +19,11 @@ use super::validation::{
     validate_input_identities, validate_ledger_rows, validate_source_truth,
     validate_supporting_rows,
 };
-use crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionIdentityRow;
+use crate::workload_platform::planar_boolean_overlap_region_extraction::{
+    PlanarBooleanOverlapRegionCanonicalWindingRow, PlanarBooleanOverlapRegionIdentityRow,
+    PlanarBooleanOverlapRegionPersistentNamePropagationRow,
+    PlanarBooleanOverlapRegionSubshapeSignatureRow,
+};
 
 pub(super) fn assemble_ledger_bundle(
     input: PlanarBooleanOverlapRegionLedgerAssemblyInput<'_>,
@@ -38,29 +42,10 @@ pub(super) fn assemble_ledger_bundle(
     let boundary_only = boundary.boundary_only_overlap_outcomes();
     let request_identity = canonical.request_identity().to_string();
 
-    let mut identity_rows = bundle
-        .overlap_region_identity_map()
-        .rows()
-        .iter()
-        .collect::<Vec<_>>();
-    identity_rows.sort_by(|left, right| left.region_identity().cmp(right.region_identity()));
-
-    let mut persistent_name_rows = bundle
-        .persistent_name_propagation_map()
-        .rows()
-        .iter()
-        .collect::<Vec<_>>();
-    persistent_name_rows.sort_by(|left, right| {
-        left.propagation_identity()
-            .cmp(right.propagation_identity())
-    });
-
-    let mut signature_rows = bundle
-        .subshape_signature_map()
-        .rows()
-        .iter()
-        .collect::<Vec<_>>();
-    signature_rows.sort_by(|left, right| left.signature_identity().cmp(right.signature_identity()));
+    let identity_rows = sorted_identity_rows(bundle.overlap_region_identity_map().rows());
+    let persistent_name_rows =
+        sorted_persistent_name_rows(bundle.persistent_name_propagation_map().rows());
+    let signature_rows = sorted_signature_rows(bundle.subshape_signature_map().rows());
 
     let persistent_name_rows_owned = persistent_name_rows
         .iter()
@@ -87,25 +72,7 @@ pub(super) fn assemble_ledger_bundle(
     let signatures_by_region = signature_rows_by_region(&signature_rows_owned);
 
     let mut decision_rows = Vec::new();
-    decision_rows.push(PlanarBooleanOverlapRegionDecisionLogRow::new(
-        decision_row_identity(
-            &request_identity,
-            PlanarBooleanOverlapRegionDecisionKind::Request,
-            &request_identity,
-            &[
-                canonical.arrangement_graph_identity().to_string(),
-                canonical.cell_set_identity().to_string(),
-                canonical.ordering_basis_identity().to_string(),
-            ],
-        ),
-        PlanarBooleanOverlapRegionDecisionKind::Request,
-        request_identity.clone(),
-        vec![
-            canonical.arrangement_graph_identity().to_string(),
-            canonical.cell_set_identity().to_string(),
-            canonical.ordering_basis_identity().to_string(),
-        ],
-    ));
+    decision_rows.push(build_request_decision_row(&request_identity, canonical));
     counters.admitted_decision_rows(1);
 
     let mut ledger_rows = Vec::new();
@@ -134,31 +101,10 @@ pub(super) fn assemble_ledger_bundle(
         counters.admitted_decision_rows(row_decisions.len());
         decision_rows.extend(row_decisions);
 
-        let persistent_name_identities = propagated_names
-            .iter()
-            .map(|row| row.persistent_name_identity().to_string())
-            .collect::<Vec<_>>();
-        ledger_rows.push(PlanarBooleanOverlapRegionLedgerRow::new(
-            ledger_row_identity(
-                identity_row.region_identity(),
-                identity_row.canonical_winding_identity(),
-                signature_row.signature_identity(),
-            ),
-            identity_row.region_identity().to_string(),
-            identity_row.canonical_winding_identity().to_string(),
-            identity_row.source_kind(),
-            identity_row.source_identity().to_string(),
-            identity_row
-                .area_overlap_component_identity()
-                .map(str::to_string),
-            signature_row.correspondence_only(),
-            persistent_name_identities,
-            signature_row.signature_identity().to_string(),
-            identity_row.lineage_identities().to_vec(),
-            identity_row
-                .canonical_boundary_segment_identities()
-                .to_vec(),
-            identity_row.canonical_source_loop_identities().to_vec(),
+        ledger_rows.push(build_ledger_row(
+            identity_row,
+            signature_row,
+            &propagated_names,
         ));
         counters.admitted_ledger_row();
     }
@@ -218,12 +164,95 @@ pub(super) fn assemble_ledger_bundle(
     ))
 }
 
+fn sorted_identity_rows(
+    rows: &[PlanarBooleanOverlapRegionIdentityRow],
+) -> Vec<&PlanarBooleanOverlapRegionIdentityRow> {
+    let mut sorted = rows.iter().collect::<Vec<_>>();
+    sorted.sort_by(|left, right| left.region_identity().cmp(right.region_identity()));
+    sorted
+}
+
+fn sorted_persistent_name_rows(
+    rows: &[PlanarBooleanOverlapRegionPersistentNamePropagationRow],
+) -> Vec<&PlanarBooleanOverlapRegionPersistentNamePropagationRow> {
+    let mut sorted = rows.iter().collect::<Vec<_>>();
+    sorted.sort_by(|left, right| {
+        left.propagation_identity()
+            .cmp(right.propagation_identity())
+    });
+    sorted
+}
+
+fn sorted_signature_rows(
+    rows: &[PlanarBooleanOverlapRegionSubshapeSignatureRow],
+) -> Vec<&PlanarBooleanOverlapRegionSubshapeSignatureRow> {
+    let mut sorted = rows.iter().collect::<Vec<_>>();
+    sorted.sort_by(|left, right| left.signature_identity().cmp(right.signature_identity()));
+    sorted
+}
+
+fn build_request_decision_row(
+    request_identity: &str,
+    canonical: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionCanonicalWindingSet,
+) -> PlanarBooleanOverlapRegionDecisionLogRow {
+    let related_identities = vec![
+        canonical.arrangement_graph_identity().to_string(),
+        canonical.cell_set_identity().to_string(),
+        canonical.ordering_basis_identity().to_string(),
+    ];
+    PlanarBooleanOverlapRegionDecisionLogRow::new(
+        decision_row_identity(
+            request_identity,
+            PlanarBooleanOverlapRegionDecisionKind::Request,
+            request_identity,
+            &related_identities,
+        ),
+        PlanarBooleanOverlapRegionDecisionKind::Request,
+        request_identity.to_string(),
+        related_identities,
+    )
+}
+
+fn build_ledger_row(
+    identity_row: &PlanarBooleanOverlapRegionIdentityRow,
+    signature_row: &PlanarBooleanOverlapRegionSubshapeSignatureRow,
+    propagated_names: &[&PlanarBooleanOverlapRegionPersistentNamePropagationRow],
+) -> PlanarBooleanOverlapRegionLedgerRow {
+    let persistent_name_identities = propagated_names
+        .iter()
+        .map(|row| row.persistent_name_identity().to_string())
+        .collect::<Vec<_>>();
+
+    PlanarBooleanOverlapRegionLedgerRow::new(
+        ledger_row_identity(
+            identity_row.region_identity(),
+            identity_row.canonical_winding_identity(),
+            signature_row.signature_identity(),
+        ),
+        identity_row.region_identity().to_string(),
+        identity_row.canonical_winding_identity().to_string(),
+        identity_row.source_kind(),
+        identity_row.source_identity().to_string(),
+        identity_row
+            .area_overlap_component_identity()
+            .map(str::to_string),
+        signature_row.correspondence_only(),
+        persistent_name_identities,
+        signature_row.signature_identity().to_string(),
+        identity_row.lineage_identities().to_vec(),
+        identity_row
+            .canonical_boundary_segment_identities()
+            .to_vec(),
+        identity_row.canonical_source_loop_identities().to_vec(),
+    )
+}
+
 fn build_decision_rows(
     request_identity: &str,
     identity_row: &PlanarBooleanOverlapRegionIdentityRow,
-    canonical_row: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionCanonicalWindingRow,
-    propagated_names: &[&crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionPersistentNamePropagationRow],
-    signature_row: &crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionSubshapeSignatureRow,
+    canonical_row: &PlanarBooleanOverlapRegionCanonicalWindingRow,
+    propagated_names: &[&PlanarBooleanOverlapRegionPersistentNamePropagationRow],
+    signature_row: &PlanarBooleanOverlapRegionSubshapeSignatureRow,
 ) -> Vec<PlanarBooleanOverlapRegionDecisionLogRow> {
     let mut rows = Vec::new();
     rows.push(decision_row(

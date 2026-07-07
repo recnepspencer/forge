@@ -4,7 +4,7 @@ mod cluster_ledger;
 mod current_cutover;
 mod current_cutover_proof;
 mod current_ledgers;
-mod current_replay_undo_boundary_proof;
+pub(crate) mod current_replay_undo_boundary_proof;
 mod current_route_authority;
 mod current_route_witness;
 mod error;
@@ -16,17 +16,22 @@ mod workload_composition_explainer_ledger;
 pub use boolean_split_batch_execution_cluster::CompletedBooleanSplitBatchExecutionCluster;
 pub use closeout::current_worth_workload_ordinary_consumer_sweep_closeout;
 pub use cluster_ledger::{
-    WorthWorkloadOrdinaryConsumerBlockedFollowOnFamily, WorthWorkloadOrdinaryConsumerClusterKind,
+    WorthWorkloadOrdinaryConsumerClusterKind,
     WorthWorkloadOrdinaryConsumerClusterLedger, WorthWorkloadOrdinaryConsumerClusterRowDisposition,
     WorthWorkloadOrdinaryConsumerSweepResidueRow,
 };
+#[cfg(test)]
 pub(crate) use current_cutover::{
     current_worth_workload_ordinary_consumer_cutover, WorthWorkloadOrdinaryConsumerCutover,
     WorthWorkloadOrdinaryConsumerCutoverPosture, WorthWorkloadOrdinaryConsumerCutoverRow,
 };
+#[cfg(not(test))]
+pub(crate) use current_cutover::{
+    WorthWorkloadOrdinaryConsumerCutover, WorthWorkloadOrdinaryConsumerCutoverPosture,
+    WorthWorkloadOrdinaryConsumerCutoverRow,
+};
 #[cfg(test)]
 pub(crate) use current_replay_undo_boundary_proof::current_replay_undo_boundary_proof;
-pub(crate) use current_route_authority::current_replay_undo_boundary_route_authority;
 pub use error::{
     WorthWorkloadOrdinaryConsumerSweepCloseoutError,
     WorthWorkloadOrdinaryConsumerSweepCloseoutErrorKind,
@@ -56,7 +61,9 @@ mod current_route_authority_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-mod tests_support;
+mod tests_support_completed_split;
+#[cfg(test)]
+mod tests_support_replay_undo_scope;
 #[cfg(test)]
 mod workload_composition_explainer_cutover_tests;
 
@@ -65,7 +72,7 @@ pub(crate) fn ordinary_consumer_cutover_from_inventory_for_tests(
     inventory: &crate::workload_composition::ConflictBatchAdmissionInventory,
 ) -> Result<
     current_cutover::WorthWorkloadOrdinaryConsumerCutover,
-    current_cutover::WorthWorkloadOrdinaryConsumerCutoverError,
+    crate::workload_composition::planner_owned_routing::WorthWorkloadOrdinaryConsumerCutoverError,
 > {
     current_cutover::ordinary_consumer_cutover_from_inventory_for_tests(inventory)
 }
@@ -79,7 +86,7 @@ pub(crate) fn ordinary_consumer_cutover_from_inventory_with_test_replay_undo_ide
     undo_scope_identity: &str,
 ) -> Result<
     current_cutover::WorthWorkloadOrdinaryConsumerCutover,
-    current_cutover::WorthWorkloadOrdinaryConsumerCutoverError,
+    crate::workload_composition::planner_owned_routing::WorthWorkloadOrdinaryConsumerCutoverError,
 > {
     current_cutover::ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override(
         inventory,

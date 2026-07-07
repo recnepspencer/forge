@@ -16,10 +16,3 @@ pub use crate::data::seed::{
     MinimalTopologySeed, SeededTopologyCommit, TopologyCreateBatchBuilder,
     TopologyIntentCommitError, TopologyMutationSetCommitError,
 };
-
-#[allow(unused_imports)]
-pub use crate::data::authority::commit_flow::{
-    AuthoritativeTopologySnapshot, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    DerivedTruthBasisIdentity, PersistedTopologyTruth, TopologyCommittedMutationSet,
-    TopologyReadArtifact,
-};

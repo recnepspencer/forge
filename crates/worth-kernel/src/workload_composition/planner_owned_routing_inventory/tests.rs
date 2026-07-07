@@ -119,19 +119,6 @@ fn phase_twelve_names_exact_closeout_replacement_lanes_for_topology_and_spatial_
 }
 
 #[test]
-fn query_gap_rows_require_precise_upstream_capability_names() {
-    let closeout = current_planner_owned_routing_inventory().expect("inventory");
-    assert!(
-        closeout
-            .report()
-            .rows()
-            .iter()
-            .all(|row| row.displaced_lane() != DisplacedLane::ForgeQueryDocs),
-        "planner-owned routing inventory must not keep a second static forge-query gap ledger once exact live residue manifests own the upstream blocker classification",
-    );
-}
-
-#[test]
 fn high_risk_surfaces_keep_exact_phase_one_semantics() {
     let closeout = current_planner_owned_routing_inventory().expect("inventory");
     let rows = closeout.report().rows();

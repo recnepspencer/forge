@@ -64,7 +64,11 @@ pub(super) const REQUIRED_PHASE_2_OPERATOR_LANES: &[(&str, Class, Surface)] = &[
         Class::PreparedSpatialOnly,
         Surface::None,
     ),
-    ("ExtractOverlapIslands", Class::PreparedSpatialOnly, Surface::None),
+    (
+        "ExtractOverlapIslands",
+        Class::PreparedSpatialOnly,
+        Surface::None,
+    ),
     (
         "PartitionBoundaryContactComponents",
         Class::PreparedSpatialOnly,
@@ -85,7 +89,11 @@ pub(super) const REQUIRED_PHASE_2_OPERATOR_LANES: &[(&str, Class, Surface)] = &[
         Class::PreparedSpatialOnly,
         Surface::None,
     ),
-    ("AdmitSharedAreaOverlap", Class::PreparedSpatialOnly, Surface::None),
+    (
+        "AdmitSharedAreaOverlap",
+        Class::PreparedSpatialOnly,
+        Surface::None,
+    ),
     (
         "RejectBoundaryOnlyContactAsAreaRegion",
         Class::PreparedSpatialOnly,

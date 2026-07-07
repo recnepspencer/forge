@@ -120,6 +120,7 @@ impl SpatialConflictFamilyDeclaration {
         self.declaration_digest.as_str()
     }
 
+    #[cfg(test)]
     pub(crate) const fn admits_evidence_selection(&self) -> bool {
         matches!(
             (
@@ -141,6 +142,7 @@ impl SpatialConflictFamilyDeclaration {
         )
     }
 
+    #[cfg(test)]
     pub(crate) const fn admits_replay_boundary_selection(&self) -> bool {
         matches!(
             (

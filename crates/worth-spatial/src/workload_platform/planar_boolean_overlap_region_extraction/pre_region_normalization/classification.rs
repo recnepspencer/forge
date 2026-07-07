@@ -81,10 +81,6 @@ fn normalize_row(
     let mut saw_right = false;
     let mut saw_positive = false;
     let mut saw_negative = false;
-    let mut saw_full_overlap = false;
-    let mut saw_start = false;
-    let mut saw_interior = false;
-    let mut saw_end = false;
     let mut chain_ids = BTreeSet::new();
     let mut fragment_ids = BTreeSet::new();
     let mut lineage_ids = BTreeSet::new();
@@ -98,14 +94,9 @@ fn normalize_row(
         .iter()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
-    let source_only_full_span_normalization = relevant.iter().all(|lineage| {
-        let matching_roles = matching_boundary_roles(lineage, &shared_area_source_loops);
-        lineage.participating_island_identities().is_empty()
-            && !matching_roles.is_empty()
-            && matching_roles
-                .iter()
-                .any(|role| *role == PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan)
-    });
+    let mut boundary_role_case = BoundaryRoleNormalizationCase::new(
+        classify_source_only_full_span_normalization(relevant, &shared_area_source_loops),
+    );
 
     for lineage in relevant {
         counters.examined_lineage_row();
@@ -146,24 +137,16 @@ fn normalize_row(
                 saw_negative = true;
             }
         }
-        for role in matching_boundary_roles(lineage, &shared_area_source_loops) {
-            match role {
-                PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan => saw_full_overlap = true,
-                PlanarBooleanOverlapChainBoundaryRole::OverlapStartBoundary => saw_start = true,
-                PlanarBooleanOverlapChainBoundaryRole::OverlapInteriorFragment => {
-                    saw_interior = true
-                }
-                PlanarBooleanOverlapChainBoundaryRole::OverlapEndBoundary => saw_end = true,
-            }
-        }
+        boundary_role_case
+            .record_matching_roles(matching_boundary_roles(lineage, &shared_area_source_loops));
     }
 
-    if saw_start && saw_end && !source_only_full_span_normalization {
+    if boundary_role_case.requires_ambiguous_ordering_denial() {
         return Err(ambiguous_ordering(shared_area_row, counters));
     }
     let Some((canonical_operand_side, canonical_winding_sign)) = stable_canonical_orientation(
         &orientation_by_source_loop,
-        source_only_full_span_normalization,
+        boundary_role_case.source_only_full_span_normalization(),
     ) else {
         trace_unstable_orientation(shared_area_row, &orientation_by_source_loop);
         return Err(unstable_tie_breaker(shared_area_row, counters));
@@ -187,15 +170,92 @@ fn normalize_row(
         lineage_ids.into_iter().collect(),
         source_edges.into_iter().collect(),
         source_loops.into_iter().collect(),
-        collect_boundary_roles(
-            source_only_full_span_normalization,
-            saw_full_overlap,
-            saw_start,
-            saw_interior,
-            saw_end,
-        ),
+        boundary_role_case.canonical_boundary_roles(),
         persistent_names.into_iter().collect(),
     ))
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct BoundaryRoleNormalizationCase {
+    source_only_full_span_normalization: bool,
+    saw_full_overlap: bool,
+    saw_start: bool,
+    saw_interior: bool,
+    saw_end: bool,
+}
+
+impl BoundaryRoleNormalizationCase {
+    const fn new(source_only_full_span_normalization: bool) -> Self {
+        Self {
+            source_only_full_span_normalization,
+            saw_full_overlap: false,
+            saw_start: false,
+            saw_interior: false,
+            saw_end: false,
+        }
+    }
+
+    fn record_matching_roles(
+        &mut self,
+        roles: impl IntoIterator<Item = PlanarBooleanOverlapChainBoundaryRole>,
+    ) {
+        for role in roles {
+            match role {
+                PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan => {
+                    self.saw_full_overlap = true
+                }
+                PlanarBooleanOverlapChainBoundaryRole::OverlapStartBoundary => {
+                    self.saw_start = true
+                }
+                PlanarBooleanOverlapChainBoundaryRole::OverlapInteriorFragment => {
+                    self.saw_interior = true
+                }
+                PlanarBooleanOverlapChainBoundaryRole::OverlapEndBoundary => self.saw_end = true,
+            }
+        }
+    }
+
+    const fn source_only_full_span_normalization(&self) -> bool {
+        self.source_only_full_span_normalization
+    }
+
+    const fn requires_ambiguous_ordering_denial(&self) -> bool {
+        self.saw_start && self.saw_end && !self.source_only_full_span_normalization
+    }
+
+    fn canonical_boundary_roles(&self) -> Vec<PlanarBooleanOverlapChainBoundaryRole> {
+        let mut roles = Vec::new();
+        if self.saw_full_overlap {
+            roles.push(PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan);
+            if self.source_only_full_span_normalization {
+                return roles;
+            }
+        }
+        if self.saw_start {
+            roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapStartBoundary);
+        }
+        if self.saw_interior {
+            roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapInteriorFragment);
+        }
+        if self.saw_end {
+            roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapEndBoundary);
+        }
+        roles
+    }
+}
+
+fn classify_source_only_full_span_normalization(
+    relevant: &[&crate::workload_platform::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapChainRegionLineageRow],
+    shared_area_source_loops: &BTreeSet<&str>,
+) -> bool {
+    relevant.iter().all(|lineage| {
+        let matching_roles = matching_boundary_roles(lineage, shared_area_source_loops);
+        lineage.participating_island_identities().is_empty()
+            && !matching_roles.is_empty()
+            && matching_roles
+                .iter()
+                .any(|role| *role == PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan)
+    })
 }
 
 fn matching_boundary_roles(
@@ -273,30 +333,4 @@ fn canonical_orientation_for_loop(
 fn orientation_sort_key(orientation: (PlanarBooleanCommonPlaneOperandSide, i8)) -> String {
     let (side, sign) = orientation;
     format!("{}:{sign}", side.query_key())
-}
-
-fn collect_boundary_roles(
-    source_only_full_span_normalization: bool,
-    saw_full_overlap: bool,
-    saw_start: bool,
-    saw_interior: bool,
-    saw_end: bool,
-) -> Vec<PlanarBooleanOverlapChainBoundaryRole> {
-    let mut roles = Vec::new();
-    if saw_full_overlap {
-        roles.push(PlanarBooleanOverlapChainBoundaryRole::FullOverlapSpan);
-        if source_only_full_span_normalization {
-            return roles;
-        }
-    }
-    if saw_start {
-        roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapStartBoundary);
-    }
-    if saw_interior {
-        roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapInteriorFragment);
-    }
-    if saw_end {
-        roles.push(PlanarBooleanOverlapChainBoundaryRole::OverlapEndBoundary);
-    }
-    roles
 }

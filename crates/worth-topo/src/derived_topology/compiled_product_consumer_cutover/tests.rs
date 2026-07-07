@@ -56,6 +56,18 @@ fn topology_consumers_route_through_reuse_decision_products() {
         .equivalence_contract_report
         .reuse_decision_identity_digest()
         .is_some());
+    assert_eq!(
+        diagnostics
+            .diagnostic_projection_source
+            .truth_basis_identity_digest(),
+        inputs.read_basis.authority.truth_basis_identity.mutation_digest_hex
+    );
+    assert_eq!(
+        diagnostics
+            .diagnostic_projection_source
+            .diagnostic_contract_name(),
+        "topology-derived-read-diagnostic-projection"
+    );
     assert!(diagnostics
         .invalidation_report
         .rows

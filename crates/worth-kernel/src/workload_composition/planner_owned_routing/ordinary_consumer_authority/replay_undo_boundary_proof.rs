@@ -1,15 +1,17 @@
+#[cfg(test)]
 use schema::facade::platform::authority::replay_undo_semantic_graph::ReplayUndoPlannerRouteFamily;
 use topology::replay_undo_semantic_graph::current_replay_undo_topology_ordinary_undo_scope_boundary;
 
 #[cfg(test)]
 use crate::workload_composition::planner_owned_routing::{
-    current_replay_undo_transaction_route_input_for_tests,
     current_replay_undo_transaction_route_packet_with_input_override,
 };
 use crate::workload_composition::planner_owned_routing::{
-    current_replay_undo_transaction_route_packet, lower_replay_undo_boundary_execution_proof,
-    ReplayUndoBoundaryExecutionProof, ReplayUndoPlannerRoutePacket,
+    lower_replay_undo_boundary_execution_proof, ReplayUndoBoundaryExecutionProof,
+    ReplayUndoPlannerRoutePacket,
 };
+#[cfg(test)]
+use crate::workload_composition::planner_owned_routing::current_replay_undo_transaction_route_packet;
 
 use super::cutover::{
     WorthWorkloadOrdinaryConsumerCutoverError, WorthWorkloadOrdinaryConsumerCutoverErrorKind,
@@ -18,7 +20,9 @@ use super::cutover::{
 #[derive(Clone, Debug)]
 pub(crate) struct WorthWorkloadCurrentReplayUndoBoundaryProof {
     boundary_proof_digest: String,
+    #[cfg(test)]
     route_packet_identity: String,
+    #[cfg(test)]
     route_family: ReplayUndoPlannerRouteFamily,
     transaction_packet_identity: String,
     replay_scope_identity: String,
@@ -39,6 +43,7 @@ pub(crate) fn lower_current_replay_undo_boundary_proof(
     ))
 }
 
+#[cfg(test)]
 pub(crate) fn current_replay_undo_boundary_proof(
     split_boundary: &worth_spatial::facade::replay_undo_semantic_graph::CurrentReplayUndoSpatialBoundary,
 ) -> Result<WorthWorkloadCurrentReplayUndoBoundaryProof, WorthWorkloadOrdinaryConsumerCutoverError>
@@ -57,10 +62,12 @@ impl WorthWorkloadCurrentReplayUndoBoundaryProof {
         &self.transaction_packet_identity
     }
 
+    #[cfg(test)]
     pub(crate) fn route_packet_identity(&self) -> &str {
         &self.route_packet_identity
     }
 
+    #[cfg(test)]
     pub(crate) const fn route_family(&self) -> ReplayUndoPlannerRouteFamily {
         self.route_family
     }
@@ -72,14 +79,6 @@ impl WorthWorkloadCurrentReplayUndoBoundaryProof {
     pub(crate) fn undo_scope_identity(&self) -> &str {
         &self.undo_scope_identity
     }
-}
-
-#[cfg(test)]
-pub(crate) fn test_current_replay_undo_boundary_packet_input() -> Result<
-    crate::replay_undo_transaction_boundary::ReplayUndoTransactionBoundaryInput,
-    WorthWorkloadOrdinaryConsumerCutoverError,
-> {
-    current_replay_undo_transaction_route_input_for_tests().map_err(current_boundary_error)
 }
 
 #[cfg(test)]
@@ -126,7 +125,9 @@ fn lower_current_replay_undo_boundary_proof_from_execution_lowering(
 ) -> WorthWorkloadCurrentReplayUndoBoundaryProof {
     WorthWorkloadCurrentReplayUndoBoundaryProof {
         boundary_proof_digest: lowering.boundary_proof_digest().to_string(),
+        #[cfg(test)]
         route_packet_identity: lowering.route_packet_identity().to_string(),
+        #[cfg(test)]
         route_family: lowering.route_family(),
         transaction_packet_identity: lowering.transaction_packet_identity().to_string(),
         replay_scope_identity: lowering.replay_scope_identity().to_string(),

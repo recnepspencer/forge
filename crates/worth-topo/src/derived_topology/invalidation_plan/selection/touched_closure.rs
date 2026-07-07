@@ -9,6 +9,7 @@ use schema::facade::platform::authority::touched_graph_conflict_internal::admit_
 use crate::topology_operators::{
     TopologyDeclaredTouchedGraphBasisProof, TopologyTouchedGraphBasis, TopologyTouchedGraphCounters,
 };
+#[cfg(test)]
 use crate::touched_graph_conflict::{
     current_topology_conflict_family_catalog_closeout, TopologyConflictFamilyApplicability,
     TopologyConflictFamilyIdentity,
@@ -91,13 +92,7 @@ impl DerivedInvalidationTouchedClosure {
         ))
     }
 
-    pub(crate) fn matching_conflict_family_identities(
-        &self,
-    ) -> Result<Vec<TopologyConflictFamilyIdentity>, ConflictRoutingVocabularyError> {
-        let contract = self.conflict_routing_contract()?;
-        Ok(self.matching_aspect_or_locality_conflict_family_identities_for_contract(&contract))
-    }
-
+    #[cfg(test)]
     pub(crate) fn matching_aspect_or_locality_conflict_family_identities_for_contract(
         &self,
         contract: &ConflictRoutingContract,
@@ -117,6 +112,7 @@ impl DerivedInvalidationTouchedClosure {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities_for_contract(
         &self,
         contract: &ConflictRoutingContract,

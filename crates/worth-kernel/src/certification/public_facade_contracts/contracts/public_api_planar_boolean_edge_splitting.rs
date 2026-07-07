@@ -1,5 +1,4 @@
 #[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
-#[allow(dead_code)]
 mod collinear_relation_support;
 #[path = "public_api_planar_boolean_edge_splitting_decision_log_support.rs"]
 mod edge_splitting_decision_log_support;
@@ -36,16 +35,10 @@ mod edge_splitting_support;
 #[path = "public_api_planar_boolean_edge_splitting_workload_evidence.rs"]
 mod edge_splitting_workload_evidence;
 #[path = "public_api_planar_boolean_event_ledger_support.rs"]
-#[allow(dead_code)]
 mod event_ledger_support;
-#[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
-#[allow(dead_code, unused_imports)]
-mod metaboss_support;
 #[path = "public_api_planar_boolean_point_events_support/mod.rs"]
-#[allow(dead_code)]
 mod point_event_support;
 #[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
 mod predicate_binding_support;
 #[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
 mod reduced_pair_support;
@@ -53,26 +46,25 @@ mod reduced_pair_support;
 use edge_splitting_decision_log_support::assert_split_decision_log_matches_metaboss;
 use edge_splitting_endpoint_boundary_support::assert_endpoint_boundary_normalization_matches_metaboss;
 use edge_splitting_interval_subdivision_support::assert_interval_subdivision_normalization_matches_metaboss;
-use edge_splitting_ledger_support::{
-    assert_split_edge_chain_ledger_matches_metaboss,
-    assert_split_edge_chain_ledger_orders_all_products_canonically_across_replay,
-};
 use edge_splitting_normalized_schedule_support::assert_normalized_edge_split_schedule_matches_metaboss;
 use edge_splitting_ordered_schedule_support::assert_ordered_edge_split_schedule_matches_metaboss;
-use edge_splitting_overlap_chain_support::assert_overlap_edge_chains_match_metaboss;
 use edge_splitting_persistent_naming_support::assert_split_persistent_naming_matches_metaboss;
-use edge_splitting_posture_support::assert_point_split_postures_match_admitted_events;
 use edge_splitting_raw_schedule_support::assert_raw_edge_split_schedule_matches_metaboss;
-use edge_splitting_split_chain_validation_support::assert_split_chain_validation_matches_metaboss;
-use edge_splitting_split_fragment_support::assert_split_edge_fragments_match_metaboss;
 use edge_splitting_split_vertex_identity_support::assert_split_vertex_identities_match_metaboss;
 use edge_splitting_support::{
-    assert_interval_candidates_match_ledger_facts,
-    assert_interval_domain_admission_matches_candidates,
+    assert_interval_candidates_match_ledger_facts, assert_interval_domain_admission_matches_candidates,
     assert_point_domain_admission_matches_candidates, expected_interval_candidate_facts,
     expected_point_candidate_facts, recovered_carriers_for,
 };
 use metaboss_support::MetabossEventExtractionSubject;
+use edge_splitting_ledger_support::{
+    assert_split_edge_chain_ledger_matches_metaboss,
+    assert_split_edge_chain_ledger_orders_all_products_canonically_across_replay,
+};
+use edge_splitting_overlap_chain_support::assert_overlap_edge_chains_match_metaboss;
+use edge_splitting_posture_support::assert_point_split_postures_match_admitted_events;
+use edge_splitting_split_chain_validation_support::assert_split_chain_validation_matches_metaboss;
+use edge_splitting_split_fragment_support::assert_split_edge_fragments_match_metaboss;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanCandidateIndexConsumptionDenialKind, PlanarBooleanCandidateIndexConsumptionGate,
     PlanarBooleanCandidateIndexConsumptionInput, PlanarBooleanSplitEventParticipationIndex,
@@ -84,6 +76,16 @@ use worth_spatial::facade::planar_boolean_events::{
 };
 use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceLedger, WorkloadEvidenceRow, WorkloadEvidenceStage,
+};
+
+const _: () = {
+    let _ = collinear_relation_support::binding_subject_with_relation;
+    let _: Option<collinear_relation_support::SyntheticCollinearRelation> = None;
+    let _ = event_ledger_support::ledger_for_point_relation;
+    let _ = point_event_support::binding_subject_with_relation;
+    let _: Option<point_event_support::SyntheticPointRelation> = None;
+    let _ = predicate_binding_support::binding_subject;
+    let _ = metaboss_support::MetabossEventExtractionSubject::certify;
 };
 
 #[test]
@@ -397,4 +399,7 @@ where
             .all(|window| key(&window[0]) < key(&window[1])),
         "values should be strictly sorted and deduplicated"
     );
+}
+mod metaboss_support {
+    pub(crate) use super::super::metaboss_support::MetabossEventExtractionSubject;
 }

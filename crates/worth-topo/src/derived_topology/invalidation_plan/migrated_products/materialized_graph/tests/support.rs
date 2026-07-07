@@ -7,7 +7,7 @@ use crate::derived_topology::invalidation_plan::catalog::DerivedTopologyProductF
 use crate::derived_topology::invalidation_plan::selection::selection_test_fixtures::{
     admitted_legality_support, admitted_query_support, catalog_closeout,
     legality_support_missing_selected_legality_plan, loop_cycles_touched_closure,
-    query_support_missing_native_read, unrelated_geometry_touched_closure,
+    query_support_missing_native_read,
 };
 use crate::derived_topology::invalidation_plan::selection::{
     DerivedInvalidationDensityPolicy, DerivedInvalidationSelectedPlan,
@@ -23,18 +23,6 @@ pub(super) fn selected_materialized_graph_plan_with_key(
     DerivedInvalidationSelectedPlan::lower(
         &catalog_closeout(),
         &loop_cycles_touched_closure(semantic_family_key),
-        &admitted_query_support(),
-        &admitted_legality_support(),
-        DerivedInvalidationDensityPolicy::Sparse,
-    )
-    .unwrap()
-}
-
-#[allow(dead_code)]
-pub(super) fn unrelated_geometry_plan() -> DerivedInvalidationSelectedPlan {
-    DerivedInvalidationSelectedPlan::lower(
-        &catalog_closeout(),
-        &unrelated_geometry_touched_closure(),
         &admitted_query_support(),
         &admitted_legality_support(),
         DerivedInvalidationDensityPolicy::Sparse,

@@ -3,7 +3,7 @@ use super::denial::{
     PlanarBooleanPreRegionNormalizationDenial, PlanarBooleanPreRegionNormalizationDenialKind,
 };
 use crate::workload_platform::planar_boolean_overlap_region_extraction::{
-    PlanarBooleanOppositeSenseOverlapNormalizationRow, PlanarBooleanOverlapChainRegionLineageMap,
+    PlanarBooleanOverlapChainRegionLineageMap,
     PlanarBooleanOverlapChainRegionLineageRow, PlanarBooleanPreRegionNormalizationInput,
     PlanarBooleanSharedAreaAdmissionOutcomeRow,
 };

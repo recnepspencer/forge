@@ -6,9 +6,7 @@ use topology::certification::{
     TopologyMilestoneFifteenPlannerSeedSupport, TopologyPublicCloseoutSeedSupportError,
 };
 use topology::derived_invalidation_route_input::current_topology_invalidation_route_input;
-use topology::facade::{
-    current_topology_query_backed_consumer_cutover, TopologyQueryBackedConsumerFamilyRow,
-};
+use topology::facade::current_topology_query_backed_consumer_cutover;
 use topology::query_domain::TopologyReadRequestFamily;
 use worth_spatial::certification::{
     current_spatial_milestone_fifteen_planner_seed_support,
@@ -36,8 +34,7 @@ use crate::workload_composition::planner_owned_routing::{
         current_replay_undo_transaction_route_packet, ReplayUndoPlannerRoutePacket,
     },
     BatchAdmissionPlannerRoutePacket, CompiledProductReusePlannerRoutePacket,
-    PlannerOwnedRoutingError, PlannerOwnedRoutingErrorKind, WorthWorkloadOrdinaryConsumerCutover,
-    WorthWorkloadOrdinaryConsumerCutoverPosture,
+    PlannerOwnedRoutingError, PlannerOwnedRoutingErrorKind,
 };
 use crate::workload_composition::{
     current_worth_touched_graph_conflict_deletion_closeout,

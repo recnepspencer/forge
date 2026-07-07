@@ -16,8 +16,6 @@ pub use closeout::DerivedInvalidationFamilyCatalogCloseout;
 pub use counters::DerivedInvalidationFamilyCatalogCounters;
 pub use current::current_derived_invalidation_family_catalog;
 pub use error::{DerivedInvalidationFamilyCatalogError, DerivedInvalidationFamilyCatalogErrorKind};
-#[cfg(any(test, feature = "test-support-lowering"))]
-pub(crate) use family::DerivedTopologyProductFamilyRecordInput;
 pub use family::{
     DerivedTopologyConsumedGraphFacts, DerivedTopologyDiagnosticPosture,
     DerivedTopologyInvalidationPredicate, DerivedTopologyLegalityReceiptPosture,
@@ -25,6 +23,8 @@ pub use family::{
     DerivedTopologyQueryReceiptPosture, DerivedTopologySpatialEvidencePosture,
     DerivedTopologySupportPosture, DerivedTopologyUpdatePosture,
 };
+#[cfg(test)]
+pub(crate) use family::DerivedTopologyProductFamilyRecordInput;
 pub use family_catalog::DerivedInvalidationFamilyCatalog;
 pub use phase_three_seed::DerivedInvalidationPhaseThreeSeed;
 pub use source_coverage::DerivedInvalidationFamilySourceCoverage;

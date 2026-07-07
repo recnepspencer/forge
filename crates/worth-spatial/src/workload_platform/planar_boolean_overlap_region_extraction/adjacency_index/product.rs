@@ -33,6 +33,7 @@ impl PlanarBooleanOverlapRegionAdjacencyIndex {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(crate) fn new(
         adjacency_index_identity: String,
         request_identity: String,

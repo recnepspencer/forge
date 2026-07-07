@@ -10,6 +10,7 @@ impl TopologyQueryBackedReadFamilyAdmissionError {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn detail(&self) -> &str {
         &self.detail
     }

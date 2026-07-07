@@ -12,8 +12,8 @@ use super::topology_family_catalog::current_topology_family_contributor_catalog;
 use super::topology_family_parity::{
     current_topology_family_declare_once_parity_claim,
     topology_family_declare_once_parity_claim_from_catalog,
-    TopologyFamilyDeclareOnceParityErrorKind,
 };
+use super::topology_family_parity::TopologyFamilyDeclareOnceParityErrorKind;
 
 #[test]
 fn topology_family_declare_once_parity_holds_across_read_validator_invalidation() {

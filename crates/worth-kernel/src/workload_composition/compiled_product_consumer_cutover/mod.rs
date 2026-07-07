@@ -30,6 +30,9 @@ pub use future_cutover_lane::KernelCompiledProductFutureCutoverLane;
 pub use proof_basis::KernelCompiledProductProofBasis;
 pub use query_boundary_lane::KernelCompiledProductQueryBoundaryLane;
 
+#[cfg(test)]
 pub(crate) use coverage_target::KernelCompiledProductConsumerCoverageTarget;
+#[cfg(test)]
 pub(crate) use current_matrix::current_coverage_targets;
+#[cfg(test)]
 pub(crate) use dependency_matrix::current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader;

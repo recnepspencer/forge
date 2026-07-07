@@ -30,7 +30,6 @@ use worth_spatial::facade::workload_vocabulary::{
 };
 
 #[path = "../../../../../../worth-kernel/src/certification/public_facade_contracts/contracts/public_api_planar_boolean_entry/tests/support.rs"]
-#[allow(dead_code)]
 mod planar_boolean_entry_support;
 
 #[test]

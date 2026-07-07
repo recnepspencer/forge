@@ -25,7 +25,7 @@ pub use current::{
     current_cross_family_coverage_inventory, CrossFamilyCoverageInventory,
     CrossFamilyCoverageInventoryError,
 };
-pub use ledger_row::{ArchitectureClaimLedgerRow, ArchitectureClaimLedgerRowKind};
+pub use ledger_row::ArchitectureClaimLedgerRowKind;
 pub(crate) use live_ledger::live_coverage_ledger_from_authorities;
 pub use live_ledger::{current_live_coverage_ledger, LiveCoverageLedger, LiveCoverageLedgerError};
 pub use row::{

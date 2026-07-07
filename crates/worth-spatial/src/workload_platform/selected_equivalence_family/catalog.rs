@@ -38,6 +38,7 @@ impl SpatialSelectedEquivalenceFamilyCatalog {
         })
     }
 
+    #[cfg(test)]
     pub fn catalog_digest(&self) -> &str {
         &self.catalog_digest
     }

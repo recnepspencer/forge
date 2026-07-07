@@ -1,5 +1,3 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 use super::placement_types::SpatialPlacementFrame;
 use crate::authored_refs::{
     EmptySpatialWitnessCatalog, SpatialAnchorRef, SpatialCarrierDirectionRole,

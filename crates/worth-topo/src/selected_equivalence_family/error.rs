@@ -21,10 +21,12 @@ impl TopologySelectedEquivalenceFamilyError {
         }
     }
 
+    #[cfg(test)]
     pub const fn kind(&self) -> TopologySelectedEquivalenceFamilyErrorKind {
         self.kind
     }
 
+    #[cfg(test)]
     pub fn detail(&self) -> &str {
         &self.detail
     }

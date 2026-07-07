@@ -7,8 +7,6 @@ use topology::touched_graph_parity_closeout::{
     TopologyFamilyContributorCatalogRow as TopologyCatalogRow,
 };
 
-use super::KernelTouchedGraphParityCoverageError;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TopologyFamilyContributorCatalogErrorKind {
     CurrentSurfaceUnavailable,
@@ -46,13 +44,6 @@ pub(crate) fn validate_topology_family_contributor_catalog(
     catalog: &TopologyCatalog,
 ) -> Result<(), TopologyFamilyContributorCatalogError> {
     validate_catalog(catalog)
-}
-
-pub(crate) fn topology_coverage_contributor_rows(
-) -> Result<Vec<TopologyCatalogRow>, KernelTouchedGraphParityCoverageError> {
-    current_topology_family_contributor_catalog()
-        .map(|catalog| catalog.rows().to_vec())
-        .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))
 }
 
 fn validate_catalog(

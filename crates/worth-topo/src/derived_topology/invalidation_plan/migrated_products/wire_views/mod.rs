@@ -18,8 +18,8 @@ pub use family_closeout_seed::WireViewFamilyCloseoutSeed;
 pub use input::{WireViewExecutionInput, WireViewSourceRow};
 pub use old_authority_residue::{WireViewOldAuthorityResidue, WireViewOldAuthorityResidueRow};
 pub use output::{WireViewDerivedProductOutput, WireViewProductRow};
-#[allow(unused_imports)]
 pub use read_stage::{
-    WireViewQueryReadRow, WireViewReadSource, WireViewReadStageCounters, WireViewReadStageExecutor,
-    WireViewReadStageReceipt,
+    WireViewReadSource, WireViewReadStageCounters, WireViewReadStageExecutor, WireViewReadStageReceipt,
 };
+#[cfg(test)]
+pub use read_stage::WireViewQueryReadRow;

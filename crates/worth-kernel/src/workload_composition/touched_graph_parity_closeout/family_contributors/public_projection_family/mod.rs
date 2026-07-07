@@ -7,16 +7,14 @@ mod row;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
 pub(crate) use contributor_catalog::{
     current_derived_diagnostics_coverage_contributor, current_public_proof_coverage_contributor,
 };
 pub use contributor_catalog::{
     current_public_projection_contributor_catalog, PublicProjectionContributorCatalog,
 };
-pub(crate) use contributor_catalog::{
-    public_projection_family_coverage_contributor_rows,
-    public_projection_family_coverage_contributor_rows_from_public_facade,
-};
+pub(crate) use contributor_catalog::public_projection_family_coverage_contributor_rows_from_public_facade;
 pub use error::{
     PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
 };

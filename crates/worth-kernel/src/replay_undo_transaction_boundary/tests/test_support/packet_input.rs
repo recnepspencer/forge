@@ -5,7 +5,7 @@ use schema::facade::platform::authority::replay_undo_semantic_graph::{
 use schema::facade::platform::authority::WorthTopologyTouchedAspect;
 
 use crate::replay_undo_transaction_boundary::{
-    ReplayUndoTransactionBoundaryPacketCounters, ReplayUndoTransactionBoundarySupportPosture,
+    ReplayUndoTransactionBoundaryPacketCounters,
 };
 
 pub fn equivalence_basis() -> ReplayUndoSemanticGraphEquivalenceBasis {
@@ -42,10 +42,3 @@ pub fn packet_counters(mutation_claim_count: usize) -> ReplayUndoTransactionBoun
     )
 }
 
-pub fn query_gap_support_posture() -> ReplayUndoTransactionBoundarySupportPosture {
-    ReplayUndoTransactionBoundarySupportPosture::QueryGap {
-        owner: "forge-query",
-        blocker: "minimal reversible graph patch proof missing",
-        removal_trigger: "phase 12+ patch-application lane lands",
-    }
-}

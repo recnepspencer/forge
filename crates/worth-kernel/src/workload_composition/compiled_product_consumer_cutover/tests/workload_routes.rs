@@ -5,10 +5,10 @@ use crate::workload_composition::{
 
 #[test]
 fn lookup_consumed_workload_caller_path_preserves_selected_equivalence_authority() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-8-kernel-caller-selected-equivalence-proof";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let handoff = completed_split_handoff.lookup_consumed_workload_handoff();
 
         let admitted = completed_split_handoff
@@ -29,7 +29,7 @@ fn lookup_consumed_workload_caller_path_preserves_selected_equivalence_authority
             handoff.lookup_product_output_digest()
         );
 
-        let route_inputs = ordinary_consumer_sweep_tests_support::lookup_conflict_route_inputs(
+        let route_inputs = ordinary_consumer_sweep_tests_support_conflict_route_inputs::lookup_conflict_route_inputs(
             &completed_split_handoff,
         );
         let downstream_admitted = admitted
@@ -44,17 +44,17 @@ fn lookup_consumed_workload_caller_path_preserves_selected_equivalence_authority
 
 #[test]
 fn lookup_consumed_workload_consumer_accepts_reused_resolution_without_local_fallback() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-9-kernel-reused-resolution-consumer";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let admitted = completed_split_handoff
             .completed_workload()
             .admit_lookup_consumed_workload(
                 completed_split_handoff.lookup_consumed_workload_handoff(),
             )
             .expect("kernel caller path should admit the real lookup-consumed workload handoff");
-        let packet = ordinary_consumer_sweep_tests_support::lookup_packet(&completed_split_handoff);
+        let packet = ordinary_consumer_sweep_tests_support_lookup_routes::lookup_packet(&completed_split_handoff);
         let resolution = admitted
             .route_lookup_reuse_resolution(packet.selected_plan(), packet, packet.index_product())
             .expect("kernel top seam lowers the real packet-backed reuse route");
@@ -85,10 +85,10 @@ fn lookup_consumed_workload_consumer_accepts_reused_resolution_without_local_fal
 
 #[test]
 fn lookup_consumed_workload_consumer_rejects_hostile_resolution_without_self_healing() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-9-kernel-hostile-resolution-consumer";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let hostile_handoff = completed_split_handoff
             .lookup_consumed_workload_handoff()
             .clone()
@@ -99,7 +99,7 @@ fn lookup_consumed_workload_consumer_rejects_hostile_resolution_without_self_hea
             .completed_workload()
             .admit_lookup_consumed_workload(&hostile_handoff)
             .expect("kernel caller path should admit the hostile handoff before typed resolution consumption");
-        let packet = ordinary_consumer_sweep_tests_support::lookup_packet(&completed_split_handoff);
+        let packet = ordinary_consumer_sweep_tests_support_lookup_routes::lookup_packet(&completed_split_handoff);
         let error = admitted
             .route_lookup_reuse_resolution(
                 packet.selected_plan(),
@@ -117,10 +117,10 @@ fn lookup_consumed_workload_consumer_rejects_hostile_resolution_without_self_hea
 
 #[test]
 fn lookup_consumed_workload_caller_path_rejects_forged_selected_family_downstream() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-8-kernel-caller-selected-family-hostile";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let hostile_handoff = completed_split_handoff
             .lookup_consumed_workload_handoff()
             .clone()
@@ -131,7 +131,7 @@ fn lookup_consumed_workload_caller_path_rejects_forged_selected_family_downstrea
             .completed_workload()
             .admit_lookup_consumed_workload(&hostile_handoff)
             .expect("kernel caller path itself still admits the hostile handoff before downstream route consumption");
-        let route_inputs = ordinary_consumer_sweep_tests_support::lookup_conflict_route_inputs(
+        let route_inputs = ordinary_consumer_sweep_tests_support_conflict_route_inputs::lookup_conflict_route_inputs(
             &completed_split_handoff,
         );
 
@@ -159,10 +159,10 @@ fn lookup_consumed_workload_caller_path_rejects_forged_selected_family_downstrea
 
 #[test]
 fn lookup_consumed_workload_caller_path_rejects_forged_selected_reuse_basis_downstream() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-8-kernel-caller-selected-reuse-basis-hostile";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let hostile_handoff = completed_split_handoff
             .lookup_consumed_workload_handoff()
             .clone()
@@ -171,7 +171,7 @@ fn lookup_consumed_workload_caller_path_rejects_forged_selected_reuse_basis_down
             .completed_workload()
             .admit_lookup_consumed_workload(&hostile_handoff)
             .expect("kernel caller path itself still admits the hostile handoff before downstream route consumption");
-        let route_inputs = ordinary_consumer_sweep_tests_support::lookup_conflict_route_inputs(
+        let route_inputs = ordinary_consumer_sweep_tests_support_conflict_route_inputs::lookup_conflict_route_inputs(
             &completed_split_handoff,
         );
 

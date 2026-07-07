@@ -1,22 +1,5 @@
-#[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
-#[allow(dead_code)]
-mod collinear_relation_support;
-#[path = "public_api_planar_boolean_event_ledger_support.rs"]
-#[allow(dead_code)]
-mod event_ledger_support;
-#[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
-#[allow(dead_code, unused_imports)]
-mod metaboss_support;
-#[path = "public_api_planar_boolean_point_events_support/mod.rs"]
-#[allow(dead_code)]
-mod point_event_support;
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
-
-use metaboss_support::MetabossEventExtractionSubject;
+use super::metaboss_support::MetabossEventExtractionSubject;
+use super::reduced_pair_support;
 use worth_kernel::workload_composition::{WorthWorkload, WorthWorkloadParts};
 use worth_spatial::facade::planar_boolean_edge_splitting::{
     PlanarBooleanCandidateIndexConsumptionGate, PlanarBooleanCandidateIndexConsumptionInput,

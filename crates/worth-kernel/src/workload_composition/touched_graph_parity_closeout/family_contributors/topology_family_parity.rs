@@ -118,46 +118,25 @@ impl TopologyFamilyDeclareOnceParityRow {
         self.family_kind
     }
 
+    #[cfg(test)]
     pub const fn current_packet_or_function(&self) -> &'static str {
         self.current_packet_or_function
     }
 
-    pub fn operator_or_stage_coverage(&self) -> &[String] {
-        &self.operator_or_stage_coverage
-    }
-
+    #[cfg(test)]
     pub const fn selected_identity_fields_produced(&self) -> &'static [&'static str] {
         self.selected_identity_fields_produced
     }
 }
 
 impl TopologyFamilyDeclareOnceParityClaim {
+    #[cfg(test)]
     pub const fn kind(&self) -> TouchedGraphParityClaimKind {
         self.kind
     }
 
-    pub fn selected_route_identity_digest(&self) -> &str {
-        &self.selected_route_identity_digest
-    }
-
-    pub fn selected_family_identity(&self) -> &str {
-        &self.selected_family_identity
-    }
-
-    pub fn selected_product_identity_digest(&self) -> &str {
-        &self.selected_product_identity_digest
-    }
-
-    pub fn witness_identity_digest(&self) -> Option<&str> {
-        self.witness_identity_digest.as_deref()
-    }
-
     pub fn rows(&self) -> &[TopologyFamilyDeclareOnceParityRow] {
         &self.rows
-    }
-
-    pub fn catalog_digest(&self) -> &str {
-        &self.catalog_digest
     }
 }
 
@@ -169,6 +148,7 @@ impl TopologyFamilyDeclareOnceParityError {
         }
     }
 
+    #[cfg(test)]
     pub const fn kind(&self) -> TopologyFamilyDeclareOnceParityErrorKind {
         self.kind
     }

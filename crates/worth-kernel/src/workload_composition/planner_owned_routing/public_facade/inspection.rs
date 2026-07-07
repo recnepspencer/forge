@@ -113,6 +113,7 @@ impl WorthTouchedGraphConflictPublicProofInspection {
         &self.milestone_fifteen_seed
     }
 
+    #[cfg(test)]
     pub(crate) fn with_test_selected_witness_identity_override(
         mut self,
         digest: Option<&str>,
@@ -145,6 +146,7 @@ impl WorthTouchedGraphConflictPublicFacade {
         self.public_proof.selected_route_identity_digest()
     }
 
+    #[cfg(test)]
     pub(crate) fn with_test_public_proof_witness_identity_override(
         mut self,
         digest: Option<&str>,

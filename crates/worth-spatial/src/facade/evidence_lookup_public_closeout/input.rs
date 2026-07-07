@@ -121,11 +121,13 @@ impl EvidenceLookupPublicCloseoutRouteInput {
         self.selected_route_support
             .selected_reuse_basis_identity_digest()
     }
+    #[cfg(test)]
     pub(crate) fn selected_route_support(
         &self,
     ) -> &SelectedEvidenceLookupPublicCloseoutRouteSupport {
         &self.selected_route_support
     }
+    #[cfg(test)]
     pub(crate) fn assembly_input(&self) -> &EvidenceLookupPublicCloseoutAssemblyInput {
         self.admitted_assembly_input.assembly_input()
     }

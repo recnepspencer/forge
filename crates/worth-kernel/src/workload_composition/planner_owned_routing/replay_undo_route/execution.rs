@@ -50,10 +50,12 @@ impl ReplayUndoBoundaryExecutionProof {
         &self.boundary_proof_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn route_packet_identity(&self) -> &str {
         &self.route_packet_identity
     }
 
+    #[cfg(test)]
     pub(crate) const fn route_family(&self) -> ReplayUndoPlannerRouteFamily {
         self.route_family
     }

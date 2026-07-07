@@ -1,35 +1,8 @@
 use crate::workload_composition::planner_owned_routing::{
-    current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
-    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
     WorthTouchedGraphConflictDerivedDiagnosticProjection, WorthTouchedGraphConflictPublicFacade,
 };
-use crate::workload_composition::worth_workload::current_worth_workload_ordinary_consumer_sweep_closeout;
-
-use super::error::{
-    PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
-};
+use super::error::PublicProjectionContributorCatalogError;
 use super::row::{PublicProjectionContributorCatalogRow, PublicProjectionContributorRowKind};
-
-pub(super) fn current_derived_diagnostics_contributor_row(
-) -> Result<PublicProjectionContributorCatalogRow, PublicProjectionContributorCatalogError> {
-    current_worth_workload_ordinary_consumer_sweep_closeout().map_err(|error| {
-        PublicProjectionContributorCatalogError::new(
-            PublicProjectionContributorCatalogErrorKind::CurrentSurfaceUnavailable,
-            format!("{error:?}"),
-        )
-    })?;
-    let projection =
-        current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy(
-            WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy::MinimalOperationalTruth,
-        )
-        .map_err(|error| {
-            PublicProjectionContributorCatalogError::new(
-                PublicProjectionContributorCatalogErrorKind::CurrentSurfaceUnavailable,
-                error.detail(),
-            )
-        })?;
-    derived_diagnostics_contributor_row_from_projection(&projection)
-}
 
 pub(super) fn derived_diagnostics_contributor_row_from_public_facade(
     public_facade: &WorthTouchedGraphConflictPublicFacade,

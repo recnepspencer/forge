@@ -1,8 +1,9 @@
 #[cfg(any(test, feature = "test-support-lowering"))]
-use super::{
+use super::admission_error::{
     require_optional_match, require_string_match, TopologyQueryBackedReadFamilyAdmissionError,
-    TopologyQueryBackedReadFamilyRouteInput,
 };
+#[cfg(any(test, feature = "test-support-lowering"))]
+use super::TopologyQueryBackedReadFamilyRouteInput;
 
 #[cfg(any(test, feature = "test-support-lowering"))]
 pub trait TopologyQueryBackedReadFamilySelectedRouteAuthority {

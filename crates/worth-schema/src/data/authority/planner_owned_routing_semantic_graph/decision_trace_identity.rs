@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 use super::artifact_kind::PlannerExplanationArtifactKind;
+#[cfg(test)]
 use super::error::{
     PlannerOwnedRoutingSemanticGraphVocabularyError,
     PlannerOwnedRoutingSemanticGraphVocabularyErrorKind,
 };
+#[cfg(test)]
 use super::identity_digest::planner_owned_routing_semantic_graph_identity_digest;
+#[cfg(test)]
 use super::selected_route_identity::PlannerSelectedRouteIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -33,7 +36,8 @@ impl PlannerDecisionTraceIdentity {
     }
 }
 
-pub fn admit_planner_decision_trace_identity(
+#[cfg(test)]
+pub(crate) fn admit_planner_decision_trace_identity(
     selected_route_identity: &PlannerSelectedRouteIdentity,
     trace_name: impl Into<String>,
 ) -> Result<PlannerDecisionTraceIdentity, PlannerOwnedRoutingSemanticGraphVocabularyError> {

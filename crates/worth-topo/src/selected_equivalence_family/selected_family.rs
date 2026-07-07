@@ -47,6 +47,7 @@ impl SelectedTopologyEquivalenceFamily {
         self.declaration.identity()
     }
 
+    #[cfg(test)]
     pub fn equivalence_policy_identity(&self) -> &CompiledProductEquivalencePolicyIdentity {
         &self.equivalence_policy_identity
     }

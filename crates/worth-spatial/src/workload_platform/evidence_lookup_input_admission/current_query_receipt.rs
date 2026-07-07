@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, ScalarAspectType};
 use forge_foundational::InternedString;
 use forge_query::facade::{

@@ -15,16 +15,12 @@ use worth_spatial::facade::planar_boolean_events::{
 use worth_spatial::facade::user_response::{WorthUserOutcomeCauseKind, WorthUserOutcomeKind};
 use worth_spatial::facade::workload_vocabulary::WorkloadEvidenceStage;
 
-#[path = "public_api_planar_boolean_entry/tests/support.rs"]
-#[allow(dead_code)]
-mod entry_support;
-#[path = "public_api_planar_boolean_point_events_support/mod.rs"]
-#[allow(dead_code)]
-mod point_event_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
+use super::entry_support;
+use super::point_event_support;
+use super::predicate_binding_support;
+use super::reduced_pair_support;
 
-use point_event_support::SyntheticPointRelation;
+use super::point_event_support::SyntheticPointRelation;
 
 #[test]
 fn event_extraction_denies_predicate_ambiguous_near_contact_without_event() {
@@ -275,7 +271,3 @@ fn declaration_and_support(
         .expect("support should certify for B-rep declaration");
     (declaration, support)
 }
-
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;

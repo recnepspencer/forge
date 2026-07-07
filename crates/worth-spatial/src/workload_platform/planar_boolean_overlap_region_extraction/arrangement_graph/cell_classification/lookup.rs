@@ -11,9 +11,7 @@ pub(crate) struct ValidatedCellClassificationLookup<'a> {
 
 pub(crate) struct ValidatedCellClassification<'a> {
     pub cell: &'a PlanarBooleanOverlapArrangementCellRow,
-    pub boundary_segments: Vec<&'a PlanarBooleanOverlapArrangementBoundarySegmentRow>,
     pub boundary_operand_sides: Vec<PlanarBooleanCommonPlaneOperandSide>,
-    pub supporting_island_operand_sides: Vec<PlanarBooleanCommonPlaneOperandSide>,
     pub left_boundary_winding_sum: i16,
     pub right_boundary_winding_sum: i16,
     pub left_supporting_winding_sum: i16,

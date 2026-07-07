@@ -120,6 +120,7 @@ impl TopologyConflictFamilyDeclaration {
         self.declaration_digest.as_str()
     }
 
+    #[cfg(test)]
     pub(crate) const fn admits_aspect_locality_selection(&self) -> bool {
         matches!(
             (
@@ -141,6 +142,7 @@ impl TopologyConflictFamilyDeclaration {
         )
     }
 
+    #[cfg(test)]
     pub(crate) const fn admits_validator_selection(&self) -> bool {
         matches!(
             (
@@ -162,6 +164,7 @@ impl TopologyConflictFamilyDeclaration {
         )
     }
 
+    #[cfg(test)]
     pub(crate) const fn admits_replay_boundary_selection(&self) -> bool {
         matches!(
             (

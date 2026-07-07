@@ -1,6 +1,7 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use super::declaration::TopologySelectedEquivalenceFamilyDeclaration;
+#[cfg(test)]
 use super::family_identity::TopologySelectedEquivalenceFamilyIdentity;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +27,7 @@ impl TopologySelectedEquivalenceFamilyCatalog {
         }
     }
 
+    #[cfg(test)]
     pub fn declaration(
         &self,
         identity: TopologySelectedEquivalenceFamilyIdentity,
@@ -44,6 +46,7 @@ impl TopologySelectedEquivalenceFamilyCatalog {
         })
     }
 
+    #[cfg(test)]
     pub fn catalog_digest(&self) -> &str {
         &self.catalog_digest
     }

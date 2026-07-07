@@ -1,8 +1,10 @@
+#[cfg(test)]
 use super::residue_manifest::{
     current_spatial_consumer_residue_manifest, SpatialConsumerResidueDisposition,
     SpatialConsumerResidueOwner,
 };
 
+#[cfg(test)]
 pub(crate) fn require_exact_spatial_consumer_closeout() {
     let residue = current_spatial_consumer_residue_manifest();
 

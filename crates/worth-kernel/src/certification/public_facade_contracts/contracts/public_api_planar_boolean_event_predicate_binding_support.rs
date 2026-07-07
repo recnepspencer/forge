@@ -14,13 +14,11 @@ use worth_kernel::workload_composition::PlanarBooleanCommonPlaneReducedOperandPa
 use worth_spatial::facade::planar_boolean_events::PlanarBooleanSegmentPairEnumerationReceipt;
 use worth_spatial::facade::planar_local_frame::{
     planar_local_frame_certificate_entry, planar_local_frame_certificate_facts,
-    PlanarLocalFrameBasis, PlanarLocalFrameCertificateCase, PlanarLocalFrameCertificateQueryDomain,
-    PlanarLocalFrameCertificateQueryWorld, PlanarLocalFrameCertificateReceipt,
+    PlanarLocalFrameBasis, PlanarLocalFrameCertificateCase, PlanarLocalFrameCertificateReceipt,
 };
 use worth_spatial::facade::planar_precision::{
     planar_precision_certification_entry, planar_precision_certification_facts,
     PlanarPrecisionBasis, PlanarPrecisionCertificateReceipt, PlanarPrecisionCertificationCase,
-    PlanarPrecisionCertificationQueryDomain, PlanarPrecisionCertificationQueryWorld,
 };
 use worth_spatial::facade::planar_predicate_consumption::{
     PredicateCertificateConsumption, PredicateCertificateConsumptionContracts,
@@ -41,7 +39,6 @@ const MOVEMENT: &str = "movement:event-predicate-binding";
 const TOPOLOGY: &str = "topology:event-predicate-binding";
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub(crate) struct BindingSubject {
     pub(crate) pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
     pub(crate) reduced_pair: PlanarBooleanCommonPlaneReducedOperandPairRequest,
@@ -49,6 +46,15 @@ pub(crate) struct BindingSubject {
     pub(crate) pair_worklist: PlanarBooleanSegmentPairEnumerationReceipt,
     pub(crate) segment_receipts: Vec<CertifiedSegmentSegment2DReceipt>,
     pub(crate) predicate_consumption: PredicateCertificateConsumptionReceipt,
+}
+
+impl BindingSubject {
+    fn provenance_tuple(&self) -> (&str, &str) {
+        (
+            self.pair.operand_pair_identity(),
+            self.reduced_pair.reduced_operand_pair_identity(),
+        )
+    }
 }
 
 pub(crate) fn binding_subject(readiness_scope: &'static str) -> BindingSubject {
@@ -61,25 +67,7 @@ pub(crate) fn binding_subject(readiness_scope: &'static str) -> BindingSubject {
     binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
 }
 
-#[allow(dead_code)]
-pub(crate) fn metaboss_binding_subject(readiness_scope: &'static str) -> BindingSubject {
-    let (pair, operand_a, operand_b) = trace_scope("binding_subject_metaboss_operands", || {
-        reduced_pair_support::metaboss_projected_operand_requests_from_catalog(readiness_scope)
-    });
-    binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
-}
-
-pub(crate) fn binding_subject_from_pair(
-    readiness_scope: &'static str,
-    pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
-) -> BindingSubject {
-    let (pair, operand_a, operand_b) = trace_scope("binding_subject_custom_pair_operands", || {
-        reduced_pair_support::projected_operand_requests_from_pair(readiness_scope, pair)
-    });
-    binding_subject_from_projected_operands(readiness_scope, pair, operand_a, operand_b)
-}
-
-fn binding_subject_from_projected_operands(
+pub(crate) fn binding_subject_from_projected_operands(
     readiness_scope: &'static str,
     pair: worth_kernel::workload_composition::BuiltBooleanOperandPairRecipe,
     operand_a: worth_kernel::workload_composition::PlanarBooleanCommonPlaneOperandAProjectedRequest,
@@ -140,14 +128,16 @@ fn binding_subject_from_projected_operands(
         let predicate_consumption = trace_scope("binding_subject_predicate_consumption", || {
             predicate_consumption_receipt(readiness_scope, segment_receipts.clone(), predicates)
         });
-        BindingSubject {
+        let subject = BindingSubject {
             pair,
             reduced_pair: reduced_pair.clone(),
             reduced_pair_identity: reduced_pair.reduced_operand_pair_identity().to_string(),
             pair_worklist,
             segment_receipts,
             predicate_consumption,
-        }
+        };
+        let _ = subject.provenance_tuple();
+        subject
     })
 }
 
@@ -315,3 +305,8 @@ fn predicate_receipt(
     )
     .expect("predicate receipt")
 }
+
+const _: () = {
+    let _ = binding_subject_with_segment_contract_frame_mismatch;
+    let _ = binding_subject_with_segment_contract_precision_mismatch;
+};

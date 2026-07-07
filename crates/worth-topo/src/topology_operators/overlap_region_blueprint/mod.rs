@@ -17,9 +17,6 @@ pub use classification::{
     PlanarBooleanOverlapOperatorClassification, PlanarBooleanOverlapOperatorTruthAuthority,
     PlanarBooleanOverlapRequiredQuerySurface, PlanarBooleanOverlapValidatorRuntimeLane,
 };
-pub use closeout::{
-    PlanarBooleanOverlapBlueprintCloseout, PlanarBooleanOverlapBlueprintCloseoutDenial,
-};
 pub use operator_row::PlanarBooleanOverlapOperatorRow;
 pub use registry::{
     PlanarBooleanOverlapBlueprintRegistry, PlanarBooleanOverlapOperatorClassificationMatrix,

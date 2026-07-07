@@ -28,6 +28,7 @@ impl SpatialCompiledProductAdmissionError {
         self.kind
     }
 
+    #[cfg(test)]
     pub(crate) fn detail(&self) -> &str {
         &self.detail
     }

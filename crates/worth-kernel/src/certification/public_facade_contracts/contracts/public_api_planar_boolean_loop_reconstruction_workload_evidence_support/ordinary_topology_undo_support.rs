@@ -40,15 +40,10 @@ impl OrdinaryTraversalViewsUndoScopeSupport {
 
 pub(crate) fn ordinary_traversal_views_undo_scope_support() -> OrdinaryTraversalViewsUndoScopeSupport
 {
-    ordinary_traversal_views_undo_scope_support_for_loop_successor(20, 10, 11)
+    undo_scope_support_for_loop_successor(20, 10, 11)
 }
 
-pub(crate) fn alternate_ordinary_traversal_views_undo_scope_support(
-) -> OrdinaryTraversalViewsUndoScopeSupport {
-    ordinary_traversal_views_undo_scope_support_for_loop_successor(21, 12, 13)
-}
-
-fn ordinary_traversal_views_undo_scope_support_for_loop_successor(
+pub(crate) fn undo_scope_support_for_loop_successor(
     relation_slot: u64,
     source_slot: u64,
     target_slot: u64,

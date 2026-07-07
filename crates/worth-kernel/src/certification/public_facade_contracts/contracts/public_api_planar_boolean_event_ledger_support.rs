@@ -144,3 +144,9 @@ fn reduced_pair_from_subject(
 ) -> PlanarBooleanCommonPlaneReducedOperandPairRequest {
     subject.reduced_pair.clone()
 }
+
+const _: () = {
+    let _ = ledger_for_collinear_relation;
+    let _ = pair_and_ledger_for_collinear_relation;
+    let _ = certified_inputs_for_collinear_relation;
+};

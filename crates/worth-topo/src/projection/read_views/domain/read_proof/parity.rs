@@ -5,9 +5,10 @@ use super::report::{
     TopologyReadExecutionEngine, TopologyReadRequestFamily, TopologyReadRequestReport,
 };
 use crate::projection::read_views::{
-    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
     TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView,
 };
+#[cfg(test)]
+use crate::projection::read_views::TopologyHalfEdgeRadialNeighborhoodView;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TopologyReadParityKind {
@@ -38,16 +39,9 @@ impl TopologyReadViewParityArtifact {
         self.request_family
     }
 
-    pub(crate) fn authority_snapshot_id(&self) -> u64 {
-        self.authority_snapshot_id
-    }
-
+    #[cfg(test)]
     pub(crate) fn authority_branch_id(&self) -> &str {
         self.authority_branch_id.as_str()
-    }
-
-    pub(crate) fn view_digest_hex(&self) -> &str {
-        self.view_digest_hex.as_str()
     }
 }
 
@@ -144,7 +138,7 @@ impl TopologyReadParityAggregateReport {
 }
 
 pub(crate) enum TopologyReadViewRef<'a> {
-    SharedVertex(&'a TopologyHalfEdgeSharedVertexNeighborhoodView),
+    #[cfg(test)]
     Radial(&'a TopologyHalfEdgeRadialNeighborhoodView),
     LoopCycle(&'a TopologyLoopCycleView),
     LocalRewire(&'a TopologyLocalRewireNeighborhoodView),
@@ -227,7 +221,7 @@ pub(crate) fn compare_topology_read_view_parity(
 
 fn request_report<'a>(view: &'a TopologyReadViewRef<'a>) -> &'a TopologyReadRequestReport {
     match view {
-        TopologyReadViewRef::SharedVertex(view) => &view.request_report,
+        #[cfg(test)]
         TopologyReadViewRef::Radial(view) => &view.request_report,
         TopologyReadViewRef::LoopCycle(view) => &view.request_report,
         TopologyReadViewRef::LocalRewire(view) => &view.request_report,
@@ -260,23 +254,7 @@ fn parity_query_digest(report: &TopologyReadRequestReport) -> String {
 
 fn view_digest_parts(view: &TopologyReadViewRef<'_>) -> Vec<String> {
     match view {
-        TopologyReadViewRef::SharedVertex(view) => vec![
-            format!("source_half_edge:{}", view.source_half_edge_identity),
-            format!("source_edge:{}", view.source_edge_identity),
-            format!(
-                "source_vertices:{}",
-                view.source_vertex_identities.join("|")
-            ),
-            format!(
-                "adjacent_half_edges:{}",
-                view.vertex_adjacent_half_edge_identities.join("|")
-            ),
-            format!(
-                "adjacent_different_edge_half_edges:{}",
-                view.vertex_adjacent_different_edge_half_edge_identities
-                    .join("|")
-            ),
-        ],
+        #[cfg(test)]
         TopologyReadViewRef::Radial(view) => vec![
             format!("source_half_edge:{}", view.source_half_edge_identity),
             format!("source_edge:{}", view.source_edge_identity),

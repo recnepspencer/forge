@@ -468,6 +468,15 @@ contribution truth.
 
 Milestone `7.6` should widen live surfaces before inventing new ones:
 
+- Actual `7.5` API surfaces to consume after closeout:
+  - `CompletedPlanarBooleanOverlapRegionExtractionHandoff`
+  - `CompletedPlanarBooleanOverlapRegionExtractionHandoff::overlap_ledger_receipt()`
+  - `PlanarBooleanOverlapRegionLedgerReceipt`
+  - `PlanarBooleanOverlapRegionLedgerAssemblyBundle`
+  - `PlanarBooleanOverlapRegionEvidenceReceipt`
+  - `PlanarBooleanOverlapRegionSummumBonumCloseout`
+  - facade exports in
+    `crates/worth-spatial/src/facade/planar_boolean_overlap_region_extraction.rs`
 - `crates/worth-spatial/src/facade/planar_boolean_overlap_region_extraction.rs`
   - `PlanarBooleanOverlapRegionLedgerReceipt`
   - overlap request, participation, adjacency, arrangement, containment,
@@ -626,6 +635,10 @@ overlap-region ledger receipt and an admitted boolean operation profile.
 - Do not accept raw split fragments, raw loops, raw overlap regions, raw
   arrangement cells, or copied overlap-ledger fields as substitutes for the
   request artifact.
+- If the `7.5` receipt or handoff cannot prove a classification input needed by
+  `7.6`, the implementation must stage-deny or extend the `7.5`
+  receipt-backed surface. It must not recover that input from raw loops, raw
+  split fragments, raw arrangement cells, raw overlap chains, or pairwise scans.
 - Do not derive subtraction direction from list order, fixture names, or
   display labels.
 - Do not copy selected-route, touched-closure, Query-posture, residue,
@@ -787,6 +800,11 @@ the overlap-ledger receipt.
 
 **Warnings**
 - Do not recover subjects from raw split fragments or loop walks.
+- If the `7.5` receipt or handoff cannot prove a subject required by the
+  classification universe, subject recovery must stage-deny or extend the
+  receipt-backed overlap surface. It must not fill the gap by scanning raw
+  loops, raw split fragments, raw arrangement cells, raw overlap chains, or
+  pairwise geometry.
 - Do not flatten overlap-region provenance into generic metadata; later phases
   need typed lineage to explain classification.
 - Do not accept an overlap ledger that proves only overlap-region participants

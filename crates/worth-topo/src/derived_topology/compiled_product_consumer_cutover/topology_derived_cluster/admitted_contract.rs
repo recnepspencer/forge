@@ -217,18 +217,6 @@ pub fn build_derived_equivalence_contract_report(
 }
 
 impl DerivedEquivalenceContractReport {
-    pub(crate) fn rebuild_required_identity(
-        &self,
-        compiled_product_identity: &CompiledProductIdentity,
-        denial_reason: &str,
-    ) -> schema::facade::platform::authority::compiled_product_semantic_graph::CompiledProductRebuildDenialIdentity{
-        schema::facade::platform::authority::compiled_product_semantic_graph::admit_compiled_product_rebuild_denial_identity(
-            compiled_product_identity,
-            denial_reason,
-        )
-        .expect("topology derived rebuild denial identity")
-    }
-
     pub(crate) fn compiled_product_identity_ref(&self) -> Option<&CompiledProductIdentity> {
         self.compiled_product_identity.as_ref()
     }

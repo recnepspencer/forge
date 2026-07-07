@@ -8,7 +8,6 @@ use worth_spatial::facade::planar_segment_segment::{
 use super::point_event_contract_handles::{predicate_handle, segment_handle};
 use super::point_event_projection::project_synthetic_endpoint;
 
-#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub(crate) enum SyntheticPointRelation {
     ProperCrossing,
@@ -143,3 +142,20 @@ fn contact_policy(relation: SyntheticPointRelation) -> SegmentContactPolicy {
         }
     }
 }
+
+const _: [SyntheticPointRelation; 14] = [
+    SyntheticPointRelation::ProperCrossing,
+    SyntheticPointRelation::ProperCrossingReversed,
+    SyntheticPointRelation::OperandAEndpointOnOperandBInterior,
+    SyntheticPointRelation::OperandBEndpointOnOperandAInterior,
+    SyntheticPointRelation::SharedEndpoint,
+    SyntheticPointRelation::SharedEndpointWithDifferentFreeEndpoints,
+    SyntheticPointRelation::PolicyRequiredCollinearOverlap,
+    SyntheticPointRelation::NearEndpointMiss,
+    SyntheticPointRelation::CollinearDisjoint,
+    SyntheticPointRelation::CollinearEndpointTouch,
+    SyntheticPointRelation::CollinearPartialOverlap,
+    SyntheticPointRelation::CollinearContainmentOverlap,
+    SyntheticPointRelation::CollinearIdenticalSameDirection,
+    SyntheticPointRelation::CollinearIdenticalAntiParallel,
+];

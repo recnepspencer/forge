@@ -4,7 +4,6 @@ use crate::topology_operators::{
     TopologyRetainedContributionSemanticProjection,
 };
 
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologyAcceptedMutationProjection {
     semantic_family_key: &'static str,
@@ -15,7 +14,6 @@ pub(crate) struct TopologyAcceptedMutationProjection {
     fallback_explanation_detail: &'static str,
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 impl TopologyAcceptedMutationProjection {
     pub(crate) fn from_sequence_and_semantic_projection(
         semantic_family_key: &'static str,
@@ -58,3 +56,14 @@ impl TopologyAcceptedMutationProjection {
         self.fallback_explanation_detail
     }
 }
+
+const _: () = {
+    let _ = std::mem::size_of::<TopologyAcceptedMutationProjection>();
+    let _ = TopologyAcceptedMutationProjection::from_sequence_and_semantic_projection;
+    let _ = TopologyAcceptedMutationProjection::semantic_family_key;
+    let _ = TopologyAcceptedMutationProjection::mutation_families;
+    let _ = TopologyAcceptedMutationProjection::topology_mutation_digest;
+    let _ = TopologyAcceptedMutationProjection::naming_mutation_continuity_matrix;
+    let _ = TopologyAcceptedMutationProjection::derived_fallback_policy;
+    let _ = TopologyAcceptedMutationProjection::fallback_explanation_detail;
+};

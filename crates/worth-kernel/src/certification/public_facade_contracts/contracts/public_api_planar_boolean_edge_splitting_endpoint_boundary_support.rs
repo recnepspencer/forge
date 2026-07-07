@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_raw_schedule_support::build_raw_edge_split_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
@@ -199,3 +197,6 @@ fn normalized_point_cut_count(normalized: &PlanarBooleanNormalizedEdgeSplitSched
 fn is_boundary_parameter(parameter: f64) -> bool {
     parameter == 0.0 || parameter == 1.0
 }
+
+const _: fn(&MetabossEventExtractionSubject) =
+    assert_endpoint_boundary_normalization_matches_metaboss;

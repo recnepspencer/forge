@@ -45,17 +45,14 @@ impl TopologyDomainQuery {
         }
     }
 
-    #[allow(dead_code)]
     pub fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
         TopologyDomainQueryFallbackPosture::None
     }
 
-    #[allow(dead_code)]
     pub fn supported_request_families(&self) -> Vec<TopologyDomainQueryRequestFamily> {
         TopologyDomainQueryRequestFamily::ALL.to_vec()
     }
 
-    #[allow(dead_code)]
     pub fn aggregate_report(&self) -> TopologyDomainQueryAggregateReport {
         TopologyDomainQueryAggregateReport::from_request_reports(
             self.request_reports.borrow().as_slice(),

@@ -2,22 +2,24 @@ use worth_spatial::facade::evidence_lookup_index_product::EvidenceLookupReuseMis
 
 use super::super::super::LookupConsumedWorkloadDenial;
 
-#[path = "../ordinary_consumer_sweep/tests_support.rs"]
-mod ordinary_consumer_sweep_tests_support;
+#[path = "../ordinary_consumer_sweep/tests_support_basic_completed_split.rs"]
+mod ordinary_consumer_sweep_tests_support_completed_split;
+#[path = "../ordinary_consumer_sweep/tests_support_lookup_routes.rs"]
+mod ordinary_consumer_sweep_tests_support_lookup_routes;
 
 #[test]
 fn denied_reuse_resolution_preserves_localized_kernel_boundary_meaning() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-9-kernel-denied-resolution-localization";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let admitted = completed_split_handoff
             .completed_workload()
             .admit_lookup_consumed_workload(
                 completed_split_handoff.lookup_consumed_workload_handoff(),
             )
             .expect("kernel caller path should admit the real lookup-consumed workload handoff");
-        let packet = ordinary_consumer_sweep_tests_support::lookup_packet(&completed_split_handoff);
+        let packet = ordinary_consumer_sweep_tests_support_lookup_routes::lookup_packet(&completed_split_handoff);
         let hostile_prior_product = packet
             .index_product()
             .clone()
@@ -76,17 +78,17 @@ fn denied_reuse_resolution_preserves_localized_kernel_boundary_meaning() {
 
 #[test]
 fn rebuild_required_resolution_stays_a_real_consumer_success_posture() {
-    ordinary_consumer_sweep_tests_support::run_stack_heavy_lookup_test(|| {
+    ordinary_consumer_sweep_tests_support_lookup_routes::run_stack_heavy_lookup_test(|| {
         let label = "phase-9-kernel-rebuild-resolution-consumer";
         let completed_split_handoff =
-            ordinary_consumer_sweep_tests_support::ordinary_completed_split_handoff(label);
+            ordinary_consumer_sweep_tests_support_completed_split::ordinary_completed_split_handoff(label);
         let admitted = completed_split_handoff
             .completed_workload()
             .admit_lookup_consumed_workload(
                 completed_split_handoff.lookup_consumed_workload_handoff(),
             )
             .expect("kernel caller path should admit the real lookup-consumed workload handoff");
-        let packet = ordinary_consumer_sweep_tests_support::lookup_packet(&completed_split_handoff);
+        let packet = ordinary_consumer_sweep_tests_support_lookup_routes::lookup_packet(&completed_split_handoff);
         let hostile_prior_product = packet
             .index_product()
             .clone()

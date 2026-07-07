@@ -201,6 +201,57 @@ fn phase_2_registry_rejects_duplicate_and_lane_dishonest_rows() {
     );
 }
 
+#[test]
+fn phase_2_registry_test_mutators_deform_derived_views_predictably() {
+    let registry = PlanarBooleanLoopBlueprintRegistry::phase_2();
+    let operator_matrix = registry.operator_classification_matrix();
+    let validator_plan = registry.validator_registration_plan();
+
+    let operator_without_builder =
+        operator_matrix.without_operator_named("BuildReconstructedLoop");
+    assert!(operator_without_builder
+        .operator("BuildReconstructedLoop")
+        .is_none());
+
+    let reclassified_operator = operator_matrix.with_operator_classification(
+        "BuildReconstructedLoop",
+        Class::PreparedSpatialOnly,
+    );
+    assert_eq!(
+        reclassified_operator
+            .operator("BuildReconstructedLoop")
+            .expect("reclassified operator should remain present")
+            .classification(),
+        Class::PreparedSpatialOnly
+    );
+
+    let validator_without_progression =
+        validator_plan.without_validator_named("ValidateLoopOperatorQueryProgression");
+    assert!(validator_without_progression
+        .validator("ValidateLoopOperatorQueryProgression")
+        .is_none());
+
+    let retuned_runtime_lane = validator_plan.with_validator_runtime_lane(
+        "ValidateLoopOperatorQueryProgression",
+        Lane::SpatialPreparedProductValidation,
+    );
+    assert!(retuned_runtime_lane
+        .validator("ValidateLoopOperatorQueryProgression")
+        .expect("retuned validator should remain present")
+        .requires_runtime_lane(Lane::SpatialPreparedProductValidation));
+
+    let relaxed_legality = validator_plan.with_validator_topology_legality(
+        "ValidateLoopOperatorQueryProgression",
+        false,
+    );
+    assert!(
+        !relaxed_legality
+            .validator("ValidateLoopOperatorQueryProgression")
+            .expect("legality-adjusted validator should remain present")
+            .governs_topology_legality()
+    );
+}
+
 fn names<'a>(values: impl Iterator<Item = &'a str>) -> BTreeSet<&'a str> {
     values.collect()
 }

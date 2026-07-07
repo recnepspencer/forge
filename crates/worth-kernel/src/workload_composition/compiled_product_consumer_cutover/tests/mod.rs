@@ -22,8 +22,12 @@ use crate::workload_composition::{
     CompiledProductReuseSurfaceIdentity as Surface,
 };
 
-#[path = "../../worth_workload/ordinary_consumer_sweep/tests_support.rs"]
-mod ordinary_consumer_sweep_tests_support;
+#[path = "../../worth_workload/ordinary_consumer_sweep/tests_support_basic_completed_split.rs"]
+mod ordinary_consumer_sweep_tests_support_completed_split;
+#[path = "../../worth_workload/ordinary_consumer_sweep/tests_support_lookup_routes.rs"]
+mod ordinary_consumer_sweep_tests_support_lookup_routes;
+#[path = "../../worth_workload/ordinary_consumer_sweep/tests_support_conflict_route_inputs.rs"]
+mod ordinary_consumer_sweep_tests_support_conflict_route_inputs;
 #[path = "../../../certification/public_facade_contracts/contracts/public_api_compiled_product_consumer_cutover.rs"]
 mod public_api_compiled_product_consumer_cutover;
 

@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::derived_topology::invalidation_plan::catalog::DerivedTopologyProductFamilyIdentity;
+#[cfg(test)]
 use crate::derived_topology::invalidation_plan::execution::{
     DerivedInvalidationExecutedProductRow, DerivedInvalidationExecutionReceipt,
     DerivedInvalidationUnaffectedProductExecutionRow,
@@ -73,6 +74,7 @@ impl MigratedDerivedProductFamilyCloseout {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_executed_product_row(
         receipt: &DerivedInvalidationExecutionReceipt,
         row: &DerivedInvalidationExecutedProductRow,
@@ -102,6 +104,7 @@ impl MigratedDerivedProductFamilyCloseout {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_unaffected_product_row(
         receipt: &DerivedInvalidationExecutionReceipt,
         row: &DerivedInvalidationUnaffectedProductExecutionRow,
@@ -133,6 +136,7 @@ impl MigratedDerivedProductFamilyCloseout {
         )
     }
 
+    #[cfg(test)]
     fn new_with_authority(
         family_identity: DerivedTopologyProductFamilyIdentity,
         selected_plan_digest: &str,
@@ -204,6 +208,7 @@ impl MigratedDerivedProductFamilyCloseout {
     }
 }
 
+#[cfg(test)]
 fn receipt_bound_digest(label: &str, receipt_digest: &str, row_digest: &str) -> String {
     super::super::catalog::catalog_digest([
         "worth-topo:receipt-bound-derived-product-family-proof:v1".to_string(),

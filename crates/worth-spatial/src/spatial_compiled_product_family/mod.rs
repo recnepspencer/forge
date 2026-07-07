@@ -29,16 +29,11 @@ pub use catalog::{
 };
 pub use compiled_product::SpatialCompiledProductLoweredIdentity;
 pub use consumer::SpatialCompiledProductConsumer;
-pub use declaration::{
-    SpatialCompiledProductFamilyDeclaration, SpatialCompiledProductFamilyDeclarationBuilder,
-};
+pub use declaration::SpatialCompiledProductFamilyDeclaration;
+#[cfg(test)]
+pub(crate) use declaration::SpatialCompiledProductFamilyDeclarationBuilder;
 pub use error::{SpatialCompiledProductFamilyError, SpatialCompiledProductFamilyErrorKind};
 pub use family_identity::SpatialCompiledProductFamilyIdentity;
-pub use posture::{
-    SpatialEquivalencePolicyPosture, SpatialEvidenceSupportRolePosture,
-    SpatialLocalityFootprintBasisPosture, SpatialPriorProofRolePosture,
-    SpatialSourceAuthorityDigestBasisPosture,
-};
 pub use selection::{select_spatial_compiled_product_family, SelectedSpatialCompiledProductFamily};
 
 #[cfg(test)]
