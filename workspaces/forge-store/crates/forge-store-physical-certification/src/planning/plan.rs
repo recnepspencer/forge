@@ -1,4 +1,6 @@
+use crate::scenario::S7BlobHarnessScenarioMetadata;
 use crate::{PhysicalScenarioCanonicalIdentity, PhysicalSimulationScenarioFamily};
+use forge_store_blob_chunks::BlobHarnessChunkTopology;
 
 use super::{
     PhysicalSimulationPlanIdentity, PhysicalSimulationProfile, RequiredActorSet,
@@ -30,6 +32,8 @@ pub struct PhysicalSimulationPlan {
     evidence_policy: SimulationEvidencePolicy,
     forbidden_shortcuts: ForbiddenShortcutSet,
     s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
+    s7_blob_harness_metadata: Option<S7BlobHarnessScenarioMetadata>,
+    s7_blob_harness_topology: Option<BlobHarnessChunkTopology>,
 }
 
 impl PhysicalSimulationPlan {
@@ -55,6 +59,8 @@ impl PhysicalSimulationPlan {
             evidence_policy: parts.evidence_policy,
             forbidden_shortcuts: parts.forbidden_shortcuts,
             s5_compaction_mutation_origin: parts.s5_compaction_mutation_origin,
+            s7_blob_harness_metadata: parts.s7_blob_harness_metadata,
+            s7_blob_harness_topology: parts.s7_blob_harness_topology,
         })
     }
 
@@ -125,6 +131,14 @@ impl PhysicalSimulationPlan {
     pub const fn s5_compaction_mutation_origin(&self) -> Option<&CompactionMutationLaneOrigin> {
         self.s5_compaction_mutation_origin.as_ref()
     }
+
+    pub const fn s7_blob_harness_metadata(&self) -> Option<S7BlobHarnessScenarioMetadata> {
+        self.s7_blob_harness_metadata
+    }
+
+    pub const fn s7_blob_harness_topology(&self) -> Option<BlobHarnessChunkTopology> {
+        self.s7_blob_harness_topology
+    }
 }
 
 pub const fn require_lowered_physical_simulation_plan(
@@ -151,4 +165,6 @@ pub(crate) struct PhysicalSimulationPlanParts {
     pub(crate) evidence_policy: SimulationEvidencePolicy,
     pub(crate) forbidden_shortcuts: ForbiddenShortcutSet,
     pub(crate) s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
+    pub(crate) s7_blob_harness_metadata: Option<S7BlobHarnessScenarioMetadata>,
+    pub(crate) s7_blob_harness_topology: Option<BlobHarnessChunkTopology>,
 }

@@ -1,5 +1,5 @@
 use crate::{
-    physical_integrity_closeout_line_cap_test_support::{
+    courtroom::harness::test_support::physical_integrity_closeout_line_cap_test_support::{
         line_cap_module_evidence, s3_owned_closeout_file_evidence,
     },
     PhysicalIntegrityCloseoutDenial, S3CloseoutModuleKind, S3LineCapCompositionEvidence,

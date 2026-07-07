@@ -63,7 +63,13 @@ pub fn s5_stable_read_plan_fault_event(
         | PhysicalScenarioFaultKind::S6BandwidthThrottle
         | PhysicalScenarioFaultKind::S6DelayedSync
         | PhysicalScenarioFaultKind::S6PageCachePressure
-        | PhysicalScenarioFaultKind::S6BackgroundPacingLateYield => Ok(None),
+        | PhysicalScenarioFaultKind::S6BackgroundPacingLateYield
+        | PhysicalScenarioFaultKind::BlobCrashAfterChunkWrite
+        | PhysicalScenarioFaultKind::BlobCrashAfterSessionCheckpoint
+        | PhysicalScenarioFaultKind::BlobCrashAfterRootPublication
+        | PhysicalScenarioFaultKind::BlobTierMoveInterruption
+        | PhysicalScenarioFaultKind::BlobExportInterruption
+        | PhysicalScenarioFaultKind::BlobReclaimInterruption => Ok(None),
         PhysicalScenarioFaultKind::FutureExtensionSlot => Ok(None),
     }
 }

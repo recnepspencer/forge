@@ -4,10 +4,11 @@ use crate::authoring::PhysicalScenarioBuilder;
 
 use super::collections::{PhysicalScenarioActorSet, PhysicalScenarioFixtureSet};
 use super::denial::PhysicalScenarioDefinitionDenial;
+use super::expectation::PhysicalScenarioExpectation;
 use super::identity::PhysicalScenarioCanonicalIdentity;
 use super::vocabulary::{
-    PhysicalScenarioActor, PhysicalScenarioExpectation, PhysicalScenarioFault,
-    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationScenarioFamily,
+    PhysicalScenarioActor, PhysicalScenarioFault, PhysicalScenarioIntent, PhysicalScenarioSchedule,
+    PhysicalSimulationScenarioFamily,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

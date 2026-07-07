@@ -1,5 +1,5 @@
 use crate::{
-    record_view_evidence_test_support::{
+    courtroom::harness::test_support::record_view_evidence_test_support::{
         admit_payload_frame, allocation_admission, framed_record, resident_frame_table,
     },
     AllocationEnvelopePerformanceReceipt, BufferPoolProvenanceAttachment,

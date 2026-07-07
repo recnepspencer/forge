@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+#[cfg(feature = "certification-test-authority")]
+use forge_store_physical_backend::SimulatedStrictDurableProfile;
 use forge_store_physical_backend::{BackendDurabilityProfile, BackendDurabilityProfileId};
 
 use super::{
@@ -65,6 +67,16 @@ impl CheckpointCutoverReceipt {
             profile_id: P::ID,
             covered_lsn_range: plan.validation().manifest().covered_lsn_range(),
             counters: plan.counters(),
+        }
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn for_certification_test(validation: &CheckpointValidation) -> Self {
+        Self {
+            checkpoint_id: validation.checkpoint_id().clone(),
+            profile_id: SimulatedStrictDurableProfile::ID,
+            covered_lsn_range: validation.manifest().covered_lsn_range(),
+            counters: validation.counters(),
         }
     }
 

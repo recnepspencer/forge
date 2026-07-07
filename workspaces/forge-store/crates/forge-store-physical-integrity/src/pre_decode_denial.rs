@@ -144,4 +144,26 @@ impl PreDecodePhysicalDenial {
     ) -> Option<AuthenticityRequiredDecodeCounters> {
         self.authenticity_required_counters
     }
+
+    pub fn handoff_evidence(&self) -> crate::PhysicalDamageHandoffEvidence {
+        crate::classify_physical_damage_for_handoff(self)
+    }
+}
+
+#[cfg(any(test, feature = "test-support"))]
+pub fn test_pre_decode_denial_for_kind(
+    kind: PreDecodePhysicalDenialKind,
+) -> PreDecodePhysicalDenial {
+    PreDecodePhysicalDenial {
+        kind,
+        observed_kind: None,
+        locality: None,
+        expected_checksum: None,
+        actual_checksum: None,
+        protected_byte_count: 0,
+        counters: PreDecodeAdmissionCounters::denied_before_decode(0),
+        checksum_denial: None,
+        authenticity_denial: None,
+        authenticity_required_counters: None,
+    }
 }

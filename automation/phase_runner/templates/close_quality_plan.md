@@ -14,11 +14,13 @@ The plan must:
 - follow arch, composition, domain-structure, perf, and DX laws
 - name files/modules expected to change
 - name focused verification commands
-- explicitly record any larger aerospace-grade remainder as owned residue
+- explicitly refuse to treat concrete structural-law violations as optional
+  residue
 
 After posting the plan in chat, update only lightweight JSON state: add a short
-`notes.plan` marker, keep `status: complete` and `qa_status: passed`, and
-advance the cursor to `close_quality_fix`.
+`notes.plan` marker, keep the phase `status: regressed` and `qa_status: failed`
+when the plan addresses concrete structural-law findings, and advance the cursor
+to `close_quality_fix`.
 
 Do not put the full plan, logs, artifacts, or command tails into the JSON.
 

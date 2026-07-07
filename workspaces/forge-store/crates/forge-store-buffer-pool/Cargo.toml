@@ -9,7 +9,6 @@ description = "Roadmap 2 S.2 bounded buffer pool and resident-memory contracts."
 forge-store-budgets.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-format.workspace = true
-forge-store-readiness.workspace = true
 forge-store-security.workspace = true
 
 [features]

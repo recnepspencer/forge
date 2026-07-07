@@ -1,9 +1,12 @@
 #![doc = include_str!("recovery_physics_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
+mod blob_replay;
 mod checkpoint_cutover;
+mod corruption_readmission;
 mod durable_publication;
 mod integrity_damage_map;
+mod integrity_handoff;
 mod integrity_input;
 mod integrity_vetted_records;
 mod memory_envelope;
@@ -37,6 +40,11 @@ mod source_precedence;
 mod wal_durability;
 mod wal_topology;
 
+pub use blob_replay::{
+    BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, BlobReplaySourceAdmission,
+    BlobReplaySourceKind, BlobReplaySourceOutcome, BlobReplaySourceOutcomeKind,
+    BlobResumeReplayReadmission,
+};
 pub use checkpoint_cutover::{
     CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
     CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverCrashStage,
@@ -54,13 +62,23 @@ pub use checkpoint_cutover::{
     SuperblockRingCheckpointPointer, WalRetentionAction, WalRetentionAdmittedAction,
     WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
 };
+pub use corruption_readmission::{
+    admit_recovery_corruption_readmission, build_recovery_readmission_handoff,
+    classify_recovery_repair_capability, verify_quarantine_handoff_for_readmission,
+    verify_store_authority_for_readmission, RecoveryCorruptionReadmissionDenial,
+    RecoveryCorruptionReadmissionHandoff, RecoveryCorruptionRepairCapability,
+};
 pub use durable_publication::{
     CheckpointCrashDurabilityPosture, DurabilityRecoveryReplaySource,
     DurabilityRecoverySourcePrecedence, DurabilityReplayIdentity, DurabilityReplayKind,
     DurableCheckpointPublication, DurableManifestPublication, DurableWalPublication,
     StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
-pub use integrity_damage_map::{IntegrityDamageMap, QuarantineSummary};
+pub use forge_store_contracts::CorruptionHandoffDamageCase;
+pub use integrity_damage_map::{
+    classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
+};
+pub use integrity_handoff::damage_map;
 pub use integrity_input::RecoveryPhysicsIntegrityInput;
 pub use integrity_vetted_records::{
     IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,
@@ -95,13 +113,15 @@ pub use page_lsn_publication::{
 pub use partial_publication::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
     NonAuthoritativePublicationDenial, NonAuthoritativePublicationSource,
-    PartialPublicationClassification, PartialPublicationCounterSnapshot,
-    PartialPublicationCrashEdge, PartialPublicationEvidence,
+    PartialPublicationBeforeWalReplayRead, PartialPublicationClassification,
+    PartialPublicationCounterSnapshot, PartialPublicationCrashEdge, PartialPublicationEvidence,
     PartialPublicationObservationAdmission, PartialPublicationObservationSet,
     PartialPublicationObservedSource, PartialPublicationPersistedBytes,
-    RecoveredOrRejectedPartialPublication, RollbackImageRequiredPosture, TornPublicationDenial,
-    UnacknowledgedDurableWal, UnacknowledgedPublicationOutcome,
-    UnadmittedDurablePageMutationDenial,
+    PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,
+    PartialPublicationReplayReadRecord, PartialPublicationReplayReadWitness,
+    PartialPublicationReplayedCrashEdge, RecoveredOrRejectedPartialPublication,
+    RollbackImageRequiredPosture, TornPublicationDenial, UnacknowledgedDurableWal,
+    UnacknowledgedPublicationOutcome, UnadmittedDurablePageMutationDenial,
 };
 pub use recovery_blocking_integrity::{
     RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,

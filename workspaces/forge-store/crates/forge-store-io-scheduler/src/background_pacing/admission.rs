@@ -66,6 +66,7 @@ pub fn admit_background_pacing(
 
 fn yield_now(request: &BackgroundIdleCapacityLeaseRequest) -> BackgroundPacingOutcome {
     BackgroundPacingOutcome::Yield(BackgroundPacingYield::new(
+        request.capacity().pressure().class(),
         BackgroundPacingCounterSnapshot::yield_now(
             request.capacity().pressure().requested_budget(),
             request.capacity().idle_available(),
@@ -76,6 +77,7 @@ fn yield_now(request: &BackgroundIdleCapacityLeaseRequest) -> BackgroundPacingOu
 
 fn deferred(request: &BackgroundIdleCapacityLeaseRequest) -> BackgroundPacingOutcome {
     BackgroundPacingOutcome::Deferred(BackgroundPacingDeferred::new(
+        request.capacity().pressure().class(),
         BackgroundPacingCounterSnapshot::deferred(
             request.capacity().pressure().requested_budget(),
             request.capacity().idle_available(),
@@ -88,6 +90,7 @@ fn stale_or_rebind(
     kind: BackgroundPacingStaleRebindKind,
 ) -> BackgroundPacingOutcome {
     BackgroundPacingOutcome::StaleRebindRequired(BackgroundPacingStaleRebindRequired::new(
+        request.capacity().pressure().class(),
         kind,
         BackgroundPacingCounterSnapshot::deferred(
             request.capacity().pressure().requested_budget(),
@@ -101,6 +104,7 @@ fn denied(
     denial: BackgroundPacingDenial,
 ) -> BackgroundPacingOutcome {
     BackgroundPacingOutcome::Denied(BackgroundPacingDenied::new(
+        request.capacity().pressure().class(),
         denial,
         BackgroundPacingCounterSnapshot::denied(
             request.capacity().pressure().requested_budget(),
@@ -116,6 +120,7 @@ fn throttled(
     throttled_units: BackgroundResourceBudget,
 ) -> BackgroundPacingOutcome {
     BackgroundPacingOutcome::Throttled(BackgroundPacingThrottle::new(
+        request.capacity().pressure().class(),
         admitted,
         throttled_units,
         BackgroundPacingCounterSnapshot::throttled(

@@ -1,13 +1,16 @@
 use crate::physical_substrate_certification_authority::{
-    certify_physical_page_segment_extent_substrate, certify_s2_physical_substrate_readiness,
-    closeout_run_without_legacy_overclaim_row, closeout_run_without_shortcut_row,
+    certify_physical_page_segment_extent_substrate, closeout_run_without_legacy_overclaim_row,
+    closeout_run_without_shortcut_row,
 };
 use crate::{
     PhysicalPageSegmentExtentSubstrateCloseout, PhysicalSubstrateCloseoutDenial,
     PhysicalSubstrateCloseoutStoryRow, PlatformPhysicalFacadeEvidenceRow,
 };
-use forge_store_contracts::ROADMAP_2_S1_SCOPE;
+use forge_store_contracts::{AcceptedHandoffReadiness, HandoffEvidenceDigestSet, ROADMAP_2_S1_SCOPE, StableDigest};
 use forge_store_physical_format::PhysicalOperationKind;
+use forge_store_readiness::{
+    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+};
 
 #[test]
 fn physical_page_segment_extent_substrate_closeout_mints_s2_readiness() {
@@ -48,7 +51,25 @@ fn physical_substrate_authority_exports_interpretable_closeout_evidence() {
 
 #[test]
 fn physical_substrate_authority_mints_s2_readiness_without_raw_descriptors() {
-    let s2_readiness = certify_s2_physical_substrate_readiness().unwrap();
+    let s2_readiness = prove_s2_physical_substrate_readiness(
+        close_s1_physical_substrate_readiness(
+            AcceptedHandoffReadiness::from_s0_artifacts(
+                ROADMAP_2_S1_SCOPE,
+                HandoffEvidenceDigestSet::new(
+                    StableDigest::new("sha256:physical-substrate-backend").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-deferred").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-harness").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-terms").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-audit").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-complexity").unwrap(),
+                    StableDigest::new("sha256:physical-substrate-provenance").unwrap(),
+                ),
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
 
     assert!(s2_readiness.is_sealed());
     assert_eq!(s2_readiness.scope(), ROADMAP_2_S1_SCOPE);

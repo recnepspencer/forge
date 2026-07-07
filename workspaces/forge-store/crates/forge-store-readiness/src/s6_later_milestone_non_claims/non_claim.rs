@@ -1,86 +1,23 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S7PlacementReadinessNonClaim {
-    BlobLifecycleCorrectness,
-    ChunkDedupeCorrectness,
-    PlacementPolicyCorrectness,
-}
+pub use forge_store_contracts::{
+    S10BackupExportReadinessNonClaim, S10CompactionReadinessNonClaim,
+    S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S7PlacementReadinessNonClaim,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S10CompactionReadinessNonClaim {
-    CompactionProductCorrectness,
-    ForensicCorrectness,
-    PlacementCorrectness,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S10BackupExportReadinessNonClaim {
+pub enum S7CapsuleReadinessNonClaim {
+    FullReplicationCorrectness,
     BackupRestoreCorrectness,
-    ExportFormatCorrectness,
-    PointInTimeRecoveryCorrectness,
+    ProductBlobApiCorrectness,
+    RestoreWorkflowCorrectness,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S10RepairScanReadinessNonClaim {
-    RepairOperatorAuthorization,
-    RepairPlanCorrectness,
-    ForensicCorrectness,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S11OperatorReadinessNonClaim {
-    EncryptionAlgorithm,
-    KeyRotation,
-    AuditCorrectness,
-    OperatorAuthorization,
-}
-
-impl S7PlacementReadinessNonClaim {
-    pub const fn required() -> [Self; 3] {
-        [
-            Self::BlobLifecycleCorrectness,
-            Self::ChunkDedupeCorrectness,
-            Self::PlacementPolicyCorrectness,
-        ]
-    }
-}
-
-impl S10CompactionReadinessNonClaim {
-    pub const fn required() -> [Self; 3] {
-        [
-            Self::CompactionProductCorrectness,
-            Self::ForensicCorrectness,
-            Self::PlacementCorrectness,
-        ]
-    }
-}
-
-impl S10BackupExportReadinessNonClaim {
-    pub const fn required() -> [Self; 3] {
-        [
-            Self::BackupRestoreCorrectness,
-            Self::ExportFormatCorrectness,
-            Self::PointInTimeRecoveryCorrectness,
-        ]
-    }
-}
-
-impl S10RepairScanReadinessNonClaim {
-    pub const fn required() -> [Self; 3] {
-        [
-            Self::RepairOperatorAuthorization,
-            Self::RepairPlanCorrectness,
-            Self::ForensicCorrectness,
-        ]
-    }
-}
-
-impl S11OperatorReadinessNonClaim {
+impl S7CapsuleReadinessNonClaim {
     pub const fn required() -> [Self; 4] {
         [
-            Self::EncryptionAlgorithm,
-            Self::KeyRotation,
-            Self::AuditCorrectness,
-            Self::OperatorAuthorization,
+            Self::FullReplicationCorrectness,
+            Self::BackupRestoreCorrectness,
+            Self::ProductBlobApiCorrectness,
+            Self::RestoreWorkflowCorrectness,
         ]
     }
 }

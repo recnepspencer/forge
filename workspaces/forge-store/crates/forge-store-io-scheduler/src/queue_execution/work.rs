@@ -232,8 +232,8 @@ const fn durability_for_background(class: BackgroundIoPressureClass) -> S6QueueD
     match class {
         BackgroundIoPressureClass::CompactionRewrite
         | BackgroundIoPressureClass::CheckpointFlush
-        | BackgroundIoPressureClass::BlobIngestPressure
-        | BackgroundIoPressureClass::BlobMigrationPressure => S6QueueDurabilityClass::BufferedWrite,
+        | BackgroundIoPressureClass::IngestPressure
+        | BackgroundIoPressureClass::MigrationPressure => S6QueueDurabilityClass::BufferedWrite,
         BackgroundIoPressureClass::ScrubScan
         | BackgroundIoPressureClass::ReplicationPrepRead
         | BackgroundIoPressureClass::BackupPrepRead
@@ -253,8 +253,8 @@ const fn recovery_ordering_for_background(
         BackgroundIoPressureClass::CompactionRewrite
         | BackgroundIoPressureClass::ScrubScan
         | BackgroundIoPressureClass::ReplicationPrepRead
-        | BackgroundIoPressureClass::BlobIngestPressure
-        | BackgroundIoPressureClass::BlobMigrationPressure
+        | BackgroundIoPressureClass::IngestPressure
+        | BackgroundIoPressureClass::MigrationPressure
         | BackgroundIoPressureClass::BackupPrepRead => QueueRecoveryOrdering::NotRecoveryCritical,
     }
 }
@@ -263,8 +263,8 @@ const fn writeback_policy_for_background(class: BackgroundIoPressureClass) -> Qu
     match class {
         BackgroundIoPressureClass::CompactionRewrite
         | BackgroundIoPressureClass::CheckpointFlush
-        | BackgroundIoPressureClass::BlobIngestPressure
-        | BackgroundIoPressureClass::BlobMigrationPressure => {
+        | BackgroundIoPressureClass::IngestPressure
+        | BackgroundIoPressureClass::MigrationPressure => {
             QueueWritebackPolicy::DeferredWithinFlushEpoch
         }
         BackgroundIoPressureClass::ScrubScan
@@ -281,8 +281,8 @@ const fn background_flush_epoch(class: BackgroundIoPressureClass) -> u64 {
         BackgroundIoPressureClass::CompactionRewrite
         | BackgroundIoPressureClass::ScrubScan
         | BackgroundIoPressureClass::ReplicationPrepRead
-        | BackgroundIoPressureClass::BlobIngestPressure
-        | BackgroundIoPressureClass::BlobMigrationPressure
+        | BackgroundIoPressureClass::IngestPressure
+        | BackgroundIoPressureClass::MigrationPressure
         | BackgroundIoPressureClass::BackupPrepRead
         | BackgroundIoPressureClass::RepairScan
         | BackgroundIoPressureClass::VerificationPressure => 0,

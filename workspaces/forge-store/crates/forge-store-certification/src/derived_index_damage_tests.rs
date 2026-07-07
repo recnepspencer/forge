@@ -1,4 +1,4 @@
-use crate::physical_scope_admission_test_support::{
+use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
     free_space_slot_admission, page_cell, page_request, page_slot_admission, root_admission,
     root_with_slot, root_with_slot_under_root, scope_membership, with_checked_page,
 };

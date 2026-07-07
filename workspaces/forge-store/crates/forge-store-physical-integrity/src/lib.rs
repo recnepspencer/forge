@@ -25,6 +25,7 @@ mod container_integrity_frame_header;
 mod container_integrity_reports;
 mod container_integrity_slot_directory;
 mod damage_classification;
+mod damage_handoff;
 mod entry_admission;
 mod entry_basis;
 mod entry_denial;
@@ -69,6 +70,7 @@ mod physical_scope_family_inputs;
 mod physical_scope_request;
 mod pre_decode_counters;
 mod pre_decode_denial;
+mod pre_decode_surface;
 mod protected_physical_byte_view;
 mod quarantine_authority;
 mod quarantine_denial;
@@ -140,6 +142,9 @@ pub use container_integrity_reports::{
 };
 pub use damage_classification::{
     DamageClassification, IntactPhysicalBoundary, QuarantinedPhysicalDamage,
+};
+pub use damage_handoff::{
+    classify_physical_damage_for_handoff, quarantine_handoff_posture, PhysicalDamageHandoffEvidence,
 };
 pub use entry_admission::IntegrityEntryAdmission;
 pub use entry_basis::{IntegrityEntryBasis, ScrubEnvelopeLimits, VerifierResidentLimits};
@@ -230,7 +235,10 @@ pub use physical_scope_request::PhysicalScopeAdmissionRequest;
 pub use pre_decode_counters::{
     PreDecodeAdmissionCounters, SemanticDecoderInvocationCounter, SkippedLogicalDecodeCounter,
 };
+#[cfg(any(test, feature = "test-support"))]
+pub use pre_decode_denial::test_pre_decode_denial_for_kind;
 pub use pre_decode_denial::{PreDecodePhysicalDenial, PreDecodePhysicalDenialKind};
+
 pub use protected_physical_byte_view::ProtectedPhysicalByteView;
 pub use quarantine_authority::PhysicalQuarantineAuthority;
 pub use quarantine_denial::{QuarantineSealDenial, QuarantineSealDenialKind};

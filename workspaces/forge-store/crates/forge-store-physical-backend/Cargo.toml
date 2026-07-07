@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.1 platform-grade physical backend facade."
 
 [dependencies]
+fs4 = "0.8"
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true

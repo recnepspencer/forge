@@ -10,6 +10,22 @@ use forge_store_physical_format::{
     PhysicalReferenceValidationWitness,
 };
 
+#[derive(Debug, Clone, Copy)]
+struct PageIntegrityAdmissionBasis {
+    cell: forge_store_physical_format::PageGenerationCell,
+    header_witness: PhysicalHeaderDecodeWitness,
+    expected_kind: PhysicalPageKind,
+    expected_checksum: DeclaredPhysicalChecksum,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct FrameIntegrityAdmissionBasis {
+    validation: PhysicalReferenceValidationWitness,
+    header_witness: PhysicalHeaderDecodeWitness,
+    expected_kind: PhysicalFrameKind,
+    expected_checksum: DeclaredPhysicalChecksum,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalIntegrityAdmissionSeed<'lease> {
     lease: IntegrityInspectionLease<'lease>,
@@ -67,6 +83,30 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
         &self,
         request: PhysicalIntegrityAdmissionRequest,
     ) -> Result<IntegrityCheckedPage<'lease>, PreDecodePhysicalDenial> {
+        let page_basis = self.require_page_request(request)?;
+        self.verify_page_witness(page_basis)?;
+        self.verify_page_length(page_basis.header_witness)?;
+        let checksum =
+            self.verify_declared_checksum(page_basis.header_witness, page_basis.expected_checksum)?;
+        Ok(self.build_checked_page(page_basis.header_witness, checksum))
+    }
+
+    pub fn admit_frame(
+        &self,
+        request: PhysicalIntegrityAdmissionRequest,
+    ) -> Result<IntegrityCheckedFrame<'lease>, PreDecodePhysicalDenial> {
+        let frame_basis = self.require_frame_request(request)?;
+        self.verify_frame_witness(frame_basis)?;
+        self.verify_frame_length(frame_basis.header_witness)?;
+        let checksum = self
+            .verify_declared_checksum(frame_basis.header_witness, frame_basis.expected_checksum)?;
+        Ok(self.build_checked_frame(frame_basis.header_witness, checksum))
+    }
+
+    fn require_page_request(
+        &self,
+        request: PhysicalIntegrityAdmissionRequest,
+    ) -> Result<PageIntegrityAdmissionBasis, PreDecodePhysicalDenial> {
         let PhysicalIntegrityAdmissionRequest::Page {
             cell,
             header_witness,
@@ -74,35 +114,20 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
             expected_checksum,
         } = request
         else {
-            return Err(PreDecodePhysicalDenial::new(
-                PreDecodePhysicalDenialKind::PhysicalHeaderDenied,
-                self.lease.protected_bytes(),
-            ));
+            return Err(self.reject_wrong_integrity_request_kind());
         };
-        reject_page_witness(cell.owner(), header_witness, expected_kind, self.lease)?;
-        reject_truncated_page(self.lease, header_witness)?;
-        let checksum = require_matching_checksum(
-            self.lease,
-            self.declaration
-                .declaration()
-                .coverage_basis()
-                .algorithm_id(),
+        Ok(PageIntegrityAdmissionBasis {
+            cell,
             header_witness,
+            expected_kind,
             expected_checksum,
-        )?;
-        Ok(IntegrityCheckedPage::new(
-            self.lease.protected_bytes(),
-            header_witness,
-            checksum,
-            PreDecodeAdmissionCounters::admitted(self.lease.protected_bytes().len_bytes() as u64),
-            self.declaration.declaration().coverage_basis().clone(),
-        ))
+        })
     }
 
-    pub fn admit_frame(
+    fn require_frame_request(
         &self,
         request: PhysicalIntegrityAdmissionRequest,
-    ) -> Result<IntegrityCheckedFrame<'lease>, PreDecodePhysicalDenial> {
+    ) -> Result<FrameIntegrityAdmissionBasis, PreDecodePhysicalDenial> {
         let PhysicalIntegrityAdmissionRequest::Frame {
             validation,
             header_witness,
@@ -110,29 +135,111 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
             expected_checksum,
         } = request
         else {
-            return Err(PreDecodePhysicalDenial::new(
-                PreDecodePhysicalDenialKind::PhysicalHeaderDenied,
-                self.lease.protected_bytes(),
-            ));
+            return Err(self.reject_wrong_integrity_request_kind());
         };
-        reject_frame_witness(validation, header_witness, expected_kind, self.lease)?;
-        reject_truncated_frame(self.lease, header_witness)?;
-        let checksum = require_matching_checksum(
-            self.lease,
-            self.declaration
-                .declaration()
-                .coverage_basis()
-                .algorithm_id(),
+        Ok(FrameIntegrityAdmissionBasis {
+            validation,
             header_witness,
+            expected_kind,
             expected_checksum,
-        )?;
-        Ok(IntegrityCheckedFrame::new(
+        })
+    }
+
+    fn verify_page_witness(
+        &self,
+        basis: PageIntegrityAdmissionBasis,
+    ) -> Result<(), PreDecodePhysicalDenial> {
+        reject_page_witness(
+            basis.cell.owner(),
+            basis.header_witness,
+            basis.expected_kind,
+            self.lease,
+        )
+    }
+
+    fn verify_page_length(
+        &self,
+        witness: PhysicalHeaderDecodeWitness,
+    ) -> Result<(), PreDecodePhysicalDenial> {
+        reject_truncated_page(self.lease, witness)
+    }
+
+    fn verify_frame_witness(
+        &self,
+        basis: FrameIntegrityAdmissionBasis,
+    ) -> Result<(), PreDecodePhysicalDenial> {
+        reject_frame_witness(
+            basis.validation,
+            basis.header_witness,
+            basis.expected_kind,
+            self.lease,
+        )
+    }
+
+    fn verify_frame_length(
+        &self,
+        witness: PhysicalHeaderDecodeWitness,
+    ) -> Result<(), PreDecodePhysicalDenial> {
+        reject_truncated_frame(self.lease, witness)
+    }
+
+    fn verify_declared_checksum(
+        &self,
+        witness: PhysicalHeaderDecodeWitness,
+        expected_checksum: DeclaredPhysicalChecksum,
+    ) -> Result<crate::ExecutedPhysicalChecksum, PreDecodePhysicalDenial> {
+        require_matching_checksum(
+            self.lease,
+            self.declared_checksum_algorithm(),
+            witness,
+            expected_checksum,
+        )
+    }
+
+    fn build_checked_page(
+        &self,
+        witness: PhysicalHeaderDecodeWitness,
+        checksum: crate::ExecutedPhysicalChecksum,
+    ) -> IntegrityCheckedPage<'lease> {
+        IntegrityCheckedPage::new(
             self.lease.protected_bytes(),
-            header_witness,
+            witness,
             checksum,
-            PreDecodeAdmissionCounters::admitted(self.lease.protected_bytes().len_bytes() as u64),
+            self.admitted_pre_decode_counters(),
             self.declaration.declaration().coverage_basis().clone(),
-        ))
+        )
+    }
+
+    fn build_checked_frame(
+        &self,
+        witness: PhysicalHeaderDecodeWitness,
+        checksum: crate::ExecutedPhysicalChecksum,
+    ) -> IntegrityCheckedFrame<'lease> {
+        IntegrityCheckedFrame::new(
+            self.lease.protected_bytes(),
+            witness,
+            checksum,
+            self.admitted_pre_decode_counters(),
+            self.declaration.declaration().coverage_basis().clone(),
+        )
+    }
+
+    fn declared_checksum_algorithm(&self) -> ChecksumAlgorithmId {
+        self.declaration
+            .declaration()
+            .coverage_basis()
+            .algorithm_id()
+    }
+
+    fn admitted_pre_decode_counters(&self) -> PreDecodeAdmissionCounters {
+        PreDecodeAdmissionCounters::admitted(self.lease.protected_bytes().len_bytes() as u64)
+    }
+
+    fn reject_wrong_integrity_request_kind(&self) -> PreDecodePhysicalDenial {
+        PreDecodePhysicalDenial::new(
+            PreDecodePhysicalDenialKind::PhysicalHeaderDenied,
+            self.lease.protected_bytes(),
+        )
     }
 }
 

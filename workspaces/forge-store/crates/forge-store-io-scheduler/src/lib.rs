@@ -26,12 +26,30 @@ pub use background_pacing::{
     BackgroundCapacityAdmissionRequest, BackgroundDebtKind, BackgroundIdleCapacityLease,
     BackgroundIdleCapacityLeaseRequest, BackgroundIoDebt, BackgroundIoPressureClass,
     BackgroundIoPressureShape, BackgroundLeaseRevocation, BackgroundPacingAdmissionBasis,
-    BackgroundPacingAdmittedWithDebt, BackgroundPacingCounterSnapshot, BackgroundPacingDeferred,
-    BackgroundPacingDenial, BackgroundPacingDenied, BackgroundPacingFreshness,
-    BackgroundPacingOutcome, BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
-    BackgroundPacingStaleRebindKind, BackgroundPacingStaleRebindRequired, BackgroundPacingThrottle,
-    BackgroundPacingViolation, BackgroundPacingYield, BackgroundResourceBudget,
-    BackgroundResourceShortfall,
+    BackgroundPacingAdmittedWithDebt, BackgroundPacingCapability, BackgroundPacingCounterSnapshot,
+    BackgroundPacingDeferred, BackgroundPacingDenial, BackgroundPacingDenied,
+    BackgroundPacingFreshness, BackgroundPacingOutcome, BackgroundPacingProgressionDrift,
+    BackgroundPacingProgressionEvidence, BackgroundPacingStaleRebindKind,
+    BackgroundPacingStaleRebindRequired, BackgroundPacingThrottle, BackgroundPacingViolation,
+    BackgroundPacingYield, BackgroundResourceBudget, BackgroundResourceShortfall,
+};
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use background_pacing::{
+    blob_ingest_background_capacity_for_certification_test,
+    blob_ingest_deferred_background_capacity_for_certification_test,
+    blob_ingest_denied_background_capacity_for_certification_test,
+    blob_ingest_page_write_background_capacity_for_certification_test,
+    blob_ingest_rebind_background_capacity_for_certification_test,
+    blob_ingest_stale_background_capacity_for_certification_test,
+    blob_ingest_throttled_background_capacity_for_certification_test,
+    blob_ingest_wal_write_background_capacity_for_certification_test,
+    checkpoint_flush_wal_background_capacity_for_certification_test,
+    verification_deferred_background_capacity_for_certification_test,
+    verification_denied_background_capacity_for_certification_test,
+    verification_rebind_background_capacity_for_certification_test,
+    verification_stale_background_capacity_for_certification_test,
+    verification_throttled_background_capacity_for_certification_test,
+    verification_zero_admitted_throttle_background_capacity_for_certification_test,
 };
 pub use execution::{
     IoQueueCounterSnapshot, IoQueueExecutedEvidenceSource, IoQueueExecutionDenial,
@@ -64,6 +82,8 @@ pub use resource_units::{
 };
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use s6_later_readiness_handoff::background_pacing_outcome_for_later_readiness_certification_test;
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use s6_later_readiness_handoff::s7_placement_io_readiness_handoff_for_certification_test;
 pub use s6_later_readiness_handoff::{
     admit_s11_operator_io_readiness_seed, publish_s10_backup_export_io_readiness_handoff,
     publish_s10_compaction_io_readiness_handoff, publish_s10_repair_scan_io_readiness_handoff,
@@ -80,9 +100,10 @@ pub use s6_later_readiness_handoff::{
     S11OperatorIoReadinessSeed, S6LaterReadinessHandoffDenial, S6LaterReadinessReadmissionState,
     S7PlacementIoReadinessHandoff,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use s6_readiness::admit_s6_io_qos_isolation_readiness;
 pub use s6_readiness::{
-    admit_s5_1_security_scope_for_s6_io_qos, admit_s6_io_qos_isolation_readiness,
-    admit_store_published_s6_io_qos_isolation_readiness,
+    admit_s5_1_security_scope_for_s6_io_qos, admit_store_published_s6_io_qos_isolation_readiness,
     reject_hardware_queue_depth_claim_as_s6_readiness,
     reject_log_or_metric_projection_as_s6_readiness, reject_media_qos_claim_as_s6_readiness,
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,

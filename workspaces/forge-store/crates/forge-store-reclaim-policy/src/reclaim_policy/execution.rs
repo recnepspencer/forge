@@ -65,8 +65,7 @@ impl<'backend, Backend> ReclaimPolicyExecutionSession<'backend, Backend> {
         Self { backend, authority }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn for_owned_backend(backend: &'backend mut Backend) -> Self {
+    pub fn for_owned_backend(backend: &'backend mut Backend) -> Self {
         Self::for_store_backend(backend, StoreOwnedReclaimPolicyExecution::store_owned())
     }
 

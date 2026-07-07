@@ -16,6 +16,23 @@ pub struct StablePhysicalReadExecutionCounters {
 }
 
 impl StablePhysicalReadExecutionCounters {
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) const fn for_certification_test(guarded_bytes: u64) -> Self {
+        Self {
+            guard_admissions: 1,
+            guarded_byte_reads: 1,
+            guarded_bytes,
+            execution_time_reference_discoveries: 0,
+            retry_decisions: 0,
+            blocking_io_events: 0,
+            hidden_latch_io_denials: 0,
+            compact_footprint_checks: 1,
+            broad_footprint_scans: 0,
+            plan_allocations: 1,
+            diagnostic_materializations: 0,
+        }
+    }
+
     pub const fn from_plan_counters(plan: ReadPlanCounterSnapshot) -> Self {
         Self {
             guard_admissions: 0,

@@ -15,8 +15,10 @@ pub struct PartialPublicationPersistedBytes {
 }
 
 impl PartialPublicationPersistedBytes {
-    pub fn before_wal_append(operation_digest: impl Into<String>) -> Self {
-        encode_persisted_record([FORMAT_VERSION, BEFORE_WAL_APPEND, &operation_digest.into()])
+    pub(crate) fn from_replay_read_bytes(bytes: &[u8]) -> Self {
+        Self {
+            bytes: bytes.to_vec(),
+        }
     }
 
     pub fn after_wal_append_before_durability(
@@ -42,14 +44,12 @@ impl PartialPublicationPersistedBytes {
         ])
     }
 
-    pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Self {
-        Self {
-            bytes: bytes.into(),
-        }
-    }
-
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
+    }
+
+    pub fn persisted_bytes_digest(&self) -> String {
+        persisted_bytes_digest(&self.bytes)
     }
 
     pub fn observe(&self) -> PartialPublicationObservedSource {
@@ -128,4 +128,15 @@ fn encode_persisted_record<'a>(
             .join("\n")
             .into_bytes(),
     }
+}
+
+fn persisted_bytes_digest(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push_str(&format!("{byte:02x}"));
+    }
+    format!(
+        "partial-publication-persisted-bytes:v1:len={}:hex={encoded}",
+        bytes.len()
+    )
 }

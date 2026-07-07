@@ -60,6 +60,41 @@
 //!     TerminalProjection,
 //! );
 //! ```
+//! Backend residue observations cannot be minted from raw caller fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BlobBackendResidueObservation, BlobBackendResidueObservationKind,
+//! };
+//!
+//! let _forged = BlobBackendResidueObservation::observed(
+//!     BlobBackendResidueObservationKind::OrphanedPlacementResidue,
+//!     "copied-object-key",
+//! );
+//! ```
+//! Backend residue evidence cannot be minted from copied tokens plus a copied
+//! capability claim:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendCapabilityClaimWitness, BlobBackendResidueObservation,
+//!     BlobBackendResidueObservationKind,
+//! };
+//! let capability: BackendCapabilityClaimWitness = todo!();
+//! let _forged = BlobBackendResidueObservation::from_store_backend_residue_scan(
+//!     capability,
+//!     BlobBackendResidueObservationKind::OrphanedPlacementResidue,
+//!     "copied-object-key",
+//! );
+//! ```
+//! Backend manifest evidence cannot be minted from copied digest/scope fields:
+//! ```compile_fail
+//! use forge_store_physical_backend::{
+//!     BackendCapabilityClaimWitness, BlobPhysicalManifestObservation,
+//! };
+//! let capability: BackendCapabilityClaimWitness = todo!();
+//! let _forged = BlobPhysicalManifestObservation::from_store_backend_manifest_traversal(
+//!     capability, "copied-digest", 1, "copied-digest", 1, todo!(), true,
+//! );
+//! ```
 //! Queue execution completion cannot be minted from ordinary caller-supplied
 //! fields in production builds:
 //! ```compile_fail
@@ -253,8 +288,11 @@
 //! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
 //! ```
 mod access_policy;
+mod placement_observation;
 mod durability_ordering;
 mod durability_profile;
+pub mod external_recovery_compile_fail;
+mod heavy_fixture;
 mod io_capability;
 mod operation_boundary;
 mod s6_queue_execution;
@@ -274,6 +312,26 @@ pub use access_policy::{
     MmapTruncatePosture, MmapVisibilityPosture, MmapWritebackPosture, PageCachePolicyKind,
     PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
     StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
+};
+pub use placement_observation::{
+    BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
+    BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
+    BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
+    BlobBackendResidueScanSession, BlobPhysicalManifestObservation,
+    BlobPhysicalManifestObservationDenial, BlobPhysicalManifestTraversalObservation,
+    BlobPhysicalManifestTraversalRequest, BlobPhysicalManifestTraversalSession,
+    BlobPhysicalManifestValidation, ExternalPlacementCleanupExecutionError,
+    ExternalPlacementCleanupObservation, ExternalPlacementCleanupReceipt,
+    ExternalPlacementCleanupRequest, ExternalPlacementCleanupSession,
+    ExternalPlacementMissingDenial, ExternalPlacementOrphanScanReceipt,
+    ExternalPlacementRecoverabilityDenial, ExternalPlacementRecoveryProbe,
+    ExternalPlacementRecoveryProbeExecutionError, ExternalPlacementRecoveryProbeObservation,
+    ExternalPlacementRecoveryProbeRequest, ExternalPlacementRecoveryProbeSession,
+    PhysicalStoreBlobManifestTraverser, PhysicalStoreBlobResidueScanner,
+    PhysicalStoreExternalPlacementCleanupExecutor, PhysicalStoreExternalPlacementRecoveryProber,
+    StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
+    StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
+    StoreOwnedExternalPlacementRecoveryProbe,
 };
 pub use durability_ordering::{
     PhysicalStoreDurabilityExecutor, StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome,
@@ -299,6 +357,11 @@ pub use durability_profile::{
     BackendDurabilityProfileId, BackendDurabilitySupport, MmapFlushNotDurabilityCertifiedProfile,
     PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
     WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
+};
+pub use heavy_fixture::{
+    cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
+    HeavyFixtureBackendProfile, HeavyFixtureCleanupReceipt, HeavyFixtureDiskPreflightReceipt,
+    HeavyFixtureMaterializationDirectory, HeavyFixtureTempFileMaterialization,
 };
 pub use io_capability::{
     reject_certification_only_evidence, reject_copied_qualification_row,

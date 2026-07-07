@@ -1,5 +1,6 @@
 mod closeout;
 mod handoff;
+mod hostile_recipes;
 mod public_contract;
 mod registration_contract;
 mod replay_authority;
@@ -16,6 +17,7 @@ mod tests;
 pub use super::workload_catalog::PlanarBooleanOverlapRegionMetabossSubcase;
 pub use closeout::PlanarBooleanOverlapRegionCloseoutInput;
 pub use handoff::CompletedPlanarBooleanOverlapRegionExtractionHandoff;
+pub use hostile_recipes::PlanarBooleanOverlapRegionMetabossSubcase;
 pub use public_contract::{
     PlanarBooleanOverlapRegionAntiTheatreFenceDenial,
     PlanarBooleanOverlapRegionAntiTheatreFenceProof,

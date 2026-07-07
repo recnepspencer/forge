@@ -1,5 +1,8 @@
-use super::{CompactionCutoverStabilityProof, CompactionReadInterlockDenial};
+use super::{
+    CompactionCutoverStabilityProof, CompactionReadInterlockDenial, CompactionRewritePublication,
+};
 use crate::StablePhysicalReadReceipt;
+use forge_store_recovery_physics::CompactionCutoverRecoveryPosture;
 
 #[derive(Debug, Clone)]
 pub struct ReadDuringCompactionVerdict {
@@ -57,4 +60,14 @@ impl ReadDuringCompactionVerdict {
     pub const fn post_cutover_read(&self) -> StablePhysicalReadReceipt {
         self.post_cutover_read
     }
+}
+
+pub fn execute_read_during_compaction_cutover(
+    publication: CompactionRewritePublication,
+    recovery: CompactionCutoverRecoveryPosture,
+    pre_cutover_read: StablePhysicalReadReceipt,
+    post_cutover_read: StablePhysicalReadReceipt,
+) -> Result<ReadDuringCompactionVerdict, CompactionReadInterlockDenial> {
+    let proof = CompactionCutoverStabilityProof::admit(publication, recovery)?;
+    ReadDuringCompactionVerdict::from_stability_proof(proof, pre_cutover_read, post_cutover_read)
 }

@@ -2,13 +2,13 @@ use crate::{
     chunk_integrity_without_blob_lifecycle_tests::inspect_chunk_denial,
     close_s3_physical_integrity_from_executed_evidence,
     physical_integrity_closeout_bundle::PhysicalIntegrityCloseoutRequest,
-    physical_integrity_closeout_line_cap_test_support::line_cap_composition_evidence,
-    physical_integrity_closeout_test_support::{
+    courtroom::harness::test_support::physical_integrity_closeout_line_cap_test_support::line_cap_composition_evidence,
+    courtroom::harness::test_support::physical_integrity_closeout_test_support::{
         assert_synthetic_rejection, complete_s3_closeout_evidence, complete_s3_closeout_suite,
         copied_s2_synthetic_rejections, executed_boundary_denial_evidence,
         executed_localization_evidence, lane_plan_and_transcript, s3_harness, s3_readiness,
     },
-    s4_integrity_handoff_test_support::intact_readiness,
+    courtroom::harness::test_support::s4_integrity_handoff_test_support::intact_readiness,
     PhysicalIntegrityCertificationBundle, PhysicalIntegrityCloseoutDenial,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
     PhysicalProofOracleKind, PhysicalScenarioDriverKind, PhysicalScenarioObserverKind,

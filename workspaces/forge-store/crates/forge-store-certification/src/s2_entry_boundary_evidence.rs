@@ -98,7 +98,7 @@ pub enum S2EntryBoundaryEvidenceDenial {
 
 #[cfg(test)]
 mod tests {
-    use crate::physical_substrate_certification_authority::certify_s2_physical_substrate_readiness;
+    use crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::s2_readiness;
     use crate::{
         S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt,
     };
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn s2_entry_boundary_reports_every_readiness_consumption_row() {
-        let readiness = certify_s2_physical_substrate_readiness().unwrap();
+        let readiness = s2_readiness();
         for row in S2EntryBoundaryEvidenceRow::s2_phase_one_readiness_rows() {
             let report = S2EntryBoundaryEvidenceReport::from_readiness(*row, &readiness).unwrap();
 
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn forbidden_shortcut_row_cannot_be_reported_as_readiness_consumption() {
-        let readiness = certify_s2_physical_substrate_readiness().unwrap();
+        let readiness = s2_readiness();
         let denial = S2EntryBoundaryEvidenceReport::from_readiness(
             S2EntryBoundaryEvidenceRow::ForbiddenEntryAttemptRejected(
                 S2ForbiddenEntryAttempt::RawPageId,

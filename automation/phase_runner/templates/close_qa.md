@@ -20,8 +20,11 @@ bound to real production behavior. Then tell which production surfaces are
 missing to support those tests honestly.
 
 Output the findings in chat. In the JSON state, record only short findings
-markers in `notes.findings`, keep `status: complete` and `qa_status: passed`,
-and advance the cursor to `close_plan`.
+markers in `notes.findings`. If the findings prove the phase tests are fake,
+synthetic, or unsupported by required production surfaces, set `status:
+regressed`, set `qa_status: failed`, and advance the cursor to `close_plan`.
+Only keep `status: complete` and `qa_status: passed` when the findings are
+non-blocking hardening observations.
 
 Do not put logs, artifacts, command tails, long QA lists, or plans into the
 JSON. The JSON is only progress tracking.

@@ -1,4 +1,4 @@
-use crate::pre_decode_physical_admission_test_support::{
+use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
     admit_checked_frame, assert_localized_pre_decode_denial,
     assert_localized_pre_decode_denial_counters, assert_pre_decode_denial_counters, crc32c,
     current_page_cell, deny_checked_frame, frame_witness, page_witness, stale_validation,
@@ -85,7 +85,7 @@ fn unsupported_checksum_algorithm_denies_before_inspection() {
         let denial = seed
             .with_checksum_claim(
                 ChecksumAlgorithmClaim::declared_text("sha256"),
-                crate::pre_decode_physical_admission_test_support::checksum_scope(),
+                crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::checksum_scope(),
             )
             .unwrap_err();
 

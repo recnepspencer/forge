@@ -13,7 +13,8 @@ TURN_OUTCOME_EVENTS = {
     "test_review": {"test_review_failed", "test_review_passed"},
     "test_repair_plan": {"test_repair_plan_posted"},
     "test_repair_implement": {"test_repair_completed"},
-    "code_quality_review": {"code_quality_review_passed"},
+    "code_quality_review": {"code_quality_review_failed", "code_quality_review_passed"},
+    "code_quality_repair": {"code_quality_repair_completed"},
 }
 
 
@@ -106,6 +107,16 @@ def apply_phase_progress(
     if event_type == "test_repair_completed":
         next_turn = payload["next_turn"]
         projection["current"] = {"phase": phase_id, "turn": next_turn}
+        return
+    if event_type == "code_quality_review_failed":
+        phase["status"] = "regressed"
+        phase["qa_status"] = "failed"
+        projection["current"] = {"phase": phase_id, "turn": "code_quality_repair"}
+        return
+    if event_type == "code_quality_repair_completed":
+        phase["status"] = "complete"
+        phase["qa_status"] = "needed"
+        projection["current"] = {"phase": phase_id, "turn": "code_quality_review"}
         return
     if event_type == "code_quality_review_passed":
         phase["status"] = "complete"

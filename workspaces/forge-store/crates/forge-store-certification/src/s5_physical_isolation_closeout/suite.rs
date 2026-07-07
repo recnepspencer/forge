@@ -1,9 +1,9 @@
 use super::S5CloseoutReservationSet;
 use crate::{
-    materialize_s6_io_qos_isolation_readiness, s5_physical_isolation_required_mutation_rows,
-    S5ExecutedIsolationEvidenceBundle, S5PhysicalIsolationMutationEvidence,
-    S6IoQosReadinessHandoffMaterializationDenial,
+    s5_physical_isolation_required_mutation_rows, S5ExecutedIsolationEvidenceBundle,
+    S5PhysicalIsolationMutationEvidence, S6IoQosReadinessHandoffMaterializationDenial,
 };
+use crate::s6::verify_executed_closeout_handoff_admissible;
 use forge_store_physical_certification::{
     CertifiedPhysicalScenario, CoverageSurfaceKind, GeneratedCoverageMatrix,
     MutationValidationPosture, OracleFamilyKind, PhysicalCertificationEvidenceBundle,
@@ -11,8 +11,7 @@ use forge_store_physical_certification::{
     PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence, S5HarnessReadinessReceipt,
 };
 use forge_store_physical_isolation::{
-    ExecutedS5IsolationCloseout, ProjectionArtifactKind, S6IoQosIsolationReadiness,
-    S6IoQosIsolationReadinessDenial, StorePhysicalAuthoritySurface,
+    ExecutedS5IsolationCloseout, ProjectionArtifactKind, StorePhysicalAuthoritySurface,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,10 +50,11 @@ pub struct PhysicalIsolationCloseoutSuite {
     reservations: S5CloseoutReservationSet,
 }
 
+/// Certification-only handoff evidence sealing an executed S5 closeout for production admission.
 #[derive(Debug, Clone)]
-pub struct PhysicalIsolationCloseoutPublishedReadiness {
+pub struct PhysicalIsolationCloseoutHandoffEvidence {
     suite: PhysicalIsolationCloseoutSuite,
-    s6_readiness: S6IoQosIsolationReadiness,
+    executed_closeout: ExecutedS5IsolationCloseout,
 }
 
 impl PhysicalIsolationCloseoutLaneEvidence {
@@ -270,26 +270,15 @@ impl PhysicalIsolationCloseoutSuite {
         Ok(suite)
     }
 
-    pub fn publish_s6_readiness(
+    pub fn seal_executed_closeout_handoff(
         self,
         closeout: ExecutedS5IsolationCloseout,
-    ) -> Result<PhysicalIsolationCloseoutPublishedReadiness, PhysicalIsolationCloseoutDenial> {
-        let readiness = materialize_s6_io_qos_isolation_readiness(closeout)
+    ) -> Result<PhysicalIsolationCloseoutHandoffEvidence, PhysicalIsolationCloseoutDenial> {
+        verify_executed_closeout_handoff_admissible(closeout.clone())
             .map_err(PhysicalIsolationCloseoutDenial::S6)?;
-        if readiness.unsupported_qos_claims().iter().any(|claim| {
-            forge_store_physical_isolation::reject_qos_claim_as_s5_readiness(*claim).is_ok()
-        }) {
-            return Err(PhysicalIsolationCloseoutDenial::S6(
-                S6IoQosReadinessHandoffMaterializationDenial::S6(
-                    S6IoQosIsolationReadinessDenial::UnsupportedQoSClaimRequested(
-                        readiness.unsupported_qos_claims()[0],
-                    ),
-                ),
-            ));
-        }
-        Ok(PhysicalIsolationCloseoutPublishedReadiness {
+        Ok(PhysicalIsolationCloseoutHandoffEvidence {
             suite: self,
-            s6_readiness: readiness,
+            executed_closeout: closeout,
         })
     }
 
@@ -325,13 +314,13 @@ impl PhysicalIsolationCloseoutSuite {
     }
 }
 
-impl PhysicalIsolationCloseoutPublishedReadiness {
+impl PhysicalIsolationCloseoutHandoffEvidence {
     pub const fn suite(&self) -> &PhysicalIsolationCloseoutSuite {
         &self.suite
     }
 
-    pub const fn s6_readiness(&self) -> &S6IoQosIsolationReadiness {
-        &self.s6_readiness
+    pub const fn executed_closeout(&self) -> &ExecutedS5IsolationCloseout {
+        &self.executed_closeout
     }
 }
 

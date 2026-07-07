@@ -69,4 +69,15 @@ impl CompactionCandidateRangeSet {
     pub const fn candidate_references(&self) -> u64 {
         self.candidate_references
     }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn from_protected_set_for_certification_test(
+        protected: &CompactionProtectedReferenceSet,
+    ) -> Self {
+        Self {
+            ranges: protected.ranges().clone(),
+            owners: Vec::new(),
+            candidate_references: protected.ranges().ranges().len() as u64,
+        }
+    }
 }

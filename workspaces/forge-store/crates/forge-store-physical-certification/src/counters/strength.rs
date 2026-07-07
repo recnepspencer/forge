@@ -60,6 +60,9 @@ const fn counter_strength_justification(kind: CounterContractKind) -> CounterStr
         CounterContractKind::PublicationSwaps => {
             CounterStrengthJustification::DeterministicEventStructure
         }
+        CounterContractKind::BlobChunkCountExact | CounterContractKind::BlobLogicalBytesExact => {
+            CounterStrengthJustification::DeterministicEventStructure
+        }
         CounterContractKind::ProfileResourceEnvelope => {
             CounterStrengthJustification::ProfileResourceEnvelope
         }

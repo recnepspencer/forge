@@ -183,7 +183,7 @@ mod speculative_work_evidence_tests_support {
             PinnedPageBudget::pages(4).unwrap(),
             DirtyPageBudget::pages(2).unwrap(),
         );
-        let admitted = S2PhysicalResidencyEntry::from_s1_readiness(readiness)
+        let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(readiness.physical_substrate_snapshot())
             .unwrap()
             .with_budget(budget)
             .admit()
@@ -299,3 +299,4 @@ mod speculative_work_evidence_tests_support {
         PhysicalGeneration::from_raw(value).unwrap()
     }
 }
+

@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod harness;
+
 mod actors;
 mod authoring;
 mod closeout;
@@ -13,37 +15,56 @@ mod observation;
 mod oracles;
 mod planning;
 mod s45_entry;
+mod s7_closeout;
 mod s5_1_security_scope_harness;
 mod s5_executed_isolation_contract;
 mod s5_executed_isolation_source;
 mod s5_handoff;
 mod s5_physical_isolation_mutation;
+#[path = "harness/by_milestone/s6/s6_backend_qualification/mod.rs"]
 mod s6_backend_qualification;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_cross_backend_tests.rs"]
 mod s6_backend_qualification_cross_backend_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_matrix_surface_tests.rs"]
 mod s6_backend_qualification_matrix_surface_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_negative_tests.rs"]
 mod s6_backend_qualification_negative_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_residual_debt_tests.rs"]
 mod s6_backend_qualification_residual_debt_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_tests.rs"]
 mod s6_backend_qualification_tests;
+#[path = "harness/by_milestone/s6/s6_io_pressure_coverage.rs"]
 mod s6_io_pressure_coverage;
+#[path = "harness/by_milestone/s6/s6_io_pressure_execution.rs"]
 mod s6_io_pressure_execution;
+#[path = "harness/by_milestone/s6/s6_io_pressure_harness.rs"]
 mod s6_io_pressure_harness;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_negative_tests.rs"]
 mod s6_io_pressure_harness_negative_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_tests.rs"]
 mod s6_io_pressure_harness_tests;
+#[path = "harness/by_milestone/s6/s6_io_pressure_replay.rs"]
 mod s6_io_pressure_replay;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_replay_tests.rs"]
 mod s6_io_pressure_replay_tests;
 #[cfg(test)]
+#[path = "harness/by_milestone/s6/tests/s6_io_pressure_shortcut_tests.rs"]
 mod s6_io_pressure_shortcut_tests;
 #[cfg(any(test, feature = "certification-test-support"))]
+#[path = "harness/by_milestone/s6/s6_io_pressure_test_support/mod.rs"]
 mod s6_io_pressure_test_support;
+#[path = "harness/by_milestone/s6/s6_io_pressure_vocab.rs"]
 mod s6_io_pressure_vocab;
+#[path = "harness/by_milestone/s7_blob_harness/mod.rs"]
+mod s7_blob_harness;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -52,9 +73,11 @@ mod transcript;
 pub use forge_store_offline_verifier::OfflineVerifierBoundarySeam;
 
 pub use actors::{
-    CheckpointActor, CompactionActor, ForegroundReadActor, ForegroundWriteActor,
-    OfflineVerifierActor, PhysicalSimulationActor, PhysicalSimulationActorAdmissionDenial,
-    ReclaimActor, RecoveryActor, ScrubActor,
+    BlobDedupeActor, BlobExportActor, BlobImportActor, BlobIngestActor,
+    BlobPartialReplicationActor, BlobPlacementMoveActor, BlobReadActor, BlobReclaimActor,
+    BlobResumeActor, BlobVerifyActor, CheckpointActor, CompactionActor, ForegroundReadActor,
+    ForegroundWriteActor, OfflineVerifierActor, PhysicalSimulationActor,
+    PhysicalSimulationActorAdmissionDenial, ReclaimActor, RecoveryActor, ScrubActor,
 };
 pub use authoring::{
     physical_scenario, PhysicalScenarioBuilder, ScenarioBuilderActorStep,
@@ -154,14 +177,19 @@ pub use observation::{
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
     phase7_verdict_topology, same_run_self_comparison_oracle_attempt,
-    test_support_oracle_verdict_attempt, BlockedReclaimUntilReleaseOracle, CounterContractOracle,
-    CrashRecoversOldOrNewNeverMixedOracle, IndependentVerifierAgreementOracle,
-    NoJsonAuthorityOracle, NoMixedRootOracle, NoPrivateMutationOracle, OldReaderSeesOldRootOracle,
-    OracleDenial, OracleVerdictBasis, PhysicalOracleJudgment, PhysicalOracleNonClaim,
-    PhysicalOracleVerdictTopology, PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle,
-    PhysicalProofOracleKind, PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind,
-    PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily,
-    S5PhysicalIsolationInterleavingOracle, S6IoPressureSimulationOracle, TranscriptReplayOracle,
+    test_support_oracle_verdict_attempt, BlobByteEqualityOracle, BlobChunkOrderingOracle,
+    BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle,
+    BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle,
+    BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle, BlobReachabilityOracle,
+    BlockedReclaimUntilReleaseOracle,
+    CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
+    IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoMixedRootOracle,
+    NoPrivateMutationOracle, OldReaderSeesOldRootOracle, OracleDenial, OracleVerdictBasis,
+    PhysicalOracleJudgment, PhysicalOracleNonClaim, PhysicalOracleVerdictTopology,
+    PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle, PhysicalProofOracleKind,
+    PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind, PostSwapReaderSeesNewRootOracle,
+    ReusablePhysicalOracleFamily, S5PhysicalIsolationInterleavingOracle,
+    S6IoPressureSimulationOracle, TranscriptReplayOracle,
 };
 pub use planning::{
     lower_physical_simulation_plan, reject_unresolved_simulation_plan_recipe,
@@ -184,6 +212,12 @@ pub use s45_entry::{
     S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
     S45SimulationHarnessEntryIdentity,
 };
+pub use s7_closeout::{
+    materialize_s7_closeout_evidence, S7CloseoutProofSummary, S7CloseoutProofTopology,
+    S7CloseoutSourceDenial, S7ExecutedCloseoutSources, S7MaterializedCloseoutEvidenceBundle,
+};
+#[cfg(any(test, feature = "certification-test-support"))]
+pub use s7_closeout::s7_blob_harness_closeout_sources_for_seed;
 pub use s5_1_security_scope_harness::{
     S51SecurityScopeFailureKind, S51SecurityScopeHarnessCounterSnapshot,
     S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessObservation,
@@ -240,6 +274,18 @@ pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
 #[cfg(feature = "certification-test-support")]
 pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
 pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
+pub use s7_blob_harness::{
+    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
+    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
+    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
+    BlobHarnessShortcutDenial, S7BlobHarnessOracleObservation, S7BlobResumeCrashPoint,
+    S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
+};
+#[cfg(any(test, feature = "certification-test-support"))]
+pub use s7_blob_harness::{
+    synthetic_blob_harness_coverage_matrix_for_test_support,
+    synthetic_blob_harness_replay_bundle_for_test_support,
+};
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
     JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,
@@ -248,7 +294,7 @@ pub use scenario::{
     PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioFixtureSet,
     PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalScenarioSchedule,
     PhysicalSimulationScenarioDefinition, PhysicalSimulationScenarioFamily,
-    TerminalProjectionScenarioDenied,
+    S7BlobHarnessScenarioMetadata, TerminalProjectionScenarioDenied,
 };
 pub use schedule::{
     AdmittedScheduleOrderingAuthority, CounterMismatchSummary, OracleVerdictKind,

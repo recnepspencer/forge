@@ -4,7 +4,7 @@ use forge_store_physical_integrity::{
     StoreExecutedIntegrityEvidence, StoreIntegrityBoundaryClaim,
 };
 
-use crate::physical_container_integrity_test_support::{
+use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     inspect_page_report, inspect_page_report_for_cell, page_payload_with_record,
     page_payload_with_record_for_cell, PageReportFixtureCell,
 };

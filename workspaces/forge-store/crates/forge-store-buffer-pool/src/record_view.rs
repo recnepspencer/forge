@@ -98,16 +98,11 @@ impl<'lease> ZeroCopyRecordView<'lease> {
         self,
         receipt: AllocationReceipt,
     ) -> Result<BoundedCopyRecordView, RecordViewDenial> {
-        let counters = self.counters().with_bounded_copy_attempt();
-        reject_unadmitted_copy_receipt(receipt, self.bytes.len() as u64, counters)?;
-        let copied = self.bytes.to_vec();
-        let counters = match receipt.kind() {
-            AllocationRequestKind::CopiedPayload => counters.with_bounded_copy(receipt.bytes()),
-            AllocationRequestKind::MaterializedRecordSet => {
-                counters.with_materialized_copy(receipt.bytes())
-            }
-            _ => counters,
-        };
+        let counters = begin_bounded_copy_attempt(self.counters());
+        let admitted_receipt =
+            admit_bounded_copy_receipt(receipt, self.bytes.len() as u64, counters)?;
+        let copied = copy_physical_record_bytes(self.bytes);
+        let counters = counters_after_bounded_copy(counters, admitted_receipt);
         Ok(BoundedCopyRecordView::new(copied, self.admission, counters))
     }
 }
@@ -196,11 +191,15 @@ pub(crate) fn reject_mismatched_framed_record(
     Ok(())
 }
 
-fn reject_unadmitted_copy_receipt(
+fn begin_bounded_copy_attempt(counters: RecordCopyCounterSnapshot) -> RecordCopyCounterSnapshot {
+    counters.with_bounded_copy_attempt()
+}
+
+fn admit_bounded_copy_receipt(
     receipt: AllocationReceipt,
     expected_bytes: u64,
     counters: RecordCopyCounterSnapshot,
-) -> Result<(), RecordViewDenial> {
+) -> Result<AllocationReceipt, RecordViewDenial> {
     if !matches!(
         receipt.kind(),
         AllocationRequestKind::CopiedPayload | AllocationRequestKind::MaterializedRecordSet
@@ -216,5 +215,22 @@ fn reject_unadmitted_copy_receipt(
             counters,
         ));
     }
-    Ok(())
+    Ok(receipt)
+}
+
+fn copy_physical_record_bytes(bytes: &[u8]) -> Vec<u8> {
+    bytes.to_vec()
+}
+
+fn counters_after_bounded_copy(
+    counters: RecordCopyCounterSnapshot,
+    receipt: AllocationReceipt,
+) -> RecordCopyCounterSnapshot {
+    match receipt.kind() {
+        AllocationRequestKind::CopiedPayload => counters.with_bounded_copy(receipt.bytes()),
+        AllocationRequestKind::MaterializedRecordSet => {
+            counters.with_materialized_copy(receipt.bytes())
+        }
+        _ => counters,
+    }
 }

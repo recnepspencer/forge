@@ -1,4 +1,4 @@
-use crate::physical_scope_admission_test_support::{
+use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
     root_with_slot, scope_membership, validation, with_checked_frame,
 };
 use forge_store_physical_format::{

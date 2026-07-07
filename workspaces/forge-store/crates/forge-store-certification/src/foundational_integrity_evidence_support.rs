@@ -9,7 +9,7 @@ use forge_store_physical_integrity::{
     ScrubPlanningMemoryEnvelope,
 };
 
-use crate::pre_decode_physical_admission_test_support::with_entry_seed;
+use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::with_entry_seed;
 use crate::{
     PhysicalProofOracleKind, PhysicalScenarioDefinition, PhysicalStoryStep, PhysicalSubstrateLane,
 };

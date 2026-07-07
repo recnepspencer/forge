@@ -26,6 +26,7 @@ pub enum SimulationPlanDenial {
         family: PhysicalSimulationScenarioFamily,
         expectation: PhysicalScenarioExpectationKind,
     },
+    MissingS7BlobHarnessTopology,
     MissingEvidencePolicy,
     MissingS5PhysicalIsolationLaneRegistration,
     AbsentForbiddenShortcutSet,
