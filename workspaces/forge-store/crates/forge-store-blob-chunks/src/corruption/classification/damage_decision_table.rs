@@ -1,9 +1,7 @@
 use forge_store_physical_integrity::PreDecodePhysicalDenialKind;
 
 use super::damage_case::BlobDamageCase;
-use crate::corruption::types::{
-    BlobCorruptionDetectionSource, BlobCorruptionPlacementClass,
-};
+use crate::corruption::types::{BlobCorruptionDetectionSource, BlobCorruptionPlacementClass};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LocalizationEligibilityCase {
@@ -17,10 +15,14 @@ pub(crate) fn classify_damage_case_from_detection_context(
     placement: BlobCorruptionPlacementClass,
 ) -> BlobDamageCase {
     match (source, placement) {
-        (BlobCorruptionDetectionSource::ImportReadmission, BlobCorruptionPlacementClass::ImportStaging) => {
-            BlobDamageCase::CrossScopeImport
-        }
+        (
+            BlobCorruptionDetectionSource::ImportReadmission,
+            BlobCorruptionPlacementClass::ImportStaging,
+        ) => BlobDamageCase::CrossScopeImport,
         (BlobCorruptionDetectionSource::ColdFetch, _) => BlobDamageCase::MissingChunk,
+        (BlobCorruptionDetectionSource::CapsuleMaterialization, _) => {
+            BlobDamageCase::AuthenticityFailure
+        }
         _ => BlobDamageCase::ChecksumMismatch,
     }
 }
@@ -35,10 +37,14 @@ pub(crate) const fn classify_streaming_read_damage_from_checksum_match(
     }
 }
 
-pub(crate) const fn map_pre_decode_denial_kind(kind: PreDecodePhysicalDenialKind) -> BlobDamageCase {
+pub(crate) const fn map_pre_decode_denial_kind(
+    kind: PreDecodePhysicalDenialKind,
+) -> BlobDamageCase {
     match kind {
         PreDecodePhysicalDenialKind::ChecksumMismatch
-        | PreDecodePhysicalDenialKind::UnsupportedChecksumAlgorithm => BlobDamageCase::ChecksumMismatch,
+        | PreDecodePhysicalDenialKind::UnsupportedChecksumAlgorithm => {
+            BlobDamageCase::ChecksumMismatch
+        }
         PreDecodePhysicalDenialKind::AuthenticityRequiredPhysicalDenial
         | PreDecodePhysicalDenialKind::AuthenticityResultPhysicalIdentityMismatch => {
             BlobDamageCase::AuthenticityFailure
@@ -87,7 +93,9 @@ mod tests {
             BlobDamageCase::ChecksumMismatch
         );
         assert_eq!(
-            map_pre_decode_denial_kind(PreDecodePhysicalDenialKind::AuthenticityRequiredPhysicalDenial),
+            map_pre_decode_denial_kind(
+                PreDecodePhysicalDenialKind::AuthenticityRequiredPhysicalDenial
+            ),
             BlobDamageCase::AuthenticityFailure
         );
         assert_eq!(

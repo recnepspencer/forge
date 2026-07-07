@@ -17,14 +17,20 @@
 //! `#[doc(hidden)]` compile-fail modules re-exported below.
 #![forbid(unsafe_code)]
 
+mod capsule_readiness;
 mod chunk_identity;
 mod chunk_integrity;
-mod compile_fail;
+mod closeout_bundle;
 mod compaction;
+mod compile_fail;
 mod corruption;
 mod dedupe;
+mod export_bundle;
 mod exports;
+mod heavy_fixture;
+mod harness_execution;
 mod handoffs;
+mod import_readmission;
 mod lifecycle;
 mod placement;
 mod publication;
@@ -35,9 +41,16 @@ mod streaming;
 #[cfg(test)]
 mod test_support;
 
+#[cfg(test)]
+pub use exports::hostile_lane::*;
 pub use exports::*;
+pub use heavy_fixture::*;
+pub use closeout_bundle::S7ExecutedLifecycleEvidenceBundle;
 
 // --- Construction-boundary compile-fail evidence ---
+#[path = "compile_fail/capsule_readiness.rs"]
+#[doc(hidden)]
+pub mod blob_capsule_readiness_compile_fail;
 #[path = "compile_fail/integrity.rs"]
 #[doc(hidden)]
 pub mod blob_chunk_integrity_compile_fail;
@@ -47,9 +60,18 @@ pub mod blob_chunk_root_compile_fail;
 #[path = "compile_fail/corruption.rs"]
 #[doc(hidden)]
 pub mod blob_corruption_compile_fail;
+#[path = "compile_fail/export_bundle.rs"]
+#[doc(hidden)]
+pub mod blob_export_bundle_compile_fail;
 #[path = "compile_fail/generation_registry.rs"]
 #[doc(hidden)]
 pub mod blob_generation_registry_compile_fail;
+#[path = "compile_fail/import_readmission.rs"]
+#[doc(hidden)]
+pub mod blob_import_readmission_compile_fail;
+#[path = "compile_fail/placement_movement.rs"]
+#[doc(hidden)]
+pub mod blob_placement_movement_compile_fail;
 #[path = "compile_fail/publication.rs"]
 #[doc(hidden)]
 pub mod blob_publication_commit_compile_fail;
@@ -68,6 +90,3 @@ pub mod blob_streaming_read_compile_fail;
 #[path = "compile_fail/security_metadata.rs"]
 #[doc(hidden)]
 pub mod security_metadata_compile_fail;
-#[path = "compile_fail/placement_movement.rs"]
-#[doc(hidden)]
-pub mod blob_placement_movement_compile_fail;

@@ -1,7 +1,5 @@
 use super::logical_content_digest::accumulator_seed;
-use crate::{
-    BlobQuarantineAuthority, BlobStreamingReadRequest, BlobStreamingReadWindow,
-};
+use crate::{BlobQuarantineAuthority, BlobStreamingReadRequest, BlobStreamingReadWindow};
 
 pub(crate) struct StreamingReadVerifier {
     pub(crate) request: BlobStreamingReadRequest,

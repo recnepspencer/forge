@@ -1,9 +1,7 @@
 use forge_store_physical_format::PhysicalChunkPayloadIntegrityWitness;
 
 use super::candidate::BlobChunkDedupeCandidate;
-use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCounterSnapshot, BlobChunkIdentity,
-};
+use crate::{BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCounterSnapshot, BlobChunkIdentity};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobChunkDedupeByteComparison {

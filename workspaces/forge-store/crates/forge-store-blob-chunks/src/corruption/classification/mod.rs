@@ -1,15 +1,17 @@
 mod damage_case;
 mod damage_decision_table;
 mod generation_posture;
+mod pre_decode_gate;
 
 pub use damage_case::BlobDamageCase;
 pub(crate) use damage_decision_table::{
-    classify_damage_case_from_detection_context,
-    classify_localization_eligibility_from_frontier_match,
-    classify_streaming_read_damage_from_checksum_match,
-    damage_case_for_localization_denial, map_pre_decode_denial_kind,
-    LocalizationEligibilityCase,
+    classify_localization_eligibility_from_frontier_match, LocalizationEligibilityCase,
 };
+pub use pre_decode_gate::{
+    classify_blob_damage_before_decode, classify_streaming_damage_before_decode,
+    BlobDamageEvidence,
+};
+pub(in crate::corruption) use pre_decode_gate::classify_physical_damage_before_decode;
 
 pub use generation_posture::{
     AuthoritativeBlobCorruptionPosture, BlobCorruptionGenerationClassification,

@@ -1,12 +1,15 @@
 use crate::{ChunkTreeRoot, LogicalContentDigest};
 
-use super::identity::BlobPublicationRecoveryOperationDigest;
 use super::super::{BlobReachabilityStaging, BlobRootCandidateForPublication};
+use super::identity::BlobPublicationRecoveryOperationDigest;
 
 pub(crate) fn chunk_write_recovery_operation_digest(
     digest: &LogicalContentDigest,
 ) -> BlobPublicationRecoveryOperationDigest {
-    BlobPublicationRecoveryOperationDigest::from_stable_parts("chunk-write", digest.digest().as_str())
+    BlobPublicationRecoveryOperationDigest::from_stable_parts(
+        "chunk-write",
+        digest.digest().as_str(),
+    )
 }
 
 pub(crate) fn checksum_recovery_operation_digest(
@@ -21,7 +24,10 @@ pub(crate) fn checksum_recovery_operation_digest(
 pub(crate) fn chunk_tree_recovery_operation_digest(
     root: &ChunkTreeRoot,
 ) -> BlobPublicationRecoveryOperationDigest {
-    BlobPublicationRecoveryOperationDigest::from_stable_parts("chunk-tree-durable", root.digest().as_str())
+    BlobPublicationRecoveryOperationDigest::from_stable_parts(
+        "chunk-tree-durable",
+        root.digest().as_str(),
+    )
 }
 
 pub(crate) fn root_candidate_recovery_operation_digest(

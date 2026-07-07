@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::PageLsn;
+use forge_store_recovery_physics::{PageLsn, S5RecoveryReadinessAdmission};
 
 use super::{
     PhysicalIsolationEntryDenial, PhysicalIsolationEntryEvidence, PhysicalIsolationEntryIdentity,
@@ -8,12 +8,9 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct PhysicalIsolationEntryAdmission {
+    recovery_admission: S5RecoveryReadinessAdmission,
     identity: PhysicalIsolationEntryIdentity,
     root_epoch_basis: PhysicalIsolationRootEpochBasis,
-    recovered_root: String,
-    admitted_page_lsn_frontier: Option<PageLsn>,
-    replayed_frames: usize,
-    source_candidate_count: usize,
     evidence: PhysicalIsolationEntryEvidence,
 }
 
@@ -59,29 +56,20 @@ impl PhysicalIsolationEntryAdmission {
     fn admit(
         request: PhysicalIsolationEntryRequest<'_>,
     ) -> Result<Self, PhysicalIsolationEntryDenial> {
-        let admission = request.recovery_readiness().admit_for_s5_startup()?;
-        let source_decision_digest = request
-            .recovery_readiness()
-            .source_precedence_trace()
-            .canonical_replay_digest();
-        let identity = PhysicalIsolationEntryIdentity::new(
-            admission.recovered_root(),
-            admission.admitted_page_lsn_frontier(),
-            &source_decision_digest,
-            admission.replayed_frames(),
-            admission.source_candidate_count(),
-        );
+        let recovery_admission = verify_s5_startup_admission(request)?;
+        let identity = derive_entry_identity_from_admission(request, &recovery_admission);
         let root_epoch_basis = identity.root_epoch_basis();
-        let evidence = PhysicalIsolationEntryEvidence::from_entry_identity(&identity);
+        let evidence = seal_physical_isolation_entry_evidence(&identity);
         Ok(Self {
+            recovery_admission,
             identity,
             root_epoch_basis,
-            recovered_root: admission.recovered_root().to_string(),
-            admitted_page_lsn_frontier: admission.admitted_page_lsn_frontier(),
-            replayed_frames: admission.replayed_frames(),
-            source_candidate_count: admission.source_candidate_count(),
             evidence,
         })
+    }
+
+    pub const fn recovery_admission(&self) -> &S5RecoveryReadinessAdmission {
+        &self.recovery_admission
     }
 
     pub const fn identity(&self) -> &PhysicalIsolationEntryIdentity {
@@ -93,19 +81,19 @@ impl PhysicalIsolationEntryAdmission {
     }
 
     pub fn recovered_root(&self) -> &str {
-        &self.recovered_root
+        self.recovery_admission.recovered_root()
     }
 
     pub const fn admitted_page_lsn_frontier(&self) -> Option<PageLsn> {
-        self.admitted_page_lsn_frontier
+        self.recovery_admission.admitted_page_lsn_frontier()
     }
 
     pub const fn replayed_frames(&self) -> usize {
-        self.replayed_frames
+        self.recovery_admission.replayed_frames()
     }
 
     pub const fn source_candidate_count(&self) -> usize {
-        self.source_candidate_count
+        self.recovery_admission.source_candidate_count()
     }
 
     pub const fn evidence(&self) -> &PhysicalIsolationEntryEvidence {
@@ -115,4 +103,36 @@ impl PhysicalIsolationEntryAdmission {
     pub const fn is_store_physical_stability_authority(&self) -> bool {
         false
     }
+}
+
+fn verify_s5_startup_admission(
+    request: PhysicalIsolationEntryRequest<'_>,
+) -> Result<S5RecoveryReadinessAdmission, PhysicalIsolationEntryDenial> {
+    request
+        .recovery_readiness()
+        .admit_for_s5_startup()
+        .map_err(PhysicalIsolationEntryDenial::from)
+}
+
+fn derive_entry_identity_from_admission(
+    request: PhysicalIsolationEntryRequest<'_>,
+    admission: &S5RecoveryReadinessAdmission,
+) -> PhysicalIsolationEntryIdentity {
+    let source_decision_digest = request
+        .recovery_readiness()
+        .source_precedence_trace()
+        .canonical_replay_digest();
+    PhysicalIsolationEntryIdentity::new(
+        admission.recovered_root(),
+        admission.admitted_page_lsn_frontier(),
+        &source_decision_digest,
+        admission.replayed_frames(),
+        admission.source_candidate_count(),
+    )
+}
+
+fn seal_physical_isolation_entry_evidence(
+    identity: &PhysicalIsolationEntryIdentity,
+) -> PhysicalIsolationEntryEvidence {
+    PhysicalIsolationEntryEvidence::from_entry_identity(identity)
 }

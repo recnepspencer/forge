@@ -2,7 +2,9 @@ use crate::{
     s2_readiness_facts::S2PhysicalSubstrateHandoffEvidence, S2PhysicalReadinessFacts,
     S2ReadinessDenial,
 };
-use forge_store_contracts::{RoadmapScope, ROADMAP_2_S1_SCOPE};
+use forge_store_contracts::{
+    RoadmapScope, S2PhysicalSubstrateReadinessSnapshot, ROADMAP_2_S1_SCOPE,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S2PhysicalSubstrateReadiness {
@@ -38,6 +40,18 @@ impl S2PhysicalSubstrateReadiness {
 
     pub const fn is_sealed(&self) -> bool {
         self.sealed
+    }
+
+    pub const fn physical_substrate_snapshot(&self) -> S2PhysicalSubstrateReadinessSnapshot {
+        S2PhysicalSubstrateReadinessSnapshot::from_exact_counts(
+            self.sealed,
+            self.facts.physical_reference_count(),
+            self.facts.header_decode_witness_count(),
+            self.facts.payload_admission_witness_count(),
+            self.facts.manifest_layout_evidence_count(),
+            self.facts.no_materialization_witness_count(),
+            self.facts.counter_evidence_count(),
+        )
     }
 }
 

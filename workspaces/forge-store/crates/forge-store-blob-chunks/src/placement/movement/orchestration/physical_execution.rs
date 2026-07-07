@@ -5,8 +5,7 @@ use crate::placement::movement::{
     receipt_construction::store_owned_execution_receipt::construct_store_owned_execution_receipt,
     types::{
         AdmittedBlobPlacementMovementPlan, BlobPlacementMovementPhysicalExecutionIntent,
-        StoreOwnedPlacementMovementExecution,
-        StoreOwnedPlacementMovementExecutionReceipt,
+        StoreOwnedPlacementMovementExecution, StoreOwnedPlacementMovementExecutionReceipt,
     },
     verification::physical_execution_match::verify_physical_execution_receipt_matches_plan,
 };

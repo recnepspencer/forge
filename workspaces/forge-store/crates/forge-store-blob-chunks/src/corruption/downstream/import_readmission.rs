@@ -1,6 +1,7 @@
 use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 
+use crate::corruption::transitions::verify_current_store_authority_for_readmission;
 use crate::{
     AuthoritativeBlobCorruptionPosture, BlobCorruptionGuard, BlobCorruptionGuardDenial,
     BlobQuarantineLifecycleState,
@@ -23,7 +24,7 @@ impl BlobCorruptionImportReadmission {
         posture: AuthoritativeBlobCorruptionPosture,
         current_store_authority: StoreCurrentAuthorityWitness,
     ) -> BlobCorruptionImportReadmissionOutcome {
-        if current_store_authority.identity().aspect_key().as_str().is_empty() {
+        if verify_current_store_authority_for_readmission(&current_store_authority).is_err() {
             return TransitionOutcome::denied(BlobCorruptionGuardDenial::ImportReadmissionDenied {
                 source: crate::BlobCorruptionDetectionSource::ImportReadmission,
                 counters: posture.counters().record_denial(),

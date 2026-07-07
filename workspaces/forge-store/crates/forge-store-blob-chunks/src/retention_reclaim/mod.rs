@@ -16,12 +16,6 @@ mod test_support;
 #[cfg(test)]
 mod tests;
 
-pub use orchestration::{
-    BlobRetentionReclaimAdmissionAuthority, BlobRetentionSafeReclaimPlanner,
-};
-pub use types::{
-    BlobRetentionReclaimAdmission, BlobRetentionReclaimOutcome, BlobRetentionReclaimRequest,
-};
 pub use candidate::{
     BlobRetentionOrphanCandidate, BlobRetentionOrphanSource, BlobRetentionPhysicalOrphanIdentity,
 };
@@ -34,5 +28,9 @@ pub use denial::{
     reject_terminal_projection_as_retention_reclaim_authority, BlobRetentionReclaimDenial,
 };
 pub use holds::{BlobRetentionHold, BlobRetentionHoldKind, BlobRetentionHoldSet};
+pub use orchestration::{BlobRetentionReclaimAdmissionAuthority, BlobRetentionSafeReclaimPlanner};
 pub use permit::{BlobRetentionReclaimPermit, BlobRetentionReclaimReceipt};
 pub use residue::{BlobLocalizedReclaimResidue, BlobReclaimResidueKind};
+pub use types::{
+    BlobRetentionReclaimAdmission, BlobRetentionReclaimOutcome, BlobRetentionReclaimRequest,
+};

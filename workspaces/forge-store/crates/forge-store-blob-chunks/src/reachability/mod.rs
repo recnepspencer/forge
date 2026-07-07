@@ -28,11 +28,11 @@ pub use denial::{
     BlobReachabilityDenial,
 };
 pub use edges::{BlobReachabilityEdge, BlobReachabilityEdgeKind};
+pub(crate) use edges::BlobReachabilityAuthorityKey;
 pub use holds::BlobReachabilityProtectedHold;
 pub use proof::BlobReachabilityProof;
 pub use receipt_construction::{
-    BlobReachabilityCanonicalSnapshot, BlobReachabilityEdgeRelease,
-    BlobReachabilityReclaimRelease,
+    BlobReachabilityCanonicalSnapshot, BlobReachabilityEdgeRelease, BlobReachabilityReclaimRelease,
 };
 pub use types::{
     BlobChunkReachabilityProofSet, BlobChunkReachabilityRegistry, BlobReachabilityReclaimDecision,

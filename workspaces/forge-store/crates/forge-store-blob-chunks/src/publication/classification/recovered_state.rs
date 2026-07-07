@@ -1,6 +1,6 @@
-use super::crash_point::BlobPublicationCrashPoint;
 use super::super::types::BlobPublicationRecoveredState;
 use super::super::BlobPublicationCounterSnapshot;
+use super::crash_point::BlobPublicationCrashPoint;
 
 pub(crate) fn classify_recovered_state(
     crash_point: BlobPublicationCrashPoint,

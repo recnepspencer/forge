@@ -35,8 +35,8 @@ fn background_pressure_classes_are_distinct_physical_shapes() {
     assert!(classes.contains(&BackgroundIoPressureClass::CheckpointFlush));
     assert!(classes.contains(&BackgroundIoPressureClass::ScrubScan));
     assert!(classes.contains(&BackgroundIoPressureClass::ReplicationPrepRead));
-    assert!(classes.contains(&BackgroundIoPressureClass::BlobIngestPressure));
-    assert!(classes.contains(&BackgroundIoPressureClass::BlobMigrationPressure));
+    assert!(classes.contains(&BackgroundIoPressureClass::IngestPressure));
+    assert!(classes.contains(&BackgroundIoPressureClass::MigrationPressure));
     assert!(classes.contains(&BackgroundIoPressureClass::BackupPrepRead));
     assert!(classes.contains(&BackgroundIoPressureClass::RepairScan));
     assert!(classes.contains(&BackgroundIoPressureClass::VerificationPressure));
@@ -45,11 +45,11 @@ fn background_pressure_classes_are_distinct_physical_shapes() {
         BackgroundDebtKind::CheckpointFlushDebt
     );
     assert_eq!(
-        BackgroundIoPressureClass::BlobIngestPressure.debt_kind(),
+        BackgroundIoPressureClass::IngestPressure.debt_kind(),
         BackgroundDebtKind::BlobContention
     );
     assert_eq!(
-        BackgroundIoPressureClass::BlobMigrationPressure.debt_kind(),
+        BackgroundIoPressureClass::MigrationPressure.debt_kind(),
         BackgroundDebtKind::BlobContention
     );
     assert_eq!(

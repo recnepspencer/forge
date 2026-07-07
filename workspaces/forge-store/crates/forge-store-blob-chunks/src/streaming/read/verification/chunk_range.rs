@@ -1,5 +1,6 @@
 use crate::{
-    BlobChunkByteRange, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
+    BlobChunkByteRange, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot,
+    BlobStreamingReadDenial,
 };
 
 pub(crate) fn verify_chunk_range(

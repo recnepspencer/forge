@@ -1,5 +1,8 @@
 use crate::{
-    CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
+    BlobByteEqualityOracle, BlobChunkOrderingOracle, BlobConstantMemoryOracle,
+    BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle,
+    BlobDigestChecksumDistinctionOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
+    BlobReachabilityOracle, CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
     ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan,
     S5PhysicalIsolationInterleavingOracle, S6IoPressureSimulationOracle, TranscriptReplayOracle,
@@ -68,6 +71,18 @@ impl ReusablePhysicalOracleFamily {
         }
     }
 
+    pub const fn s7_blob_harness_evidence() -> Self {
+        Self {
+            kind: OracleFamilyKind::S7BlobHarnessEvidence,
+        }
+    }
+
+    pub const fn s7_blob_heavy_qualification() -> Self {
+        Self {
+            kind: OracleFamilyKind::S7BlobHeavyQualification,
+        }
+    }
+
     pub const fn kind(&self) -> OracleFamilyKind {
         self.kind
     }
@@ -98,6 +113,16 @@ impl CertificationOwnedOracle for TranscriptReplayOracle {}
 impl CertificationOwnedOracle for IndependentVerifierAgreementOracle {}
 impl CertificationOwnedOracle for S5PhysicalIsolationInterleavingOracle {}
 impl CertificationOwnedOracle for S6IoPressureSimulationOracle {}
+impl CertificationOwnedOracle for BlobByteEqualityOracle {}
+impl CertificationOwnedOracle for BlobChunkOrderingOracle {}
+impl CertificationOwnedOracle for BlobDigestChecksumDistinctionOracle {}
+impl CertificationOwnedOracle for BlobNoSidecarPathOracle {}
+impl CertificationOwnedOracle for BlobNoCrossScopeDedupeOracle {}
+impl CertificationOwnedOracle for BlobConstantMemoryOracle {}
+impl CertificationOwnedOracle for BlobReachabilityOracle {}
+impl CertificationOwnedOracle for BlobHeavyQualificationEvidenceOracle {}
+impl CertificationOwnedOracle for BlobHeavyCleanupOracle {}
+impl CertificationOwnedOracle for BlobHeavyPatternLaneOracle {}
 
 impl<O: PhysicalProofOracle> PhysicalOracleJudgment<O> {
     pub fn judge(

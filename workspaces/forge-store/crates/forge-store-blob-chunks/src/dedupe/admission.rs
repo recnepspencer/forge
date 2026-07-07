@@ -7,9 +7,10 @@ use crate::dedupe::receipt_construction::denial_assembly;
 use crate::dedupe::transitions::{admit_cross_identity_case, admit_same_identity_case};
 use crate::dedupe::verification::verify_policy_allows_sharing;
 use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCollisionPosture, BlobChunkDedupeCounterSnapshot,
-    BlobChunkDedupeDigestRewriteBasis, BlobChunkDedupeIndexPartition, BlobChunkDedupePolicy,
-    BlobChunkDedupeShareClaim, BlobChunkRootCanonicalComparison, BlobCorruptionGuard,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCollisionPosture,
+    BlobChunkDedupeCounterSnapshot, BlobChunkDedupeDigestRewriteBasis,
+    BlobChunkDedupeIndexPartition, BlobChunkDedupePolicy, BlobChunkDedupeShareClaim,
+    BlobChunkRootCanonicalComparison, BlobCorruptionGuard,
 };
 use forge_proof::TransitionOutcome;
 

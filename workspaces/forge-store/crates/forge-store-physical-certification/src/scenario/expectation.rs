@@ -1,10 +1,26 @@
-use forge_store_blob_chunks::BlobHarnessChunkTopology;
+use forge_store_blob_chunks::{
+    BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
+    BlobHarnessChunkTopology, BlobHarnessFailurePoint, BlobHarnessPlacementClass,
+    BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PhysicalScenarioExpectation {
     kind: PhysicalScenarioExpectationKind,
     non_claims: Vec<PhysicalScenarioNonClaim>,
     s7_blob_harness_topology: Option<BlobHarnessChunkTopology>,
+    s7_blob_harness_metadata: Option<S7BlobHarnessScenarioMetadata>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct S7BlobHarnessScenarioMetadata {
+    size_class: BlobHarnessSizeClass,
+    chunk_size_class: BlobHarnessChunkSizeClass,
+    placement_class: BlobHarnessPlacementClass,
+    security_scope_class: BlobHarnessSecurityScopeClass,
+    access_mode: BlobHarnessAccessMode,
+    failure_point: BlobHarnessFailurePoint,
+    actor_mix: BlobHarnessActorMix,
 }
 
 impl PhysicalScenarioExpectation {
@@ -71,11 +87,15 @@ impl PhysicalScenarioExpectation {
         )
     }
 
-    pub fn non_claiming_s7_blob_harness_seed(topology: BlobHarnessChunkTopology) -> Self {
+    pub fn non_claiming_s7_blob_harness_seed(
+        topology: BlobHarnessChunkTopology,
+        metadata: S7BlobHarnessScenarioMetadata,
+    ) -> Self {
         Self {
             kind: PhysicalScenarioExpectationKind::S7BlobHarnessSeed,
             non_claims: vec![PhysicalScenarioNonClaim::NoS7BlobOperationCorrectnessClaim],
             s7_blob_harness_topology: Some(topology),
+            s7_blob_harness_metadata: Some(metadata),
         }
     }
 
@@ -113,6 +133,10 @@ impl PhysicalScenarioExpectation {
         self.s7_blob_harness_topology
     }
 
+    pub const fn s7_blob_harness_metadata(&self) -> Option<S7BlobHarnessScenarioMetadata> {
+        self.s7_blob_harness_metadata
+    }
+
     fn new(
         kind: PhysicalScenarioExpectationKind,
         non_claims: Vec<PhysicalScenarioNonClaim>,
@@ -121,7 +145,58 @@ impl PhysicalScenarioExpectation {
             kind,
             non_claims,
             s7_blob_harness_topology: None,
+            s7_blob_harness_metadata: None,
         }
+    }
+}
+
+impl S7BlobHarnessScenarioMetadata {
+    pub const fn new(
+        size_class: BlobHarnessSizeClass,
+        chunk_size_class: BlobHarnessChunkSizeClass,
+        placement_class: BlobHarnessPlacementClass,
+        security_scope_class: BlobHarnessSecurityScopeClass,
+        access_mode: BlobHarnessAccessMode,
+        failure_point: BlobHarnessFailurePoint,
+        actor_mix: BlobHarnessActorMix,
+    ) -> Self {
+        Self {
+            size_class,
+            chunk_size_class,
+            placement_class,
+            security_scope_class,
+            access_mode,
+            failure_point,
+            actor_mix,
+        }
+    }
+
+    pub const fn size_class(self) -> BlobHarnessSizeClass {
+        self.size_class
+    }
+
+    pub const fn chunk_size_class(self) -> BlobHarnessChunkSizeClass {
+        self.chunk_size_class
+    }
+
+    pub const fn placement_class(self) -> BlobHarnessPlacementClass {
+        self.placement_class
+    }
+
+    pub const fn security_scope_class(self) -> BlobHarnessSecurityScopeClass {
+        self.security_scope_class
+    }
+
+    pub const fn access_mode(self) -> BlobHarnessAccessMode {
+        self.access_mode
+    }
+
+    pub const fn failure_point(self) -> BlobHarnessFailurePoint {
+        self.failure_point
+    }
+
+    pub const fn actor_mix(self) -> BlobHarnessActorMix {
+        self.actor_mix
     }
 }
 

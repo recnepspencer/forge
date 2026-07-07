@@ -69,4 +69,3 @@ pub use states::{
     BlobResumeRootPublicationReady, BlobResumeSessionAdmitted, BlobResumeSessionClosed,
     BlobResumeSessionDeclaration,
 };
-

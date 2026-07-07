@@ -288,10 +288,11 @@
 //! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
 //! ```
 mod access_policy;
-mod blob_observation;
+mod placement_observation;
 mod durability_ordering;
 mod durability_profile;
 pub mod external_recovery_compile_fail;
+mod heavy_fixture;
 mod io_capability;
 mod operation_boundary;
 mod s6_queue_execution;
@@ -312,7 +313,7 @@ pub use access_policy::{
     PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
     StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
 };
-pub use blob_observation::{
+pub use placement_observation::{
     BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
     BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
     BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
@@ -356,6 +357,11 @@ pub use durability_profile::{
     BackendDurabilityProfileId, BackendDurabilitySupport, MmapFlushNotDurabilityCertifiedProfile,
     PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
     WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
+};
+pub use heavy_fixture::{
+    cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
+    HeavyFixtureBackendProfile, HeavyFixtureCleanupReceipt, HeavyFixtureDiskPreflightReceipt,
+    HeavyFixtureMaterializationDirectory, HeavyFixtureTempFileMaterialization,
 };
 pub use io_capability::{
     reject_certification_only_evidence, reject_copied_qualification_row,

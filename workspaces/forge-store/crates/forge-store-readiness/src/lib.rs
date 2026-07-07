@@ -121,6 +121,68 @@
 //! };
 //! ```
 //!
+//! S.7 capsule readiness handoff cannot be synthesized from raw fields:
+//!
+//! ```compile_fail
+//! use forge_store_readiness::S7CapsuleReadinessHandoff;
+//!
+//! let _forged = S7CapsuleReadinessHandoff {
+//!     readiness_digest: String::new(),
+//!     declared_chunk_count: 0,
+//!     declared_bytes: 0,
+//!     planned_chunks: 0,
+//!     materialized_chunks: 0,
+//!     skipped_chunks: 0,
+//!     denied_chunks: 0,
+//!     readiness_publications: 0,
+//!     non_claims: todo!(),
+//! };
+//! ```
+//!
+//! S.7 capsule readiness handoff cannot be minted through a public constructor:
+//!
+//! ```compile_fail
+//! use forge_store_readiness::S7CapsuleReadinessHandoff;
+//!
+//! let _forged = S7CapsuleReadinessHandoff::from_lower_capsule_readiness(
+//!     String::new(),
+//!     0,
+//!     0,
+//!     0,
+//!     0,
+//!     0,
+//!     0,
+//!     0,
+//! );
+//! ```
+//!
+//! S.7 capsule readiness handoff cannot be admitted from a forged lower witness:
+//!
+//! ```compile_fail
+//! use forge_store_blob_chunks::BlobCapsuleReadinessWitness;
+//! use forge_store_readiness::admit_s7_capsule_readiness_handoff;
+//!
+//! let forged = BlobCapsuleReadinessWitness {
+//!     object_id: todo!(),
+//!     generation: todo!(),
+//!     chunk_tree_root: todo!(),
+//!     logical_content_digest: todo!(),
+//!     selected_chunks: vec![],
+//!     readiness_digest: String::new(),
+//!     declared_bytes: 0,
+//!     counters: todo!(),
+//! };
+//! let _handoff = admit_s7_capsule_readiness_handoff(&forged);
+//! ```
+//!
+//! S.7 closeout downstream non-claim vocabulary is typed and fixed-shape:
+//!
+//! ```compile_fail
+//! use forge_store_readiness::S8LayoutReadinessNonClaim;
+//!
+//! let _ = S8LayoutReadinessNonClaim::ImaginaryShortcut;
+//! ```
+//!
 mod adoption_denial;
 mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
@@ -147,6 +209,8 @@ mod s6_later_milestone_non_claims;
 mod s6_materialized_certification_closeout;
 mod s6_production_readiness_closeout;
 mod s6_s7_placement_admission;
+mod s7_closeout_handoffs;
+mod s7_capsule_readiness_handoff;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -203,7 +267,7 @@ pub use s5_simulation_harness_readiness::S5CorrectnessNonClaimEvidence;
 pub use s6_later_milestone_non_claims::{
     S10BackupExportReadinessNonClaim, S10CompactionReadinessNonClaim,
     S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S6LaterMilestoneDestination,
-    S6LaterMilestoneHandoffDenial, S7PlacementReadinessNonClaim,
+    S6LaterMilestoneHandoffDenial, S7CapsuleReadinessNonClaim, S7PlacementReadinessNonClaim,
 };
 pub use s6_materialized_certification_closeout::{
     reject_materialized_s6_certification_as_runtime_authority,
@@ -223,4 +287,11 @@ pub use s6_production_readiness_closeout::{
 };
 pub use s6_s7_placement_admission::{
     admit_s6_s7_placement_handoff, S6S7PlacementAdmissionAuthority,
+};
+pub use s7_closeout_handoffs::{
+    S10BackupRepairReadinessNonClaim, S11KeyLifecycleReadinessNonClaim,
+    S12FullCertificationNonClaim, S8LayoutReadinessNonClaim,
+};
+pub use s7_capsule_readiness_handoff::{
+    admit_s7_capsule_readiness_handoff, S7CapsuleReadinessHandoff,
 };

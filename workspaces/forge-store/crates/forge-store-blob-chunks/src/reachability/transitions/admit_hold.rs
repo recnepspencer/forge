@@ -18,8 +18,8 @@ pub(crate) fn transition_admit_hold(
     }
     registry.set_stored_counters(registry.stored_counters().with_hold());
     registry.holds_mut().push(hold);
-    registry.holds_mut().sort_by(|left, right| {
-        left.identity().as_str().cmp(right.identity().as_str())
-    });
+    registry
+        .holds_mut()
+        .sort_by(|left, right| left.identity().as_str().cmp(right.identity().as_str()));
     Ok(())
 }

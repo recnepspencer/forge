@@ -2,8 +2,8 @@ use forge_proof::TransitionOutcome;
 use forge_store_contracts::StableDigest;
 use forge_store_security::StoreTenantScope;
 
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
 use crate::placement::admission::test_support::admit_inline_placement;
+use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
 use crate::{
     AuthenticatedFrameDigest, BlobAuthorityClassification, BlobChunkReachabilityRegistry,
     BlobChunkRootPublication, BlobGeneration, BlobGenerationRegistryAdmission,
@@ -233,9 +233,9 @@ fn declaration_with_identity(
 
 fn scoped_chunk_with_bytes(case: &str, bytes: &[u8]) -> ScopedBlobChunk {
     let scope = blob_scope(case, StoreTenantScope::TenantPhysicalBoundary);
-    ScopedBlobChunk::from_integrity_proof(
-        crate::test_support::integrity_proof_for_scope(scope, bytes),
-    )
+    ScopedBlobChunk::from_integrity_proof(crate::test_support::integrity_proof_for_scope(
+        scope, bytes,
+    ))
 }
 
 trait TestTransitionSuccess<S> {

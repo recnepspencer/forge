@@ -1,6 +1,4 @@
-use forge_store_physical_isolation::{
-    CompactionReadInterlockDenial, CompactionReadInterlockPlan,
-};
+use forge_store_physical_isolation::{CompactionReadInterlockDenial, CompactionReadInterlockPlan};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobCompactionPhysicalInterlock {

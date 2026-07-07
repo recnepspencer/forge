@@ -35,7 +35,6 @@ pub use equivalence::BlobCompactionEquivalence;
 pub use orchestration::BlobCompactionAuthority;
 pub use receipt_construction::published_observation::BlobCompactionPublishedObservation;
 pub use recovery::{BlobCompactionResidue, BlobCompactionRestartOutcome};
-pub use rewrite_binding::BlobCompactionPhysicalRewriteBinding;
 pub use transitions::execute_rewrite::BlobCompactionRewriteExecution;
 pub use types::{
     BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPhysicalInterlock,

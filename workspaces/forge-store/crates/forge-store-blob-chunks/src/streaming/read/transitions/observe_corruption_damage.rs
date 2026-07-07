@@ -1,11 +1,12 @@
-use crate::{
-    BlobChunkProofLeaf, BlobCorruptedChunkLocalization, BlobCorruptionGuard, BlobCorruptionPlacementClass,
-    BlobDamageCase, BlobQuarantineAuthority, BlobQuarantineDiagnostics, BlobStreamingReadCounterSnapshot,
-    BlobStreamingReadDenial, BlobStreamingReadObservedChunk, BlobStreamingReadRequest,
-};
 use crate::corruption::{
-    classify_streaming_read_damage_from_checksum_match, construct_quarantine_diagnostics,
+    classify_streaming_damage_before_decode, construct_quarantine_diagnostics,
     from_streaming_read_request, seal_quarantine_from_localization,
+};
+use crate::{
+    BlobChunkProofLeaf, BlobCorruptedChunkLocalization, BlobCorruptionGuard,
+    BlobCorruptionPlacementClass, BlobDamageCase, BlobQuarantineAuthority,
+    BlobQuarantineDiagnostics, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
+    BlobStreamingReadObservedChunk, BlobStreamingReadRequest,
 };
 
 pub(crate) fn collect_streaming_read_damage_evidence(
@@ -16,7 +17,7 @@ pub(crate) fn collect_streaming_read_damage_evidence(
 }
 
 pub(crate) fn classify_streaming_read_damage(checksums_match: bool) -> Option<BlobDamageCase> {
-    classify_streaming_read_damage_from_checksum_match(checksums_match)
+    classify_streaming_damage_before_decode(checksums_match)
 }
 
 pub(crate) fn verify_chunk_checksum_pre_decode(checksums_match: bool) -> bool {

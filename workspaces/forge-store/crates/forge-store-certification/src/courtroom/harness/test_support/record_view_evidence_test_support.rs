@@ -47,11 +47,13 @@ pub(crate) fn resident_frame_table() -> ResidentFrameTable {
         PinnedPageBudget::pages(4).unwrap(),
         DirtyPageBudget::pages(1).unwrap(),
     );
-    let admitted = S2PhysicalResidencyEntry::from_s1_readiness(readiness)
-        .unwrap()
-        .with_budget(budget)
-        .admit()
-        .unwrap();
+    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
+        readiness.physical_substrate_snapshot(),
+    )
+    .unwrap()
+    .with_budget(budget)
+    .admit()
+    .unwrap();
     ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 

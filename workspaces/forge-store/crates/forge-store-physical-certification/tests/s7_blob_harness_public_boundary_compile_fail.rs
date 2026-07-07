@@ -10,6 +10,47 @@ fn blob_harness_envelope_raw_constructor_is_not_public() {
             "ui/s7_blob_harness_public_boundary/blob_harness_envelope_raw_constructor_is_private.rs"
         ),
         stderr_fragments: &["new", "private"],
+        include_physical_certification: false,
+        enable_blob_harness_certification_authority: false,
+    });
+}
+
+#[test]
+fn blob_harness_synthetic_replay_helpers_are_not_public_api() {
+    assert_compile_fails(CompileFailCase {
+        name: "blob_harness_replay_helpers_are_not_public",
+        source: include_str!(
+            "ui/s7_blob_harness_public_boundary/blob_harness_replay_helpers_are_not_public.rs"
+        ),
+        stderr_fragments: &["replay_bundle_for_seed", "coverage_matrix_for_seed"],
+        include_physical_certification: true,
+        enable_blob_harness_certification_authority: false,
+    });
+}
+
+#[test]
+fn blob_harness_executed_witness_cannot_be_forged_from_raw_fields() {
+    assert_compile_fails(CompileFailCase {
+        name: "blob_harness_executed_witness_fields_are_private",
+        source: include_str!(
+            "ui/s7_blob_harness_public_boundary/blob_harness_executed_witness_fields_are_private.rs"
+        ),
+        stderr_fragments: &["BlobHarnessExecutedWitness", "private"],
+        include_physical_certification: false,
+        enable_blob_harness_certification_authority: true,
+    });
+}
+
+#[test]
+fn blob_harness_execution_authority_is_not_public_on_default_surface() {
+    assert_compile_fails(CompileFailCase {
+        name: "blob_harness_execution_authority_is_not_public",
+        source: include_str!(
+            "ui/s7_blob_harness_public_boundary/blob_harness_execution_authority_is_not_public.rs"
+        ),
+        stderr_fragments: &["execute_s7_blob_harness", "BlobHarnessExecutionInput"],
+        include_physical_certification: false,
+        enable_blob_harness_certification_authority: false,
     });
 }
 
@@ -17,6 +58,8 @@ struct CompileFailCase {
     name: &'static str,
     source: &'static str,
     stderr_fragments: &'static [&'static str],
+    include_physical_certification: bool,
+    enable_blob_harness_certification_authority: bool,
 }
 
 fn assert_compile_fails(case: CompileFailCase) {
@@ -31,7 +74,15 @@ fn assert_compile_fails(case: CompileFailCase) {
     }
     fs::create_dir_all(case_dir.join("src")).unwrap();
     fs::write(case_dir.join("src/main.rs"), case.source).unwrap();
-    fs::write(case_dir.join("Cargo.toml"), manifest(&workspace)).unwrap();
+    fs::write(
+        case_dir.join("Cargo.toml"),
+        manifest(
+            &workspace,
+            case.include_physical_certification,
+            case.enable_blob_harness_certification_authority,
+        ),
+    )
+    .unwrap();
 
     let output = Command::new("cargo")
         .arg("check")
@@ -57,8 +108,25 @@ fn assert_compile_fails(case: CompileFailCase) {
     }
 }
 
-fn manifest(workspace: &Path) -> String {
+fn manifest(
+    workspace: &Path,
+    include_physical_certification: bool,
+    enable_blob_harness_certification_authority: bool,
+) -> String {
     let workspace = workspace.display().to_string().replace('\\', "/");
+    let physical_certification = if include_physical_certification {
+        format!(
+            "forge-store-physical-certification = {{ path = \"{}/workspaces/forge-store/crates/forge-store-physical-certification\" }}\n",
+            workspace
+        )
+    } else {
+        String::new()
+    };
+    let blob_chunk_features = if enable_blob_harness_certification_authority {
+        ", features = [\"certification-test-authority\"]"
+    } else {
+        ""
+    };
     format!(
         r#"[package]
 name = "s7_blob_harness_public_boundary_compile_fail"
@@ -68,9 +136,11 @@ edition = "2021"
 [workspace]
 
 [dependencies]
+forge-store-blob-chunks = {{ path = "{}/workspaces/forge-store/crates/forge-store-blob-chunks"{} }}
 forge-store-budgets = {{ path = "{}/workspaces/forge-store/crates/forge-store-budgets" }}
+{}
 "#,
-        workspace
+        workspace, blob_chunk_features, workspace, physical_certification
     )
 }
 

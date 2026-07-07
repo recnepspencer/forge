@@ -1,11 +1,13 @@
 use crate::{
-    derived_index_damage_tests::inspect_with_damaged_authority,
-    courtroom::harness::test_support::physical_container_integrity_test_support::{inspect_page_report, page_payload_with_record},
+    courtroom::harness::test_support::physical_container_integrity_test_support::{
+        inspect_page_report, page_payload_with_record,
+    },
     courtroom::harness::test_support::physical_scope_admission_test_support::{
         page_cell, page_slot_admission, root_admission, root_with_slot, scope_membership,
         validation, with_checked_frame, with_checked_page,
     },
     courtroom::harness::test_support::s3_integrity_readiness_test_support::s3_integrity_readiness,
+    derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
@@ -22,8 +24,8 @@ use forge_store_recovery_physics::{
     BoundedInspectionEnvelopeEvidence, IntegrityVettedCheckpointRecord,
     IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
     IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineSummary,
-    RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffAdmission, S4IntegrityHandoffDenialKind,
-    S4IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
+    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffAdmission,
+    S4IntegrityHandoffDenialKind, S4IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
 };
 
 pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadiness {
@@ -33,7 +35,7 @@ pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadine
 pub(crate) fn admit_s4_handoff_payload(
     payload: S4IntegrityHandoffPayload,
 ) -> S4RecoveryPhysicsIntegrityReadiness {
-    S4IntegrityHandoffAdmission::admit(s3_integrity_readiness(), payload)
+    S4IntegrityHandoffAdmission::admit(s3_integrity_readiness().payload(), payload)
         .expect("complete S.3 readiness admits S.4 integrity handoff")
 }
 
@@ -78,6 +80,8 @@ fn intact_handoff_payload(label: &str) -> S4IntegrityHandoffPayload {
     let wal = inspect_wal_frame(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
     let checkpoint = inspect_checkpoint_record();
     let manifest = inspect_manifest_for_generation(7);
+    let (quarantine_record, quarantine_receipt, quarantine_damage) =
+        recovery_blocking_quarantine_binding();
     let page_record = IntegrityVettedPageFrameRecord::from_page_report(
         &page,
         receipt(StoreExecutedIntegrityEvidence::authoritative_page(&page)),
@@ -114,7 +118,12 @@ fn intact_handoff_payload(label: &str) -> S4IntegrityHandoffPayload {
         .checkpoint_record(checkpoint_record)
         .damage_map(
             forge_store_recovery_physics::IntegrityDamageMap::new()
-                .with_quarantine_summary(quarantine_summary(&page)),
+                .with_recovery_blocking_quarantine(
+                    &quarantine_record,
+                    quarantine_receipt,
+                    &quarantine_damage,
+                )
+                .unwrap(),
         )
         .inspection_envelope(inspection_envelope_for_payload(&page_payload))
         .seal()
@@ -176,7 +185,14 @@ fn with_wal_frame_input(
     adjacency: CheckpointAdjacencyPosture,
     run: impl FnOnce(ScopedPhysicalValidatorInput<'_>),
 ) {
-    let payload = b"WALF|crc32c|4|ok|DATA";
+    with_wal_payload_input(b"WALF|crc32c|4|ok|DATA", adjacency, run);
+}
+
+fn with_wal_payload_input(
+    payload: &[u8],
+    adjacency: CheckpointAdjacencyPosture,
+    run: impl FnOnce(ScopedPhysicalValidatorInput<'_>),
+) {
     let validation = validation(1, 2, 3, 7);
     let scope = PhysicalReferenceScope::wal_frame(validation);
     let root = root_with_slot(1, 2, 3, 7);
@@ -194,11 +210,19 @@ fn with_wal_frame_input(
     });
 }
 
-fn quarantine_summary(
-    page: &forge_store_physical_integrity::PageIntegrityReport,
-) -> QuarantineSummary {
+fn quarantine_summary() -> QuarantineSummary {
+    let (record, receipt, damage) = recovery_blocking_quarantine_binding();
+    QuarantineSummary::from_recovery_blocking_damage(&record, receipt, &damage).unwrap()
+}
+
+pub(crate) fn recovery_blocking_quarantine_binding() -> (
+    QuarantineRecord,
+    RecoveryIntegrityHandoffReceipt,
+    RecoveryBlockedByIntegrityDamage,
+) {
+    let wal_damage = inspect_wal_damage(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
     let record = PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(
-        ExecutedQuarantineFinding::intact_page(page),
+        ExecutedQuarantineFinding::from_wal_frame_denial(&wal_damage).unwrap(),
     ))
     .unwrap();
     let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
@@ -209,7 +233,23 @@ fn quarantine_summary(
         .unwrap();
     let receipt =
         RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap();
-    QuarantineSummary::from_quarantine_record(&record, receipt).unwrap()
+    let damage = RecoveryBlockedByIntegrityDamage::damaged_wal_frame(&wal_damage);
+    (record, receipt, damage)
+}
+
+fn inspect_wal_damage(
+    adjacency: CheckpointAdjacencyPosture,
+) -> forge_store_physical_integrity::WalFrameDamageDenial {
+    let mut denial = None;
+    with_wal_payload_input(b"WALF|crc32c|4|checksum-fail|DATA", adjacency, |input| {
+        let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
+        denial = Some(
+            WalFrameIntegrityAuthority::s3()
+                .inspect(request)
+                .unwrap_err(),
+        );
+    });
+    denial.unwrap()
 }
 
 pub(crate) fn unresolved_authority_record() -> QuarantineRecord {

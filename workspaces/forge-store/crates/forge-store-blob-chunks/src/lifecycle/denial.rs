@@ -1,5 +1,3 @@
-use forge_store_readiness::S7PlacementReadinessNonClaim;
-
 use crate::BlobLifecycleCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,9 +9,7 @@ pub enum BlobLifecycleDenial {
     S3IntegrityReportRejected,
     TerminalProjectionRowRejected,
     ImportedManifestTextRejected,
-    S6PlacementSeedCarriesNoLifecycleAuthority {
-        non_claims: [S7PlacementReadinessNonClaim; 3],
-    },
+    S6PlacementSeedCarriesNoLifecycleAuthority,
     ReplayStoredChunkDigestMismatch {
         counters: BlobLifecycleCounterSnapshot,
     },
@@ -50,10 +46,6 @@ pub const fn reject_imported_manifest_text_as_lifecycle_receipt(_: &str) -> Blob
     BlobLifecycleDenial::ImportedManifestTextRejected
 }
 
-pub const fn reject_s6_placement_seed_as_lifecycle_receipt(
-    seed: forge_store_readiness::S6ClosedS7PlacementAdmissionSeed,
-) -> BlobLifecycleDenial {
-    BlobLifecycleDenial::S6PlacementSeedCarriesNoLifecycleAuthority {
-        non_claims: *seed.non_claims(),
-    }
+pub fn reject_s6_placement_seed_as_lifecycle_receipt(_: impl Sized) -> BlobLifecycleDenial {
+    BlobLifecycleDenial::S6PlacementSeedCarriesNoLifecycleAuthority
 }

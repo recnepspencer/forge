@@ -9,9 +9,8 @@ pub(crate) fn verify_edge_authority(
 ) -> Result<(), BlobReachabilityDenial> {
     if let Some(authority) = registry.authority() {
         if !authority.matches(edge) {
-            registry.set_stored_counters(
-                registry.stored_counters().record_wrong_authority_denial(),
-            );
+            registry
+                .set_stored_counters(registry.stored_counters().record_wrong_authority_denial());
             return Err(BlobReachabilityDenial::WrongBlobAuthority {
                 counters: registry.stored_counters(),
             });
@@ -27,9 +26,8 @@ pub(crate) fn verify_hold_authority(
     let hold_authority = hold.authority_key();
     if let Some(authority) = registry.authority() {
         if authority != hold_authority {
-            registry.set_stored_counters(
-                registry.stored_counters().record_wrong_authority_denial(),
-            );
+            registry
+                .set_stored_counters(registry.stored_counters().record_wrong_authority_denial());
             return Err(BlobReachabilityDenial::WrongBlobAuthority {
                 counters: registry.stored_counters(),
             });

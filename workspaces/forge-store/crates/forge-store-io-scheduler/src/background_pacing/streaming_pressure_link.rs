@@ -3,7 +3,7 @@ use super::class::BackgroundIoPressureClass;
 use crate::foreground_reservation::ForegroundIoLaneKind;
 
 pub const fn admits_blob_ingest_pressure(class: BackgroundIoPressureClass) -> bool {
-    matches!(class, BackgroundIoPressureClass::BlobIngestPressure)
+    matches!(class, BackgroundIoPressureClass::IngestPressure)
 }
 
 pub const fn admits_verification_pressure(class: BackgroundIoPressureClass) -> bool {

@@ -1,5 +1,7 @@
 use crate::dedupe::evidence::{BlobChunkCanonicalEquivalence, BlobChunkDedupeCandidate};
-use crate::{BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot};
+use crate::{
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
+};
 use forge_proof::TransitionOutcome;
 
 pub(crate) fn verify_foundational_equivalence(

@@ -9,7 +9,13 @@ pub(crate) fn finalize_sequence<W>(
     admission: BlobChunkSequenceAdmission,
     counters: BlobStreamingIngestCounterSnapshot,
     writer: &mut W,
-) -> Result<(AdmittedBlobChunkSequence, BlobStreamingIngestCounterSnapshot), BlobStreamingIngestDenial>
+) -> Result<
+    (
+        AdmittedBlobChunkSequence,
+        BlobStreamingIngestCounterSnapshot,
+    ),
+    BlobStreamingIngestDenial,
+>
 where
     W: BlobStreamingChunkWriter,
 {

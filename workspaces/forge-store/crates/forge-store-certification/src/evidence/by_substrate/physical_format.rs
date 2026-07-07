@@ -20,7 +20,8 @@ pub use crate::page_record_framing_evidence::{
     PhysicalPageRecordFramingEvidenceRow,
 };
 pub use crate::physical_complexity_evidence::{
-    PhysicalComplexityEvidenceDenial, PhysicalComplexityEvidenceReport, PhysicalComplexityProofBundle,
+    PhysicalComplexityEvidenceDenial, PhysicalComplexityEvidenceReport,
+    PhysicalComplexityProofBundle,
 };
 pub use crate::physical_identity_evidence::{
     PhysicalIdentityEvidenceDenial, PhysicalIdentityEvidenceReport, PhysicalIdentityEvidenceRow,

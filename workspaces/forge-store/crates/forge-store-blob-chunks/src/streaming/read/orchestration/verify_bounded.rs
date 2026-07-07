@@ -21,13 +21,8 @@ impl BlobStreamingVerifiedRead {
         counter_strength: CounterEvidenceStrength,
     ) -> Result<Self, BlobStreamingReadDenial> {
         counter_strength::require_exact(counter_strength)?;
-        let mut counters = admit_read::admit_read(
-            admission,
-            &request,
-            allocation,
-            envelopes,
-            counter_strength,
-        )?;
+        let mut counters =
+            admit_read::admit_read(admission, &request, allocation, envelopes, counter_strength)?;
         let mut verifier = StreamingReadVerifier::new(request, window, quarantine_authority);
         for observation in observations {
             observe_chunk_window::observe_chunk_window(&mut verifier, observation, &mut counters)?;

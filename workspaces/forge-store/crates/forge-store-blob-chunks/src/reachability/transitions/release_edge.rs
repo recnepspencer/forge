@@ -10,11 +10,9 @@ pub(crate) fn transition_release_edge(
 ) -> Result<BlobReachabilityEdgeRelease, BlobReachabilityDenial> {
     let Some(position) = verify_edge_present(registry, edge) else {
         return Err(BlobReachabilityDenial::MissingReclaimReleaseEvidence {
-            counters: registry
-                .stored_counters()
-                .with_classified_reclaim_outcome(
-                    &crate::reachability::classification::ReachabilityReclaimCase::DeniedMissingRelease,
-                ),
+            counters: registry.stored_counters().with_classified_reclaim_outcome(
+                &crate::reachability::classification::ReachabilityReclaimCase::DeniedMissingRelease,
+            ),
         });
     };
     let removed = registry.edges_mut().remove(position);

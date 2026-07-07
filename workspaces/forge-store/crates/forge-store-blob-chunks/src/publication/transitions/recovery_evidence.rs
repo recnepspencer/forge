@@ -121,7 +121,9 @@ pub(crate) fn publication_record_replayable(
     ))
 }
 
-pub(crate) fn session_closed(closeout: &BlobPublicationSessionCloseout) -> BlobPublicationRecoveryEvidence {
+pub(crate) fn session_closed(
+    closeout: &BlobPublicationSessionCloseout,
+) -> BlobPublicationRecoveryEvidence {
     BlobPublicationRecoveryEvidence::new(
         BlobPublicationCrashPoint::AfterSessionClose,
         recovery_evidence_digest(

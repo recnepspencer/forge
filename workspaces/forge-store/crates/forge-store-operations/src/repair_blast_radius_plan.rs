@@ -1,7 +1,7 @@
-use forge_store_readiness::{
+use forge_store_security::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
+    StoreSecurityScopeIdentity,
 };
-use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
     RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDeclaration, RepairBlastRadiusDenial,

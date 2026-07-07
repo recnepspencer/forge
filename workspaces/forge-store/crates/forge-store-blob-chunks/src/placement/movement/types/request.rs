@@ -4,7 +4,9 @@ use forge_store_io_scheduler::foreground_reservation::{
 
 use crate::{AdmittedBlobPlacement, LifecycleReceipt};
 
-use super::{BlobPlacementMovementColdOutcome, BlobPlacementMovementFreshness, BlobPlacementMovementReadHold};
+use super::{
+    BlobPlacementMovementColdOutcome, BlobPlacementMovementFreshness, BlobPlacementMovementReadHold,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobPlacementMovementForegroundReservation {

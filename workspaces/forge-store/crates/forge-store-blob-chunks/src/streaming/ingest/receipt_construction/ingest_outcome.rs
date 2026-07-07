@@ -1,10 +1,10 @@
 use forge_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
 use forge_store_buffer_pool::AllocationReceipt;
 
-use super::performance::counter_backed_streaming_performance_receipt;
-use super::residency::BlobStreamingResidencyProof;
 use super::super::frontier::BlobStreamingContentFrontier;
 use super::super::types::BlobStreamingIngest;
+use super::performance::counter_backed_streaming_performance_receipt;
+use super::residency::BlobStreamingResidencyProof;
 use crate::{
     AdmittedBlobChunkSequence, BlobStreamingIngestCounterSnapshot, BlobStreamingIngestDenial,
     BlobStreamingResumePosture, BlobStreamingWindow,

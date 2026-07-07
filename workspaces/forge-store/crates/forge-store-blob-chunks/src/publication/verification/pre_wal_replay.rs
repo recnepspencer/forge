@@ -9,8 +9,7 @@ pub(crate) fn from_replayed_crash_edge(
     expected_operation_digest: &BlobPublicationRecoveryOperationDigest,
 ) -> Result<BlobPublicationPreWalReplayEvidence, BlobPublicationDenial> {
     if replay.outcome() == UnacknowledgedPublicationOutcome::NoWalAppendObserved
-        && replay.before_wal_append_operation_digest()
-            == Some(expected_operation_digest.as_str())
+        && replay.before_wal_append_operation_digest() == Some(expected_operation_digest.as_str())
     {
         Ok(BlobPublicationPreWalReplayEvidence {
             operation_digest: expected_operation_digest.as_str().to_owned(),

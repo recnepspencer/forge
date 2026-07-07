@@ -75,7 +75,7 @@ fn verification_pressure_outcomes_drive_read_facade() {
         throttled_verification_pressure(),
     )
     .expect("throttled verification pressure with admitted budget should pace but admit read");
-    assert_eq!(admission.pressure_counters().throttle_events(), 1);
+    assert_eq!(admission.pressure_counters().pressure_throttles(), 1);
 
     let zero_admitted = pressure_denial(zero_admitted_throttled_verification_pressure());
     assert!(matches!(

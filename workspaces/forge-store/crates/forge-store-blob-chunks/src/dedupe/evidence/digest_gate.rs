@@ -1,5 +1,7 @@
 use super::candidate::BlobChunkDedupeCandidate;
-use crate::{BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot};
+use crate::{
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
+};
 use forge_proof::TransitionOutcome;
 
 pub(crate) fn digest_gate(

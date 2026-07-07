@@ -1,9 +1,8 @@
 use crate::placement::movement::{
     counters::BlobPlacementMovementCounterSnapshot,
     types::{
-        basis::BlobPlacementMovementBasis,
-        plan::AdmittedBlobPlacementMovementPlan, read_hold::BlobPlacementMovementReadHold,
-        request::BlobPlacementMovementRequest,
+        basis::BlobPlacementMovementBasis, plan::AdmittedBlobPlacementMovementPlan,
+        read_hold::BlobPlacementMovementReadHold, request::BlobPlacementMovementRequest,
     },
 };
 

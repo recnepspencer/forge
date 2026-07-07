@@ -1,6 +1,6 @@
-use crate::{BlobChunkQuarantine, BlobCorruptedChunkLocalization, BlobQuarantineAuthority};
 use crate::corruption::receipt_construction::construct_quarantine_receipt;
 use crate::corruption::types::{BlobCorruptionDetectionSource, BlobQuarantineLifecycleState};
+use crate::{BlobChunkQuarantine, BlobCorruptedChunkLocalization, BlobQuarantineAuthority};
 
 pub fn seal_quarantine_from_localization(
     localization: BlobCorruptedChunkLocalization,

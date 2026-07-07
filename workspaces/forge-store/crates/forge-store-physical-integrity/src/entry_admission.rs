@@ -2,19 +2,19 @@ use crate::{
     IntegrityEntryDenial, IntegrityEntryDenialKind, IntegrityEntryRequest, IntegrityEntryWitness,
     IntegrityInspectionLease,
 };
-use forge_store_readiness::S3PhysicalIntegrityReadiness;
+use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct IntegrityEntryAdmission {
-    readiness: S3PhysicalIntegrityReadiness,
+    payload: S3PhysicalIntegrityReadinessPayload,
 }
 
 impl IntegrityEntryAdmission {
-    pub fn from_s3_readiness(
-        readiness: S3PhysicalIntegrityReadiness,
+    pub fn from_s3_payload(
+        payload: S3PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityEntryDenial> {
-        readiness.payload().require_complete()?;
-        Ok(Self { readiness })
+        payload.require_complete()?;
+        Ok(Self { payload })
     }
 
     pub fn admit<'lease>(
@@ -24,7 +24,7 @@ impl IntegrityEntryAdmission {
         reject_missing_protected_view(request)?;
         Ok(IntegrityInspectionLease::new(
             request.protected_view(),
-            IntegrityEntryWitness::mint(self.readiness),
+            IntegrityEntryWitness::mint(self.payload),
         ))
     }
 }

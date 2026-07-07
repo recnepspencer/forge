@@ -7,9 +7,7 @@ use crate::{
     ChunkTreeRoot, LogicalContentDigest,
 };
 
-use super::super::{
-    BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout, BlobPublicationWalCommit,
-};
+use super::super::{BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout};
 use super::reachability_staging::BlobReachabilityStagingIdentity;
 
 #[derive(Debug)]

@@ -1,6 +1,9 @@
-use super::performance::counter_backed_streaming_read_performance_receipt;
 use super::super::types::BlobStreamingVerifiedRead;
-use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial, BlobStreamingReadRequest, LogicalContentDigest};
+use super::performance::counter_backed_streaming_read_performance_receipt;
+use crate::{
+    BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial, BlobStreamingReadRequest,
+    LogicalContentDigest,
+};
 
 pub(crate) fn assemble_verified_read(
     request: &BlobStreamingReadRequest,

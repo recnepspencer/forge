@@ -6,14 +6,14 @@ use forge_store_physical_isolation::{
     stable_physical_read_receipt_for_mismatched_compaction_test,
 };
 
-use crate::test_support::{
-    admitted_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope, canonical_equivalence,
-};
 use crate::lifecycle::generation_registry_test_support::{
     current_authority, lifecycle_receipt_for_publication_with_bytes, root_publication_with_bytes,
 };
 use crate::placement::admission::test_support::admit_inline_placement;
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
+use crate::test_support::{
+    admitted_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope, canonical_equivalence,
+};
 use crate::{
     BlobAuthorityClassification, BlobChunkDedupeAdmission, BlobChunkDedupeReferenceRegistry,
     BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionColdReadiness, BlobCompactionIntent,

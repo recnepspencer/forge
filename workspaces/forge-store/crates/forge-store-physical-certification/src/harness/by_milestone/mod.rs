@@ -11,23 +11,23 @@ pub mod s6 {
         PublishedQualificationPosture, QualificationCapabilityProofAuthority,
         QualificationHarnessProof, QualificationHarnessProofClaim,
         QualificationHarnessProofStrength, QualificationMatrixPublisher,
-        QualificationPublicationShortcut, QualificationRebindEvaluation,
-        QualificationResidualDebt, QualificationResidualDebtReason,
+        QualificationPublicationShortcut, QualificationRebindEvaluation, QualificationResidualDebt,
+        QualificationResidualDebtReason,
     };
     pub use crate::s6_io_pressure_coverage::S6ExecutedIoPressureCoverageRows;
     pub use crate::s6_io_pressure_execution::S6IoPressureExecutionCounters;
     pub use crate::s6_io_pressure_harness::{
-        PhysicalFaultEvidenceClass, S6BackendSafetyQualificationDenial,
-        S6HarnessSecureIoPosture, S6IoPressureFaultKind, S6IoPressureHarnessEvidence,
-        S6IoPressureHarnessScenario, S6IoPressureOracleObservation,
-        S6PressureEvidenceMaturity, S6RealBackendSafetyQualification,
+        PhysicalFaultEvidenceClass, S6BackendSafetyQualificationDenial, S6HarnessSecureIoPosture,
+        S6IoPressureFaultKind, S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
+        S6IoPressureOracleObservation, S6PressureEvidenceMaturity,
+        S6RealBackendSafetyQualification,
     };
     pub use crate::s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
+    #[cfg(any(test, feature = "certification-test-support"))]
+    pub use crate::s6_io_pressure_test_support::replay_bundle_for as test_replay_bundle_for;
     pub use crate::s6_io_pressure_vocab::{
         all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds,
     };
-    #[cfg(any(test, feature = "certification-test-support"))]
-    pub use crate::s6_io_pressure_test_support::replay_bundle_for as test_replay_bundle_for;
 }
 
 pub mod s7_blob_harness {

@@ -2,7 +2,7 @@
 //! foreground yield cost during rewrite. Does not prove compaction equivalence or semantic
 //! validity of rewritten roots; carries explicit non-claims.
 
-use forge_store_readiness::{S10CompactionReadinessNonClaim, S6LaterMilestoneDestination};
+use forge_store_contracts::{S10CompactionReadinessNonClaim, S6LaterMilestoneDestination};
 
 use crate::{
     BackgroundPacingCounterSnapshot, IoSchedulerBackgroundMaintenanceAssumption,

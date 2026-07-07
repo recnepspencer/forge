@@ -1,14 +1,12 @@
 use crate::placement::movement::{
     denial::BlobPlacementMovementDenial,
     transitions::admit_movement_plan::transition_admit_movement_plan,
+    transitions::execute_movement_receipt::transition_execute_movement_receipt,
     types::{
         AdmittedBlobPlacementMovementPlan, BlobMovementReadPhase, BlobPlacementMovementAuthority,
         BlobPlacementMovementPhysicalExecutionIntent, BlobPlacementMovementRequest,
-        BlobReadDuringPlacementMove, StoreOwnedPlacementMovementExecutionReceipt,
-        ExecutedBlobPlacementMovementReceipt,
-    },
-    transitions::{
-        execute_movement_receipt::transition_execute_movement_receipt,
+        BlobReadDuringPlacementMove, ExecutedBlobPlacementMovementReceipt,
+        StoreOwnedPlacementMovementExecutionReceipt,
     },
 };
 

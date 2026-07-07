@@ -1,6 +1,6 @@
 use crate::BlobChunkReachabilityProofSet;
 
-use super::super::{BlobPublicationIntent, BlobPublicationDenial};
+use super::super::{BlobPublicationDenial, BlobPublicationIntent};
 
 pub(crate) fn matches_publication_intent(
     reachability: &BlobChunkReachabilityProofSet,

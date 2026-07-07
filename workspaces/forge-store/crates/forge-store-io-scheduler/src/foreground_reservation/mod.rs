@@ -37,7 +37,6 @@ pub use receipt::{
     ForegroundReservationReceipt, ForegroundReservationStaleRebindRequired,
     ForegroundReservationState,
 };
-pub use streaming_read_lane_link::admits_streaming_read_lane;
 pub use request::{
     reject_copied_s5_counters_as_foreground_reservation,
     reject_copied_security_scope_fields_as_foreground_reservation,
@@ -50,6 +49,7 @@ pub use resource_units::{
     ForegroundResourceUnitDenial, ForegroundResourceUnitKind, QueueSlot, ReadAheadWindow,
     ReclaimPermit, SyncDebt, WorkerPermit, WriteBackWindow,
 };
+pub use streaming_read_lane_link::admits_streaming_read_lane;
 pub use violation::{ForegroundReservationViolationCause, ReservationViolatedWithCause};
 
 #[cfg(any(test, feature = "certification-test-authority"))]

@@ -114,15 +114,17 @@ pub(super) fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> 
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
-    let admitted = S2PhysicalResidencyEntry::from_s1_readiness(s2_readiness())
-        .unwrap()
-        .with_budget(BufferPoolBudget::declare(
-            ResidentMemoryBudget::bytes(8192).unwrap(),
-            PinnedPageBudget::pages(4).unwrap(),
-            DirtyPageBudget::pages(1).unwrap(),
-        ))
-        .admit()
-        .unwrap();
+    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
+        s2_readiness().physical_substrate_snapshot(),
+    )
+    .unwrap()
+    .with_budget(BufferPoolBudget::declare(
+        ResidentMemoryBudget::bytes(8192).unwrap(),
+        PinnedPageBudget::pages(4).unwrap(),
+        DirtyPageBudget::pages(1).unwrap(),
+    ))
+    .admit()
+    .unwrap();
     ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 

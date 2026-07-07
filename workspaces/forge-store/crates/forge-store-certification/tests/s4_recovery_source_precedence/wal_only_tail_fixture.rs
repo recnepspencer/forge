@@ -156,7 +156,7 @@ fn inspect_wal_payload_for_owner(
     let lease = table.lease_page(admission.resident_frame_token()).unwrap();
     let pinned = lease.pin().unwrap();
     let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
-    let entry = IntegrityEntryAdmission::from_s3_readiness(s3_readiness()).unwrap();
+    let entry = IntegrityEntryAdmission::from_s3_payload(s3_readiness().payload()).unwrap();
     let inspection_lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
     let checksum_scope = checksum_scope();
     let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
@@ -236,11 +236,13 @@ fn resident_frame_table() -> ResidentFrameTable {
         PinnedPageBudget::pages(2).unwrap(),
         DirtyPageBudget::pages(1).unwrap(),
     );
-    let entry = S2PhysicalResidencyEntry::from_s1_readiness(s2_readiness())
-        .unwrap()
-        .with_budget(budget)
-        .admit()
-        .unwrap();
+    let entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
+        s2_readiness().physical_substrate_snapshot(),
+    )
+    .unwrap()
+    .with_budget(budget)
+    .admit()
+    .unwrap();
     ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 

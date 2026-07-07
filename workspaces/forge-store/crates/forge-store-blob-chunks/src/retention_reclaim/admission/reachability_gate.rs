@@ -49,11 +49,9 @@ fn collect_reachability_release(
 ) -> Result<BlobReachabilityReclaimRelease, BlobRetentionReclaimDenial> {
     match reachability.reclaim_decision_for(chunk_identity) {
         BlobReachabilityReclaimDecision::ReclaimPermitted(release) => Ok(release),
-        BlobReachabilityReclaimDecision::ReclaimDenied(_) => {
-            Err(assemble_retention_denial(
-                RetentionReclaimEligibilityCase::ReachabilityDenied,
-            ))
-        }
+        BlobReachabilityReclaimDecision::ReclaimDenied(_) => Err(assemble_retention_denial(
+            RetentionReclaimEligibilityCase::ReachabilityDenied,
+        )),
     }
 }
 

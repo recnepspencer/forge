@@ -5,7 +5,8 @@ use super::{
 use crate::{
     IndependentVerifierObservation, ObserverKind, PhysicalScenarioCanonicalIdentity,
     PhysicalSimulationPlan, PhysicalSimulationPlanIdentity, ProductionBoundaryDriverTrace,
-    RecoveryOutcomeObservation, S6IoPressureOracleObservation, ShortcutRejectionObservation,
+    RecoveryOutcomeObservation, S6IoPressureOracleObservation, S7BlobHarnessOracleObservation,
+    ShortcutRejectionObservation,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub struct ObservedPhysicalTrace {
     compaction_interlock: Option<CompactionInterlockObservation>,
     compaction_mutations: Option<S5CompactionMutationObservationSet>,
     s6_io_pressure: Option<S6IoPressureOracleObservation>,
+    s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -36,6 +38,7 @@ impl ObservedPhysicalTrace {
         compaction_interlock: Option<CompactionInterlockObservation>,
         compaction_mutations: Option<S5CompactionMutationObservationSet>,
         s6_io_pressure: Option<S6IoPressureOracleObservation>,
+        s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
         shortcut_rejections: Vec<ShortcutRejectionObservation>,
     ) -> Self {
         Self {
@@ -50,6 +53,7 @@ impl ObservedPhysicalTrace {
             compaction_interlock,
             compaction_mutations,
             s6_io_pressure,
+            s7_blob_harness,
             shortcut_rejections,
         }
     }
@@ -96,6 +100,10 @@ impl ObservedPhysicalTrace {
 
     pub const fn s6_io_pressure_observation(&self) -> Option<S6IoPressureOracleObservation> {
         self.s6_io_pressure
+    }
+
+    pub const fn s7_blob_harness_observation(&self) -> Option<S7BlobHarnessOracleObservation> {
+        self.s7_blob_harness
     }
 
     pub fn with_scheduled_compaction_mutation_lanes(

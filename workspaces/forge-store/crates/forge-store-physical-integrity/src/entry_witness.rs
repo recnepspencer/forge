@@ -1,5 +1,5 @@
 use crate::{IntegrityEntryBasis, ScrubEnvelopeLimits, VerifierResidentLimits};
-use forge_store_readiness::S3PhysicalIntegrityReadiness;
+use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityEntryWitness {
@@ -7,9 +7,9 @@ pub struct IntegrityEntryWitness {
 }
 
 impl IntegrityEntryWitness {
-    pub(crate) const fn mint(readiness: S3PhysicalIntegrityReadiness) -> Self {
+    pub(crate) const fn mint(payload: S3PhysicalIntegrityReadinessPayload) -> Self {
         Self {
-            basis: IntegrityEntryBasis::from_readiness(readiness),
+            basis: IntegrityEntryBasis::from_payload(payload),
         }
     }
 

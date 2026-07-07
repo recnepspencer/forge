@@ -26,12 +26,12 @@ pub use background_pacing::{
     BackgroundCapacityAdmissionRequest, BackgroundDebtKind, BackgroundIdleCapacityLease,
     BackgroundIdleCapacityLeaseRequest, BackgroundIoDebt, BackgroundIoPressureClass,
     BackgroundIoPressureShape, BackgroundLeaseRevocation, BackgroundPacingAdmissionBasis,
-    BackgroundPacingAdmittedWithDebt, BackgroundPacingCounterSnapshot, BackgroundPacingDeferred,
-    BackgroundPacingDenial, BackgroundPacingDenied, BackgroundPacingFreshness,
-    BackgroundPacingOutcome, BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
-    BackgroundPacingStaleRebindKind, BackgroundPacingStaleRebindRequired, BackgroundPacingThrottle,
-    BackgroundPacingViolation, BackgroundPacingYield, BackgroundResourceBudget,
-    BackgroundResourceShortfall,
+    BackgroundPacingAdmittedWithDebt, BackgroundPacingCapability, BackgroundPacingCounterSnapshot,
+    BackgroundPacingDeferred, BackgroundPacingDenial, BackgroundPacingDenied,
+    BackgroundPacingFreshness, BackgroundPacingOutcome, BackgroundPacingProgressionDrift,
+    BackgroundPacingProgressionEvidence, BackgroundPacingStaleRebindKind,
+    BackgroundPacingStaleRebindRequired, BackgroundPacingThrottle, BackgroundPacingViolation,
+    BackgroundPacingYield, BackgroundResourceBudget, BackgroundResourceShortfall,
 };
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use background_pacing::{
@@ -100,9 +100,10 @@ pub use s6_later_readiness_handoff::{
     S11OperatorIoReadinessSeed, S6LaterReadinessHandoffDenial, S6LaterReadinessReadmissionState,
     S7PlacementIoReadinessHandoff,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use s6_readiness::admit_s6_io_qos_isolation_readiness;
 pub use s6_readiness::{
-    admit_s5_1_security_scope_for_s6_io_qos, admit_s6_io_qos_isolation_readiness,
-    admit_store_published_s6_io_qos_isolation_readiness,
+    admit_s5_1_security_scope_for_s6_io_qos, admit_store_published_s6_io_qos_isolation_readiness,
     reject_hardware_queue_depth_claim_as_s6_readiness,
     reject_log_or_metric_projection_as_s6_readiness, reject_media_qos_claim_as_s6_readiness,
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,

@@ -3,7 +3,7 @@ use crate::{
     RecoveryEntryBasis, RecoveryEntryCounters, RecoveryEntryIdentity,
     RecoveryEntryInputClassification, RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness,
 };
-use forge_store_readiness::PhysicalAuthorityRecap;
+use forge_store_contracts::PhysicalAuthorityRecap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryAdmission {

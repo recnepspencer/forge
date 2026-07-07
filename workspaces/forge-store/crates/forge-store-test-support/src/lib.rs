@@ -1,10 +1,13 @@
 #![doc = include_str!("test_support_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
-//! Store test support — harness fixtures and synthetic authority for certification replay.
+//! Store test support — production-facade harness helpers plus named synthetic
+//! courtroom authority for certification replay.
 //!
 //! Production admission authority lives in production crates. This crate falsifies
-//! production topology through named harness modules rather than bypassing it.
+//! production topology through named harness modules rather than bypassing it:
+//! `harness::production_facade` assembles legal production flows, while
+//! `harness::test_authority` exposes courtroom-only synthetic evidence.
 
 mod allocation_sentinels;
 mod hostile_readmission_json_fixtures;
@@ -18,7 +21,8 @@ mod terminal_projection_json_fixtures;
 
 pub mod harness;
 
-pub use harness::*;
+pub use harness::production_facade::*;
+pub use harness::{production_facade, test_authority};
 
 #[deprecated(
     since = "0.0.0",

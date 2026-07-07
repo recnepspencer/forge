@@ -6,13 +6,13 @@ use forge_store_operations::{
 use forge_store_physical_isolation::stable_physical_read_plan_for_certification_test;
 use forge_store_security::StoreKeyVersionPosture;
 
+use crate::lifecycle::generation_registry_test_support::current_authority;
+use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
+use crate::reachability::hold_test_support::root_candidate_resume_checkpoint;
 use crate::test_support::{
     admitted_multichunk_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope,
     canonical_equivalence,
 };
-use crate::lifecycle::generation_registry_test_support::current_authority;
-use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
-use crate::reachability::hold_test_support::root_candidate_resume_checkpoint;
 use crate::{
     reject_copied_refcount_row_as_reachability, BlobChunkDedupeAdmission,
     BlobChunkDedupeReferenceRegistry, BlobChunkOrdinal, BlobChunkQuarantine,
@@ -186,9 +186,7 @@ fn backup_requires_s10_handoff_and_export_uses_s7_readiness() {
     assert!(matches!(
         BlobReachabilityProtectedHold::from_export_readiness(
             &backup,
-            crate::reachability::edges::BlobReachabilityAuthorityKey::from_published(
-                &published
-            )
+            crate::reachability::edges::BlobReachabilityAuthorityKey::from_published(&published)
         ),
         Err(BlobReachabilityDenial::InvalidProtectedHold { .. })
     ));

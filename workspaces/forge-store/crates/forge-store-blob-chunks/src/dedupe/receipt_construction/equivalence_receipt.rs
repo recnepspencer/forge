@@ -3,8 +3,8 @@ use crate::dedupe::evidence::{
 };
 use crate::dedupe::verification::{verify_foundational_equivalence, verify_security_scope_match};
 use crate::{
-    BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCollisionPosture, BlobChunkDedupeCounterSnapshot,
-    BlobChunkDedupePolicy, BlobChunkDedupeReceipt,
+    BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCollisionPosture,
+    BlobChunkDedupeCounterSnapshot, BlobChunkDedupePolicy, BlobChunkDedupeReceipt,
 };
 use forge_proof::TransitionOutcome;
 

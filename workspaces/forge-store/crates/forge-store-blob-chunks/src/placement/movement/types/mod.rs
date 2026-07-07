@@ -20,14 +20,10 @@ pub use execution_receipt::{
     StoreOwnedPlacementMovementPublication,
 };
 pub use freshness::BlobPlacementMovementFreshness;
-pub use plan::{
-    AdmittedBlobPlacementMovementPlan, BlobPlacementMovementPhysicalExecutionIntent,
-};
+pub use plan::{AdmittedBlobPlacementMovementPlan, BlobPlacementMovementPhysicalExecutionIntent};
 pub use read_during_move::{
     BlobMovementReadPhase, BlobMovementVerifiedReadEvidence, BlobReadDuringPlacementMove,
     BlobReadDuringPlacementMoveReceipt,
 };
 pub use read_hold::BlobPlacementMovementReadHold;
-pub use request::{
-    BlobPlacementMovementForegroundReservation, BlobPlacementMovementRequest,
-};
+pub use request::{BlobPlacementMovementForegroundReservation, BlobPlacementMovementRequest};

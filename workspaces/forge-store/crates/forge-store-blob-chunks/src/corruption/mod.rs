@@ -3,7 +3,7 @@
 //! Blob corruption is a localized physical damage state machine with explicit readmission:
 //!
 //! - **Damage evidence** enters from streaming read checksum observation, physical pre-decode
-//!   denial ([`classify_physical_pre_decode_damage`]), or offline raw reports (rejected for
+//!   denial ([`observe_physical_pre_decode_denial`]), or offline raw reports (rejected for
 //!   blob authority via [`reject_offline_observation_as_blob_corruption_authority`]).
 //! - **Classification** runs through [`BlobDamageCase`] decision table before logical decode
 //!   or localization ([`classify_streaming_read_damage_from_checksum_match`],
@@ -30,15 +30,18 @@ mod types;
 mod verification;
 
 #[cfg(test)]
-mod test_support;
-#[cfg(test)]
-mod tests;
+mod integration_tests;
 #[cfg(test)]
 mod shared_reference_tests;
+#[cfg(test)]
+pub(crate) mod test_support;
+#[cfg(test)]
+mod tests;
 
 pub use classification::{
+    classify_blob_damage_before_decode, classify_streaming_damage_before_decode,
     AuthoritativeBlobCorruptionPosture, BlobCorruptionGenerationClassification, BlobDamageCase,
-    DerivedBlobCorruptionRebuildReadiness,
+    BlobDamageEvidence, DerivedBlobCorruptionRebuildReadiness,
 };
 pub use counters::BlobCorruptionCounterSnapshot;
 pub use denial::{
@@ -46,7 +49,8 @@ pub use denial::{
     reject_copied_counters_as_blob_corruption_authority,
     reject_offline_observation_as_blob_corruption_authority,
     reject_physical_quarantine_record_as_blob_corruption_authority,
-    reject_raw_digest_as_blob_corruption_authority, BlobCorruptionDenial, BlobCorruptionGuardDenial,
+    reject_raw_digest_as_blob_corruption_authority, BlobCorruptionDenial,
+    BlobCorruptionGuardDenial, ForgeableCorruptionEvidenceKind,
 };
 pub use downstream::{
     BlobCorruptionCapsuleReadiness, BlobCorruptionCapsuleReadinessOutcome,
@@ -54,9 +58,18 @@ pub use downstream::{
     BlobCorruptionImportReadmission, BlobCorruptionImportReadmissionOutcome,
 };
 pub use orchestration::BlobQuarantineAuthority;
+pub(crate) use receipt_construction::construct_quarantine_diagnostics;
 pub use receipt_construction::{
     BlobChunkQuarantine, BlobCorruptedChunkLocalization, BlobCorruptionGuard,
-    BlobQuarantineDiagnostics,
+    BlobQuarantineDiagnostics, BlobQuarantineRepairCapability,
+};
+pub use transitions::classify_generation_posture;
+pub use transitions::{
+    classify_and_reject_physical_handoff, observe_physical_pre_decode_denial,
+    reject_physical_handoff_as_blob_authority, PhysicalCorruptionHandoffClassification,
+};
+pub(crate) use transitions::{
+    from_streaming_read_request, seal_quarantine_from_localization,
 };
 pub use types::{
     BlobCorruptionDetectionSource, BlobCorruptionPlacementClass,
@@ -65,9 +78,3 @@ pub use types::{
 pub use verification::{
     classify_physical_pre_decode_damage, BlobCorruptionReferenceEdge, BlobCorruptionReferenceEdges,
 };
-pub(crate) use receipt_construction::construct_quarantine_diagnostics;
-pub(crate) use transitions::{
-    from_streaming_read_request, seal_quarantine_from_localization,
-    verify_current_store_authority_for_readmission,
-};
-pub(crate) use classification::classify_streaming_read_damage_from_checksum_match;

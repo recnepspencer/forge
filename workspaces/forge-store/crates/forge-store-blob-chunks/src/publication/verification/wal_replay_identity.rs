@@ -1,9 +1,9 @@
 use forge_store_recovery_physics::UnacknowledgedDurableWal;
 use forge_store_wal::{DurablePublicationScope, WalFrameDurablePublicationScope};
 
-use super::super::types::{BlobPublicationWalPayload, BlobPublicationWalCommit};
-use super::super::{BlobPublicationCounterSnapshot, BlobPublicationDenial, BlobPublicationIntent};
 use super::super::types::reachability_staging::BlobReachabilityStagingIdentity;
+use super::super::types::{BlobPublicationWalCommit, BlobPublicationWalPayload};
+use super::super::{BlobPublicationCounterSnapshot, BlobPublicationDenial, BlobPublicationIntent};
 
 pub(crate) fn verify_staging_payload_match(
     payload: &BlobPublicationWalPayload,

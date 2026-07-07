@@ -1,10 +1,10 @@
-use crate::{
-    BlobChunkOrdinal, BlobCorruptionCounterSnapshot, BlobCorruptionReferenceEdges, BlobDamageCase,
-    BlobGeneration, BlobObjectId, StoredChunkDigest,
-};
 use crate::corruption::types::{
     BlobCorruptionDetectionSource, BlobCorruptionPlacementClass,
     BlobCorruptionReferenceSharingScope,
+};
+use crate::{
+    BlobChunkOrdinal, BlobCorruptionCounterSnapshot, BlobCorruptionReferenceEdges, BlobDamageCase,
+    BlobGeneration, BlobObjectId, StoredChunkDigest,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -367,3 +367,13 @@ use forge_store_certification::StoreCertificationProgram;
 let digest_text = String::from("sha256:certification");
 let _program = StoreCertificationProgram::from_digest_text(digest_text);
 ```
+
+Certification cannot skip the readiness-owned S.7 capsule handoff:
+
+```compile_fail
+use forge_store_blob_chunks::BlobCapsuleReadinessWitness;
+use forge_store_certification::certify_s7_capsule_readiness;
+
+let readiness: BlobCapsuleReadinessWitness = todo!();
+let _report = certify_s7_capsule_readiness(&readiness);
+```

@@ -166,6 +166,4 @@ pub use speculative_work_request::{
     PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativePhysicalWorkKind,
     SpeculativeWorkRequestDenial, WriteBehindRequest,
 };
-pub use streaming_allocation::{
-    streaming_allocation_kind, streaming_window_allocation_receipt,
-};
+pub use streaming_allocation::{streaming_allocation_kind, streaming_window_allocation_receipt};

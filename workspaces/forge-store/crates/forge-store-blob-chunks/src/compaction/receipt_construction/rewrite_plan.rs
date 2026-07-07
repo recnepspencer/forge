@@ -1,4 +1,6 @@
-use crate::compaction::types::{BlobCompactionBasis, BlobCompactionIntent, BlobCompactionRewritePlan};
+use crate::compaction::types::{
+    BlobCompactionBasis, BlobCompactionIntent, BlobCompactionRewritePlan,
+};
 use crate::BlobCompactionCounterSnapshot;
 
 pub(crate) fn base_counters(intent: &BlobCompactionIntent) -> BlobCompactionCounterSnapshot {

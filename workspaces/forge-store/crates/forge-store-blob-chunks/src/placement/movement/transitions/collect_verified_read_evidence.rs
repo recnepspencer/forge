@@ -3,7 +3,8 @@ use crate::BlobStreamingVerifiedRead;
 use crate::placement::movement::{
     denial::BlobPlacementMovementDenial,
     types::{
-        plan::AdmittedBlobPlacementMovementPlan, read_during_move::BlobMovementVerifiedReadEvidence,
+        plan::AdmittedBlobPlacementMovementPlan,
+        read_during_move::BlobMovementVerifiedReadEvidence,
         read_hold::BlobPlacementMovementReadHold,
     },
     verification::verified_read_basis::verify_streaming_read_matches_admitted_plan,

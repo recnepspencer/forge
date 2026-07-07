@@ -200,6 +200,9 @@ mod s6_evidence_materialization;
 mod s6_io_pressure_harness_closeout;
 mod s6_latency_interference;
 mod s6_phase;
+mod s7_closeout;
+#[cfg(test)]
+mod s7_closeout_tests;
 
 mod scale_fixture;
 mod scale_property;

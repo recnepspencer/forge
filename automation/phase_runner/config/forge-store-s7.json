@@ -62,7 +62,7 @@
   "contract_template": "templates/_contract_store_s7.md",
   "session_defaults": {
     "command": "C:/nvm4w/nodejs/codex.cmd",
-    "model": "gpt-5.5",
+    "model": "gpt-5.4",
     "reasoning_effort": "medium",
     "config": {
       "approval_policy": "never",
@@ -413,10 +413,11 @@
       "acceptance": [
         "Adversarial equivalence: equivalent current lifecycle evidence produces the same canonical export bundle, manifest shape, digest evidence, and export counters.",
         "Adversarial denial: stale reachability, missing chunk, terminal projection rows, placement-only evidence, and copied export rows fail before export bundle publication.",
-        "Offline lane: offline verifier can inspect exported chunk bundles and report declarations, checksums, and digest evidence without minting current Store authority."
+        "Offline lane: offline verifier can inspect exported chunk bundles and report declarations, checksums, and digest evidence without minting current Store authority.",
+        "Architecture boundary: export is structured as evidence collection, canonical classification, transition verification, and bundle construction with public APIs exposing only the next valid export capability."
       ],
-      "instructions": "Implement S.7 Phase 19 from the spec: Export Bundle Canonicalization. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 19 from the spec: Export Bundle Canonicalization. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. Enforce the Phase 19 architecture boundary: evidence collection, canonical classification, transition verification, and bundle construction stay separate; no god functions or generic helper bins.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, god functions, generic helper bins, and phase drift against the S.7 spec."
     },
     {
       "id": 20,
@@ -431,10 +432,11 @@
         "Adversarial equivalence: export followed by readmitted import reconstructs the same chunk-tree identity, digests, scoped chunk metadata, reachability basis, and counters without trusting terminal projection text.",
         "Adversarial denial: imported JSON, stale key generation, wrong tenant authority, copied export rows, mismatched custody domain, missing chunk, and placement-only evidence fail before blob witness construction.",
         "Readmission lane: bridged canonical export evidence must pass explicit Store readmission before becoming current-basis S.7 evidence.",
-        "Placement lane: import readmission produces a placement admission plan before it can produce an imported blob witness."
+        "Placement lane: import readmission produces a placement admission plan before it can produce an imported blob witness.",
+        "Architecture boundary: import is structured as boundary declaration parsing, trust-boundary classification, current-scope readmission, chunk verification, placement admission, and witness construction with declarations separated from current Store witnesses."
       ],
-      "instructions": "Implement S.7 Phase 20 from the spec: Import Readmission After Trust Boundary. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 20 from the spec: Import Readmission After Trust Boundary. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. Enforce the Phase 20 architecture boundary: declarations, compatibility lowering, readmission, placement admission, and current Store witness construction stay in distinct modules/transition functions.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, declaration/witness collapse, god functions, and phase drift against the S.7 spec."
     },
     {
       "id": 21,
@@ -450,10 +452,11 @@
         "Adversarial equivalence: two capsule materializations over the same admitted reachable blob subset produce the same capsule readiness evidence and exact chunk counters.",
         "Adversarial denial: copied capsule rows, digest-only chunk references, missing chunks, stale security scope, quarantined chunks, and cold placement unavailable for capsule materialization cannot publish readiness.",
         "Non-claim lane: S.7 capsule readiness explicitly reports that full replication, backup, restore, and product blob API semantics remain later milestones.",
-        "Slice lane: subset cuts through internal chunk-tree nodes, missing parent/root basis, cold chunk unavailable, deduped chunk shared across scopes, and reachability changes during capsule creation all produce distinct denial or retry outcomes."
+        "Slice lane: subset cuts through internal chunk-tree nodes, missing parent/root basis, cold chunk unavailable, deduped chunk shared across scopes, and reachability changes during capsule creation all produce distinct denial or retry outcomes.",
+        "Architecture boundary: capsule readiness is structured as slice selection, reachability/placement classification, fixed-shape proof composition, and readiness construction with planning-only declarations separate from materialized byte bundles and future replication authority."
       ],
-      "instructions": "Implement S.7 Phase 21 from the spec: Partial Replication And Capsule Readiness. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 21 from the spec: Partial Replication And Capsule Readiness. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. Enforce the Phase 21 architecture boundary: slice selection, reachability/placement classification, fixed-shape proof composition, readiness construction, planning-only declarations, and materialized byte bundles remain distinct.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, non-claim collapse, god functions, and phase drift against the S.7 spec."
     },
     {
       "id": 22,
@@ -469,10 +472,11 @@
       "acceptance": [
         "Adversarial replay: the same blob scenario replayed through S.4.5 yields the same scenario identity, plan shape, transcript, oracle verdict, and executed evidence bundle.",
         "Adversarial denial: tiny blobs, whole-object helpers, missing chunk counters, logs-as-proof, synthetic success rows, and private mutation of harness state fail as shortcut lanes.",
-        "Coverage lane: generated rows include blob size class, chunk count, chunk size class, security scope, placement class, access mode, failure point, memory envelope, and actor mix."
+        "Coverage lane: generated rows include blob size class, chunk count, chunk size class, security scope, placement class, access mode, failure point, memory envelope, and actor mix.",
+        "Architecture boundary: harness code is organized by actors, faults, oracles, profiles, transcripts, replay, and coverage; production actors call production facades and test authority stays behind explicit synthetic-authority modules."
       ],
-      "instructions": "Implement S.7 Phase 22 from the spec: Blob Harness Actors, Faults, Oracles, And Coverage. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 22 from the spec: Blob Harness Actors, Faults, Oracles, And Coverage. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. Enforce the Phase 22 architecture boundary: actors, faults, oracles, profiles, transcripts, replay, and coverage are separate responsibilities; no generic fixture world or all-purpose scenario helper.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, generic fixture worlds, helper swamps, and phase drift against the S.7 spec."
     },
     {
       "id": 23,
@@ -487,13 +491,16 @@
       ],
       "acceptance": [
         "Adversarial qualification: stream an actual multi-GB deterministic blob through ingest, forced interruption, resume, verify, export, import, tier move, partial replication readiness, corruption localization, and reclaim while resident memory remains bounded by the declared envelope.",
-        "Adversarial denial: sparse-only proof, logical-size-only proof, whole-object expected buffer, missing disk-space preflight, hidden temporary sidecar file, and missing cleanup fail the qualification lane.",
+        "Adversarial denial: sparse-only proof, logical-size-only proof, whole-object expected buffer, missing disk-space preflight, hidden temporary sidecar file, local target/build directory zip, ambient workspace corpus, and missing cleanup fail the canonical qualification lane.",
         "Scale lane: the same scenario family runs as small deterministic local, CI memory-envelope-exceeding, and heavy multi-GB profiles with the same counter topology.",
-        "Exact evidence lane: heavy qualification records input generator seed, declared byte length, actual bytes streamed, peak resident memory, peak allocation count, temporary file bytes, disk bytes written, chunk count, verification pass basis, cleanup receipt, and backend profile.",
-        "Deception lane: sparse files, hidden staging files, synthetic byte counters, and generated expected-byte artifacts are valid hostile fixtures but cannot satisfy the real multi-GB evidence requirement."
+        "Exact evidence lane: heavy qualification records input generator seed, deterministic byte-pattern profile, declared byte length, expected chunk count, expected digest basis, actual bytes streamed, peak resident memory, peak allocation count, temporary file bytes, disk bytes written, chunk count, verification pass basis, cleanup receipt, and backend profile.",
+        "Pattern lane: the canonical heavy fixture plan covers incompressible seeded bytes, highly-compressible repeated spans, chunk-boundary adversarial bytes, repeated-chunk dedupe pressure, and sparse/deceptive declarations as denial profiles.",
+        "Deception lane: sparse files, hidden staging files, synthetic byte counters, and generated expected-byte artifacts are valid hostile fixtures but cannot satisfy the real multi-GB evidence requirement.",
+        "Optional chaos-corpus lane: a streamed archive of target or another large local directory may be admitted only as a non-canonical stress input with a separate profile label; it cannot satisfy S.7 closeout evidence.",
+        "Architecture boundary: heavy qualification is a profile-driven production scenario with named deterministic fixture planning, generation, disk preflight, execution, verification, cleanup, and evidence materialization stages; sparse/deception fixtures and local chaos corpora live in separate hostile/stress lanes."
       ],
-      "instructions": "Implement S.7 Phase 23 from the spec: Real Multi-GB Blob Qualification Lane. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 23 from the spec: Real Multi-GB Blob Qualification Lane. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. The canonical heavy source must be a deterministic proof-bearing fixture plan whose identity includes seed, byte length, chunk profile, byte-pattern profile, materialization mode, backend profile, and expected digest/chunk-count basis. Support stream-only generation for CI/replay and opt-in real temporary file materialization under a named heavy fixture directory, both using the same evidence schema. Treat target/build directory zips and other ambient local corpora only as optional non-canonical chaos/stress inputs. Enforce the Phase 23 architecture boundary: deterministic fixture planning, generation, disk preflight, execution, verification, cleanup, and evidence materialization are named stages, and sparse/deception fixtures plus local chaos corpora are separate hostile/stress lanes.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, profile/execution collapse, hidden sidecars, target/build directory zip as canonical proof, ambient filesystem corpus authority, god functions, and phase drift against the S.7 spec."
     },
     {
       "id": 24,
@@ -508,10 +515,11 @@
       "acceptance": [
         "Adversarial materialization: executed S.7 scenarios produce a sealed evidence bundle binding Store authority, security scope, replay identity, chunk-tree identity, digest/checksum evidence, reachability, placement, counters, and Proof progression.",
         "Adversarial denial: copied receipts, copied chunk rows, copied proof ids, S.6 placement readiness alone, S.5 future chunk placeholders alone, terminal projections, and raw counters cannot mint S.7 closeout.",
-        "Cross-milestone lane: S.8, S.10, S.11, and S.12 handoffs receive typed S.7 readiness plus explicit non-claims for layout discipline, backup/repair, key lifecycle, and full certification."
+        "Cross-milestone lane: S.8, S.10, S.11, and S.12 handoffs receive typed S.7 readiness plus explicit non-claims for layout discipline, backup/repair, key lifecycle, and full certification.",
+        "Architecture boundary: closeout materialization reads as executed evidence source, S.7 materialized evidence bundle, sealed closeout certificate, then downstream readiness/non-claim handoffs; certification verifies the sequence but does not invent blob law."
       ],
-      "instructions": "Implement S.7 Phase 24 from the spec: Certification Closeout And Shortcut Rejection. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority.",
-      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, and phase drift against the S.7 spec."
+      "instructions": "Implement S.7 Phase 24 from the spec: Certification Closeout And Shortcut Rejection. Keep the implementation phase-bounded, aspect-native, proof-bearing, and aligned with the S.7 hard rules in the contract. Plan the directory skeleton explicitly, make implicit requirements explicit, and keep certification as proof of executed Store law rather than the source of Store authority. Enforce the Phase 24 architecture boundary: request, classifier, verifier, certificate construction, public facade, and downstream non-claim handoffs remain distinct enough to audit the proof transition.",
+      "qa_focus": "Check for authority laundering, public raw constructors, whole-object materialization, digest-only authority, copied counters/receipts/proof ids, certification-owned law, missing exact counters, weak adversarial tests, closeout/certification law collapse, god functions, and phase drift against the S.7 spec."
     }
   ]
 }

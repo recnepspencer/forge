@@ -1,6 +1,6 @@
 mod authority;
 mod canonical_basis;
-mod canonical_tokens;
+pub(crate) mod canonical_tokens;
 mod certified;
 mod collections;
 mod definition;
@@ -19,6 +19,7 @@ pub use denial::{
 };
 pub use expectation::{
     PhysicalScenarioExpectation, PhysicalScenarioExpectationKind, PhysicalScenarioNonClaim,
+    S7BlobHarnessScenarioMetadata,
 };
 pub use identity::PhysicalScenarioCanonicalIdentity;
 pub(crate) use proof_progression::certify_scenario_definition;

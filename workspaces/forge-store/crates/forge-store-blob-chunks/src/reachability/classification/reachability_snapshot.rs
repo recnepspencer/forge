@@ -14,14 +14,6 @@ impl<'a> ReachabilityRegistryView<'a> {
         }
     }
 
-    pub(crate) const fn edges(&self) -> &[BlobReachabilityEdge] {
-        self.edges
-    }
-
-    pub(crate) const fn holds(&self) -> &[BlobReachabilityProtectedHold] {
-        self.holds
-    }
-
     pub(crate) fn has_live_edge_for(&self, identity: &BlobChunkIdentity) -> bool {
         self.edges
             .iter()

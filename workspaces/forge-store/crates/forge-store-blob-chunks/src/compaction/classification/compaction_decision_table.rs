@@ -56,8 +56,7 @@ pub(crate) fn classify_compaction_eligibility(
     {
         return case;
     }
-    if let Some(case) =
-        dedupe_edges::require_dedupe_edges(intent.dedupe_references(), reachability)
+    if let Some(case) = dedupe_edges::require_dedupe_edges(intent.dedupe_references(), reachability)
     {
         return case;
     }
@@ -89,11 +88,9 @@ pub(crate) fn assemble_compaction_denial(
                 counters: denial_counters,
             }
         }
-        CompactionEligibilityCase::ActiveReadHold => {
-            BlobCompactionDenial::ActiveReadHold {
-                counters: denial_counters,
-            }
-        }
+        CompactionEligibilityCase::ActiveReadHold => BlobCompactionDenial::ActiveReadHold {
+            counters: denial_counters,
+        },
         CompactionEligibilityCase::ReadHoldPlanMismatch => {
             BlobCompactionDenial::ReadHoldPlanMismatch {
                 counters: denial_counters,
@@ -110,11 +107,9 @@ pub(crate) fn assemble_compaction_denial(
                 counters: denial_counters,
             }
         }
-        CompactionEligibilityCase::QuarantineHold => {
-            BlobCompactionDenial::QuarantineHold {
-                counters: denial_counters,
-            }
-        }
+        CompactionEligibilityCase::QuarantineHold => BlobCompactionDenial::QuarantineHold {
+            counters: denial_counters,
+        },
         CompactionEligibilityCase::EquivalenceBasisMismatch => {
             BlobCompactionDenial::EquivalenceBasisMismatch {
                 counters: denial_counters,

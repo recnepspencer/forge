@@ -1,7 +1,8 @@
 use forge_store_contracts::StableDigest;
 
 use crate::reachability::counters::BlobReachabilityCounterSnapshot;
-use crate::{BlobChunkIdentity, BlobChunkSecurityMetadataWitness, BlobReachabilityEdge,
+use crate::{
+    BlobChunkIdentity, BlobChunkSecurityMetadataWitness, BlobReachabilityEdge,
     BlobReachabilityEdgeKind,
 };
 

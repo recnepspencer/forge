@@ -1,6 +1,6 @@
 use crate::{
-    BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectId, BlobReachabilityCounterSnapshot,
-    ChunkTreeRoot, LogicalContentDigest,
+    BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectId,
+    BlobReachabilityCounterSnapshot, ChunkTreeRoot, LogicalContentDigest,
 };
 
 use super::super::evidence::BlobPublicationCounterReceiptIdentity;

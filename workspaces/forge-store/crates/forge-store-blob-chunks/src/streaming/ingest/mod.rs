@@ -24,16 +24,12 @@ pub use admission::{
     BlobStreamingPressureAdmission,
 };
 pub use counters::BlobStreamingIngestCounterSnapshot;
-pub use denial::{
-    reject_full_blob_vec_as_streaming_ingest, BlobStreamingIngestDenial,
-};
+pub use denial::{reject_full_blob_vec_as_streaming_ingest, BlobStreamingIngestDenial};
 pub use frontier::BlobStreamingContentFrontier;
 pub use large_record_envelope::{LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial};
 pub use receipt_construction::{
     BlobStreamingCounterBackedPerformanceReceipt, BlobStreamingResidencyProof,
 };
 pub use request::{BlobStreamingIngestRequest, BlobStreamingWindow};
-pub use source::{
-    BlobStreamingChunkWriter, BlobStreamingSourceFrame, BlobStreamingWrittenChunk,
-};
+pub use source::{BlobStreamingChunkWriter, BlobStreamingSourceFrame, BlobStreamingWrittenChunk};
 pub use types::BlobStreamingIngest;

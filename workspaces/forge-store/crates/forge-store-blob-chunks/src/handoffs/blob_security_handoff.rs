@@ -1,5 +1,7 @@
-use forge_store_readiness::S51AdmittedSecurityScopeReadiness;
-use forge_store_security::{StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity};
+use forge_store_security::{
+    S51AdmittedSecurityScopeReadiness, StoreSecurityScopeAdmissionReceipt,
+    StoreSecurityScopeIdentity,
+};
 
 use crate::{
     BlobChunkSecurityMetadataWitness, BlobChunkSecurityScope, BlobChunkSecurityScopeDenial,

@@ -212,7 +212,7 @@ fn require_background_basis(
 fn blob_ingest_preserves_page_or_wal_foreground(
     request: &BackgroundCapacityAdmissionRequest<'_>,
 ) -> bool {
-    request.pressure.class() == super::BackgroundIoPressureClass::BlobIngestPressure
+    request.pressure.class() == super::BackgroundIoPressureClass::IngestPressure
         && matches!(
             request.foreground.lane(),
             ForegroundIoLaneKind::CommitCriticalWalWrite | ForegroundIoLaneKind::OrdinaryPageWrite

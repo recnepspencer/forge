@@ -49,7 +49,7 @@ impl BlobHarnessProfile {
     pub const fn chunk_size_class(self) -> BlobHarnessChunkSizeClass {
         match self {
             Self::Local => BlobHarnessChunkSizeClass::Fixed64KiB,
-            Self::CiMemoryEnvelopeExceeding => BlobHarnessChunkSizeClass::Fixed1MiB,
+            Self::CiMemoryEnvelopeExceeding => BlobHarnessChunkSizeClass::Fixed64KiB,
             Self::HeavyMultiGb => BlobHarnessChunkSizeClass::Fixed8MiB,
         }
     }

@@ -1,11 +1,8 @@
 use forge_store_budgets::CounterEvidenceStrength;
 
-use crate::{
-    BlobChunkSecurityMetadataWitness, BlobReachabilityCounterSnapshot, ChunkTreeRoot,
-    LogicalContentDigest,
-};
+use crate::BlobReachabilityCounterSnapshot;
 
-use super::super::{BlobPublicationCounterSnapshot, BlobReachabilityStagingIdentity};
+use super::super::BlobPublicationCounterSnapshot;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobPublicationCounterReceiptIdentity {
@@ -37,18 +34,6 @@ impl BlobPublicationCounterReceiptIdentity {
 }
 
 impl BlobPublicationRecoveryOperationDigest {
-    pub(crate) fn chunk_write(digest: &LogicalContentDigest) -> Self {
-        Self::from_stable_parts("chunk-write", digest.digest().as_str())
-    }
-
-    pub(crate) fn checksum_admitted(digest: &LogicalContentDigest) -> Self {
-        Self::from_stable_parts("checksum-admitted", digest.digest().as_str())
-    }
-
-    pub(crate) fn chunk_tree_durable(root: &ChunkTreeRoot) -> Self {
-        Self::from_stable_parts("chunk-tree-durable", root.digest().as_str())
-    }
-
     pub(crate) fn from_stable_parts(phase: &str, stable_basis: &str) -> Self {
         Self {
             value: format!("blob-publication-recovery:v1:{phase}:{stable_basis}"),
@@ -66,16 +51,6 @@ pub(crate) fn recovery_evidence_digest(
     stable_basis: &str,
 ) -> String {
     format!("blob-publication-recovery-evidence:v1:{crash_phase}:{replay_digest}:{stable_basis}")
-}
-
-fn security_receipt_basis(metadata: BlobChunkSecurityMetadataWitness) -> String {
-    let receipt_id = metadata.receipt().receipt_id();
-    format!(
-        "admission={}:scope={}:progression={}",
-        receipt_id.admission_sequence(),
-        receipt_id.security_scope_fingerprint(),
-        receipt_id.proof_progression_fingerprint()
-    )
 }
 
 fn publication_counter_basis(counters: BlobPublicationCounterSnapshot) -> String {

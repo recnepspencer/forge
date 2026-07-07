@@ -1,5 +1,7 @@
 use super::super::receipt_construction::verified_read::assemble_verified_read;
-use super::super::verification::{frontier_coverage, logical_content_digest, StreamingReadVerifier};
+use super::super::verification::{
+    frontier_coverage, logical_content_digest, StreamingReadVerifier,
+};
 use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 
 pub(crate) fn finish_verified_read(

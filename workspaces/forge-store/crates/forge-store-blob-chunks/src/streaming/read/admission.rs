@@ -2,7 +2,7 @@ use forge_store_io_scheduler::foreground_reservation::{
     ForegroundIoLaneKind, ForegroundReservationAdmissionOutcome, ForegroundReservationReceipt,
     ForegroundReservationState,
 };
-use forge_store_io_scheduler::{BackgroundPacingCounterSnapshot, BackgroundPacingOutcome};
+use forge_store_io_scheduler::BackgroundPacingOutcome;
 use forge_store_physical_isolation::{PhysicalReadExecutionDenial, StablePhysicalReadReceipt};
 
 use super::classification::verification_pressure;
@@ -12,7 +12,7 @@ use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 pub struct BlobStreamingReadAdmission {
     stable_read: StablePhysicalReadReceipt,
     foreground: ForegroundReservationReceipt,
-    pressure_counters: BackgroundPacingCounterSnapshot,
+    pressure_counters: BlobStreamingReadCounterSnapshot,
 }
 
 impl BlobStreamingReadAdmission {
@@ -82,7 +82,7 @@ impl BlobStreamingReadAdmission {
         let foreground = self.foreground.counters();
         counters
             .record_stable_read(self.stable_read.counters())
-            .record_background_pressure(self.pressure_counters)
+            .merge_pressure_counters(self.pressure_counters)
             .record_foreground_scheduler_waits(
                 foreground.stable_read_wait_count() + foreground.stable_read_retry_count(),
             )
@@ -96,7 +96,7 @@ impl BlobStreamingReadAdmission {
         self.foreground
     }
 
-    pub const fn pressure_counters(self) -> BackgroundPacingCounterSnapshot {
+    pub const fn pressure_counters(self) -> BlobStreamingReadCounterSnapshot {
         self.pressure_counters
     }
 }

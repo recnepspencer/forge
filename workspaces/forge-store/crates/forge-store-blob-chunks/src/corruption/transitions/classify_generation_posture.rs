@@ -6,5 +6,5 @@ pub fn classify_generation_posture(
     quarantine: &BlobChunkQuarantine,
     classification: BlobObjectClassification,
 ) -> BlobCorruptionGenerationClassification {
-    BlobCorruptionGenerationClassification::from_quarantine(quarantine, classification)
+    BlobCorruptionGenerationClassification::construct_from_quarantine(quarantine, classification)
 }

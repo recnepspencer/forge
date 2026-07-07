@@ -6,6 +6,7 @@ license.workspace = true
 description = "Roadmap 2 S.8 artifact layout, index, and access-path discipline."
 
 [dependencies]
+forge-store-blob-chunks.workspace = true
 forge-store-contracts.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true

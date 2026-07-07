@@ -1,53 +1,15 @@
-//! Named harness authority for Store certification and replay scenarios.
+//! Named harness topology for Store certification and replay scenarios.
+//!
+//! `production_facade` contains helpers that exercise production-owned
+//! capabilities through their public lifecycle. `test_authority` contains the
+//! synthetic courtroom-only witnesses and shortcut attempts that exist only to
+//! falsify production topology.
 
 pub mod fixtures;
-pub mod milestone;
+mod milestone;
 pub mod physical_reference;
 pub mod physical_simulation;
+pub mod production_facade;
+pub mod test_authority;
 
-pub use fixtures::{
-    require_native_store_aspect_fixture, AllocationSentinel, AspectDerivedSegmentReference,
-    LargeRecordStreamPressure, LargeStorePressureClass, LargeStorePressureFixture,
-    MemoryPressureDriverInput, NativeAspectPhysicalReferenceDenial, NativeStoreAspectFixture,
-    StoreHostileReadmissionJsonFixture, StoreHostileReadmissionJsonFixtureBoundaryOutcome,
-    StoreHostileReadmissionJsonFixtureBoundaryWitness, StoreJsonFixtureBoundaryDenial,
-    StoreTerminalProjectionJsonFixture, StoreTerminalProjectionJsonFixtureBoundaryOutcome,
-    StoreTerminalProjectionJsonFixtureBoundaryWitness,
-};
-pub use milestone::{
-    admitted_s4_partial_publication_recovery_entry, admitted_s4_recovery_entry,
-    ci_memory_envelope_s7_blob_harness_seed, deterministic_s4_fresh_runtime_driver,
-    deterministic_s4_recovery_artifacts, deterministic_s6_interference_profile,
-    deterministic_s6_io_pressure_profile, duplicate_role_s4_recovery_artifacts,
-    execute_s5_1_security_scope_harness_replay_with_physical_replay,
-    execute_s5_1_security_scope_harness_scenario, heavy_multi_gb_s7_blob_harness_seed,
-    incomplete_s4_recovery_artifacts, large_s6_io_pressure_profile, local_s7_blob_harness_seed,
-    malformed_s4_recovery_record, reordered_s4_recovery_artifacts,
-    runtime_disagreement_s4_recovery_artifacts, runtime_state_mismatch_s4_recovery_artifacts,
-    s4_recovery_artifacts_with_operation_digest, s5_1_security_scope_drift_scenario,
-    s5_1_security_scope_metadata_preservation_scenarios,
-    s5_1_security_scope_metadata_preserved_scenario,
-    s5_1_security_scope_missing_authenticity_scenario,
-    s5_1_security_scope_replayed_custody_scenario, s5_1_security_scope_stale_key_scenario,
-    s5_1_security_scope_wrong_tenant_scenario, s5_boundary_fact, s5_boundary_yieldpoint,
-    ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver,
-    FreshRuntimeRecoveryDriver, RecoveryRuntimePosture, S51SecurityScopeHarnessExecution,
-    S51SecurityScopeHarnessReplayExecution, S6InterferenceTestProfile, S6IoPressureTestProfile,
-    ScheduledFault, StorageBoundaryEvent, StorageBoundaryInterposerDriver,
-};
-pub use physical_reference::{harness_physical_reference, HarnessPhysicalReference};
-pub use physical_simulation::{
-    admitted_ci_certification_driver_contracts, admitted_developer_smoke_driver_contracts,
-    ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
-    ci_certification_replay_seed, ci_certification_state_space_budget, crash_recovery_fault_locus,
-    deterministic_ci_certification_schedule, deterministic_developer_smoke_schedule,
-    developer_smoke_replay_seed, developer_smoke_state_space_budget,
-    fake_in_memory_only_driver_attempt, io_pressure_fault_locus,
-    observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
-    observed_torn_frame_boundary, page_generation_fault_locus,
-    post_decode_corruption_fault_attempt_fixture, private_mutation_driver_attempt_fixture,
-    private_mutation_fault_attempt_fixture, production_backed_physical_fixture_materialization,
-    same_process_crash_fault_attempt_fixture, sleep_based_scheduling_driver_attempt,
-    test_support_verdict_driver_attempt_fixture, unbound_production_driver,
-    wal_frame_payload_fault_locus,
-};
+pub use production_facade::*;

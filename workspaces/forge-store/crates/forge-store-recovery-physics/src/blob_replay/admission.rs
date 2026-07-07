@@ -125,11 +125,9 @@ impl BlobResumeReplayReadmission {
                 Some(source.source_digest().to_owned()),
             ));
         }
-        if current_store_authority_digest.is_empty() {
-            return Err(BlobReplayAdmissionDenial::new(
-                BlobReplayAdmissionDenialKind::MissingStoreAuthorityReadmission,
-                Some(source.source_digest().to_owned()),
-            ));
+        if let Err(denial) = crate::verify_store_authority_for_readmission(&current_store_authority)
+        {
+            return Err(denial);
         }
         let authority =
             AuthorityWitness::from_authority_marker(BlobResumeReplayReadmissionAuthority);

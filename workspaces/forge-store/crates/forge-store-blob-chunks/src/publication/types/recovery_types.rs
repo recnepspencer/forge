@@ -99,7 +99,10 @@ impl BlobPublicationRecoveryEvidence {
         super::super::transitions::recovery_evidence::session_closed(closeout)
     }
 
-    pub(crate) fn new(crash_point: BlobPublicationCrashPoint, evidence_digest: impl Into<String>) -> Self {
+    pub(crate) fn new(
+        crash_point: BlobPublicationCrashPoint,
+        evidence_digest: impl Into<String>,
+    ) -> Self {
         Self {
             crash_point,
             evidence_digest: evidence_digest.into(),
@@ -176,7 +179,9 @@ impl BlobPublicationPreWalReplayEvidence {
     pub(crate) fn root_candidate_recovery_operation_digest(
         candidate: &BlobRootCandidateForPublication,
     ) -> super::super::evidence::BlobPublicationRecoveryOperationDigest {
-        super::super::evidence::operation_digest::root_candidate_recovery_operation_digest(candidate)
+        super::super::evidence::operation_digest::root_candidate_recovery_operation_digest(
+            candidate,
+        )
     }
 
     #[cfg(test)]
@@ -190,7 +195,10 @@ impl BlobPublicationPreWalReplayEvidence {
         self,
         expected_operation_digest: &super::super::evidence::BlobPublicationRecoveryOperationDigest,
     ) -> Result<Self, BlobPublicationDenial> {
-        super::super::verification::pre_wal_replay::require_operation(self, expected_operation_digest)
+        super::super::verification::pre_wal_replay::require_operation(
+            self,
+            expected_operation_digest,
+        )
     }
 
     pub fn classification_digest(&self) -> &str {

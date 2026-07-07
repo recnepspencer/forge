@@ -21,8 +21,8 @@ pub use denial::{
     reject_checksum_only_evidence_as_blob_chunk_integrity,
     reject_digest_only_evidence_as_blob_chunk_integrity, BlobChunkIntegrityDenial,
 };
-pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
 pub use integrity::BlobChunkIntegrityProof;
+pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
 pub use reference_accounting::{
     BlobChunkReferenceAccountingDenial, BlobChunkReferenceAccountingRegistry,
 };

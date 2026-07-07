@@ -20,8 +20,7 @@ pub(crate) fn admit_stream(
     let counters = ingest_pressure::classify_pressure_outcome(pressure)?.record_allocation();
     let (security_scope, rule, declared_total_bytes) = request.into_parts();
     let chunk_size = rule.chunk_size().bytes() as usize;
-    let admission =
-        BlobChunkSequenceAdmission::start(security_scope, rule, declared_total_bytes)?;
+    let admission = BlobChunkSequenceAdmission::start(security_scope, rule, declared_total_bytes)?;
     let chunking = BlobStreamingChunkingSession::new(chunk_size);
     Ok((admission, chunking, counters))
 }

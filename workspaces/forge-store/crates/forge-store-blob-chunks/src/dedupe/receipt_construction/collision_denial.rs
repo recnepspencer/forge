@@ -20,9 +20,11 @@ pub(crate) fn construct_digest_collision_denial(
         bytes_compared,
         collision_counters,
     );
-    TransitionOutcome::denied(crate::BlobChunkDedupeAdmissionDenial::DigestCollisionDenied {
-        posture: BlobChunkDedupeCollisionPosture::DigestCollisionDenied,
-        counters: receipt.counters(),
-        receipt,
-    })
+    TransitionOutcome::denied(
+        crate::BlobChunkDedupeAdmissionDenial::DigestCollisionDenied {
+            posture: BlobChunkDedupeCollisionPosture::DigestCollisionDenied,
+            counters: receipt.counters(),
+            receipt,
+        },
+    )
 }

@@ -2,10 +2,11 @@
 #![forbid(unsafe_code)]
 
 mod blob_replay;
-mod corruption_readmission;
 mod checkpoint_cutover;
+mod corruption_readmission;
 mod durable_publication;
 mod integrity_damage_map;
+mod integrity_handoff;
 mod integrity_input;
 mod integrity_vetted_records;
 mod memory_envelope;
@@ -39,9 +40,6 @@ mod source_precedence;
 mod wal_durability;
 mod wal_topology;
 
-pub use corruption_readmission::{
-    verify_quarantine_handoff_for_readmission, verify_store_authority_for_readmission,
-};
 pub use blob_replay::{
     BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, BlobReplaySourceAdmission,
     BlobReplaySourceKind, BlobReplaySourceOutcome, BlobReplaySourceOutcomeKind,
@@ -64,16 +62,23 @@ pub use checkpoint_cutover::{
     SuperblockRingCheckpointPointer, WalRetentionAction, WalRetentionAdmittedAction,
     WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
 };
+pub use corruption_readmission::{
+    admit_recovery_corruption_readmission, build_recovery_readmission_handoff,
+    classify_recovery_repair_capability, verify_quarantine_handoff_for_readmission,
+    verify_store_authority_for_readmission, RecoveryCorruptionReadmissionDenial,
+    RecoveryCorruptionReadmissionHandoff, RecoveryCorruptionRepairCapability,
+};
 pub use durable_publication::{
     CheckpointCrashDurabilityPosture, DurabilityRecoveryReplaySource,
     DurabilityRecoverySourcePrecedence, DurabilityReplayIdentity, DurabilityReplayKind,
     DurableCheckpointPublication, DurableManifestPublication, DurableWalPublication,
     StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
+pub use forge_store_contracts::CorruptionHandoffDamageCase;
 pub use integrity_damage_map::{
     classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
-    RecoveryBlockingDamageCase,
 };
+pub use integrity_handoff::damage_map;
 pub use integrity_input::RecoveryPhysicsIntegrityInput;
 pub use integrity_vetted_records::{
     IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,

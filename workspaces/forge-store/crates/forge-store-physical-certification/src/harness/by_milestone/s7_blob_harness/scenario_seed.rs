@@ -117,8 +117,18 @@ impl BlobHarnessScenarioSeedBuilder {
         self
     }
 
+    pub const fn placement_cold_tier(mut self) -> Self {
+        self.placement_class = BlobHarnessPlacementClass::ColdTierObserved;
+        self
+    }
+
     pub const fn security_scope_preserving(mut self) -> Self {
         self.security_scope = BlobHarnessSecurityScopeClass::ScopePreserving;
+        self
+    }
+
+    pub const fn security_scope_cross_scope_denied(mut self) -> Self {
+        self.security_scope = BlobHarnessSecurityScopeClass::CrossScopeDenied;
         self
     }
 
@@ -127,8 +137,83 @@ impl BlobHarnessScenarioSeedBuilder {
         self
     }
 
+    pub const fn resumable_ingest_access(mut self) -> Self {
+        self.access_mode = BlobHarnessAccessMode::ResumableIngestSeed;
+        self
+    }
+
+    pub const fn export_boundary_access(mut self) -> Self {
+        self.access_mode = BlobHarnessAccessMode::ExportBoundary;
+        self
+    }
+
+    pub const fn import_readmission_access(mut self) -> Self {
+        self.access_mode = BlobHarnessAccessMode::ImportReadmission;
+        self
+    }
+
+    pub const fn partial_replication_access(mut self) -> Self {
+        self.access_mode = BlobHarnessAccessMode::PartialReplication;
+        self
+    }
+
     pub const fn seed_actor_mix(mut self) -> Self {
         self.actor_mix = BlobHarnessActorMix::SeedReplayOnly;
+        self
+    }
+
+    pub const fn ingest_read_verify_actor_mix(mut self) -> Self {
+        self.actor_mix = BlobHarnessActorMix::IngestReadVerify;
+        self
+    }
+
+    pub const fn resume_recovery_actor_mix(mut self) -> Self {
+        self.actor_mix = BlobHarnessActorMix::ResumeRecovery;
+        self
+    }
+
+    pub const fn dedupe_reclaim_actor_mix(mut self) -> Self {
+        self.actor_mix = BlobHarnessActorMix::DedupeReclaim;
+        self
+    }
+
+    pub const fn export_import_actor_mix(mut self) -> Self {
+        self.actor_mix = BlobHarnessActorMix::ExportImport;
+        self
+    }
+
+    pub const fn placement_move_partial_replication_actor_mix(mut self) -> Self {
+        self.actor_mix = BlobHarnessActorMix::PlacementMovePartialReplication;
+        self
+    }
+
+    pub const fn fault_after_chunk_write(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::AfterChunkWrite;
+        self
+    }
+
+    pub const fn fault_after_session_checkpoint(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::AfterSessionCheckpoint;
+        self
+    }
+
+    pub const fn fault_after_root_publication(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::AfterRootPublication;
+        self
+    }
+
+    pub const fn fault_during_tier_move(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::DuringTierMove;
+        self
+    }
+
+    pub const fn fault_during_export(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::DuringExport;
+        self
+    }
+
+    pub const fn fault_during_reclaim(mut self) -> Self {
+        self.failure_point = BlobHarnessFailurePoint::DuringReclaim;
         self
     }
 
@@ -173,6 +258,9 @@ fn map_topology_denial(denial: BlobHarnessTopologyDenial) -> BlobHarnessShortcut
             BlobHarnessShortcutDenial::TinyBlobCannotSatisfyProfileEnvelope
         }
         BlobHarnessTopologyDenial::MissingChunkCounters => {
+            BlobHarnessShortcutDenial::MissingChunkCounters
+        }
+        BlobHarnessTopologyDenial::InconsistentChunkCounters => {
             BlobHarnessShortcutDenial::MissingChunkCounters
         }
     }

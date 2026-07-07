@@ -1,8 +1,8 @@
-use crate::reachability::receipt_construction::{
-    BlobReachabilityCanonicalSnapshot, BlobReachabilityEdgeRelease,
-};
 use crate::reachability::receipt_construction::proof_set::{
     collect_unique_reachable_chunks, exact_current_counters_for,
+};
+use crate::reachability::receipt_construction::{
+    BlobReachabilityCanonicalSnapshot, BlobReachabilityEdgeRelease,
 };
 use crate::reachability::transitions::apply_dedupe_release::transition_apply_dedupe_reference_release;
 use crate::reachability::transitions::classify_reclaim::classify_reclaim_for_identity;

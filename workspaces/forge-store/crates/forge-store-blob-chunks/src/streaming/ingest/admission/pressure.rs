@@ -22,7 +22,7 @@ impl BlobStreamingPressureAdmission {
         late_yield: bool,
     ) -> Result<Self, BlobStreamingIngestDenial> {
         let basis = capacity.basis();
-        if basis.class() != BackgroundIoPressureClass::BlobIngestPressure {
+        if basis.class() != BackgroundIoPressureClass::IngestPressure {
             return Err(BlobStreamingIngestDenial::BackgroundPressureClassMismatch {
                 actual: basis.class(),
             });

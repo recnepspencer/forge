@@ -9,9 +9,9 @@ use forge_store_io_scheduler::{
 use forge_store_physical_backend::BlobBackendChunkWriteSession;
 use forge_store_security::StoreTenantScope;
 
+use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::test_support::physical_payload_for_bytes;
 use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
-use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::{
     run_resumable_streaming_ingest, BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission,
     BlobResumeSessionAdmitted, BlobResumeSessionDeclaration, BlobResumeStoreAuthority,

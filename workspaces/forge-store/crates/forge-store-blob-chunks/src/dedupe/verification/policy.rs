@@ -1,6 +1,6 @@
 use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
-    BlobChunkDedupePolicy,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome,
+    BlobChunkDedupeCounterSnapshot, BlobChunkDedupePolicy,
 };
 use forge_proof::TransitionOutcome;
 
@@ -11,9 +11,11 @@ pub(crate) fn verify_policy_allows_sharing(
     if policy.allows_same_scope_sharing() {
         Ok(counters)
     } else {
-        Err(TransitionOutcome::denied(BlobChunkDedupeAdmissionDenial::DedupePolicyDenied {
-            policy,
-            counters: counters.record_dedupe_miss(),
-        }))
+        Err(TransitionOutcome::denied(
+            BlobChunkDedupeAdmissionDenial::DedupePolicyDenied {
+                policy,
+                counters: counters.record_dedupe_miss(),
+            },
+        ))
     }
 }

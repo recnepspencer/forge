@@ -1,10 +1,10 @@
+use crate::corruption::types::BlobCorruptionDetectionSource;
+use crate::corruption::types::BlobQuarantineLifecycleState;
 use crate::{
     BlobChunkOrdinal, BlobCorruptedChunkLocalization, BlobCorruptionCounterSnapshot,
     BlobCorruptionPlacementClass, BlobCorruptionReferenceSharingScope, BlobGeneration,
     BlobObjectId, StoredChunkDigest,
 };
-use crate::corruption::types::BlobCorruptionDetectionSource;
-use crate::corruption::types::BlobQuarantineLifecycleState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobChunkQuarantine {

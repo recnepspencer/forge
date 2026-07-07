@@ -11,10 +11,10 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
+use forge_store_security::{
+    accept_s5_1_admitted_security_scope_readiness,
+    admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::foreground_reservation::{
     admit_foreground_reservation, admit_foreground_reservation_capacity,

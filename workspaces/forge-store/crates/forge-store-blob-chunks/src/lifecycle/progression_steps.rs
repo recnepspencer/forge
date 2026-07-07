@@ -39,8 +39,14 @@ pub(crate) fn admit_reachability_stage(
     proof_recipe: BlobLifecycleLoweredRecipe,
     reachability: BlobChunkReachabilityProofSet,
     counters: BlobLifecycleCounterSnapshot,
-) -> Result<(BlobLifecycleLoweredRecipe, BlobChunkReachabilityProofSet, BlobLifecycleCounterSnapshot), BlobLifecycleDenial>
-{
+) -> Result<
+    (
+        BlobLifecycleLoweredRecipe,
+        BlobChunkReachabilityProofSet,
+        BlobLifecycleCounterSnapshot,
+    ),
+    BlobLifecycleDenial,
+> {
     let counters = counters
         .record_scoped_chunk()
         .record_reachability_admission();

@@ -16,9 +16,9 @@ use forge_store_wal::{
     WalFrameDurablePublicationScope,
 };
 
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
 use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::publication::test_support::publication_inputs_with_bytes_and_chunk_size;
+use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
 use crate::{
     BlobChunkSize, BlobChunkingRuleAdmission, BlobInterruptedIngestRecovery,
     BlobResumeCheckpointStateKind, BlobResumeDenial, BlobResumeReadmissionAuthority,

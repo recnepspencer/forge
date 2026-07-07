@@ -1,4 +1,5 @@
 mod basis;
+mod blob_harness;
 mod family;
 mod forbidden_sources;
 mod oracle_impls;
@@ -7,6 +8,12 @@ mod s5_readiness;
 mod verdict;
 
 pub use basis::OracleVerdictBasis;
+pub use blob_harness::{
+    BlobByteEqualityOracle, BlobChunkOrderingOracle, BlobConstantMemoryOracle,
+    BlobDigestChecksumDistinctionOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
+    BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
+    BlobHeavyQualificationEvidenceOracle, BlobReachabilityOracle,
+};
 pub use family::{PhysicalOracleJudgment, PhysicalProofOracle, ReusablePhysicalOracleFamily};
 pub use forbidden_sources::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,

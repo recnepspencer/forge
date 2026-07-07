@@ -63,7 +63,9 @@ pub(crate) fn require_publication(
     publication: Option<BlobGenerationPublicationRecord>,
 ) -> Result<BlobGenerationPublicationRecord, BlobRecoveryRecordDenial> {
     publication.ok_or_else(|| {
-        BlobRecoveryRecordDenial::start(BlobRecoveryRecordDenialKind::RootCandidateWithoutPublication)
+        BlobRecoveryRecordDenial::start(
+            BlobRecoveryRecordDenialKind::RootCandidateWithoutPublication,
+        )
     })
 }
 

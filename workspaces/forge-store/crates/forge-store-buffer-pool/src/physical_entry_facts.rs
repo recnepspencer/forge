@@ -1,4 +1,4 @@
-use forge_store_readiness::S2PhysicalSubstrateReadiness;
+use forge_store_contracts::S2PhysicalSubstrateReadinessSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S2PhysicalEntryFacts {
@@ -11,15 +11,14 @@ pub struct S2PhysicalEntryFacts {
 }
 
 impl S2PhysicalEntryFacts {
-    pub(crate) const fn from_readiness(readiness: &S2PhysicalSubstrateReadiness) -> Self {
-        let facts = readiness.facts();
+    pub(crate) const fn from_snapshot(snapshot: S2PhysicalSubstrateReadinessSnapshot) -> Self {
         Self {
-            physical_reference_count: facts.physical_reference_count(),
-            header_decode_witness_count: facts.header_decode_witness_count(),
-            payload_admission_witness_count: facts.payload_admission_witness_count(),
-            manifest_layout_evidence_count: facts.manifest_layout_evidence_count(),
-            no_materialization_witness_count: facts.no_materialization_witness_count(),
-            counter_evidence_count: facts.counter_evidence_count(),
+            physical_reference_count: snapshot.physical_reference_count(),
+            header_decode_witness_count: snapshot.header_decode_witness_count(),
+            payload_admission_witness_count: snapshot.payload_admission_witness_count(),
+            manifest_layout_evidence_count: snapshot.manifest_layout_evidence_count(),
+            no_materialization_witness_count: snapshot.no_materialization_witness_count(),
+            counter_evidence_count: snapshot.counter_evidence_count(),
         }
     }
 

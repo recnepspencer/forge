@@ -86,7 +86,10 @@ impl BlobStreamingChunkingSession {
                 admission =
                     flush_chunk::advance_chunk_frontier(self, admission, written, &mut counters)?;
             }
-            source_frame::reject_if_offset_exceeds_declared(self.start_offset, declared_total_bytes)?;
+            source_frame::reject_if_offset_exceeds_declared(
+                self.start_offset,
+                declared_total_bytes,
+            )?;
         }
         Ok(BlobStreamingChunkingStep {
             admission,
@@ -106,19 +109,14 @@ impl BlobStreamingChunkingSession {
         use super::super::verification::backend_write;
 
         if !self.pending.is_empty() {
-            let written =
-                writer.write_streaming_chunk(self.ordinal, self.pending_as_slice())?;
+            let written = writer.write_streaming_chunk(self.ordinal, self.pending_as_slice())?;
             backend_write::verify_payload_matches_pending(
                 self.ordinal,
                 &written,
                 self.pending_as_slice(),
             )?;
-            admission = flush_chunk::advance_chunk_frontier(
-                &mut self,
-                admission,
-                written,
-                &mut counters,
-            )?;
+            admission =
+                flush_chunk::advance_chunk_frontier(&mut self, admission, written, &mut counters)?;
         }
         Ok(BlobStreamingChunkingStep {
             admission,

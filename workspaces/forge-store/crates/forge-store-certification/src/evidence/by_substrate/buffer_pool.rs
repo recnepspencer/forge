@@ -1,13 +1,15 @@
 //! Buffer-pool substrate evidence re-exports.
 
 pub use crate::allocation_envelope_evidence::{
-    AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport, AllocationEnvelopeEvidenceRow,
+    AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
+    AllocationEnvelopeEvidenceRow,
 };
 pub use crate::dirty_publication_evidence::{
     DirtyPublicationEvidenceDenial, DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow,
 };
 pub use crate::eviction_protection_evidence::{
-    EvictionProtectionEvidenceDenial, EvictionProtectionEvidenceReport, EvictionProtectionEvidenceRow,
+    EvictionProtectionEvidenceDenial, EvictionProtectionEvidenceReport,
+    EvictionProtectionEvidenceRow,
 };
 pub use crate::pin_lifecycle_evidence::{
     PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport, PinLifecycleEvidenceRow,

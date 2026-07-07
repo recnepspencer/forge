@@ -2,17 +2,17 @@ use crate::{
     S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind, S4IntegrityHandoffPayload,
     S4RecoveryPhysicsIntegrityReadiness,
 };
-use forge_store_readiness::{S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload};
+use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S4IntegrityHandoffAdmission;
 
 impl S4IntegrityHandoffAdmission {
     pub fn admit(
-        s3_readiness: S3PhysicalIntegrityReadiness,
+        s3_payload: S3PhysicalIntegrityReadinessPayload,
         payload: S4IntegrityHandoffPayload,
     ) -> Result<S4RecoveryPhysicsIntegrityReadiness, S4IntegrityHandoffDenial> {
-        let _s3_entry_basis = S3HandoffEntryAdmissionBasis::from_readiness(s3_readiness)?;
+        let _s3_entry_basis = S3HandoffEntryAdmissionBasis::from_payload(s3_payload)?;
         Ok(S4RecoveryPhysicsIntegrityReadiness::from_admitted_s3_handoff(payload))
     }
 }
@@ -21,10 +21,9 @@ impl S4IntegrityHandoffAdmission {
 struct S3HandoffEntryAdmissionBasis;
 
 impl S3HandoffEntryAdmissionBasis {
-    fn from_readiness(
-        s3_readiness: S3PhysicalIntegrityReadiness,
+    fn from_payload(
+        payload: S3PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, S4IntegrityHandoffDenial> {
-        let payload = s3_readiness.payload();
         require_protected_integrity_view(payload)?;
         require_lease_scoped_integrity_inspection(payload)?;
         require_no_materialization_entry_witness(payload)?;

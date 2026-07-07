@@ -2,7 +2,7 @@ use crate::BlobChunkReachabilityProofSet;
 
 use super::super::evidence::BlobPublicationCounterReceiptIdentity;
 use super::super::types::reachability_staging::BlobReachabilityStagingIdentity;
-use super::super::{BlobPublicationIntent, BlobPublicationCounterSnapshot};
+use super::super::{BlobPublicationCounterSnapshot, BlobPublicationIntent};
 
 pub(crate) fn from_intent_and_receipt(
     intent: &BlobPublicationIntent,

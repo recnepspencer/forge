@@ -1,4 +1,6 @@
-use crate::{BlobChunkOrdinal, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
+use crate::{
+    BlobChunkOrdinal, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
+};
 
 pub(crate) fn verify_chunk_order(
     expected: &BlobChunkProofLeaf,

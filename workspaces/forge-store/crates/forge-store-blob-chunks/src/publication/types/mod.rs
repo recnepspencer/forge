@@ -6,9 +6,7 @@ pub(crate) mod semantic_visibility;
 pub(crate) mod session_closeout;
 pub(crate) mod wal_types;
 
-pub use published::{
-    BlobGenerationPublished, BlobPublicationAuthority, BlobVisibleGeneration,
-};
+pub use published::{BlobGenerationPublished, BlobPublicationAuthority, BlobVisibleGeneration};
 pub use reachability_staging::{BlobReachabilityStaging, BlobReachabilityStagingIdentity};
 pub use recovery_types::{
     BlobPublicationPreWalReplayEvidence, BlobPublicationRecoveredState,

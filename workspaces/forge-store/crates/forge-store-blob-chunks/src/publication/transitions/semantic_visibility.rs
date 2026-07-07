@@ -1,9 +1,9 @@
 use super::super::receipt_construction::visibility;
 use super::super::types::published::BlobGenerationPublished;
+use super::super::types::published::BlobVisibleGeneration;
 use super::super::types::semantic_visibility::{
     BlobSemanticVisibilityHandoff, BlobSemanticVisibilityOutcome,
 };
-use super::super::types::published::BlobVisibleGeneration;
 use super::super::{BlobPublicationCounterSnapshot, BlobPublicationDenial};
 
 pub(crate) fn observe_previous_or_published(

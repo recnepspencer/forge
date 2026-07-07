@@ -1,6 +1,4 @@
-use crate::{
-    BlobStreamingReadDenial, BlobStreamingReadObservedChunk, BlobStreamingReadWindow,
-};
+use crate::{BlobStreamingReadDenial, BlobStreamingReadObservedChunk, BlobStreamingReadWindow};
 
 pub(crate) fn verify_read_resident_envelope(
     chunk: &BlobStreamingReadObservedChunk,

@@ -1,9 +1,9 @@
 use forge_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
 use forge_store_buffer_pool::AllocationReceipt;
 
-use super::bind_resume_session;
 use super::super::types::BlobStreamingResumeAdmission;
 use super::super::verification::request_match;
+use super::bind_resume_session;
 use crate::{
     BlobStreamingChunkWriter, BlobStreamingIngest, BlobStreamingIngestDenial,
     BlobStreamingIngestRequest, BlobStreamingPressureAdmission, BlobStreamingSourceFrame,
@@ -35,5 +35,8 @@ where
         writer,
         counter_strength,
     )?;
-    Ok(bind_resume_session::bind_resume_session(ingest, resume_admission))
+    Ok(bind_resume_session::bind_resume_session(
+        ingest,
+        resume_admission,
+    ))
 }

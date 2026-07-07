@@ -1,4 +1,6 @@
-use crate::RecoveryBlockedByIntegrityDamage;
+use crate::{
+    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, RecoveryCorruptionReadmissionHandoff,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecoveryEntryAdmissionDecision {
@@ -10,14 +12,16 @@ pub enum RecoveryEntryAdmissionDecision {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBlockedByIntegrityDamage {
     blockers: Vec<RecoveryBlockedByIntegrityDamage>,
+    readmission_handoffs: Vec<RecoveryCorruptionReadmissionHandoff>,
     replay_planning_started: bool,
     source_precedence_chosen: bool,
 }
 
 impl RecoveryEntryBlockedByIntegrityDamage {
-    pub(crate) fn before_replay_planning(blockers: Vec<RecoveryBlockedByIntegrityDamage>) -> Self {
+    pub(crate) fn before_replay_planning(damage_map: &IntegrityDamageMap) -> Self {
         Self {
-            blockers,
+            blockers: damage_map.recovery_blocking_findings().to_vec(),
+            readmission_handoffs: damage_map.build_corruption_readmission_handoffs(),
             replay_planning_started: false,
             source_precedence_chosen: false,
         }
@@ -25,6 +29,10 @@ impl RecoveryEntryBlockedByIntegrityDamage {
 
     pub fn blockers(&self) -> &[RecoveryBlockedByIntegrityDamage] {
         &self.blockers
+    }
+
+    pub fn corruption_readmission_handoffs(&self) -> &[RecoveryCorruptionReadmissionHandoff] {
+        &self.readmission_handoffs
     }
 
     pub fn blocker_count(&self) -> u64 {

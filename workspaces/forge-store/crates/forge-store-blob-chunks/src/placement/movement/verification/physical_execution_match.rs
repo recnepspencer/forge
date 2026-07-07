@@ -1,7 +1,8 @@
 use forge_store_physical_isolation::PhysicalPlacementMovementExecutionReceipt;
 
 use crate::placement::movement::{
-    counters::BlobPlacementMovementCounterSnapshot, denial::BlobPlacementMovementDenial,
+    counters::BlobPlacementMovementCounterSnapshot,
+    denial::BlobPlacementMovementDenial,
     types::{
         execution_receipt::StoreOwnedPlacementMovementExecutionReceipt,
         plan::{AdmittedBlobPlacementMovementPlan, BlobPlacementMovementPhysicalExecutionIntent},
@@ -20,9 +21,11 @@ pub(crate) fn verify_physical_execution_receipt_matches_plan(
     {
         return Ok(());
     }
-    Err(BlobPlacementMovementDenial::MovementExecutionReceiptMismatch {
-        counters: counters.record_protected_denial(),
-    })
+    Err(
+        BlobPlacementMovementDenial::MovementExecutionReceiptMismatch {
+            counters: counters.record_protected_denial(),
+        },
+    )
 }
 
 pub(crate) fn verify_store_owned_execution_receipt_matches_plan(
@@ -37,7 +40,9 @@ pub(crate) fn verify_store_owned_execution_receipt_matches_plan(
     {
         return Ok(());
     }
-    Err(BlobPlacementMovementDenial::MovementExecutionReceiptMismatch {
-        counters: counters.record_protected_denial(),
-    })
+    Err(
+        BlobPlacementMovementDenial::MovementExecutionReceiptMismatch {
+            counters: counters.record_protected_denial(),
+        },
+    )
 }

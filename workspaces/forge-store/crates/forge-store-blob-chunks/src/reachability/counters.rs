@@ -140,13 +140,6 @@ impl BlobReachabilityCounterSnapshot {
         }
     }
 
-    pub(crate) const fn record_reclaim_denial(self) -> Self {
-        Self {
-            reclaim_denials: self.reclaim_denials + 1,
-            ..self
-        }
-    }
-
     pub(crate) const fn record_replay_convergence_check(self) -> Self {
         Self {
             replay_convergence_checks: self.replay_convergence_checks + 1,

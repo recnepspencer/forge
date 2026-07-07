@@ -58,11 +58,12 @@ pub struct IoSchedulerS6ReadinessAdmission {
     counters: IoSchedulerS6CounterSnapshot,
 }
 
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub fn admit_s6_io_qos_isolation_readiness(
     request: IoSchedulerS6ReadinessRequest,
 ) -> Result<IoSchedulerS6ReadinessAdmission, IoSchedulerS6ReadinessDenial> {
     require_counters(request.counters)?;
-    require_non_claims(&request.non_claims)?;
+    verify_s6_non_claims(&request.non_claims)?;
     Ok(IoSchedulerS6ReadinessAdmission {
         assumptions: request.assumptions,
         foreground_interference: IoSchedulerForegroundInterferenceSurface::from_counters(
@@ -78,9 +79,17 @@ pub fn admit_s6_io_qos_isolation_readiness(
 pub fn admit_store_published_s6_io_qos_isolation_readiness(
     readiness: &S6IoQosIsolationReadiness,
 ) -> Result<IoSchedulerS6ReadinessAdmission, IoSchedulerS6ReadinessDenial> {
-    admit_s6_io_qos_isolation_readiness(
-        IoSchedulerS6ReadinessRequest::from_store_published_readiness(readiness),
-    )
+    let request = collect_store_published_readiness_evidence(readiness);
+    require_counters(request.counters)?;
+    verify_s6_non_claims(&request.non_claims)?;
+    let foreground_interference = project_scheduler_foreground_interference(request.counters);
+    let background_maintenance = project_scheduler_background_maintenance(request.counters);
+    Ok(assemble_s6_readiness_admission(
+        request.assumptions,
+        foreground_interference,
+        background_maintenance,
+        request.counters,
+    ))
 }
 
 pub const fn reject_log_or_metric_projection_as_s6_readiness(
@@ -345,7 +354,13 @@ fn require_counters(
     Ok(())
 }
 
-fn require_non_claims(
+fn collect_store_published_readiness_evidence(
+    readiness: &S6IoQosIsolationReadiness,
+) -> IoSchedulerS6ReadinessRequest {
+    IoSchedulerS6ReadinessRequest::from_store_published_readiness(readiness)
+}
+
+fn verify_s6_non_claims(
     non_claims: &[IoSchedulerUnsupportedQosNonClaim; 5],
 ) -> Result<(), IoSchedulerS6ReadinessDenial> {
     for required in IoSchedulerUnsupportedQosNonClaim::required_from_s5() {
@@ -354,4 +369,30 @@ fn require_non_claims(
         }
     }
     Ok(())
+}
+
+fn project_scheduler_foreground_interference(
+    counters: IoSchedulerS6CounterSnapshot,
+) -> IoSchedulerForegroundInterferenceSurface {
+    IoSchedulerForegroundInterferenceSurface::from_counters(counters)
+}
+
+fn project_scheduler_background_maintenance(
+    counters: IoSchedulerS6CounterSnapshot,
+) -> IoSchedulerBackgroundMaintenanceAssumption {
+    IoSchedulerBackgroundMaintenanceAssumption::from_counters(counters)
+}
+
+fn assemble_s6_readiness_admission(
+    assumptions: [IoSchedulerPhysicalStabilityAssumption; 4],
+    foreground_interference: IoSchedulerForegroundInterferenceSurface,
+    background_maintenance: IoSchedulerBackgroundMaintenanceAssumption,
+    counters: IoSchedulerS6CounterSnapshot,
+) -> IoSchedulerS6ReadinessAdmission {
+    IoSchedulerS6ReadinessAdmission {
+        assumptions,
+        foreground_interference,
+        background_maintenance,
+        counters,
+    }
 }

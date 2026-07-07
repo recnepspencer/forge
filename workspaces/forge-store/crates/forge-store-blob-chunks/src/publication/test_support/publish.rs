@@ -1,10 +1,10 @@
-use crate::lifecycle::generation_registry_test_support::{
-    current_authority, lifecycle_receipt_for_publication_with_bytes, registry_authority,
-    root_publication_with_bytes_and_chunk_size,
-};
 use super::wal::{
     chunk_write_replay_evidence, durable_wal_publication, pre_wal_replay_edge,
     replayable_wal_classification,
+};
+use crate::lifecycle::generation_registry_test_support::{
+    current_authority, lifecycle_receipt_for_publication_with_bytes, registry_authority,
+    root_publication_with_bytes_and_chunk_size,
 };
 use crate::{
     BlobAuthorityClassification, BlobGenerationPublished, BlobGenerationRegistry,

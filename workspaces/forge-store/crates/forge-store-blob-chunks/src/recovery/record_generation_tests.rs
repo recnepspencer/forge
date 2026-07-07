@@ -17,9 +17,7 @@ use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication_with_identity, registry_authority,
     root_publication_with_bytes,
 };
-use crate::publication::test_support::{
-    durable_wal_publication, replayable_wal_classification,
-};
+use crate::publication::test_support::{durable_wal_publication, replayable_wal_classification};
 use crate::{
     BlobAdmittedRecoveryRecords, BlobAuthorityClassification, BlobCheckpointFrontierRecord,
     BlobChunkAppendRecord, BlobChunkReachabilityProofSet, BlobGenerationPublicationRecord,

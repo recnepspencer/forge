@@ -38,6 +38,10 @@ mod test_support;
 #[cfg(test)]
 mod tests;
 
+pub use counters::BlobPlacementMovementCounterSnapshot;
+pub use crash_recovery::{BlobPlacementMovementResidue, BlobPlacementMovementRestartOutcome};
+pub use denial::BlobPlacementMovementDenial;
+pub use performance::BlobPlacementMovementCounterBackedPerformanceReceipt;
 pub use types::{
     AdmittedBlobPlacementMovementPlan, BlobMovementReadPhase, BlobMovementVerifiedReadEvidence,
     BlobPlacementMovementAuthority, BlobPlacementMovementColdCapsuleOutcome,
@@ -50,8 +54,3 @@ pub use types::{
     StoreOwnedPlacementMovementExecution, StoreOwnedPlacementMovementExecutionReceipt,
     StoreOwnedPlacementMovementPublication,
 };
-pub use counters::BlobPlacementMovementCounterSnapshot;
-pub use crash_recovery::{BlobPlacementMovementResidue, BlobPlacementMovementRestartOutcome};
-pub use denial::BlobPlacementMovementDenial;
-pub(crate) use performance::counter_backed_placement_movement_performance_receipt;
-pub use performance::BlobPlacementMovementCounterBackedPerformanceReceipt;

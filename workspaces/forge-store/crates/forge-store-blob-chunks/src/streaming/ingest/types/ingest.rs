@@ -1,7 +1,7 @@
+use super::super::frontier::BlobStreamingContentFrontier;
 use super::super::receipt_construction::{
     BlobStreamingCounterBackedPerformanceReceipt, BlobStreamingResidencyProof,
 };
-use super::super::frontier::BlobStreamingContentFrontier;
 use crate::{
     AdmittedBlobChunkSequence, BlobStreamingIngestCounterSnapshot, BlobStreamingResumeAdmission,
     BlobStreamingResumePosture,

@@ -18,7 +18,9 @@ pub use crate::runtime_verifier_comparison::{
 pub use crate::runtime_verifier_diagnostics::{
     RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport,
 };
-pub use crate::runtime_verifier_support::{RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport};
+pub use crate::runtime_verifier_support::{
+    RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport,
+};
 pub use crate::scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,

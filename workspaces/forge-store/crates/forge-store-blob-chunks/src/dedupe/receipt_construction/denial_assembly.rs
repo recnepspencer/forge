@@ -1,6 +1,8 @@
 use crate::dedupe::classification::{classify_scope_mismatch, ScopeMismatchCase};
 use crate::dedupe::evidence::BlobChunkDedupeCandidate;
-use crate::{BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot};
+use crate::{
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
+};
 use forge_proof::TransitionOutcome;
 
 pub(crate) fn deny_missing_equivalence(

@@ -3,8 +3,7 @@ use crate::{
     S4RecoveryPhysicsIntegrityReadiness,
 };
 use forge_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
-use forge_store_contracts::StableDigest;
-use forge_store_readiness::PhysicalAuthorityRecap;
+use forge_store_contracts::{PhysicalAuthorityRecap, StableDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBasis {

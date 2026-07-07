@@ -1,4 +1,6 @@
-use crate::{BlobStreamingReadAdmission, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
+use crate::{
+    BlobStreamingReadAdmission, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
+};
 
 pub(crate) fn require_stable_read_bytes(
     admission: BlobStreamingReadAdmission,

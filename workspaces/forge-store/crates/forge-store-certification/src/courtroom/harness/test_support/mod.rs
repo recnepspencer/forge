@@ -1,4 +1,7 @@
-//! Certification harness test support modules.
+//! Courtroom-only certification harness test support modules.
+//!
+//! These builders and fixture shims exist to exercise certification evidence
+//! paths inside the courtroom. They are not production authority surfaces.
 
 #[cfg(test)]
 pub(crate) mod bounded_memory_closeout_test_support;

@@ -86,6 +86,22 @@ impl BlobStreamingReadCounterSnapshot {
         }
     }
 
+    pub(crate) const fn merge_pressure_counters(self, other: Self) -> Self {
+        Self {
+            scheduler_waits: self.scheduler_waits + other.scheduler_waits,
+            pressure_yield_denials: self.pressure_yield_denials + other.pressure_yield_denials,
+            pressure_deferred_denials: self.pressure_deferred_denials
+                + other.pressure_deferred_denials,
+            pressure_denied_denials: self.pressure_denied_denials + other.pressure_denied_denials,
+            pressure_stale_denials: self.pressure_stale_denials + other.pressure_stale_denials,
+            pressure_throttles: self.pressure_throttles + other.pressure_throttles,
+            pressure_admitted_with_debt: self.pressure_admitted_with_debt
+                + other.pressure_admitted_with_debt,
+            pressure_violations: self.pressure_violations + other.pressure_violations,
+            ..self
+        }
+    }
+
     pub(crate) const fn record_background_pressure(
         self,
         counters: BackgroundPacingCounterSnapshot,

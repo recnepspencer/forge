@@ -2,9 +2,7 @@ use crate::BlobStreamingReadObservation;
 
 pub(crate) enum ObservationKind<'a> {
     Chunk(&'a crate::BlobStreamingReadObservedChunk),
-    ColdUnavailable {
-        ordinal: crate::BlobChunkOrdinal,
-    },
+    ColdUnavailable { ordinal: crate::BlobChunkOrdinal },
 }
 
 pub(crate) fn classify(observation: &BlobStreamingReadObservation) -> ObservationKind<'_> {

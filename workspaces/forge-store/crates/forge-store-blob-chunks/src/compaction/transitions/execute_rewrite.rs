@@ -1,6 +1,6 @@
+use crate::compaction::rewrite_binding::BlobCompactionPhysicalRewriteBinding;
 use crate::compaction::types::BlobCompactionRewritePlan;
 use crate::compaction::{BlobCompactionDenial, BlobCompactionEquivalence};
-use crate::compaction::rewrite_binding::BlobCompactionPhysicalRewriteBinding;
 use forge_store_physical_isolation::ReadDuringCompactionVerdict;
 
 #[derive(Debug, Clone)]

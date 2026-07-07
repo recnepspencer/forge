@@ -3,10 +3,10 @@ use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_contracts::StableDigest;
 use forge_store_security::StoreTenantScope;
 
-use crate::test_support::{blob_scope, integrity_proof_for_scope};
 use crate::placement::admission::test_support::{
     admit_cold_placement, admit_external_placement, admit_inline_placement,
 };
+use crate::test_support::{blob_scope, integrity_proof_for_scope};
 use crate::{
     reject_copied_counters_as_lifecycle_receipt, reject_copied_digest_string_as_lifecycle_receipt,
     reject_imported_manifest_text_as_lifecycle_receipt,

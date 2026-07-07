@@ -3,7 +3,8 @@ use forge_store_physical_isolation::ChunkMigrationReadInterlockPlan;
 use crate::BlobPlacementClass;
 
 use crate::placement::movement::types::{
-    basis::BlobPlacementMovementBasis, execution_receipt::StoreOwnedPlacementMovementExecutionReceipt,
+    basis::BlobPlacementMovementBasis,
+    execution_receipt::StoreOwnedPlacementMovementExecutionReceipt,
 };
 
 pub(crate) fn construct_store_owned_execution_receipt(

@@ -8,11 +8,5 @@ pub(crate) fn seal_and_deny_corruption(
     actual: &crate::BlobStreamingReadObservedChunk,
     counters: &mut crate::BlobStreamingReadCounterSnapshot,
 ) -> Result<(), crate::BlobStreamingReadDenial> {
-    observe_and_deny_streaming_corruption(
-        request,
-        quarantine_authority,
-        expected,
-        actual,
-        counters,
-    )
+    observe_and_deny_streaming_corruption(request, quarantine_authority, expected, actual, counters)
 }

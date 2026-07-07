@@ -16,6 +16,28 @@ pub use crate::chunk_integrity::{
     reject_digest_only_evidence_as_blob_chunk_integrity,
     reject_digest_only_evidence_as_chunk_root_publication,
 };
+// --- Import readmission ---
+pub fn reject_copied_export_row_as_blob_import(raw: &str) -> crate::BlobImportReadmissionDenial {
+    crate::import_readmission::reject_copied_export_row_as_blob_import(raw)
+}
+
+pub fn reject_placement_only_evidence_as_imported_blob_witness(
+    placement: &crate::AdmittedBlobPlacement,
+) -> crate::BlobImportReadmissionDenial {
+    crate::import_readmission::reject_placement_only_evidence_as_imported_blob_witness(placement)
+}
+// --- Capsule readiness ---
+pub fn reject_copied_capsule_row_as_capsule_readiness(
+    raw: &str,
+) -> crate::BlobCapsuleReadinessDenial {
+    crate::capsule_readiness::reject_copied_capsule_row_as_capsule_readiness(raw)
+}
+
+pub fn reject_digest_only_chunk_reference_as_capsule_readiness(
+    raw: &str,
+) -> crate::BlobCapsuleReadinessDenial {
+    crate::capsule_readiness::reject_digest_only_chunk_reference_as_capsule_readiness(raw)
+}
 // --- Lifecycle ---
 pub use crate::lifecycle::{
     reject_chunk_tree_equality_as_blob_identity, reject_copied_counters_as_lifecycle_receipt,
@@ -39,12 +61,15 @@ pub use crate::reachability::{
 };
 // --- Corruption ---
 pub use crate::corruption::{
+    classify_and_reject_physical_handoff, observe_physical_pre_decode_denial,
     reject_chunk_integrity_report_as_blob_corruption_authority,
     reject_copied_counters_as_blob_corruption_authority,
     reject_offline_observation_as_blob_corruption_authority,
+    reject_physical_handoff_as_blob_authority,
     reject_physical_quarantine_record_as_blob_corruption_authority,
     reject_raw_digest_as_blob_corruption_authority,
 };
+pub use crate::handoffs::reject_physical_handoff_from_pre_decode_denial;
 // --- Retention / reclaim ---
 pub use crate::retention_reclaim::{
     reject_backend_residue_as_retention_reclaim_authority,

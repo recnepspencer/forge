@@ -5,6 +5,11 @@ use crate::{
     S5PhysicalIsolationMutationKind, S6HarnessSecureIoPosture, S6IoPressureFaultKind,
     S6PressureEvidenceMaturity,
 };
+use forge_store_blob_chunks::{
+    BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass, BlobHarnessFailurePoint,
+    BlobHarnessPlacementClass, BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
+};
+use forge_store_budgets::BlobHarnessEnvelopeProfile;
 use forge_store_io_scheduler::{
     foreground_reservation::ForegroundIoLaneKind, BackgroundIoPressureClass,
 };
@@ -48,6 +53,15 @@ pub enum CoverageRowDimension {
     S6IoPressureFaultKind(S6IoPressureFaultKind),
     S6FaultEvidenceClass(PhysicalFaultEvidenceClass),
     S6EvidenceMaturity(S6PressureEvidenceMaturity),
+    BlobSizeClass(BlobHarnessSizeClass),
+    BlobChunkCount(u64),
+    BlobChunkSizeClass(BlobHarnessChunkSizeClass),
+    BlobSecurityScopeClass(BlobHarnessSecurityScopeClass),
+    BlobPlacementClass(BlobHarnessPlacementClass),
+    BlobAccessMode(BlobHarnessAccessMode),
+    BlobFailurePoint(BlobHarnessFailurePoint),
+    BlobMemoryEnvelopeProfile(BlobHarnessEnvelopeProfile),
+    BlobActorMix(BlobHarnessActorMix),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

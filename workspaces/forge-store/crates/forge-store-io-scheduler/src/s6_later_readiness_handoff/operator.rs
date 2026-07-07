@@ -1,5 +1,5 @@
+use forge_store_contracts::{S11OperatorReadinessNonClaim, S6LaterMilestoneDestination};
 use forge_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass};
-use forge_store_readiness::{S11OperatorReadinessNonClaim, S6LaterMilestoneDestination};
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{

@@ -1,10 +1,8 @@
 use forge_proof::TransitionOutcome;
 use forge_store_security::StoreTenantScope;
 
-use crate::test_support::{
-    blob_scope, candidate_for_bytes_and_scope, canonical_equivalence,
-};
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
+use crate::test_support::{blob_scope, candidate_for_bytes_and_scope, canonical_equivalence};
 use crate::{
     BlobChunkDedupeAdmission, BlobChunkDedupeReceipt, BlobChunkDedupeReferenceRegistry,
     BlobChunkReachabilityRegistry, BlobChunkReferenceAccountingRegistry, BlobChunkSecurityScope,

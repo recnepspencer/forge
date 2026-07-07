@@ -1,17 +1,18 @@
+use super::classify_generation_posture;
+use super::test_support::{assert_denial, assert_downstream_denial, quarantined_read_corruption};
+use crate::lifecycle::generation_registry_test_support::current_authority;
+use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
 use crate::test_support::{
     blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
 };
-use crate::lifecycle::generation_registry_test_support::current_authority;
-use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
 use crate::{
-    BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial, BlobChunkOrdinal,
-    BlobChunkQuarantine, BlobCorruptedChunkLocalization, BlobCorruptionCapsuleReadiness,
+    AuthoritativeBlobCorruptionPosture, BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial,
+    BlobChunkOrdinal, BlobCorruptedChunkLocalization, BlobCorruptionCapsuleReadiness,
     BlobCorruptionDenial, BlobCorruptionDetectionSource, BlobCorruptionExportAdmission,
-    BlobCorruptionGenerationClassification, BlobCorruptionGuard, BlobCorruptionGuardDenial,
-    BlobCorruptionImportReadmission, BlobCorruptionPlacementClass, BlobCorruptionReferenceEdge,
-    BlobCorruptionReferenceEdges, BlobCorruptionReferenceSharingScope, BlobDamageCase,
-    BlobObjectClassification, BlobQuarantineAuthority, BlobQuarantineLifecycleState,
-    BlobStreamingContentFrontier, DerivedBlobRebuildAuthority,
+    BlobCorruptionGuard, BlobCorruptionImportReadmission, BlobCorruptionPlacementClass,
+    BlobCorruptionReferenceEdge, BlobCorruptionReferenceEdges, BlobCorruptionReferenceSharingScope,
+    BlobDamageCase, BlobObjectClassification, BlobQuarantineLifecycleState,
+    DerivedBlobRebuildAuthority,
 };
 use forge_proof::TransitionOutcome;
 use forge_store_security::StoreTenantScope;
@@ -270,10 +271,7 @@ fn derived_and_authoritative_corruption_have_separate_repair_postures() {
     let (published, visible) =
         publish_generation_with_bytes_and_chunk_size("phase11.classify", b"aaaabbbb", 4);
     let quarantine = quarantined_read_corruption("phase11.classify", &published, visible);
-    let derived = BlobCorruptionGenerationClassification::from_quarantine(
-        &quarantine,
-        BlobObjectClassification::derived(),
-    );
+    let derived = classify_generation_posture(&quarantine, BlobObjectClassification::derived());
     let rebuild = derived
         .admit_derived_rebuild(DerivedBlobRebuildAuthority::from_current_store_authority(
             current_authority("phase11.classify.derived", "derived-rebuild"),
@@ -285,10 +283,8 @@ fn derived_and_authoritative_corruption_have_separate_repair_postures() {
         Err(BlobCorruptionDenial::AuthoritativeRepairRequiresAuthoritativeBlob { .. })
     ));
 
-    let authoritative = BlobCorruptionGenerationClassification::from_quarantine(
-        &quarantine,
-        BlobObjectClassification::authoritative(),
-    );
+    let authoritative =
+        classify_generation_posture(&quarantine, BlobObjectClassification::authoritative());
     assert!(matches!(
         authoritative.admit_derived_rebuild(
             DerivedBlobRebuildAuthority::from_current_store_authority(current_authority(
@@ -326,75 +322,3 @@ fn derived_and_authoritative_corruption_have_separate_repair_postures() {
         1
     );
 }
-
-fn quarantined_read_corruption(
-    case: &str,
-    published: &crate::BlobGenerationPublished,
-    visible: crate::BlobVisibleGeneration,
-) -> BlobChunkQuarantine {
-    let frontier = frontier_for(case, b"aaaabbbb", 4);
-    let edges = BlobCorruptionReferenceEdges::from_reachability_staging_identity(
-        published.staging_identity(),
-    )
-    .expect("published reachability staging identity should bind");
-    let localized = BlobCorruptedChunkLocalization::from_read_corruption(
-        visible,
-        frontier,
-        BlobChunkOrdinal::first(),
-        BlobCorruptionPlacementClass::LocalPhysical,
-        edges,
-    )
-    .expect("published frontier ordinal should localize");
-    BlobChunkQuarantine::seal(
-        localized,
-        BlobQuarantineAuthority::from_current_store_authority(current_authority(
-            &format!("{case}.quarantine"),
-            "quarantine",
-        )),
-    )
-}
-
-fn assert_denial(
-    denial: BlobCorruptionGuardDenial,
-    dedupe: u64,
-    export: u64,
-    import: u64,
-    capsule: u64,
-    read: u64,
-) {
-    let counters = match denial {
-        BlobCorruptionGuardDenial::DedupeDenied { counters, .. }
-        | BlobCorruptionGuardDenial::ExportDenied { counters, .. }
-        | BlobCorruptionGuardDenial::ImportReadmissionDenied { counters, .. }
-        | BlobCorruptionGuardDenial::CapsuleReadinessDenied { counters, .. }
-        | BlobCorruptionGuardDenial::VerifiedReadPublicationDenied { counters, .. }
-        | BlobCorruptionGuardDenial::ReclaimDenied { counters, .. }
-        | BlobCorruptionGuardDenial::CompactionMovementDenied { counters, .. } => counters,
-    };
-    assert_eq!(counters.dedupe_denials(), dedupe);
-    assert_eq!(counters.export_denials(), export);
-    assert_eq!(counters.import_readmission_denials(), import);
-    assert_eq!(counters.capsule_denials(), capsule);
-    assert_eq!(counters.verified_read_denials(), read);
-    assert_eq!(counters.denials(), 1);
-}
-
-fn assert_downstream_denial<S: core::fmt::Debug>(
-    outcome: TransitionOutcome<S, BlobCorruptionGuardDenial>,
-    dedupe: u64,
-    export: u64,
-    import: u64,
-    capsule: u64,
-    read: u64,
-) {
-    match outcome {
-        TransitionOutcome::Denied(denial) => {
-            assert_denial(denial, dedupe, export, import, capsule, read)
-        }
-        other => panic!("expected downstream corruption denial: {other:?}"),
-    }
-}
-
-#[path = "shared_reference_tests.rs"]
-mod shared_reference_tests;
-

@@ -1,7 +1,7 @@
 use super::super::classification::observation_kind;
 use crate::{
-    BlobChunkOrdinal, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
-    BlobStreamingReadObservation, BlobStreamingReadRequest,
+    BlobChunkOrdinal, BlobChunkProofLeaf, BlobStreamingReadCounterSnapshot,
+    BlobStreamingReadDenial, BlobStreamingReadObservation, BlobStreamingReadRequest,
 };
 
 pub(crate) fn expected_leaf_or_deny<'a>(

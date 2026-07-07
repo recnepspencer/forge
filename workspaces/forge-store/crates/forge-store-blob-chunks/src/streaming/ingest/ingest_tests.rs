@@ -14,8 +14,8 @@ use forge_store_physical_backend::{
 };
 use forge_store_security::StoreTenantScope;
 
-use crate::test_support::physical_payload_for_bytes;
 use crate::test_support::blob_scope;
+use crate::test_support::physical_payload_for_bytes;
 use crate::{
     reject_full_blob_vec_as_streaming_ingest, reject_scalar_backend_api_as_streaming_ingest,
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,

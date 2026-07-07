@@ -5,6 +5,8 @@ pub mod s5_1_security_scope_harness;
 pub mod s5_physical_isolation;
 pub mod s6_interference_profiles;
 pub mod s6_io_pressure_profiles;
+pub mod s7_blob_harness_execution;
+pub mod s7_blob_harness_heavy_fixture;
 pub mod s7_blob_harness_profiles;
 
 pub use s4_recovery_physics::{
@@ -33,6 +35,11 @@ pub use s6_interference_profiles::{
 };
 pub use s6_io_pressure_profiles::{
     deterministic_s6_io_pressure_profile, large_s6_io_pressure_profile, S6IoPressureTestProfile,
+};
+pub use s7_blob_harness_execution::execute_s7_blob_harness_scenario;
+pub use s7_blob_harness_heavy_fixture::{
+    execute_s7_blob_harness_real_multi_gb_temp_file_fixture,
+    execute_s7_blob_harness_temp_file_fixture_smoke,
 };
 pub use s7_blob_harness_profiles::{
     ci_memory_envelope_s7_blob_harness_seed, heavy_multi_gb_s7_blob_harness_seed,

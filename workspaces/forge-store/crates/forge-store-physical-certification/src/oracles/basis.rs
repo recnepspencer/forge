@@ -1,8 +1,10 @@
+use crate::scenario::S7BlobHarnessScenarioMetadata;
 use crate::{
     CheckpointInterlockObservation, CompactionInterlockObservation, IndependentVerifierObservation,
     ObservedPhysicalTrace, ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
     PhysicalSimulationPlanIdentity, PhysicalSimulationScenarioFamily, RecoveryOutcomeObservation,
-    S6IoPressureOracleObservation, ShortcutRejectionObservation, ShortcutRejectionObservationKind,
+    S6IoPressureOracleObservation, S7BlobHarnessOracleObservation, ShortcutRejectionObservation,
+    ShortcutRejectionObservationKind,
 };
 
 use super::OracleDenial;
@@ -19,6 +21,8 @@ pub struct OracleVerdictBasis {
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     compaction_interlock: Option<CompactionInterlockObservation>,
     s6_io_pressure: Option<S6IoPressureOracleObservation>,
+    s7_blob_harness_metadata: Option<S7BlobHarnessScenarioMetadata>,
+    s7_blob_harness_observation: Option<S7BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -43,6 +47,8 @@ impl OracleVerdictBasis {
             checkpoint_interlock: trace.checkpoint_interlock(),
             compaction_interlock: trace.compaction_interlock(),
             s6_io_pressure: trace.s6_io_pressure_observation(),
+            s7_blob_harness_metadata: plan.s7_blob_harness_metadata(),
+            s7_blob_harness_observation: trace.s7_blob_harness_observation(),
             shortcut_rejections: trace.shortcut_rejections().to_vec(),
         })
     }
@@ -97,6 +103,14 @@ impl OracleVerdictBasis {
 
     pub const fn s6_io_pressure(&self) -> Option<S6IoPressureOracleObservation> {
         self.s6_io_pressure
+    }
+
+    pub const fn s7_blob_harness_metadata(&self) -> Option<S7BlobHarnessScenarioMetadata> {
+        self.s7_blob_harness_metadata
+    }
+
+    pub const fn s7_blob_harness_observation(&self) -> Option<S7BlobHarnessOracleObservation> {
+        self.s7_blob_harness_observation
     }
 
     pub fn has_shortcut_rejection(&self, kind: ShortcutRejectionObservationKind) -> bool {

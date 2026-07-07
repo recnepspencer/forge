@@ -3,6 +3,7 @@
 mod admission;
 mod basis;
 mod budget;
+mod capability;
 mod capacity;
 mod class;
 mod counters;
@@ -20,6 +21,7 @@ mod test_authority;
 pub use admission::admit_background_pacing;
 pub use basis::BackgroundPacingAdmissionBasis;
 pub use budget::{BackgroundResourceBudget, BackgroundResourceShortfall};
+pub use capability::BackgroundPacingCapability;
 pub use capacity::{
     admit_background_capacity, BackgroundCapacityAdmission, BackgroundCapacityAdmissionRequest,
 };
@@ -46,7 +48,8 @@ pub use request::{
 };
 pub use shape::BackgroundIoPressureShape;
 pub use streaming_pressure_link::{
-    admits_blob_ingest_pressure, admits_verification_pressure, ingest_pressure_foreground_lane_admits,
+    admits_blob_ingest_pressure, admits_verification_pressure,
+    ingest_pressure_foreground_lane_admits,
 };
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use test_authority::{

@@ -22,7 +22,6 @@ pub use denial::{
     reject_semantic_reference_as_blob_visibility, reject_staged_reachability_as_blob_visibility,
     BlobPublicationDenial,
 };
-pub use evidence::BlobPublicationCounterReceiptIdentity;
 pub use intent::BlobPublicationIntent;
 pub use types::{
     BlobGenerationPublished, BlobPublicationAuthority, BlobPublicationPreWalReplayEvidence,

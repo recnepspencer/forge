@@ -44,7 +44,7 @@ S.7.1 adds **no new blob product capability**. Allowed work in later phases:
 | `structural-only` | Directory/facade move; close on skeleton diff + review |
 | `structural + compile-fail` | Construction or visibility boundary changes; add UI compile-fail |
 | `structural + runtime test` | Behavior or hostile lane touched; preserve/add focused test |
-| `out-of-scope` | Not blocking S.7.1 or S.8 readiness; no milestone work |
+| `out-of-scope` | Not blocking S.7.1 or remaining S.7 continuation; no milestone work |
 
 ---
 

@@ -16,9 +16,11 @@ pub(crate) fn reject_if_offset_exceeds_declared(
     declared_total_bytes: u64,
 ) -> Result<(), BlobStreamingIngestDenial> {
     if start_offset > declared_total_bytes {
-        Err(BlobStreamingIngestDenial::WholeObjectMaterializationRejected {
-            bytes: start_offset,
-        })
+        Err(
+            BlobStreamingIngestDenial::WholeObjectMaterializationRejected {
+                bytes: start_offset,
+            },
+        )
     } else {
         Ok(())
     }

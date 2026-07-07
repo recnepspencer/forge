@@ -47,14 +47,14 @@ impl BackgroundIoPressureShape {
 
     pub const fn blob_ingest_pressure() -> Self {
         Self::new(
-            BackgroundIoPressureClass::BlobIngestPressure,
+            BackgroundIoPressureClass::IngestPressure,
             IoSchedulerBackendCapabilityRequirement::AsyncIo,
         )
     }
 
     pub const fn blob_migration_pressure() -> Self {
         Self::new(
-            BackgroundIoPressureClass::BlobMigrationPressure,
+            BackgroundIoPressureClass::MigrationPressure,
             IoSchedulerBackendCapabilityRequirement::DirectIo,
         )
     }

@@ -4,10 +4,9 @@ mod accessors;
 
 use crate::dedupe::verification::BlobChunkCollisionVerificationReceipt;
 use crate::{
-    BlobChunkDedupeAdmissionDenial,
-    BlobChunkDedupeCounterSnapshot, BlobChunkDedupeDigestRewriteBasis,
-    BlobChunkDedupeIndexPartition, BlobChunkDedupeReceipt, BlobChunkIdentity,
-    BlobChunkSecurityMetadataWitness,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCounterSnapshot,
+    BlobChunkDedupeDigestRewriteBasis, BlobChunkDedupeIndexPartition, BlobChunkDedupeReceipt,
+    BlobChunkIdentity, BlobChunkSecurityMetadataWitness,
 };
 
 #[derive(Debug, PartialEq, Eq)]

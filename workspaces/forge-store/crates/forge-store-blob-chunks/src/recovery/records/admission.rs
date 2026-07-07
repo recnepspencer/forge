@@ -1,12 +1,12 @@
-use super::{
-    BlobAdmittedRecoveryRecords, BlobRecoveryRecordDenial, BlobRecoveryRecordDenialKind,
-    BlobRecoveryRecordSet,
-};
 use super::receipt_construction::merge_admitted_records;
 use super::verification::{
     assemble_record_set, require_checkpoint_frontier, require_chunk_append, require_publication,
     require_root_candidate, verify_chunk_matches_frontier, verify_frontier_matches_root,
-    verify_root_matches_publication, verify_publication_session_manifest,
+    verify_publication_session_manifest, verify_root_matches_publication,
+};
+use super::{
+    BlobAdmittedRecoveryRecords, BlobRecoveryRecordDenial, BlobRecoveryRecordDenialKind,
+    BlobRecoveryRecordSet,
 };
 
 impl BlobRecoveryRecordSet {
@@ -61,5 +61,10 @@ pub(crate) fn admit_replay_records(
         &manifest,
     );
 
-    Ok(assemble_record_set(publication, resume_session, manifest, counters))
+    Ok(assemble_record_set(
+        publication,
+        resume_session,
+        manifest,
+        counters,
+    ))
 }

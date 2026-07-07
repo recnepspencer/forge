@@ -34,12 +34,7 @@ impl BlobRetentionReclaimAdmissionAuthority {
         barrier: &BlobOrphanReclaimBarrier,
         s6_posture: S6BlobReclaimNonClaimHandoff,
     ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
-        admit_via_reachability_gate(
-            reachability,
-            chunk_identity,
-            s6_posture,
-            Some(barrier),
-        )
+        admit_via_reachability_gate(reachability, chunk_identity, s6_posture, Some(barrier))
     }
 
     pub fn deny_retention_hold(self, hold: &BlobRetentionHold) -> BlobRetentionReclaimDenial {

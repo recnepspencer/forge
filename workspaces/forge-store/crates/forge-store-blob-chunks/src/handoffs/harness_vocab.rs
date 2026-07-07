@@ -12,7 +12,7 @@ impl BlobHarnessSizeClass {
             Self::TinyShortcut => 1024,
             Self::LocalDeterministic => 8 * 1024 * 1024,
             Self::MemoryEnvelopeExceeding => 768 * 1024 * 1024,
-            Self::HeavyMultiGbDeclared => 64 * 1024 * 1024 * 1024,
+            Self::HeavyMultiGbDeclared => 2 * 1024 * 1024 * 1024,
         }
     }
 
@@ -42,6 +42,7 @@ impl BlobHarnessChunkSizeClass {
 pub enum BlobHarnessPlacementClass {
     StoreLocal,
     ExternalPlacementObserved,
+    ColdTierObserved,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -54,19 +55,30 @@ pub enum BlobHarnessSecurityScopeClass {
 pub enum BlobHarnessAccessMode {
     ReadOnlyReplay,
     ResumableIngestSeed,
+    ExportBoundary,
+    ImportReadmission,
+    PartialReplication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BlobHarnessFailurePoint {
     NoFaultSeed,
-    BeforePublication,
-    AfterManifestStaging,
+    AfterChunkWrite,
+    AfterSessionCheckpoint,
+    AfterRootPublication,
+    DuringTierMove,
+    DuringExport,
+    DuringReclaim,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BlobHarnessActorMix {
     SeedReplayOnly,
-    IngestAndRecovery,
+    IngestReadVerify,
+    ResumeRecovery,
+    DedupeReclaim,
+    ExportImport,
+    PlacementMovePartialReplication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -97,6 +109,24 @@ impl BlobHarnessChunkTopology {
         })
     }
 
+    pub(crate) fn from_executed_projection(
+        chunk_count: u64,
+        logical_bytes: u64,
+        chunk_bytes: u64,
+    ) -> Result<Self, BlobHarnessTopologyDenial> {
+        if chunk_count == 0 || logical_bytes == 0 || chunk_bytes == 0 {
+            return Err(BlobHarnessTopologyDenial::MissingChunkCounters);
+        }
+        if chunk_count != logical_bytes.div_ceil(chunk_bytes) {
+            return Err(BlobHarnessTopologyDenial::InconsistentChunkCounters);
+        }
+        Ok(Self {
+            chunk_count,
+            logical_bytes,
+            chunk_bytes,
+        })
+    }
+
     pub const fn chunk_count(self) -> u64 {
         self.chunk_count
     }
@@ -114,4 +144,5 @@ impl BlobHarnessChunkTopology {
 pub enum BlobHarnessTopologyDenial {
     TinyBlobShortcut,
     MissingChunkCounters,
+    InconsistentChunkCounters,
 }

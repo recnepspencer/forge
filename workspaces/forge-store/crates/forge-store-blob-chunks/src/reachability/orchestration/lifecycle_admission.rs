@@ -1,12 +1,15 @@
 use forge_store_operations::{BackupExportCustodyReadiness, S10BackupExportCustodyHandoff};
 use forge_store_physical_isolation::{ReadDuringCheckpointVerdict, StablePhysicalReadPlan};
 
+use crate::reachability::receipt_construction::proof_set::{
+    collect_orphan_candidates, collect_unique_reachable_chunks, exact_current_counters_for,
+};
 use crate::reachability::transitions::admit_edge::transition_admit_edge;
 use crate::reachability::transitions::admit_hold::transition_admit_hold;
 use crate::reachability::types::{BlobChunkReachabilityProofSet, BlobChunkReachabilityRegistry};
 use crate::reachability::verification::authority_match::require_registry_bound_hold_authority;
 use crate::{
-    BlobLifecycleDeclaration, BlobReachabilityDenial, BlobReachabilityEdge,
+    BlobChunkProofLeaf, BlobLifecycleDeclaration, BlobReachabilityDenial, BlobReachabilityEdge,
     BlobReachabilityProtectedHold, BlobRetentionHold, ScopedBlobChunk,
 };
 
@@ -23,6 +26,37 @@ impl BlobChunkReachabilityRegistry {
         let edge = BlobReachabilityEdge::primary_lifecycle_reference(declaration, scoped_chunk)?;
         self.admit_edge(edge)?;
         self.prove_reachable_chunks()
+    }
+
+    pub fn admit_lifecycle_multichunk_primary_references(
+        &mut self,
+        declaration: &BlobLifecycleDeclaration,
+        ordered_leaves: &[BlobChunkProofLeaf],
+    ) -> Result<BlobChunkReachabilityProofSet, BlobReachabilityDenial> {
+        for leaf in ordered_leaves {
+            let edge =
+                BlobReachabilityEdge::primary_lifecycle_multichunk_reference(declaration, leaf)?;
+            self.admit_edge(edge)?;
+        }
+        let reachable_chunks = collect_unique_reachable_chunks(self);
+        let orphan_candidates = collect_orphan_candidates(self);
+        let counters = exact_current_counters_for(self, &reachable_chunks);
+        Ok(BlobChunkReachabilityProofSet::construct(
+            crate::reachability::BlobReachabilityAuthorityKey::from_declaration(declaration),
+            reachable_chunks,
+            declaration.stored_chunk_digest().clone(),
+            declaration.security_metadata(),
+            self.edges()
+                .iter()
+                .map(|edge| edge.identity().clone())
+                .collect(),
+            self.holds()
+                .iter()
+                .map(|hold| hold.identity().clone())
+                .collect(),
+            orphan_candidates,
+            counters,
+        ))
     }
 
     pub fn admit_hold(

@@ -1,18 +1,22 @@
-use crate::{
-    BlobChunkOrdinal, BlobCorruptedChunkLocalization, BlobCorruptionDenial,
-    BlobCorruptionReferenceEdges, BlobDamageCase, BlobStreamingContentFrontier,
-    BlobStreamingReadRequest, BlobVisibleGeneration,
-};
+#[path = "localize_damage_steps.rs"]
+mod localize_damage_steps;
+
 use crate::corruption::classification::{
-    classify_damage_case_from_detection_context,
-    classify_localization_eligibility_from_frontier_match, damage_case_for_localization_denial,
-    LocalizationEligibilityCase,
+    classify_blob_damage_before_decode, BlobDamageEvidence, LocalizationEligibilityCase,
 };
 use crate::corruption::receipt_construction::construct_localization_receipt;
 use crate::corruption::types::{BlobCorruptionDetectionSource, BlobCorruptionPlacementClass};
 use crate::corruption::verification::verify_generation_frontier_match;
-use crate::corruption::types::BlobCorruptionReferenceSharingScope;
-use crate::BlobCorruptionCounterSnapshot;
+use crate::{
+    BlobChunkOrdinal, BlobCorruptedChunkLocalization, BlobCorruptionCounterSnapshot,
+    BlobCorruptionDenial, BlobCorruptionReferenceEdges, BlobDamageCase,
+    BlobStreamingContentFrontier, BlobStreamingReadRequest, BlobVisibleGeneration,
+};
+
+use localize_damage_steps::{
+    classify_reference_sharing_scope, resolve_corrupt_chunk_leaf,
+    validate_corrupt_chunk_reference_edges, verify_ordinal_localization_eligibility,
+};
 
 pub fn localize_detected_damage(
     source: BlobCorruptionDetectionSource,
@@ -43,10 +47,10 @@ pub fn from_read_corruption(
     placement_class: BlobCorruptionPlacementClass,
     reference_edges: BlobCorruptionReferenceEdges,
 ) -> Result<BlobCorruptedChunkLocalization, BlobCorruptionDenial> {
-    let damage_case = classify_damage_case_from_detection_context(
-        BlobCorruptionDetectionSource::VerifiedRead,
-        placement_class,
-    );
+    let damage_case = classify_blob_damage_before_decode(BlobDamageEvidence::DetectionContext {
+        source: BlobCorruptionDetectionSource::VerifiedRead,
+        placement: placement_class,
+    });
     localize_detected_damage(
         BlobCorruptionDetectionSource::VerifiedRead,
         damage_case,
@@ -66,7 +70,10 @@ pub fn from_detected_source(
     placement_class: BlobCorruptionPlacementClass,
     reference_edges: BlobCorruptionReferenceEdges,
 ) -> Result<BlobCorruptedChunkLocalization, BlobCorruptionDenial> {
-    let damage_case = classify_damage_case_from_detection_context(source, placement_class);
+    let damage_case = classify_blob_damage_before_decode(BlobDamageEvidence::DetectionContext {
+        source,
+        placement: placement_class,
+    });
     localize_detected_damage(
         source,
         damage_case,
@@ -106,34 +113,18 @@ fn localize_damage_from_bound_parts(
     placement_class: BlobCorruptionPlacementClass,
     reference_edges: BlobCorruptionReferenceEdges,
 ) -> Result<BlobCorruptedChunkLocalization, BlobCorruptionDenial> {
-    let ordinal_in_frontier = frontier
-        .proof_frontier()
-        .ordered_leaves()
-        .iter()
-        .any(|leaf| leaf.ordinal() == ordinal);
-    let eligibility = classify_localization_eligibility_from_frontier_match(true, ordinal_in_frontier);
-    if !matches!(eligibility, LocalizationEligibilityCase::FrontierMatched) {
-        let _classified = damage_case_for_localization_denial(eligibility);
+    if let Err(eligibility) = verify_ordinal_localization_eligibility(frontier, ordinal) {
         return Err(assemble_localization_denial(eligibility, ordinal));
     }
-    let leaf = frontier
-        .proof_frontier()
-        .ordered_leaves()
-        .iter()
-        .find(|leaf| leaf.ordinal() == ordinal)
-        .expect("ordinal presence verified before localization");
-    let edge_count = reference_edges.validated_edge_count_for_corrupt_chunk(
+    let leaf = resolve_corrupt_chunk_leaf(frontier, ordinal);
+    let edge_count = validate_corrupt_chunk_reference_edges(
+        &reference_edges,
         &object_id,
         generation,
-        frontier.chunk_tree_root(),
-        frontier.logical_content_digest(),
-        leaf.identity(),
+        frontier,
+        leaf,
     )?;
-    let sharing_scope = if edge_count == 1 {
-        BlobCorruptionReferenceSharingScope::SingleReference
-    } else {
-        BlobCorruptionReferenceSharingScope::SharedReferenceEdges
-    };
+    let sharing_scope = classify_reference_sharing_scope(edge_count);
     Ok(construct_localization_receipt(
         damage_case,
         source,
@@ -152,18 +143,33 @@ fn assemble_localization_denial(
     case: LocalizationEligibilityCase,
     ordinal: BlobChunkOrdinal,
 ) -> BlobCorruptionDenial {
+    let damage_case = match case {
+        LocalizationEligibilityCase::OrdinalNotInFrontier => {
+            classify_blob_damage_before_decode(BlobDamageEvidence::OrdinalNotInFrontier)
+        }
+        LocalizationEligibilityCase::GenerationFrontierMismatch => {
+            classify_blob_damage_before_decode(BlobDamageEvidence::GenerationFrontierMismatch)
+        }
+        LocalizationEligibilityCase::FrontierMatched => {
+            unreachable!("matched frontier denies nothing")
+        }
+    };
     match case {
         LocalizationEligibilityCase::OrdinalNotInFrontier => {
             BlobCorruptionDenial::CorruptOrdinalNotInPublishedFrontier {
+                damage_case,
                 ordinal,
                 counters: BlobCorruptionCounterSnapshot::start().record_denial(),
             }
         }
         LocalizationEligibilityCase::GenerationFrontierMismatch => {
             BlobCorruptionDenial::GenerationFrontierMismatch {
+                damage_case,
                 counters: BlobCorruptionCounterSnapshot::start().record_denial(),
             }
         }
-        LocalizationEligibilityCase::FrontierMatched => unreachable!("matched frontier denies nothing"),
+        LocalizationEligibilityCase::FrontierMatched => {
+            unreachable!("matched frontier denies nothing")
+        }
     }
 }

@@ -27,8 +27,8 @@ impl BlobStreamingVerifiedRead {
         let counters = BlobStreamingReadCounterSnapshot::start(
             forge_store_budgets::CounterEvidenceStrength::Exact,
         )
-            .observe_read_window(bytes_read)
-            .record_verified_chunk();
+        .observe_read_window(bytes_read)
+        .record_verified_chunk();
         let performance = counter_backed_streaming_read_performance_receipt(counters);
         Self {
             object_id,

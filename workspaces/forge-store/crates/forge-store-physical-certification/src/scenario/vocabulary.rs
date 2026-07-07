@@ -83,6 +83,46 @@ impl PhysicalScenarioActor {
         Self::new(id, PhysicalScenarioActorRole::ShortcutRejectionProbe)
     }
 
+    pub fn blob_ingest_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobIngestActor)
+    }
+
+    pub fn blob_read_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobReadActor)
+    }
+
+    pub fn blob_verify_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobVerifyActor)
+    }
+
+    pub fn blob_resume_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobResumeActor)
+    }
+
+    pub fn blob_dedupe_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobDedupeActor)
+    }
+
+    pub fn blob_export_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobExportActor)
+    }
+
+    pub fn blob_import_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobImportActor)
+    }
+
+    pub fn blob_placement_move_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobPlacementMoveActor)
+    }
+
+    pub fn blob_partial_replication_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobPartialReplicationActor)
+    }
+
+    pub fn blob_reclaim_actor(id: impl Into<String>) -> Self {
+        Self::new(id, PhysicalScenarioActorRole::BlobReclaimActor)
+    }
+
     pub fn future_extension_slot(id: impl Into<String>) -> Self {
         Self::new(id, PhysicalScenarioActorRole::FutureExtensionSlot)
     }
@@ -114,6 +154,16 @@ pub enum PhysicalScenarioActorRole {
     ScrubDriver,
     OfflineVerifier,
     ShortcutRejectionProbe,
+    BlobIngestActor,
+    BlobReadActor,
+    BlobVerifyActor,
+    BlobResumeActor,
+    BlobDedupeActor,
+    BlobExportActor,
+    BlobImportActor,
+    BlobPlacementMoveActor,
+    BlobPartialReplicationActor,
+    BlobReclaimActor,
     FutureExtensionSlot,
 }
 
@@ -236,6 +286,42 @@ impl PhysicalScenarioFault {
         }
     }
 
+    pub const fn blob_crash_after_chunk_write() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobCrashAfterChunkWrite,
+        }
+    }
+
+    pub const fn blob_crash_after_session_checkpoint() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobCrashAfterSessionCheckpoint,
+        }
+    }
+
+    pub const fn blob_crash_after_root_publication() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobCrashAfterRootPublication,
+        }
+    }
+
+    pub const fn blob_tier_move_interruption() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobTierMoveInterruption,
+        }
+    }
+
+    pub const fn blob_export_interruption() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobExportInterruption,
+        }
+    }
+
+    pub const fn blob_reclaim_interruption() -> Self {
+        Self {
+            kind: PhysicalScenarioFaultKind::BlobReclaimInterruption,
+        }
+    }
+
     pub const fn kind(&self) -> PhysicalScenarioFaultKind {
         self.kind
     }
@@ -258,5 +344,11 @@ pub enum PhysicalScenarioFaultKind {
     S6DelayedSync,
     S6PageCachePressure,
     S6BackgroundPacingLateYield,
+    BlobCrashAfterChunkWrite,
+    BlobCrashAfterSessionCheckpoint,
+    BlobCrashAfterRootPublication,
+    BlobTierMoveInterruption,
+    BlobExportInterruption,
+    BlobReclaimInterruption,
     FutureExtensionSlot,
 }

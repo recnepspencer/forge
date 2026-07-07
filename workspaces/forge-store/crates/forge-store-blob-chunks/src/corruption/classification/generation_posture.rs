@@ -22,7 +22,7 @@ pub struct AuthoritativeBlobCorruptionPosture {
 }
 
 impl BlobCorruptionGenerationClassification {
-    pub const fn from_quarantine(
+    pub(crate) const fn construct_from_quarantine(
         quarantine: &BlobChunkQuarantine,
         classification: BlobObjectClassification,
     ) -> Self {

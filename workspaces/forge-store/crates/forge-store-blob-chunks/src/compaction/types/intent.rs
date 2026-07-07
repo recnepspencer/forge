@@ -7,9 +7,7 @@ use crate::{
     BlobChunkRootPublication, BlobCorruptionGuard, LifecycleReceipt,
 };
 use forge_store_io_scheduler::S10CompactionIoReadinessHandoff;
-use forge_store_physical_isolation::{
-    CompactionReadInterlockDenial, CompactionReadInterlockPlan,
-};
+use forge_store_physical_isolation::{CompactionReadInterlockDenial, CompactionReadInterlockPlan};
 use forge_store_tiering::S7ColdPlacementState;
 
 #[derive(Debug)]

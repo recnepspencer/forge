@@ -19,7 +19,9 @@ pub(crate) fn collect_unique_reachable_chunks(
     chunks
 }
 
-pub(crate) fn collect_orphan_candidates(_registry: &BlobChunkReachabilityRegistry) -> Vec<BlobChunkIdentity> {
+pub(crate) fn collect_orphan_candidates(
+    _registry: &BlobChunkReachabilityRegistry,
+) -> Vec<BlobChunkIdentity> {
     Vec::new()
 }
 
@@ -31,7 +33,11 @@ pub(crate) fn exact_current_counters_for(
         .stored_counters()
         .with_current_reference_edges(
             registry.edges().len() as u64,
-            registry.edges().iter().filter(|edge| edge.is_dedupe()).count() as u64,
+            registry
+                .edges()
+                .iter()
+                .filter(|edge| edge.is_dedupe())
+                .count() as u64,
         )
         .with_current_protected_holds(registry.holds().len() as u64)
         .with_reachable_chunks(reachable_chunks.len() as u64)

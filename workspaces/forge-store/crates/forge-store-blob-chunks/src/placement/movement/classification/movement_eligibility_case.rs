@@ -1,8 +1,7 @@
 use crate::placement::movement::{
-    counters::BlobPlacementMovementCounterSnapshot, denial::BlobPlacementMovementDenial,
-    types::{
-        BlobPlacementMovementForegroundReservation, BlobPlacementMovementRequest,
-    },
+    counters::BlobPlacementMovementCounterSnapshot,
+    denial::BlobPlacementMovementDenial,
+    types::{BlobPlacementMovementForegroundReservation, BlobPlacementMovementRequest},
     verification::{
         cold_permits_movement::require_cold_permits_movement,
         foreground_reservation_scope::require_foreground_reservation_scope,
@@ -59,7 +58,9 @@ pub(crate) fn assemble_movement_denial(
         MovementEligibilityCase::Admit => {
             unreachable!("admit cases do not assemble denials")
         }
-        MovementEligibilityCase::Stale => BlobPlacementMovementDenial::StaleMovementPlan { counters },
+        MovementEligibilityCase::Stale => {
+            BlobPlacementMovementDenial::StaleMovementPlan { counters }
+        }
         MovementEligibilityCase::MissingReadHold => {
             BlobPlacementMovementDenial::MissingMovementReadHold {
                 counters: counters.record_protected_denial(),
@@ -73,9 +74,7 @@ pub(crate) fn assemble_movement_denial(
             };
             BlobPlacementMovementDenial::ForegroundReservationViolated {
                 violation,
-                counters: counters
-                    .record_tier_move_retry()
-                    .record_protected_denial(),
+                counters: counters.record_tier_move_retry().record_protected_denial(),
             }
         }
         MovementEligibilityCase::ForegroundScopeMismatch => {
@@ -83,13 +82,15 @@ pub(crate) fn assemble_movement_denial(
                 counters: counters.record_protected_denial(),
             }
         }
-        MovementEligibilityCase::ColdUnavailable => BlobPlacementMovementDenial::ColdPlacementUnavailable {
-            state: request.cold_outcome().state(),
-            counters: counters
-                .record_unavailable_cold_chunk()
-                .record_tier_move_retry()
-                .record_protected_denial(),
-        },
+        MovementEligibilityCase::ColdUnavailable => {
+            BlobPlacementMovementDenial::ColdPlacementUnavailable {
+                state: request.cold_outcome().state(),
+                counters: counters
+                    .record_unavailable_cold_chunk()
+                    .record_tier_move_retry()
+                    .record_protected_denial(),
+            }
+        }
         MovementEligibilityCase::LifecycleSourceBasisMismatch => {
             BlobPlacementMovementDenial::LifecycleSourcePlacementBasisMismatch {
                 counters: counters.record_protected_denial(),

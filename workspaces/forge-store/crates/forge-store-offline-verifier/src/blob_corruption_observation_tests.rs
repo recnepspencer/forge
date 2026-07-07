@@ -11,9 +11,13 @@ use forge_store_security::{
     StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration, StoreTenantScope,
 };
 
+use forge_store_contracts::CorruptionHandoffDamageCase;
+
 use crate::{
-    OfflineBlobCorruptionEvidenceKind, OfflineBlobCorruptionObservation,
-    OfflineBlobCorruptionObservationDenial, OfflineBlobDamageCaseHint,
+    reject_offline_classification_as_blob_authority, reject_offline_observation_as_blob_authority,
+    OfflineBlobAuthorityRejection, OfflineBlobCorruptionEvidenceKind,
+    OfflineBlobCorruptionObservation, OfflineBlobCorruptionObservationDenial,
+    OfflineBlobDamageCaseHint,
 };
 
 #[test]
@@ -69,6 +73,19 @@ fn offline_blob_corruption_observation_accepts_only_raw_unadmitted_reports() {
         classified.damage_case_hint(),
         OfflineBlobDamageCaseHint::CrossScopeImport
     );
+
+    assert!(matches!(
+        reject_offline_classification_as_blob_authority(&classified),
+        OfflineBlobAuthorityRejection::ObservedCorruptionDoesNotMintBlobAuthority {
+            handoff_damage_case: CorruptionHandoffDamageCase::CrossScopeImport,
+        }
+    ));
+    assert!(matches!(
+        reject_offline_observation_as_blob_authority(&observed),
+        OfflineBlobAuthorityRejection::ObservedCorruptionDoesNotMintBlobAuthority {
+            handoff_damage_case: CorruptionHandoffDamageCase::MissingChunk,
+        }
+    ));
 }
 
 fn current_authority(identity_key: &str) -> forge_store_authority::StoreCurrentAuthorityWitness {

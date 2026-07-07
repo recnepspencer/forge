@@ -4,8 +4,8 @@ use crate::dedupe::evidence::{
 use crate::dedupe::receipt_construction::{collision_denial, equivalence_receipt};
 use crate::dedupe::verification::verify_cross_identity_comparisons;
 use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
-    BlobChunkDedupePolicy, BlobChunkRootCanonicalComparison,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome,
+    BlobChunkDedupeCounterSnapshot, BlobChunkDedupePolicy, BlobChunkRootCanonicalComparison,
 };
 use forge_proof::TransitionOutcome;
 

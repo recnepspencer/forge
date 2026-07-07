@@ -92,6 +92,9 @@ mod backup_export_custody_test_support;
 #[cfg(test)]
 mod backup_export_custody_tests;
 mod backup_import_readmission;
+mod backup_import_source_custody;
+mod capsule_chunk_availability;
+mod import_placement_plan;
 mod repair_blast_radius_counters;
 mod repair_blast_radius_declaration;
 mod repair_blast_radius_denial;
@@ -122,6 +125,16 @@ pub use backup_export_custody_handoff::{
 };
 pub use backup_export_custody_readiness::BackupExportCustodyReadiness;
 pub use backup_import_readmission::BackupImportCustodyReadmission;
+pub use backup_import_source_custody::{
+    admit_backup_import_source_custody_scope, BackupImportSourceCustodyDenial,
+    BackupImportSourceCustodyScope,
+};
+pub use capsule_chunk_availability::{
+    classify_capsule_chunk_availability, CapsuleChunkAvailabilityPosture,
+};
+pub use import_placement_plan::{
+    ImportPlacementDisposition, ImportPlacementPlan, ImportPlacementSource,
+};
 pub use repair_blast_radius_counters::RepairBlastRadiusCounterSnapshot;
 pub use repair_blast_radius_declaration::{RepairBlastRadiusDeclaration, RepairPhysicalRegion};
 pub use repair_blast_radius_denial::RepairBlastRadiusDenial;

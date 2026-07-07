@@ -7,10 +7,14 @@
 //! Public API follows lifecycle order: authority → evidence → scenario → replay → closeout.
 
 pub mod authority;
+mod capsule_readiness_provenance;
 pub mod courtroom;
 pub mod evidence;
 
 include!("internal_modules.rs");
 mod public_api;
 
+pub use capsule_readiness_provenance::{
+    certify_s7_capsule_readiness, S7CapsuleReadinessCertificationReport,
+};
 pub use public_api::*;

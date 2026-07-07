@@ -1,4 +1,3 @@
-use super::identity::BlobPublicationCounterReceiptIdentity;
 use super::super::BlobReachabilityStagingIdentity;
 use crate::BlobChunkSecurityMetadataWitness;
 

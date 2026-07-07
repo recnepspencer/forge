@@ -1,8 +1,8 @@
 use crate::BlobChunkReachabilityProofSet;
 
 use crate::placement::admission::{
-    basis::BlobPlacementReachabilityBasis, types::AdmittedBlobPlacement, BlobPlacementCounterSnapshot,
-    BlobPlacementIntent, BlobPlacementNonClaim,
+    basis::BlobPlacementReachabilityBasis, types::AdmittedBlobPlacement,
+    BlobPlacementCounterSnapshot, BlobPlacementIntent, BlobPlacementNonClaim,
 };
 
 pub(crate) fn construct_admitted_placement(

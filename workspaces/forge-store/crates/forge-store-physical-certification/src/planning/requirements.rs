@@ -58,6 +58,8 @@ pub enum OracleFamilyKind {
     S5PhysicalIsolationInterleaving,
     S6IoPressureSimulation,
     S4RecoveryDogfood,
+    S7BlobHarnessEvidence,
+    S7BlobHeavyQualification,
     ForbiddenShortcutRejection,
     FutureExtensionNonClaim,
 }
@@ -180,7 +182,11 @@ impl RequiredSimulationPlanShape {
                     .expectation()
                     .s7_blob_harness_topology()
                     .ok_or(SimulationPlanDenial::MissingS7BlobHarnessTopology)?;
-                s7_blob_harness_shape(actor_step_count, topology)
+                let metadata = definition
+                    .expectation()
+                    .s7_blob_harness_metadata()
+                    .ok_or(SimulationPlanDenial::MissingS7BlobHarnessTopology)?;
+                s7_blob_harness_shape(actor_step_count, topology, metadata)
             }
             (
                 PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood,

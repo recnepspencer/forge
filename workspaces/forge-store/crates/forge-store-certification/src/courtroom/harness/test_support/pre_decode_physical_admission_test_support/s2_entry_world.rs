@@ -1,13 +1,13 @@
-use super::{
-    checksum_fixture::checksum_declaration,
-    s1_witness_world::{current_validation, frame_witness},
-};
 use super::super::{
     bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, pressure_bundles, s2_readiness, synthetic_rejections,
     },
     record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
+};
+use super::{
+    checksum_fixture::checksum_declaration,
+    s1_witness_world::{current_validation, frame_witness},
 };
 use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
@@ -51,7 +51,7 @@ pub(crate) fn with_entry_seed(
     let readiness = complete_closeout_report()
         .publish_s3_physical_integrity_readiness(s2_readiness())
         .unwrap();
-    let entry = IntegrityEntryAdmission::from_s3_readiness(readiness).unwrap();
+    let entry = IntegrityEntryAdmission::from_s3_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 7, 2, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();

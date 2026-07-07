@@ -7,7 +7,7 @@ use super::{
 use crate::{
     ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObserverKind,
     PhysicalSimulationPlan, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
-    S6IoPressureOracleObservation, ShortcutRejectionObservation,
+    S6IoPressureOracleObservation, S7BlobHarnessOracleObservation, ShortcutRejectionObservation,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +27,7 @@ pub struct PhysicalObservationBuilder<'plan> {
     compaction_interlock: Option<CompactionInterlockObservation>,
     compaction_mutations: Option<S5CompactionMutationObservationSet>,
     s6_io_pressure: Option<S6IoPressureOracleObservation>,
+    s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -73,6 +74,7 @@ impl PhysicalSimulationObserver {
             compaction_interlock: None,
             compaction_mutations: None,
             s6_io_pressure: None,
+            s7_blob_harness: None,
             shortcut_rejections: Vec::new(),
         })
     }
@@ -181,6 +183,14 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
         self
     }
 
+    pub fn with_s7_blob_harness_observation(
+        mut self,
+        observation: S7BlobHarnessOracleObservation,
+    ) -> Self {
+        self.s7_blob_harness = Some(observation);
+        self
+    }
+
     pub fn with_shortcut_rejection_observation(
         mut self,
         observation: ShortcutRejectionObservation,
@@ -221,6 +231,7 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
             self.compaction_interlock,
             self.compaction_mutations,
             self.s6_io_pressure,
+            self.s7_blob_harness,
             self.shortcut_rejections,
         ))
     }

@@ -20,8 +20,9 @@ fn admitted_shared_dedupe_reference_edges_localize_all_affected_edges() {
     let affected_frontier = frontier_for(scope_case, bytes, 4);
     let registered_reference = registered_share_reference_for_first_chunk(scope_case, b"aaaa");
 
-    let localized_edge =
-        BlobCorruptionReferenceEdge::from_reachability_staging_identity(published.staging_identity());
+    let localized_edge = BlobCorruptionReferenceEdge::from_reachability_staging_identity(
+        published.staging_identity(),
+    );
     let affected_edge = BlobCorruptionReferenceEdge::from_admitted_shared_dedupe_reference(
         published.staging_identity(),
         affected_published.staging_identity(),
@@ -53,10 +54,20 @@ fn admitted_shared_dedupe_reference_edges_localize_all_affected_edges() {
 #[test]
 fn shared_dedupe_edge_requires_affected_frontier_to_contain_the_shared_chunk() {
     let scope_case = "phase11.shared.mismatch";
-    let (published, _) =
-        publish_shared_scope_generation(scope_case, "phase11.shared.mismatch.source", 1, b"aaaabbbb", 4);
-    let (affected_published, _) =
-        publish_shared_scope_generation(scope_case, "phase11.shared.mismatch.affected", 2, b"ccccdddd", 4);
+    let (published, _) = publish_shared_scope_generation(
+        scope_case,
+        "phase11.shared.mismatch.source",
+        1,
+        b"aaaabbbb",
+        4,
+    );
+    let (affected_published, _) = publish_shared_scope_generation(
+        scope_case,
+        "phase11.shared.mismatch.affected",
+        2,
+        b"ccccdddd",
+        4,
+    );
     let affected_frontier = frontier_for(scope_case, b"ccccdddd", 4);
     let registered_reference = registered_share_reference_for_first_chunk(scope_case, b"aaaa");
 

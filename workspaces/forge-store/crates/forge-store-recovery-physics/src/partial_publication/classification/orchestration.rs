@@ -1,8 +1,8 @@
 use crate::partial_publication::evidence::PartialPublicationEvidenceKind;
 use crate::partial_publication::{
-    NonAuthoritativePublicationSource, PartialPublicationEvidence,
-    PartialPublicationObservationAdmission, PartialPublicationObservationSet,
-    PartialPublicationCounterSnapshot, RecoveredOrRejectedPartialPublication,
+    NonAuthoritativePublicationSource, PartialPublicationCounterSnapshot,
+    PartialPublicationEvidence, PartialPublicationObservationAdmission,
+    PartialPublicationObservationSet, RecoveredOrRejectedPartialPublication,
     UnacknowledgedPublicationOutcome,
 };
 

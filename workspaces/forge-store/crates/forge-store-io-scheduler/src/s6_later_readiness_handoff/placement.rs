@@ -2,7 +2,7 @@
 //! interference posture. Does not prove moved bytes are semantically valid; carries explicit
 //! non-claims that deny blob lifecycle and placement policy authority promotion.
 
-use forge_store_readiness::{S6LaterMilestoneDestination, S7PlacementReadinessNonClaim};
+use forge_store_contracts::{S6LaterMilestoneDestination, S7PlacementReadinessNonClaim};
 
 use crate::{
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,

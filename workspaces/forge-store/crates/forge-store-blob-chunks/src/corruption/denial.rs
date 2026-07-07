@@ -1,8 +1,20 @@
-use crate::{BlobChunkOrdinal, BlobCorruptionCounterSnapshot, BlobCorruptionDetectionSource};
+use forge_store_contracts::CorruptionHandoffDamageCase;
+
+use crate::handoffs::reject_offline_handoff_as_blob_authority;
+use crate::{
+    BlobChunkOrdinal, BlobCorruptionCounterSnapshot, BlobCorruptionDetectionSource, BlobDamageCase,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForgeableCorruptionEvidenceKind {
+    ChunkIntegrityReport,
+    PhysicalQuarantineRecord,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobCorruptionDenial {
     CorruptOrdinalNotInPublishedFrontier {
+        damage_case: BlobDamageCase,
         ordinal: BlobChunkOrdinal,
         counters: BlobCorruptionCounterSnapshot,
     },
@@ -13,6 +25,7 @@ pub enum BlobCorruptionDenial {
         counters: BlobCorruptionCounterSnapshot,
     },
     GenerationFrontierMismatch {
+        damage_case: BlobDamageCase,
         counters: BlobCorruptionCounterSnapshot,
     },
     AffectedReferenceEdgeMismatch {
@@ -24,10 +37,18 @@ pub enum BlobCorruptionDenial {
     AuthoritativeRepairRequiresAuthoritativeBlob {
         counters: BlobCorruptionCounterSnapshot,
     },
-    LowerPhysicalEvidenceRejected,
+    LowerPhysicalEvidenceRejected {
+        damage_case: BlobDamageCase,
+    },
+    ForgeableCorruptionEvidenceRejected {
+        evidence_kind: ForgeableCorruptionEvidenceKind,
+    },
+    StoreAuthorityReadmissionRejected,
     CopiedCountersRejected,
     RawDigestRejected,
-    OfflineObservationRejected,
+    OfflineObservationRejected {
+        damage_case: BlobDamageCase,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,16 +83,26 @@ pub enum BlobCorruptionGuardDenial {
     },
 }
 
+pub const fn reject_offline_observation_as_blob_corruption_authority(
+    handoff_case: CorruptionHandoffDamageCase,
+) -> BlobCorruptionDenial {
+    reject_offline_handoff_as_blob_authority(handoff_case)
+}
+
 pub const fn reject_chunk_integrity_report_as_blob_corruption_authority<T>(
     _: &T,
 ) -> BlobCorruptionDenial {
-    BlobCorruptionDenial::LowerPhysicalEvidenceRejected
+    BlobCorruptionDenial::ForgeableCorruptionEvidenceRejected {
+        evidence_kind: ForgeableCorruptionEvidenceKind::ChunkIntegrityReport,
+    }
 }
 
 pub const fn reject_physical_quarantine_record_as_blob_corruption_authority<T>(
     _: &T,
 ) -> BlobCorruptionDenial {
-    BlobCorruptionDenial::LowerPhysicalEvidenceRejected
+    BlobCorruptionDenial::ForgeableCorruptionEvidenceRejected {
+        evidence_kind: ForgeableCorruptionEvidenceKind::PhysicalQuarantineRecord,
+    }
 }
 
 pub const fn reject_copied_counters_as_blob_corruption_authority<T>(_: &T) -> BlobCorruptionDenial {
@@ -80,10 +111,4 @@ pub const fn reject_copied_counters_as_blob_corruption_authority<T>(_: &T) -> Bl
 
 pub const fn reject_raw_digest_as_blob_corruption_authority<T>(_: &T) -> BlobCorruptionDenial {
     BlobCorruptionDenial::RawDigestRejected
-}
-
-pub const fn reject_offline_observation_as_blob_corruption_authority<T>(
-    _: &T,
-) -> BlobCorruptionDenial {
-    BlobCorruptionDenial::OfflineObservationRejected
 }

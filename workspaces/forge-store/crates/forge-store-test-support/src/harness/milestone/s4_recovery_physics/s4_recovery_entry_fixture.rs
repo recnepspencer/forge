@@ -20,7 +20,7 @@ fn admit_recovery_entry_from_s4_handoff(
     include_partial_publication_replay_read: bool,
 ) -> RecoveryEntryAdmission {
     let readiness = S4IntegrityHandoffAdmission::admit(
-        s3_readiness(),
+        s3_readiness().payload(),
         intact_payload(label, include_partial_publication_replay_read),
     )
     .expect("test support S4 handoff admits through public S4 admission");

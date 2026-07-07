@@ -1,6 +1,6 @@
 use crate::placement::admission::{
-    basis::BlobPlacementReachabilityBasis, BlobPlacementAdmissionDenial, BlobPlacementCounterSnapshot,
-    BlobPlacementIntent,
+    basis::BlobPlacementReachabilityBasis, BlobPlacementAdmissionDenial,
+    BlobPlacementCounterSnapshot, BlobPlacementIntent,
 };
 
 pub(crate) fn verify_readiness_basis_match(

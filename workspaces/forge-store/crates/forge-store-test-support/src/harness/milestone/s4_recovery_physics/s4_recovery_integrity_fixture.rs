@@ -15,7 +15,8 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    BoundedInspectionEnvelopeEvidence, QuarantineSummary, RecoveryIntegrityHandoffReceipt,
+    BoundedInspectionEnvelopeEvidence, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
+    RecoveryIntegrityHandoffReceipt,
 };
 
 use super::s4_recovery_physical_fixture::{
@@ -100,11 +101,10 @@ pub(super) fn inspection_envelope(payload: &[u8]) -> BoundedInspectionEnvelopeEv
     envelope.unwrap()
 }
 
-pub(super) fn quarantine_summary(
-    page: &forge_store_physical_integrity::PageIntegrityReport,
-) -> QuarantineSummary {
+pub(super) fn quarantine_summary() -> QuarantineSummary {
+    let wal_damage = inspect_wal_damage(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
     let record = PhysicalQuarantineAuthority::seal(QuarantineSealRequest::from_executed_finding(
-        ExecutedQuarantineFinding::intact_page(page),
+        ExecutedQuarantineFinding::from_wal_frame_denial(&wal_damage).unwrap(),
     ))
     .unwrap();
     let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
@@ -115,7 +115,27 @@ pub(super) fn quarantine_summary(
         .unwrap();
     let receipt =
         RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap();
-    QuarantineSummary::from_quarantine_record(&record, receipt).unwrap()
+    QuarantineSummary::from_recovery_blocking_damage(
+        &record,
+        receipt,
+        &RecoveryBlockedByIntegrityDamage::damaged_wal_frame(&wal_damage),
+    )
+    .unwrap()
+}
+
+pub(super) fn inspect_wal_damage(
+    adjacency: CheckpointAdjacencyPosture,
+) -> forge_store_physical_integrity::WalFrameDamageDenial {
+    let mut denial = None;
+    with_wal_payload_input(b"WALF|crc32c|4|checksum-fail|DATA", adjacency, |input| {
+        let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
+        denial = Some(
+            WalFrameIntegrityAuthority::s3()
+                .inspect(request)
+                .unwrap_err(),
+        );
+    });
+    denial.unwrap()
 }
 
 pub(super) fn receipt(
@@ -127,11 +147,18 @@ pub(super) fn receipt(
     RecoveryIntegrityHandoffReceipt::from_executed_evidence(&evidence).unwrap()
 }
 
-fn with_wal_input(
+pub(super) fn with_wal_input(
     adjacency: CheckpointAdjacencyPosture,
     run: impl FnOnce(ScopedPhysicalValidatorInput<'_>),
 ) {
-    let payload = b"WALF|crc32c|4|ok|DATA";
+    with_wal_payload_input(b"WALF|crc32c|4|ok|DATA", adjacency, run);
+}
+
+fn with_wal_payload_input(
+    payload: &[u8],
+    adjacency: CheckpointAdjacencyPosture,
+    run: impl FnOnce(ScopedPhysicalValidatorInput<'_>),
+) {
     let validation = validation(1, 2, 3, 7);
     with_checked_frame(payload, validation, |checked| {
         let scope = PhysicalReferenceScope::wal_frame(validation);
@@ -199,7 +226,7 @@ fn checksum_admission(
 
 fn with_entry_seed(payload: &[u8], run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>)) {
     with_protected_payload_view(payload, |protected| {
-        let entry = IntegrityEntryAdmission::from_s3_readiness(s3_readiness()).unwrap();
+        let entry = IntegrityEntryAdmission::from_s3_payload(s3_readiness().payload()).unwrap();
         let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
         run(PhysicalIntegrityAdmission::from_entry(lease));
     });

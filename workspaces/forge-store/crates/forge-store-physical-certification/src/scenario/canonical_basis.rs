@@ -16,7 +16,11 @@ use forge_store_aspect_native::{
 };
 
 use super::canonical_tokens::{
-    actor_role_token, expectation_token, family_token, fault_token, intent_token, non_claim_token,
+    actor_role_token, blob_harness_access_mode_token, blob_harness_actor_mix_token,
+    blob_harness_chunk_size_class_token, blob_harness_failure_point_token,
+    blob_harness_placement_class_token, blob_harness_security_scope_class_token,
+    blob_harness_size_class_token, expectation_token, family_token, fault_token, intent_token,
+    non_claim_token,
 };
 use super::definition::PhysicalSimulationScenarioDefinition;
 use super::denial::PhysicalScenarioDefinitionDenial;
@@ -46,6 +50,7 @@ impl PhysicalScenarioCanonicalBasis {
         entries.extend(canonical_fixture_entries(definition.fixtures())?);
         entries.extend(canonical_actor_entries(definition));
         entries.extend(canonical_non_claim_entries(definition));
+        entries.extend(canonical_blob_harness_entries(definition));
         let version = scenario_canonicalization_version();
         match prepare_canonical_basis_sequence(version, SCENARIO_DOMAIN, entries) {
             TransitionOutcome::Success(ready) => Ok(Self { ready }),
@@ -173,6 +178,60 @@ fn canonical_non_claim_entries(
             text_entry(format!("non_claim.{index:04}"), non_claim_token(non_claim))
         })
         .collect()
+}
+
+fn canonical_blob_harness_entries(
+    definition: &PhysicalSimulationScenarioDefinition,
+) -> Vec<CanonicalBasisEntry> {
+    let Some(metadata) = definition.expectation().s7_blob_harness_metadata() else {
+        return Vec::new();
+    };
+    let topology = definition
+        .expectation()
+        .s7_blob_harness_topology()
+        .expect("blob harness metadata must carry topology");
+    vec![
+        text_entry(
+            "blob_harness.size_class",
+            blob_harness_size_class_token(metadata.size_class()),
+        ),
+        text_entry(
+            "blob_harness.chunk_size_class",
+            blob_harness_chunk_size_class_token(metadata.chunk_size_class()),
+        ),
+        text_entry(
+            "blob_harness.placement_class",
+            blob_harness_placement_class_token(metadata.placement_class()),
+        ),
+        text_entry(
+            "blob_harness.security_scope_class",
+            blob_harness_security_scope_class_token(metadata.security_scope_class()),
+        ),
+        text_entry(
+            "blob_harness.access_mode",
+            blob_harness_access_mode_token(metadata.access_mode()),
+        ),
+        text_entry(
+            "blob_harness.failure_point",
+            blob_harness_failure_point_token(metadata.failure_point()),
+        ),
+        text_entry(
+            "blob_harness.actor_mix",
+            blob_harness_actor_mix_token(metadata.actor_mix()),
+        ),
+        text_entry(
+            "blob_harness.chunk_count",
+            topology.chunk_count().to_string(),
+        ),
+        text_entry(
+            "blob_harness.logical_bytes",
+            topology.logical_bytes().to_string(),
+        ),
+        text_entry(
+            "blob_harness.chunk_bytes",
+            topology.chunk_bytes().to_string(),
+        ),
+    ]
 }
 
 fn text_entry(

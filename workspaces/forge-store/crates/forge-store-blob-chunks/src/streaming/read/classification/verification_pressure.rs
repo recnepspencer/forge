@@ -1,20 +1,23 @@
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_io_scheduler::{
-    BackgroundIoPressureClass, BackgroundPacingCounterSnapshot, BackgroundPacingOutcome,
+    BackgroundIoPressureClass, BackgroundPacingCapability, BackgroundPacingCounterSnapshot,
+    BackgroundPacingOutcome,
 };
 
 use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 
 pub(crate) fn classify_verification_pressure(
     outcome: BackgroundPacingOutcome,
-) -> Result<BackgroundPacingCounterSnapshot, BlobStreamingReadDenial> {
+) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
     if outcome.class() != BackgroundIoPressureClass::VerificationPressure {
         return Err(BlobStreamingReadDenial::VerificationPressureClassMismatch {
             actual: outcome.class(),
         });
     }
     match outcome {
-        BackgroundPacingOutcome::AdmittedWithDebt(outcome) => Ok(outcome.counters()),
+        BackgroundPacingOutcome::AdmittedWithDebt(_) => {
+            seal_verification_pressure_counters(outcome)
+        }
         BackgroundPacingOutcome::Throttled(outcome) => {
             if outcome.admitted_budget().is_empty() {
                 let counters = denial_counters(outcome.counters());
@@ -24,7 +27,7 @@ pub(crate) fn classify_verification_pressure(
                     },
                 )
             } else {
-                Ok(outcome.counters())
+                seal_verification_pressure_counters(BackgroundPacingOutcome::Throttled(outcome))
             }
         }
         BackgroundPacingOutcome::Yield(outcome) => {
@@ -56,6 +59,26 @@ pub(crate) fn classify_verification_pressure(
             Err(BlobStreamingReadDenial::VerificationPressureViolation { counters })
         }
     }
+}
+
+fn seal_verification_pressure_counters(
+    outcome: BackgroundPacingOutcome,
+) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
+    let capability =
+        BackgroundPacingCapability::from_admitted_outcome(outcome).map_err(|denial| {
+            BlobStreamingReadDenial::VerificationPressureDenied {
+                denial,
+                counters: BlobStreamingReadCounterSnapshot::start(CounterEvidenceStrength::Exact),
+            }
+        })?;
+    Ok(project_blob_pressure_counters(capability.counters()))
+}
+
+fn project_blob_pressure_counters(
+    counters: BackgroundPacingCounterSnapshot,
+) -> BlobStreamingReadCounterSnapshot {
+    BlobStreamingReadCounterSnapshot::start(CounterEvidenceStrength::Exact)
+        .record_background_pressure(counters)
 }
 
 fn denial_counters(counters: BackgroundPacingCounterSnapshot) -> BlobStreamingReadCounterSnapshot {

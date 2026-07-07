@@ -16,6 +16,8 @@ mod physical_security_metadata_canonical;
 mod physical_security_metadata_tests;
 mod raw_security_declarations;
 mod repair_blast_radius;
+mod s5_1_later_milestone_handoff;
+mod s5_1_security_scope_readiness;
 mod scope_vocabulary;
 mod security_scope_admission;
 mod security_scope_admission_basis;
@@ -97,6 +99,13 @@ pub use repair_blast_radius::{
     reject_repair_authority_source, repair_blast_radius_authenticity,
     repair_blast_radius_expectation, StoreRepairPhysicalRegionAdmissionOutcome,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness,
+};
+pub use s5_1_later_milestone_handoff::{
+    S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
+};
+pub use s5_1_security_scope_readiness::{
+    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
+    S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
 };
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,

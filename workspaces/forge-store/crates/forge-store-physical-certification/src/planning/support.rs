@@ -102,6 +102,8 @@ impl SupportedOracleFamilySet {
             OracleFamilyKind::S5PhysicalIsolationInterleaving,
             OracleFamilyKind::S6IoPressureSimulation,
             OracleFamilyKind::S4RecoveryDogfood,
+            OracleFamilyKind::S7BlobHarnessEvidence,
+            OracleFamilyKind::S7BlobHeavyQualification,
             OracleFamilyKind::ForbiddenShortcutRejection,
         ])
     }
@@ -118,6 +120,13 @@ impl SupportedOracleFamilySet {
 
     pub fn contains(&self, oracle_family: OracleFamilyKind) -> bool {
         self.oracle_families.contains(&oracle_family)
+    }
+
+    pub fn with_added(mut self, oracles: impl IntoIterator<Item = OracleFamilyKind>) -> Self {
+        self.oracle_families.extend(oracles);
+        self.oracle_families.sort_unstable();
+        self.oracle_families.dedup();
+        self
     }
 
     fn from_oracles(oracles: impl IntoIterator<Item = OracleFamilyKind>) -> Self {

@@ -24,7 +24,8 @@ impl BlobCompactionS6Pacing {
         handoff: &S10CompactionIoReadinessHandoff,
         foreground_yields: u64,
     ) -> Self {
-        if handoff.readmission_state() != S6LaterReadinessReadmissionState::ReadmittedAfterPublication
+        if handoff.readmission_state()
+            != S6LaterReadinessReadmissionState::ReadmittedAfterPublication
         {
             return Self::Unsupported;
         }

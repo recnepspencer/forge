@@ -143,6 +143,9 @@ pub use container_integrity_reports::{
 pub use damage_classification::{
     DamageClassification, IntactPhysicalBoundary, QuarantinedPhysicalDamage,
 };
+pub use damage_handoff::{
+    classify_physical_damage_for_handoff, quarantine_handoff_posture, PhysicalDamageHandoffEvidence,
+};
 pub use entry_admission::IntegrityEntryAdmission;
 pub use entry_basis::{IntegrityEntryBasis, ScrubEnvelopeLimits, VerifierResidentLimits};
 pub use entry_denial::{IntegrityEntryDenial, IntegrityEntryDenialKind};
@@ -232,9 +235,8 @@ pub use physical_scope_request::PhysicalScopeAdmissionRequest;
 pub use pre_decode_counters::{
     PreDecodeAdmissionCounters, SemanticDecoderInvocationCounter, SkippedLogicalDecodeCounter,
 };
-pub use damage_handoff::{
-    classify_physical_damage_for_handoff, quarantine_handoff_posture,
-};
+#[cfg(any(test, feature = "test-support"))]
+pub use pre_decode_denial::test_pre_decode_denial_for_kind;
 pub use pre_decode_denial::{PreDecodePhysicalDenial, PreDecodePhysicalDenialKind};
 
 pub use protected_physical_byte_view::ProtectedPhysicalByteView;

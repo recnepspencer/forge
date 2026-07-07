@@ -1,9 +1,11 @@
 use crate::BlobStreamingVerifiedRead;
 
 use crate::placement::movement::{
-    counters::BlobPlacementMovementCounterSnapshot, denial::BlobPlacementMovementDenial,
+    counters::BlobPlacementMovementCounterSnapshot,
+    denial::BlobPlacementMovementDenial,
     types::{
-        basis::BlobPlacementMovementBasis, plan::AdmittedBlobPlacementMovementPlan,
+        basis::BlobPlacementMovementBasis,
+        plan::AdmittedBlobPlacementMovementPlan,
         read_during_move::{BlobMovementVerifiedReadEvidence, BlobReadDuringPlacementMove},
         read_hold::BlobPlacementMovementReadHold,
     },

@@ -105,6 +105,45 @@ impl BlobReachabilityEdge {
         })
     }
 
+    pub(crate) fn primary_lifecycle_multichunk_reference(
+        declaration: &BlobLifecycleDeclaration,
+        leaf: &BlobChunkProofLeaf,
+    ) -> Result<Self, BlobReachabilityDenial> {
+        let counters = BlobReachabilityCounterSnapshot::start();
+        if declaration.security_metadata() != leaf.security_metadata() {
+            return Err(BlobReachabilityDenial::WrongBlobAuthority {
+                counters: counters.record_wrong_authority_denial(),
+            });
+        }
+        let object_id = declaration.object_id().clone();
+        let generation = declaration.generation();
+        let chunk_tree_root = declaration.chunk_tree_root().clone();
+        let logical_content_digest = declaration.logical_content_digest().clone();
+        let chunk_identity = leaf.identity().clone();
+        let stored_digest = leaf.stored_digest().clone();
+        let security_metadata = declaration.security_metadata();
+        Ok(Self {
+            identity: edge_digest_from_parts(
+                BlobReachabilityEdgeKind::PrimaryBlobReference,
+                &object_id,
+                generation,
+                &chunk_tree_root,
+                &logical_content_digest,
+                chunk_identity.chunk_digest(),
+                leaf.ordinal().get(),
+            ),
+            kind: BlobReachabilityEdgeKind::PrimaryBlobReference,
+            object_id,
+            generation,
+            chunk_tree_root,
+            logical_content_digest,
+            chunk_identity,
+            stored_digest,
+            security_metadata,
+            dedupe_reference_identity: None,
+        })
+    }
+
     pub fn derived_blob_reference(
         published: &BlobGenerationPublished,
         leaf: &BlobChunkProofLeaf,

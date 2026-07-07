@@ -36,6 +36,7 @@ pub(crate) fn classify_reclaim_for_identity(
     registry: &BlobChunkReachabilityRegistry,
     identity: &BlobChunkIdentity,
 ) -> BlobReachabilityReclaimDecision {
-    let case = crate::reachability::classification::classify_reclaim_eligibility(registry, identity);
+    let case =
+        crate::reachability::classification::classify_reclaim_eligibility(registry, identity);
     assemble_reclaim_decision(identity, case, registry.stored_counters())
 }

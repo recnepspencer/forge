@@ -2,10 +2,11 @@
 pub use crate::lifecycle::{
     AuthoritativeBlob, BlobGenerationRegistry, BlobGenerationRegistryAdmission,
     BlobGenerationRegistryAuthority, BlobGenerationRegistryEntry, BlobLifecycleAdmission,
-    BlobLifecycleDeclaration, BlobLifecycleExecutionReady, BlobLifecycleLoweringCapability,
-    BlobLifecycleLowered, BlobLifecyclePlacementAdmitted, BlobLifecycleReachabilityAdmitted,
-    BlobLifecycleReadinessAuthority, BlobLifecycleResolved, BlobLifecycleStoreAuthority,
-    BlobObjectClassificationAdmission, DerivedBlob, DerivedBlobRebuildAuthority,
+    BlobLifecycleDeclaration, BlobLifecycleExecutionReady, BlobLifecycleLowered,
+    BlobLifecycleLoweringCapability, BlobLifecyclePlacementAdmitted,
+    BlobLifecycleReachabilityAdmitted, BlobLifecycleReadinessAuthority, BlobLifecycleResolved,
+    BlobLifecycleStoreAuthority, BlobObjectClassificationAdmission, DerivedBlob,
+    DerivedBlobRebuildAuthority,
 };
 // --- Outcomes (transition receipts) ---
 pub use crate::lifecycle::{
@@ -18,10 +19,6 @@ pub use crate::lifecycle::{
     LifecycleReceipt, LogicalContentDigest, StoredChunkDigest,
 };
 // --- Denials (classified failure enums) ---
-pub use crate::lifecycle::{
-    BlobGenerationRegistryDenial, BlobLifecycleDenial,
-};
+pub use crate::lifecycle::{BlobGenerationRegistryDenial, BlobLifecycleDenial};
 // --- Counter witnesses (read-only snapshots) ---
-pub use crate::lifecycle::{
-    BlobGenerationRegistryCounterSnapshot, BlobLifecycleCounterSnapshot,
-};
+pub use crate::lifecycle::{BlobGenerationRegistryCounterSnapshot, BlobLifecycleCounterSnapshot};

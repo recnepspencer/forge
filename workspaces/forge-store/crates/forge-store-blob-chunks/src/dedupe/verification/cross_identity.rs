@@ -1,7 +1,7 @@
 use crate::dedupe::evidence::{BlobChunkDedupeByteComparison, BlobChunkDedupeCandidate};
 use crate::{
-    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome, BlobChunkDedupeCounterSnapshot,
-    BlobChunkRootCanonicalComparison,
+    BlobChunkDedupeAdmissionDenial, BlobChunkDedupeAdmissionOutcome,
+    BlobChunkDedupeCounterSnapshot, BlobChunkRootCanonicalComparison,
 };
 use forge_proof::TransitionOutcome;
 

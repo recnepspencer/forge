@@ -14,9 +14,8 @@ mod storage;
 mod tests;
 
 use crate::{
-    ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
-    PhysicalHeaderAuthority, PhysicalPageRecordAuthority, PhysicalReference,
-    PhysicalReferenceAuthority, PhysicalReferenceKind,
+    PersistedPhysicalLayout, PhysicalHeaderAuthority, PhysicalPageRecordAuthority,
+    PhysicalReference, PhysicalReferenceAuthority,
 };
 use forge_store_contracts::{AcceptedHandoffReadiness, RoadmapScope};
 use storage::PlatformPhysicalFacadeStorage;
