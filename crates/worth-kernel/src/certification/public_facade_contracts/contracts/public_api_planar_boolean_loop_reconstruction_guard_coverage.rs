@@ -125,3 +125,8 @@ pub(crate) fn assert_loop_reconstruction_guard_coverage_contract() {
         "loop reconstruction anti-theatre guards must stay tied to loop reconstruction compile-fail fixtures"
     );
 }
+
+const _: fn(PlanarBooleanLoopGuardCoverage) -> &'static str =
+    PlanarBooleanLoopGuardCoverage::guard_name;
+const _: fn() -> Vec<String> = loop_reconstruction_guard_names;
+const _: fn() = assert_loop_reconstruction_guard_coverage_contract;

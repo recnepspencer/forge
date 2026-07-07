@@ -32,10 +32,12 @@ pub(crate) struct TopologyDerivedDiagnosticProjectionSource {
 }
 
 impl TopologyDerivedDiagnosticProjectionSource {
+    #[cfg(test)]
     pub(crate) fn truth_basis_identity_digest(&self) -> &str {
         &self.truth_basis_identity_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostic_contract_name(&self) -> &str {
         &self.diagnostic_contract_name
     }

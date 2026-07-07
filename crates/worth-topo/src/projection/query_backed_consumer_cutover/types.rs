@@ -189,6 +189,7 @@ impl TopologyQueryBackedConsumerFamilyRow {
         }
     }
 
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn refresh_row_digest(&mut self) {
         self.row_digest = family_row_digest(
             self.request_family,
@@ -237,7 +238,7 @@ impl TopologyQueryBackedConsumerFamilyRow {
             .map(|identity| identity.identity_digest())
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn compiled_product_identity(&self) -> Option<&CompiledProductIdentity> {
         self.compiled_product_identity.as_ref()
     }
@@ -248,7 +249,7 @@ impl TopologyQueryBackedConsumerFamilyRow {
             .map(|identity| identity.identity_digest())
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn equivalence_policy_identity(
         &self,
     ) -> Option<&CompiledProductEquivalencePolicyIdentity> {
@@ -288,7 +289,7 @@ impl TopologyQueryBackedConsumerFamilyRow {
             .map(|identity| identity.identity_digest())
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn rebuild_denial_identity(&self) -> Option<&CompiledProductRebuildDenialIdentity> {
         self.rebuild_denial_identity.as_ref()
     }
@@ -367,6 +368,7 @@ impl TopologyQueryBackedConsumerCutover {
         &self.closeout_digest
     }
 
+    #[cfg(any(test, feature = "test-support-lowering"))]
     pub(crate) fn refresh_closeout_digest(&mut self) {
         self.closeout_digest = closeout_digest(
             &self.family_rows,

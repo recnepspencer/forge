@@ -4,17 +4,19 @@ use crate::workload_composition::{
     WorthWorkloadOrdinaryConsumerResidueSurface,
 };
 
-use super::tests_support::{
+use super::tests_support_completed_split::{
     attached_completed_split_handoff, ordinary_completed_split_handoff,
-    with_replay_undo_scope_products,
 };
+use super::tests_support_replay_undo_scope::with_replay_undo_scope_products;
 
 #[path = "../../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support/ordinary_topology_undo_support.rs"]
 mod ordinary_topology_undo_support;
 #[path = "../../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
 mod replay_support;
 #[path = "../../operator_harness/tests_vertical_migration/support/spatial_batch_execution_slice.rs"]
-mod spatial_batch_execution_slice_support;
+mod spatial_batch_execution_slice;
+#[path = "../../operator_harness/tests_vertical_migration/support/spatial_batch_execution_aspect_slice.rs"]
+mod spatial_batch_execution_aspect_slice;
 
 #[test]
 fn lookup_consumed_cluster_requires_workload_attached_batch_execution_receipt() {
@@ -25,7 +27,7 @@ fn lookup_consumed_cluster_requires_workload_attached_batch_execution_receipt() 
         .completed_workload()
         .admit_lookup_consumed_batch_execution_cluster(
             completed_split_handoff.lookup_consumed_workload_handoff(),
-            spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice(
+            spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice(
             )
             .execution_receipt(),
         )
@@ -43,7 +45,7 @@ fn lookup_consumed_cluster_requires_workload_attached_batch_execution_receipt() 
 fn lookup_consumed_cluster_rejects_mismatched_batch_execution_receipt() {
     let attached_split_handoff = attached_completed_split_handoff(
         "phase11 ordinary consumer sweep lookup cluster mismatch",
-        spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice()
+        spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice()
             .execution_receipt(),
     );
 
@@ -51,7 +53,7 @@ fn lookup_consumed_cluster_rejects_mismatched_batch_execution_receipt() {
         .completed_workload()
         .admit_lookup_consumed_batch_execution_cluster(
             attached_split_handoff.lookup_consumed_workload_handoff(),
-            spatial_batch_execution_slice_support::compatible_aspect_parallel_spatial_batch_execution_slice()
+            spatial_batch_execution_aspect_slice::compatible_aspect_parallel_spatial_batch_execution_slice()
                 .execution_receipt(),
         )
         .expect_err("lookup-consumed grouped cluster must reject a mismatched batch execution");
@@ -65,7 +67,7 @@ fn lookup_consumed_cluster_rejects_mismatched_batch_execution_receipt() {
 #[test]
 fn lookup_consumed_cluster_binds_explicit_batch_execution_authority_chain() {
     let batch_execution =
-        spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice()
+        spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice()
             .execution_receipt()
             .clone();
     let attached_split_handoff = attached_completed_split_handoff(
@@ -152,7 +154,7 @@ fn downstream_split_consumption_binds_explicit_batch_execution_authority_chain()
     );
     let replay_subject = replay_support::build_edge_split_replay_parity_subject(&subject);
     let batch_execution =
-        spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice()
+        spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice()
             .execution_receipt()
             .clone();
     let attached_split_handoff =
@@ -230,7 +232,7 @@ fn boolean_split_replay_undo_boundary_requires_workload_attached_batch_execution
 fn boolean_split_replay_undo_boundary_binds_explicit_batch_execution_authority_chain() {
     let label = "phase11 ordinary consumer sweep replay undo boundary positive";
     let batch_execution =
-        spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice()
+        spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice()
             .execution_receipt()
             .clone();
     let attached_split_handoff = attached_completed_split_handoff(label, &batch_execution);
@@ -290,7 +292,7 @@ fn replay_undo_boundary_denial_kind_is_typed() {
     let label = "phase11 ordinary consumer sweep replay undo boundary typed denial";
     let foreign_label = "phase11 ordinary consumer sweep replay undo boundary foreign";
     let batch_execution =
-        spatial_batch_execution_slice_support::disjoint_parallel_spatial_batch_execution_slice()
+        spatial_batch_execution_slice::disjoint_parallel_spatial_batch_execution_slice()
             .execution_receipt()
             .clone();
     let attached_split_handoff = attached_completed_split_handoff(label, &batch_execution);

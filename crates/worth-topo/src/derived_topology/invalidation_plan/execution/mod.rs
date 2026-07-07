@@ -13,7 +13,6 @@ mod tests;
 pub use counters::DerivedInvalidationExecutionCounters;
 pub use diagnostics::{DerivedInvalidationDiagnosticProjection, DerivedInvalidationDiagnosticRow};
 pub use error::{DerivedInvalidationExecutionError, DerivedInvalidationExecutionErrorKind};
-#[allow(unused_imports)]
 pub(crate) use materialization_policy::admit_materialization_report_for_execution_outcome;
 pub use outcome::DerivedInvalidationExecutionOutcome;
 pub(crate) use product_execution::{

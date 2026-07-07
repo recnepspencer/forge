@@ -9,6 +9,7 @@ mod row;
 mod tests;
 
 pub(crate) use contributor_catalog::conflict_family_coverage_contributor_rows;
+#[cfg(test)]
 pub(crate) use contributor_catalog::{
     current_batch_admission_coverage_contributor, current_conflict_coverage_contributor,
     current_independence_coverage_contributor,

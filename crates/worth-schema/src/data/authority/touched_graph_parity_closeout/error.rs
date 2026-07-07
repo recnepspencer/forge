@@ -18,6 +18,7 @@ pub struct TouchedGraphParityReadinessError {
 }
 
 impl TouchedGraphParityReadinessError {
+    #[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
     pub(crate) fn new(
         kind: TouchedGraphParityReadinessErrorKind,
         detail: impl Into<String>,

@@ -12,6 +12,7 @@ use worth_spatial::facade::planar_boolean_events::{
 use super::event_ledger_support::{ledger_from_certified_inputs, CertifiedEventLedgerInputs};
 use super::expected_shape::MetabossExpectedLedgerShape;
 use super::predicate_binding_support::{self, BindingSubject};
+use super::reduced_pair_support;
 use worth_kernel::workload_composition::trace_scope;
 
 #[derive(Clone)]
@@ -27,7 +28,20 @@ impl MetabossEventExtractionSubject {
     pub(crate) fn certify(readiness_scope: &'static str) -> Self {
         cached_subject(("metaboss", readiness_scope), || {
             let binding_subject = trace_scope("metaboss_binding_subject", || {
-                predicate_binding_support::metaboss_binding_subject(readiness_scope)
+                let (pair, operand_a, operand_b) = trace_scope(
+                    "binding_subject_metaboss_operands",
+                    || {
+                        reduced_pair_support::metaboss_projected_operand_requests_from_catalog(
+                            readiness_scope,
+                        )
+                    },
+                );
+                predicate_binding_support::binding_subject_from_projected_operands(
+                    readiness_scope,
+                    pair,
+                    operand_a,
+                    operand_b,
+                )
             });
             Self::from_binding_subject(binding_subject)
         })
@@ -44,13 +58,26 @@ impl MetabossEventExtractionSubject {
         );
         cached_subject_from_owned_key(cache_key, || {
             let binding_subject = trace_scope("custom_binding_subject", || {
-                predicate_binding_support::binding_subject_from_pair(readiness_scope, pair)
+                let (pair, operand_a, operand_b) = trace_scope(
+                    "binding_subject_custom_pair_operands",
+                    || {
+                        reduced_pair_support::projected_operand_requests_from_pair(
+                            readiness_scope,
+                            pair,
+                        )
+                    },
+                );
+                predicate_binding_support::binding_subject_from_projected_operands(
+                    readiness_scope,
+                    pair,
+                    operand_a,
+                    operand_b,
+                )
             });
             Self::from_binding_subject(binding_subject)
         })
     }
 
-    #[allow(dead_code)]
     pub(crate) fn certify_event_carrier(readiness_scope: &'static str) -> Self {
         cached_subject(("event-carrier", readiness_scope), || {
             let binding_subject = trace_scope("event_carrier_binding_subject", || {

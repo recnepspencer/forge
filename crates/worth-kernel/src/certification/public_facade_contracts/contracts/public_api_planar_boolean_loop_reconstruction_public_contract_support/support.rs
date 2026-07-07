@@ -44,6 +44,14 @@ pub(crate) fn assert_loop_public_contract_surfaces_preserve_real_workload_backed
         replayed_public.proof_identity()
     );
     assert_eq!(
+        original_public.runtime_registration_proof_identity(),
+        original.runtime_registration_proof().proof_identity()
+    );
+    assert_eq!(
+        replayed_public.runtime_registration_proof_identity(),
+        replayed.runtime_registration_proof().proof_identity()
+    );
+    assert_eq!(
         original_anti.proof_identity(),
         replayed_anti.proof_identity()
     );
@@ -67,6 +75,10 @@ pub(crate) fn assert_loop_public_contract_surfaces_preserve_real_workload_backed
         .rows()
         .iter()
         .any(|row| row.kind() == PlanarBooleanLoopPublicContractProofRowKind::WorkloadStageIndex));
+    assert!(original_public
+        .rows()
+        .iter()
+        .all(|row| !row.identity().is_empty()));
     let anti_theatre_guard_rows = original_anti
         .rows()
         .iter()
@@ -80,6 +92,7 @@ pub(crate) fn assert_loop_public_contract_surfaces_preserve_real_workload_backed
         .rows()
         .iter()
         .any(|row| row.kind() == PlanarBooleanLoopPublicContractProofRowKind::AntiTheatreFence));
+    assert!(original_anti.rows().iter().all(|row| !row.identity().is_empty()));
 }
 
 pub(crate) fn assert_loop_public_contract_fences_reject_foreign_authority() {

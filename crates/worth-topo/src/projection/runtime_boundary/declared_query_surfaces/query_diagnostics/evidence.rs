@@ -72,6 +72,7 @@ pub(crate) struct TopologyQueryMutationEvidence {
 }
 
 impl TopologyQueryMutationEvidence {
+    #[cfg(test)]
     pub(crate) const fn metadata_key() -> &'static str {
         ".topology.read_basis"
     }

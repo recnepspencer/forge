@@ -68,7 +68,6 @@ pub struct TopologyReadPhaseThreeBlockerRow {
     pub(crate) row_digest: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyReadCloseoutReport {
     pub(crate) proof_report: TopologyReadProofReport,
@@ -86,7 +85,6 @@ pub struct TopologyReadCloseoutReport {
 }
 
 impl TopologyReadCloseoutReport {
-    #[allow(dead_code)]
     pub(crate) fn from_proof_report(proof_report: TopologyReadProofReport) -> Self {
         let request_aggregate = &proof_report.request_aggregate;
         let family_rows = closeout_family_rows(request_aggregate);
@@ -139,7 +137,6 @@ fn phase_three_ready(
 }
 
 impl TopologyReadLedger {
-    #[allow(dead_code)]
     pub fn closeout_report(&self) -> TopologyReadCloseoutReport {
         TopologyReadCloseoutReport::from_proof_report(self.proof_report())
     }

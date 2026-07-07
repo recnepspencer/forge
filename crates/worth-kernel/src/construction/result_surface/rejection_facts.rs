@@ -138,7 +138,7 @@ impl PrimitiveConstructionRejectedFacts {
         self.rejection_locality
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn rejection_class(&self) -> PrimitiveConstructionRejectionClass {
         self.rejection_class
     }
@@ -159,7 +159,7 @@ impl PrimitiveConstructionRejectedFacts {
         self.stability_class
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn feature_conditioning_class(
         &self,
     ) -> Option<worth_geom::facade::PrimitiveFeatureConditioningClass> {
@@ -168,7 +168,7 @@ impl PrimitiveConstructionRejectedFacts {
             .map(|witness| witness.feature_conditioning_class())
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn support_normal_class(
         &self,
     ) -> Option<worth_geom::facade::PrimitiveSupportNormalClass> {
@@ -177,7 +177,7 @@ impl PrimitiveConstructionRejectedFacts {
             .map(|witness| witness.support_normal_class())
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn normalization_disposition(
         &self,
     ) -> Option<worth_geom::facade::PrimitiveNormalizationDisposition> {
@@ -196,7 +196,7 @@ impl PrimitiveConstructionRejectedFacts {
         &self.reason
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn failure_digest(&self) -> &str {
         &self.failure_digest
     }

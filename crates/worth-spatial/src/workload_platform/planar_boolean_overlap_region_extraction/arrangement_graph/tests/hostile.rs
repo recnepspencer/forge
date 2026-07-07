@@ -7,8 +7,9 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
     PlanarBooleanOverlapRegionAdjacencyIndex,
 };
 
-use super::fixtures::{
-    ambiguous_face_grouping_adjacency, foreign_loop_boundary_adjacency, recovered_participation,
+use super::fixtures::recovered_participation;
+use super::hostile_fixtures::{
+    ambiguous_face_grouping_adjacency, foreign_loop_boundary_adjacency,
     role_contradiction_adjacency,
 };
 

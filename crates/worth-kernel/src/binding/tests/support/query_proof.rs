@@ -84,21 +84,6 @@ pub(crate) fn inspect_progressed_binding_entry(
         .unwrap_or_else(|_| panic!("binding declaration inspection"))
 }
 
-#[allow(dead_code)]
-pub(crate) fn binding_workflow_artifacts(
-    entry: &PrimitiveBindingDeclarationEntry,
-    handle: &forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
-        PrimitiveBindingQueryDomain,
-        PrimitiveBindingQueryWorld,
-    >,
-) -> KernelCanonicalQueryWorkflowArtifactSet<
-    PrimitiveBindingQueryDomain,
-    PrimitiveBindingDeclarationEntry,
-> {
-    canonical_query_workflow_artifacts(handle, entry.clone())
-        .unwrap_or_else(|_| panic!("binding workflow artifacts"))
-}
-
 pub(crate) fn progress_rebinding_entry(
     entry: &PrimitiveRebindingDeclarationEntry,
     handle: &forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
@@ -253,7 +238,6 @@ pub(crate) fn rebinding_declaration_digest_string(
     )
 }
 
-#[allow(dead_code)]
 pub(crate) fn canonical_text_entries(
     entry: &PrimitiveBindingDeclarationEntry,
 ) -> BTreeMap<String, String> {

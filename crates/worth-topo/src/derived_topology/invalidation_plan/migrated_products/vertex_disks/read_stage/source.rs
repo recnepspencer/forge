@@ -115,20 +115,6 @@ impl VertexDiskReadSource {
         )
     }
 
-    #[cfg(test)]
-    pub(crate) fn from_rows_with_counters(
-        selected_rows: Vec<VertexDiskBoundarySourceRow>,
-        available_source_row_count: usize,
-        counters: VertexDiskReadStageCounters,
-    ) -> Result<Self, VertexDiskMigrationError> {
-        Self::from_rows_with_counters_and_query_reports(
-            selected_rows,
-            available_source_row_count,
-            counters,
-            Vec::new(),
-        )
-    }
-
     fn from_rows_with_counters_and_query_reports(
         selected_rows: Vec<VertexDiskBoundarySourceRow>,
         available_source_row_count: usize,

@@ -42,7 +42,7 @@ impl EvidenceLookupCurrentCoveredStageCutoverPath {
         &self.spatial_touch_authority
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn stage_receipt_identity(&self) -> &str {
         &self.stage_receipt_identity
     }

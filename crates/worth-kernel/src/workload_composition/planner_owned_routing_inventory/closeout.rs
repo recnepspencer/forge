@@ -101,24 +101,6 @@ fn validate_row(
         );
     }
 
-    match row.disposition() {
-        PlannerOwnedRoutingDisposition::QueryGap => {
-            if row.query_gap().is_none() {
-                return Err(PlannerOwnedRoutingInventoryError::MissingQueryGapKind(
-                    row.surface_name(),
-                ));
-            }
-        }
-        PlannerOwnedRoutingDisposition::Cap => {}
-        _ => {
-            if row.query_gap().is_some() {
-                return Err(PlannerOwnedRoutingInventoryError::UnexpectedQueryGapKind(
-                    row.surface_name(),
-                ));
-            }
-        }
-    }
-
     if row.ordinary_path() && matches!(row.disposition(), PlannerOwnedRoutingDisposition::Cap) {
         return Err(
             PlannerOwnedRoutingInventoryError::InvalidOrdinaryDisposition {

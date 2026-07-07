@@ -60,6 +60,8 @@ fn public_api_cannot_forge_compiled_product_or_reuse_products() {
         fences.len(),
         "each certified spatial fence class must map to its own executed compile-fail fixture"
     );
+    assert!(fences.iter().all(|fence| fence.stderr_path().ends_with(".stderr")));
+    assert!(fences.iter().all(|fence| !fence.fence_class().is_empty()));
 
     let test_cases = trybuild::TestCases::new();
     for fence in fences {
@@ -94,6 +96,8 @@ fn phase_fourteen_spatial_reintroduction_and_raw_part_fixtures_hold() {
         fences.len(),
         "each phase 14 spatial fence fixture should be executed exactly once"
     );
+    assert!(fences.iter().all(|fence| fence.stderr_path().ends_with(".stderr")));
+    assert!(fences.iter().all(|fence| !fence.fence_class().is_empty()));
 
     let test_cases = trybuild::TestCases::new();
     for fence in fences {

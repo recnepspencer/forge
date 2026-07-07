@@ -10,8 +10,6 @@ pub enum PlannerOwnedRoutingInventoryError {
     DuplicateSurface(PlannerOwnedRoutingSurfaceIdentity),
     MissingLifecycleRole(&'static str),
     MissingReplacementLanePath(&'static str),
-    MissingQueryGapKind(&'static str),
-    UnexpectedQueryGapKind(&'static str),
     EmptyExitCondition(&'static str),
     MissingDisplacedLanePath(&'static str),
     MissingSourceToken {
@@ -64,18 +62,6 @@ impl Display for PlannerOwnedRoutingInventoryError {
             }
             Self::MissingReplacementLanePath(surface) => {
                 write!(f, "surface `{surface}` is missing a replacement lane path")
-            }
-            Self::MissingQueryGapKind(surface) => {
-                write!(
-                    f,
-                    "Query-gap surface `{surface}` is missing a Query-gap kind"
-                )
-            }
-            Self::UnexpectedQueryGapKind(surface) => {
-                write!(
-                    f,
-                    "non-Query-gap surface `{surface}` unexpectedly names a Query-gap kind"
-                )
             }
             Self::EmptyExitCondition(surface) => {
                 write!(

@@ -15,7 +15,7 @@ pub struct WireViewQueryReadRow {
 }
 
 impl WireViewQueryReadRow {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(
         request_report: TopologyReadRequestReport,
         wire_id: EntityId,

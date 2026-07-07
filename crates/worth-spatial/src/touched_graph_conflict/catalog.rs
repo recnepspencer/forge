@@ -1,10 +1,14 @@
+#[cfg(test)]
 use schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract;
 
+#[cfg(test)]
 use super::applicability::matches_declaration;
 use super::family_declaration::SpatialConflictFamilyDeclaration;
 use super::family_identity::SpatialConflictFamilyIdentity;
+#[cfg(test)]
 use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
 
+#[cfg(test)]
 #[derive(Debug)]
 pub enum SpatialConflictFamilyApplicability<'a> {
     EvidenceLookup {
@@ -38,6 +42,7 @@ impl SpatialConflictFamilyCatalog {
             .find(|declaration| declaration.identity() == identity)
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_families(
         &self,
         contract: &ConflictRoutingContract,

@@ -11,7 +11,6 @@ use crate::projection::runtime_boundary::read_execution::{
 };
 
 impl TopologyReadLedger {
-    #[allow(dead_code)]
     pub(crate) fn loop_cycle(
         &self,
         workspace: &mut ForgeQueryWorkspace,

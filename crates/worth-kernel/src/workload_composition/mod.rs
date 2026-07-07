@@ -17,6 +17,7 @@ mod operator_harness;
 mod performance_trace;
 mod planar_boolean_overlap_region_extraction;
 mod planner_owned_routing;
+#[cfg(test)]
 mod planner_owned_routing_inventory;
 mod public_closeout;
 mod source_firewall;
@@ -161,17 +162,17 @@ pub use planar_boolean_overlap_region_extraction::{
     PlanarBooleanOverlapRegistrationContractError, PlanarBooleanOverlapRuntimeRegistrationProof,
 };
 pub(crate) use planner_owned_routing::{
-    admit_worth_touched_graph_conflict_public_proof_input,
-    current_worth_touched_graph_conflict_derived_diagnostic_projection,
-    current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
     current_worth_touched_graph_conflict_milestone_fifteen_seed,
-    current_worth_touched_graph_conflict_public_closeout,
-    current_worth_touched_graph_conflict_public_proof_input,
     current_worth_touched_graph_conflict_selected_route_packet, PlannerOwnedRoutingError,
-    PlannerOwnedRoutingErrorKind, WorthTouchedGraphConflictAdmittedPublicProofInput,
-    WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
-    WorthTouchedGraphConflictDerivedDiagnosticProjection,
+    WorthTouchedGraphConflictAdmittedPublicProofInput,
     WorthTouchedGraphConflictSelectedRoutePacket,
+};
+#[cfg(test)]
+pub(crate) use planner_owned_routing::current_worth_touched_graph_conflict_public_closeout;
+#[cfg(test)]
+pub(crate) use planner_owned_routing::{
+    admit_worth_touched_graph_conflict_public_proof_input,
+    current_worth_touched_graph_conflict_public_proof_input, PlannerOwnedRoutingErrorKind,
 };
 pub use planner_owned_routing::{
     current_completed_split_batch_execution_cluster_witness,
@@ -181,11 +182,20 @@ pub use planner_owned_routing::{
     WorthWorkloadOrdinaryConsumerCurrentRouteWitness, WorthWorkloadOrdinaryConsumerCutoverError,
     WorthWorkloadOrdinaryConsumerCutoverErrorKind, WorthWorkloadOrdinaryConsumerRouteKind,
 };
-pub use planner_owned_routing::{
+pub use planner_owned_routing::public_facade::{
+    current_public_closeout_consumer_residue_manifest,
     current_worth_touched_graph_conflict_public_facade,
     current_worth_touched_graph_conflict_public_facade_with_artifact_policy,
+    PublicCloseoutConsumerResidueBoundaryPosture, PublicCloseoutConsumerResidueDisposition,
+    PublicCloseoutConsumerResidueManifestError, PublicCloseoutConsumerResidueOwner,
+    PublicCloseoutConsumerResidueRow,
     WorthTouchedGraphConflictPublicFacade, WorthTouchedGraphConflictPublicFacadeError,
     WorthTouchedGraphConflictPublicFacadeErrorKind, WorthTouchedGraphConflictPublicProofInspection,
+};
+pub use planner_owned_routing::public_proof::{
+    WorthTouchedGraphConflictArchitectureAlignmentReportRow,
+    WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutErrorKind,
+    WorthTouchedGraphConflictQueryGapKind, WorthTouchedGraphConflictResidueDisposition,
 };
 pub use public_closeout::{
     WorthTouchedGraphConflictArchitectureAlignmentReport,

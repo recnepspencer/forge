@@ -63,36 +63,13 @@ impl PlanarBooleanOverlapReplayCertifiedPeer {
         readiness_consumer: &TopologyMilestoneSevenFiveOverlapReadinessConsumer,
         replay_receipts: &ReplayReceiptSet,
     ) -> Result<Self, PlanarBooleanOverlapReplayCertifiedPeerDenial> {
-        let loop_replay_parity_receipt = ComparePlanarBooleanLoopReplayParity::compare(
-            PlanarBooleanLoopReplayParityInput::admit_from_ledger_and_evidence(
-                original_loop_handoff.loop_ledger_receipt(),
-                replayed_loop_handoff.loop_ledger_receipt(),
-                original_loop_handoff.evidence_receipt(),
-                replayed_loop_handoff.evidence_receipt(),
-                replay_receipts,
-            )
-            .map_err(|denial| {
-                PlanarBooleanOverlapReplayCertifiedPeerDenial::LoopReplayParityRejected(format!(
-                    "{denial:?}"
-                ))
-            })?,
-        )
-        .map_err(|denial| {
-            PlanarBooleanOverlapReplayCertifiedPeerDenial::LoopReplayParityRejected(format!(
-                "{denial:?}"
-            ))
-        })?;
-        let replayed_overlap_request = PlanarBooleanOverlapRegionExtractionRequest::admit(
-            PlanarBooleanOverlapRegionExtractionRequestInput::from_readiness_consumer_and_loop_ledger(
-                readiness_consumer,
-                replayed_loop_handoff.loop_ledger_receipt(),
-            ),
-        )
-        .map_err(|denial| {
-            PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayRequestRejected(format!(
-                "{denial:?}"
-            ))
-        })?;
+        let loop_replay_parity_receipt = certify_loop_replay_parity(
+            original_loop_handoff,
+            replayed_loop_handoff,
+            replay_receipts,
+        )?;
+        let replayed_overlap_request =
+            admit_replayed_overlap_request(readiness_consumer, replayed_loop_handoff)?;
         let replayed_products = derive_replayed_overlap_authority_products(
             replayed_loop_handoff,
             &replayed_overlap_request,
@@ -105,10 +82,6 @@ impl PlanarBooleanOverlapReplayCertifiedPeer {
             replayed_canonical_winding_bundle: replayed_products.canonical_winding_bundle,
             replayed_overlap_ledger_bundle: replayed_products.ledger_bundle,
         })
-    }
-
-    pub(crate) fn loop_replay_parity_receipt(&self) -> &PlanarBooleanLoopReplayParityReceipt {
-        &self.loop_replay_parity_receipt
     }
 
     pub(crate) fn replay_receipts(&self) -> &ReplayReceiptSet {
@@ -142,10 +115,73 @@ impl PlanarBooleanOverlapReplayCertifiedPeer {
     }
 }
 
+fn certify_loop_replay_parity(
+    original_loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
+    replayed_loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
+    replay_receipts: &ReplayReceiptSet,
+) -> Result<PlanarBooleanLoopReplayParityReceipt, PlanarBooleanOverlapReplayCertifiedPeerDenial> {
+    let parity_input = PlanarBooleanLoopReplayParityInput::admit_from_ledger_and_evidence(
+        original_loop_handoff.loop_ledger_receipt(),
+        replayed_loop_handoff.loop_ledger_receipt(),
+        original_loop_handoff.evidence_receipt(),
+        replayed_loop_handoff.evidence_receipt(),
+        replay_receipts,
+    )
+    .map_err(|denial| {
+        PlanarBooleanOverlapReplayCertifiedPeerDenial::LoopReplayParityRejected(format!(
+            "{denial:?}"
+        ))
+    })?;
+
+    ComparePlanarBooleanLoopReplayParity::compare(parity_input).map_err(|denial| {
+        PlanarBooleanOverlapReplayCertifiedPeerDenial::LoopReplayParityRejected(format!(
+            "{denial:?}"
+        ))
+    })
+}
+
+fn admit_replayed_overlap_request(
+    readiness_consumer: &TopologyMilestoneSevenFiveOverlapReadinessConsumer,
+    replayed_loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
+) -> Result<
+    PlanarBooleanOverlapRegionExtractionRequest,
+    PlanarBooleanOverlapReplayCertifiedPeerDenial,
+> {
+    PlanarBooleanOverlapRegionExtractionRequest::admit(
+        PlanarBooleanOverlapRegionExtractionRequestInput::from_readiness_consumer_and_loop_ledger(
+            readiness_consumer,
+            replayed_loop_handoff.loop_ledger_receipt(),
+        ),
+    )
+    .map_err(|denial| {
+        PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayRequestRejected(format!("{denial:?}"))
+    })
+}
+
 fn derive_replayed_overlap_authority_products(
     replayed_loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
     replayed_overlap_request: &PlanarBooleanOverlapRegionExtractionRequest,
 ) -> Result<ReplayedOverlapAuthorityProducts, PlanarBooleanOverlapReplayCertifiedPeerDenial> {
+    let participation =
+        recover_replayed_overlap_participation(replayed_loop_handoff, replayed_overlap_request)?;
+    let adjacency = build_replayed_overlap_adjacency(&participation)?;
+    let arrangement = build_replayed_overlap_arrangement(&adjacency)?;
+    let shared_area_bundle = shared_area_bundle_from_arrangement(&arrangement)?;
+    let canonical_winding_bundle =
+        normalize_replayed_overlap_regions(&participation, &shared_area_bundle)?;
+    let ledger_bundle = mint_replayed_overlap_ledger(&canonical_winding_bundle)?;
+    Ok(ReplayedOverlapAuthorityProducts {
+        shared_area_bundle,
+        canonical_winding_bundle,
+        ledger_bundle,
+    })
+}
+
+fn recover_replayed_overlap_participation(
+    replayed_loop_handoff: &CompletedBooleanLoopReconstructionHandoff,
+    replayed_overlap_request: &PlanarBooleanOverlapRegionExtractionRequest,
+) -> Result<PlanarBooleanOverlapParticipationRecovery, PlanarBooleanOverlapReplayCertifiedPeerDenial>
+{
     let replayed_loop_products = replayed_loop_handoff
         .products()
         .ok_or(PlanarBooleanOverlapReplayCertifiedPeerDenial::MissingReplayLoopProducts)?;
@@ -170,7 +206,7 @@ fn derive_replayed_overlap_authority_products(
                 "{denial:?}"
             ))
         })?;
-    let participation = PlanarBooleanOverlapParticipationRecovery::recover(
+    PlanarBooleanOverlapParticipationRecovery::recover(
         PlanarBooleanOverlapParticipationRecoveryInput::from_request_and_loop_support(
             replayed_overlap_request,
             &participation_support,
@@ -180,8 +216,14 @@ fn derive_replayed_overlap_authority_products(
         PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayParticipationRejected(format!(
             "{denial:?}"
         ))
-    })?;
-    let adjacency = PlanarBooleanOverlapRegionAdjacencyIndex::admit(
+    })
+}
+
+fn build_replayed_overlap_adjacency(
+    participation: &PlanarBooleanOverlapParticipationRecovery,
+) -> Result<PlanarBooleanOverlapRegionAdjacencyIndex, PlanarBooleanOverlapReplayCertifiedPeerDenial>
+{
+    PlanarBooleanOverlapRegionAdjacencyIndex::admit(
         PlanarBooleanOverlapAdjacencyIndexInput::from_participation_products(
             participation.loop_participation_map(),
             participation.island_participation_map(),
@@ -192,10 +234,18 @@ fn derive_replayed_overlap_authority_products(
         PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayAdjacencyRejected(format!(
             "{denial:?}"
         ))
-    })?;
-    let arrangement = PlanarBooleanCoplanarOverlapArrangementGraph::admit(
+    })
+}
+
+fn build_replayed_overlap_arrangement(
+    adjacency: &PlanarBooleanOverlapRegionAdjacencyIndex,
+) -> Result<
+    PlanarBooleanCoplanarOverlapArrangementGraph,
+    PlanarBooleanOverlapReplayCertifiedPeerDenial,
+> {
+    PlanarBooleanCoplanarOverlapArrangementGraph::admit(
         PlanarBooleanOverlapArrangementGraphInput::from_adjacency(
-            &adjacency,
+            adjacency,
             adjacency.ordering_basis(),
         ),
     )
@@ -203,11 +253,19 @@ fn derive_replayed_overlap_authority_products(
         PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayArrangementRejected(format!(
             "{denial:?}"
         ))
-    })?;
-    let shared_area_bundle = shared_area_bundle_from_arrangement(&arrangement)?;
+    })
+}
+
+fn normalize_replayed_overlap_regions(
+    participation: &PlanarBooleanOverlapParticipationRecovery,
+    shared_area_bundle: &PlanarBooleanSharedAreaAdmissionBundle,
+) -> Result<
+    PlanarBooleanPostAdmissionNormalizationBundle,
+    PlanarBooleanOverlapReplayCertifiedPeerDenial,
+> {
     let pre_region_normalization_bundle =
         PlanarBooleanPreRegionNormalizationBundle::from_shared_area_admission(
-            &shared_area_bundle,
+            shared_area_bundle,
             participation.chain_lineage_map(),
         )
         .map_err(|denial| {
@@ -216,19 +274,27 @@ fn derive_replayed_overlap_authority_products(
             )
         })?;
     let overlap_region_candidates = pre_region_normalization_bundle
-        .promote_overlap_region_candidates(&shared_area_bundle)
+        .promote_overlap_region_candidates(shared_area_bundle)
         .map_err(|denial| {
             PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayCandidatePromotionRejected(
                 format!("{denial:?}"),
             )
         })?;
-    let canonical_winding_bundle = overlap_region_candidates
+    overlap_region_candidates
         .normalize_post_admission_canonical_winding()
         .map_err(|denial| {
             PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayCanonicalWindingRejected(format!(
                 "{denial:?}"
             ))
-        })?;
+        })
+}
+
+fn mint_replayed_overlap_ledger(
+    canonical_winding_bundle: &PlanarBooleanPostAdmissionNormalizationBundle,
+) -> Result<
+    PlanarBooleanOverlapRegionLedgerAssemblyBundle,
+    PlanarBooleanOverlapReplayCertifiedPeerDenial,
+> {
     let identity_lineage_bundle = canonical_winding_bundle
         .mint_overlap_region_identity_lineage()
         .map_err(|denial| {
@@ -236,18 +302,13 @@ fn derive_replayed_overlap_authority_products(
                 "{denial:?}"
             ))
         })?;
-    let replayed_overlap_ledger_bundle = identity_lineage_bundle
+    identity_lineage_bundle
         .mint_overlap_region_ledger()
         .map_err(|denial| {
             PlanarBooleanOverlapReplayCertifiedPeerDenial::ReplayLedgerRejected(format!(
                 "{denial:?}"
             ))
-        })?;
-    Ok(ReplayedOverlapAuthorityProducts {
-        shared_area_bundle,
-        canonical_winding_bundle,
-        ledger_bundle: replayed_overlap_ledger_bundle,
-    })
+        })
 }
 
 fn shared_area_bundle_from_arrangement(

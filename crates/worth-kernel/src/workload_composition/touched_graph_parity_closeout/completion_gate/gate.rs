@@ -182,16 +182,6 @@ impl WorthTouchedGraphRoadmapCompletionGate {
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_live_coverage_ledger(
-        mut self,
-        live_coverage_ledger: LiveCoverageLedger,
-    ) -> Self {
-        self.live_coverage_ledger = live_coverage_ledger;
-        self.is_complete = false;
-        self
-    }
-
-    #[cfg(test)]
     pub(crate) fn with_test_public_closeout(
         mut self,
         public_closeout: WorthTouchedGraphConflictPublicCloseout,

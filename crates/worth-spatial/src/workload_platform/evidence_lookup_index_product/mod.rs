@@ -32,7 +32,6 @@ pub use disposal_posture::{
 pub use error::{EvidenceLookupIndexProductError, EvidenceLookupIndexProductErrorKind};
 pub(crate) use identity::{
     admit_and_lower_index_family_identity, rebuild_required_identity,
-    AdmittedEvidenceLookupFamilyIdentity,
 };
 #[cfg(test)]
 pub(crate) use identity::{

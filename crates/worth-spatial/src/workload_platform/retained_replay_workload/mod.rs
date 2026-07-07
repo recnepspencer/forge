@@ -13,8 +13,9 @@ pub use canonical_catalog::canonical_retained_cancellation_chain_capture;
 pub use replay_evidence::{ReplayEvidenceKind, ReplayEvidenceRow, ReplayEvidenceSet};
 pub(crate) use replay_parity::{
     ReplayParityAdmissionProvenance, ReplayParityError, ReplayParityErrorKind,
-    ReplayParitySpatialAdmissionCause,
 };
+#[cfg(test)]
+pub(crate) use replay_parity::ReplayParitySpatialAdmissionCause;
 pub use replay_parity::{ReplayParityKind, ReplayParityReport, ReplayParityRow};
 pub use replay_receipt::{ReplayReceiptSet, ReplayWorkloadCounters};
 pub use replay_workload::{AdmittedRetainedReplayCapture, ReplayWorkload, ReplayedWorkload};

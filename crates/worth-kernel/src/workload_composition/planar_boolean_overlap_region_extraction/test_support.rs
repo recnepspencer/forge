@@ -21,23 +21,18 @@ use worth_spatial::facade::planar_boolean_overlap_region_extraction::{
     PlanarBooleanOverlapRegionLedgerAssemblyBundle, PlanarBooleanPreRegionNormalizationBundle,
     PlanarBooleanSharedAreaAdmissionBundle,
 };
-use worth_spatial::facade::retained_replay_workload::ReplayReceiptSet;
-
 use crate::workload_composition::{
     admitted_metaboss_bundle_operand_pair_recipe, current_touched_graph_readiness_handoff,
     trace_scope, CompletedBooleanLoopReconstructionHandoff,
     CompletedPlanarBooleanOverlapRegionExtractionHandoff, PlanarBooleanOverlapRegionCloseoutInput,
-    PlanarBooleanOverlapRegionMetabossSubcase,
 };
 
 pub(crate) struct RealOverlapOwnerSeamFixture {
     pub(crate) readiness: schema::facade::platform::authority::touched_graph_parity_closeout::TouchedGraphParityReadinessInput,
     pub(crate) readiness_consumer: TopologyMilestoneSevenFiveOverlapReadinessConsumer,
     pub(crate) request: PlanarBooleanOverlapRegionExtractionRequest,
-    pub(crate) ledger_bundle: PlanarBooleanOverlapRegionLedgerAssemblyBundle,
     pub(crate) stage_counts: OverlapExtractionStageCounts,
     pub(crate) completed: CompletedPlanarBooleanOverlapRegionExtractionHandoff,
-    pub(crate) replay_receipts: ReplayReceiptSet,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,23 +67,6 @@ pub(crate) fn completed_overlap_owner_seam_fixture(
     primary_overlap_owner_seam_fixture()
 }
 
-pub(crate) fn completed_overlap_owner_seam_fixture_for_subcase(
-    subcase: PlanarBooleanOverlapRegionMetabossSubcase,
-) -> &'static RealOverlapOwnerSeamFixture {
-    match subcase {
-        PlanarBooleanOverlapRegionMetabossSubcase::BoundaryOnlyCoincidentEdgesDoNotAdmitArea => {
-            boundary_only_overlap_owner_seam_fixture()
-        }
-        PlanarBooleanOverlapRegionMetabossSubcase::MixedBoundaryAndAreaContactDoesNotCollapse => {
-            mixed_boundary_area_overlap_owner_seam_fixture()
-        }
-        PlanarBooleanOverlapRegionMetabossSubcase::OverlapStormUsesIndexNotPairwiseRediscovery => {
-            coplanar_overlap_owner_seam_fixture()
-        }
-        _ => primary_overlap_owner_seam_fixture(),
-    }
-}
-
 pub(crate) fn run_stack_heavy_overlap_region_test(test: impl FnOnce() + Send + 'static) {
     let result = std::thread::Builder::new()
         .stack_size(256 * 1024 * 1024)
@@ -110,18 +88,6 @@ fn primary_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture 
     })
 }
 
-fn boundary_only_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture {
-    static FIXTURE: OnceLock<RealOverlapOwnerSeamFixture> = OnceLock::new();
-    FIXTURE.get_or_init(|| {
-        build_completed_overlap_owner_seam_fixture_with_pair(
-            "phase7.5 overlap region boundary-only hostile",
-            PlanarBooleanOverlapRegionMetabossSubcase::BoundaryOnlyCoincidentEdgesDoNotAdmitArea
-                .admitted_operand_pair_recipe("phase7.5 overlap region boundary-only hostile")
-                .expect("boundary-only hostile pair should exist"),
-        )
-    })
-}
-
 fn foreign_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture {
     static FIXTURE: OnceLock<RealOverlapOwnerSeamFixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
@@ -130,30 +96,6 @@ fn foreign_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture 
             admitted_metaboss_bundle_operand_pair_recipe(
                 "phase7.5 overlap region summum bonum foreign ledger",
             ),
-        )
-    })
-}
-
-fn coplanar_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture {
-    static FIXTURE: OnceLock<RealOverlapOwnerSeamFixture> = OnceLock::new();
-    FIXTURE.get_or_init(|| {
-        build_completed_overlap_owner_seam_fixture_with_pair(
-            "phase7.5 overlap region coplanar overlap hostile",
-            PlanarBooleanOverlapRegionMetabossSubcase::OverlapStormUsesIndexNotPairwiseRediscovery
-                .admitted_operand_pair_recipe("phase7.5 overlap region coplanar overlap hostile")
-                .expect("overlap storm hostile pair should exist"),
-        )
-    })
-}
-
-fn mixed_boundary_area_overlap_owner_seam_fixture() -> &'static RealOverlapOwnerSeamFixture {
-    static FIXTURE: OnceLock<RealOverlapOwnerSeamFixture> = OnceLock::new();
-    FIXTURE.get_or_init(|| {
-        build_completed_overlap_owner_seam_fixture_with_pair(
-            "phase7.5 overlap region mixed boundary-area hostile",
-            PlanarBooleanOverlapRegionMetabossSubcase::MixedBoundaryAndAreaContactDoesNotCollapse
-                .admitted_operand_pair_recipe("phase7.5 overlap region mixed boundary-area hostile")
-                .expect("mixed boundary-area hostile pair should exist"),
         )
     })
 }
@@ -212,10 +154,8 @@ fn build_completed_overlap_owner_seam_fixture_with_pair(
                 readiness,
                 readiness_consumer,
                 request: overlap_products.request,
-                ledger_bundle: overlap_products.ledger_bundle,
                 stage_counts: overlap_products.stage_counts,
                 completed,
-                replay_receipts: loop_replay_chain.replay_receipts,
             }
         },
     )

@@ -1,8 +1,10 @@
+#[cfg(test)]
 use schema::facade::platform::authority::touched_graph_conflict::{
     admit_conflict_overlap_identity, admit_conflict_routing_contract, ConflictOverlapIdentityInput,
     ConflictPriorProofInput, ConflictRoutingContract, ConflictRoutingPosture,
     ConflictRoutingVocabularyError,
 };
+#[cfg(test)]
 use schema::facade::platform::authority::touched_graph_conflict_internal::admit_conflict_evidence_participant_identity_from_digest;
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
@@ -15,10 +17,12 @@ use super::posture::{
 };
 use super::source_pressure::EvidenceLookupFamilySourceInventoryPressure;
 use super::stage_applicability::EvidenceLookupStageApplicability;
+#[cfg(test)]
 use crate::touched_graph_conflict::{
     current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
     SpatialConflictFamilyIdentity,
 };
+#[cfg(test)]
 use crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -102,6 +106,7 @@ impl EvidenceLookupFamilyDeclaration {
         &self.declaration_digest
     }
 
+    #[cfg(test)]
     pub fn conflict_participant_identity(
         &self,
     ) -> Result<
@@ -111,6 +116,7 @@ impl EvidenceLookupFamilyDeclaration {
         admit_conflict_evidence_participant_identity_from_digest(self.authority_digest())
     }
 
+    #[cfg(test)]
     pub(crate) fn conflict_routing_contract(
         &self,
         authority: &SpatialGeometryEvidenceTouchAuthority,
@@ -131,6 +137,7 @@ impl EvidenceLookupFamilyDeclaration {
         ))
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities(
         &self,
         authority: &SpatialGeometryEvidenceTouchAuthority,
@@ -139,6 +146,7 @@ impl EvidenceLookupFamilyDeclaration {
         Ok(self.matching_conflict_family_identities_for_contract(authority, &contract))
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities_for_contract(
         &self,
         authority: &SpatialGeometryEvidenceTouchAuthority,

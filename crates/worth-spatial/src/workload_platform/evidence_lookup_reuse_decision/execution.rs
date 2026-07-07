@@ -1,8 +1,7 @@
 use schema::facade::platform::authority::compiled_product_semantic_graph::admit_compiled_product_reuse_decision_identity;
 
 use crate::workload_platform::evidence_lookup_index_product::{
-    rebuild_required_identity, AdmittedEvidenceLookupFamilyIdentity, EvidenceLookupIndexProduct,
-    EvidenceLookupIndexProductCounters, EvidenceLookupIndexProductError,
+    rebuild_required_identity, EvidenceLookupIndexProduct, EvidenceLookupIndexProductError,
 };
 use crate::workload_platform::selected_equivalence_family::SelectedSpatialEquivalenceFamily;
 

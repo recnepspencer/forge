@@ -180,3 +180,33 @@ fn phase_fourteen_topology_compile_fail_fixtures_are_unique_per_path() {
         "each phase 14 topology fence fixture should be executed exactly once",
     );
 }
+
+#[test]
+fn compile_fail_target_helper_inventory_stays_in_sync_with_fixture_root() {
+    let root = "src/certification/public_facade_contracts/compile_fail/";
+
+    assert_eq!(
+        public_facade_compile_fail_targets().len(),
+        public_facade_compile_fail_target_files().len(),
+        "compile-fail target helpers should describe the same number of fixtures",
+    );
+    assert!(public_facade_compile_fail_targets()
+        .iter()
+        .all(|target| target.starts_with(root) && target.ends_with(".rs")));
+}
+
+#[test]
+fn phase_fourteen_topology_fences_publish_expected_diagnostic_paths_and_classes() {
+    let fences = phase_fourteen_fixture_inventory::phase_fourteen_topology_compile_fail_fences();
+
+    assert!(fences.iter().all(|fence| fence.stderr_path().ends_with(".stderr")));
+    assert!(fences.iter().all(|fence| !fence.fence_class().is_empty()));
+}
+
+#[test]
+fn phase_fifteen_topology_fences_publish_expected_diagnostic_paths_and_classes() {
+    let fences = phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences();
+
+    assert!(fences.iter().all(|fence| fence.stderr_path().ends_with(".stderr")));
+    assert!(fences.iter().all(|fence| !fence.fence_class().is_empty()));
+}

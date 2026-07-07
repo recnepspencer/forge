@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_split_vertex_identity_support::build_interval_subdivision_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use forge_query::facade::ForgeQueryApplicationFacade;
@@ -136,3 +134,5 @@ pub(crate) fn typed_topology_query_basis() -> PlanarBooleanSplitPersistentNaming
     )
     .expect("metaboss typed topology Query artifacts should build persistent naming basis")
 }
+
+const _: fn(&MetabossEventExtractionSubject) = assert_split_persistent_naming_matches_metaboss;

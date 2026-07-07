@@ -29,7 +29,4 @@ pub use support::{
     DerivedInvalidationExecutionAdmission, DerivedInvalidationLegalitySupportEvidence,
     DerivedInvalidationQuerySupportEvidence,
 };
-#[allow(unused_imports)]
-pub use touched_closure::{
-    DerivedInvalidationTouchedClosure, DerivedInvalidationTouchedClosureDigest,
-};
+pub use touched_closure::DerivedInvalidationTouchedClosure;

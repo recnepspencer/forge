@@ -25,6 +25,7 @@ impl SpatialSelectedEquivalenceFamilyError {
         self.kind
     }
 
+    #[cfg(test)]
     pub fn detail(&self) -> &str {
         &self.detail
     }

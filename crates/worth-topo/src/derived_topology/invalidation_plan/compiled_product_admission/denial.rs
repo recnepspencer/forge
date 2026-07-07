@@ -26,6 +26,7 @@ impl TopologyCompiledProductAdmissionError {
         }
     }
 
+    #[cfg(test)]
     pub const fn kind(&self) -> TopologyCompiledProductAdmissionErrorKind {
         self.kind
     }

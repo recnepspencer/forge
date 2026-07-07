@@ -3,7 +3,6 @@ use std::sync::OnceLock;
 use crate::workload_composition::planner_owned_routing::derived_diagnostics::{
     current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
-    WorthTouchedGraphConflictDerivedDiagnosticProjection,
 };
 use crate::workload_composition::planner_owned_routing::public_proof::{
     current_worth_touched_graph_conflict_public_closeout, WorthTouchedGraphConflictPublicCloseout,

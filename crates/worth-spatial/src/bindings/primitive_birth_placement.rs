@@ -4,10 +4,7 @@ use crate::authored_refs::EmptySpatialWitnessCatalog;
 use crate::authored_refs::SpatialFrameRef;
 use crate::placement::SpatialPlacementSpec;
 use crate::witness_resolution::witness_resolution::resolve_spatial_direction_witness_with_catalog;
-use crate::witness_resolution::{
-    admit_spatial_frame, AdmittedSpatialFrameRef, ResolvedSpatialDirectionWitness,
-    SpatialFrameError, SpatialWitnessFailureClass,
-};
+use crate::witness_resolution::{admit_spatial_frame, SpatialFrameError, SpatialWitnessFailureClass};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PrimitiveConstructionBirthPlacementIssue {
@@ -46,10 +43,6 @@ struct PrimitiveConstructionBirthPlacementFrame {
 #[derive(Clone, Debug)]
 struct PrimitiveConstructionBirthPlacement {
     frame: PrimitiveConstructionBirthPlacementFrame,
-    #[allow(dead_code)]
-    reference_frame: AdmittedSpatialFrameRef,
-    #[allow(dead_code)]
-    resolved_direction_witness: ResolvedSpatialDirectionWitness,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -179,8 +172,6 @@ fn admit_primitive_construction_birth_placement(
             v_axis: world_frame.basis().v_axis(),
             w_axis: world_frame.basis().w_axis(),
         },
-        reference_frame,
-        resolved_direction_witness,
     })
 }
 

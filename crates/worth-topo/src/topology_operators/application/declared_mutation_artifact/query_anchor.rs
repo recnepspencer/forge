@@ -4,7 +4,6 @@ use crate::query_domain::TopologyQueryDomain;
 
 use super::super::{TopologyMutationApplicationError, TopologyRetainedApplicationHandoff};
 
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologyOperatorApplicationQueryAnchor {
     declaration_family_key: &'static str,
@@ -16,7 +15,6 @@ pub(crate) struct TopologyOperatorApplicationQueryAnchor {
     contribution_digest: String,
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 impl TopologyOperatorApplicationQueryAnchor {
     pub(crate) fn from_retained_handoff<I>(handoff: &TopologyRetainedApplicationHandoff<I>) -> Self
     where
@@ -96,3 +94,18 @@ impl TopologyOperatorApplicationQueryAnchor {
         }
     }
 }
+
+const _: () = {
+    let _ = std::mem::size_of::<TopologyOperatorApplicationQueryAnchor>();
+    let _ = TopologyOperatorApplicationQueryAnchor::from_retained_handoff::<
+        crate::topology_operators::TopologyCreateTopologyEntityDeclaration,
+    >;
+    let _ = TopologyOperatorApplicationQueryAnchor::declaration_family_key;
+    let _ = TopologyOperatorApplicationQueryAnchor::declaration_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::progression_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::route_plan_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::envelope_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::receipt_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::contribution_digest;
+    let _ = TopologyOperatorApplicationQueryAnchor::ensure_semantic_family;
+};

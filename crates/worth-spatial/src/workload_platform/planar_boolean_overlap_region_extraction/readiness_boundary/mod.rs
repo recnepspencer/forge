@@ -9,10 +9,6 @@ mod tests;
 mod validation;
 
 pub use binding::PlanarBooleanOverlapReadinessLoopLedgerBinding;
-pub use counters::{
-    PlanarBooleanOverlapReadinessLoopLedgerBindingCounters,
-    PlanarBooleanOverlapRegionExtractionRequestCounters,
-};
 pub use denial::{
     PlanarBooleanOverlapReadinessLoopLedgerBindingDenial,
     PlanarBooleanOverlapReadinessLoopLedgerBindingDenialKind,

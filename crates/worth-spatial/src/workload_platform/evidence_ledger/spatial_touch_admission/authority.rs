@@ -6,6 +6,7 @@ use super::digest::{
     SpatialGeometryEvidenceTouchDigest, SpatialGeometryEvidenceTouchDigestParts,
 };
 use super::operating_world::SpatialGeometryEvidenceTouchOperatingWorld;
+#[cfg(test)]
 use crate::touched_graph_conflict::{
     current_spatial_conflict_family_catalog_closeout, SpatialConflictFamilyApplicability,
     SpatialConflictFamilyIdentity,
@@ -86,7 +87,6 @@ impl SpatialGeometryEvidenceTouchAuthority {
                 support: parts.support,
                 evidence_counters: parts.evidence_counters,
                 lookup_counters: parts.lookup_counters,
-                stage_index_identity: &parts.stage_index_identity,
                 stage_link_set_identity: &parts.stage_link_set_identity,
                 counter_honesty,
                 operating_world,
@@ -180,6 +180,7 @@ impl SpatialGeometryEvidenceTouchAuthority {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities(
         &self,
         declaration: &crate::workload_platform::evidence_lookup_family_catalog::EvidenceLookupFamilyDeclaration,
@@ -188,6 +189,7 @@ impl SpatialGeometryEvidenceTouchAuthority {
         Ok(self.matching_conflict_family_identities_for_contract(&contract))
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities_for_contract(
         &self,
         contract: &schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract,
@@ -205,6 +207,7 @@ impl SpatialGeometryEvidenceTouchAuthority {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_replay_conflict_family_identities_for_contract(
         &self,
         contract: &schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract,

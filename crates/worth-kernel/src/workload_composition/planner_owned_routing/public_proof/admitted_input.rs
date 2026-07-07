@@ -1,8 +1,10 @@
+#[cfg(test)]
 use topology::certification::{
     TopologyPublicCloseoutFreshnessRequirementPosture,
     TopologyPublicCloseoutRenderedOutputComparisonPosture,
 };
 use topology::facade::TopologyDerivedReuseDecisionPosture;
+#[cfg(test)]
 use worth_spatial::certification::{
     SpatialPublicCloseoutFreshnessRequirementPosture,
     SpatialPublicCloseoutRenderedOutputComparisonPosture,
@@ -89,12 +91,14 @@ impl WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {
         self.admitted_input.spatial_reuse_posture()
     }
 
+    #[cfg(test)]
     pub const fn topology_freshness_requirement_posture(
         &self,
     ) -> TopologyPublicCloseoutFreshnessRequirementPosture {
         self.admitted_input.topology_freshness_requirement_posture()
     }
 
+    #[cfg(test)]
     pub const fn topology_rendered_output_comparison_posture(
         &self,
     ) -> TopologyPublicCloseoutRenderedOutputComparisonPosture {
@@ -102,12 +106,14 @@ impl WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {
             .topology_rendered_output_comparison_posture()
     }
 
+    #[cfg(test)]
     pub const fn spatial_freshness_requirement_posture(
         &self,
     ) -> SpatialPublicCloseoutFreshnessRequirementPosture {
         self.admitted_input.spatial_freshness_requirement_posture()
     }
 
+    #[cfg(test)]
     pub const fn spatial_rendered_output_comparison_posture(
         &self,
     ) -> SpatialPublicCloseoutRenderedOutputComparisonPosture {
@@ -115,27 +121,33 @@ impl WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {
             .spatial_rendered_output_comparison_posture()
     }
 
+    #[cfg(test)]
     pub const fn topology_query_execution_count(&self) -> usize {
         self.admitted_input.topology_query_execution_count()
     }
 
+    #[cfg(test)]
     pub const fn topology_row_scan_fallback_count(&self) -> usize {
         self.admitted_input.topology_row_scan_fallback_count()
     }
 
+    #[cfg(test)]
     pub const fn topology_whole_view_fallback_count(&self) -> usize {
         self.admitted_input.topology_whole_view_fallback_count()
     }
 
+    #[cfg(test)]
     pub const fn topology_repeated_rediscovery_denied_count(&self) -> usize {
         self.admitted_input
             .topology_repeated_rediscovery_denied_count()
     }
 
+    #[cfg(test)]
     pub const fn spatial_receipt_proof_row_count(&self) -> usize {
         self.admitted_input.spatial_receipt_proof_row_count()
     }
 
+    #[cfg(test)]
     pub const fn spatial_non_ordinary_residue_row_count(&self) -> usize {
         self.admitted_input.spatial_non_ordinary_residue_row_count()
     }

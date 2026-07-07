@@ -7,16 +7,11 @@ use crate::workload_composition::touched_graph_parity_closeout::family_contribut
     KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError,
 };
 
-use super::derived_diagnostics_row::{
-    current_derived_diagnostics_contributor_row,
-    derived_diagnostics_contributor_row_from_public_facade,
-};
+use super::derived_diagnostics_row::derived_diagnostics_contributor_row_from_public_facade;
 use super::error::{
     PublicProjectionContributorCatalogError, PublicProjectionContributorCatalogErrorKind,
 };
-use super::public_proof_row::{
-    current_public_proof_contributor_row, public_proof_contributor_row_from_public_facade,
-};
+use super::public_proof_row::public_proof_contributor_row_from_public_facade;
 use super::row::{
     public_projection_family_coverage_contributor_rows_from_catalog,
     PublicProjectionContributorCatalogRow, PublicProjectionContributorRowKind,
@@ -41,14 +36,6 @@ pub fn current_public_projection_contributor_catalog(
     public_projection_contributor_catalog_from_public_facade(&public_facade)
 }
 
-pub(crate) fn public_projection_family_coverage_contributor_rows(
-) -> Result<Vec<KernelTouchedGraphParityCoverageContributor>, KernelTouchedGraphParityCoverageError>
-{
-    let catalog = current_public_projection_contributor_catalog()
-        .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))?;
-    public_projection_family_coverage_contributor_rows_from_catalog(catalog.rows())
-}
-
 pub(crate) fn public_projection_contributor_catalog_from_public_facade(
     public_facade: &WorthTouchedGraphConflictPublicFacade,
 ) -> Result<PublicProjectionContributorCatalog, PublicProjectionContributorCatalogError> {
@@ -70,6 +57,7 @@ pub(crate) fn public_projection_family_coverage_contributor_rows_from_public_fac
     public_projection_family_coverage_contributor_rows_from_catalog(catalog.rows())
 }
 
+#[cfg(test)]
 pub(crate) fn current_public_proof_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_public_projection_contributor_catalog()
@@ -85,6 +73,7 @@ pub(crate) fn current_public_proof_coverage_contributor(
         .map_err(|error| KernelTouchedGraphParityCoverageError::new(error.detail()))
 }
 
+#[cfg(test)]
 pub(crate) fn current_derived_diagnostics_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     current_public_projection_contributor_catalog()

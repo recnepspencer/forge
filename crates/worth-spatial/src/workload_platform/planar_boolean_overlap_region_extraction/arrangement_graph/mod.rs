@@ -28,7 +28,6 @@ pub use denial::{
 };
 pub use graph::{
     PlanarBooleanCoplanarOverlapArrangementNeighborhoodRow,
-    PlanarBooleanOverlapArrangementBoundaryComponentRow,
     PlanarBooleanOverlapArrangementBoundarySegmentRow, PlanarBooleanOverlapArrangementCellRow,
     PlanarBooleanOverlapArrangementCellSet,
 };

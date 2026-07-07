@@ -1,11 +1,18 @@
 use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+#[cfg(test)]
 use crate::facade::planar_projection_consumption::ProjectionConsumedPlanarFactsReceipt;
+#[cfg(test)]
 use crate::facade::planar_retained_facts::RetainedPlanarFactsReceipt;
+#[cfg(test)]
 use crate::planar_contracts::retained_planar_facts::RetainedPlanarHistoricalInspection;
+#[cfg(test)]
 use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupIndexProduct;
+#[cfg(test)]
 use crate::workload_platform::evidence_lookup_index_product::EvidenceLookupLedgerBasis;
+#[cfg(test)]
 use crate::workload_platform::evidence_lookup_plan_selection::EvidenceLookupSelectedPlan;
+#[cfg(test)]
 use crate::workload_platform::retained_cancellation_chain::RetainedCancellationChainReceipt;
 
 use super::catalog::SpatialCompiledProductFamilyCatalog;
@@ -83,6 +90,7 @@ impl SpatialCompiledProductFamilyAdmittedInput {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn admit_evidence_lookup_spatial_compiled_product_family_input(
     catalog: &SpatialCompiledProductFamilyCatalog,
     consumer: SpatialCompiledProductConsumer,
@@ -107,6 +115,7 @@ pub(crate) fn admit_evidence_lookup_spatial_compiled_product_family_input(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn admit_evidence_lookup_spatial_compiled_product_family_input_from_basis(
     catalog: &SpatialCompiledProductFamilyCatalog,
     selected_plan: &EvidenceLookupSelectedPlan,
@@ -130,6 +139,7 @@ pub(crate) fn admit_evidence_lookup_spatial_compiled_product_family_input_from_b
     )
 }
 
+#[cfg(test)]
 pub(crate) fn admit_retained_replay_spatial_compiled_product_family_input(
     catalog: &SpatialCompiledProductFamilyCatalog,
     historical: &RetainedPlanarHistoricalInspection,
@@ -148,6 +158,7 @@ pub(crate) fn admit_retained_replay_spatial_compiled_product_family_input(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn admit_retained_cancellation_spatial_compiled_product_family_input(
     catalog: &SpatialCompiledProductFamilyCatalog,
     receipt: &RetainedCancellationChainReceipt,
@@ -164,6 +175,7 @@ pub(crate) fn admit_retained_cancellation_spatial_compiled_product_family_input(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn admit_retained_cancellation_spatial_compiled_product_family_input_from_parts<'a>(
     catalog: &SpatialCompiledProductFamilyCatalog,
     workload_identity: &str,
@@ -277,6 +289,7 @@ pub(crate) fn admit_spatial_compiled_product_family_input(
     }
 }
 
+#[cfg(test)]
 fn evidence_lookup_index_prior_proof_digest(
     selected_plan_digest: &str,
     topology_support_digest: &str,
@@ -321,6 +334,7 @@ fn evidence_lookup_support_digest(
     )
 }
 
+#[cfg(test)]
 fn retained_cancellation_source_authority_digest(
     workload_identity: &str,
     retained_basis_identity: &str,
@@ -335,6 +349,7 @@ fn retained_cancellation_source_authority_digest(
     )
 }
 
+#[cfg(test)]
 fn retained_cancellation_checkpoint_history_digest<'a>(
     checkpoint_identities: impl IntoIterator<Item = &'a str>,
 ) -> String {
@@ -351,6 +366,7 @@ fn retained_cancellation_checkpoint_history_digest<'a>(
     )
 }
 
+#[cfg(test)]
 fn retained_cancellation_support_digest(
     retained_basis_identity: &str,
     projection_consumed_identity: &str,

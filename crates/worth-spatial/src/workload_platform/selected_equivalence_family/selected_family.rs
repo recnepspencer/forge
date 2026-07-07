@@ -44,6 +44,7 @@ impl SelectedSpatialEquivalenceFamily {
         self.declaration.identity()
     }
 
+    #[cfg(test)]
     pub fn equivalence_policy_identity(&self) -> &CompiledProductEquivalencePolicyIdentity {
         &self.equivalence_policy_identity
     }
@@ -60,6 +61,7 @@ impl SelectedSpatialEquivalenceFamily {
         &self.reuse_basis_identity
     }
 
+    #[cfg(test)]
     pub fn future_public_proof_seed_identity(&self) -> &SpatialSelectedFutureProofSeedIdentity {
         &self.future_public_proof_seed_identity
     }

@@ -222,6 +222,7 @@ impl WorthTouchedGraphConflictMilestoneFifteenSeed {
     pub fn source_firewall_digest(&self) -> &str {
         &self.source_firewall_digest
     }
+    #[cfg(test)]
     pub(crate) fn planner_proof_input(
         &self,
     ) -> &WorthTouchedGraphConflictMilestoneFifteenPlannerProofInput {

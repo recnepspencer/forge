@@ -29,6 +29,22 @@ fn rebuild_required_is_first_class_not_fallback() {
         .expect("rebuild denial")
         .mismatch_loci()
         .contains(&TopologyDerivedReuseMismatchLocus::AuthorityTruthIdentity));
+    assert_eq!(
+        baseline_input.authority_truth_identity_digest(),
+        baseline.authority_truth_identity_digest()
+    );
+    assert_eq!(
+        baseline_input.materialized_topology_digest(),
+        &baseline.materialized_topology_digest
+    );
+    assert_eq!(
+        baseline_input.interpreted_topology_digest(),
+        &baseline.interpreted_topology_digest
+    );
+    assert_eq!(
+        baseline_input.derived_validation_digest(),
+        &baseline.derived_validation_digest
+    );
 }
 
 #[test]
@@ -48,6 +64,14 @@ fn reuse_decision_binds_identity_and_family_chain() {
     assert_eq!(decision.counters().compared_basis_dimension_count(), 8);
     assert!(decision.compiled_product_identity_digest().is_some());
     assert!(decision.equivalence_policy_identity_digest().is_some());
+    assert!(decision.selected_equivalence_family_identity().is_some());
+    assert!(decision.selected_equivalence_basis_identity_digest().is_some());
+    assert!(decision
+        .selected_compatibility_basis_identity_digest()
+        .is_some());
+    assert!(decision.selected_reuse_basis_identity_digest().is_some());
+    assert!(decision.comparison_supported());
+    assert_eq!(decision.unsupported_comparison_reason(), None);
 }
 
 #[test]
@@ -74,6 +98,13 @@ fn reuse_denial_localizes_mismatch_locus() {
         .contains(&TopologyDerivedReuseMismatchLocus::ComparatorContract));
     assert!(denial.compiled_product_identity_digest().is_some());
     assert!(denial.equivalence_policy_identity_digest().is_some());
+    assert!(denial.selected_equivalence_family_identity().is_none());
+    assert!(denial.selected_equivalence_basis_identity_digest().is_none());
+    assert!(denial
+        .selected_compatibility_basis_identity_digest()
+        .is_none());
+    assert!(denial.selected_reuse_basis_identity_digest().is_none());
+    assert!(!denial.denial_identity_digest().is_empty());
     assert_eq!(denial.counters().compared_basis_dimension_count(), 8);
 }
 

@@ -1,20 +1,25 @@
 use std::sync::OnceLock;
 
-use crate::workload_composition::compiled_product_consumer_cutover::{
-    current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader,
-    KernelCompiledProductConsumerCoverageTarget,
-};
 use crate::workload_composition::performance_trace::trace_scope;
 use crate::workload_composition::planner_owned_routing::admit_worth_touched_graph_conflict_public_proof_input;
 use crate::workload_composition::planner_owned_routing::current_worth_workload_ordinary_consumer_cutover;
+#[cfg(test)]
 use crate::workload_composition::{
-    current_kernel_compiled_product_consumer_dependency_matrix,
+    compiled_product_consumer_cutover::{
+        current_kernel_compiled_product_consumer_dependency_matrix_with_targets_loader,
+        KernelCompiledProductConsumerCoverageTarget,
+    },
+};
+use crate::workload_composition::{
     current_worth_touched_graph_conflict_deletion_closeout,
     current_worth_touched_graph_conflict_selected_route_packet,
     current_worth_touched_graph_conflict_source_firewall_report,
-    KernelCompiledProductConsumerDependencyError, KernelCompiledProductConsumerDependencyMatrix,
     PlannerOwnedRoutingError, WorthTouchedGraphConflictAdmittedPublicProofInput,
     WorthTouchedGraphConflictSelectedRoutePacket,
+};
+#[cfg(test)]
+use crate::workload_composition::{
+    KernelCompiledProductConsumerDependencyError, KernelCompiledProductConsumerDependencyMatrix,
 };
 
 use super::assembly::assemble_public_closeout_from_parts;
@@ -139,6 +144,7 @@ where
     })
 }
 
+#[cfg(test)]
 pub(crate) fn current_public_closeout_components_with_matrix_loader<F>(
     load_matrix: F,
 ) -> Result<

@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
 #[path = "../public_api_planar_boolean_collinear_relations_support/mod.rs"]
 mod collinear_relation_support;
 #[path = "../public_api_planar_boolean_event_ledger_support.rs"]
@@ -24,4 +21,16 @@ pub(crate) use subject::MetabossEventExtractionSubject;
 pub(crate) use workload_handoff_assertions::{
     assert_public_contract_rejects_synthetic_event_ledger_rows,
     assert_split_handoff_requires_event_ledger_receipt,
+};
+
+const _: () = {
+    let _ = assert_event_ledger_shape;
+    let _ = assert_replay_preserves_event_ledger_identity;
+    let _ = assert_public_contract_rejects_synthetic_event_ledger_rows;
+    let _ = assert_split_handoff_requires_event_ledger_receipt;
+    let _ = MetabossEventExtractionSubject::certify_from_pair;
+    let _ = MetabossEventExtractionSubject::certify_event_carrier;
+    let _ = MetabossEventExtractionSubject::policy_stop;
+    let _ = MetabossEventExtractionSubject::expected;
+    let _ = event_ledger_support::ledger_for_point_relation;
 };

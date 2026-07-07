@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use crate::facade::evidence_lookup_route::EvidenceLookupRoutePacket;
-use crate::workload_platform::evidence_ledger::SpatialEvidenceSurfaceCloseoutPosture;
 use crate::workload_platform::evidence_lookup_family_catalog::EvidenceLookupFamilyDeclaration;
 use crate::workload_platform::evidence_lookup_query_surface_matrix::EvidenceLookupQuerySurfaceTouchpoint;
 

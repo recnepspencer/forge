@@ -4,7 +4,7 @@ mod compiled_product_reuse_route;
 mod conflict_independence_route;
 mod derived_diagnostics;
 pub(crate) mod ordinary_consumer_authority;
-mod public_facade;
+pub(crate) mod public_facade;
 pub(crate) mod public_proof;
 mod replay_undo_route;
 mod selected_route;
@@ -22,8 +22,6 @@ pub(crate) use admitted_public_proof_input::{
 };
 #[cfg(test)]
 pub(crate) use batch_admission_route::current_worth_touched_graph_conflict_batch_admission_route_packet;
-#[cfg(test)]
-pub(crate) use batch_admission_route::current_worth_touched_graph_conflict_batch_admission_route_packet_with_receipt_override;
 pub(crate) use batch_admission_route::BatchAdmissionPlannerRoutePacket;
 pub use compiled_product_reuse_route::{
     current_worth_touched_graph_conflict_compiled_product_reuse_route_packet,
@@ -36,11 +34,9 @@ pub(crate) use conflict_independence_route::current_worth_touched_graph_conflict
 pub(crate) use conflict_independence_route::ConflictIndependencePlannerRoutePacket;
 #[cfg(test)]
 pub(crate) use derived_diagnostics::current_worth_touched_graph_conflict_derived_diagnostic_projection_with_packet_loader;
-pub(crate) use derived_diagnostics::{
-    current_worth_touched_graph_conflict_derived_diagnostic_projection,
-    current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy,
-    select_rich_localization,
-};
+#[cfg(test)]
+pub(crate) use derived_diagnostics::current_worth_touched_graph_conflict_derived_diagnostic_projection;
+pub(crate) use derived_diagnostics::select_rich_localization;
 pub use derived_diagnostics::{
     WorthTouchedGraphConflictDerivedDiagnosticArtifactPolicy,
     WorthTouchedGraphConflictDerivedDiagnosticProjection,
@@ -53,12 +49,12 @@ pub use ordinary_consumer_authority::{
     WorthWorkloadOrdinaryConsumerCurrentRouteWitness, WorthWorkloadOrdinaryConsumerCutoverError,
     WorthWorkloadOrdinaryConsumerCutoverErrorKind, WorthWorkloadOrdinaryConsumerRouteKind,
 };
-pub(crate) use ordinary_consumer_authority::{
+pub(crate) use ordinary_consumer_authority::cutover::{
     current_worth_workload_ordinary_consumer_cutover, WorthWorkloadOrdinaryConsumerCutover,
     WorthWorkloadOrdinaryConsumerCutoverPosture, WorthWorkloadOrdinaryConsumerCutoverRow,
 };
 #[cfg(test)]
-pub(crate) use ordinary_consumer_authority::{
+pub(crate) use ordinary_consumer_authority::cutover::{
     ordinary_consumer_cutover_from_inventory_for_tests,
     ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override,
 };
@@ -78,19 +74,13 @@ pub(crate) use public_proof::{
     current_worth_touched_graph_conflict_public_closeout,
 };
 pub use public_proof::{
-    WorthTouchedGraphConflictArchitectureAlignmentReport,
     WorthTouchedGraphConflictArchitectureAlignmentReportRow,
-    WorthTouchedGraphConflictDeletionAlignmentRow, WorthTouchedGraphConflictMilestoneFifteenSeed,
-    WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutError,
-    WorthTouchedGraphConflictPublicCloseoutErrorKind, WorthTouchedGraphConflictQueryGapKind,
-    WorthTouchedGraphConflictResidueBoundaryPosture, WorthTouchedGraphConflictResidueChain,
-    WorthTouchedGraphConflictResidueDisposition, WorthTouchedGraphConflictResidueRow,
+    WorthTouchedGraphConflictPublicCloseout, WorthTouchedGraphConflictPublicCloseoutErrorKind,
+    WorthTouchedGraphConflictQueryGapKind, WorthTouchedGraphConflictResidueDisposition,
 };
 #[cfg(test)]
 pub(crate) use replay_undo_route::{
-    current_replay_undo_transaction_route_input_for_tests,
     current_replay_undo_transaction_route_packet_with_input_override,
-    current_replay_undo_undo_route_packet,
 };
 pub(crate) use replay_undo_route::{
     current_replay_undo_transaction_route_packet, lower_replay_undo_boundary_execution_proof,
@@ -125,6 +115,7 @@ impl PlannerOwnedRoutingError {
         }
     }
 
+    #[cfg(test)]
     pub const fn kind(&self) -> PlannerOwnedRoutingErrorKind {
         self.kind
     }
@@ -133,3 +124,23 @@ impl PlannerOwnedRoutingError {
         &self.detail
     }
 }
+
+const _: () = {
+    let _ = current_public_closeout_consumer_residue_manifest;
+    let _ = current_worth_touched_graph_conflict_public_facade;
+    let _ = current_worth_touched_graph_conflict_public_facade_with_artifact_policy;
+    let _ = std::mem::size_of::<PublicCloseoutConsumerResidueBoundaryPosture>();
+    let _ = std::mem::size_of::<PublicCloseoutConsumerResidueDisposition>();
+    let _ = std::mem::size_of::<PublicCloseoutConsumerResidueManifestError>();
+    let _ = std::mem::size_of::<PublicCloseoutConsumerResidueOwner>();
+    let _ = std::mem::size_of::<PublicCloseoutConsumerResidueRow>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicFacade>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicFacadeError>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicFacadeErrorKind>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicProofInspection>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictArchitectureAlignmentReportRow>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicCloseout>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictPublicCloseoutErrorKind>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictQueryGapKind>();
+    let _ = std::mem::size_of::<WorthTouchedGraphConflictResidueDisposition>();
+};

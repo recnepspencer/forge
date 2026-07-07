@@ -12,26 +12,14 @@ use worth_spatial::facade::workload_vocabulary::{
     WorkloadEvidenceRow, WorkloadEvidenceStage, WorkloadEvidenceStageCounters,
 };
 
-#[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
-#[allow(dead_code)]
-mod collinear_relation_support;
-#[path = "public_api_planar_boolean_event_ledger_support.rs"]
-mod event_ledger_support;
-#[path = "public_api_planar_boolean_point_events_support/mod.rs"]
-#[allow(dead_code)]
-mod point_event_support;
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
-
-use collinear_relation_support::SyntheticCollinearRelation;
-use event_ledger_support::{
+use super::collinear_relation_support;
+use super::collinear_relation_support::SyntheticCollinearRelation;
+use super::event_ledger_support::{
     certified_inputs_for_collinear_relation, ledger_for_collinear_relation,
     ledger_for_point_relation, pair_and_ledger_for_collinear_relation,
 };
-use point_event_support::SyntheticPointRelation;
+use super::point_event_support::SyntheticPointRelation;
+use super::reduced_pair_support;
 
 #[test]
 fn event_ledger_orders_point_and_interval_events_canonically_across_replay() {

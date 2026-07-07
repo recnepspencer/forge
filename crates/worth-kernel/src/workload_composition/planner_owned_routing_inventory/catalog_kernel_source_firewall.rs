@@ -128,7 +128,7 @@ fn row(
     source_path: &'static str,
     surface_name: &'static str,
     current_authority_sources: &'static [&'static str],
-    current_caller: &'static str,
+    _current_caller: &'static str,
     lifecycle_role: Role,
     disposition: Disposition,
     replacement_lane: Lane,
@@ -141,7 +141,6 @@ fn row(
         source_path,
         surface_name,
         current_authority_sources,
-        current_caller,
         lifecycle_role,
         disposition,
         Owner::WorthKernel,
@@ -150,7 +149,6 @@ fn row(
         removal_trigger,
         true,
         false,
-        None,
         surface_name,
     )
 }

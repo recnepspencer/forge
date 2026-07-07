@@ -1,8 +1,10 @@
+#[cfg(test)]
 use crate::derived_topology::compiled_product_consumer_cutover::residue_manifest::{
     current_topology_consumer_residue_manifest, TopologyConsumerResidueDisposition,
     TopologyConsumerResidueOwner,
 };
 
+#[cfg(test)]
 pub(crate) fn require_exact_topology_consumer_closeout() {
     let residue = current_topology_consumer_residue_manifest();
     assert_eq!(residue.len(), 2);

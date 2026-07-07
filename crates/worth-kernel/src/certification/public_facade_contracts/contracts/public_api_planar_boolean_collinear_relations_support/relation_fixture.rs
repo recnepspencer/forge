@@ -99,3 +99,15 @@ fn relation_points(relation: SyntheticCollinearRelation) -> ([[f64; 2]; 2], [[f6
         }
     }
 }
+
+const _: [SyntheticCollinearRelation; 9] = [
+    SyntheticCollinearRelation::Disjoint,
+    SyntheticCollinearRelation::EndpointTouch,
+    SyntheticCollinearRelation::EndpointTouchWithFirstReversed,
+    SyntheticCollinearRelation::EndpointTouchWithSecondReversed,
+    SyntheticCollinearRelation::PartialOverlap,
+    SyntheticCollinearRelation::DiagonalPartialOverlapWithSecondReversed,
+    SyntheticCollinearRelation::ContainmentOverlap,
+    SyntheticCollinearRelation::IdenticalSameDirection,
+    SyntheticCollinearRelation::IdenticalAntiParallel,
+];

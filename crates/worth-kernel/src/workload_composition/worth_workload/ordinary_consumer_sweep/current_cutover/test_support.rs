@@ -1,9 +1,9 @@
 use super::super::current_cutover_proof::current_worth_workload_ordinary_consumer_batch_execution_receipt;
-use super::super::current_route_witness::current_replay_undo_boundary_batch_execution_cluster_witness_with_test_override;
 use super::{
     PendingWorthWorkloadOrdinaryConsumerCutoverRow, WorthWorkloadOrdinaryConsumerCutover,
     WorthWorkloadOrdinaryConsumerCutoverError,
 };
+use crate::workload_composition::planner_owned_routing::ordinary_consumer_authority::current_replay_undo_boundary_batch_execution_cluster_witness_with_test_override;
 
 pub(crate) fn ordinary_consumer_cutover_from_inventory_with_test_replay_undo_identity_override(
     inventory: &crate::workload_composition::ConflictBatchAdmissionInventory,

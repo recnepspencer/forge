@@ -25,6 +25,7 @@ pub(crate) fn current_spatial_touch_authority(
         .map_err(|error| EvidenceLookupCurrentPathError::from_spatial_touch_denial(stage, error))
 }
 
+#[cfg(test)]
 pub(crate) fn current_complete_ledger_for_authority(
     authority: &crate::workload_platform::evidence_ledger::SpatialGeometryEvidenceTouchAuthority,
 ) -> CompleteWorkloadEvidenceLedger {
@@ -56,6 +57,7 @@ fn current_boolean_stage_row(stage: WorkloadEvidenceStage) -> WorkloadEvidenceRo
     )
 }
 
+#[cfg(test)]
 fn current_unrelated_boolean_row() -> WorkloadEvidenceRow {
     WorkloadEvidenceRow::receipt_backed_with_support(
         WorkloadEvidenceStage::BooleanSharedPlaneIdentity,

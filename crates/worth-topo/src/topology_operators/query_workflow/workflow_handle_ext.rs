@@ -31,7 +31,6 @@ use super::{
     TopologyOperatorSignalCompatibilityOutcome, TopologyOperatorSignalCompatibilityProof,
 };
 
-#[allow(dead_code)]
 pub trait TopologyOperatorWorkflowHandleExt {
     fn declare_topology_operator<I>(
         &self,

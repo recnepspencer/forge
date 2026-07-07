@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
 use super::admitted_explanation_input::PlannerAdmittedExplanationInput;
 use super::artifact_kind::PlannerExplanationArtifactKind;
+#[cfg(test)]
 use super::error::{
     PlannerOwnedRoutingSemanticGraphVocabularyError,
     PlannerOwnedRoutingSemanticGraphVocabularyErrorKind,
 };
+#[cfg(test)]
 use super::identity_digest::planner_owned_routing_semantic_graph_identity_digest;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -33,7 +36,8 @@ impl PlannerDerivedDiagnosticContractIdentity {
     }
 }
 
-pub fn admit_planner_derived_diagnostic_contract_identity(
+#[cfg(test)]
+pub(crate) fn admit_planner_derived_diagnostic_contract_identity(
     admitted_explanation_input: &PlannerAdmittedExplanationInput,
     diagnostic_contract_name: impl Into<String>,
 ) -> Result<PlannerDerivedDiagnosticContractIdentity, PlannerOwnedRoutingSemanticGraphVocabularyError>

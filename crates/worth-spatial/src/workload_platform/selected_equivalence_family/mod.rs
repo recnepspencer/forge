@@ -10,14 +10,7 @@ mod selection;
 #[cfg(test)]
 mod tests;
 
-pub use basis_identity::{
-    SpatialSelectedCompatibilityBasisIdentity, SpatialSelectedEquivalenceBasisIdentity,
-    SpatialSelectedFutureProofSeedIdentity, SpatialSelectedReuseBasisIdentity,
-};
-pub use catalog::{
-    current_spatial_selected_equivalence_family_catalog, SpatialSelectedEquivalenceFamilyCatalog,
-};
-pub use error::{SpatialSelectedEquivalenceFamilyError, SpatialSelectedEquivalenceFamilyErrorKind};
+pub use catalog::current_spatial_selected_equivalence_family_catalog;
 pub use family_identity::SpatialSelectedEquivalenceFamilyIdentity;
 pub use posture::{
     SpatialCompatibilityPosture, SpatialFreshnessRequirementPosture, SpatialOrderingNoisePosture,

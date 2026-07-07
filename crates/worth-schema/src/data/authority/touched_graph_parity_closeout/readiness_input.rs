@@ -1,7 +1,11 @@
-use super::architecture_claim::{TouchedGraphParityArchitectureClaim, TouchedGraphParityClaimKind};
-use super::error::{TouchedGraphParityReadinessError, TouchedGraphParityReadinessErrorKind};
+use super::architecture_claim::TouchedGraphParityArchitectureClaim;
 use super::family_kind::TouchedGraphParityFamilyKind;
 use super::residue_classification::TouchedGraphParityResidueClassification;
+
+#[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
+use super::architecture_claim::TouchedGraphParityClaimKind;
+#[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
+use super::error::{TouchedGraphParityReadinessError, TouchedGraphParityReadinessErrorKind};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TouchedGraphParityReadinessInput {
@@ -19,6 +23,7 @@ pub struct TouchedGraphParityReadinessInput {
 }
 
 #[allow(clippy::too_many_arguments)]
+#[cfg(any(test, feature = "touched-graph-parity-internal-authority"))]
 pub(crate) fn admit_touched_graph_parity_readiness_input(
     claim: TouchedGraphParityArchitectureClaim,
     residue_classification: TouchedGraphParityResidueClassification,

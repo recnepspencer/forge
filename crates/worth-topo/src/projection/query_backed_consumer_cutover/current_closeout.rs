@@ -178,14 +178,6 @@ pub(crate) fn current_topology_query_backed_read_family_route_input_with_hostile
     ))
 }
 
-pub(crate) fn current_topology_query_backed_read_family_artifacts() -> Result<
-    CurrentTopologyQueryBackedReadFamilyArtifacts,
-    TopologyQueryBackedConsumerCutoverCurrentError,
-> {
-    let (_, artifacts) = current_topology_query_backed_read_family_runtime_and_artifacts()?;
-    Ok(artifacts)
-}
-
 fn build_query_backed_equivalence_contract_from_raw_inputs(
     read_basis: &schema::facade::topology_authoring::DerivedTopologyReadBasis,
     materialized: &crate::derived_topology::materialized_graph::MaterializedTopologyView,

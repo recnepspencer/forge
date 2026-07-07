@@ -8,8 +8,10 @@ mod support;
 mod tests;
 
 pub use admission::EvidenceLookupRouteAdmissionError;
+#[cfg(test)]
 pub use current::current_evidence_lookup_route_packet;
+#[cfg(test)]
 pub use mismatch::EvidenceLookupRouteMismatch;
+#[cfg(test)]
 pub use packet::EvidenceLookupRoutePacket;
-pub(crate) use packet::EvidenceLookupRoutePacketParts;
-pub(crate) use support::{current_evidence_lookup_route_source, CurrentEvidenceLookupRouteSource};
+pub(crate) use support::current_evidence_lookup_route_source;

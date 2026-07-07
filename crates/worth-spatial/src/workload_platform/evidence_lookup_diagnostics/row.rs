@@ -190,7 +190,6 @@ impl EvidenceLookupDiagnosticRow {
         false
     }
 
-    #[allow(dead_code)]
     pub(crate) const fn query_surface_contract(
         &self,
     ) -> Option<&EvidenceLookupQuerySurfaceContract> {

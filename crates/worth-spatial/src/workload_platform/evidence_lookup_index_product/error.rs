@@ -46,6 +46,7 @@ impl EvidenceLookupIndexProductError {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn with_rebuild_denial_identity_digest(mut self, digest: impl Into<String>) -> Self {
         self.rebuild_denial_identity_digest = Some(digest.into());
         self

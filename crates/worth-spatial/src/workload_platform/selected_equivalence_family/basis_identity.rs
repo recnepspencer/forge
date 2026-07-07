@@ -43,6 +43,7 @@ impl SpatialSelectedReuseBasisIdentity {
 }
 
 impl SpatialSelectedFutureProofSeedIdentity {
+    #[cfg(test)]
     pub fn identity_digest(&self) -> &str {
         &self.digest
     }

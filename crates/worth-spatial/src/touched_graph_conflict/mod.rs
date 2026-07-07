@@ -10,6 +10,7 @@ mod source_firewall;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
 pub(crate) use catalog::SpatialConflictFamilyApplicability;
 pub use catalog::SpatialConflictFamilyCatalog;
 pub use declaration_admission::{

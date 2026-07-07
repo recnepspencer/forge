@@ -99,10 +99,6 @@ impl ReplayUndoPlannerRoutePacket {
         &self.route_authority_digest
     }
 
-    pub(crate) fn route_lineage_digest(&self) -> &str {
-        &self.route_lineage_digest
-    }
-
     pub(crate) fn route_packet_identity(&self) -> &str {
         &self.route_packet_identity
     }

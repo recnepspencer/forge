@@ -12,5 +12,3 @@ pub use compile_fail_closeout::{
 };
 #[cfg(test)]
 pub(crate) use phase_fifteen_fixture_inventory::phase_fifteen_topology_compile_fail_fences;
-#[cfg(test)]
-pub(crate) use phase_fourteen_fixture_inventory::phase_fourteen_topology_compile_fail_fences;

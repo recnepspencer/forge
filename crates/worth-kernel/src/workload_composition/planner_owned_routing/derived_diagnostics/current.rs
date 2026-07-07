@@ -11,6 +11,7 @@ use super::projection::{
 };
 use super::selection::select_rich_localization;
 
+#[cfg(test)]
 pub fn current_worth_touched_graph_conflict_derived_diagnostic_projection(
 ) -> Result<WorthTouchedGraphConflictDerivedDiagnosticProjection, PlannerOwnedRoutingError> {
     current_worth_touched_graph_conflict_derived_diagnostic_projection_with_artifact_policy(

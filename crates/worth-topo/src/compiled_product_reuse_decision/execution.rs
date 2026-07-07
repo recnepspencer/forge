@@ -8,6 +8,7 @@ use super::mismatch_locus::TopologyDerivedReuseMismatchLocus;
 use super::posture::TopologyDerivedReuseDecisionPosture;
 use super::resolution::TopologyDerivedReuseResolution;
 
+#[cfg(test)]
 pub fn decide_topology_derived_reuse(
     current: &TopologyDerivedReuseExecutionInput,
     prior: &TopologyDerivedReuseExecutionInput,

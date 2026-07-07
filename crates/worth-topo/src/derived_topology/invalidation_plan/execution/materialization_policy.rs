@@ -6,7 +6,6 @@ use crate::derived_topology::materialized_graph::{
     MaterializationFallbackClass, MaterializationReport,
 };
 
-#[allow(dead_code)]
 pub(crate) fn admit_materialization_report_for_execution_outcome(
     outcome: DerivedInvalidationExecutionOutcome,
     report: &MaterializationReport,
@@ -19,7 +18,6 @@ pub(crate) fn admit_materialization_report_for_execution_outcome(
     Ok(())
 }
 
-#[allow(dead_code)]
 fn ordinary_whole_view_fallback_is_forbidden(
     outcome: DerivedInvalidationExecutionOutcome,
     report: &MaterializationReport,

@@ -208,7 +208,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         self
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn with_test_workload_stage_index_identity(
         mut self,
         workload_stage_index_identity: impl Into<String>,
@@ -217,7 +217,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         self
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn with_test_lookup_execution_receipt_digest(
         mut self,
         lookup_execution_receipt_digest: impl Into<String>,
@@ -301,7 +301,7 @@ impl EvidenceLookupConsumedWorkloadHandoff {
         self
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn with_test_covered_family_identities(
         mut self,
         covered_family_identities: Vec<String>,

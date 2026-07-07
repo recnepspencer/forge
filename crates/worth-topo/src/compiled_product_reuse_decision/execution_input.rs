@@ -194,14 +194,17 @@ impl TopologyDerivedReuseExecutionInput {
         self.selected_reuse_basis_identity_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub(crate) fn materialized_topology_digest(&self) -> &DeterministicDigest {
         &self.materialized_topology_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn interpreted_topology_digest(&self) -> &DeterministicDigest {
         &self.interpreted_topology_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn derived_validation_digest(&self) -> &DeterministicDigest {
         &self.derived_validation_digest
     }

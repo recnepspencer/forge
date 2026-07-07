@@ -60,18 +60,21 @@ pub(crate) struct SpatialCompiledProductAdmissionWitness {
 }
 
 impl SpatialCompiledProductAdmissionWitness {
+    #[cfg(test)]
     pub(crate) const fn consumer(
         &self,
     ) -> crate::spatial_compiled_product_family::SpatialCompiledProductConsumer {
         self.consumer
     }
 
+    #[cfg(test)]
     pub(crate) const fn family_identity(
         &self,
     ) -> crate::spatial_compiled_product_family::SpatialCompiledProductFamilyIdentity {
         self.family_identity
     }
 
+    #[cfg(test)]
     pub(crate) fn admission_token(&self) -> &str {
         &self.admission_token
     }

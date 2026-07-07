@@ -1,4 +1,4 @@
-use crate::workload_composition::planner_owned_routing::WorthTouchedGraphConflictPublicFacade;
+use crate::workload_composition::WorthTouchedGraphConflictPublicFacade;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthWorkloadCompositionExplainerDisposition {

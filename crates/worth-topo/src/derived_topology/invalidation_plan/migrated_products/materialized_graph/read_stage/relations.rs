@@ -1,8 +1,12 @@
+#[cfg(test)]
 use forge_relational::facade::identity::EntityId;
 
+#[cfg(test)]
 use super::source::MaterializedGraphReadRelationRow;
+#[cfg(test)]
 use crate::brep::topology_graph::TopologyView;
 
+#[cfg(test)]
 pub(super) fn relation_rows_from_topology(
     topology: &TopologyView,
 ) -> Vec<MaterializedGraphReadRelationRow> {
@@ -133,6 +137,7 @@ pub(super) fn relation_rows_from_topology(
     rows
 }
 
+#[cfg(test)]
 fn push_optional(
     rows: &mut Vec<MaterializedGraphReadRelationRow>,
     kind: &'static str,
@@ -144,6 +149,7 @@ fn push_optional(
     }
 }
 
+#[cfg(test)]
 fn push_many(
     rows: &mut Vec<MaterializedGraphReadRelationRow>,
     kind: &'static str,

@@ -181,7 +181,11 @@ fn architecture_alignment_report_surfaces_second_ontology_blockers() {
     assert!(report
         .ordinary_second_ontology_blockers()
         .iter()
-        .all(|row| !row.mechanically_unreachable_from_ordinary_path()));
+        .all(
+            |row: &crate::workload_composition::public_closeout::WorthTouchedGraphConflictArchitectureAlignmentReportRow| {
+                !row.mechanically_unreachable_from_ordinary_path()
+            },
+        ));
     assert!(!report.milestone_fifteen_ready());
 }
 

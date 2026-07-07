@@ -20,15 +20,17 @@ use crate::workload_composition::planner_owned_routing::current_replay_undo_tran
 pub(crate) struct WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
     lookup_route_authority: WorthWorkloadCurrentLookupConsumedRouteAuthority,
     route_authority_digest: String,
-    route_packet_identity: String,
-    route_family: String,
     boundary_proof_digest: String,
     transaction_packet_identity: String,
     replay_scope_identity: String,
     undo_scope_identity: String,
+    #[cfg(test)]
     source_identity: ReplayUndoInventorySourceIdentity,
+    #[cfg(test)]
     source_path: String,
+    #[cfg(test)]
     inventory_row_count: usize,
+    #[cfg(test)]
     forbidden_surface_denial_count: usize,
 }
 
@@ -158,8 +160,6 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
                     .lookup_route_authority()
                     .clone(),
                 route_authority_digest,
-                route_packet_identity: replay_undo_route_packet.route_packet_identity().to_string(),
-                route_family: replay_undo_route_packet.family().as_str().to_string(),
                 boundary_proof_digest: replay_undo_boundary_proof
                     .boundary_proof_digest()
                     .to_string(),
@@ -170,9 +170,13 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
                     .replay_scope_identity()
                     .to_string(),
                 undo_scope_identity: replay_undo_boundary_proof.undo_scope_identity().to_string(),
+                #[cfg(test)]
                 source_identity: source_row.source_identity(),
+                #[cfg(test)]
                 source_path: source_row.source_path().to_string(),
+                #[cfg(test)]
                 inventory_row_count: inventory.rows().len(),
+                #[cfg(test)]
                 forbidden_surface_denial_count: forbidden_surface_denials.row_count(),
             })
         })
@@ -192,14 +196,6 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
         &self.boundary_proof_digest
     }
 
-    pub(crate) fn route_packet_identity(&self) -> &str {
-        &self.route_packet_identity
-    }
-
-    pub(crate) fn route_family(&self) -> &str {
-        &self.route_family
-    }
-
     pub(crate) fn transaction_packet_identity(&self) -> &str {
         &self.transaction_packet_identity
     }
@@ -212,18 +208,22 @@ impl WorthWorkloadCurrentReplayUndoBoundaryRouteAuthority {
         &self.undo_scope_identity
     }
 
+    #[cfg(test)]
     pub(crate) const fn source_identity(&self) -> ReplayUndoInventorySourceIdentity {
         self.source_identity
     }
 
+    #[cfg(test)]
     pub(crate) fn source_path(&self) -> &str {
         &self.source_path
     }
 
+    #[cfg(test)]
     pub(crate) const fn inventory_row_count(&self) -> usize {
         self.inventory_row_count
     }
 
+    #[cfg(test)]
     pub(crate) const fn forbidden_surface_denial_count(&self) -> usize {
         self.forbidden_surface_denial_count
     }

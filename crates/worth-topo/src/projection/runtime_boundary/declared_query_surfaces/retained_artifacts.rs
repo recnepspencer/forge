@@ -1,21 +1,27 @@
-use forge_query::facade::{ForgeQueryDerivedArtifactBinding, ForgeQueryWorkspace};
-use serde_json::Value;
-
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::projection::runtime_boundary::diagnostic_projection::DerivedReadDiagnostics;
 use crate::validation::DerivedTopologyValidationReport;
 
+use super::TopologyQuerySurfaceError;
+
+#[cfg(test)]
+use forge_query::facade::{ForgeQueryDerivedArtifactBinding, ForgeQueryWorkspace};
+#[cfg(test)]
+use serde_json::Value;
+#[cfg(test)]
 use super::{
     decode_query_surface_failure_payload, materialize_declared_query_surface_binding,
-    retained_payload, TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceError,
-    TopologyQuerySurfaceErrorKind,
+    retained_payload, TopologyDeclaredQuerySurfaces, TopologyQuerySurfaceErrorKind,
 };
 
+#[cfg(test)]
 const HISTORICAL_TRUTH_ARTIFACT_NAME: &str = "topology.historical.truth";
+#[cfg(test)]
 const HISTORICAL_DERIVED_SNAPSHOT_ARTIFACT_NAME: &str = "topology.historical.derived_snapshot";
 
+#[cfg(test)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct TopologyHistoricalTruthArtifact {
     materialized: MaterializedTopologyView,
@@ -23,6 +29,7 @@ pub(crate) struct TopologyHistoricalTruthArtifact {
     validation: DerivedTopologyValidationReport,
 }
 
+#[cfg(test)]
 impl TopologyHistoricalTruthArtifact {
     pub(crate) fn materialized(&self) -> &MaterializedTopologyView {
         &self.materialized
@@ -68,6 +75,7 @@ impl TopologyHistoricalDerivedSurfaceSnapshot {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn materialize_topology_historical_truth_artifact(
     surfaces: &TopologyDeclaredQuerySurfaces,
     workspace: &mut ForgeQueryWorkspace,
@@ -91,6 +99,7 @@ pub(crate) fn materialize_topology_historical_truth_artifact(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn materialize_topology_historical_derived_surface_snapshot(
     surfaces: &TopologyDeclaredQuerySurfaces,
     workspace: &mut ForgeQueryWorkspace,
@@ -107,6 +116,7 @@ pub(crate) fn materialize_topology_historical_derived_surface_snapshot(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn materialize_topology_historical_derived_reports(
     surfaces: &TopologyDeclaredQuerySurfaces,
     workspace: &mut ForgeQueryWorkspace,
@@ -143,6 +153,7 @@ pub(crate) fn build_topology_historical_derived_surface_snapshot(
     })
 }
 
+#[cfg(test)]
 fn derived_surface_rows_from_bundle(
     bundle: &ForgeQueryDerivedArtifactBinding,
     surfaces: &TopologyDeclaredQuerySurfaces,
@@ -168,6 +179,7 @@ fn derived_surface_rows_from_bundle(
     Ok((diagnostics, equivalence_contract))
 }
 
+#[cfg(test)]
 fn decode_bundle_row<T>(
     bundle: &ForgeQueryDerivedArtifactBinding,
     view: &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
@@ -187,6 +199,7 @@ where
         })
 }
 
+#[cfg(test)]
 fn bundle_decode_error(
     error: forge_query::facade::ForgeQueryRuntimeError,
 ) -> TopologyQuerySurfaceError {

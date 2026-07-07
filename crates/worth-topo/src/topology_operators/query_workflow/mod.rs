@@ -1,6 +1,12 @@
 #[macro_use]
+mod continuation_trait_methods;
+#[macro_use]
+mod declaration_route_trait_methods;
+#[macro_use]
 mod grouped_and_contribution_trait_methods;
 mod grouped_and_contribution_builders;
+#[macro_use]
+mod signal_compatibility_trait_methods;
 mod handle_impl;
 mod retained_contribution_semantics;
 mod semantic_contribution_codec;

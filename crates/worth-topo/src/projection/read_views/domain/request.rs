@@ -94,7 +94,6 @@ pub(crate) enum TopologyReadRequest {
         moved_half_edge_identity: TopologyReadAnchorIdentity,
         cycle_depth: u8,
     },
-    #[allow(dead_code)]
     WireNeighborhood {
         source_half_edge_identity: TopologyReadAnchorIdentity,
         wire_depth: u8,
@@ -261,3 +260,14 @@ fn authority_denial(
         "worth-topo/runtime_boundary/read_lowering rejected {authority_label}: {reason}"
     ))
 }
+
+fn wire_neighborhood_request_shape() -> TopologyReadRequest {
+    TopologyReadRequest::WireNeighborhood {
+        source_half_edge_identity: TopologyReadAnchorIdentity::from_runtime_row_label(
+            "wire-neighborhood-shape",
+        ),
+        wire_depth: 1,
+    }
+}
+
+const _: fn() -> TopologyReadRequest = wire_neighborhood_request_shape;

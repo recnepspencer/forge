@@ -16,10 +16,9 @@ pub use closeout::{
     current_evidence_lookup_family_catalog, EvidenceLookupFamilyCatalogCloseout,
     EvidenceLookupFamilyCatalogCounters, EvidenceLookupTopologyRequirementReport,
 };
-#[allow(unused_imports)]
 pub use declaration::{
-    EvidenceLookupFamilyDeclaration, EvidenceLookupFamilyDeclarationDigest,
-    EvidenceLookupProductPosture, EvidenceLookupSpatialTouchAuthorityRequirement,
+    EvidenceLookupFamilyDeclaration, EvidenceLookupProductPosture,
+    EvidenceLookupSpatialTouchAuthorityRequirement,
 };
 pub use error::{EvidenceLookupFamilyCatalogError, EvidenceLookupFamilyCatalogErrorKind};
 pub use family_identity::EvidenceLookupFamilyIdentity;

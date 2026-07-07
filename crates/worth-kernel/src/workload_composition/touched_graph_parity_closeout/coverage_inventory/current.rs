@@ -159,7 +159,9 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
                 )
             })?
             .iter()
-            .map(|row| row_from_kernel_contributor(FamilyKind::ReplayUndo, row.clone()))
+            .map(|row: &KernelTouchedGraphParityCoverageContributor| {
+                row_from_kernel_contributor(FamilyKind::ReplayUndo, row.clone())
+            })
             .collect::<Result<Vec<_>, _>>()
     })?);
     rows.extend(trace_scope("cross_family_conflict_rows", || {
@@ -197,7 +199,7 @@ pub(crate) fn cross_family_coverage_inventory_from_authorities(
                 )
             })?
             .into_iter()
-            .map(|row| {
+            .map(|row: KernelTouchedGraphParityCoverageContributor| {
                 let family_kind = if row.current_surface() == "public_proof_inspection" {
                     FamilyKind::PublicProof
                 } else {

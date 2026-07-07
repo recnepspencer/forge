@@ -58,6 +58,7 @@ pub struct WorthTouchedGraphConflictResidueChain {
 }
 
 impl WorthTouchedGraphConflictResidueChain {
+    #[cfg(test)]
     pub(crate) fn from_cutover_rows(rows: &[WorthWorkloadOrdinaryConsumerCutoverRow]) -> Self {
         let lowered = rows
             .iter()

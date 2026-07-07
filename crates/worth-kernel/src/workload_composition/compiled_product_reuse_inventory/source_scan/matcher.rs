@@ -55,7 +55,7 @@ fn matches_line(
                     || line_contains_any(line, &["cache_key", "reuse_key"])))
         }
         CompiledProductReuseScanPattern::EquivalenceIdentifier => {
-            ((path.ends_with(
+            (path.ends_with(
                 "/derived_topology/compiled_product_consumer_cutover/topology_derived_cluster/admitted_contract.rs",
             ) && (matches_exact_identifier(identifier, "build_derived_equivalence_contract")
                 || matches_exact_identifier(
@@ -67,7 +67,7 @@ fn matches_line(
                 ) && matches_exact_identifier(
                     identifier,
                     "compare_derived_equivalence_contracts",
-                )))
+                )) 
         }
         CompiledProductReuseScanPattern::ParityIdentifier => {
             path.ends_with("/retained_replay_workload/replay_parity.rs")

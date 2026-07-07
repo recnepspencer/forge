@@ -88,6 +88,7 @@ impl PublicCloseoutConsumerResidueRow {
         &self.removal_trigger
     }
 
+    #[cfg(test)]
     pub const fn boundary_posture(&self) -> PublicCloseoutConsumerResidueBoundaryPosture {
         self.boundary_posture
     }
@@ -167,9 +168,5 @@ impl PublicCloseoutConsumerResidueBoundaryPosture {
 impl PublicCloseoutConsumerResidueManifestError {
     fn new(detail: String) -> Self {
         Self { detail }
-    }
-
-    pub fn detail(&self) -> &str {
-        &self.detail
     }
 }

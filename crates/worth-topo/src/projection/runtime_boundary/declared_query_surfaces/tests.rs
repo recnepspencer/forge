@@ -302,3 +302,35 @@ fn diagnostics_surface_fails_closed_without_historical_read_basis_metadata() {
         "equivalence surface should refuse diagnostics-carried failure payloads as admitted topology input for the original authority reason: {equivalence_row:?}",
     );
 }
+
+#[test]
+fn retained_artifact_snapshot_matches_runtime_owned_historical_snapshot() {
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
+        .build();
+    let verified = seed_milestone_one_primitive_through_schema_execution(
+        &mut runtime,
+        "query-native-surfaces-retained-artifact-snapshot",
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+    )
+    .expect("verified primitive");
+    let mut query_runtime = HistoricalReadBasisQueryRuntime::open(
+        &runtime,
+        verified.read_basis().clone(),
+        "topology-declared-query-surfaces-retained-artifact-runtime",
+    )
+    .expect("historical read-basis query runtime should open");
+
+    let surfaces = query_runtime.surfaces().clone();
+    let retained_snapshot =
+        super::retained_artifacts::materialize_topology_historical_derived_surface_snapshot(
+            &surfaces,
+            query_runtime.workspace(),
+        )
+        .expect("retained artifact snapshot should materialize");
+    let runtime_snapshot = query_runtime
+        .historical_derived_surface_snapshot()
+        .expect("runtime-owned historical snapshot should build");
+
+    assert_eq!(retained_snapshot, runtime_snapshot);
+}

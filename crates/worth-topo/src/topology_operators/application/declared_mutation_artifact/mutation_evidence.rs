@@ -4,7 +4,6 @@ use forge_query::facade::{
     ForgeQueryGraphObligationDispatchContextKind,
 };
 
-#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Debug, Clone)]
 pub(crate) struct TopologyMutationApplicationEvidence {
     backend_verified_update_count: usize,
@@ -15,7 +14,6 @@ pub(crate) struct TopologyMutationApplicationEvidence {
     graph_obligation_selected_count: usize,
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
 impl TopologyMutationApplicationEvidence {
     #[cfg(test)]
     pub(crate) fn from_cutover_test_parts(
@@ -105,3 +103,14 @@ impl TopologyMutationApplicationEvidence {
         self.graph_obligation_selected_count
     }
 }
+
+const _: () = {
+    let _ = std::mem::size_of::<TopologyMutationApplicationEvidence>();
+    let _ = TopologyMutationApplicationEvidence::from_inspection_and_graph_obligation_projection;
+    let _ = TopologyMutationApplicationEvidence::backend_verified_update_count;
+    let _ = TopologyMutationApplicationEvidence::backend_verified_delete_count;
+    let _ = TopologyMutationApplicationEvidence::graph_obligation_envelope_digest;
+    let _ = TopologyMutationApplicationEvidence::graph_obligation_dispatch_digest;
+    let _ = TopologyMutationApplicationEvidence::graph_obligation_execution_point;
+    let _ = TopologyMutationApplicationEvidence::graph_obligation_selected_count;
+};

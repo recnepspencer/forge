@@ -35,7 +35,6 @@ pub enum PlannerOwnedRoutingDisposition {
     Migrate,
     Delete,
     Cap,
-    QueryGap,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,26 +42,6 @@ pub enum PlannerOwnedRoutingOwner {
     WorthKernel,
     WorthTopo,
     WorthSpatial,
-    ForgeQuery,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PlannerOwnedRoutingQueryGapKind {
-    MissingArtifact,
-    NotAdmittedOnSupportedPath,
-    NotExposedAtBoundary,
-    IdentitySemanticsInsufficient,
-}
-
-impl PlannerOwnedRoutingQueryGapKind {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::MissingArtifact => "missing",
-            Self::NotAdmittedOnSupportedPath => "not-admitted",
-            Self::NotExposedAtBoundary => "not-exposed",
-            Self::IdentitySemanticsInsufficient => "identity-semantics-insufficient",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -72,19 +51,9 @@ pub enum PlannerOwnedRoutingDisplacedLane {
     TopoDiagnosticProjectionInputResidue,
     TopoQueryBackedConsumerCutover,
     SpatialEvidenceLookupPublicCloseout,
-    ForgeQueryDocs,
 }
 
 impl PlannerOwnedRoutingDisplacedLane {
-    pub const ALL: [Self; 6] = [
-        Self::KernelPublicCloseout,
-        Self::KernelSourceFirewall,
-        Self::TopoDiagnosticProjectionInputResidue,
-        Self::TopoQueryBackedConsumerCutover,
-        Self::SpatialEvidenceLookupPublicCloseout,
-        Self::ForgeQueryDocs,
-    ];
-
     pub const fn path(self) -> &'static str {
         match self {
             Self::KernelPublicCloseout => {
@@ -102,7 +71,6 @@ impl PlannerOwnedRoutingDisplacedLane {
             Self::SpatialEvidenceLookupPublicCloseout => {
                 "crates/worth-spatial/src/workload_platform/planner_owned_routing/public_closeout_route/"
             }
-            Self::ForgeQueryDocs => "crates/forge-query/docs/",
         }
     }
 }
@@ -112,7 +80,6 @@ pub enum PlannerOwnedRoutingReplacementLane {
     KernelAdmittedPublicProofInput,
     KernelSelectedRoute,
     KernelPublicProof,
-    KernelDerivedDiagnostics,
     KernelPublicFacade,
     KernelSourceFirewall,
     TopoQueryBackedReadFamily,
@@ -124,21 +91,6 @@ pub enum PlannerOwnedRoutingReplacementLane {
 }
 
 impl PlannerOwnedRoutingReplacementLane {
-    pub const ALL: [Self; 12] = [
-        Self::KernelAdmittedPublicProofInput,
-        Self::KernelSelectedRoute,
-        Self::KernelPublicProof,
-        Self::KernelDerivedDiagnostics,
-        Self::KernelPublicFacade,
-        Self::KernelSourceFirewall,
-        Self::TopoQueryBackedReadFamily,
-        Self::TopoInvalidationRoute,
-        Self::TopoDiagnosticProjectionInput,
-        Self::SpatialEvidenceLookupRoute,
-        Self::SpatialPublicCloseoutRoute,
-        Self::SpatialDiagnosticProjectionInput,
-    ];
-
     pub const fn path(self) -> &'static str {
         match self {
             Self::KernelAdmittedPublicProofInput => {
@@ -149,9 +101,6 @@ impl PlannerOwnedRoutingReplacementLane {
             }
             Self::KernelPublicProof => {
                 "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/"
-            }
-            Self::KernelDerivedDiagnostics => {
-                "crates/worth-kernel/src/workload_composition/planner_owned_routing/derived_diagnostics/"
             }
             Self::KernelPublicFacade => {
                 "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/"

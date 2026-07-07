@@ -9,9 +9,11 @@ pub(crate) mod truth_surfaces;
 use std::fmt;
 
 use forge_query::facade::{
-    ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle,
-    ForgeQueryLiveArtifactTarget, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryDerivedViewHandle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveView,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
+#[cfg(test)]
+use forge_query::facade::ForgeQueryDerivedMaterializationTarget;
 use serde_json::{json, Value};
 const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";
 const QUERY_SURFACE_FAILURE_KIND_KEY: &str = "query_surface_error_kind";
@@ -31,8 +33,10 @@ pub(crate) struct TopologyDeclaredQuerySurfaces {
     relations: ForgeQueryLiveView<Value>,
     persistent_names: ForgeQueryLiveView<Value>,
     materialized: ForgeQueryDerivedViewHandle<Value>,
+    #[cfg(test)]
     interpreted: ForgeQueryDerivedViewHandle<Value>,
     validation: ForgeQueryDerivedViewHandle<Value>,
+    #[cfg(test)]
     diagnostics: ForgeQueryDerivedViewHandle<Value>,
     equivalence_contract: ForgeQueryDerivedViewHandle<Value>,
 }
@@ -167,7 +171,7 @@ pub(crate) fn declare_topology_query_surfaces(
         &entities,
         &relations,
     )?;
-    let interpreted =
+    let interpreted: ForgeQueryDerivedViewHandle<Value> =
         declare_topology_interpreted_surface(workspace, INTERPRETED_SURFACE, &materialized)?;
     let validation = declare_topology_validation_surface(
         workspace,
@@ -175,7 +179,7 @@ pub(crate) fn declare_topology_query_surfaces(
         &materialized,
         &interpreted,
     )?;
-    let diagnostics = declare_topology_diagnostics_surface(
+    let diagnostics: ForgeQueryDerivedViewHandle<Value> = declare_topology_diagnostics_surface(
         workspace,
         DIAGNOSTICS_SURFACE,
         &materialized,
@@ -192,8 +196,10 @@ pub(crate) fn declare_topology_query_surfaces(
         relations,
         persistent_names,
         materialized,
+        #[cfg(test)]
         interpreted,
         validation,
+        #[cfg(test)]
         diagnostics,
         equivalence_contract,
     })
@@ -216,6 +222,7 @@ impl TopologyDeclaredQuerySurfaces {
         &self.materialized
     }
 
+    #[cfg(test)]
     pub fn interpreted(&self) -> &ForgeQueryDerivedViewHandle<Value> {
         &self.interpreted
     }
@@ -224,6 +231,7 @@ impl TopologyDeclaredQuerySurfaces {
         &self.validation
     }
 
+    #[cfg(test)]
     pub fn diagnostics(&self) -> &ForgeQueryDerivedViewHandle<Value> {
         &self.diagnostics
     }
@@ -249,6 +257,7 @@ where
         .and_then(|row| retained_payload::decode_retained_payload_row(row, view.name()))
 }
 
+#[cfg(test)]
 pub(crate) fn materialize_declared_query_surface_binding(
     workspace: &mut ForgeQueryWorkspace,
     artifact_name: impl Into<String>,

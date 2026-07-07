@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod admitted_explanation_input;
 mod artifact_kind;
 mod decision_trace_identity;
@@ -16,16 +14,16 @@ mod witness_identity;
 #[cfg(test)]
 mod tests;
 
-pub use admitted_explanation_input::{
-    admit_planner_admitted_explanation_input, PlannerAdmittedExplanationInput,
-};
+pub use admitted_explanation_input::admit_planner_admitted_explanation_input;
+#[cfg(test)]
+pub(crate) use admitted_explanation_input::PlannerAdmittedExplanationInput;
 pub use artifact_kind::PlannerExplanationArtifactKind;
-pub use decision_trace_identity::{
-    admit_planner_decision_trace_identity, PlannerDecisionTraceIdentity,
-};
-pub use derived_diagnostic_contract_identity::{
-    admit_planner_derived_diagnostic_contract_identity, PlannerDerivedDiagnosticContractIdentity,
-};
+#[cfg(test)]
+pub(crate) use decision_trace_identity::admit_planner_decision_trace_identity;
+pub use decision_trace_identity::PlannerDecisionTraceIdentity;
+#[cfg(test)]
+pub(crate) use derived_diagnostic_contract_identity::admit_planner_derived_diagnostic_contract_identity;
+pub use derived_diagnostic_contract_identity::PlannerDerivedDiagnosticContractIdentity;
 pub use error::{
     PlannerOwnedRoutingSemanticGraphVocabularyError,
     PlannerOwnedRoutingSemanticGraphVocabularyErrorKind,

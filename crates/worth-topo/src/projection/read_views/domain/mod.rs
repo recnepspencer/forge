@@ -5,29 +5,23 @@ pub(crate) mod request;
 mod session_state;
 mod views;
 
-#[allow(unused_imports)]
-pub(crate) use self::read_proof::{closeout, no_n_plus_one, parity, report};
-#[allow(unused_imports)]
+#[cfg(test)]
+pub(crate) use self::read_proof::{closeout, report};
+pub(crate) use self::read_proof::parity;
 pub use self::read_proof::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
     TopologyReadAggregateReport, TopologyReadCloseoutReport, TopologyReadCloseoutRow,
     TopologyReadCloseoutStatus, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,
     TopologyReadExecutionEngine, TopologyReadFallbackPosture, TopologyReadFamilyAggregateRow,
-    TopologyReadGraphAccessProof, TopologyReadParityAggregateReport,
-    TopologyReadParityAggregateRow, TopologyReadParityKind, TopologyReadPhaseThreeBlocker,
-    TopologyReadPhaseThreeBlockerRow, TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport,
-    TopologyReadRequestFamily, TopologyReadRequestReport,
+    TopologyReadParityAggregateReport, TopologyReadParityAggregateRow, TopologyReadParityKind,
+    TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerRow,
+    TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport, TopologyReadRequestFamily,
+    TopologyReadRequestReport,
 };
-#[allow(unused_imports)]
-pub(crate) use crate::projection::runtime_boundary::read_lowering::schema;
 pub use crate::projection::runtime_boundary::read_lowering::{
     TopologyReadLoweringPosture, TopologyReadRelationshipProofPosture,
 };
-#[allow(unused_imports)]
-pub use error::{
-    TopologyReadBudgetExceeded, TopologyReadError, TopologyReadErrorKind,
-    TopologyReadGraphAccessDenial,
-};
+pub use error::{TopologyReadError, TopologyReadErrorKind};
 pub use handle_reads::{
     TopologyConfiguredDomainReadSession, TopologyCurrentHeadReadHandleExt,
     TopologyCurrentHeadReadSession, TopologySnapshotReadOnlyReadHandleExt,
@@ -35,7 +29,6 @@ pub use handle_reads::{
 };
 pub use request::TopologyReadAnchorIdentity;
 pub(crate) use session_state::TopologyReadLedger;
-#[allow(unused_imports)]
 pub use views::{
     TopologyAdjacentHalfEdgeEvidence, TopologyHalfEdgeRadialNeighborhoodView,
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,

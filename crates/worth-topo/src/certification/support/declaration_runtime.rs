@@ -1,12 +1,13 @@
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
-    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
-    TopologyMutationApplicationError, TopologyMutationApplicationOutcome,
+    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
     TopologyMutationApplicationRunner,
 };
 #[cfg(test)]
 use crate::topology_operators::TopologyMutationFamily;
+#[cfg(test)]
+use crate::topology_operators::application::TopologyMutationApplicationOutcome;
 use crate::topology_operators::{
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
@@ -43,7 +44,7 @@ where
     declaration.execute_on_runner(&mut runner, &bindings)
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 pub(crate) fn execute_current_head_topology_declaration_outcome<D>(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
@@ -302,6 +303,27 @@ mod tests {
                 assert!(stop.graph_obligation_envelope_digest().is_none());
             }
             _ => panic!("expected declaration-entry stop outcome"),
+        }
+    }
+
+    #[test]
+    fn non_declaration_entry_errors_project_to_failed_execution_outcomes() {
+        let outcome = TopologyMutationApplicationOutcome::from_result(Err(
+            TopologyMutationApplicationError::UnsupportedFamilies(vec![
+                crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
+            ]),
+        ));
+
+        match outcome {
+            TopologyMutationApplicationOutcome::Failed(
+                TopologyMutationApplicationError::UnsupportedFamilies(families),
+            ) => {
+                assert_eq!(
+                    families,
+                    vec![crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity]
+                );
+            }
+            _ => panic!("expected failed execution outcome"),
         }
     }
 

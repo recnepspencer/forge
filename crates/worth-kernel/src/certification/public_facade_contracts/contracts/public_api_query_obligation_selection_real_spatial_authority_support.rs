@@ -1,8 +1,4 @@
-#[path = "public_api_planar_boolean_event_extraction_metaboss_support/mod.rs"]
-#[allow(dead_code, unused_imports)]
-mod metaboss_support;
-
-use metaboss_support::MetabossEventExtractionSubject;
+use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_kernel::query_obligation_selection::selection_substrate::{
     QueryObligationSelectionInput, QueryObligationSelectionSubstrate, QuerySelectedGraphObligations,
 };

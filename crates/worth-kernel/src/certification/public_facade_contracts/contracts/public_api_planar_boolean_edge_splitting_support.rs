@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::metaboss_support::MetabossEventExtractionSubject;
 use std::collections::BTreeMap;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
@@ -144,6 +142,16 @@ pub(crate) struct ExpectedIntervalCandidateFact {
     pub(crate) normalized_parameter_range: [f64; 2],
     pub(crate) local_frame_identity: String,
     pub(crate) precision_basis_identity: String,
+}
+
+fn read_expected_point_candidate_fact_fields(fact: &ExpectedPointCandidateFact) {
+    let _ = (
+        fact.point_event_kind,
+        &fact.coordinate_fact_identity,
+        &fact.parameter_fact_identity,
+        &fact.segment_identity,
+        fact.parameter,
+    );
 }
 
 pub(crate) fn assert_interval_candidates_match_ledger_facts(
@@ -337,3 +345,15 @@ fn ordered_interval_parameter_range(source_parameter_range: [f64; 2]) -> [f64; 2
         [source_parameter_range[1], source_parameter_range[0]]
     }
 }
+
+const _: () = {
+    let _ = recovered_carriers_for;
+    let _ = expected_point_candidate_facts;
+    let _ = expected_interval_candidate_facts;
+    let _ = assert_interval_candidates_match_ledger_facts;
+    let _ = assert_point_domain_admission_matches_candidates;
+    let _ = assert_interval_domain_admission_matches_candidates;
+    let _: Option<ExpectedPointCandidateFact> = None;
+    let _: Option<ExpectedIntervalCandidateFact> = None;
+    let _ = read_expected_point_candidate_fact_fields;
+};

@@ -5,16 +5,10 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanSourceIntervalSense,
 };
 
-#[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
-#[allow(dead_code)]
-mod collinear_relation_support;
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
+use super::collinear_relation_support;
+use super::reduced_pair_support;
 
-use collinear_relation_support::SyntheticCollinearRelation;
+use super::collinear_relation_support::SyntheticCollinearRelation;
 
 #[test]
 fn partial_overlap_interval_event_preserves_normalized_and_source_sense_bounds() {

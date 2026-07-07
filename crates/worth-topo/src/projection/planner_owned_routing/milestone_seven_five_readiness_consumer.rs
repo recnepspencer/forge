@@ -29,6 +29,16 @@ pub struct TopologyMilestoneSevenFiveOverlapReadinessConsumer {
     architecture_claim_digest: String,
 }
 
+pub type TopologyOverlapReadinessRouteConsumer = TopologyMilestoneSevenFiveOverlapReadinessConsumer;
+pub type TopologyOverlapReadinessRouteError = TopologyMilestoneSevenFiveReadinessError;
+pub type TopologyOverlapReadinessRouteErrorKind = TopologyMilestoneSevenFiveReadinessErrorKind;
+
+pub fn admit_topology_overlap_readiness_route_consumer(
+    readiness: &TouchedGraphParityReadinessInput,
+) -> Result<TopologyOverlapReadinessRouteConsumer, TopologyOverlapReadinessRouteError> {
+    admit_milestone_seven_five_overlap_readiness_consumer(readiness)
+}
+
 pub fn admit_milestone_seven_five_overlap_readiness_consumer(
     readiness: &TouchedGraphParityReadinessInput,
 ) -> Result<
@@ -129,15 +139,6 @@ impl TopologyMilestoneSevenFiveOverlapReadinessConsumer {
 
     pub fn architecture_claim_digest(&self) -> &str {
         &self.architecture_claim_digest
-    }
-
-    #[cfg(test)]
-    pub(crate) fn with_selected_plan_digest_for_tests(
-        mut self,
-        selected_plan_digest: impl Into<String>,
-    ) -> Self {
-        self.selected_plan_digest = selected_plan_digest.into();
-        self
     }
 }
 

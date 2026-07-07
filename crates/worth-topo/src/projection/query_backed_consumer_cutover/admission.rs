@@ -4,7 +4,9 @@ use super::selected_route_authority::{
     require_selected_route_authority_matches, TopologyQueryBackedReadFamilySelectedRouteAuthority,
 };
 use super::{
-    require_optional_match, require_string_match, TopologyQueryBackedReadFamilyAdmissionError,
+    admission_error::{
+        require_optional_match, require_string_match, TopologyQueryBackedReadFamilyAdmissionError,
+    },
     TopologyQueryBackedReadFamilyRouteInput,
 };
 use crate::derived_topology::compiled_product_consumer_cutover::DerivedEquivalenceContractReport;
@@ -278,7 +280,7 @@ impl TopologyQueryBackedReadFamilyAdmissionAuthority {
         Ok(())
     }
 
-    #[cfg(any(test, feature = "test-support-lowering"))]
+    #[cfg(test)]
     pub(crate) fn with_support_snapshot_digest(mut self, support_snapshot_digest: &str) -> Self {
         self.support_snapshot_digest = support_snapshot_digest.to_string();
         self

@@ -3,15 +3,10 @@ use worth_spatial::facade::planar_boolean_events::{
     PlanarBooleanCollinearRelationReceipt, PlanarBooleanEventPredicateBinding,
 };
 
-#[path = "public_api_planar_boolean_collinear_relations_support/mod.rs"]
-mod collinear_relation_support;
-#[path = "public_api_planar_boolean_event_predicate_binding_support.rs"]
-#[allow(dead_code)]
-mod predicate_binding_support;
-#[path = "public_api_planar_boolean_common_plane_reduced_operand_pair_support.rs"]
-mod reduced_pair_support;
+use super::collinear_relation_support;
+use super::reduced_pair_support;
 
-use collinear_relation_support::SyntheticCollinearRelation;
+use super::collinear_relation_support::SyntheticCollinearRelation;
 
 #[test]
 fn collinear_disjoint_pairs_emit_typed_no_event_relation() {

@@ -1,5 +1,3 @@
-#![cfg_attr(not(any(test, feature = "test-support-lowering")), allow(dead_code))]
-
 use crate::authored_refs::{
     SpatialAnchorRef, SpatialCarrierPointRole, SpatialCatalogResolvedGeometricTag,
     SpatialGeometricTagFailureClass, SpatialWitnessCatalog,

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use worth_kernel::workload_composition::{
     BuiltBooleanOperandPairRecipe, PlanarBooleanCommonPlaneLocalFrameSelectedRequest,
     PlanarBooleanCommonPlaneOperandAProjectedRequest,
@@ -246,3 +245,17 @@ pub(crate) fn run_with_large_stack(body: impl FnOnce() + Send + 'static) {
         .join()
         .expect("reduced-pair request contract thread should finish");
 }
+
+fn run_with_large_stack_anchor() {
+    run_with_large_stack(|| {});
+}
+
+const _: () = {
+    let _ = projected_operand_requests;
+    let _ = projected_operand_requests_from_catalog;
+    let _ = projected_operand_requests_from_pair;
+    let _ = event_carrier_projected_operand_requests_from_catalog;
+    let _ = metaboss_projected_operand_requests_from_catalog;
+    let _ = rebuild_left_workload;
+};
+const _: fn() = run_with_large_stack_anchor;

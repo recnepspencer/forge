@@ -15,7 +15,7 @@ pub use schedule::{
     PlanarBooleanRawEdgeSplitSchedule, PlanarBooleanRawEdgeSplitScheduleEntry,
     PlanarBooleanRawEdgeSplitScheduleEntryKind, PlanarBooleanRawEdgeSplitScheduleSet,
 };
-#[allow(unused_imports)]
+#[cfg(test)]
 pub(crate) use schedule::{
     PlanarBooleanRawIntervalAuthority, PlanarBooleanRawPointEndpointAuthority,
 };

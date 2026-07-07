@@ -1,11 +1,17 @@
+#[cfg(test)]
 mod evidence_pressure;
+#[cfg(test)]
 mod replay_transaction_scope;
+#[cfg(test)]
 mod routing_contract;
 
+#[cfg(test)]
 use schema::facade::platform::authority::touched_graph_conflict::ConflictRoutingContract;
 
+#[cfg(test)]
 use super::family_declaration::SpatialConflictFamilyDeclaration;
 
+#[cfg(test)]
 pub(crate) fn matches_declaration(
     declaration: &SpatialConflictFamilyDeclaration,
     contract: &ConflictRoutingContract,

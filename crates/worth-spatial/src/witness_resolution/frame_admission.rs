@@ -44,15 +44,6 @@ impl SpatialFrameBasis {
         ]
     }
 
-    #[allow(dead_code)]
-    pub fn embed_vector(&self, local: [f64; 3]) -> [f64; 3] {
-        [
-            self.u_axis[0] * local[0] + self.v_axis[0] * local[1] + self.w_axis[0] * local[2],
-            self.u_axis[1] * local[0] + self.v_axis[1] * local[1] + self.w_axis[1] * local[2],
-            self.u_axis[2] * local[0] + self.v_axis[2] * local[1] + self.w_axis[2] * local[2],
-        ]
-    }
-
     pub fn project_vector(&self, world: [f64; 3]) -> [f64; 3] {
         [
             self.u_axis[0] * world[0] + self.u_axis[1] * world[1] + self.u_axis[2] * world[2],

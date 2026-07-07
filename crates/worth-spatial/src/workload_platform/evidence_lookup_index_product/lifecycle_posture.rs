@@ -31,6 +31,7 @@ impl EvidenceLookupIndexLifecyclePosture {
         }
     }
 
+    #[cfg(test)]
     pub(crate) const fn equivalent_reuse() -> Self {
         Self {
             kind: EvidenceLookupIndexLifecyclePostureKind::EquivalentReuse,

@@ -85,30 +85,37 @@ impl TopologySelectedEquivalenceComparatorContract {
         }
     }
 
+    #[cfg(test)]
     pub fn family_identity(&self) -> TopologySelectedEquivalenceFamilyIdentity {
         self.family_identity
     }
 
+    #[cfg(test)]
     pub fn equivalence_policy_identity_digest(&self) -> &str {
         &self.equivalence_policy_identity_digest
     }
 
+    #[cfg(test)]
     pub fn equivalence_dimensions(&self) -> &[TopologySelectedEquivalenceDimension] {
         &self.equivalence_dimensions
     }
 
+    #[cfg(test)]
     pub const fn compatibility_posture(&self) -> TopologyCompatibilityPosture {
         self.compatibility_posture
     }
 
+    #[cfg(test)]
     pub const fn freshness_requirement_posture(&self) -> TopologyFreshnessRequirementPosture {
         self.freshness_requirement_posture
     }
 
+    #[cfg(test)]
     pub const fn ordering_noise_posture(&self) -> TopologyOrderingNoisePosture {
         self.ordering_noise_posture
     }
 
+    #[cfg(test)]
     pub const fn rendered_output_comparison_posture(
         &self,
     ) -> TopologyRenderedOutputComparisonPosture {

@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use super::counters::PlanarBooleanOverlapIslandComponentCounters;
 use super::denial::PlanarBooleanOverlapIslandComponentDenial;
 use super::identity::{component_set_identity, partition_identity};
 use super::product::{

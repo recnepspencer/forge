@@ -8,13 +8,18 @@ use crate::workload_platform::evidence_lookup_plan_selection::{
     EvidenceLookupPlanRowOutcome, EvidenceLookupSelectedPlan,
 };
 
+#[cfg(test)]
 use super::counters::EvidenceLookupIndexProductCounters;
 use super::query_support::{
-    query_support_row_count, selected_query_support_digest, selected_query_support_digests,
+    selected_query_support_digest, selected_query_support_digests,
 };
+#[cfg(test)]
+use super::query_support::query_support_row_count;
 use super::topology_support::{
-    selected_topology_support_digest, selected_topology_support_digests, topology_receipt_ref_count,
+    selected_topology_support_digest, selected_topology_support_digests,
 };
+#[cfg(test)]
+use super::topology_support::topology_receipt_ref_count;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct EvidenceLookupLedgerBasis {
@@ -86,6 +91,7 @@ impl EvidenceLookupLedgerBasis {
         &self.basis_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn rows(&self) -> &[WorkloadEvidenceRow] {
         &self.rows
     }
@@ -114,6 +120,7 @@ impl EvidenceLookupLedgerBasis {
         self.rows.len() > self.selected_scope_row_limit
     }
 
+    #[cfg(test)]
     pub(crate) fn counters(
         &self,
         selected_plan: &EvidenceLookupSelectedPlan,
@@ -188,6 +195,7 @@ fn required_stages(selected_plan: &EvidenceLookupSelectedPlan) -> Vec<WorkloadEv
     stages
 }
 
+#[cfg(test)]
 fn indexed_family_count(selected_plan: &EvidenceLookupSelectedPlan) -> usize {
     selected_plan
         .rows()
@@ -199,6 +207,7 @@ fn indexed_family_count(selected_plan: &EvidenceLookupSelectedPlan) -> usize {
         .count()
 }
 
+#[cfg(test)]
 fn resident_byte_count(rows: &[WorkloadEvidenceRow]) -> usize {
     rows.iter()
         .map(|row| {

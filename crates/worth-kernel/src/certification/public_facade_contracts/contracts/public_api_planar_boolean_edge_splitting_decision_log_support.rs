@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_persistent_naming_support::typed_topology_query_basis;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
@@ -272,3 +270,5 @@ fn reason_carries_legacy_detail(reason: &PlanarBooleanSplitDecisionReason) -> bo
             | PlanarBooleanSplitDecisionReason::SplitPhaseDenied(_)
     )
 }
+
+const _: fn(&MetabossEventExtractionSubject) = assert_split_decision_log_matches_metaboss;

@@ -1,18 +1,18 @@
-use schema::facade::platform::relations::TopologyRelationKind;
-
 use crate::derived_topology::invalidation_plan::catalog::{
-    current_derived_invalidation_family_catalog, DerivedInvalidationFamilyCatalog,
-    DerivedInvalidationFamilyCatalogCloseout, DerivedTopologyConsumedGraphFacts,
+    current_derived_invalidation_family_catalog, DerivedInvalidationFamilyCatalogCloseout,
+};
+use crate::derived_topology::invalidation_plan::inventory::{
+    current_derived_invalidation_authority_inventory, DerivedInvalidationAuthorityInventoryCloseout,
+};
+#[cfg(test)]
+use crate::derived_topology::invalidation_plan::catalog::{
+    DerivedInvalidationFamilyCatalog, DerivedTopologyConsumedGraphFacts,
     DerivedTopologyDiagnosticPosture, DerivedTopologyInvalidationPredicate,
     DerivedTopologyLegalityReceiptPosture, DerivedTopologyProductFamilyIdentity,
     DerivedTopologyProductFamilyRecord, DerivedTopologyProductFamilyRecordInput,
     DerivedTopologyQueryReceiptPosture, DerivedTopologySpatialEvidencePosture,
     DerivedTopologySupportPosture, DerivedTopologyUpdatePosture,
 };
-use crate::derived_topology::invalidation_plan::inventory::{
-    current_derived_invalidation_authority_inventory, DerivedInvalidationAuthorityInventoryCloseout,
-};
-use crate::topology_operators::TopologyTouchedAspect;
 
 pub(crate) fn catalog_closeout() -> DerivedInvalidationFamilyCatalogCloseout {
     let inventory = current_derived_invalidation_authority_inventory();
@@ -24,6 +24,7 @@ pub(crate) fn catalog_closeout() -> DerivedInvalidationFamilyCatalogCloseout {
     DerivedInvalidationFamilyCatalogCloseout::close(catalog).unwrap()
 }
 
+#[cfg(test)]
 pub(crate) fn catalog_closeout_with_loop_cycles_postures(
     query_receipt_posture: DerivedTopologyQueryReceiptPosture,
     legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
@@ -35,6 +36,7 @@ pub(crate) fn catalog_closeout_with_loop_cycles_postures(
     )
 }
 
+#[cfg(test)]
 pub(crate) fn catalog_closeout_with_loop_cycles_contract(
     query_receipt_posture: DerivedTopologyQueryReceiptPosture,
     legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
@@ -73,35 +75,7 @@ pub(crate) fn catalog_closeout_with_loop_cycles_contract(
     DerivedInvalidationFamilyCatalogCloseout::close(catalog).unwrap()
 }
 
-fn product_family_for_posture_fixture(
-    identity: DerivedTopologyProductFamilyIdentity,
-    query_receipt_posture: DerivedTopologyQueryReceiptPosture,
-    legality_receipt_posture: DerivedTopologyLegalityReceiptPosture,
-    update_posture: DerivedTopologyUpdatePosture,
-    should_match_loop_touch: bool,
-) -> DerivedTopologyProductFamilyRecord {
-    let (relation_kinds, aspects) = if should_match_loop_touch {
-        (
-            vec![TopologyRelationKind::HalfEdgeNext],
-            vec![TopologyTouchedAspect::TopologyBoundary],
-        )
-    } else {
-        (
-            vec![TopologyRelationKind::ModelOwnsBody],
-            vec![TopologyTouchedAspect::GeometryBinding],
-        )
-    };
-    product_family_record(
-        identity,
-        DerivedTopologyConsumedGraphFacts::new(relation_kinds, aspects),
-        DerivedTopologyInvalidationPredicate::ConsumedGraphFactsIntersectTouchedClosure,
-        query_receipt_posture,
-        legality_receipt_posture,
-        update_posture,
-        DerivedTopologySpatialEvidencePosture::NoSpatialEvidenceConsumed,
-    )
-}
-
+#[cfg(test)]
 fn product_family_record(
     identity: DerivedTopologyProductFamilyIdentity,
     consumed_graph_facts: DerivedTopologyConsumedGraphFacts,

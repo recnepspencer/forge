@@ -3,7 +3,6 @@ use schema::facade::platform::authority::touched_graph_parity_closeout::TouchedG
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum LookupConsumedVerticalSliceDisplacedSurfaceDisposition {
     DeletedNow,
-    CappedResidue,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

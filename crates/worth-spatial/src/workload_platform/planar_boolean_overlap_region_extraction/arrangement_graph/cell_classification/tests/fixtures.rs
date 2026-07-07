@@ -5,9 +5,10 @@ use crate::workload_platform::planar_boolean_overlap_region_extraction::{
 };
 
 use crate::workload_platform::planar_boolean_overlap_region_extraction::arrangement_graph::tests::fixtures::{
-    admitted_adjacency, inside_both_multi_boundary_adjacency, multi_boundary_component_adjacency,
-    multi_cell_adjacency, permuted_multi_cell_adjacency,
+    admitted_adjacency, multi_boundary_component_adjacency, multi_cell_adjacency,
+    permuted_multi_cell_adjacency,
 };
+use crate::workload_platform::planar_boolean_overlap_region_extraction::arrangement_graph::tests::hostile_fixtures::inside_both_multi_boundary_adjacency;
 
 pub(crate) fn admitted_graph(
     order: LoopFixtureEntryOrder,

@@ -21,7 +21,6 @@ pub(super) struct SpatialGeometryEvidenceTouchDigestParts<'a> {
     pub support: WorkloadEvidenceSupport,
     pub evidence_counters: WorkloadEvidenceStageCounters,
     pub lookup_counters: WorkloadEvidenceStageLookupCounters,
-    pub stage_index_identity: &'a str,
     pub stage_link_set_identity: &'a str,
     pub counter_honesty: SpatialGeometryEvidenceTouchCounterHonesty,
     pub operating_world: SpatialGeometryEvidenceTouchOperatingWorld,

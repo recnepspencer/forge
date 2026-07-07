@@ -19,6 +19,8 @@ use crate::workload_composition::BooleanSplitReplayUndoBoundaryRequest;
 
 #[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support/ordinary_topology_undo_support.rs"]
 mod ordinary_topology_undo_support;
+#[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support/alternate_ordinary_topology_undo_support.rs"]
+mod alternate_ordinary_topology_undo_support;
 #[path = "../../certification/public_facade_contracts/contracts/public_api_planar_boolean_loop_reconstruction_workload_evidence_support.rs"]
 mod replay_support;
 
@@ -73,7 +75,7 @@ pub(crate) fn alternate_packet_backed_boundary(
 ) -> crate::workload_composition::AdmittedBooleanSplitReplayUndoBoundary {
     packet_backed_boundary_with_topology_undo_support(
         label,
-        ordinary_topology_undo_support::alternate_ordinary_traversal_views_undo_scope_support(),
+        alternate_ordinary_topology_undo_support::alternate_ordinary_traversal_views_undo_scope_support(),
     )
 }
 

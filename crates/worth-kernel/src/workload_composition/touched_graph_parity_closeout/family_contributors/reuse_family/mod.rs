@@ -8,6 +8,7 @@ mod row;
 mod tests;
 
 pub(crate) use contributor_catalog::reuse_family_coverage_contributor_rows;
+#[cfg(test)]
 pub(crate) use contributor_catalog::{
     current_compiled_product_equivalence_coverage_contributor,
     current_compiled_product_reuse_coverage_contributor,

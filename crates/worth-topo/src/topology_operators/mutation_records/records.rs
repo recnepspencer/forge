@@ -215,7 +215,6 @@ impl TopologyDeclaredMutationRecord {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub fn touched_aspects(&self) -> &BTreeSet<Aspect> {
         &self.touched_aspects
     }
@@ -236,7 +235,7 @@ impl TopologyDeclaredMutationRecord {
         self.derived_fallback_policy
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn with_derived_fallback_policy(
         mut self,
         policy: TopologyMutationDerivedFallbackPolicy,

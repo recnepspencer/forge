@@ -11,20 +11,13 @@ mod selection;
 #[cfg(test)]
 mod tests;
 
-pub use basis_identity::{
-    TopologySelectedCompatibilityBasisIdentity, TopologySelectedEquivalenceBasisIdentity,
-    TopologySelectedFutureProofSeedIdentity, TopologySelectedReuseBasisIdentity,
-};
-pub use catalog::{
-    current_topology_selected_equivalence_family_catalog, TopologySelectedEquivalenceFamilyCatalog,
-};
+pub use catalog::current_topology_selected_equivalence_family_catalog;
 pub use comparator_contract::{
     TopologySelectedEquivalenceComparable, TopologySelectedEquivalenceComparatorContract,
-    TopologySelectedEquivalenceComparisonReport, TopologySelectedEquivalenceDimension,
+    TopologySelectedEquivalenceComparisonReport,
 };
-pub use error::{
-    TopologySelectedEquivalenceFamilyError, TopologySelectedEquivalenceFamilyErrorKind,
-};
+#[cfg(test)]
+pub use comparator_contract::TopologySelectedEquivalenceDimension;
 pub use family_identity::TopologySelectedEquivalenceFamilyIdentity;
 pub use posture::{
     TopologyCompatibilityPosture, TopologyFreshnessRequirementPosture,

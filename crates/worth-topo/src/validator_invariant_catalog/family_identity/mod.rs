@@ -5,13 +5,16 @@ mod validator_family_identity;
 pub(super) use identity_digest::legality_family_identity_digest;
 pub use identity_digest::WorthTopologyLegalityFamilyIdentityDigest;
 pub use invariant_family_identity::WorthTopologyInvariantFamilyIdentity;
+#[cfg(test)]
 use schema::facade::platform::authority::touched_graph_conflict::{
     admit_conflict_overlap_identity, admit_conflict_routing_contract, ConflictOverlapIdentityInput,
     ConflictPriorProofInput, ConflictRoutingPosture, ConflictRoutingVocabularyError,
 };
 pub use validator_family_identity::WorthTopologyValidatorFamilyIdentity;
 
+#[cfg(test)]
 use crate::derived_topology::invalidation_plan::selection::DerivedInvalidationTouchedClosure;
+#[cfg(test)]
 use crate::touched_graph_conflict::{
     current_topology_conflict_family_catalog_closeout, TopologyConflictFamilyApplicability,
     TopologyConflictFamilyIdentity,
@@ -64,6 +67,7 @@ impl WorthTopologyLegalityFamilyIdentity {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities(
         &self,
         touched_closure: &DerivedInvalidationTouchedClosure,
@@ -94,6 +98,7 @@ impl WorthTopologyLegalityFamilyIdentity {
             .collect())
     }
 
+    #[cfg(test)]
     pub(crate) fn matching_conflict_family_identities_for_contract(
         &self,
         touched_closure: &DerivedInvalidationTouchedClosure,

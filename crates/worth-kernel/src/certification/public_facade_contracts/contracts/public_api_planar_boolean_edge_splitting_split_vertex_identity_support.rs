@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::edge_splitting_interval_subdivision_support::build_endpoint_boundary_schedule_for_metaboss;
 use super::metaboss_support::MetabossEventExtractionSubject;
 use worth_spatial::facade::planar_boolean_edge_splitting::{
@@ -121,3 +119,5 @@ fn assert_split_vertex_coalescence_decisions_are_proof_backed(
         assert!(!decision.event_group_identities().is_empty());
     }
 }
+
+const _: fn(&MetabossEventExtractionSubject) = assert_split_vertex_identities_match_metaboss;

@@ -37,21 +37,25 @@ pub(crate) fn conflict_family_coverage_contributor_rows(
     conflict_family_coverage_contributor_rows_from_catalog(catalog.rows())
 }
 
+#[cfg(test)]
 pub(crate) fn current_conflict_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     coverage_row_for(ConflictFamilyContributorRowKind::Conflict)
 }
 
+#[cfg(test)]
 pub(crate) fn current_independence_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     coverage_row_for(ConflictFamilyContributorRowKind::Independence)
 }
 
+#[cfg(test)]
 pub(crate) fn current_batch_admission_coverage_contributor(
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {
     coverage_row_for(ConflictFamilyContributorRowKind::BatchAdmission)
 }
 
+#[cfg(test)]
 fn coverage_row_for(
     kind: ConflictFamilyContributorRowKind,
 ) -> Result<KernelTouchedGraphParityCoverageContributor, KernelTouchedGraphParityCoverageError> {

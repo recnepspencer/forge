@@ -185,22 +185,6 @@ impl BatchAdmissionExecutionReceipt {
     }
 
     #[cfg(test)]
-    pub(crate) fn with_test_selected_conflict_plan_digests(mut self, digests: Vec<String>) -> Self {
-        self.selected_conflict_plan_digests = digests.clone();
-        self.selected_conflict_plan_identities = digests;
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn with_test_independence_proof_identities(
-        mut self,
-        identities: Vec<String>,
-    ) -> Self {
-        self.independence_proof_identities = identities;
-        self
-    }
-
-    #[cfg(test)]
     pub(crate) fn with_test_overlap_identity_digests(mut self, digests: Vec<String>) -> Self {
         self.overlap_identity_digests = digests;
         self

@@ -62,6 +62,7 @@ pub fn current_worth_touched_graph_conflict_source_firewall_report(
     Ok(report)
 }
 
+#[cfg(test)]
 pub(crate) fn scan_worth_touched_graph_conflict_source_firewall_region_for_tests(
     region_label: &str,
     root_identity: &str,

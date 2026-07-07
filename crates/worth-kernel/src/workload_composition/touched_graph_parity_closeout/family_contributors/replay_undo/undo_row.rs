@@ -22,27 +22,6 @@ const SELECTED_FIELDS: &[&str] = &[
     "route_authority_digest",
 ];
 
-pub(super) fn current_undo_contributor_row(
-) -> Result<ReplayUndoFamilyContributorCatalogRow, ReplayUndoFamilyContributorCatalogError> {
-    let selected_route = crate::workload_composition::planner_owned_routing::
-        current_worth_touched_graph_conflict_selected_route_packet()
-    .map_err(|error| {
-        ReplayUndoFamilyContributorCatalogError::new(
-            ReplayUndoFamilyContributorCatalogErrorKind::CurrentSurfaceUnavailable,
-            error.detail(),
-        )
-    })?;
-    let cutover = crate::workload_composition::planner_owned_routing::
-        current_worth_workload_ordinary_consumer_cutover()
-    .map_err(|error| {
-        ReplayUndoFamilyContributorCatalogError::new(
-            ReplayUndoFamilyContributorCatalogErrorKind::CurrentSurfaceUnavailable,
-            format!("{error:?}"),
-        )
-    })?;
-    undo_contributor_row_from_authorities(&selected_route, &cutover)
-}
-
 pub(super) fn undo_contributor_row_from_authorities(
     selected_route: &WorthTouchedGraphConflictSelectedRoutePacket,
     cutover: &WorthWorkloadOrdinaryConsumerCutover,
