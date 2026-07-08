@@ -1,0 +1,23 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArtifactFamilyDenial {
+    AuthenticityBoundaryDenied,
+    ConcreteKeyKindDoesNotMatchPhysicalKeyDomain,
+    CourtroomCannotMintAuthority,
+    TerminalProjectionCannotMintAuthority,
+    CrossKeyScopePartitionDenied,
+    CrossTenantScopePartitionDenied,
+    CustodyBoundaryDenied,
+    HashIdentityRequiresCollisionVerification,
+    InexactFamilyCannotSatisfyExactClaim,
+    MissingFamilyDeclaration,
+    IncompleteProjectionPosture,
+    DerivedFamilyCannotMintProductionAuthority,
+    DiagnosticFamilyCannotMintProductionAuthority,
+    PhysicalKeyDomainNotDeclaredForFamily,
+    PhysicalKeyDomainDoesNotSupportPrefixBounds,
+    PhysicalKeyDomainDoesNotSupportRangeBounds,
+    ReadmissionFamilyCannotEnterStrategyAdmission,
+    VerifierLaneCannotEnterStrategyAdmission,
+    TransferBoundaryFamilyCannotEnterStrategyAdmission,
+    OfflineImportOnlyFamilyCannotEnterStrategyAdmission,
+}

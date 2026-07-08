@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod layout_access;
+
 mod blob_records;
 mod durable_publication;
 mod s6_queue_work;

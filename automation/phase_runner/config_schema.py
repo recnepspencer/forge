@@ -152,8 +152,9 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
     if runner_control is not None and not isinstance(runner_control, dict):
         errors.append("runner_control must be an object when present")
     elif isinstance(runner_control, dict):
+        validate_optional_nonnegative_int(runner_control, "phase_id_start", errors)
         validate_optional_positive_int(runner_control, "stop_before_phase", errors)
-        validate_optional_positive_int(runner_control, "boundary_review_start_phase", errors)
+        validate_optional_nonnegative_int(runner_control, "boundary_review_start_phase", errors)
         validate_optional_positive_int(runner_control, "turn_timeout_seconds", errors)
         validate_optional_positive_int(runner_control, "idle_timeout_seconds", errors)
         stop_reason = runner_control.get("stop_reason")
@@ -164,24 +165,32 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
     if not isinstance(phases, list) or not phases:
         errors.append("phases must be a non-empty list")
     else:
-        expected_id = 1
+        phase_ids: set[int] = set()
         for index, phase in enumerate(phases):
             prefix = f"phases[{index}]"
             if not isinstance(phase, dict):
                 errors.append(f"{prefix} must be an object")
                 continue
             phase_id = phase.get("id")
-            if phase_id != expected_id:
-                errors.append(
-                    f"{prefix}.id must be {expected_id}; phase ids must be contiguous"
-                )
-            expected_id += 1
+            if not isinstance(phase_id, int) or phase_id < 0:
+                errors.append(f"{prefix}.id must be a non-negative integer")
+            elif phase_id in phase_ids:
+                errors.append(f"{prefix}.id duplicates phase id {phase_id}")
+            else:
+                phase_ids.add(phase_id)
             for key in ("title", "owner", "instructions", "qa_focus"):
                 if not isinstance(phase.get(key), str) or not phase.get(key):
                     errors.append(f"{prefix}.{key} is required")
             for key in ("scope", "acceptance"):
                 if not isinstance(phase.get(key), list) or not phase.get(key):
                     errors.append(f"{prefix}.{key} must be a non-empty list")
+        configured_start = runner_control.get("phase_id_start") if isinstance(runner_control, dict) else None
+        if isinstance(configured_start, int) and phases:
+            first_phase = phases[0]
+            if isinstance(first_phase, dict) and first_phase.get("id") != configured_start:
+                errors.append(
+                    "runner_control.phase_id_start must match the first configured phase id"
+                )
 
     return errors
 
@@ -195,6 +204,22 @@ def validate_optional_positive_int(config: dict[str, Any], key: str, errors: lis
     value = config.get(key)
     if value is not None and (not isinstance(value, int) or value <= 0):
         errors.append(f"runner_control.{key} must be a positive integer when present")
+
+
+def validate_optional_nonnegative_int(config: dict[str, Any], key: str, errors: list[str]) -> None:
+    value = config.get(key)
+    if value is not None and (not isinstance(value, int) or value < 0):
+        errors.append(f"runner_control.{key} must be a non-negative integer when present")
+
+
+def phase_id_start(config: dict[str, Any]) -> int:
+    runner_control = config.get("runner_control", {})
+    if not isinstance(runner_control, dict):
+        return 1
+    value = runner_control.get("phase_id_start", 1)
+    if isinstance(value, int) and value >= 0:
+        return value
+    return 1
 
 
 def resolve_config_path(config_path: Path, value: str) -> Path:

@@ -27,10 +27,11 @@ mod corruption;
 mod dedupe;
 mod export_bundle;
 mod exports;
-mod heavy_fixture;
-mod harness_execution;
 mod handoffs;
+mod harness_execution;
+mod heavy_fixture;
 mod import_readmission;
+pub mod layout_access;
 mod lifecycle;
 mod placement;
 mod publication;
@@ -41,11 +42,11 @@ mod streaming;
 #[cfg(test)]
 mod test_support;
 
+pub use closeout_bundle::S7ExecutedLifecycleEvidenceBundle;
 #[cfg(test)]
 pub use exports::hostile_lane::*;
 pub use exports::*;
 pub use heavy_fixture::*;
-pub use closeout_bundle::S7ExecutedLifecycleEvidenceBundle;
 
 // --- Construction-boundary compile-fail evidence ---
 #[path = "compile_fail/capsule_readiness.rs"]

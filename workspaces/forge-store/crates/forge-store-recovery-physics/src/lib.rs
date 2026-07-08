@@ -1,6 +1,8 @@
 #![doc = include_str!("recovery_physics_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
+pub mod layout_access;
+
 mod blob_replay;
 mod checkpoint_cutover;
 mod corruption_readmission;

@@ -1,0 +1,172 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DurableArtifactFamilyId {
+    PhysicalPage,
+    PhysicalSegment,
+    PhysicalExtent,
+    PhysicalRootManifest,
+    WalDurableMutationIntent,
+    WalHostedRuntimeCommitResult,
+    WalBulkCheckpointPublicationIntent,
+    WalDurablePublicationProgress,
+    WalRecoveryDecision,
+    BlobChunk,
+    BlobManifest,
+    BlobStream,
+    ChunkTreeRoot,
+    DedupeIndex,
+    ReachabilityEdge,
+    RetentionHold,
+    ReclaimReceipt,
+    ResidencyRecord,
+    CorruptionRecord,
+    QuarantineRecord,
+    RepairRecord,
+    ReadmissionRecord,
+    SecurityCustodyLookup,
+    ExportBundle,
+    ImportBundle,
+    CapsuleArtifact,
+    OfflineVerificationRecord,
+    SnapshotArtifact,
+    BranchDeltaArtifact,
+    CompatibilityCommitEnvelope,
+    CompatibilityBranchVersionDagRecord,
+    CompatibilityWalRestartRecord,
+    CompatibilitySchemaLineageCursorCheckpointSupport,
+    CompatibilityEmbeddedCheckpointAuthority,
+    CompatibilitySnapshotRecord,
+    CompatibilityDeltaRecord,
+    CompatibilityMilestone6LayoutBlockChunkRecord,
+    CompatibilityMilestone8BasisContinuationDescriptor,
+    CompatibilityMilestone9BulkRecord,
+    CompatibilityMilestone10RetentionRebuildRecord,
+    CompatibilityMilestone11MaintenanceRecord,
+    CompatibilityMilestone13TieringRecord,
+    MaintenanceSnapshot,
+    MaintenanceCompaction,
+    MaintenanceReclaim,
+    MaintenanceCapsule,
+    SupportSchema,
+    SupportLineage,
+    SupportCursor,
+    SupportEmbeddedCheckpoint,
+    PlacementAuthoritativeBranchHead,
+    PlacementRetainedAuthority,
+    PlacementStableBasis,
+    PlacementSnapshotFamily,
+    PlacementBranchDeltaFamily,
+    PlacementMilestone6LayoutFamily,
+    PublicationWalIntent,
+    PublicationWalCanonicalResult,
+    PublicationWalPublicationProgress,
+    PublicationAuthoritativeCommitAppendUnit,
+    PublicationBranchHeadPublication,
+    PublicationAcknowledgmentEligibility,
+    PublicationSnapshotBasis,
+    PublicationSnapshotImage,
+    DerivedRetentionMilestone6LayoutMaterialization,
+    DerivedRetentionMilestone6ScopeSliceMembership,
+    DerivedRetentionMilestone6StructuralBlock,
+    DerivedRetentionMilestone6ChunkMembership,
+    LayoutCompactionUnit,
+}
+
+impl DurableArtifactFamilyId {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::PhysicalPage => "physical_page",
+            Self::PhysicalSegment => "physical_segment",
+            Self::PhysicalExtent => "physical_extent",
+            Self::PhysicalRootManifest => "physical_root_manifest",
+            Self::WalDurableMutationIntent => "wal_durable_mutation_intent",
+            Self::WalHostedRuntimeCommitResult => "wal_hosted_runtime_commit_result",
+            Self::WalBulkCheckpointPublicationIntent => "wal_bulk_checkpoint_publication_intent",
+            Self::WalDurablePublicationProgress => "wal_durable_publication_progress",
+            Self::WalRecoveryDecision => "wal_recovery_decision",
+            Self::BlobChunk => "blob_chunk",
+            Self::BlobManifest => "blob_manifest",
+            Self::BlobStream => "blob_stream",
+            Self::ChunkTreeRoot => "chunk_tree_root",
+            Self::DedupeIndex => "dedupe_index",
+            Self::ReachabilityEdge => "reachability_edge",
+            Self::RetentionHold => "retention_hold",
+            Self::ReclaimReceipt => "reclaim_receipt",
+            Self::ResidencyRecord => "residency_record",
+            Self::CorruptionRecord => "corruption_record",
+            Self::QuarantineRecord => "quarantine_record",
+            Self::RepairRecord => "repair_record",
+            Self::ReadmissionRecord => "readmission_record",
+            Self::SecurityCustodyLookup => "security_custody_lookup",
+            Self::ExportBundle => "export_bundle",
+            Self::ImportBundle => "import_bundle",
+            Self::CapsuleArtifact => "capsule_artifact",
+            Self::OfflineVerificationRecord => "offline_verification_record",
+            Self::SnapshotArtifact => "snapshot_artifact",
+            Self::BranchDeltaArtifact => "branch_delta_artifact",
+            Self::CompatibilityCommitEnvelope => "compatibility_commit_envelope",
+            Self::CompatibilityBranchVersionDagRecord => "compatibility_branch_version_dag_record",
+            Self::CompatibilityWalRestartRecord => "compatibility_wal_restart_record",
+            Self::CompatibilitySchemaLineageCursorCheckpointSupport => {
+                "compatibility_schema_lineage_cursor_checkpoint_support"
+            }
+            Self::CompatibilityEmbeddedCheckpointAuthority => {
+                "compatibility_embedded_checkpoint_authority"
+            }
+            Self::CompatibilitySnapshotRecord => "compatibility_snapshot_record",
+            Self::CompatibilityDeltaRecord => "compatibility_delta_record",
+            Self::CompatibilityMilestone6LayoutBlockChunkRecord => {
+                "compatibility_milestone_6_layout_block_chunk_record"
+            }
+            Self::CompatibilityMilestone8BasisContinuationDescriptor => {
+                "compatibility_milestone_8_basis_continuation_descriptor"
+            }
+            Self::CompatibilityMilestone9BulkRecord => "compatibility_milestone_9_bulk_record",
+            Self::CompatibilityMilestone10RetentionRebuildRecord => {
+                "compatibility_milestone_10_retention_rebuild_record"
+            }
+            Self::CompatibilityMilestone11MaintenanceRecord => {
+                "compatibility_milestone_11_maintenance_record"
+            }
+            Self::CompatibilityMilestone13TieringRecord => {
+                "compatibility_milestone_13_tiering_record"
+            }
+            Self::MaintenanceSnapshot => "maintenance_snapshot",
+            Self::MaintenanceCompaction => "maintenance_compaction",
+            Self::MaintenanceReclaim => "maintenance_reclaim",
+            Self::MaintenanceCapsule => "maintenance_capsule",
+            Self::SupportSchema => "support_schema",
+            Self::SupportLineage => "support_lineage",
+            Self::SupportCursor => "support_cursor",
+            Self::SupportEmbeddedCheckpoint => "support_embedded_checkpoint",
+            Self::PlacementAuthoritativeBranchHead => "placement_authoritative_branch_head",
+            Self::PlacementRetainedAuthority => "placement_retained_authority",
+            Self::PlacementStableBasis => "placement_stable_basis",
+            Self::PlacementSnapshotFamily => "placement_snapshot_family",
+            Self::PlacementBranchDeltaFamily => "placement_branch_delta_family",
+            Self::PlacementMilestone6LayoutFamily => "placement_milestone6_layout_family",
+            Self::PublicationWalIntent => "publication_wal_intent",
+            Self::PublicationWalCanonicalResult => "publication_wal_canonical_result",
+            Self::PublicationWalPublicationProgress => "publication_wal_publication_progress",
+            Self::PublicationAuthoritativeCommitAppendUnit => {
+                "publication_authoritative_commit_append_unit"
+            }
+            Self::PublicationBranchHeadPublication => "publication_branch_head_publication",
+            Self::PublicationAcknowledgmentEligibility => "publication_acknowledgment_eligibility",
+            Self::PublicationSnapshotBasis => "publication_snapshot_basis",
+            Self::PublicationSnapshotImage => "publication_snapshot_image",
+            Self::DerivedRetentionMilestone6LayoutMaterialization => {
+                "derived_retention_milestone_6_layout_materialization"
+            }
+            Self::DerivedRetentionMilestone6ScopeSliceMembership => {
+                "derived_retention_milestone_6_scope_slice_membership"
+            }
+            Self::DerivedRetentionMilestone6StructuralBlock => {
+                "derived_retention_milestone_6_structural_block"
+            }
+            Self::DerivedRetentionMilestone6ChunkMembership => {
+                "derived_retention_milestone_6_chunk_membership"
+            }
+            Self::LayoutCompactionUnit => "layout_compaction_unit",
+        }
+    }
+}

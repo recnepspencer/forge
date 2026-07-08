@@ -47,6 +47,107 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["current"], {"phase": 2, "turn": "plan"})
 
+    def test_phase_id_start_allows_zero_based_milestones(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["runner_control"] = {"phase_id_start": 0}
+        config["phases"] = [phase_row(0, "Phase 0"), phase_row(1, "Phase 1")]
+        config["_config_path"] = "C:/tmp/config.json"
+
+        self.assertEqual(validate_config(config, RUNNER_DIR / "config" / "zero-start.json"), [])
+
+        started = project_run(config, [event("run_started", 1)], "run123")
+        self.assertEqual(started["current"], {"phase": 0, "turn": "plan"})
+
+        after_phase_zero = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertEqual(after_phase_zero["current"], {"phase": 1, "turn": "plan"})
+
+        after_phase_one = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+                event("plan_posted", 7, 1, "plan"),
+                event("implementation_completed", 8, 1, "implement"),
+                event("review_passed", 9, 1, "review"),
+                event("test_review_passed", 10, 1, "test_review"),
+                event("code_quality_review_passed", 11, 1, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertIsNone(after_phase_one["current"])
+
+    def test_phase_advancement_follows_config_order_not_id_arithmetic(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["runner_control"] = {"phase_id_start": 0}
+        config["phases"] = [phase_row(0, "Phase 0"), phase_row(10, "Phase 10")]
+        config["_config_path"] = "C:/tmp/config.json"
+
+        self.assertEqual(validate_config(config, RUNNER_DIR / "config" / "sparse.json"), [])
+
+        after_phase_zero = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertEqual(after_phase_zero["current"], {"phase": 10, "turn": "plan"})
+
+        after_phase_ten = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+                event("plan_posted", 7, 10, "plan"),
+                event("implementation_completed", 8, 10, "implement"),
+                event("review_passed", 9, 10, "review"),
+                event("test_review_passed", 10, 10, "test_review"),
+                event("code_quality_review_passed", 11, 10, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertIsNone(after_phase_ten["current"])
+
+    def test_phase_validation_rejects_duplicate_phase_ids(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["phases"] = [phase_row(1, "Phase 1"), phase_row(1, "Phase 1 again")]
+
+        errors = validate_config(config, RUNNER_DIR / "config" / "duplicate.json")
+        self.assertTrue(any("duplicates phase id 1" in error for error in errors))
+
     def test_projection_repairs_stale_cursor_after_phase_is_complete(self) -> None:
         config = minimal_config()
         events = [

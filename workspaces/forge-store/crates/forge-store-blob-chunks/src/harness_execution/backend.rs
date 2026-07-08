@@ -62,7 +62,10 @@ pub(super) fn physical_payload_for_bytes(bytes: &[u8]) -> PhysicalChunkPayloadIn
 }
 
 pub(super) fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWitness {
-    let key = aspects().vocabulary().key(identity_key).expect("aspect key");
+    let key = aspects()
+        .vocabulary()
+        .key(identity_key)
+        .expect("aspect key");
     let contract: AspectContract = aspects()
         .contract()
         .for_key(key.clone())
@@ -71,9 +74,9 @@ pub(super) fn current_authority(identity_key: &str, value: &str) -> StoreCurrent
         .scalar(ScalarAspectType::String);
     let value = expect_success(
         aspects()
-        .validate()
-        .against(&contract)
-        .value(AspectValue::String(InternedString::from(value))),
+            .validate()
+            .against(&contract)
+            .value(AspectValue::String(InternedString::from(value))),
         "aspect value",
     );
     let admitted_state = expect_success(
@@ -124,7 +127,9 @@ fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
     ));
     let generations = PhysicalGenerationAuthority::s1();
     let references = PhysicalReferenceAuthority::s1();
-    let page_cell = generations.page_cell(segment(7), page(11)).with_page_generation(generation(5));
+    let page_cell = generations
+        .page_cell(segment(7), page(11))
+        .with_page_generation(generation(5));
     let slot_cell = generations
         .slot_cell(segment(7), page(11), slot(1))
         .with_slot_generation(generation(9));
@@ -139,7 +144,10 @@ fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
         .expect("validation");
     let reopened_page = page_bytes(generation(5), append.page_payload());
     let located = records
-        .locate_record(admitted_page(&records, page_cell, &reopened_page), validation)
+        .locate_record(
+            admitted_page(&records, page_cell, &reopened_page),
+            validation,
+        )
         .expect("locate");
     StorePhysicalChunkWriteReceipt::from_page_record_view(located.record_view()).expect("receipt")
 }
@@ -152,7 +160,9 @@ fn admitted_page<'a>(
     let header = records
         .decode_record_page_header(page_cell, bytes, PhysicalPageKind::DataPage)
         .expect("header");
-    records.admit_record_page_payload(bytes, header.witness()).expect("payload")
+    records
+        .admit_record_page_payload(bytes, header.witness())
+        .expect("payload")
 }
 
 fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
@@ -169,7 +179,15 @@ fn page_bytes(generation: PhysicalGeneration, payload: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn segment(value: u64) -> PhysicalSegmentId { PhysicalSegmentId::from_raw(value).expect("segment") }
-fn page(value: u64) -> PhysicalPageId { PhysicalPageId::from_raw(value).expect("page") }
-fn slot(value: u16) -> PhysicalRecordSlot { PhysicalRecordSlot::from_raw(value).expect("slot") }
-fn generation(value: u64) -> PhysicalGeneration { PhysicalGeneration::from_raw(value).expect("generation") }
+fn segment(value: u64) -> PhysicalSegmentId {
+    PhysicalSegmentId::from_raw(value).expect("segment")
+}
+fn page(value: u64) -> PhysicalPageId {
+    PhysicalPageId::from_raw(value).expect("page")
+}
+fn slot(value: u16) -> PhysicalRecordSlot {
+    PhysicalRecordSlot::from_raw(value).expect("slot")
+}
+fn generation(value: u64) -> PhysicalGeneration {
+    PhysicalGeneration::from_raw(value).expect("generation")
+}

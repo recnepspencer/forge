@@ -319,7 +319,6 @@ pub use transcript::{
     PhysicalSimulationTranscriptIdentity, PhysicalStoryTranscript, SimulationReplayBundle,
     SimulationRunIdentity, TranscriptReplayDenial, TranscriptReplayEvidenceIdentity,
 };
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalCertificationLane {
     PowerLoss,

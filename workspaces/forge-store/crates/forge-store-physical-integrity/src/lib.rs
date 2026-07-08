@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("physical_integrity_compile_fail_proofs.md")]
 
+pub mod layout_access;
+
 mod authenticity_decode_gate;
 mod authenticity_integrity_counters;
 mod checksum_algorithm;

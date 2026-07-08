@@ -184,8 +184,7 @@ impl PlatformPhysicalFacade {
     pub fn scan_physical_layout(
         &mut self,
     ) -> Result<PlatformPhysicalScanReport, PlatformPhysicalFacadeDenial> {
-        let verifier_report =
-            scan::verify_persisted_layout_for_scan(&self.storage, &self.headers)?;
+        let verifier_report = scan::verify_persisted_layout_for_scan(&self.storage, &self.headers)?;
         let runtime_report = scan::collect_runtime_layout_observation(&self.storage);
         self.counters = self.counters.with_scan();
         Ok(scan::construct_scan_report(

@@ -1,12 +1,12 @@
 mod authority;
 mod counters;
-#[cfg(test)]
-mod tests;
 mod denials;
 mod kinds;
 mod layout;
 mod publication;
 mod reserved;
+#[cfg(test)]
+mod tests;
 mod witness;
 
 pub use authority::*;

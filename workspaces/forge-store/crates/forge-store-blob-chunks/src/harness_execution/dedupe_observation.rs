@@ -1,7 +1,7 @@
+use crate::handoffs::BlobHarnessSecurityScopeClass;
 use crate::{
     BlobChunkCanonicalComparisonBasis, BlobChunkDedupeAdmission, BlobChunkDedupeCandidate,
 };
-use crate::handoffs::BlobHarnessSecurityScopeClass;
 
 use super::scope_admission::integrity_proof_for_scope;
 

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use forge_relational::facade::history::CommitId;
+pub use forge_store_contracts::{LayoutCompactionFamilyKind, LayoutFamilyCompactionUnit};
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -52,39 +53,6 @@ impl DeltaLayerCompactionUnit {
 
     pub fn branch_delta_layer_id(&self) -> &str {
         &self.branch_delta_layer_id
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LayoutFamilyCompactionUnit {
-    retained_basis_label: String,
-    family_label: String,
-    artifact_id: String,
-}
-
-impl LayoutFamilyCompactionUnit {
-    pub(crate) fn new(
-        retained_basis_label: impl Into<String>,
-        family_label: impl Into<String>,
-        artifact_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            retained_basis_label: retained_basis_label.into(),
-            family_label: family_label.into(),
-            artifact_id: artifact_id.into(),
-        }
-    }
-
-    pub fn retained_basis_label(&self) -> &str {
-        &self.retained_basis_label
-    }
-
-    pub fn family_label(&self) -> &str {
-        &self.family_label
-    }
-
-    pub fn artifact_id(&self) -> &str {
-        &self.artifact_id
     }
 }
 

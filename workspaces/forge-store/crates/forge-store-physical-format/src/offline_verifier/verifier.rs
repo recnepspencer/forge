@@ -1,7 +1,8 @@
 use super::manifest_membership::{build_root_manifest, verify_membership_posture};
 use super::manifest_pipeline::{
-    collect_layout_inspection_counters, construct_minimal_verifier_report, decode_manifest_sections,
-    reject_backend_residue, select_single_root_manifest, verify_manifest_discovery,
+    collect_layout_inspection_counters, construct_minimal_verifier_report,
+    decode_manifest_sections, reject_backend_residue, select_single_root_manifest,
+    verify_manifest_discovery,
 };
 use super::verify_extents::{verify_all_extents, ExtentVerificationContext};
 use super::verify_free_space::{verify_all_free_space, FreeSpaceVerificationContext};
@@ -33,12 +34,8 @@ impl OfflinePhysicalVerifier {
     ) -> Result<MinimalManifestVerifierReport, OfflineVerifierDenial> {
         let counters = collect_layout_inspection_counters(layout);
         let root_manifest = select_single_root_manifest(layout, counters)?;
-        let decoded = decode_manifest_sections(
-            self.headers.byte_order(),
-            layout,
-            root_manifest,
-            counters,
-        )?;
+        let decoded =
+            decode_manifest_sections(self.headers.byte_order(), layout, root_manifest, counters)?;
         let counters = counters.with_manifest_rows_decoded(decoded.decoded_rows);
         verify_membership_posture(&decoded, counters)?;
         let root = build_root_manifest(&decoded);

@@ -1,6 +1,5 @@
 use forge_store_io_scheduler::{
-    admit_store_published_s6_io_qos_isolation_readiness,
-    publish_s7_placement_io_readiness_handoff,
+    admit_store_published_s6_io_qos_isolation_readiness, publish_s7_placement_io_readiness_handoff,
     readmit_s7_placement_io_readiness_after_publication,
 };
 use forge_store_physical_format::{
@@ -14,8 +13,8 @@ use forge_store_physical_isolation::{
 };
 use forge_store_reclaim_policy::{
     PhysicalStoreReclaimPolicyExecutor, ReclaimPermit, ReclaimPolicyAdmission,
-    ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionRequest,
-    ReclaimPolicyExecutionReceipt, ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority,
+    ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionReceipt,
+    ReclaimPolicyExecutionRequest, ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority,
     ReclaimPolicyReachabilityProof, ReclaimPolicyRequest, ReclaimPolicySecurityScope,
 };
 use forge_store_security::{
@@ -32,16 +31,17 @@ pub(in crate::harness_execution) fn placement_readiness(
     let published_readiness =
         publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
             .expect("published S6 readiness");
-    let scheduler_readiness = admit_store_published_s6_io_qos_isolation_readiness(&published_readiness)
-        .expect("scheduler S6 readiness");
+    let scheduler_readiness =
+        admit_store_published_s6_io_qos_isolation_readiness(&published_readiness)
+            .expect("scheduler S6 readiness");
     let handoff = readmit_s7_placement_io_readiness_after_publication(
         publish_s7_placement_io_readiness_handoff(&scheduler_readiness),
     );
     admit_s7_placement_io_readiness_seed(
         handoff,
-        forge_store_tiering::S6ColdTierIoPosture::from_reclaim_receipt(
-            cold_tier_reclaim_receipt(security_scope),
-        )
+        forge_store_tiering::S6ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
+            security_scope,
+        ))
         .expect("cold-tier posture"),
     )
 }
@@ -80,11 +80,10 @@ fn lower_s5_reclaim_reachability_for_region(
     region: PhysicalReclaimRegion,
     physical_reference: PhysicalReferenceAdmissionWitness,
 ) -> ReclaimPolicyReachabilityProof {
-    let current_generation = GenerationCountedPhysicalReference::from_admitted_reference(
-        physical_reference,
-    )
-    .require_current_generation(physical_reference.reference().generation())
-    .expect("current generation reference");
+    let current_generation =
+        GenerationCountedPhysicalReference::from_admitted_reference(physical_reference)
+            .require_current_generation(physical_reference.reference().generation())
+            .expect("current generation reference");
     let removal_receipt = ReclaimEligibilityProof::for_certification_reference(current_generation)
         .admit_reachability_removal()
         .expect("S5 reclaim reachability removal");
@@ -139,14 +138,13 @@ impl PhysicalStoreReclaimPolicyExecutor for ObservingReclaimBackend {
 
 fn current_physical_reference_raw(slot: u16) -> PhysicalReferenceAdmissionWitness {
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
-    PhysicalReferenceAuthority::s1()
-        .admit_page_slot(
-            PhysicalGenerationAuthority::s1()
-                .slot_cell(
-                    PhysicalSegmentId::from_raw(1).expect("segment"),
-                    PhysicalPageId::from_raw(1).expect("page"),
-                    PhysicalRecordSlot::from_raw(slot).expect("slot"),
-                )
-                .with_slot_generation(generation),
-        )
+    PhysicalReferenceAuthority::s1().admit_page_slot(
+        PhysicalGenerationAuthority::s1()
+            .slot_cell(
+                PhysicalSegmentId::from_raw(1).expect("segment"),
+                PhysicalPageId::from_raw(1).expect("page"),
+                PhysicalRecordSlot::from_raw(slot).expect("slot"),
+            )
+            .with_slot_generation(generation),
+    )
 }

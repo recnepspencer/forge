@@ -1,4 +1,5 @@
 use crate::failure::StoreError;
+pub use forge_store_contracts::WalRecordFamily;
 use forge_relational::facade::history::CommitId;
 use forge_relational::facade::replay::CanonicalCommitEnvelope;
 use serde::{Deserialize, Serialize};
@@ -7,15 +8,6 @@ pub const CURRENT_WAL_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct DurableMutationId(pub u64);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum WalRecordFamily {
-    DurableMutationIntent,
-    HostedRuntimeCommitResult,
-    BulkCheckpointPublicationIntent,
-    DurablePublicationProgress,
-    RecoveryDecision,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum DurablePublicationPhase {

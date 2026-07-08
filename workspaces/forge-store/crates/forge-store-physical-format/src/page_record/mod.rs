@@ -1,12 +1,12 @@
 mod authority;
 mod counters;
 mod denials;
+mod slot_directory;
+mod slot_state;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]
 mod tests;
-mod slot_directory;
-mod slot_state;
 
 pub use authority::*;
 pub use counters::*;

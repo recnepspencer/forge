@@ -1,8 +1,6 @@
 use forge_store_operations::BackupExportCustodyMode;
 
-use crate::{
-    BlobChunkRootPublication, BlobExportAuthority, BlobExportPublishedBundle,
-};
+use crate::{BlobChunkRootPublication, BlobExportAuthority, BlobExportPublishedBundle};
 
 use super::backend::{current_authority, export_readiness};
 use super::chunk_sequence::{chunk_window_for_ordinal, GeneratedBlobSequence};
@@ -21,8 +19,10 @@ pub(super) fn publish_export_bundle(
     publication: &BlobChunkRootPublication,
     generated: &GeneratedBlobSequence,
 ) -> BlobExportPublishedBundle {
-    let authority =
-        BlobExportAuthority::from_current_store_authority(current_authority(case, "blob-harness-export"));
+    let authority = BlobExportAuthority::from_current_store_authority(current_authority(
+        case,
+        "blob-harness-export",
+    ));
     publish_streamed_export_bundle(
         &authority,
         &export_readiness(case),
@@ -77,7 +77,12 @@ fn publish_streamed_export_bundle(
             .ordinal()
             .get()
             .cmp(&right.manifest_row.ordinal().get())
-            .then_with(|| left.manifest_row.range().start().cmp(&right.manifest_row.range().start()))
+            .then_with(|| {
+                left.manifest_row
+                    .range()
+                    .start()
+                    .cmp(&right.manifest_row.range().start())
+            })
             .then_with(|| left.digest.cmp(&right.digest))
     });
     verify_streamed_exported_chunks(publication, lane, &streamed)?;
@@ -109,7 +114,10 @@ fn publish_streamed_export_bundle(
         crate::BlobExportManifest::new(export_name.to_owned(), manifest_rows),
         crate::BlobExportCustodyEvidence::new(custody.identity(), custody.mode()),
         crate::BlobExportDigestEvidence::new(
-            lane.lifecycle.declaration().logical_content_digest().clone(),
+            lane.lifecycle
+                .declaration()
+                .logical_content_digest()
+                .clone(),
             export_digest,
             &offline_declarations,
         ),

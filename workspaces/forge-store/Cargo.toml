@@ -49,6 +49,7 @@ version = "0.1.0"
 license = "UNLICENSED"
 
 [workspace.dependencies]
+forge-store = { path = "crates/forge-store" }
 forge-store-analysis = { path = "crates/forge-store-analysis" }
 forge-store-aspect-native = { path = "crates/forge-store-aspect-native" }
 forge-store-authority = { path = "crates/forge-store-authority" }

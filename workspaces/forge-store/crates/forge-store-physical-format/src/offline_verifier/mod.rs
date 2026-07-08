@@ -10,12 +10,12 @@ mod observation;
 mod persisted_layout;
 mod report;
 mod runtime_layout;
+#[cfg(test)]
+mod tests;
 mod verifier;
 mod verify_extents;
 mod verify_free_space;
 mod verify_pages;
-#[cfg(test)]
-mod tests;
 
 pub use codec::OfflineManifestCodec;
 pub use counters::*;

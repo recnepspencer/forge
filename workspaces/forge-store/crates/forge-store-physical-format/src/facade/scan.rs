@@ -6,8 +6,8 @@ use crate::{
 use forge_store_contracts::RoadmapScope;
 
 use super::denials::PlatformPhysicalFacadeDenial;
-use super::storage::PlatformPhysicalFacadeStorage;
 use super::map_verifier_denial_for_reopen;
+use super::storage::PlatformPhysicalFacadeStorage;
 
 pub(crate) fn verify_persisted_layout_for_scan(
     storage: &PlatformPhysicalFacadeStorage,

@@ -8,6 +8,7 @@ pub mod s6_io_pressure_profiles;
 pub mod s7_blob_harness_execution;
 pub mod s7_blob_harness_heavy_fixture;
 pub mod s7_blob_harness_profiles;
+pub mod s8_layout_access;
 
 pub use s4_recovery_physics::{
     admitted_s4_partial_publication_recovery_entry, admitted_s4_recovery_entry,

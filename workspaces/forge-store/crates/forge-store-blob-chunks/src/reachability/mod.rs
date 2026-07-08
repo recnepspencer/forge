@@ -27,8 +27,8 @@ pub use denial::{
     reject_empty_reference_proof_as_reachability, reject_terminal_projection_as_blob_reachability,
     BlobReachabilityDenial,
 };
-pub use edges::{BlobReachabilityEdge, BlobReachabilityEdgeKind};
 pub(crate) use edges::BlobReachabilityAuthorityKey;
+pub use edges::{BlobReachabilityEdge, BlobReachabilityEdgeKind};
 pub use holds::BlobReachabilityProtectedHold;
 pub use proof::BlobReachabilityProof;
 pub use receipt_construction::{

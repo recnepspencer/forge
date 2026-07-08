@@ -1,7 +1,8 @@
 use super::codec::DecodedOfflineManifestSections;
 use crate::{
     ManifestDiscoveryAuthority, ManifestDiscoveryReport, OfflineVerifierCounterSnapshot,
-    OfflineVerifierDenial, OfflineVerifierDenialKind, PhysicalReference, PhysicalReferenceAuthority,
+    OfflineVerifierDenial, OfflineVerifierDenialKind, PhysicalReference,
+    PhysicalReferenceAuthority,
 };
 
 pub(crate) struct FreeSpaceVerificationContext {
@@ -35,11 +36,8 @@ fn verify_free_space_manifest_membership(
     manifests
         .validate_free_space_reuse(manifest_report, admission)
         .map_err(|denial| {
-            OfflineVerifierDenial::new(
-                OfflineVerifierDenialKind::ManifestDiscoveryDenied,
-                counters,
-            )
-            .with_manifest_denial(denial)
+            OfflineVerifierDenial::new(OfflineVerifierDenialKind::ManifestDiscoveryDenied, counters)
+                .with_manifest_denial(denial)
         })?;
     Ok(())
 }

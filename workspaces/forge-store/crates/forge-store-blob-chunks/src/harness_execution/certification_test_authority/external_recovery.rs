@@ -26,16 +26,20 @@ pub(in crate::harness_execution) fn external_recovery(
         reachability.security_metadata().identity(),
         true,
     );
-    let manifest = BlobPhysicalManifestValidation::validate_observation(observation).expect("manifest");
+    let manifest =
+        BlobPhysicalManifestValidation::validate_observation(observation).expect("manifest");
     let probe = recovery_probe(manifest.clone());
-    let missing = ExternalPlacementMissingDenial::from_missing_observation(
-        residue_observation(BlobBackendResidueObservationKind::MissingExternalChunk, digest),
-    )
+    let missing = ExternalPlacementMissingDenial::from_missing_observation(residue_observation(
+        BlobBackendResidueObservationKind::MissingExternalChunk,
+        digest,
+    ))
     .expect("missing");
-    let orphan = ExternalPlacementOrphanScanReceipt::from_orphan_scan_observation(
-        residue_observation(BlobBackendResidueObservationKind::OrphanedPlacementResidue, digest),
-    )
-    .expect("orphan");
+    let orphan =
+        ExternalPlacementOrphanScanReceipt::from_orphan_scan_observation(residue_observation(
+            BlobBackendResidueObservationKind::OrphanedPlacementResidue,
+            digest,
+        ))
+        .expect("orphan");
     let cleanup = cleanup_receipt(orphan.clone());
     StoreExternalPlacementRecoverabilityEvidence::admit(manifest, probe, missing, orphan, cleanup)
         .expect("recoverability")
@@ -47,7 +51,8 @@ fn manifest_observation(
     security_scope: StoreSecurityScopeIdentity,
     external_chunk_present: bool,
 ) -> BlobPhysicalManifestObservation {
-    let request = BlobPhysicalManifestTraversalRequest::new(reachability_digest, 1).expect("manifest request");
+    let request = BlobPhysicalManifestTraversalRequest::new(reachability_digest, 1)
+        .expect("manifest request");
     let mut backend = ManifestTraversalBackend {
         placement_digest: placement_digest.to_owned(),
         security_scope,
@@ -126,7 +131,10 @@ impl PhysicalStoreBlobResidueScanner for ResidueScanBackend {
         &mut self,
         request: BlobBackendResidueScanRequest,
     ) -> Result<BlobBackendResidueScanObservation, Self::Error> {
-        Ok(BlobBackendResidueScanObservation::new(request.kind(), self.token.clone()))
+        Ok(BlobBackendResidueScanObservation::new(
+            request.kind(),
+            self.token.clone(),
+        ))
     }
 }
 
@@ -159,6 +167,9 @@ impl PhysicalStoreExternalPlacementCleanupExecutor for CleanupBackend {
         &mut self,
         _: ExternalPlacementCleanupRequest,
     ) -> Result<ExternalPlacementCleanupObservation, Self::Error> {
-        Ok(ExternalPlacementCleanupObservation::new(self.orphan_token.clone(), true))
+        Ok(ExternalPlacementCleanupObservation::new(
+            self.orphan_token.clone(),
+            true,
+        ))
     }
 }

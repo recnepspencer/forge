@@ -35,6 +35,49 @@ pub fn admitted_wrong_s6_io_qos_security_scope_for_test() -> StoreAdmittedSecuri
     )
 }
 
+pub fn admitted_store_managed_root_security_scope_for_layout_access_test(
+) -> StoreAdmittedSecurityScope {
+    admitted_store_internal_security_scope_for_s6_test()
+}
+
+pub fn admitted_tenant_page_security_scope_for_layout_access_test() -> StoreAdmittedSecurityScope {
+    admitted_wrong_s6_io_qos_security_scope_for_test()
+}
+
+pub fn admitted_tenant_artifact_security_scope_for_layout_access_test() -> StoreAdmittedSecurityScope
+{
+    admitted_scope(
+        StoreKeyScope::ArtifactEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            crate::StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
+pub fn admitted_tenant_page_without_authenticity_for_layout_access_test(
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        StoreKeyScope::PageEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::not_required(),
+        StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
+pub fn admitted_tenant_page_export_prepared_scope_for_layout_access_test(
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        StoreKeyScope::PageEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            crate::StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::ExportPrepared,
+    )
+}
+
 fn admitted_scope(
     key_scope: StoreKeyScope,
     tenant_scope: StoreTenantScope,

@@ -141,6 +141,481 @@ S.8 must therefore introduce or consume Store-owned law for:
 - legacy access-path disposition and bypass proof for old Store surfaces
 - layout/access-path hazard inventory for S.12 certification
 
+## Domain Skeleton Contract
+
+S.8 must be implemented through the current dedicated Store crate family, not
+through a new catch-all layout crate and not by collapsing existing domain
+crates into a proof-vocabulary bag.
+
+The skeleton below is the selected architecture and target topology. Phase 0
+creates the missing architectural homes and verifies the existing parts line up
+with them. Later phases implement inside this skeleton. Individual files may
+become directories, and local decomposition may vary where the domain shape
+earns it, but ownership, lifecycle order, and authority direction do not
+reopen unless the spec is explicitly amended.
+
+### Workspace Crate Responsibilities
+
+- `forge-store-contracts`: shared Store vocabulary, ids, lightweight enums,
+  and cross-crate contract names. It may define words such as artifact-family
+  ids or authority-role names, but it must not mint admitted layout authority,
+  execute access, or construct performance receipts.
+- `forge-store-layout-indexes`: the S.8 layout-law and access-path grammar
+  crate. It owns artifact-family declaration, key-domain law, strategy
+  declaration, strategy invariant suites, access-shape contracts, deterministic
+  plan selection, budget admission, lowered/ready/executed access evidence,
+  planned-versus-observed counter receipts, derived-index rebuild/parity,
+  migration/rollback vocabulary, degraded exact scan posture, cache/advisory
+  non-authority posture, legacy disposition, and S.9 handoff vocabulary.
+- `forge-store-physical-format`: page, frame, segment, extent, record,
+  manifest, root-discovery, binary-format, and offline physical-format layout
+  families. It supplies Store-owned physical byte authority and consumes S.8
+  layout law where those families need declared access paths.
+- `forge-store-wal`: WAL, checkpoint, durable mutation, record-family, and
+  replay-tail layout families. It keeps WAL authority local and consumes S.8
+  strategy/access grammar rather than letting layout indexes own WAL truth.
+- `forge-store-recovery-physics`: recovery, replay, crash-boundary,
+  checkpoint-cutover, readmission, and partial-publication layout families. It
+  owns recovery physics and consumes S.8 layout/access state machines.
+- `forge-store-buffer-pool`: resident frame, page lease, dirty state,
+  zero-copy/bounded-copy view, read-ahead, and write-behind access families. It
+  owns memory-residency authority and feeds exact residency/allocation
+  evidence into S.8 counters.
+- `forge-store-physical-integrity`: pre-decode integrity, checksum coverage,
+  damage handoff, corruption localization, and physical-integrity admission
+  families. It owns byte-integrity authority before logical decode.
+- `forge-store-physical-isolation`: stable read execution, reclaim barriers,
+  compaction interlocks, movable stability, orphan reclaim, and S.6/S.8 I/O
+  isolation handoffs. It owns physical stability and interference boundaries.
+- `forge-store-io-scheduler`: foreground/background admission, pacing,
+  reservation, and I/O queue execution. It consumes S.8 access budgets and
+  counter envelopes; it does not become semantic or layout authority.
+- `forge-store-blob-chunks`: blob object, chunk identity, chunk integrity,
+  chunk tree, dedupe, streaming, publication, reachability, placement,
+  compaction, corruption, export/import, capsule readiness, and closeout
+  families. It owns blob lifecycle authority and consumes S.8 layout/index law
+  for blob access paths.
+- `forge-store-security`: S.5.1 tenant scope, key scope, custody,
+  authenticity, repair blast-radius, and readmission scope families. It owns
+  security-scope posture consumed by S.8 key domains, tenant partitions, and
+  trust-boundary readmission.
+- `forge-store-operations`: backup, restore, import/export, repair,
+  capsule, and operator workflow layout families. It owns operational workflow
+  posture and consumes S.8 layout/readmission grammar.
+- `forge-store-offline-verifier`: terminal/offline verification projections
+  and verifier observations. It may observe persisted layout evidence, but it
+  cannot mint foreground Store authority.
+- `forge-store-readiness`: cross-milestone readiness and handoff objects,
+  including the S.8 -> S.9 readiness handoff where the handoff is lower-crate
+  vocabulary rather than certification-only testimony.
+- `forge-store-physical-certification`: executable physical harness,
+  scenarios, drivers, faults, observers, oracles, coverage rows, transcripts,
+  and S.8 simulation vocabulary. It consumes production witnesses and executed
+  evidence; it must remain a courtroom/harness layer.
+- `forge-store-certification`: certification courtroom and closeout. It
+  assembles proof that production law was followed. It must not define the
+  production law or expose constructors that lower crates rely on.
+- `forge-store-test-support`: honest fixtures and builders over production
+  facades. It may help tests reach real states, but it must not mint authority
+  that production code cannot obtain.
+- Existing specialized crates such as `forge-store-maintenance`,
+  `forge-store-retention`, `forge-store-tiering`, `forge-store-snapshots`,
+  `forge-store-branch-deltas`, `forge-store-compatibility`,
+  `forge-store-replication`, `forge-store-bulk`, and
+  `forge-store-live-query` must consume S.8 layout/access contracts only for
+  the artifact families they own. S.8 may add narrow dependencies or wrappers
+  where those families need layout posture, but it must not turn
+  `forge-store-layout-indexes` into a semantic feature crate.
+
+### Selected Layout-Indexes Skeleton
+
+`forge-store-layout-indexes` must become the central S.8 grammar crate with
+this target directory skeleton. The names below are architectural homes, not a
+promise that every leaf remains a single file forever. A listed `.rs` file may
+become a directory with a `mod.rs` and focused children when the implementation
+needs more room, but it must keep the same responsibility and facade position:
+
+```text
+crates/forge-store-layout-indexes/src/
+  lib.rs
+  artifact_family/
+    mod.rs
+    declaration.rs
+    authority.rs
+    lifecycle.rs
+    inventory.rs
+    denial.rs
+    tests.rs
+  key_domain/
+    mod.rs
+    encoding.rs
+    comparator.rs
+    prefix.rs
+    range.rs
+    composite.rs
+    hash_collision.rs
+    tenant_partition.rs
+    denial.rs
+    tests.rs
+  strategy/
+    mod.rs
+    family.rs
+    declaration.rs
+    capability.rs
+    invariant_suite.rs
+    admission.rs
+    denial.rs
+    tests.rs
+  strategy/btree/
+    mod.rs
+    node_format.rs
+    separator.rs
+    split_merge.rs
+    root_publication.rs
+    invariants.rs
+    tests.rs
+  strategy/lsm/
+    mod.rs
+    memtable_wal.rs
+    run_publication.rs
+    tombstone.rs
+    compaction_ordering.rs
+    invariants.rs
+    tests.rs
+  materialization/
+    mod.rs
+    state.rs
+    coverage.rs
+    watermark.rs
+    absence.rs
+    completeness.rs
+    denial.rs
+    tests.rs
+  access_shape/
+    mod.rs
+    contract.rs
+    point.rs
+    range.rs
+    prefix.rs
+    scan.rs
+    streaming.rs
+    append.rs
+    verifier.rs
+    repair.rs
+    quarantine.rs
+    denial.rs
+    tests.rs
+  planning/
+    mod.rs
+    lowering_request.rs
+    alternative.rs
+    selection_policy.rs
+    plan_fingerprint.rs
+    selection_receipt.rs
+    tests.rs
+  budget/
+    mod.rs
+    estimate.rs
+    admitted_budget.rs
+    planned_counter_envelope.rs
+    violation.rs
+    tests.rs
+  execution/
+    mod.rs
+    lowered_plan.rs
+    ready_plan.rs
+    executed_evidence.rs
+    planned_vs_observed.rs
+    amplification_receipt.rs
+    denial.rs
+    tests.rs
+  maintenance/
+    mod.rs
+    rebuild.rs
+    parity.rs
+    mutation_plan.rs
+    maintenance_mode.rs
+    publication_protocol.rs
+    lag.rs
+    failure.rs
+    tests.rs
+  migration/
+    mod.rs
+    version.rs
+    compatibility.rs
+    migration_plan.rs
+    rollback_plan.rs
+    stale_rebind.rs
+    tests.rs
+  corruption/
+    mod.rs
+    classification.rs
+    quarantine.rs
+    readmission.rs
+    denial.rs
+    tests.rs
+  bootstrap/
+    mod.rs
+    catalog.rs
+    root_discovery.rs
+    catalog_read_admission.rs
+    bootstrap_only_path.rs
+    tests.rs
+  degraded_access/
+    mod.rs
+    exact_scan.rs
+    ephemeral_aid.rs
+    advisory_aid.rs
+    cache_hit.rs
+    never_authority.rs
+    denial.rs
+    tests.rs
+  legacy_disposition/
+    mod.rs
+    inventory.rs
+    disposition.rs
+    bypass.rs
+    tests.rs
+  skeleton/
+    mod.rs
+    crate_role.rs
+    responsibility_map.rs
+    topology_closeout.rs
+    authority_flow.rs
+    phase_obligation.rs
+    tests.rs
+  handoff/
+    mod.rs
+    hazard_inventory.rs
+    s9_layout_handoff.rs
+    tests.rs
+  facade/
+    mod.rs
+    declarations.rs
+    key_domains.rs
+    strategy_admission.rs
+    access_planning.rs
+    access_execution.rs
+    maintenance.rs
+    migration.rs
+    readmission.rs
+    closeout.rs
+  compile_fail/
+    mod.rs
+    raw_construction.rs
+    facade_bypass.rs
+    certification_authority.rs
+```
+
+`lib.rs` may only declare modules and re-export `facade::*` plus documented
+compile-fail entrypoints. Business logic belongs in the domain directories
+above.
+
+### Required Family-Crate S.8 Homes
+
+Existing family crates keep execution authority. S.8 work in those crates must
+land in these target homes. A listed file may become a directory when the local
+family needs declaration, classification, transition, receipt, counter, or test
+submodules, but the family must stay under its named `layout_access` home:
+
+```text
+forge-store-physical-format/src/layout_access/
+  page_family.rs
+  frame_family.rs
+  segment_family.rs
+  extent_family.rs
+  record_family.rs
+  manifest_family.rs
+  root_discovery_family.rs
+  format_family_closeout.rs
+
+forge-store-wal/src/layout_access/
+  wal_record_family.rs
+  wal_segment_family.rs
+  checkpoint_family.rs
+  durable_mutation_family.rs
+  replay_tail_family.rs
+  wal_layout_closeout.rs
+
+forge-store-recovery-physics/src/layout_access/
+  recovery_source_family.rs
+  replay_index_family.rs
+  crash_boundary_family.rs
+  checkpoint_cutover_family.rs
+  readmission_family.rs
+  recovery_layout_closeout.rs
+
+forge-store-buffer-pool/src/layout_access/
+  resident_frame_family.rs
+  page_lease_family.rs
+  dirty_state_family.rs
+  zero_copy_view_family.rs
+  read_ahead_family.rs
+  write_behind_family.rs
+  buffer_pool_layout_closeout.rs
+
+forge-store-physical-integrity/src/layout_access/
+  checksum_family.rs
+  pre_decode_family.rs
+  scrub_family.rs
+  damage_map_family.rs
+  quarantine_family.rs
+  integrity_layout_closeout.rs
+
+forge-store-physical-isolation/src/layout_access/
+  stable_read_family.rs
+  reclaim_barrier_family.rs
+  compaction_interlock_family.rs
+  movable_stability_family.rs
+  orphan_reclaim_family.rs
+  isolation_layout_closeout.rs
+
+forge-store-io-scheduler/src/layout_access/
+  foreground_admission_family.rs
+  background_reservation_family.rs
+  queue_execution_family.rs
+  pacing_family.rs
+  io_layout_closeout.rs
+
+forge-store-blob-chunks/src/layout_access/
+  blob_object_family.rs
+  chunk_tree_family.rs
+  streaming_family.rs
+  dedupe_family.rs
+  reachability_family.rs
+  retention_family.rs
+  reclaim_family.rs
+  compaction_family.rs
+  export_import_family.rs
+  capsule_family.rs
+  blob_layout_closeout.rs
+
+forge-store-security/src/layout_access/
+  tenant_scope_family.rs
+  key_scope_family.rs
+  custody_family.rs
+  authenticity_family.rs
+  repair_blast_radius_family.rs
+  security_layout_closeout.rs
+
+forge-store-operations/src/layout_access/
+  backup_family.rs
+  restore_family.rs
+  import_family.rs
+  export_family.rs
+  repair_family.rs
+  capsule_operation_family.rs
+  operations_layout_closeout.rs
+```
+
+These `layout_access` modules adapt local authority into the S.8 grammar and
+execute local family behavior. They must not become duplicate layout-law
+crates. Shared S.8 nouns stay in `forge-store-layout-indexes`; local executed
+evidence and closeout stay in the owning family crate.
+
+### Required Courtroom And Test Skeleton
+
+The courtroom/test crates must use these target homes. Files may split into
+directories when scenarios, oracles, coverage, or closeout evidence need
+finer-grained structure, but the courtroom/test modules must stay under these
+milestone-specific roots:
+
+```text
+forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/
+  mod.rs
+  scenario.rs
+  actors.rs
+  drivers.rs
+  faults.rs
+  observers.rs
+  oracles.rs
+  coverage.rs
+  transcript.rs
+  simulation.rs
+  shortcut_denials.rs
+  heavy_blob_profile.rs
+  tests.rs
+
+forge-store-certification/src/s8_layout_closeout/
+  mod.rs
+  sources.rs
+  classifier.rs
+  verifier.rs
+  certificate.rs
+  handoffs.rs
+  denial.rs
+
+forge-store-test-support/src/harness/milestone/s8_layout_access/
+  mod.rs
+  fixtures.rs
+  family_builders.rs
+  scenario_builders.rs
+  adversarial_inputs.rs
+```
+
+These modules may consume production S.8 witnesses and executed evidence. They
+must not define constructors or authority vocabulary that production crates
+depend on.
+
+### Proof-Flow Rule Inside Each Home
+
+Every family module listed above must keep this shape internally. If the module
+is large enough to split, it splits along these names; if it stays as one file,
+the file must still expose functions in this order:
+
+```text
+declare_*            raw Store-owned declaration
+classify_*           named decision case
+verify_*             pure transition requirements
+admit_* or lower_*   state transition returning next capability
+build_*_receipt      receipt/certificate after successful transition
+publish_*            facade-visible next capability where relevant
+```
+
+Do not use `types`, `proofs`, `receipts`, `helpers`, or `support` as junk
+drawers. If those names appear, they must be local to a single family and
+narrow enough that a reviewer can still answer:
+
+- what source authority enters
+- what evidence is admitted
+- what case is classified
+- what transition is verified
+- what receipt or witness is constructed
+- what next capability is exposed
+- what denial cases are explicit
+
+### Cross-Crate Flow Shape
+
+Every S.8 implementation phase must preserve this direction:
+
+```text
+family crate authority
+-> forge-store-layout-indexes declaration/admission/access grammar
+-> family crate execution/readiness/evidence
+-> Foundational boundary receipt or report only after Store execution
+-> physical-certification/certification courtroom proof
+```
+
+The reverse direction is forbidden. Certification, offline verifier reports,
+Foundational layout claims, JSON/serde declarations, copied counter rows, and
+test-support fixtures may never become production S.8 authority unless a
+Store-owned readmission transition explicitly admits them.
+
+### New Crate Rule
+
+S.8 should prefer the existing crate family. Add a new crate only when all of
+these are true:
+
+- the new responsibility is not already owned by an existing Store crate
+- placing it in `forge-store-layout-indexes` would make that crate own
+  execution authority rather than layout/access grammar
+- placing it in a family crate would create an upward dependency cycle
+- the public contract can be named in one sentence without using "misc",
+  "common", "support", "proofs", or "helpers"
+
+Otherwise, add narrow modules to the existing owning crate and wire them
+through lifecycle-shaped facades.
+
 ## Known API Surface Map
 
 This milestone must not leave API discovery to implementation time. The exact
@@ -432,10 +907,142 @@ The implementation should introduce Store-owned surfaces equivalent to:
 - `NeverAuthorityCacheClass`
 - `S8LayoutHazardInventory`
 - `StoreLayoutPerformanceReceipt`
+- `S8DomainSkeletonInventory`
+- `S8CrateResponsibilityMap`
+- `S8SubsystemTopologyCloseout`
+- `S8CrossCrateAuthorityFlowReport`
 - `StorageFoundationS9LayoutHandoff`
 
 Names may change, but the conceptual surfaces may not disappear into raw
 fields, untyped enums, or certification-only rows.
+
+## Phase 0: Domain Skeleton And Subsystem Boundary Contract
+
+### Purpose
+
+Materialize the standing Domain Skeleton Contract before S.8 adds layout law,
+index grammar, or access-path machinery.
+
+This phase is architecture implementation. It creates the selected S.8 skeleton
+in code before feature work starts, even where the first modules contain only
+sealed vocabulary, facade exports, or closeout placeholders. It must leave the
+workspace in a shape where later phases add behavior into already-chosen homes
+rather than inventing homes while implementing.
+
+### Relevant APIs
+
+- Current dedicated Store workspace crates:
+  `forge-store-contracts`, `forge-store-layout-indexes`,
+  `forge-store-physical-format`, `forge-store-wal`,
+  `forge-store-recovery-physics`, `forge-store-buffer-pool`,
+  `forge-store-physical-integrity`, `forge-store-physical-isolation`,
+  `forge-store-io-scheduler`, `forge-store-blob-chunks`,
+  `forge-store-security`, `forge-store-operations`,
+  `forge-store-offline-verifier`, `forge-store-readiness`,
+  `forge-store-physical-certification`, `forge-store-certification`, and
+  `forge-store-test-support`
+- Current S.7.1 topology evidence:
+  `S7_1ProofFlowCleanupCloseout` or equivalent closeout evidence,
+  lifecycle-ordered blob exports, certification-as-courtroom boundaries, and
+  public facade construction-boundary proofs
+- Existing workspace authority surfaces:
+  `PhysicalLayoutFamily`, physical-format facade exports, blob lifecycle
+  exports, S.5.1 security-scope readiness, S.6 I/O readiness, S.7 closeout,
+  certification closeout surfaces, physical-certification harness surfaces,
+  and test-support harness authority proofs
+- S.8 surfaces to introduce:
+  `S8DomainSkeletonInventory`, `S8CrateResponsibilityMap`,
+  `S8SubsystemTopologyCloseout`, and `S8CrossCrateAuthorityFlowReport`
+
+### Required Work
+
+Restructure `forge-store-layout-indexes` into the selected target skeleton:
+
+- create every top-level architectural home named in
+  `Selected Layout-Indexes Skeleton`
+- move the current `PhysicalLayoutFamily` out of the flat seed file and into
+  `artifact_family` or `strategy/family` as appropriate
+- make `lib.rs` a facade-only aggregation file
+- add `facade` modules that export declarations, key-domain law, strategy
+  admission, access planning, access execution, maintenance, migration,
+  readmission, and closeout groups
+- add `skeleton` modules that define `S8DomainSkeletonInventory`,
+  `S8CrateResponsibilityMap`, `S8SubsystemTopologyCloseout`,
+  `S8CrossCrateAuthorityFlowReport`, and `S8PhaseSkeletonObligation`
+- add compile-fail entrypoint modules for raw construction, facade bypass, and
+  certification authority misuse
+
+Create the `layout_access` home in each owning family crate listed in
+`Required Family-Crate S.8 Homes`. Phase 0 does not need to implement every
+family behavior, but each home must compile, expose its closeout placeholder,
+and declare which S.8 grammar modules it will consume.
+
+Create the courtroom/test skeleton under the milestone-specific roots
+specified here:
+
+- `forge-store-physical-certification/src/harness/by_milestone/s8_layout_access`
+- `forge-store-certification/src/s8_layout_closeout`
+- `forge-store-test-support/src/harness/milestone/s8_layout_access`
+
+Add one code-level responsibility map that is opinionated, not generated from
+whatever files happen to exist. It must classify each relevant crate as one of:
+
+- `SharedContractVocabulary`
+- `LayoutAccessGrammar`
+- `FamilyExecutionAuthority`
+- `ReadinessHandoff`
+- `TerminalOfflineObservation`
+- `PhysicalCertificationCourtroom`
+- `CertificationCloseoutCourtroom`
+- `HonestTestFixtureSupport`
+- `SpecializedConsumer`
+
+Each responsibility-map row must name the crate, its primary responsibility,
+the authority it may mint, the authority it may consume, its allowed projection
+outputs, its public S.8 facade home, and the S.8 phases expected to touch it.
+
+Add a phase-obligation object that later phases must update when they add S.8
+work. The obligation must record:
+
+- phase number
+- owning crate
+- owning module path
+- public facade path
+- consumed authority
+- minted authority
+- courtroom/test-support boundary
+- compile-fail or runtime shortcut proof
+
+The New Crate Rule remains active, but Phase 0 should not create a new crate.
+The selected architecture already has a crate for S.8 grammar
+(`forge-store-layout-indexes`) and family crates for execution authority.
+
+### Tests
+
+- Skeleton inventory tests prove every crate in the responsibility map has one
+  primary role and no ambiguous "misc/support/proof bag" role.
+- Topology tests prove every selected `forge-store-layout-indexes` directory
+  exists, is wired through the facade where appropriate, and keeps `lib.rs`
+  aggregation-only.
+- Family-home tests prove every required `layout_access` module exists in the
+  owning family crates and exposes a closeout placeholder.
+- Boundary tests or compile-fail coverage prove certification/test-support
+  cannot construct production S.8 authority.
+- Dependency-direction tests or scan checks prove `forge-store-layout-indexes`
+  does not depend on certification/test-support and family crates do not depend
+  on certification as production law.
+- Public-export tests prove S.8 skeleton surfaces are reachable through
+  lifecycle-shaped facades, not only broad `lib.rs` dumps.
+- Spec conformance tests or closeout assertions prove every later phase can
+  reference the skeleton inventory and must update it if the crate map changes.
+
+### Closeout Gate
+
+This phase is done when the selected architectural homes physically exist in
+the workspace, compile, have facade wiring, have responsibility-map tests, and
+give later phases clear homes for their work. It is not done if it only
+produces an inventory, report, checklist, markdown explanation, or broad
+`mod.rs` wrapper.
 
 ## Phase 1: Durable Artifact Family Inventory
 
@@ -2550,6 +3157,8 @@ fallback behind.
 ### Relevant APIs
 
 - S.8 closeout must consume:
+  `S8DomainSkeletonInventory`, `S8CrateResponsibilityMap`,
+  `S8SubsystemTopologyCloseout`, `S8CrossCrateAuthorityFlowReport`,
   `PhysicalArtifactFamilyDeclaration`, `AuthorityRole`,
   `DerivedAccuracyClass`, `PhysicalKeyDomain`, `CanonicalKeyEncoding`,
   `ComparatorLaw`, `PrefixLaw`, `RangeBoundLaw`, `HashCollisionLaw`,
@@ -2587,6 +3196,7 @@ fallback behind.
 Run focused closeout across:
 
 - production layout declarations
+- skeleton inventory updates for every phase that touched a crate boundary
 - lower-crate visibility boundaries
 - compile-fail authority tests
 - runtime integration tests
@@ -2618,6 +3228,8 @@ the workspace Rust line-cap and code-quality guards
 
 `S.8` is not closed until each admitted durable artifact family has:
 
+- a skeleton inventory entry naming its owning crate, consumer crates, public
+  facade, courtroom/test-support boundary, and forbidden shortcut path
 - declared layout strategy
 - admitted physical key-domain law
 - tested strategy invariant suite, including baseline B-tree/LSM where claimed

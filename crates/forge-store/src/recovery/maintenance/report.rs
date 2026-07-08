@@ -1,16 +1,9 @@
 use crate::{backend::records::StoreState, failure::StoreError, snapshot::SnapshotId};
+pub use forge_store_contracts::MaintenanceArtifactFamily;
 use serde::Serialize;
 use std::collections::BTreeSet;
 
 use super::snapshot::classify_snapshot_maintenance_recovery;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub enum MaintenanceArtifactFamily {
-    Snapshot,
-    Compaction,
-    Reclaim,
-    Capsule,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum MaintenanceRecoveryDisposition {

@@ -4,10 +4,12 @@
 //! and the internal `compile_fail` module tree.
 #![forbid(unsafe_code)]
 
+pub mod layout_access;
+
 mod binary_format;
-mod compile_fail;
 mod blob_manifest;
 mod checksum;
+mod compile_fail;
 mod denial;
 mod extent_record;
 mod facade;
@@ -23,37 +25,58 @@ mod reference;
 mod security_metadata;
 
 // Lifecycle-ordered public exports (≤12 groups).
-pub use format_identity::{
-    PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,
-    PhysicalFormatVocabulary, PhysicalFrameId, PhysicalGeneration, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PhysicalVocabularyTerm,
-};
 pub use binary_format::{
     AllocationClassKind, FreeSpaceMapVocabulary, PhysicalAlgorithmReviewConclusion,
     PhysicalAlgorithmReviewEvidence, PhysicalAlignmentClass, PhysicalAlignmentSite,
     PhysicalBinaryEncodingWitness, PhysicalBinaryFormatError, PhysicalByteOrder,
     PhysicalByteOrderDeclaration, PhysicalComplexityStatus, PhysicalFieldWidth,
     PhysicalFieldWidthKind, PhysicalForegroundBoundednessOutcome,
-    PhysicalForegroundBoundednessReport, PhysicalFormatAuthoritySource,
-    PhysicalFormatDeclaration, PhysicalFormatDeclarationBuilder, PhysicalFormatEvolutionPosture,
-    PhysicalFormatIdentity, PhysicalForwardCompatibilityDeclaration,
-    PhysicalForwardCompatibilityPolicy, PhysicalFragmentationPressureReport,
-    PhysicalFreeSpaceSearchPolicy, PhysicalGoldenFormatHeaderFixture, PhysicalLocalityClass,
-    PhysicalOperationComplexityContract, PhysicalOperationCounterRow,
-    PhysicalOperationCounterSnapshot, PhysicalOperationEvidenceRequirement, PhysicalOperationKind,
-    PhysicalPageSizeClass, PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration,
+    PhysicalForegroundBoundednessReport, PhysicalFormatAuthoritySource, PhysicalFormatDeclaration,
+    PhysicalFormatDeclarationBuilder, PhysicalFormatEvolutionPosture, PhysicalFormatIdentity,
+    PhysicalForwardCompatibilityDeclaration, PhysicalForwardCompatibilityPolicy,
+    PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy,
+    PhysicalGoldenFormatHeaderFixture, PhysicalLocalityClass, PhysicalOperationComplexityContract,
+    PhysicalOperationCounterRow, PhysicalOperationCounterSnapshot,
+    PhysicalOperationEvidenceRequirement, PhysicalOperationKind, PhysicalPageSizeClass,
+    PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration,
 };
-pub use header::{
-    PhysicalDecodedHeader, PhysicalFrameHeader, PhysicalFrameKind, PhysicalHeaderAuthority,
-    PhysicalHeaderAuthorityScope, PhysicalHeaderDecodeCounterSnapshot, PhysicalHeaderDecodeDenial,
-    PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport, PhysicalHeaderDecodeWitness,
-    PhysicalHeaderKind, PhysicalHeaderReservedField, PhysicalHeaderReservedFields, PhysicalPageHeader,
-    PhysicalPageKind, PhysicalPublicationState, PHYSICAL_HEADER_LENGTH,
+pub use blob_manifest::{
+    BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
+    BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
 };
-pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
-pub use record_framing::{
-    FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
-    RecordPlacementWitness,
+pub use checksum::{
+    s1_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
+    ChecksumCoverageAuthoritySource, ChecksumCoverageDisposition, ChecksumCoverageEncoding,
+    ChecksumCoverageMap, ChecksumCoverageMapBuilder, ChecksumCoverageMapDenial,
+    ChecksumCoverageRegion, ChecksumFieldHandling, ChecksumGenerationFieldPosture,
+    ChecksumHeaderField, ChecksumLengthFieldPosture, ChecksumPaddingPosture, ChecksumPayloadRegion,
+    ChecksumReservedFieldPosture, ChecksumUnknownFieldPosture, PhysicalChunkChecksum,
+    PhysicalChunkChecksumAlgorithm, PhysicalChunkChecksumAuthority, PhysicalChunkChecksumDenial,
+    PhysicalChunkChecksumWitness, PhysicalChunkPayloadIntegrityWitness,
+    StorePhysicalChunkWriteReceipt, StorePhysicalChunkWriteSource,
+};
+pub use denial::{
+    PhysicalShortcutBoundary, PhysicalShortcutBoundaryDenial, PhysicalVocabularyError,
+};
+pub use extent_record::{
+    ExtentBackedRecordPlacement, ExtentBackedRecordView, ExtentMembership,
+    ExtentRecordAppendReport, ExtentRecordAppendRequest, ExtentRecordCounterSnapshot,
+    ExtentRecordDenial, ExtentRecordDenialKind, ExtentRecordLocateReport,
+    PhysicalExtentRecordAuthority,
+};
+pub use facade::{
+    PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeDenial,
+    PlatformPhysicalFacadeDenialKind, PlatformPhysicalFacadeEvidence,
+    PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary,
+    PlatformPhysicalFramedRecord, PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest,
+    PlatformPhysicalRecordTarget, PlatformPhysicalRootPublicationReport,
+    PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalScanReport,
+};
+pub use format_identity::{
+    PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,
+    PhysicalFormatVocabulary, PhysicalFrameId, PhysicalGeneration, PhysicalPageId,
+    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PhysicalVocabularyTerm,
 };
 pub use generation::{
     ExtentGenerationCell, ExtentGenerationCellBuilder, FreeSpaceReuseAddress, FreeSpaceReuseCell,
@@ -63,24 +86,12 @@ pub use generation::{
     SegmentGenerationCell, SegmentGenerationCellBuilder, SlotGenerationCell,
     SlotGenerationCellBuilder,
 };
-pub use reference::{
-    CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
-    ManifestMembershipProof, PhysicalFutureChunkId, PhysicalFutureChunkReference,
-    PhysicalReference, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
-    PhysicalReferenceAuthorityScope, PhysicalReferenceDenialKind, PhysicalReferenceKind,
-    PhysicalReferenceScope, PhysicalReferenceValidationCounterSnapshot,
-    PhysicalReferenceValidationDenial, PhysicalReferenceValidationWitness, PhysicalScopeFamily,
-    RootManifestIntegrityPosture, RootPublicationValidationWitness, StalePhysicalReference,
-};
-pub use extent_record::{
-    ExtentBackedRecordPlacement, ExtentBackedRecordView, ExtentMembership, ExtentRecordAppendReport,
-    ExtentRecordAppendRequest, ExtentRecordCounterSnapshot, ExtentRecordDenial,
-    ExtentRecordDenialKind, ExtentRecordLocateReport, PhysicalExtentRecordAuthority,
-};
-pub use page_record::{
-    PageRecordCounterSnapshot, PageRecordDenial, PageRecordDenialKind, PhysicalPageRecordAuthority,
-    RecordAppendReport, RecordLocateReport, SlotAppendRequest, SlotDirectory, SlotDirectoryEntry,
-    SlotDirectoryEntryState,
+pub use header::{
+    PhysicalDecodedHeader, PhysicalFrameHeader, PhysicalFrameKind, PhysicalHeaderAuthority,
+    PhysicalHeaderAuthorityScope, PhysicalHeaderDecodeCounterSnapshot, PhysicalHeaderDecodeDenial,
+    PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport, PhysicalHeaderDecodeWitness,
+    PhysicalHeaderKind, PhysicalHeaderReservedField, PhysicalHeaderReservedFields,
+    PhysicalPageHeader, PhysicalPageKind, PhysicalPublicationState, PHYSICAL_HEADER_LENGTH,
 };
 pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,
@@ -99,32 +110,24 @@ pub use offline_verifier::{
     PersistedPhysicalLayoutBuilder, PhysicalLayoutReport, RuntimeLayoutObservation,
     RuntimeLayoutObservationSource,
 };
-pub use facade::{
-    PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
-    PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeDenial,
-    PlatformPhysicalFacadeDenialKind, PlatformPhysicalFacadeEvidence,
-    PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary, PlatformPhysicalFramedRecord,
-    PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest, PlatformPhysicalRecordTarget,
-    PlatformPhysicalRootPublicationReport, PlatformPhysicalRuntimeLayoutReport,
-    PlatformPhysicalScanReport,
+pub use page_record::{
+    PageRecordCounterSnapshot, PageRecordDenial, PageRecordDenialKind, PhysicalPageRecordAuthority,
+    RecordAppendReport, RecordLocateReport, SlotAppendRequest, SlotDirectory, SlotDirectoryEntry,
+    SlotDirectoryEntryState,
 };
-pub use checksum::{
-    ChecksumCompatibilityFieldPosture, ChecksumCoverageAuthoritySource, ChecksumCoverageDisposition,
-    ChecksumCoverageEncoding, ChecksumCoverageMap, ChecksumCoverageMapBuilder,
-    ChecksumCoverageMapDenial, ChecksumCoverageRegion, ChecksumFieldHandling,
-    ChecksumGenerationFieldPosture, ChecksumHeaderField, ChecksumLengthFieldPosture,
-    ChecksumPaddingPosture, ChecksumPayloadRegion, ChecksumReservedFieldPosture,
-    ChecksumUnknownFieldPosture, PhysicalChunkChecksum, PhysicalChunkChecksumAlgorithm,
-    PhysicalChunkChecksumAuthority, PhysicalChunkChecksumDenial, PhysicalChunkChecksumWitness,
-    PhysicalChunkPayloadIntegrityWitness, StorePhysicalChunkWriteReceipt,
-    StorePhysicalChunkWriteSource, s1_required_covered_header_fields,
+pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
+pub use record_framing::{
+    FramedRecordPayload, FramedRecordView, RecordPagePayload, RecordPlacementClass,
+    RecordPlacementWitness,
 };
-pub use blob_manifest::{
-    BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
-    BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
-};
-pub use denial::{
-    PhysicalShortcutBoundary, PhysicalShortcutBoundaryDenial, PhysicalVocabularyError,
+pub use reference::{
+    CheckpointAdjacencyPosture, CurrentRootManifestAdmission, ManifestMembershipDenial,
+    ManifestMembershipProof, PhysicalFutureChunkId, PhysicalFutureChunkReference,
+    PhysicalReference, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
+    PhysicalReferenceAuthorityScope, PhysicalReferenceDenialKind, PhysicalReferenceKind,
+    PhysicalReferenceScope, PhysicalReferenceValidationCounterSnapshot,
+    PhysicalReferenceValidationDenial, PhysicalReferenceValidationWitness, PhysicalScopeFamily,
+    RootManifestIntegrityPosture, RootPublicationValidationWitness, StalePhysicalReference,
 };
 pub use security_metadata::{
     AllocationClassSecurityMetadataEnvelope, ExtentSecurityMetadataEnvelope,

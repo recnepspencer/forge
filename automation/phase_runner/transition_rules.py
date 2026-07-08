@@ -141,8 +141,8 @@ def advance_after_phase_close(
     config: dict[str, Any],
     phase_id: int,
 ) -> None:
-    next_phase_id = phase_id + 1
-    if next_phase_id > len(config["phases"]):
+    next_phase_id = next_phase_id_after(projection, phase_id)
+    if next_phase_id is None:
         projection["current"] = None
         return
     projection["current"] = {"phase": next_phase_id, "turn": first_turn(config, next_phase_id)}
@@ -151,7 +151,10 @@ def advance_after_phase_close(
 def first_turn(config: dict[str, Any], phase_id: int) -> str:
     turn_templates = config.get("turn_templates", {})
     runner_control = config.get("runner_control", {})
-    boundary_review_start_phase = runner_control.get("boundary_review_start_phase")
+    boundary_review_start_phase = runner_control.get(
+        "boundary_review_start_phase",
+        phase_id_start(config),
+    )
     if (
         "boundary_review" in turn_templates
         and isinstance(boundary_review_start_phase, int)
@@ -159,3 +162,32 @@ def first_turn(config: dict[str, Any], phase_id: int) -> str:
     ):
         return "boundary_review"
     return "plan"
+
+
+def phase_id_start(config: dict[str, Any]) -> int:
+    runner_control = config.get("runner_control", {})
+    if not isinstance(runner_control, dict):
+        return 1
+    value = runner_control.get("phase_id_start", 1)
+    if isinstance(value, int) and value >= 0:
+        return value
+    return 1
+
+
+def phase_by_id_or_none(projection: dict[str, Any], phase_id: int) -> dict[str, Any] | None:
+    for phase in projection["phases"]:
+        if phase["id"] == phase_id:
+            return phase
+    return None
+
+
+def next_phase_id_after(projection: dict[str, Any], phase_id: int) -> int | None:
+    phases = projection.get("phases", [])
+    for index, phase in enumerate(phases):
+        if phase.get("id") != phase_id:
+            continue
+        next_index = index + 1
+        if next_index >= len(phases):
+            return None
+        return phases[next_index]["id"]
+    return None

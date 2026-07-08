@@ -7,3 +7,6 @@ description = "Shared Forge Store ids, classifications, errors, and contract voc
 
 [lints]
 workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

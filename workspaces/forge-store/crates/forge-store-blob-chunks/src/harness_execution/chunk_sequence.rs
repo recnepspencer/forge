@@ -1,13 +1,11 @@
-use crate::{
-    BlobChunkSequenceAdmission, BlobChunkSize, BlobChunkingRuleAdmission,
-    HeavyBlobFixtureMaterializationMode,
-};
+use crate::handoffs::{BlobHarnessChunkTopology, BlobHarnessSecurityScopeClass};
 use crate::heavy_fixture::{
     DeterministicBytePatternProfile, HeavyBlobFixtureExecutionEvidence, HeavyBlobFixturePlan,
     HeavyBlobVerificationPassBasis,
 };
-use crate::handoffs::{
-    BlobHarnessChunkTopology, BlobHarnessSecurityScopeClass,
+use crate::{
+    BlobChunkSequenceAdmission, BlobChunkSize, BlobChunkingRuleAdmission,
+    HeavyBlobFixtureMaterializationMode,
 };
 use forge_store_physical_backend::{
     cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
@@ -48,7 +46,8 @@ pub(super) fn build_chunk_sequence(
         executed_topology.logical_bytes(),
     )
     .expect("sequence");
-    let (mut temp_file, disk_preflight_receipt) = begin_temp_materialization(heavy_fixture_plan, case);
+    let (mut temp_file, disk_preflight_receipt) =
+        begin_temp_materialization(heavy_fixture_plan, case);
     let mut actual_bytes_streamed = 0_u64;
     let mut rolling_digest = 0_u64;
     let mut peak_window_bytes = 0_u64;
@@ -59,7 +58,9 @@ pub(super) fn build_chunk_sequence(
         actual_bytes_streamed += bytes.len() as u64;
         rolling_digest = update_rolling_digest(rolling_digest, &bytes);
         if let Some(materialization) = temp_file.as_mut() {
-            materialization.append_chunk(&bytes).expect("temp fixture chunk");
+            materialization
+                .append_chunk(&bytes)
+                .expect("temp fixture chunk");
         }
         admission = admission
             .push_payload(offset, physical_payload_for_bytes(&bytes))
@@ -164,7 +165,11 @@ fn begin_temp_materialization(
 
 fn finalize_temp_materialization(
     temp_file: Option<HeavyFixtureTempFileMaterialization>,
-) -> (u64, u64, Option<forge_store_physical_backend::HeavyFixtureCleanupReceipt>) {
+) -> (
+    u64,
+    u64,
+    Option<forge_store_physical_backend::HeavyFixtureCleanupReceipt>,
+) {
     let Some(materialization) = temp_file else {
         return (0, 0, None);
     };
@@ -174,11 +179,13 @@ fn finalize_temp_materialization(
 }
 
 fn update_rolling_digest(current: u64, bytes: &[u8]) -> u64 {
-    bytes.iter().fold(current.rotate_left(9) ^ 0x9e37_79b9, |digest, byte| {
-        digest
-            .wrapping_mul(1_099_511_628_211)
-            .wrapping_add(u64::from(*byte) + 1)
-    })
+    bytes
+        .iter()
+        .fold(current.rotate_left(9) ^ 0x9e37_79b9, |digest, byte| {
+            digest
+                .wrapping_mul(1_099_511_628_211)
+                .wrapping_add(u64::from(*byte) + 1)
+        })
 }
 
 fn deterministic_chunk_bytes(
@@ -187,7 +194,9 @@ fn deterministic_chunk_bytes(
     ordinal: u64,
 ) -> Vec<u8> {
     let offset = chunk_offset(topology, ordinal);
-    let len = topology.chunk_bytes().min(topology.logical_bytes() - offset) as usize;
+    let len = topology
+        .chunk_bytes()
+        .min(topology.logical_bytes() - offset) as usize;
     let seed = topology.chunk_bytes()
         ^ topology.logical_bytes()
         ^ ordinal.rotate_left(7)

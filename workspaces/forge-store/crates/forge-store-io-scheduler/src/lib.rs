@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod backend_capability;
+pub mod layout_access;
 pub mod background_pacing;
 mod execution;
 pub mod foreground_reservation;

@@ -14,9 +14,7 @@ impl PlatformPhysicalFacade {
     pub fn reject_full_store_heap_materialization(
         &mut self,
     ) -> Result<(), PlatformPhysicalFacadeDenial> {
-        self.counters = self
-            .counters
-            .with_full_store_materialization_rejection();
+        self.counters = self.counters.with_full_store_materialization_rejection();
         Err(assemble_shortcut_denial(
             PlatformPhysicalFacadeDenialKind::FullStoreMaterializationRejected,
             PhysicalShortcutBoundaryDenial::full_store_heap_materialization(),

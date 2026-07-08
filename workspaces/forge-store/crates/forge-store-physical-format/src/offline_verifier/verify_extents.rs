@@ -28,12 +28,8 @@ pub(crate) fn verify_all_extents(
         let membership = classify_extent_membership(cell, extent.bytes().len());
         counters = counters.with_extent_membership_check();
         let admission = ctx.references.admit_extent(cell);
-        let validation = verify_extent_manifest_membership(
-            ctx.manifests,
-            manifest_report,
-            admission,
-            counters,
-        )?;
+        let validation =
+            verify_extent_manifest_membership(ctx.manifests, manifest_report, admission, counters)?;
         verify_extent_record_located(
             &extent_records,
             extent.bytes(),
@@ -76,11 +72,8 @@ fn verify_extent_manifest_membership(
     manifests
         .locate_extent(manifest_report, admission)
         .map_err(|denial| {
-            OfflineVerifierDenial::new(
-                OfflineVerifierDenialKind::ManifestDiscoveryDenied,
-                counters,
-            )
-            .with_manifest_denial(denial)
+            OfflineVerifierDenial::new(OfflineVerifierDenialKind::ManifestDiscoveryDenied, counters)
+                .with_manifest_denial(denial)
         })
 }
 

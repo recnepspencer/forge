@@ -79,3 +79,20 @@ The runner also enforces a few operational guards:
 - serialized event-log appends per `run_id`
 - recovery instead of blind rerun when a prior Codex turn finished but its outcome was not recorded
 - idle and wall-clock turn timeouts through optional `runner_control.idle_timeout_seconds` and `runner_control.turn_timeout_seconds`
+
+## Phase Ordering
+
+Phase ids are labels. The configured `phases` array is the authoritative phase
+sequence:
+
+```text
+phases[0] -> phases[1] -> ... -> phases[last]
+```
+
+The runner advances to the next configured phase by array order, not by
+calculating `current_phase_id + 1`. This allows milestones to use native phase
+ids such as `0`, sparse ids, inserted interruption phases, or other numbering
+schemes without lying to the config.
+
+Use `runner_control.phase_id_start` only as a guard for the first configured
+phase id. If present, it must match `phases[0].id`.

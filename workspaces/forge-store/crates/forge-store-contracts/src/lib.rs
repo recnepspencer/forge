@@ -16,8 +16,12 @@
 #![forbid(unsafe_code)]
 
 mod artifact_identity;
+mod compatibility_family;
 mod contract_error;
 mod corruption_handoff_damage_case;
+mod durable_artifact_family_classification;
+mod durable_artifact_family_id;
+mod existing_artifact_family;
 mod handoff_readiness;
 mod physical_authority;
 mod roadmap_scope;
@@ -30,8 +34,23 @@ mod s6_later_readiness_vocabulary;
 mod s6_queue_producer;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
+pub use compatibility_family::{
+    ArtifactFamilyId, CompatibilityAuthorityClassification, CompatibilityFamilyKind,
+    FIRST_SHIP_COMPATIBILITY_FAMILIES, FIRST_SHIP_COMPATIBILITY_FAMILY_COUNT,
+};
 pub use contract_error::{StoreContractError, StoreContractResult};
 pub use corruption_handoff_damage_case::CorruptionHandoffDamageCase;
+pub use durable_artifact_family_classification::{
+    ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, ArtifactFamilyLifecycleClass,
+    DurableArtifactMigrationPosture, DurableArtifactOwningBoundary, DurableArtifactProjectionClass,
+    DurableArtifactRebuildPosture,
+};
+pub use durable_artifact_family_id::DurableArtifactFamilyId;
+pub use existing_artifact_family::{
+    DerivedFamilyRetentionPolicy, LayoutCompactionFamilyKind, LayoutFamilyCompactionUnit,
+    MaintenanceArtifactFamily, PlacementArtifactFamily, PublicationFamily, SupportArtifactFamily,
+    WalRecordFamily,
+};
 pub use handoff_readiness::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, S0HandoffArtifactKind,
 };

@@ -1,9 +1,9 @@
 mod authority;
 mod counters;
 mod denials;
+mod membership;
 #[cfg(test)]
 mod tests;
-mod membership;
 
 pub use authority::*;
 pub use counters::*;

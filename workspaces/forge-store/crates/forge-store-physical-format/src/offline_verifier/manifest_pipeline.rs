@@ -56,11 +56,8 @@ pub(crate) fn verify_manifest_discovery(
     manifests
         .reopen_from_root(root, references.admit_root_publication(root_cell))
         .map_err(|denial| {
-            OfflineVerifierDenial::new(
-                OfflineVerifierDenialKind::ManifestDiscoveryDenied,
-                counters,
-            )
-            .with_manifest_denial(denial)
+            OfflineVerifierDenial::new(OfflineVerifierDenialKind::ManifestDiscoveryDenied, counters)
+                .with_manifest_denial(denial)
         })
 }
 

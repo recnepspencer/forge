@@ -6,10 +6,25 @@ license.workspace = true
 description = "Roadmap 2 S.8 artifact layout, index, and access-path discipline."
 
 [dependencies]
-forge-store-blob-chunks.workspace = true
-forge-store-contracts.workspace = true
-forge-store-physical-backend.workspace = true
-forge-store-physical-format.workspace = true
+forge-store-blob-chunks = { path = "../forge-store-blob-chunks" }
+forge-store-contracts = { path = "../forge-store-contracts" }
+forge-store-physical-format = { path = "../forge-store-physical-format" }
+forge-store-security = { path = "../forge-store-security" }
+forge-store-wal = { path = "../forge-store-wal" }
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-store-aspect-native = { path = "../forge-store-aspect-native" }
+forge-store-authority = { path = "../forge-store-authority" }
+forge-store-blob-chunks = { path = "../forge-store-blob-chunks", features = ["certification-test-authority"] }
+forge-store-budgets = { path = "../forge-store-budgets" }
+forge-store-certification = { path = "../forge-store-certification" }
+forge-store-offline-verifier = { path = "../forge-store-offline-verifier" }
+forge-store-operations = { path = "../forge-store-operations" }
+forge-store-physical-certification = { path = "../forge-store-physical-certification" }
+forge-store-security = { path = "../forge-store-security", features = ["certification-test-authority"] }
+forge-store-test-support = { path = "../forge-store-test-support" }
 
 [lints]
 workspace = true

@@ -1,9 +1,7 @@
 use forge_store_tiering::S7ColdPlacementState;
 
 use crate::handoffs::BlobHarnessPlacementClass;
-use crate::{
-    BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority, BlobPlacementIntent,
-};
+use crate::{BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority, BlobPlacementIntent};
 
 use super::backend::admitted_backend;
 use super::certification_test_authority::{external_recovery, placement_readiness};

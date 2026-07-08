@@ -31,7 +31,11 @@ def project_run(
 ) -> dict[str, Any]:
     projection = empty_projection(config, run_id)
     if projection["phases"]:
-        projection["current"] = {"phase": 1, "turn": first_turn(config, 1)}
+        first_phase_id = projection["phases"][0]["id"]
+        projection["current"] = {
+            "phase": first_phase_id,
+            "turn": first_turn(config, first_phase_id),
+        }
 
     for event in events:
         if event.get("thread_id"):

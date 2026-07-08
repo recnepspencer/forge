@@ -1,9 +1,9 @@
 use crate::{
     AllocationClassManifestEntry, ExtentManifestEntry, FreeSpaceManifestEntry,
-    ManifestDiscoveryAuthority, OfflineManifestCodec, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalReferenceAuthority,
-    PhysicalRootManifest, PhysicalRootReference, RootPublicationCell, SegmentManifestEntry,
-    SegmentPageManifestEntry,
+    ManifestDiscoveryAuthority, OfflineManifestCodec, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder,
+    PhysicalReferenceAuthority, PhysicalRootManifest, PhysicalRootReference, RootPublicationCell,
+    SegmentManifestEntry, SegmentPageManifestEntry,
 };
 
 use super::denials::{PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind};

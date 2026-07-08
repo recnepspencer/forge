@@ -3,22 +3,11 @@ use crate::{
     wal::DurableMutationId,
     ForegroundIsolationOutcome,
 };
+pub use forge_store_contracts::PublicationFamily;
 use forge_relational::facade::{history::CommitId, replay::CanonicalCommitEnvelope};
 use serde::Serialize;
 
 const DEFAULT_RUNTIME_SESSION_ID: &str = "durable-runtime";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub enum PublicationFamily {
-    WalIntent,
-    WalCanonicalResult,
-    WalPublicationProgress,
-    AuthoritativeCommitAppendUnit,
-    BranchHeadPublication,
-    AcknowledgmentEligibility,
-    SnapshotBasis,
-    SnapshotImage,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum PublicationStrategy {

@@ -1,15 +1,18 @@
 use forge_store_budgets::BlobHarnessEnvelopeProfile;
 
-use crate::BlobChunkRootPublication;
-use crate::S7ExecutedLifecycleEvidenceBundle;
-use crate::heavy_fixture::{
-    DeterministicBytePatternProfile, HeavyBlobFixtureExecutionEvidence,
-    HeavyBlobFixtureMaterializationMode, HeavyBlobFixturePlan,
-};
 use crate::handoffs::{
     BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkTopology, BlobHarnessFailurePoint,
     BlobHarnessPlacementClass, BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
 };
+use crate::heavy_fixture::{
+    DeterministicBytePatternProfile, HeavyBlobFixtureExecutionEvidence,
+    HeavyBlobFixtureMaterializationMode, HeavyBlobFixturePlan,
+};
+use crate::import_readmission::{
+    bridge_canonical_export_trust_boundary, BoundaryBridgedCanonicalExportArtifact,
+};
+use crate::BlobChunkRootPublication;
+use crate::S7ExecutedLifecycleEvidenceBundle;
 use forge_store_physical_backend::HeavyFixtureBackendProfile;
 
 use super::chunk_sequence::build_chunk_sequence;
@@ -58,6 +61,7 @@ pub struct BlobHarnessExecutedWitness {
     reachability_stored_digest_matches_lifecycle: bool,
     cross_scope_dedupe_denied: bool,
     heavy_fixture_evidence: Option<HeavyBlobFixtureExecutionEvidence>,
+    bridged_export_artifact: BoundaryBridgedCanonicalExportArtifact,
     closeout_evidence: S7ExecutedLifecycleEvidenceBundle,
 }
 
@@ -108,18 +112,46 @@ impl BlobHarnessExecutionInput {
 }
 
 impl BlobHarnessExecutedWitness {
-    pub const fn executed_topology(&self) -> BlobHarnessChunkTopology { self.executed_topology }
-    pub const fn declared_topology(&self) -> BlobHarnessChunkTopology { self.declared_topology }
-    pub const fn allocation_bytes(&self) -> u64 { self.allocation_bytes }
-    pub const fn observed_yieldpoint(&self) -> BlobHarnessObservedYieldpoint { self.observed_yieldpoint }
-    pub const fn export_declared_chunk_count(&self) -> u64 { self.export_declared_chunk_count }
-    pub const fn export_declared_total_bytes(&self) -> u64 { self.export_declared_total_bytes }
-    pub const fn export_logical_digest_matches_lifecycle(&self) -> bool { self.export_logical_digest_matches_lifecycle }
-    pub const fn export_checksum_distinct_from_stored_digest(&self) -> bool { self.export_checksum_distinct_from_stored_digest }
-    pub const fn reachability_reference_edges(&self) -> u64 { self.reachability_reference_edges }
-    pub const fn reachability_stored_digest_matches_lifecycle(&self) -> bool { self.reachability_stored_digest_matches_lifecycle }
-    pub const fn cross_scope_dedupe_denied(&self) -> bool { self.cross_scope_dedupe_denied }
-    pub fn heavy_fixture_evidence(&self) -> Option<&HeavyBlobFixtureExecutionEvidence> { self.heavy_fixture_evidence.as_ref() }
+    pub const fn executed_topology(&self) -> BlobHarnessChunkTopology {
+        self.executed_topology
+    }
+    pub const fn declared_topology(&self) -> BlobHarnessChunkTopology {
+        self.declared_topology
+    }
+    pub const fn allocation_bytes(&self) -> u64 {
+        self.allocation_bytes
+    }
+    pub const fn observed_yieldpoint(&self) -> BlobHarnessObservedYieldpoint {
+        self.observed_yieldpoint
+    }
+    pub const fn export_declared_chunk_count(&self) -> u64 {
+        self.export_declared_chunk_count
+    }
+    pub const fn export_declared_total_bytes(&self) -> u64 {
+        self.export_declared_total_bytes
+    }
+    pub const fn export_logical_digest_matches_lifecycle(&self) -> bool {
+        self.export_logical_digest_matches_lifecycle
+    }
+    pub const fn export_checksum_distinct_from_stored_digest(&self) -> bool {
+        self.export_checksum_distinct_from_stored_digest
+    }
+    pub const fn reachability_reference_edges(&self) -> u64 {
+        self.reachability_reference_edges
+    }
+    pub const fn reachability_stored_digest_matches_lifecycle(&self) -> bool {
+        self.reachability_stored_digest_matches_lifecycle
+    }
+    pub const fn cross_scope_dedupe_denied(&self) -> bool {
+        self.cross_scope_dedupe_denied
+    }
+    pub fn heavy_fixture_evidence(&self) -> Option<&HeavyBlobFixtureExecutionEvidence> {
+        self.heavy_fixture_evidence.as_ref()
+    }
+
+    pub(crate) fn bridged_export_artifact(&self) -> &BoundaryBridgedCanonicalExportArtifact {
+        &self.bridged_export_artifact
+    }
 
     pub const fn closeout_evidence(&self) -> &S7ExecutedLifecycleEvidenceBundle {
         &self.closeout_evidence
@@ -139,7 +171,8 @@ pub fn execute_s7_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessE
         input.topology,
         heavy_fixture_plan.as_ref(),
     );
-    let publication = BlobChunkRootPublication::publish(generated.sequence.clone()).expect("publication");
+    let publication =
+        BlobChunkRootPublication::publish(generated.sequence.clone()).expect("publication");
     let lane = execute_lifecycle(&case, input.security_scope_class, &publication, &generated);
     let placed_lane = ExecutedBlobLane {
         placement: admit_placement(&case, &lane.reachability, input.placement_class),
@@ -147,17 +180,18 @@ pub fn execute_s7_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessE
     };
     let export_bundle = publish_export_bundle(&case, &placed_lane, &publication, &generated);
     let export_logical_digest_matches_lifecycle =
-        export_bundle.digest_evidence().logical_content_digest() == publication.logical_content_digest();
+        export_bundle.digest_evidence().logical_content_digest()
+            == publication.logical_content_digest();
     let export_checksum_distinct_from_stored_digest = export_bundle
         .offline_declarations()
         .first()
         .map(|chunk| chunk.checksum_digest() != chunk.stored_digest())
         .unwrap_or(false);
     let reachability_reference_edges = placed_lane.reachability.counters().reference_edges();
-    let reachability_stored_digest_matches_lifecycle =
-        placed_lane.reachability.stored_digest()
-            == generated.sequence.proof_frontier().ordered_leaves()[0].stored_digest();
+    let reachability_stored_digest_matches_lifecycle = placed_lane.reachability.stored_digest()
+        == generated.sequence.proof_frontier().ordered_leaves()[0].stored_digest();
     let cross_scope_dedupe_denied = observe_cross_scope_dedupe(&case, input.security_scope_class);
+    let bridged_export_artifact = bridge_canonical_export_trust_boundary(&export_bundle);
     let closeout_evidence = S7ExecutedLifecycleEvidenceBundle::from_harness_execution(
         input.security_scope_class,
         input.placement_class,
@@ -191,6 +225,7 @@ pub fn execute_s7_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessE
         reachability_stored_digest_matches_lifecycle,
         cross_scope_dedupe_denied,
         heavy_fixture_evidence: generated.heavy_fixture_evidence,
+        bridged_export_artifact,
         closeout_evidence,
     }
 }
@@ -199,7 +234,9 @@ fn canonical_heavy_fixture_plan(input: &BlobHarnessExecutionInput) -> Option<Hea
     let mut plan = if let Some(mode) = input.heavy_materialization_mode {
         Some(
             HeavyBlobFixturePlan::canonical_for_profile(input.size_class, input.topology)
-                .unwrap_or_else(|| HeavyBlobFixturePlan::temp_file_smoke_for_topology(input.topology))
+                .unwrap_or_else(|| {
+                    HeavyBlobFixturePlan::temp_file_smoke_for_topology(input.topology)
+                })
                 .with_materialization_mode(mode),
         )
     } else {
@@ -228,14 +265,30 @@ fn request_identity(input: &BlobHarnessExecutionInput) -> String {
     )
 }
 
-const fn observed_yieldpoint(failure_point: BlobHarnessFailurePoint) -> BlobHarnessObservedYieldpoint {
+const fn observed_yieldpoint(
+    failure_point: BlobHarnessFailurePoint,
+) -> BlobHarnessObservedYieldpoint {
     match failure_point {
-        BlobHarnessFailurePoint::NoFaultSeed => BlobHarnessObservedYieldpoint::MemoryPressureBoundary,
-        BlobHarnessFailurePoint::AfterChunkWrite => BlobHarnessObservedYieldpoint::WalAppendBeforeFlush,
-        BlobHarnessFailurePoint::AfterSessionCheckpoint => BlobHarnessObservedYieldpoint::FreshRuntimeReplayOpen,
-        BlobHarnessFailurePoint::AfterRootPublication => BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve,
-        BlobHarnessFailurePoint::DuringTierMove => BlobHarnessObservedYieldpoint::IoPressureBoundary,
-        BlobHarnessFailurePoint::DuringExport => BlobHarnessObservedYieldpoint::OfflineVerifierLayoutWalkBeforeRuntimeRecovery,
-        BlobHarnessFailurePoint::DuringReclaim => BlobHarnessObservedYieldpoint::ShortcutRejectionBoundary,
+        BlobHarnessFailurePoint::NoFaultSeed => {
+            BlobHarnessObservedYieldpoint::MemoryPressureBoundary
+        }
+        BlobHarnessFailurePoint::AfterChunkWrite => {
+            BlobHarnessObservedYieldpoint::WalAppendBeforeFlush
+        }
+        BlobHarnessFailurePoint::AfterSessionCheckpoint => {
+            BlobHarnessObservedYieldpoint::FreshRuntimeReplayOpen
+        }
+        BlobHarnessFailurePoint::AfterRootPublication => {
+            BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve
+        }
+        BlobHarnessFailurePoint::DuringTierMove => {
+            BlobHarnessObservedYieldpoint::IoPressureBoundary
+        }
+        BlobHarnessFailurePoint::DuringExport => {
+            BlobHarnessObservedYieldpoint::OfflineVerifierLayoutWalkBeforeRuntimeRecovery
+        }
+        BlobHarnessFailurePoint::DuringReclaim => {
+            BlobHarnessObservedYieldpoint::ShortcutRejectionBoundary
+        }
     }
 }

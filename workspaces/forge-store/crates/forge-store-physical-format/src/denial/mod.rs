@@ -1,5 +1,5 @@
-mod vocabulary;
 mod shortcut_boundary;
+mod vocabulary;
 
-pub use vocabulary::*;
 pub use shortcut_boundary::*;
+pub use vocabulary::*;

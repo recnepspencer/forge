@@ -68,9 +68,7 @@ pub use transitions::{
     classify_and_reject_physical_handoff, observe_physical_pre_decode_denial,
     reject_physical_handoff_as_blob_authority, PhysicalCorruptionHandoffClassification,
 };
-pub(crate) use transitions::{
-    from_streaming_read_request, seal_quarantine_from_localization,
-};
+pub(crate) use transitions::{from_streaming_read_request, seal_quarantine_from_localization};
 pub use types::{
     BlobCorruptionDetectionSource, BlobCorruptionPlacementClass,
     BlobCorruptionReferenceSharingScope, BlobQuarantineLifecycleState,

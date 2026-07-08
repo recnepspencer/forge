@@ -30,11 +30,8 @@ pub(crate) fn verify_all_pages(
         let (page_payload, next_counters) =
             verify_page_payload_admission(&page_records, page, header, counters)?;
         counters = next_counters;
-        counters = verify_page_slot_directory(
-            page_payload.bytes(),
-            ctx.headers.byte_order(),
-            counters,
-        )?;
+        counters =
+            verify_page_slot_directory(page_payload.bytes(), ctx.headers.byte_order(), counters)?;
         let admission = ctx.references.admit_page_slot(cell);
         let validation =
             verify_page_manifest_membership(ctx.manifests, manifest_report, admission, counters)?;
@@ -53,19 +50,30 @@ fn collect_page_evidence(
     pages
         .iter()
         .find(|page| page.cell().segment_id() == segment_id && page.cell().page_id() == page_id)
-        .ok_or_else(|| OfflineVerifierDenial::new(OfflineVerifierDenialKind::MissingPersistedPage, counters))
+        .ok_or_else(|| {
+            OfflineVerifierDenial::new(OfflineVerifierDenialKind::MissingPersistedPage, counters)
+        })
 }
 
 fn verify_page_header_decode(
     page_records: &PhysicalPageRecordAuthority,
     page: &PersistedPageBytes,
     counters: OfflineVerifierCounterSnapshot,
-) -> Result<(crate::PhysicalHeaderDecodeReport, OfflineVerifierCounterSnapshot), OfflineVerifierDenial> {
+) -> Result<
+    (
+        crate::PhysicalHeaderDecodeReport,
+        OfflineVerifierCounterSnapshot,
+    ),
+    OfflineVerifierDenial,
+> {
     let header = page_records
         .decode_record_page_header(page.cell(), page.bytes(), PhysicalPageKind::DataPage)
         .map_err(|denial| {
-            OfflineVerifierDenial::new(OfflineVerifierDenialKind::HeaderDecodeDenied, counters.with_header_decode())
-                .with_header_denial(denial)
+            OfflineVerifierDenial::new(
+                OfflineVerifierDenialKind::HeaderDecodeDenied,
+                counters.with_header_decode(),
+            )
+            .with_header_denial(denial)
         })?;
     Ok((header, counters.with_header_decode()))
 }

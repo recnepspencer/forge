@@ -359,6 +359,9 @@ dependencies = [
 [[package]]
 name = "forge-store-contracts"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "forge-store-extensions"
@@ -399,10 +402,21 @@ dependencies = [
 name = "forge-store-layout-indexes"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-blob-chunks",
+ "forge-store-budgets",
+ "forge-store-certification",
  "forge-store-contracts",
- "forge-store-physical-backend",
+ "forge-store-offline-verifier",
+ "forge-store-operations",
+ "forge-store-physical-certification",
  "forge-store-physical-format",
+ "forge-store-security",
+ "forge-store-test-support",
+ "forge-store-wal",
 ]
 
 [[package]]

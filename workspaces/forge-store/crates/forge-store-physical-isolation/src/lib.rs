@@ -10,6 +10,8 @@
 
 extern crate self as forge_store_physical_isolation;
 
+pub mod layout_access;
+
 mod blob_orphan_reclaim;
 mod byte_guard;
 mod checkpoint_interlock;

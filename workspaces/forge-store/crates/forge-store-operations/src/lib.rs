@@ -110,6 +110,7 @@ mod repair_quarantine_readiness;
 mod repair_quarantine_readiness_tests;
 mod s10_later_io_readiness;
 mod s6_background_pressure;
+pub mod layout_access;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
 pub use backup_export_custody_counters::BackupExportCustodyCounterSnapshot;

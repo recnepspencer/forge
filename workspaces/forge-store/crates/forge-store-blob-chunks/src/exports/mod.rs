@@ -6,10 +6,10 @@
 //! production capability admission.
 
 mod capsule_readiness;
-mod compaction;
-mod corruption;
 #[cfg(feature = "certification-test-authority")]
 pub mod certification_test_authority;
+mod compaction;
+mod corruption;
 mod dedupe;
 mod export_bundle;
 mod handoffs;

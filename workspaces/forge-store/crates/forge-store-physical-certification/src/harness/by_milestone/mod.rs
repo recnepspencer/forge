@@ -1,5 +1,7 @@
 //! Milestone-scoped harness authority grouped by roadmap phase.
 
+pub mod s8_layout_access;
+
 pub mod s6 {
     pub use crate::s6_backend_qualification::{
         evaluate_row_rebind, reject_copied_backend_qualification_row,
