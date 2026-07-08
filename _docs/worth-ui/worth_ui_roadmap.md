@@ -602,6 +602,8 @@ structural closeout bundle and 3.8 start-here capabilities).
 
 ### Milestone 3.8: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
 
+Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
+
 This slice closes committed allocation truth and churn-heavy measurement
 behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
 cleaned the runtime topology**.
