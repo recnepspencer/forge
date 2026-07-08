@@ -2631,6 +2631,7 @@ dependencies = [
  "worth-geom",
  "worth-math",
  "worth-primitives",
+ "worth-retained-authority",
  "worth-schema",
  "worth-spatial",
  "worth-topo",
@@ -2655,6 +2656,15 @@ name = "worth-primitives"
 version = "0.1.0"
 dependencies = [
  "sha2",
+]
+
+[[package]]
+name = "worth-retained-authority"
+version = "0.1.0"
+dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "trybuild",
 ]
 
 [[package]]
@@ -2689,6 +2699,7 @@ dependencies = [
  "worth-kernel",
  "worth-math",
  "worth-primitives",
+ "worth-retained-authority",
  "worth-schema",
  "worth-topo",
 ]

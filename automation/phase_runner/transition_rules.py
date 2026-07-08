@@ -3,8 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 from event_types import PHASE_PROGRESS_EVENTS
+from phase_execution import (
+    SINGLE_PROMPT_MODE,
+    execution_mode_for_phase,
+    initial_turn_for_phase,
+    single_prompt_success_event_for_phase,
+    supported_outcome_event_types_for_cursor,
+)
 
-TURN_OUTCOME_EVENTS = {
+STANDARD_TURN_OUTCOME_EVENTS = {
     "boundary_review": {"boundary_review_completed"},
     "plan": {"plan_posted"},
     "implement": {"implementation_completed"},
@@ -18,10 +25,8 @@ TURN_OUTCOME_EVENTS = {
 }
 
 
-def validate_turn_outcome(turn: str, event_type: str) -> None:
-    allowed = TURN_OUTCOME_EVENTS.get(turn)
-    if allowed is None:
-        raise ValueError(f"turn {turn!r} does not support runner outcomes")
+def validate_turn_outcome(phase: dict[str, Any], turn: str, event_type: str) -> None:
+    allowed = supported_outcome_event_types_for_cursor(phase, turn)
     if event_type not in allowed:
         raise ValueError(f"turn {turn!r} cannot emit {event_type!r}")
 
@@ -39,13 +44,12 @@ def validate_projected_transition(projection: dict[str, Any], event: dict[str, A
         raise ValueError(
             f"{event_type} targets phase {phase_id!r} while current phase is {current.get('phase')!r}"
         )
-    if current.get("turn") == "boundary_review" and turn == "plan" and event_type == "plan_posted":
-        return
     if current.get("turn") != turn:
         raise ValueError(
             f"{event_type} targets turn {turn!r} while current turn is {current.get('turn')!r}"
         )
-    validate_turn_outcome(str(turn), event_type)
+    phase = phase_by_id(projection, phase_id)
+    validate_turn_outcome(phase, str(turn), event_type)
 
 
 def apply_phase_progress(
@@ -58,6 +62,22 @@ def apply_phase_progress(
         return
     phase_id = event["phase_id"]
     phase = phase_by_id(projection, phase_id)
+    if (
+        execution_mode_for_phase(phase) == SINGLE_PROMPT_MODE
+        and event_type == single_prompt_success_event_for_phase(phase)
+    ):
+        payload = event["payload"]
+        merge_notes(phase["notes"], payload.get("notes", {}))
+        summary = payload.get("summary")
+        if isinstance(summary, str) and summary:
+            projection["latest_summary"] = summary
+        verification = payload.get("verification")
+        if isinstance(verification, list):
+            phase["notes"]["verification"] = verification
+        phase["status"] = "complete"
+        phase["qa_status"] = "passed"
+        advance_after_phase_close(projection, config, phase_id)
+        return
     payload = event["payload"]
     merge_notes(phase["notes"], payload.get("notes", {}))
     summary = payload.get("summary")
@@ -68,6 +88,8 @@ def apply_phase_progress(
         phase["notes"]["verification"] = verification
 
     if event_type == "boundary_review_completed":
+        phase["status"] = "not_started"
+        phase["qa_status"] = "not_started"
         projection["current"] = {"phase": phase_id, "turn": "plan"}
         return
     if event_type == "plan_posted":
@@ -145,22 +167,30 @@ def advance_after_phase_close(
     if next_phase_id is None:
         projection["current"] = None
         return
-    projection["current"] = {"phase": next_phase_id, "turn": first_turn(config, next_phase_id)}
+    next_phase = phase_by_id(projection, next_phase_id)
+    next_turn = first_turn(config, next_phase)
+    projection["current"] = {"phase": next_phase_id, "turn": next_turn}
 
 
-def first_turn(config: dict[str, Any], phase_id: int) -> str:
-    turn_templates = config.get("turn_templates", {})
+def first_turn(config: dict[str, Any], phase: dict[str, Any]) -> str:
     runner_control = config.get("runner_control", {})
-    boundary_review_start_phase = runner_control.get(
-        "boundary_review_start_phase",
-        phase_id_start(config),
+    phase_id = phase.get("id")
+    boundary_review_start_phase = (
+        runner_control.get("boundary_review_start_phase")
+        if isinstance(runner_control, dict)
+        else phase_id_start(config)
     )
+    if boundary_review_start_phase is None:
+        boundary_review_start_phase = phase_id_start(config)
     if (
-        "boundary_review" in turn_templates
+        "boundary_review" in config["turn_templates"]
         and isinstance(boundary_review_start_phase, int)
+        and isinstance(phase_id, int)
         and phase_id >= boundary_review_start_phase
     ):
-        return "boundary_review"
+        return initial_turn_for_phase(phase, config["turn_templates"])
+    if execution_mode_for_phase(phase) == SINGLE_PROMPT_MODE:
+        return initial_turn_for_phase(phase, config["turn_templates"])
     return "plan"
 
 

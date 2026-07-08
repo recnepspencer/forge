@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from config_schema import resolve_config_path
+from phase_execution import contract_template_path_for_phase, prompt_template_path_for_cursor
 
 TOKEN = re.compile(r"{([A-Za-z0-9_.]+)}")
 
@@ -21,7 +21,7 @@ def render_prompt(
     turn = current_turn_required(projection)
     context = build_context(config, projection, config_path, projection_path, event_log_path, phase, turn)
     context["contract"] = render_contract(config, config_path, context)
-    template_path = resolve_config_path(config_path, config["turn_templates"][turn])
+    template_path = prompt_template_path_for_cursor(config, config_path, phase, turn)
     template = template_path.read_text(encoding="utf-8")
     rendered = context.get("fresh_recovery_prompt", "") + render_template(template, context)
     if not expected_turn_instance_id:
@@ -39,7 +39,7 @@ def render_prompt(
 def render_contract(
     config: dict[str, Any], config_path: Path, context: dict[str, Any]
 ) -> str:
-    contract_path = resolve_config_path(config_path, config["contract_template"])
+    contract_path = contract_template_path_for_phase(config, config_path, context["phase"])
     contract = contract_path.read_text(encoding="utf-8")
     return render_template(contract, context)
 

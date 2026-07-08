@@ -1,7 +1,0 @@
-error[E0432]: unresolved imports `topology::facade::certify_milestone_two_verified_topology_commit_traced`, `topology::facade::certify_verified_topology_commit_traced`
- --> src/certification/public_facade_contracts/compile_fail/public_verified_topology_commit_cert_not_exported.rs:2:5
-  |
-2 |     certify_milestone_two_verified_topology_commit_traced,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `certify_milestone_two_verified_topology_commit_traced` in `facade`
-3 |     certify_verified_topology_commit_traced,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `certify_verified_topology_commit_traced` in `facade`

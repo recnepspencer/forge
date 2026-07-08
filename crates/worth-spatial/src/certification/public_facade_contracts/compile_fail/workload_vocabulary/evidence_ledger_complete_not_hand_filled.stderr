@@ -1,7 +1,0 @@
-error[E0451]: field `ledger` of struct `CompleteWorkloadEvidenceLedger` is private
- --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/evidence_ledger_complete_not_hand_filled.rs:5:9
-  |
-4 |     let _ = CompleteWorkloadEvidenceLedger {
-  |             ------------------------------ in this type
-5 |         ledger: unconstructible(),
-  |         ^^^^^^ private field

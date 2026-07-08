@@ -1,11 +1,9 @@
 # Milestone S.7.1: Proof-Flow And Domain-Structure Cleanup Gate
 
-> Status: Closed via [storage-foundation-s7-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s7-1-closeout.md)
-
 ## Goal
 
-Make the Store code produced so far in S.7 structurally auditable before the
-remaining S.7 phases continue.
+Make the Store code produced through S.7 structurally auditable before S.8
+builds index, layout, and access-path discipline on top of it.
 
 This milestone converts proof-heavy Store surfaces from broad bags of
 authority-sounding artifacts into named transition systems: source authority
@@ -17,14 +15,15 @@ exposed.
 
 S.7 made blobs native to the physical Store substrate, but the implementation
 pressure exposed a deeper architectural risk: proof vocabulary can multiply
-faster than proof grammar. If the remaining S.7 phases continue on top of flat
-directories, broad facades, copied proof fields, and certification surfaces
-acting like production law, the physical database foundation will inherit
-structural ambiguity precisely where it needs machine-checkable authority.
+faster than proof grammar. If S.8 builds layout and access-path contracts on
+top of flat directories, broad facades, copied proof fields, and certification
+surfaces acting like production law, the physical database foundation will
+inherit structural ambiguity precisely where it needs machine-checkable
+authority.
 
 S.7.1 is therefore a cleanup gate, not a feature milestone. It freezes new
-concept expansion and cleans the proof-flow topology before S.7 resumes and
-before later physical database layers depend on it.
+concept expansion and cleans the proof-flow topology before more physical
+database layers depend on it.
 
 ## Governing Summaries
 
@@ -45,8 +44,9 @@ before later physical database layers depend on it.
   counters tied to transition outcomes and prevents cleanup from hiding scans,
   allocations, or broad maintenance behind nicer names.
 - `forge_store_roadmap_2.md` protects the physical database foundation order.
-  S.7.1 interrupts S.7 because native blob proof flows exposed the topology
-  problem before the remaining blob lifecycle phases continue.
+  S.7.1 belongs after S.7 because native blob proof flows exposed the topology
+  problem, and before S.8 because layout/index discipline must not depend on
+  unauditable proof surfaces.
 
 ## Adversarial Constraint
 
@@ -181,8 +181,8 @@ its root as precedent.
 - page, frame, manifest, checksum, and blob-manifest public exports
 
 **Warnings**
-- A flat physical-format root teaches future Store layout work to add more
-  root files instead of exposing artifact-family and lifecycle boundaries.
+- A flat physical-format root teaches future S.8 layout work to add more root
+  files instead of exposing artifact-family and lifecycle boundaries.
 - `lib.rs` may aggregate and document the public facade, but it must not own
   business logic, format rules, or proof predicates.
 
@@ -672,19 +672,19 @@ falsify the production topology instead of bypassing it.
 **Open questions**
 - None.
 
-### Phase 15: Structural Closeout And S.7 Continuation Readiness
+### Phase 15: Structural Closeout And S.8 Readiness
 
-Prove the cleanup has produced a stable enough foundation for finishing S.7
-without carrying proof-flow, topology, or helper-authority debt forward.
+Prove the cleanup has produced a stable enough foundation for S.8 layout and
+access-path discipline.
 
 **Relevant subsystems**
 - all crates touched by S.7.1
 - Store workspace verification scripts
-- S.7 public blob lifecycle surfaces
+- S.8 handoff surfaces
 
 **Relevant APIs**
 - S.7 public blob facades
-- lower Store readiness and handoff types already required by S.7
+- lower Store readiness and handoff types consumed by S.8
 - structural scan outputs
 - complexity/counter receipts for cleaned hot paths
 
@@ -694,27 +694,20 @@ without carrying proof-flow, topology, or helper-authority debt forward.
   convenient bad edit.
 - Do not close with broad debt language. Any remaining structural exception
   needs an explicit reason, owner, scope, and follow-on milestone.
-- Do not build or certify an S.8 readiness object in this cleanup milestone.
-  S.7 is not finished yet; S.7.1 may only prove that the cleaned topology will
-  not block the remaining S.7 phases.
 
 **Evidence requirements**
 - Produce a structural closeout bundle showing the cleaned Store crates satisfy
   file-count policy, no-business-logic aggregation policy, facade visibility
   policy, construction-boundary policy, and relevant S.7 runtime hostile lanes.
-- Prove the remaining S.7 phases can continue through cleaned public facades,
-  phase-shaped handoff modules, production-owned proof transitions, and
-  explicitly named test/certification authority boundaries.
-- Record future S.8 intake requirements only as non-authoritative follow-on
-  notes. Do not add S.8 production APIs, S.8 readiness tests, or S.8 handoff
-  constructors here.
+- Prove S.8 can consume blob/layout inputs only through cleaned S.7/S.7.1
+  capabilities, not raw blob internals, copied counters, certification rows, or
+  helper constructors.
 
 **Engineering decisions**
 - The closeout artifact should name the final directory skeleton for each
   cleaned critical crate and the public facade each external caller may use.
-- S.8 may later define typed readiness/capability surfaces after S.7 is fully
-  closed; this milestone must leave that as a future contract, not a partially
-  real implementation.
+- The S.8 handoff must be a typed readiness/capability surface, not a markdown
+  claim or certification summary.
 
 **Open questions**
 - None.
@@ -752,19 +745,18 @@ without carrying proof-flow, topology, or helper-authority debt forward.
 - Relevant compile-fail UI suites for construction, facade, and helper
   boundary violations.
 - Structural scan proving declared directory/file-count/facade policies.
-- Structural continuation test proving remaining S.7 work consumes cleaned
-  capabilities and cannot use raw blob internals, certification rows, or
-  helper constructors as shortcuts.
+- S.8 readiness test proving future layout/index work consumes cleaned
+  capabilities, not raw blob internals.
 
 ## Sequencing Notes
 
-S.7.1 belongs as a cleanup interruption before S.7 resumes. S.7 exposed the
-structural risk because native blobs forced many authority, recovery, dedupe,
-streaming, reclaim, compaction, and corruption concepts into the workspace.
-The cleanup must leave the remaining S.7 phases easier to finish. S.8 will add
-layout and access-path discipline only after S.7 closes.
+S.7.1 belongs immediately after S.7 and before S.8. S.7 exposed the structural
+risk because native blobs forced many authority, recovery, dedupe, streaming,
+reclaim, compaction, and corruption concepts into the workspace. S.8 will add
+layout and access-path discipline across artifact families; it should inherit a
+phase-shaped proof grammar, not a flat set of authoritative nouns.
 
 This milestone may touch earlier Store crates only when their structure is
-blocking S.7 proof-flow auditability or remaining S.7 continuation. It must not
-reopen S.0 through S.6 semantics for feature expansion.
+blocking S.7 proof-flow auditability or S.8 readiness. It must not reopen S.0
+through S.6 semantics for feature expansion.
 

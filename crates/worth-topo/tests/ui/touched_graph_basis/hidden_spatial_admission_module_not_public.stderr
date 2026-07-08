@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::spatial_sealed_receipt_admission`
- --> tests/ui/touched_graph_basis/hidden_spatial_admission_module_not_public.rs:3:15
-  |
-3 | use topology::spatial_sealed_receipt_admission::{
-  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `spatial_sealed_receipt_admission` in `topology`

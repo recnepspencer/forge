@@ -1,7 +1,0 @@
-error[E0407]: method `snapshot_token` is not a member of trait `ForgeQueryRuntimeSourceAdapter`
-  --> tests/ui/query_runtime_phase_eight/source_adapter_snapshot_token_removed.rs:34:5
-   |
-34 | /     fn snapshot_token(&self) -> String {
-35 | |         "snapshot-1".to_string()
-36 | |     }
-   | |_____^ not a member of trait `ForgeQueryRuntimeSourceAdapter`

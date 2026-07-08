@@ -56,6 +56,16 @@ def start_run(
 
 
 def resume_run(run_id: str, loop: bool, sleep_seconds: int, log_path: Path | None) -> int:
+    return resume_run_with_reason(run_id, loop, sleep_seconds, log_path, "operator resume")
+
+
+def resume_run_with_reason(
+    run_id: str,
+    loop: bool,
+    sleep_seconds: int,
+    log_path: Path | None,
+    reason: str,
+) -> int:
     config_path = config_path_for_run(run_id)
     paths = RuntimePaths(run_id)
     with acquire_active_run_lock(paths):
@@ -63,7 +73,7 @@ def resume_run(run_id: str, loop: bool, sleep_seconds: int, log_path: Path | Non
         append_runtime_event(
             paths,
             "run_resumed",
-            payload={"reason": "operator resume"},
+            payload={"reason": reason},
         )
         return drive_run(config_path, run_id, loop, sleep_seconds, log_path)
 
@@ -105,8 +115,8 @@ def drive_run(
                 payload={"reason": "all phases are complete"},
                 thread_id=projection["session"]["thread_id"],
             )
-            refresh_projection(config_path, run_id)
-            return 0
+            completed_projection = refresh_projection(config_path, run_id)
+            return run_completion_handoff(completed_projection, run_id)
         if should_stop_before_phase(projection):
             append_runtime_event(
                 RuntimePaths(run_id),
@@ -215,7 +225,7 @@ def run_single_turn(config_path: Path, run_id: str, log_path: Path | None) -> in
         return 0
     try:
         outcome = extract_runner_event(capture.get("agent_messages", []), turn_instance_id)
-        validate_turn_outcome(current["turn"], outcome["event_type"])
+        validate_turn_outcome(current_phase_for_projection(projection), current["turn"], outcome["event_type"])
         append_runtime_event(
             paths,
             outcome["event_type"],
@@ -328,7 +338,11 @@ def run_recovery_turn(config_path: Path, run_id: str, log_path: Path | None, rea
     try:
         outcome = extract_runner_event(capture.get("agent_messages", []), turn_instance_id)
         if current is not None:
-            validate_turn_outcome(current["turn"], outcome["event_type"])
+            validate_turn_outcome(
+                current_phase_for_projection(projection),
+                current["turn"],
+                outcome["event_type"],
+            )
             append_runtime_event(
                 paths,
                 outcome["event_type"],
@@ -572,6 +586,16 @@ def turn_is_current(
     )
 
 
+def current_phase_for_projection(projection: dict[str, Any]) -> dict[str, Any]:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        raise ValueError("current phase is not set")
+    for phase in projection["phases"]:
+        if phase["id"] == current["phase"]:
+            return phase
+    raise ValueError(f"phase {current['phase']!r} is not present")
+
+
 def config_path_for_run(run_id: str) -> Path:
     events = load_events(RuntimePaths(run_id).events)
     if not events:
@@ -592,6 +616,15 @@ def stop_before_phase_reason(projection: dict[str, Any]) -> str:
     current = projection["current"]
     label = projection.get("runner_control", {}).get("stop_reason") or "configured stop-before-phase gate"
     return f"{label}: current phase {current['phase']} {current['turn']} reached stop_before_phase"
+
+
+def run_completion_handoff(projection: dict[str, Any], run_id: str) -> int:
+    from completion_handoff import resume_completion_handoff_target
+
+    return resume_completion_handoff_target(
+        projection.get("runner_control", {}).get("completion_handoff"),
+        polling_run_id=run_id,
+    )
 
 
 def new_run_id() -> str:

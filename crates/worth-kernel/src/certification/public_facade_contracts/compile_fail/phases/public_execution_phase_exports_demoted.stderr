@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::outcome::execution`
- --> src/certification/public_facade_contracts/compile_fail/phases/public_execution_phase_exports_demoted.rs:1:36
-  |
-1 | use worth_kernel::facade::outcome::execution::PreparedPrimitiveConstructionExecution;
-  |                                    ^^^^^^^^^ could not find `execution` in `outcome`

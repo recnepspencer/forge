@@ -1,2 +1,0 @@
-mod consumes_topology_seed_receipts;
-mod unsupported_binding;

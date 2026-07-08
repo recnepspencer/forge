@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::evidence_lookup_index_product::EvidenceLookupIndexReuseDecision`
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/reuse_decision_not_exported.rs:1:5
-  |
-1 | use worth_spatial::facade::evidence_lookup_index_product::EvidenceLookupIndexReuseDecision;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------------------
-  |     |                                                     |
-  |     |                                                     help: a similar name exists in the module: `EvidenceLookupIndexReuseResolution`
-  |     no `EvidenceLookupIndexReuseDecision` in `facade::evidence_lookup_index_product`

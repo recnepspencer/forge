@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `select_from_touched_closure` found for struct `LoopCycleReadSource` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/public_loop_cycle_topology_read_source_not_exported.rs:13:38
-   |
-13 |         let _ = LoopCycleReadSource::select_from_touched_closure(plan, closure, topology);
-   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `LoopCycleReadSource`

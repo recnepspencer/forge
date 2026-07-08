@@ -1,3 +1,0 @@
-mod diagnostic_witness;
-
-pub use diagnostic_witness::WorthTopologySelectedGraphObligationDiagnosticWitness;

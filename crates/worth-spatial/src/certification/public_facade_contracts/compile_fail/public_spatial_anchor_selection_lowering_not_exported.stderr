@@ -1,5 +1,0 @@
-error[E0599]: no method named `apply_to_placement_with_catalog` found for struct `SpatialAnchorSelectionDeclarationEntry` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/public_spatial_anchor_selection_lowering_not_exported.rs:14:25
-   |
-14 |     let _ = declaration.apply_to_placement_with_catalog(
-   |             ------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `SpatialAnchorSelectionDeclarationEntry`

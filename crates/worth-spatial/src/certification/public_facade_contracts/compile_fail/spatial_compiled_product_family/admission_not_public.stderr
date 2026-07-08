@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::spatial_compiled_product_family::admit_evidence_lookup_spatial_compiled_product_family_input`
- --> src/certification/public_facade_contracts/compile_fail/spatial_compiled_product_family/admission_not_public.rs:1:5
-  |
-1 | use worth_spatial::facade::spatial_compiled_product_family::admit_evidence_lookup_spatial_compiled_product_family_input;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_evidence_lookup_spatial_compiled_product_family_input` in `facade::spatial_compiled_product_family`

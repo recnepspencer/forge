@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyDeclarationEntryStopClass`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_declaration_entry_stop_class_not_exported.rs:1:5
-  |
-1 | use topology::facade::TopologyDeclarationEntryStopClass;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyDeclarationEntryStopClass` in `facade`

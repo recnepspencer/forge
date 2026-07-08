@@ -41,14 +41,17 @@
   },
   "contract_template": "templates/_contract_code_cleanup.md",
   "session_defaults": {
-    "provider": "codex",
-    "command": "C:/nvm4w/nodejs/codex.cmd",
-    "model": "gpt-5.4",
-    "reasoning_effort": "medium",
-    "reuse_session": false,
+    "provider": "grok",
+    "command": "C:/Users/Esther/.grok/bin/grok.exe",
+    "model": "grok-composer-2.5-fast",
+    "reuse_session": true,
     "config": {
       "approval_policy": "never",
       "sandbox_mode": "danger-full-access"
+    },
+    "env": {
+      "GROK_DISABLE_AUTOUPDATER": "1",
+      "GROK_TELEMETRY_TRACE_UPLOAD": "false"
     }
   },
   "runner_control": {
@@ -108,7 +111,7 @@
         "`lib.rs`, facades, and aggregation modules aggregate rather than implement business logic.",
         "Raw construction boundaries are sealed or documented with focused evidence where changed."
       ],
-      "instructions": "Implement S.7.1 Phase 3. Clean the physical-format topology before remaining S.7 work inherits it.",
+      "instructions": "Implement S.7.1 Phase 3. Clean the physical-format topology before S.8 layout work inherits it.",
       "qa_focus": "Check for flat roots, broad lib.rs logic, exported topology, and raw format construction seams."
     },
     {
@@ -297,7 +300,7 @@
     },
     {
       "id": 15,
-      "title": "Structural Closeout And S.7 Continuation Readiness",
+      "title": "Structural Closeout And S.8 Readiness",
       "owner": "`forge-store` S.7.1 closeout",
       "scope": [
         "workspaces/forge-store",
@@ -306,12 +309,11 @@
       ],
       "acceptance": [
         "Closeout bundle shows cleaned Store crates satisfy file-count, aggregation, facade visibility, construction-boundary, and S.7 hostile-lane evidence appropriate to touched surfaces.",
-        "Remaining S.7 phases can consume cleaned public facades and phase-shaped handoff modules rather than raw blob internals, copied counters, certification rows, or helper constructors.",
-        "Future S.8 intake requirements are recorded only as non-authoritative follow-on notes; no S.8 readiness object, production API, or readiness test is created in S.7.1.",
+        "S.8 can consume blob/layout inputs through cleaned S.7/S.7.1 capabilities rather than raw blob internals, copied counters, certification rows, or helper constructors.",
         "Remaining structural exceptions, if any, have explicit reason, owner, scope, and follow-on milestone."
       ],
-      "instructions": "Implement S.7.1 Phase 15. Produce the structural closeout and S.7 continuation evidence for this cleanup gate. Do not build or certify an S.8 readiness object; S.7 is not finished yet.",
-      "qa_focus": "Check that the milestone is actually ready to resume S.7 with cleaned topology and proof grammar, not that it has created premature S.8 handoff APIs."
+      "instructions": "Implement S.7.1 Phase 15. Produce the structural closeout and S.8 readiness evidence for this cleanup gate.",
+      "qa_focus": "Check that the milestone is actually ready to hand S.8 a cleaned topology and proof grammar, not just a partially reorganized blob crate."
     }
   ]
 }
