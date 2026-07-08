@@ -1,7 +1,0 @@
-error[E0308]: mismatched types
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_plan_selection/product_substitution_denials/admitted_input_not_selected_plan.rs:6:45
-  |
-6 |         let _: EvidenceLookupSelectedPlan = admitted;
-  |                --------------------------   ^^^^^^^^ expected `EvidenceLookupSelectedPlan`, found `EvidenceLookupAdmittedInput`
-  |                |
-  |                expected due to this

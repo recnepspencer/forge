@@ -1,5 +1,0 @@
-error[E0599]: no method named `normalize_post_admission_canonical_winding` found for struct `PlanarBooleanAdmittedOverlapRegionSet` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/admitted_overlap_regions_do_not_normalize_post_admission_canonical_winding.rs:12:38
-   |
-12 |     let _ = admitted_overlap_regions.normalize_post_admission_canonical_winding();
-   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanAdmittedOverlapRegionSet`

@@ -1,5 +1,0 @@
-error[E0433]: failed to resolve: could not find `derived_read_diagnostic_input` in `topology`
- --> src/certification/public_facade_contracts/compile_fail/public_derived_read_diagnostic_support_not_exported.rs:1:15
-  |
-1 | use topology::derived_read_diagnostic_input::support::{
-  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `derived_read_diagnostic_input` in `topology`

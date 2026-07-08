@@ -110,6 +110,7 @@ def status_view(projection: dict) -> dict:
             {
                 "id": phase["id"],
                 "title": phase["title"],
+                "execution_mode": phase.get("execution_mode"),
                 "status": phase["status"],
                 "qa_status": phase["qa_status"],
             }

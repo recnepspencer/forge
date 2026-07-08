@@ -1,0 +1,308 @@
+root_manifest = "Cargo.toml"
+forbidden_root_prefixes = ["cad/workspaces/"]
+
+[machine_authority]
+canonical_config = "tools/boundary-check/config/road1.toml"
+mirrored_docs = [
+  "_docs/worthy/NAMING.md",
+  "_docs/worthy/BOUNDARIES.md",
+  "_docs/worthy/ARCHITECTURE.md",
+]
+
+[naming]
+bands = ["schema", "dsl", "entry", "resolver", "solver", "derived", "pack", "app", "ui", "cert"]
+
+[[naming.reserved_domains]]
+tier = "worth"
+band = "schema"
+domains = ["core", "graph"]
+
+[[naming.reserved_domains]]
+tier = "worth"
+band = "pack"
+domains = ["registry"]
+
+[[naming.reserved_domains]]
+tier = "worth"
+band = "entry"
+domains = ["adoption"]
+
+[[naming.reserved_domains]]
+tier = "worth"
+band = "derived"
+domains = ["publication"]
+
+[[naming.reserved_domains]]
+tier = "worth"
+band = "cert"
+domains = ["adoption"]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "schema"
+domains = [
+  "topology",
+  "geometry",
+  "material",
+  "structure",
+  "service",
+  "policy",
+  "assumption",
+  "physics",
+  "jurisdiction",
+  "economics",
+  "approval",
+  "component",
+  "measure",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "dsl"
+domains = [
+  "syntax",
+  "ast",
+  "binding",
+  "lowering",
+  "format",
+  "lint",
+  "analysis",
+  "lsp",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "entry"
+domains = [
+  "construct",
+  "boolean",
+  "transform",
+  "component",
+  "route",
+  "structure",
+  "analysis",
+  "assumption",
+  "measure",
+  "policy",
+  "jurisdiction",
+  "cost",
+  "approval",
+  "recovery",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "resolver"
+domains = [
+  "component",
+  "placement",
+  "assembly",
+  "structure",
+  "envelope",
+  "interiors",
+  "mep",
+  "policy",
+  "assumption",
+  "tolerance",
+  "jurisdiction",
+  "physics-scenario",
+  "routing-policy",
+  "approval",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "solver"
+domains = [
+  "curve",
+  "intersection",
+  "surface",
+  "boolean",
+  "blend",
+  "route",
+  "clearance",
+  "structure",
+  "physics",
+  "tolerance",
+  "optimization",
+  "sdf",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "derived"
+domains = [
+  "brep",
+  "cost",
+  "approval",
+  "compliance",
+  "fabrication",
+  "conflict",
+  "assumption-impact",
+  "measure-audit",
+  "physics-report",
+  "structural-analysis",
+  "downstream-impact",
+  "scene",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "pack"
+domains = [
+  "policy",
+  "assumption",
+  "jurisdiction",
+  "physics",
+  "measure",
+  "component",
+]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "app"
+domains = ["workbench"]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "ui"
+domains = ["scene", "inspector", "review", "approval", "ai-collaboration"]
+
+[[naming.reserved_domains]]
+tier = "worthy"
+band = "cert"
+domains = ["replay", "scale", "approval", "perf", "workflows"]
+
+[rule_contracts]
+query_host_bands = ["entry"]
+
+[[rule_contracts.replay_surfaces]]
+label = "certification replay"
+package_prefixes = ["worth-cert-replay", "worthy-cert-replay"]
+cert_domains = ["replay", "reconstruction"]
+
+[routing_proof]
+
+[[routing_proof.exemplars]]
+package = "worth-schema-core"
+specimen = "Road 1 foundational identity / naming / tolerance specimen"
+deferred_routes = [
+  "`worth-entry-adoption` -> Query-native declaration/adoption facade (Milestone 3)",
+  "`worth-derived-publication` -> retained/publication facade (Milestone 4)",
+  "`worthy-derived-brep` -> first consumer-facing retained artifact path (Milestone 4)",
+]
+
+[[routing_proof.exemplars]]
+package = "worth-pack-registry"
+specimen = "Road 1 pack-seam descriptor specimen"
+deferred_routes = [
+  "`worth-entry-adoption` -> contribution adoption into runtime-owned work (Milestone 3)",
+]
+
+[[rule_contracts.band_rules]]
+source_band = "schema"
+allowed_target_bands = []
+
+[[rule_contracts.band_rules]]
+source_band = "dsl"
+allowed_target_bands = ["schema"]
+
+[[rule_contracts.band_rules]]
+source_band = "entry"
+allowed_target_bands = ["schema", "resolver", "derived"]
+
+[[rule_contracts.band_rules]]
+source_band = "resolver"
+allowed_target_bands = ["schema", "solver"]
+
+[[rule_contracts.band_rules]]
+source_band = "solver"
+allowed_target_bands = ["schema"]
+
+[[rule_contracts.band_rules]]
+source_band = "derived"
+allowed_target_bands = ["schema", "solver"]
+
+[[rule_contracts.band_rules]]
+source_band = "pack"
+allowed_target_bands = ["schema"]
+
+[[rule_contracts.band_rules]]
+source_band = "app"
+allowed_target_bands = ["entry", "derived", "dsl"]
+
+[[rule_contracts.band_rules]]
+source_band = "ui"
+allowed_target_bands = ["entry", "derived", "dsl"]
+
+[[born_crates]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
+package = "worth-schema-core"
+
+[[born_crates]]
+path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
+package = "worth-pack-registry"
+
+[[seed_skeletons]]
+path = "cad/workspaces/worth-contracts/crates/worth-schema-core"
+package = "worth-schema-core"
+lib_rs = "src/lib.rs"
+facade_rs = "src/facade.rs"
+allowed_entries = [
+  "AGENT_CONTEXT.md",
+  "Cargo.toml",
+  "src",
+  "src/facade.rs",
+  "src/identity.rs",
+  "src/identity_name.rs",
+  "src/lib.rs",
+  "src/naming.rs",
+  "src/tolerance.rs",
+  "src/units.rs",
+  "tests",
+  "tests/facade_boundary.rs",
+]
+
+[[seed_skeletons]]
+path = "cad/workspaces/worth-packs/crates/worth-pack-registry"
+package = "worth-pack-registry"
+lib_rs = "src/lib.rs"
+facade_rs = "src/facade.rs"
+allowed_entries = [
+  "AGENT_CONTEXT.md",
+  "Cargo.toml",
+  "src",
+  "src/contribution_descriptor.rs",
+  "src/contribution_kinds",
+  "src/contribution_kinds/mod.rs",
+  "src/facade.rs",
+  "src/lib.rs",
+  "src/pack_name.rs",
+  "src/registration",
+  "src/registration/mod.rs",
+]
+
+[[subworkspaces]]
+path = "cad/workspaces/worth-contracts"
+allowed_crate_prefixes = ["worth-schema-"]
+member_lane = "crates/*"
+
+[[subworkspaces]]
+path = "cad/workspaces/worth-entry"
+allowed_crate_prefixes = ["worth-entry-"]
+member_lane = "crates/*"
+
+[[subworkspaces]]
+path = "cad/workspaces/worth-derived"
+allowed_crate_prefixes = ["worth-derived-"]
+member_lane = "crates/*"
+
+[[subworkspaces]]
+path = "cad/workspaces/worth-packs"
+allowed_crate_prefixes = ["worth-pack-"]
+member_lane = "crates/*"
+
+[[subworkspaces]]
+path = "cad/workspaces/worth-certification"
+allowed_crate_prefixes = ["worth-cert-"]
+member_lane = "crates/*"

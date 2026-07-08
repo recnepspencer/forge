@@ -1,5 +1,0 @@
-error[E0599]: no method named `normalize_post_admission_canonical_winding` found for struct `PlanarBooleanBoundaryOnlyOverlapOutcomeSet` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/boundary_only_outcomes_do_not_normalize_post_admission_canonical_winding.rs:12:44
-   |
-12 |     let _ = boundary_only_overlap_outcomes.normalize_post_admission_canonical_winding();
-   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanBoundaryOnlyOverlapOutcomeSet`

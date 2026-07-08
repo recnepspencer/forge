@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `EvidenceLookupProjectionFactFamily: From<&str>` is not satisfied
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/raw_identity_denials/projection_fact_family_not_from_raw_string.rs:5:44
-  |
-5 |         "spatial-touch-operand-projection".into();
-  |                                            ^^^^ the trait `From<&str>` is not implemented for `EvidenceLookupProjectionFactFamily`
-  |
-  = note: required for `&str` to implement `Into<EvidenceLookupProjectionFactFamily>`

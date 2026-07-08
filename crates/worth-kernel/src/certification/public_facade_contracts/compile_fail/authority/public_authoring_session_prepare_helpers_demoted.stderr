@@ -1,5 +1,0 @@
-error[E0599]: no method named `prepare_result` found for mutable reference `&mut PrimitiveConstructionAuthoringSession<'_>` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/authority/public_authoring_session_prepare_helpers_demoted.rs:6:21
-  |
-6 |     let _ = session.prepare_result(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-  |             --------^^^^^^^^^^^^^^ method not found in `&mut PrimitiveConstructionAuthoringSession<'_>`

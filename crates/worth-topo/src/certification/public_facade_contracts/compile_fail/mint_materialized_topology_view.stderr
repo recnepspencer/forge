@@ -1,8 +1,0 @@
-error[E0432]: unresolved imports `topology::facade::MaterializationBreadthReport`, `topology::facade::MaterializationReport`, `topology::facade::MaterializedTopologyView`
- --> src/certification/public_facade_contracts/compile_fail/mint_materialized_topology_view.rs:2:5
-  |
-2 |     MaterializationBreadthReport, MaterializationReport, MaterializedTopologyView,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `MaterializedTopologyView` in `facade`
-  |     |                             |
-  |     |                             no `MaterializationReport` in `facade`
-  |     no `MaterializationBreadthReport` in `facade`

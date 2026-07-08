@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "project": {
     "name": "Forge Store Roadmap 2 S.5.1 Cryptographic Boundary Seeds And Tenant Scope Metadata",
@@ -35,7 +35,8 @@
     "test_review": "templates/test_review.md",
     "test_repair_plan": "templates/test_repair_plan.md",
     "test_repair_implement": "templates/test_repair_implement.md",
-    "code_quality_review": "templates/code_quality_review.md"
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
   },
   "contract_template": "templates/_contract_store_s5_1.md",
   "session_defaults": {

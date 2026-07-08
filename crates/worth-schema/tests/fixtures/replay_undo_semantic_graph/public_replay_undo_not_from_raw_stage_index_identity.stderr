@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `schema::facade::platform::authority::replay_undo_semantic_graph::admit_replay_undo_stage_index_identity`
- --> tests/fixtures/replay_undo_semantic_graph/public_replay_undo_not_from_raw_stage_index_identity.rs:1:5
-  |
-1 | use schema::facade::platform::authority::replay_undo_semantic_graph::admit_replay_undo_stage_index_identity;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_replay_undo_stage_index_identity` in `facade::platform::authority::replay_undo_semantic_graph`

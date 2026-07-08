@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::diagnostics::query`
- --> src/certification/public_facade_contracts/compile_fail/reports/public_diagnostics_bucket_exports_demoted.rs:1:40
-  |
-1 | use worth_kernel::facade::diagnostics::query::{
-  |                                        ^^^^^ could not find `query` in `diagnostics`

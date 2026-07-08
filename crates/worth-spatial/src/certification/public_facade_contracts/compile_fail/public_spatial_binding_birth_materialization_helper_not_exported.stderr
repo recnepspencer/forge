@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::bindings::materialize_primitive_construction_birth_scaffold_input`
- --> src/certification/public_facade_contracts/compile_fail/public_spatial_binding_birth_materialization_helper_not_exported.rs:1:5
-  |
-1 | use worth_spatial::facade::bindings::materialize_primitive_construction_birth_scaffold_input;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialize_primitive_construction_birth_scaffold_input` in `facade::bindings`

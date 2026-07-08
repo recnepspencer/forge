@@ -15,6 +15,7 @@ EVENT_TYPES = {
     "codex_turn_failed",
     "plan_posted",
     "implementation_completed",
+    "single_prompt_completed",
     "review_failed",
     "review_passed",
     "repair_completed",
@@ -22,6 +23,8 @@ EVENT_TYPES = {
     "test_review_passed",
     "test_repair_plan_posted",
     "test_repair_completed",
+    "code_quality_review_failed",
+    "code_quality_repair_completed",
     "code_quality_review_passed",
     "runner_fault",
     "recovery_requested",
@@ -35,6 +38,7 @@ PHASE_PROGRESS_EVENTS = {
     "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
+    "single_prompt_completed",
     "review_failed",
     "review_passed",
     "repair_completed",
@@ -42,6 +46,8 @@ PHASE_PROGRESS_EVENTS = {
     "test_review_passed",
     "test_repair_plan_posted",
     "test_repair_completed",
+    "code_quality_review_failed",
+    "code_quality_repair_completed",
     "code_quality_review_passed",
 }
 

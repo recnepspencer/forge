@@ -1,9 +1,0 @@
-error[E0451]: fields `closed_walk_candidates` and `fragment_consumption_proof` of struct `PlanarBooleanWalkOutcomeSetInput` are private
-  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_loop_reconstruction/walk_outcome_input_not_hand_filled.rs:12:9
-   |
-11 |     let _ = PlanarBooleanWalkOutcomeSetInput {
-   |             -------------------------------- in this type
-12 |         closed_walk_candidates: bogus::<&PlanarBooleanClosedWalkCandidateSet>(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         fragment_consumption_proof: bogus::<&PlanarBooleanFragmentConsumptionProof>(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

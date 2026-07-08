@@ -1,8 +1,0 @@
-mod anchor_mutation_evidence;
-mod anchor_projection_consumption;
-mod anchor_target_identity;
-mod binding_digest_protocol;
-mod binding_motion_posture;
-mod binding_mutation_evidence;
-mod binding_projection_consumption;
-mod binding_target_identity;

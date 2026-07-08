@@ -1,1 +1,0 @@
-read vision.md and docs/coding_guidelines/domain_standards.md

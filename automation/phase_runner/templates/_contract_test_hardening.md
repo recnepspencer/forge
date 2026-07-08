@@ -64,8 +64,14 @@ Default posture by turn:
   production boundary
 - `test_repair_implement`: implement the real seam replacement, not a temporary
   test convenience
-- `code_quality_review`: verify structure and file ownership boundaries, then
-  advance
+- `code_quality_review`: verify structure and file ownership boundaries as a
+  gating structural QA turn. Concrete composition-law, domain-structure-law,
+  file-size, directory-topology, public-facade, `mod.rs` business-logic,
+  helper-placement, missed-abstraction, or ownership-boundary violations fail
+  the turn and return to `code_quality_repair`; only a passing structural QA
+  advances.
+- `code_quality_repair`: repair only the structural QA findings, then return to
+  `code_quality_review`
 
 Avoid these failure modes:
 
@@ -138,7 +144,9 @@ The event type must match the current turn:
 - `test_review` -> `test_review_failed` or `test_review_passed`
 - `test_repair_plan` -> `test_repair_plan_posted`
 - `test_repair_implement` -> `test_repair_completed`
-- `code_quality_review` -> `code_quality_review_passed`
+- `code_quality_review` -> `code_quality_review_failed` or
+  `code_quality_review_passed`
+- `code_quality_repair` -> `code_quality_repair_completed`
 
 If this prompt includes a runner turn instance id requirement, your payload must
 echo it exactly.

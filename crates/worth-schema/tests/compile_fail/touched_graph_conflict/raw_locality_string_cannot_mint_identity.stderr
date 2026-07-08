@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `schema::facade::platform::authority::touched_graph_conflict::ConflictLocalityIdentityInput`
- --> tests/compile_fail/touched_graph_conflict/raw_locality_string_cannot_mint_identity.rs:1:5
-  |
-1 | use schema::facade::platform::authority::touched_graph_conflict::ConflictLocalityIdentityInput;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------------
-  |     |                                                            |
-  |     |                                                            help: a similar name exists in the module: `ConflictLocalityIdentity`
-  |     no `ConflictLocalityIdentityInput` in `facade::platform::authority::touched_graph_conflict`
