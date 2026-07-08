@@ -1,2 +1,0 @@
-error[E0599]: no method named `promote_overlap_region_candidates` found for struct `PlanarBooleanMixedBoundaryAreaOutcomeSet` in the current scope
-promote_overlap_region_candidates

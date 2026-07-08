@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::planar_boolean_overlap_region_extraction::PlanarBooleanOverlapRegionPublicContractFenceProofInput`
- --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/public_contract_fence_input_not_exported.rs:2:5
-  |
-2 |     PlanarBooleanOverlapRegionPublicContractFenceProofInput,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |     |
-  |     no `PlanarBooleanOverlapRegionPublicContractFenceProofInput` in `facade::planar_boolean_overlap_region_extraction`
-  |     help: a similar name exists in the module: `PlanarBooleanOverlapRegionExtractionRequestInput`

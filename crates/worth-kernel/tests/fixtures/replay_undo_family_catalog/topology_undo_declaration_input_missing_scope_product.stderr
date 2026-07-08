@@ -1,5 +1,0 @@
-error[E0063]: missing field `scope_product_posture` in initializer of `TopologyUndoFamilyDeclarationInput`
- --> tests/fixtures/replay_undo_family_catalog/topology_undo_declaration_input_missing_scope_product.rs:9:52
-  |
-9 |     let _ = admit_topology_undo_family_declaration(TopologyUndoFamilyDeclarationInput {
-  |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `scope_product_posture`

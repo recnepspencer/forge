@@ -34,9 +34,8 @@ Roadmap 2 inserts this required aspect-native and physical foundation gate:
 
 `Milestone 13.3` -> `Aspect-Native Workspace Gate` -> `S.0` -> `S.1`
 -> `S.2` -> `S.3` -> `S.4` -> `S.4.5` -> `S.5` -> `S.5.1`
--> `S.6` -> `S.7 phases 1-18` -> `S.7.1 cleanup interruption`
--> `S.7 phases 19-24` -> `S.8` -> `S.9` -> `S.10` -> `S.11`
--> `S.12` -> `Milestone 14`
+-> `S.6` -> `S.7` -> `S.7.1` -> `S.8` -> `S.9` -> `S.10`
+-> `S.11` -> `S.12` -> `Milestone 14`
 
 The `S.*` numbers are storage-foundation sequence numbers, not ordinary feature
 milestones. They express dependency order for the physical database substrate.
@@ -849,22 +848,20 @@ localization.
 ## S.7.1: Proof-Flow And Domain-Structure Cleanup Gate
 
 Engineering spec: [storage-foundation-s7-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s7-1.md)
-Closeout: [storage-foundation-s7-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s7-1-closeout.md)
 
 ### Goal
 
 Convert the S.7 blob substrate and any critical supporting Store subsystems
 that it exposed into auditable proof-flow state machines with phase-shaped
 directories, narrow public facades, and mechanically enforced structural QA
-before the remaining S.7 phases continue.
+before S.8 builds access-path and layout discipline on top of them.
 
 ### Boundary
 
 This is not new blob functionality and not a second attempt to finish S.7. This
-is a consolidation interruption inside the S.7 arc for code that already grew
-enough proof vocabulary to expose a structural problem: authority objects,
-receipts, counters, handoffs, and tests must read as named transitions rather
-than bags of impressive nouns.
+is a consolidation gate for code that already grew enough proof vocabulary to
+expose a structural problem: authority objects, receipts, counters, handoffs,
+and tests must read as named transitions rather than bags of impressive nouns.
 
 ### Adversarial Constraint
 
@@ -916,73 +913,44 @@ test-only helpers that bypass production topology.
 - S.7 hostile lanes remain protected, and new construction or facade
   boundaries receive mechanical proof where the cleanup creates or changes
   those boundaries
-- S.8 handoff surfaces are future follow-on requirements and must not be
-  minted by S.7.1; the cleanup only ensures remaining S.7 work continues
-  through cleaned facades rather than loose tuples of receipts or
-  test/certification evidence
 
 ### Closeout Gate
 
 `S.7.1` is not closed until the critical Store proof flows are structurally
 auditable as named transitions, S.7 blob chunks no longer present as a flat
 ontology dump, certification is clearly courtroom rather than law, and the
-remaining S.7 phases can continue through lifecycle-ordered public surfaces
-rather than accidental ontology.
+remaining public surfaces expose lifecycle order rather than accidental
+ontology.
 
 ## S.8: Index, Layout, And Access-Path Discipline
 
-Engineering spec:
-[`storage-foundation-s8.md`](storage-foundation-s8.md)
-
 ### Goal
 
-Make physical access structures explicit, typed, costed, rebuildable, versioned,
-and auditable per durable artifact family across the whole database.
+Make physical access structures explicit per artifact family.
 
 ### Boundary
 
 This is not picking one generic index structure and routing everything through
-it, and it is not a blob-only continuation. This is forcing every durable
-artifact family to declare the physical layout, access paths, authority or
-derivation posture, rebuild source, evolution policy, trust-boundary posture,
-and read/write amplification model that match its workload.
-
-Higher layers may eventually request physical capabilities such as point,
-range, prefix, scan, or streaming access over declared domains, but Store owns
-strategy admission. No user, app, or industry-specific callback may become an
-untyped index authority.
+it. This is forcing every artifact family to declare the physical layout,
+access paths, rebuild source, evolution policy, and read/write amplification
+model that match its workload.
 
 ### Adversarial Constraint
 
-No artifact family may accidentally inherit a generic layout whose authority
-posture, access shape, cost model, rebuild model, corruption behavior, trust
-boundary, or evolution path is dishonest for its workload.
-
-Broad scans are only valid when the scan is the declared access shape or a
-typed verifier, rebuild, migration, repair, or diagnostic lane with exact
-counters. They must not become silent fallbacks for claimed indexed or
-locality-bounded paths.
+No artifact family may accidentally inherit a generic layout whose cost model,
+rebuild model, corruption behavior, or evolution path is dishonest for its
+workload.
 
 ### Must Ship
 
 - declared layout family per durable artifact family:
   append log, heap file, B-tree, LSM-like structure, sparse index, chunk tree,
   or another explicit strategy
-- Store-owned artifact family vocabulary for pages, segments, WAL, recovery,
-  blobs, reachability, reclaim, security/custody lookup, export/import, and
-  offline verifier artifacts
-- typed access-shape lowering for point, range, prefix, scan, streaming,
-  append, compaction, rebuild, verifier, repair, and quarantine lanes
 - index/page format versioning and compatibility rules
 - secondary-index consistency and rebuild contracts
 - range, prefix, point, scan, and streaming access-path declarations
 - read-amplification and write-amplification accounting
 - layout migration and rollback posture
-- Foundational layout/performance boundary receipts only after Store-owned
-  admission or executed Store counters
-- forge-proof transition states for declaration, admission, lowering,
-  execution readiness, execution evidence, rebuild, migration, rollback, and
-  denial outcomes
 
 ### Must Preserve
 
@@ -990,11 +958,6 @@ locality-bounded paths.
   authoritative artifacts
 - index rebuild must derive from canonical authority or declared physical
   authority
-- Store owns layout law; certification proves the law was followed but does
-  not define production constructors or contracts
-- Foundational layout intent claims are not executed access proof
-- terminal serde, JSON, logs, diagnostics, reports, and copied counter rows are
-  not layout admission authority
 
 ### Proof Obligations
 
@@ -1003,20 +966,13 @@ locality-bounded paths.
 - index corruption and rebuild parity lanes
 - exact page-touch, index-probe, write-amplification, and read-amplification
   counters
-- compile-fail coverage for raw construction of admitted layouts, ready access
-  plans, executed counter receipts, and readmitted layout witnesses
-- migration/rollback interruption tests and stale-binding rebind tests
-- trust-boundary readmission tests for imported, restored, exported, offline,
-  security, and custody-adjacent layout evidence
 
 ### Closeout Gate
 
 `S.8` is not closed until each admitted durable artifact family has a declared
-layout strategy, declared access shapes, authority or derivation posture,
-bounded access-path counters, corruption/rebuild behavior, trust-boundary
-behavior where relevant, and format-evolution posture, and no required family
-falls back to an implicit whole-store scan where the roadmap claims indexed,
-locality-bounded, streaming, or strategy-bound access.
+layout strategy, bounded access-path counters, corruption/rebuild behavior, and
+format-evolution posture, and no required family falls back to an implicit
+whole-store scan where the roadmap claims indexed or locality-bounded access.
 
 ## S.9: Formal Models For Crash, Recovery, Compaction, And Repair
 

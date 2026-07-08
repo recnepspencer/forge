@@ -29,31 +29,9 @@ Assess:
   especially evidence collection, validation, classification, mutation, proof
   construction, counter updates, and result assembly
 
-Before deciding this phase passes, do a deep-structure closeout check.
-
-A phase does not pass just because the public facade, `lib.rs`, `mod.rs`,
-exports, or directory names are cleaner. It passes only if the implementation
-beneath that surface is also easier for a future model or human to reason about.
-
-Check every changed production and test-support area in this phase for:
-
-- lifecycle-shaped implementation modules, not just lifecycle-shaped facades
-- narrow orchestration functions rather than god functions
-- explicit proof/state transitions instead of scattered predicates
-- named classification/decision cases where branches matter
-- receipt/proof construction separated from evidence collection and verification
-- helper/test-support code placed by domain responsibility, not convenience
-- public surfaces that route, while domain modules own behavior
-
-If the cleanup mainly moved files or grouped exports while underlying flows
-still require a reader to reconstruct the logic from broad functions, copied
-fields, or implicit branches, fail the phase and request repair.
-
 Return only meaningful findings that would make this phase structurally
 incomplete. For each finding, name the root issue, the affected surface, and the
-cleanup outcome needed. When failing, list all phase-scoped structural issues
-that block pass, grouped by area. Do not collapse multiple blocking issues into
-one representative example.
+cleanup outcome needed.
 
 If meaningful structural work remains, report findings in chat and finish with:
 
@@ -67,3 +45,4 @@ Phase-specific review focus:
 {phase.qa_focus}
 
 {contract}
+

@@ -1,8 +1,0 @@
-error[E0432]: unresolved imports `schema::facade::QueryComputedDeclarationBuilder`, `schema::facade::QueryDeclarationError`, `schema::facade::QueryLiveDeclarationBuilder`
- --> tests/compile_fail/removed_facade_exports/query_policy/removed_query_declaration_builder_facade_exports.rs:2:5
-  |
-2 |     QueryComputedDeclarationBuilder, QueryDeclarationError, QueryLiveDeclarationBuilder,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryLiveDeclarationBuilder` in `facade`
-  |     |                                |
-  |     |                                no `QueryDeclarationError` in `facade`
-  |     no `QueryComputedDeclarationBuilder` in `facade`

@@ -1,5 +1,0 @@
-error[E0433]: failed to resolve: could not find `support` in `certification`
- --> src/certification/public_facade_contracts/compile_fail/public_spatial_support_namespace_not_exported.rs:1:35
-  |
-1 | use worth_spatial::certification::support::placement::{
-  |                                   ^^^^^^^ could not find `support` in `certification`

@@ -1,7 +1,0 @@
-error[E0308]: mismatched types
- --> tests/fixtures/replay_undo_family_catalog/topology_undo_identity_not_from_raw_string.rs:5:41
-  |
-5 |     let _: TopologyUndoFamilyIdentity = raw;
-  |            --------------------------   ^^^ expected `TopologyUndoFamilyIdentity`, found `String`
-  |            |
-  |            expected due to this

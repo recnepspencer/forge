@@ -1,5 +1,0 @@
-error[E0599]: no method named `mint_overlap_region_ledger` found for struct `PlanarBooleanOverlapRegionIdentityMap` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/identity_map_does_not_mint_overlap_region_ledger.rs:5:35
-  |
-5 |     let _ = identity_map.unwrap().mint_overlap_region_ledger();
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanOverlapRegionIdentityMap`

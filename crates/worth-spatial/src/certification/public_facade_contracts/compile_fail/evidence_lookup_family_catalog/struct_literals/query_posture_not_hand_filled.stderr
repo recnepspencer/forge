@@ -1,9 +1,0 @@
-error[E0451]: fields `kind` and `imported_evidence` of struct `EvidenceLookupFamilyQueryPosture` are private
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/struct_literals/query_posture_not_hand_filled.rs:7:9
-  |
-6 |     let _posture = EvidenceLookupFamilyQueryPosture {
-  |                    -------------------------------- in this type
-7 |         kind: EvidenceLookupFamilyQueryPostureKind::NotRequired,
-  |         ^^^^ private field
-8 |         imported_evidence: None,
-  |         ^^^^^^^^^^^^^^^^^ private field

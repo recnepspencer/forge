@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::witness_resolution`
- --> src/certification/public_facade_contracts/compile_fail/public_spatial_witness_resolution_namespace_not_exported.rs:3:5
-  |
-3 |     witness_resolution::{resolve_spatial_direction_witness, resolve_spatial_point_witness},
-  |     ^^^^^^^^^^^^^^^^^^ could not find `witness_resolution` in `facade`

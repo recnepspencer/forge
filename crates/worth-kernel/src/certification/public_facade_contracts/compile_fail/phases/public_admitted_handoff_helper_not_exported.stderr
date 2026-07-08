@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::prepare_admitted_primitive_construction_query_admitted_handoff`
- --> src/certification/public_facade_contracts/compile_fail/phases/public_admitted_handoff_helper_not_exported.rs:2:5
-  |
-2 |     prepare_admitted_primitive_construction_query_admitted_handoff,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_admitted_primitive_construction_query_admitted_handoff` in `facade`

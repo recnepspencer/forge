@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `select_from_touched_closure` found for struct `TraversalViewsReadSource` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/public_traversal_views_topology_read_source_not_exported.rs:13:43
-   |
-13 |         let _ = TraversalViewsReadSource::select_from_touched_closure(plan, closure, topology);
-   |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `TraversalViewsReadSource`

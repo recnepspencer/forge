@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::topology_rewire_loop_endpoint_touched_graph_basis`
- --> tests/ui/touched_graph_basis/raw_declaration_cannot_mint_basis.rs:3:5
-  |
-3 |     topology_rewire_loop_endpoint_touched_graph_basis, LoopEndpointKind,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `topology_rewire_loop_endpoint_touched_graph_basis` in `facade`

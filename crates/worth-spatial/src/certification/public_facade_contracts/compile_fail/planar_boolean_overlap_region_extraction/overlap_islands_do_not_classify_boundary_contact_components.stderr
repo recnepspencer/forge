@@ -1,5 +1,0 @@
-error[E0599]: no method named `classify_boundary_contact_components` found for struct `PlanarBooleanOverlapIslandSet` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/overlap_islands_do_not_classify_boundary_contact_components.rs:9:29
-  |
-9 |     let _ = overlap_islands.classify_boundary_contact_components();
-  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanOverlapIslandSet`

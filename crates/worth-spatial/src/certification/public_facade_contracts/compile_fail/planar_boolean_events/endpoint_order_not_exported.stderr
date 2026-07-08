@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::planar_boolean_events::PlanarBooleanEndpointOrder`
- --> src/certification/public_facade_contracts/compile_fail/planar_boolean_events/endpoint_order_not_exported.rs:1:5
-  |
-1 | use worth_spatial::facade::planar_boolean_events::PlanarBooleanEndpointOrder;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------------
-  |     |                                             |
-  |     |                                             help: a similar name exists in the module: `PlanarBooleanEventLedger`
-  |     no `PlanarBooleanEndpointOrder` in `facade::planar_boolean_events`

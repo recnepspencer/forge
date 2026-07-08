@@ -1,5 +1,0 @@
-error[E0599]: no method named `complete_boolean_chain_integration_handoff` found for reference `&CompletedBooleanLoopReconstructionHandoff` in the current scope
- --> tests/fixtures/replay_undo_semantic_graph/packetless_chain_helper_not_public_authority.rs:9:26
-  |
-9 |     let _ = loop_handoff.complete_boolean_chain_integration_handoff(split_handoff);
-  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&CompletedBooleanLoopReconstructionHandoff`

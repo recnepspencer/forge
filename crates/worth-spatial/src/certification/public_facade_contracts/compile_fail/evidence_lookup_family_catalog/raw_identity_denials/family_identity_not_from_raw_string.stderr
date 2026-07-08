@@ -1,9 +1,0 @@
-error[E0451]: fields `value` and `digest` of struct `EvidenceLookupFamilyIdentity` are private
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_family_catalog/raw_identity_denials/family_identity_not_from_raw_string.rs:5:9
-  |
-4 |     let _identity = EvidenceLookupFamilyIdentity {
-  |                     ---------------------------- in this type
-5 |         value: String::new(),
-  |         ^^^^^ private field
-6 |         digest: String::new(),
-  |         ^^^^^^ private field

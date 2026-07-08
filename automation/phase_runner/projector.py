@@ -11,6 +11,7 @@ PHASE_CURSOR_ADVANCING_EVENTS = {
     "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
+    "single_prompt_completed",
     "review_failed",
     "review_passed",
     "repair_completed",
@@ -31,7 +32,8 @@ def project_run(
 ) -> dict[str, Any]:
     projection = empty_projection(config, run_id)
     if projection["phases"]:
-        projection["current"] = {"phase": 1, "turn": first_turn(config, 1)}
+        first_phase = projection["phases"][0]
+        projection["current"] = {"phase": first_phase["id"], "turn": first_turn(config, first_phase)}
 
     for event in events:
         if event.get("thread_id"):
@@ -92,7 +94,7 @@ def project_run(
         if first_unfinished is not None:
             projection["current"] = {
                 "phase": first_unfinished["id"],
-                "turn": first_turn(config, first_unfinished["id"]),
+                "turn": first_turn(config, first_unfinished),
             }
     normalize_current_from_phase_state(projection)
 
@@ -131,7 +133,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
 
 
 def project_phase(phase: dict[str, Any]) -> dict[str, Any]:
-    return {
+    projected = {
         "id": phase["id"],
         "title": phase["title"],
         "owner": phase["owner"],
@@ -139,10 +141,15 @@ def project_phase(phase: dict[str, Any]) -> dict[str, Any]:
         "acceptance": phase["acceptance"],
         "instructions": phase["instructions"],
         "qa_focus": phase["qa_focus"],
+        "execution_mode": phase.get("execution_mode", "standard_loop"),
         "status": "not_started",
         "qa_status": "not_started",
         "notes": {bucket: [] for bucket in NOTE_BUCKETS},
     }
+    for key in ("prompt_template", "contract_template", "success_event_type"):
+        if key in phase:
+            projected[key] = phase[key]
+    return projected
 
 
 def find_first_unfinished_phase(projection: dict[str, Any]) -> dict[str, Any] | None:
@@ -165,7 +172,7 @@ def normalize_current_from_phase_state(projection: dict[str, Any]) -> None:
     if current_phase is None:
         projection["current"] = {
             "phase": first_unfinished["id"],
-            "turn": first_turn(projection, first_unfinished["id"]),
+            "turn": first_turn(projection, first_unfinished),
         }
         projection["current_turn_instance_id"] = None
         return
@@ -173,7 +180,7 @@ def normalize_current_from_phase_state(projection: dict[str, Any]) -> None:
         if current_phase["id"] != first_unfinished["id"]:
             projection["current"] = {
                 "phase": first_unfinished["id"],
-                "turn": first_turn(projection, first_unfinished["id"]),
+                "turn": first_turn(projection, first_unfinished),
             }
             projection["current_turn_instance_id"] = None
 
@@ -189,7 +196,7 @@ def prompt_cursor_match_current(
     first_unfinished = find_first_unfinished_phase(projection)
     if first_unfinished is None:
         return current
-    expected_first_turn = first_turn(projection, first_unfinished["id"])
+    expected_first_turn = first_turn(projection, first_unfinished)
     if event_phase_id == first_unfinished["id"] and event_turn == expected_first_turn:
         return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     if expected_first_turn != "plan" and event_phase_id == first_unfinished["id"] and event_turn == "plan":
@@ -198,7 +205,13 @@ def prompt_cursor_match_current(
     if current_phase is None:
         return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
-        if current.get("turn") not in {"test_review", "test_repair_plan", "test_repair_implement", "code_quality_review"}:
+        if current.get("turn") not in {
+            "test_review",
+            "test_repair_plan",
+            "test_repair_implement",
+            "code_quality_review",
+            "code_quality_repair",
+        }:
             if current_phase["id"] != first_unfinished["id"]:
                 return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     return current

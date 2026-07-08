@@ -1,7 +1,0 @@
-error[E0432]: unresolved imports `schema::facade::bootstrap_tracing_plan`, `schema::facade::BootstrapTracingPlan`
- --> tests/compile_fail/removed_facade_exports/tracing_and_explanation/removed_tracing_plan_facade_exports.rs:1:22
-  |
-1 | use schema::facade::{bootstrap_tracing_plan, BootstrapTracingPlan};
-  |                      ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `BootstrapTracingPlan` in `facade`
-  |                      |
-  |                      no `bootstrap_tracing_plan` in `facade`

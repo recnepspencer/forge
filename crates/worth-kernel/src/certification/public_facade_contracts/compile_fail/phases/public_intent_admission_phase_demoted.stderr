@@ -1,5 +1,0 @@
-error[E0599]: no method named `admit` found for struct `PrimitiveConstructionIntent` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/phases/public_intent_admission_phase_demoted.rs:7:20
-  |
-7 |     let _ = intent.admit();
-  |                    ^^^^^ method not found in `PrimitiveConstructionIntent`
