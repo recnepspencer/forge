@@ -1,5 +1,7 @@
 pub use worth_ui_runtime::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, BasisAuthorityFamily,
+    project_aspect_evidence_ref, project_aspect_evidence_refs, resolve_runtime_current_snapshot_basis,
+    snapshot_resolution_report, BasisAuthorityFamily, UiAspectEvidenceLane,
+    UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind,
     BridgePreviewSessionIdentity, ForgeQuerySessionLabel, ForgeQuerySnapshotIdentity,
     QueryExternalIdentityToken, ResolvedSnapshotBasis, SchemaBasisDigest, SnapshotLineageClass,
     SnapshotResolutionReport, UiGraphAspectConsumer, UiGraphAspectConsumerKind,

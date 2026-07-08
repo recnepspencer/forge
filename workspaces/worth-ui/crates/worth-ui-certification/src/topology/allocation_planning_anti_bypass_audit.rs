@@ -140,6 +140,8 @@ fn evidence_local_planning_semantics_violations(workspace_root: &Path) -> Vec<St
 fn is_allowed_planning_owner(relative: &Path) -> bool {
     let normalized = relative.to_string_lossy().replace('\\', "/");
     normalized == "runtime/host.rs"
+        || normalized == "runtime/launch/planning_transition.rs"
+        || normalized == "runtime/planning/plan_allocation.rs"
         || normalized.starts_with("runtime/allocation_planning/")
 }
 

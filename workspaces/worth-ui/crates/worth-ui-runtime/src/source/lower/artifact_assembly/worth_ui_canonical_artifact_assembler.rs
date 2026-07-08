@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::declaration::stable_text_digest;
+use crate::declaration::authored_source_provenance_digest;
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyMetrics,
     WorthUiArtifactAssemblyReport, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
@@ -176,8 +176,7 @@ fn assemble_node(
 }
 
 fn authored_provenance_digest(provenance: &crate::source::WorthUiArtifactInputProvenance) -> u64 {
-    stable_text_digest(provenance.module_path())
-        ^ (provenance.declaration_index() as u64).rotate_left(13)
+    authored_source_provenance_digest(provenance.module_path(), provenance.declaration_index())
 }
 
 fn node_order_keys<'a>(

@@ -1,4 +1,4 @@
-use worth_ui_runtime::facade::UiProjectionFactReceipt;
+use worth_ui_runtime::facade::evidence::UiProjectionFactReceipt;
 
 fn main() {
     let _ = UiProjectionFactReceipt {

@@ -33,8 +33,8 @@ pub(super) fn measurement_projection_workspace_with_graph(
     let schema = ForgeQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
         .expect("identity aspect should admit")
-        .aspect("title.value", "title.value")
-        .expect("title aspect should admit");
+        .aspect("size.value", "size.value")
+        .expect("size aspect should admit");
     let mut workspace = in_memory_test_runtime()
         .with_schema(schema)
         .workspace(&format!("worth-ui.phase5.query-measurement.{lane_label}"))
@@ -46,8 +46,8 @@ pub(super) fn measurement_projection_workspace_with_graph(
                 ForgeQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
-                aspect_touch("title.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("title-{lane_label}")),
+                aspect_touch("size.value"),
+                ForgeQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("test workspace should admit the query row");
@@ -115,10 +115,10 @@ pub(super) fn identity_only_family_graph(
 pub(super) fn title_value_field_path() -> forge_query::facade::ProjectionFactFieldPath {
     forge_query::facade::ProjectionFactFieldPath::from_canonical_field_path(
         CanonicalFieldPath::new(vec![
-            FieldKey::new("title").expect("field key should admit"),
+            FieldKey::new("size").expect("field key should admit"),
             FieldKey::new("value").expect("field key should admit"),
         ])
-        .expect("canonical title.value field path should admit"),
+        .expect("canonical size.value field path should admit"),
     )
 }
 
@@ -138,9 +138,9 @@ fn title_family_graph(
                     )
                     .expect("identity anchor predicate should build"),
                 )
-                .project(field("title", "value"))
+                .project(field("size", "value"))
         },
-        |shape| shape.field(result_field("title", "value", "title.value")),
+        |shape| shape.field(result_field("size", "value", "size.value")),
     )
 }
 
@@ -155,7 +155,7 @@ fn task_query_schema() -> QuerySchemaView {
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                forge_query::facade::AspectName::new("title").expect("schema aspect should admit"),
+                forge_query::facade::AspectName::new("size").expect("schema aspect should admit"),
                 forge_query::facade::FieldName::new("value").expect("schema field should admit"),
                 SchemaFieldKind::String,
             ),

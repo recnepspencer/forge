@@ -10,7 +10,7 @@ use crate::admission::{
 };
 use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::evidence::UiEvidenceRef;
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::obligations::closeout::{UiAdmissionAuthorityHandoff, UiObligationCloseoutReport};
 use crate::obligations::diagnostics::UiObligationDiagnosticProjection;
 use crate::obligations::dispatch::UiObligationDispatchPlan;

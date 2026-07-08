@@ -244,7 +244,7 @@
       "acceptance": [
         "certification proves hosts cannot mint layout authority, Query authority, or committed allocation truth through local helpers or test-only bypasses",
         "basis determinism, compatibility posture, lineage narrowness, and public-boundary purity are mechanically certified rather than documented hopes",
-        "future 3.6b and 3.7 work have one obvious consumer path from the shipped basis, lineage, and inspection artifacts without widening them into a god object"
+        "future 3.6b and 3.8 work have one obvious consumer path from the shipped basis, lineage, and inspection artifacts without widening them into a god object"
       ],
       "instructions": "Close 3.6a with proof, not optimism. The exit bar is that allocation planning, resize churn, scroll behavior, and portal behavior can extend one real measurement kernel instead of reopening vocabulary or authority ownership.",
       "qa_focus": "No public bypass, no hidden host authority, no generic future-family bucket, and no unstable ordinary-path equivalence."

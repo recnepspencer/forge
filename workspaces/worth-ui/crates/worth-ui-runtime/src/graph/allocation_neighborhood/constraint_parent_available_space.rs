@@ -190,12 +190,12 @@ fn max_bounded_requirement(
     left: UiConstraintBoundedMinMaxRequirement,
     right: UiConstraintBoundedMinMaxRequirement,
 ) -> UiConstraintBoundedMinMaxRequirement {
-    use UiConstraintBoundedMinMaxRequirement::{BothAxes, None, PrimaryAxis};
+    use UiConstraintBoundedMinMaxRequirement::{BothAxes, None as BoundedNone, PrimaryAxis};
 
     match (left, right) {
         (BothAxes, _) | (_, BothAxes) => BothAxes,
         (PrimaryAxis, _) | (_, PrimaryAxis) => PrimaryAxis,
-        (None, None) => None,
+        (BoundedNone, BoundedNone) => BoundedNone,
     }
 }
 

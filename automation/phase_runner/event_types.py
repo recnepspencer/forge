@@ -33,7 +33,6 @@ EVENT_TYPES = {
     "session_reset",
     "operator_override",
     "legacy_imported",
-    "boundary_review_completed",
 }
 
 PHASE_PROGRESS_EVENTS = {

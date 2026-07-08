@@ -9,7 +9,7 @@ mod measurement_dependency;
 mod structural_semantics;
 mod support;
 
-pub(crate) use artifact::stable_text_digest;
+pub(crate) use artifact::{authored_source_provenance_digest, stable_text_digest};
 pub(crate) use artifact::ui_declaration_lowering::UiDeclarationLowering;
 pub use artifact::{
     UiDeclarationArtifact, UiDeclarationArtifactDigest, UiDeclarationAspectDigest,

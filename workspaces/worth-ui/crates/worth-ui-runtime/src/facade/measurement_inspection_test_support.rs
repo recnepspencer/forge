@@ -24,7 +24,8 @@ use crate::obligations::touch::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
 };
 
-use super::{UiMeasurementInspectionEvidenceBundle, WorthUi, WorthUiApp, WorthUiDslPackage};
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
+use super::{WorthUi, WorthUiApp, WorthUiDslPackage};
 
 pub(super) fn measurement_query(target: UiInspectionTarget) -> UiInspectionQuery {
     UiInspectionQuery::new(target, UiInspectionScope::Measurement)

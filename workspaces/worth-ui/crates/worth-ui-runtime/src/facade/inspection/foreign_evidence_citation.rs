@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 
 use crate::facade::retained_obligation_registry::WorthUiRetainedObligationRegistry;
-use crate::facade::{
+use worth_ui_inspection::{
     UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef,
     UiInspectionQueryForeignEvidenceArtifactKind, UiInspectionQueryForeignEvidenceCitation,
     UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,

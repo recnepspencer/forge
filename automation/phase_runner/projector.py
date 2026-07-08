@@ -65,6 +65,8 @@ def project_run(
             projection["started_at"] = event["at"]
             continue
         if event["event_type"] == "run_resumed":
+            if event.get("payload", {}).get("reset_session_thread") is True:
+                projection["session"]["thread_id"] = None
             projection["stopped"] = False
             projection["stop_reason"] = None
             continue
@@ -132,6 +134,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
             "model": config["session_defaults"]["model"],
             "reasoning_effort": config["session_defaults"].get("reasoning_effort"),
             "config": config["session_defaults"].get("config", {}),
+            "env": config["session_defaults"].get("env", {}),
             "reuse_session": config["session_defaults"].get("reuse_session", True),
             "thread_id": None,
             "fresh_recovery": None,

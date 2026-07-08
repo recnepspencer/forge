@@ -10,6 +10,7 @@ members = [
     "crates/worth-ui-host-contract",
     "crates/worth-ui-host-egui",
     "crates/worth-ui-certification",
+    "crates/worth-ui-test-support",
     "crates/worth-ui",
 ]
 
@@ -33,6 +34,7 @@ worth-ui-query-binding = { path = "crates/worth-ui-query-binding" }
 worth-ui-host-contract = { path = "crates/worth-ui-host-contract" }
 worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
 worth-ui-certification = { path = "crates/worth-ui-certification" }
+worth-ui-test-support = { path = "crates/worth-ui-test-support" }
 worth-ui = { path = "crates/worth-ui" }
 
 serde = { version = "1", features = ["derive", "rc"] }

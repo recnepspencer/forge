@@ -1,4 +1,4 @@
-pub use worth_ui_runtime::facade::{
+pub use worth_ui_runtime::facade::registry::{
     CommandCategory, CommandDescriptor, CommandId, CommandProjectionCommandReference,
     CommandProjectionDescriptor, CommandProjectionGrouping, CommandProjectionIconLabelPolicy,
     CommandProjectionId, CommandProjectionKey, CommandProjectionMeaningOverride,

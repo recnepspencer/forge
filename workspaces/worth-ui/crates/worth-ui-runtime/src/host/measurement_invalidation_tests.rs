@@ -4,7 +4,7 @@ use worth_ui_host_contract::{
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
-use super::measurement_result_test_support::normalized_viewport_result;
+use super::tests::measurement_result_test_support::normalized_viewport_result;
 use super::{
     admit_current_host_measurement_evidence, UiHostMeasurementAssumptionProfile,
     UiHostMeasurementEvidenceDenial, UiHostMeasurementFreshnessWitness,

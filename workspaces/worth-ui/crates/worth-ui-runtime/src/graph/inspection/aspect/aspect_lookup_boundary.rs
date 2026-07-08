@@ -12,7 +12,7 @@ use crate::evidence::UiInspectionCostMetrics;
 use crate::evidence::{
     order_refs, UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput,
 };
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 
 struct UiAspectSliceInput {
     refs: Box<[UiEvidenceRef]>,

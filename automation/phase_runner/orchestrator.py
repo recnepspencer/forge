@@ -54,9 +54,21 @@ def start_run(
         )
         return drive_run(config_path, active_run_id, loop, sleep_seconds, log_path)
 
-
-def resume_run(run_id: str, loop: bool, sleep_seconds: int, log_path: Path | None) -> int:
-    return resume_run_with_reason(run_id, loop, sleep_seconds, log_path, "operator resume")
+def resume_run(
+    run_id: str,
+    loop: bool,
+    sleep_seconds: int,
+    log_path: Path | None,
+    reset_thread: bool = False,
+) -> int:
+    return resume_run_with_reason(
+        run_id,
+        loop,
+        sleep_seconds,
+        log_path,
+        "operator resume",
+        reset_thread,
+    )
 
 
 def resume_run_with_reason(
@@ -65,6 +77,7 @@ def resume_run_with_reason(
     sleep_seconds: int,
     log_path: Path | None,
     reason: str,
+    reset_thread: bool = False,
 ) -> int:
     config_path = config_path_for_run(run_id)
     paths = RuntimePaths(run_id)
@@ -73,7 +86,10 @@ def resume_run_with_reason(
         append_runtime_event(
             paths,
             "run_resumed",
-            payload={"reason": reason},
+            payload={
+                "reason": reason,
+                "reset_session_thread": reset_thread,
+            },
         )
         return drive_run(config_path, run_id, loop, sleep_seconds, log_path)
 

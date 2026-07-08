@@ -1,24 +1,9 @@
 use std::path::Path;
 
-use worth_ui_runtime::facade::{
-    certify_activation_boundary_suite as runtime_activation_boundary_suite,
-    certify_allocation_inspection_suite as runtime_allocation_inspection_suite,
-    certify_allocation_neighborhood_suite as runtime_allocation_neighborhood_suite,
-    certify_bounded_reconciliation_suite as runtime_bounded_reconciliation_suite,
-    certify_constraint_edge_suite as runtime_constraint_edge_suite,
-    certify_durable_resize_input_suite as runtime_durable_resize_input_suite,
-    certify_equal_share_suite as runtime_equal_share_suite,
-    certify_intrinsic_return_flow_suite as runtime_intrinsic_return_flow_suite,
-    certify_parent_child_propagation_suite as runtime_parent_child_propagation_suite,
-    certify_plan_handoff_suite as runtime_plan_handoff_suite,
-    certify_sibling_negotiation_suite as runtime_sibling_negotiation_suite,
-    certify_special_input_suite as runtime_special_input_suite,
-    UiAllocationPlanningCertificationReport,
-};
-#[cfg(test)]
-use worth_ui_runtime::facade::UiAllocationPlanningCertificationSuiteKind;
-
 use super::allocation_planning_anti_bypass_audit::audit_allocation_planning_anti_bypass_boundaries;
+
+#[cfg(test)]
+use worth_ui_runtime::facade::evidence::UiAllocationPlanningCertificationSuiteKind;
 
 #[cfg(test)]
 const NAMED_PLANNING_SUITE_KINDS: [UiAllocationPlanningCertificationSuiteKind; 12] = [
@@ -36,53 +21,12 @@ const NAMED_PLANNING_SUITE_KINDS: [UiAllocationPlanningCertificationSuiteKind; 1
     UiAllocationPlanningCertificationSuiteKind::AllocationInspection,
 ];
 
-pub fn allocation_neighborhood_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_allocation_neighborhood_suite()
-}
-
-pub fn constraint_edge_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_constraint_edge_suite()
-}
-
-pub fn parent_child_propagation_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_parent_child_propagation_suite()
-}
-
-pub fn intrinsic_return_flow_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_intrinsic_return_flow_suite()
-}
-
-pub fn sibling_negotiation_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_sibling_negotiation_suite()
-}
-
-pub fn equal_share_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_equal_share_suite()
-}
-
-pub fn bounded_reconciliation_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_bounded_reconciliation_suite()
-}
-
-pub fn special_input_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_special_input_suite()
-}
-
-pub fn durable_resize_input_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_durable_resize_input_suite()
-}
-
-pub fn plan_handoff_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_plan_handoff_suite()
-}
-
-pub fn activation_boundary_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_activation_boundary_suite()
-}
-
-pub fn allocation_inspection_suite() -> UiAllocationPlanningCertificationReport {
-    runtime_allocation_inspection_suite()
-}
+pub use super::certification_entry::{
+    activation_boundary_suite, allocation_inspection_suite, allocation_neighborhood_suite,
+    bounded_reconciliation_suite, constraint_edge_suite, durable_resize_input_suite,
+    equal_share_suite, intrinsic_return_flow_suite, parent_child_propagation_suite,
+    plan_handoff_suite, sibling_negotiation_suite, special_input_suite,
+};
 
 pub fn certify_allocation_anti_bypass_boundaries(
     workspace_root: &Path,
@@ -107,7 +51,7 @@ mod tests {
     };
     use std::collections::BTreeSet;
     use std::path::Path;
-    use worth_ui_runtime::facade::UiAllocationPlanningCertificationSuiteKind;
+    use worth_ui_runtime::facade::evidence::UiAllocationPlanningCertificationSuiteKind;
 
     #[test]
     fn named_planning_certification_suites_bind_distinct_suite_kinds() {

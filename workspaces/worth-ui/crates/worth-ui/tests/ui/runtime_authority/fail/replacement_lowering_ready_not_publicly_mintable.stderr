@@ -1,0 +1,30 @@
+warning: unreachable expression
+ --> tests/ui/runtime_authority/fail/replacement_lowering_ready_not_publicly_mintable.rs:6:17
+  |
+5 |         admitted: unimplemented!(),
+  |                   ---------------- any code following this expression is unreachable
+6 |         impact: unimplemented!(),
+  |                 ^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `unimplemented` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `admitted`, `impact`, `narrowing`, `node_plan`, `reconciliation_plan`, `query_rebind_plan` and `pending_execution_plan_lowering_input` of struct `WorthUiReplacementLoweringReady` are private
+  --> tests/ui/runtime_authority/fail/replacement_lowering_ready_not_publicly_mintable.rs:5:9
+   |
+ 4 |     let _lowering = WorthUiReplacementLoweringReady {
+   |                     ------------------------------- in this type
+ 5 |         admitted: unimplemented!(),
+   |         ^^^^^^^^ private field
+ 6 |         impact: unimplemented!(),
+   |         ^^^^^^ private field
+ 7 |         narrowing: unimplemented!(),
+   |         ^^^^^^^^^ private field
+ 8 |         node_plan: unimplemented!(),
+   |         ^^^^^^^^^ private field
+ 9 |         reconciliation_plan: unimplemented!(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         query_rebind_plan: unimplemented!(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+11 |         pending_execution_plan_lowering_input: unimplemented!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

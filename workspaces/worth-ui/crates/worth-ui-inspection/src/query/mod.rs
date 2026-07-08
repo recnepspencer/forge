@@ -1,3 +1,4 @@
+mod aspect_relevance_detail;
 mod allocation_planning_question;
 mod evidence_budget;
 mod evidence_richness;
@@ -9,6 +10,7 @@ mod relevance_admission;
 mod relevance_filter;
 mod relevance_outcome;
 
+pub use aspect_relevance_detail::UiInspectionAspectRelevanceDetail;
 pub use allocation_planning_question::UiAllocationPlanningQuestion;
 pub use evidence_budget::UiEvidenceBudget;
 pub use evidence_richness::UiEvidenceRichness;

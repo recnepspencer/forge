@@ -2,16 +2,15 @@ use std::collections::BTreeSet;
 
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::inspection::{
-    UiEvidenceFamily, UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionQuery,
-    UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget,
-    UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceFamily, UiEvidenceLinkKind, UiEvidenceRichness, UiInspectionAspectRelevanceDetail,
+    UiInspectionQuery, UiInspectionRelevance, UiInspectionRelevanceOutcome, UiInspectionScope,
+    UiInspectionTarget, UiInspectionTargetClass, UiRelevanceFamily, UiRelevanceFilter,
 };
-use worth_ui::facade::UiInspectionAspectRelevanceDetail;
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
-use worth_ui_runtime::facade::{
+use worth_ui_runtime::facade::graph::{
     project_aspect_evidence_refs, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
     UiAspectEvidenceSubjectKind, UiGraphNodeIdentity, UiMountedReceiptIdentity,
 };

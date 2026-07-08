@@ -81,11 +81,6 @@ Avoid these failure modes:
 - reopening the same phase with smaller and smaller findings instead of
   collapsing them into one decisive repair
 - spending most of a turn on prose when the next code edit is already obvious
-- satisfying a repeated authority finding with a better-looking proxy instead of
-  replacing the weak production seam
-- proving an authority/equivalence cutover only through synthetic hostile inputs
-  when the real declaration -> admission -> runtime derivation path is still not
-  fenced
 
 ## Cutover-first rule
 

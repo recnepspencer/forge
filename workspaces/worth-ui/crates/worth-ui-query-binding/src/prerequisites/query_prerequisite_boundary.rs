@@ -1,5 +1,6 @@
 use forge_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
+use super::prerequisite_assembly::construct_prerequisite_evidence;
 #[cfg(feature = "certification-construction")]
 use super::WorthUiQueryMeasurementFactFamily;
 use super::{
@@ -31,14 +32,13 @@ impl WorthUiQueryPrerequisiteBoundary {
         causal_explanation_lane: WorthUiQueryCausalExplanationLane,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryPrerequisiteEvidenceError> {
         let _ = self;
-        WorthUiQueryPrerequisiteEvidence::new(
+        construct_prerequisite_evidence(
             basis,
             resolution_report,
             basis_posture,
             projection_consumption_lane,
             inspection_lane,
             causal_explanation_lane,
-            None,
         )
     }
 

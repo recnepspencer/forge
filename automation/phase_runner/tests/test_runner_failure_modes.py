@@ -171,6 +171,24 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
         self.assertIsNone(projection["current_turn_instance_id"])
 
+    def test_run_resumed_can_clear_persisted_session_thread(self) -> None:
+        config = minimal_config()
+        events = [
+            {
+                **event("run_started", 1),
+                "thread_id": "thread-old",
+            },
+            {
+                **event(
+                    "run_resumed",
+                    2,
+                    payload={"reason": "operator resume", "reset_session_thread": True},
+                ),
+                "thread_id": None,
+            },
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertIsNone(projection["session"]["thread_id"])
     def test_code_quality_review_failure_reopens_repair_gate(self) -> None:
         config = minimal_config()
         events = [
@@ -269,7 +287,6 @@ class DurableRunnerTests(unittest.TestCase):
                 )
             finally:
                 runtime_paths.RUNTIME_ROOT = original_root
-
     def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
         config = minimal_config()
         events = [

@@ -1,7 +1,7 @@
 use crate::evidence::{
     convergence_posture_for_cycle_and_denial, remainder_policy_for_equal_share,
-    UiAllocationConstraintSummary, UiAllocationNeighborhood, UiAllocationSolvePass,
-    UiAllocationSolveTrace, UiConstraintCycleParticipationPosture,
+    UiAllocationConstraintSetIdentity, UiAllocationConstraintSummary, UiAllocationNeighborhood,
+    UiAllocationSolvePass, UiAllocationSolveTrace, UiConstraintCycleParticipationPosture,
     UiConstraintPortalAnchorPlanningInputResult, UiConstraintPropagationEdge,
     UiConstraintResizePermissionPosture, UiConstraintScrollOwnerPlanningInputResult,
     UiConstraintViewportPlanningInputResult, UiMeasurementBasisDenial,
@@ -13,10 +13,7 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiAllocationPlanningInspection {
-    planning_identity_digest: u64,
-    measurement_basis_identity_digest: u64,
-    neighborhood_identity_digest: u64,
-    constraint_set_identity_digest: Option<u64>,
+    constraint_set_identity: Option<UiAllocationConstraintSetIdentity>,
     neighborhood: UiAllocationNeighborhood,
     constraint_summary: Option<UiAllocationConstraintSummary>,
     viewport_planning_input: Option<UiConstraintViewportPlanningInputResult>,
@@ -33,14 +30,7 @@ impl WorthUiAllocationPlanningInspection {
         let constraint_set = planning.allocation_constraint_set();
         Self {
             solve_trace: solve_trace_for(planning, constraint_set),
-            planning_identity_digest: planning.planning_identity_digest(),
-            measurement_basis_identity_digest: planning.measurement_basis().identity_digest(),
-            neighborhood_identity_digest: planning
-                .allocation_neighborhood()
-                .identity()
-                .identity_digest(),
-            constraint_set_identity_digest: constraint_set
-                .map(|retained_constraint_set| retained_constraint_set.identity().identity_digest()),
+            constraint_set_identity: constraint_set.map(|retained_constraint_set| retained_constraint_set.identity()),
             neighborhood: planning.allocation_neighborhood().clone(),
             constraint_summary: constraint_set.map(|retained_constraint_set| retained_constraint_set.summary()),
             viewport_planning_input: constraint_set
@@ -61,19 +51,26 @@ impl WorthUiAllocationPlanningInspection {
     }
 
     pub fn planning_identity_digest(&self) -> u64 {
-        self.planning_identity_digest
+        self.solve_trace().planning_identity_digest()
     }
 
     pub fn measurement_basis_identity_digest(&self) -> u64 {
-        self.measurement_basis_identity_digest
+        self.neighborhood()
+            .identity()
+            .measurement_basis_identity_digest()
     }
 
     pub fn neighborhood_identity_digest(&self) -> u64 {
-        self.neighborhood_identity_digest
+        self.neighborhood().identity().identity_digest()
+    }
+
+    pub fn constraint_set_identity(&self) -> Option<UiAllocationConstraintSetIdentity> {
+        self.constraint_set_identity
     }
 
     pub fn constraint_set_identity_digest(&self) -> Option<u64> {
-        self.constraint_set_identity_digest
+        self.constraint_set_identity
+            .map(UiAllocationConstraintSetIdentity::identity_digest)
     }
 
     pub fn neighborhood(&self) -> &UiAllocationNeighborhood {

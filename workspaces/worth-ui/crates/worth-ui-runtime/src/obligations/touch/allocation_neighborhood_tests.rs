@@ -10,7 +10,7 @@ use crate::declaration::{
 };
 use crate::evidence::{
     admit_measurement_basis,
-    projection_fact_test_support::{
+    measurement::projection::fact_test_support::{
         display_field_projection_context, synthetic_declaration_identity,
     },
 };

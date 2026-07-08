@@ -1,47 +1,15 @@
+//! Graph truth lane: admission → identity → topology → neighborhood → inspection → mutation → closeout.
+
 mod admission;
-#[cfg(test)]
-mod allocation_constraint_downward_tests;
-#[cfg(test)]
-mod allocation_constraint_bound_reconciliation_tests;
-#[cfg(test)]
-mod allocation_constraint_bound_reconciliation_test_support;
-#[cfg(test)]
-mod allocation_constraint_bound_reconciliation_boundary_tests;
-#[cfg(test)]
-mod allocation_constraint_intrinsic_multichild_tests;
-#[cfg(test)]
-mod allocation_constraint_intrinsic_tests;
-#[cfg(test)]
-mod allocation_constraint_projection_cycle_tests;
-#[cfg(test)]
-mod allocation_constraint_projection_tests;
-#[cfg(test)]
-mod allocation_constraint_equal_share_tests;
-#[cfg(test)]
-mod allocation_constraint_equal_share_test_support;
-#[cfg(test)]
-mod allocation_constraint_equal_share_boundary_tests;
-#[cfg(test)]
-mod allocation_constraint_viewport_planning_tests;
-#[cfg(test)]
-mod allocation_constraint_scroll_owner_planning_tests;
-#[cfg(test)]
-mod allocation_constraint_portal_anchor_planning_tests;
-#[cfg(test)]
-mod allocation_constraint_sibling_support_test_support;
-#[cfg(test)]
-mod allocation_constraint_sibling_support_tests;
-#[cfg(test)]
-mod allocation_constraint_sibling_tests;
 mod allocation_neighborhood;
 #[cfg(test)]
-mod allocation_neighborhood_identity_tests;
-#[cfg(test)]
-mod allocation_neighborhood_scope_tests;
+pub(crate) use allocation_neighborhood::tests::{
+    allocation_constraint_bound_reconciliation_test_support,
+    allocation_constraint_equal_share_test_support, allocation_constraint_projection_tests,
+    allocation_constraint_sibling_support_test_support,
+};
 #[cfg(test)]
 pub(crate) mod allocation_neighborhood_test_support;
-#[cfg(test)]
-mod allocation_neighborhood_tests;
 mod closeout;
 mod identity;
 mod indexes;
@@ -55,6 +23,7 @@ mod participation;
 mod snapshot;
 mod topology;
 
+// --- admission (declaration → graph instantiation) ---
 pub(crate) use admission::admit_graph_handoffs;
 pub use admission::{
     UiGraphCoreIndexContributionSeed, UiGraphInstantiationDenial, UiGraphInstantiationLocalDenial,
@@ -62,18 +31,26 @@ pub use admission::{
     UiGraphParticipationSeed, UiGraphTopologyLocalDenial, UiGraphTopologySeed,
     UiRuntimeInstanceBasisAdmission,
 };
+
+// --- allocation neighborhood (graph → planning handoff; admission sealed pub(crate)) ---
 pub use allocation_neighborhood::UiAllocationNeighborhoodDenial;
+
+// --- closeout ---
 pub use closeout::{
     UiGraphAuthority, UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee, UiGraphCloseoutNonGoal,
     UiGraphCloseoutReport, UiGraphInspectionStopPoint, UiGraphInspectionSupportReport,
     UiGraphMountedReceiptAuthorityRecord, UiGraphNodeRecord, UiGraphTopologyRecord,
 };
+
+// --- identity ---
 pub use identity::{
     UiGraphGeneration, UiGraphGenerationRelation, UiGraphNodeIdentity, UiGraphSnapshotComparable,
     UiGraphWorldDifferenceKind, UiGraphWorldProfile, UiGraphWorldProfileError,
     UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
     UiRuntimeDataInstanceKeyKind, UiRuntimeDataInstanceKeyToken,
 };
+
+// --- indexes / lookup ---
 pub use indexes::{
     UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
     UiGraphAspectPublisherKind, UiGraphCoreIndexes, UiGraphLookup, UiGraphLookupCostClass,
@@ -82,6 +59,8 @@ pub use indexes::{
     UiGraphPageParticipationMember, UiGraphParentChildIndex, UiGraphRegionMembershipIndex,
     UiGraphSlotOccupancyIndex,
 };
+
+// --- inspection ---
 pub(crate) use inspection::UiGraphEvidenceRecord;
 pub use inspection::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
@@ -93,7 +72,10 @@ pub(crate) use inspection::{
     UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, WorthUiAspectInspectionBoundary,
     WorthUiGraphInspectionBoundary,
 };
+
 pub(crate) use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
+
+// --- mounted receipt ---
 pub(crate) use mounted_receipt::materialize_graph_mounted_receipts;
 pub use mounted_receipt::{
     UiGraphMountedPostureRelationship, UiGraphMountedReceiptAuthoritySeed,
@@ -101,7 +83,11 @@ pub use mounted_receipt::{
     UiGraphMountedReceiptMutationKind, UiGraphMountedReceiptReservation, UiGraphMountedReceiptSlot,
     UiGraphMountedReceiptTransition, UiMountedReceiptIdentity,
 };
+
+// --- mutation ---
 pub use mutation::{UiGraphMutationCommitDenial, UiGraphMutationCommitResult};
+
+// --- participation ---
 pub(crate) use participation::materialize_graph_participation_posture;
 pub use participation::{
     UiGraphAxisParticipation, UiGraphPageParticipationMutation,
@@ -109,9 +95,13 @@ pub use participation::{
     UiGraphParticipationEvidenceHandle, UiGraphParticipationMutation, UiGraphParticipationPosture,
     UiGraphParticipationReasonCode, UiGraphParticipationReasonSource, UiGraphParticipationStatus,
 };
+
+// --- snapshot ---
 pub use snapshot::{
     UiGraphAttachmentPosture, UiGraphDeclarationCorrespondence, UiGraphNode, UiGraphSnapshot,
 };
+
+// --- topology ---
 pub(crate) use topology::materialize_graph_topology;
 pub use topology::{
     UiGraphContainmentClaim, UiGraphMembershipFacts, UiGraphMosaicMembership, UiGraphNodeTopology,

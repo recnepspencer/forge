@@ -1,5 +1,7 @@
+mod assembly;
 mod assembler;
 mod counters;
+mod validation;
 mod denial;
 mod execution_plan;
 mod lane_partition;

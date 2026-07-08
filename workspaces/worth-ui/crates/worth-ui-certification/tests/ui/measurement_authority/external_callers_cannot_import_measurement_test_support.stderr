@@ -1,25 +1,11 @@
-error[E0432]: unresolved import `worth_ui_runtime::evidence::projection_fact_test_support`
- --> tests/ui/measurement_authority/external_callers_cannot_import_measurement_test_support.rs:1:33
+error[E0603]: module `layout_admission` is private
+ --> tests/ui/measurement_authority/external_callers_cannot_import_measurement_test_support.rs:2:46
   |
-1 | use worth_ui_runtime::evidence::projection_fact_test_support::display_field_projection_context;
-  |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `projection_fact_test_support` in `evidence`
+2 | use worth_ui_runtime::certification_support::layout_admission::snapshot_after_layout_admission_support;
+  |                                              ^^^^^^^^^^^^^^^^ private module
   |
-note: found an item that was configured out
- --> $WORKSPACE/crates/worth-ui-runtime/src/evidence/mod.rs
+note: the module `layout_admission` is defined here
+ --> $WORKSPACE/crates/worth-ui-runtime/src/certification_support/mod.rs
   |
-  | #[cfg(test)]
-  |       ---- the item is gated here
-  | pub(crate) mod projection_fact_test_support;
-  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-error[E0603]: module `evidence` is private
- --> tests/ui/measurement_authority/external_callers_cannot_import_measurement_test_support.rs:1:23
-  |
-1 | use worth_ui_runtime::evidence::projection_fact_test_support::display_field_projection_context;
-  |                       ^^^^^^^^ private module
-  |
-note: the module `evidence` is defined here
- --> $WORKSPACE/crates/worth-ui-runtime/src/lib.rs
-  |
-  | mod evidence;
-  | ^^^^^^^^^^^^
+  | mod layout_admission;
+  | ^^^^^^^^^^^^^^^^^^^^

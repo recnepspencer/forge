@@ -156,7 +156,7 @@ fn rebuilding_graph_node_index_from_authority_preserves_public_lookup_answers() 
     let obligation_before = app.inspect(all_obligation_graph_identity_query(alpha));
     let observation_before = app.inspection_observation();
 
-    app.rebuild_graph_node_evidence_index_from_authority();
+    app.rebuild_graph_evidence_indexes_from_authority();
 
     let observation_after = app.inspection_observation();
     let rebuilt_index =

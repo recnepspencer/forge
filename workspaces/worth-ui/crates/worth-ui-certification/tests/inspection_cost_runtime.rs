@@ -1,10 +1,10 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
-    UiEvidenceBudget, UiEvidenceRichness, UiEvidenceSliceOmission, UiInspectionCostReceipt,
-    UiInspectionQuery, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget,
-    UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceBudget, UiEvidenceRichness, UiEvidenceSliceOmission,
+    UiInspectionAspectRelevanceDetail, UiInspectionCostReceipt, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
+    UiRelevanceFilter,
 };
-use worth_ui::facade::UiInspectionAspectRelevanceDetail;
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,

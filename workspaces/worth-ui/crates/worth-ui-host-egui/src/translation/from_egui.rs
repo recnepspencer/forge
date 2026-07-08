@@ -1,4 +1,4 @@
-use worth_ui_runtime::host::{
+use worth_ui_runtime::facade::host_observation::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNormalizationContext,
 };
 
