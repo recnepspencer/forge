@@ -2,21 +2,28 @@ use super::{
     FixtureAuthorityReceipt, FixtureMutationBoundary, PersistedStoreFixtureManifest,
     SyntheticFixtureAuthorityDenied,
 };
+use forge_store_physical_format::PlatformPhysicalReplayArtifact;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ProductionBackedPhysicalFixture {
     manifest: PersistedStoreFixtureManifest,
     authority_receipt: FixtureAuthorityReceipt,
+    reopened_layout: forge_store_physical_format::PersistedPhysicalLayout,
+    replay_artifact: Option<PlatformPhysicalReplayArtifact>,
 }
 
 impl ProductionBackedPhysicalFixture {
     pub(crate) const fn from_manifest_and_receipt(
         manifest: PersistedStoreFixtureManifest,
         authority_receipt: FixtureAuthorityReceipt,
+        reopened_layout: forge_store_physical_format::PersistedPhysicalLayout,
+        replay_artifact: Option<PlatformPhysicalReplayArtifact>,
     ) -> Self {
         Self {
             manifest,
             authority_receipt,
+            reopened_layout,
+            replay_artifact,
         }
     }
 
@@ -26,6 +33,14 @@ impl ProductionBackedPhysicalFixture {
 
     pub const fn authority_receipt(&self) -> &FixtureAuthorityReceipt {
         &self.authority_receipt
+    }
+
+    pub const fn reopened_persisted_layout(&self) -> &forge_store_physical_format::PersistedPhysicalLayout {
+        &self.reopened_layout
+    }
+
+    pub const fn replay_artifact(&self) -> Option<&PlatformPhysicalReplayArtifact> {
+        self.replay_artifact.as_ref()
     }
 
     pub fn require_mutation_boundary(

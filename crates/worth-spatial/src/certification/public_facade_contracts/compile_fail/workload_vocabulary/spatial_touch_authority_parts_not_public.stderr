@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthorityParts`
- --> src/certification/public_facade_contracts/compile_fail/workload_vocabulary/spatial_touch_authority_parts_not_public.rs:1:5
-  |
-1 | use worth_spatial::facade::workload_vocabulary::SpatialGeometryEvidenceTouchAuthorityParts;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------------
-  |     |                                           |
-  |     |                                           help: a similar name exists in the module: `SpatialGeometryEvidenceTouchAuthority`
-  |     no `SpatialGeometryEvidenceTouchAuthorityParts` in `facade::workload_vocabulary`

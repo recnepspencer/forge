@@ -1,9 +1,14 @@
 [workspace]
 resolver = "2"
+# Road 1 sub-workspaces under cad/workspaces own their own package membership.
+# Keep them out of the root workspace so whole-world orchestration must route
+# through explicit --manifest-path calls rather than silent root ownership.
+exclude = ["cad/workspaces/*"]
 members = [
     "crates/forge-harness",
     "crates/worth-primitives",
     "crates/worth-math",
+    "crates/worth-retained-authority",
     "crates/worth-schema",
     "crates/worth-topo",
     "crates/worth-spatial",
@@ -31,6 +36,19 @@ members = [
     "crates/forge-relational",
 ]
 
+[workspace.metadata.worth_topology]
+role = "thin_orchestrator"
+road1_subworkspaces = [
+    "cad/workspaces/worth-contracts",
+    "cad/workspaces/worth-entry",
+    "cad/workspaces/worth-derived",
+    "cad/workspaces/worth-packs",
+    "cad/workspaces/worth-certification",
+]
+forbidden_member_prefixes = ["cad/workspaces/"]
+boundary_check_manifest = "tools/boundary-check/Cargo.toml"
+boundary_check_config = "tools/boundary-check/config/road1.toml"
+
 [workspace.package]
 edition = "2021"
 version = "0.1.0"
@@ -41,6 +59,7 @@ forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
 # Internal crates — kernel
 worth-primitives = { path = "crates/worth-primitives" }
 worth-math = { path = "crates/worth-math" }
+worth-retained-authority = { path = "crates/worth-retained-authority" }
 worth-schema = { path = "crates/worth-schema" }
 worth-topo = { path = "crates/worth-topo" }
 worth-spatial = { path = "crates/worth-spatial" }

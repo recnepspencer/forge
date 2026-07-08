@@ -103,6 +103,14 @@ let admission: RecoveryEntryAdmission = todo!();
 let _gate = RecoveryReplayEntryGate::before_source_precedence(admission);
 ```
 
+Partial publication replay operation identity is not a public authority surface:
+
+```compile_fail
+use forge_store_recovery_physics::PartialPublicationReplayOperationIdentity;
+
+let _operation: PartialPublicationReplayOperationIdentity = todo!();
+```
+
 S.4 recovery entry admission cannot consume S.3 protected-view capability as
 if it were recovery readiness:
 

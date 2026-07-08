@@ -2,7 +2,7 @@ use crate::{
     RecoveryEntryAdmissionDenialKind, RecoveryEntryBasis, RecoveryEntryBlockedByIntegrityDamage,
     RecoveryEntryCounters, RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness,
 };
-use forge_store_readiness::PhysicalAuthorityRecap;
+use forge_store_contracts::PhysicalAuthorityRecap;
 
 pub(crate) enum RecoveryEntryInputClassification {
     Admissible(RecoveryEntryBasis, RecoveryEntryCounters),
@@ -45,11 +45,7 @@ pub(crate) fn classify_recovery_entry_inputs(
     {
         return RecoveryEntryInputClassification::Blocked(
             RecoveryEntryBlockedByIntegrityDamage::before_replay_planning(
-                integrity_readiness
-                    .payload()
-                    .damage_map()
-                    .recovery_blocking_findings()
-                    .to_vec(),
+                integrity_readiness.payload().damage_map(),
             ),
         );
     }

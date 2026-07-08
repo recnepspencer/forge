@@ -10,7 +10,7 @@ use forge_store_physical_integrity::{
 };
 
 use crate::derived_index_damage_tests::inspect_damaged_derived_index_with_authority;
-use crate::physical_container_integrity_test_support::{
+use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     inspect_page_report, page_payload_with_record,
 };
 use crate::{PhysicalScenarioPlannedWorkBoundaryReport, PhysicalScenarioQualityHarness};

@@ -1,6 +1,6 @@
 use crate::{
-    FaultDeliveryAttempt, FaultDeliveryDenial, ShortcutRejectionObservationKind,
-    SimulationReplayBundle,
+    FaultDeliveryAttempt, FaultDeliveryDenial, PhysicalSimulationPlan,
+    ShortcutRejectionObservationKind, SimulationReplayBundle,
 };
 use forge_store_physical_isolation::CompactionReadInterlockDenial;
 
@@ -48,6 +48,24 @@ pub struct S5CompactionMutationCoverageRow {
 }
 
 impl PhysicalMutationCoverageEvidence {
+    pub fn from_private_mutation_denial_plan(
+        sequence: Roadmap2HarnessSequence,
+        plan: &PhysicalSimulationPlan,
+        attempt: FaultDeliveryAttempt,
+    ) -> Result<Self, CoverageGapDenial> {
+        match attempt.admit() {
+            Err(FaultDeliveryDenial::PrivateMutationDenied) => Ok(Self {
+                sequence,
+                plan_identity: *plan.identity().digest_bytes(),
+                posture: MutationValidationPosture::ExpectedFailureObserved,
+                denial: FaultDeliveryDenial::PrivateMutationDenied,
+                compaction_mutations: Vec::new(),
+                s5_physical_isolation_mutations: Vec::new(),
+            }),
+            _ => Err(CoverageGapDenial::MissingMutationResult),
+        }
+    }
+
     pub fn from_replay_private_mutation_denial(
         sequence: Roadmap2HarnessSequence,
         replay: &SimulationReplayBundle,

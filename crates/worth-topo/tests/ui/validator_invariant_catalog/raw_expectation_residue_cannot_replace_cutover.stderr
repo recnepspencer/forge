@@ -1,7 +1,0 @@
-error[E0308]: mismatched types
-  --> tests/ui/validator_invariant_catalog/raw_expectation_residue_cannot_replace_cutover.rs:17:72
-   |
-17 |     let _closeout: WorthTopologyOperatorCertificationCutoverCloseout = residue;
-   |                    -------------------------------------------------   ^^^^^^^ expected `WorthTopologyOperatorCertificationCutoverCloseout`, found `WorthTopologyOperatorCertificationOldExpectationResidueReport`
-   |                    |
-   |                    expected due to this

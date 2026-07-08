@@ -1384,6 +1384,16 @@ correctness.
   missing chunks, and terminal-projection denial counts.
 - Keep export manifest, evidence bundle, chunk bytes, and custody receipt as
   separate artifacts with separate authority and readmission behavior.
+- Architecture boundary: implement export as evidence collection ->
+  canonical classification -> transition verification -> receipt/bundle
+  construction. Do not put those responsibilities in one god function.
+- Architecture boundary: export modules must be organized by artifact layer
+  (`manifest`, `evidence_bundle`, `chunk_bytes`, `custody_receipt`,
+  `denials`, and `facade`) rather than by generic helper bins.
+- Architecture boundary: public export APIs expose only the next valid export
+  capability; raw chunk rows, copied receipt ids, terminal projections, and
+  offline-verifier observations remain inputs to classification or denial, not
+  constructors for export authority.
 
 **Open questions**
 - Decide which export bundle fields are shared with S.10 and which remain
@@ -1446,6 +1456,16 @@ verification before any imported blob witness exists.
   denials.
 - Import readmission must distinguish `ImportDeclaration`,
   `ImportReadmissionReceipt`, and `ImportedBlobWitness`.
+- Architecture boundary: implement import as boundary declaration parsing ->
+  trust-boundary classification -> current-scope readmission -> chunk
+  verification -> placement admission -> witness construction. Each step must
+  live in a named module or transition function.
+- Architecture boundary: deserialization, JSON compatibility, manifest parsing,
+  and terminal projection lowering may create declarations only. They must not
+  sit in the same module that constructs current Store witnesses.
+- Architecture boundary: the public import facade must make it mechanically
+  obvious which type is a raw declaration, which is readmitted evidence, and
+  which is a current Store witness.
 
 **Open questions**
 - None.
@@ -1521,6 +1541,15 @@ Roadmap 1 replication or S.10 backup semantics.
   subsets cannot masquerade as admitted partial replication readiness.
 - Capsule readiness must consume reachability and placement evidence and must
   not infer liveness or fetchability from chunk ids alone.
+- Architecture boundary: implement capsule readiness as slice selection ->
+  reachability/placement classification -> fixed-shape proof composition ->
+  readiness construction. Do not let capsule planning, byte materialization,
+  non-claim reporting, and readiness construction collapse into one function.
+- Architecture boundary: keep planning-only capsule declarations separate from
+  materialized byte bundles and from future replication authority.
+- Architecture boundary: the public capsule facade must teach the non-claim:
+  S.7 may prepare blob-bearing capsule readiness, but it does not certify full
+  replication, backup, restore, or convergence.
 
 **Open questions**
 - Decide whether capsule readiness lives in `forge-store-blob-chunks` directly
@@ -1585,6 +1614,14 @@ completed S.7 lifecycle.
   profiles are explicit materialization postures rather than runner folklore.
 - Use Foundational performance receipts for executed scenario counters and
   Foundational support evidence for shortcut-denial reports.
+- Architecture boundary: harness code must be organized by actors, faults,
+  oracles, profiles, transcripts, replay, and coverage. Generic fixture worlds
+  and all-purpose scenario helpers are phase blockers.
+- Architecture boundary: production actors must call production facades; test
+  authority may prepare legal synthetic setup only behind explicit
+  test-authority modules and cannot mint production witnesses.
+- Architecture boundary: oracles must compare executed evidence and counters,
+  not logs, summaries, fixture internals, or same-run self-reports.
 
 **Open questions**
 - Decide the first coverage matrix axes that must be mandatory in local CI
@@ -1603,7 +1640,8 @@ large objects through the production chunk path without memory cheating.
 - `forge-store-budgets`
 
 **Relevant APIs**
-- deterministic streaming blob generator
+- deterministic streaming blob generator with seed, byte length, chunk profile,
+  byte-pattern profile, expected digest basis, and expected chunk count
 - large-object streaming profiles
 - resident memory and allocation counter receipts
 - S.4.5 heavy profile execution surfaces
@@ -1624,8 +1662,16 @@ large objects through the production chunk path without memory cheating.
 - Sparse-only logical length does not prove multi-GB streaming. Sparse files
   are useful as hostile deception fixtures, not as the main qualification
   proof.
+- A zipped `target/` directory, current workspace cache, build artifact tree, or
+  any other local incidental corpus is not the canonical heavy blob authority.
+  It is nondeterministic, machine-local, rebuild-sensitive, and may only be
+  used as an optional chaos/stress corpus after the deterministic qualification
+  lane already passes.
 - The test must not require loading the blob into heap, building a full
   expected byte vector, or comparing through one scalar buffer.
+- The qualification source must not depend on committed multi-GB fixtures,
+  developer-local directory contents, same-run self-comparison, or a regenerated
+  archive whose contents are not described by the scenario identity.
 - Heavy lanes must be explicitly named and gated, but S.7 cannot close without
   at least one real executed multi-GB profile.
 
@@ -1641,31 +1687,66 @@ large objects through the production chunk path without memory cheating.
   CI memory-envelope-exceeding, and heavy multi-GB profiles with the same
   counter topology.
 - Exact evidence lane: heavy qualification records input generator seed,
-  declared byte length, actual bytes streamed, peak resident memory, peak
-  allocation count, temporary file bytes, disk bytes written, chunk count,
+  deterministic byte-pattern profile, declared byte length, expected chunk
+  count, expected digest basis, actual bytes streamed, peak resident memory,
+  peak allocation count, temporary file bytes, disk bytes written, chunk count,
   verification pass basis, cleanup receipt, and backend profile.
 - Deception lane: sparse files, hidden staging files, synthetic byte counters,
   and generated expected-byte artifacts are valid hostile fixtures but cannot
   satisfy the real multi-GB evidence requirement.
+- Pattern lane: run the same heavy fixture contract over incompressible seeded
+  bytes, highly-compressible repeated spans, chunk-boundary adversarial bytes,
+  repeated-chunk dedupe pressure, and sparse/deceptive source declarations as a
+  denial profile. The canonical pass/fail proof must be deterministic from
+  seed and profile, not from ambient filesystem contents.
+- Optional chaos-corpus lane: a streamed archive of `target/` or another large
+  local directory may be admitted only as a non-canonical stress input with a
+  separate profile label. It cannot satisfy the S.7 closeout evidence because
+  its contents are not stable across machines, rebuilds, or time.
 
 **Engineering decisions**
 - Implement deterministic streaming generation and streaming verification by
   bounded windows and rolling/chunked digests.
+- Define a `HeavyBlobFixturePlan` or equivalent proof-bearing plan whose
+  identity includes seed, byte length, chunk size/fanout profile,
+  byte-pattern profile, materialization mode, backend profile, and expected
+  digest/chunk-count basis.
+- Support two execution modes: stream-only generation for CI and ordinary
+  proof replay, and opt-in real temporary file materialization under a named
+  heavy fixture directory such as `target/forge-store-heavy-fixtures/` for
+  local qualification. Both modes must use the same deterministic plan and
+  evidence schema.
 - Add disk-space preflight, cleanup receipt, and platform/backend capability
   recording for heavy profiles.
 - Require exact counters for actual bytes streamed, chunk count, disk bytes
   written, temp bytes, allocations, residency, cleanup, and verification basis.
 - Gate heavy execution by an explicit profile flag or environment variable,
   while keeping the spec closeout dependent on recorded heavy evidence.
+- Require the heavy gate to declare its byte length explicitly, for example
+  through a named heavy profile or environment variable, so a runner cannot
+  silently downgrade a multi-GB qualification into a small local smoke test.
 - Materialize the heavy profile as a Foundational profile artifact so the
   evidence states hardware/backend/profile assumptions explicitly.
 - Certify multi-GB performance only from executed counter-backed receipts; do
   not let a profile declaration or policy admission receipt satisfy the heavy
   evidence requirement.
+- Architecture boundary: heavy qualification must be a profile-driven
+  production scenario, not a bespoke test shortcut. Generation, disk preflight,
+  execution, verification, cleanup, and evidence materialization must be named
+  stages.
+- Architecture boundary: resident-memory, allocation, disk, temp-file, and
+  cleanup counters are transition evidence, not after-the-fact diagnostics.
+- Architecture boundary: sparse/deception fixtures must live in hostile lanes
+  separate from the real multi-GB qualification lane.
+- Architecture boundary: local filesystem chaos corpora are diagnostic stress
+  inputs, not source authority. The canonical heavy source is the deterministic
+  fixture plan plus executed byte/chunk/digest evidence.
 
 **Open questions**
-- Decide the initial heavy blob size. The spec should require multiple GB,
-  with the exact default chosen by available CI or qualification hardware.
+- Decide the initial required local qualification size. The default should be a
+  true multiple-GB size selected by available qualification hardware, with
+  smaller profiles reserved only for CI and smoke coverage labels that cannot
+  close Phase 23.
 
 ### Phase 24: Certification Closeout And Shortcut Rejection
 
@@ -1729,6 +1810,18 @@ authority can satisfy S.7 closeout.
 - Closeout must preserve Proof non-success topology, especially `Stale`,
   `RebindRequired`, `Denied`, and `Deferred`, so certification cannot blur
   incomplete evidence into ordinary failure.
+- Architecture boundary: closeout materialization must read as executed
+  evidence source -> S.7 materialized evidence bundle -> sealed closeout
+  certificate -> downstream readiness/non-claim handoffs. Certification is the
+  courtroom for this sequence, not the crate that invents blob law.
+- Architecture boundary: each cross-milestone handoff must consume one sealed
+  closeout capability or typed non-claim. It must not reconstruct readiness
+  from copied lifecycle receipts, copied counters, copied proof ids, or
+  certification rows.
+- Architecture boundary: closeout code must keep request, classifier,
+  verifier, certificate construction, and public facade responsibilities
+  separate enough that a reviewer can audit the proof transition without
+  re-deriving every predicate.
 
 **Open questions**
 - None.

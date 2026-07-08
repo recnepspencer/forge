@@ -72,6 +72,13 @@ impl ProtectedReferenceRangeSet {
         &self.ranges
     }
 
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn for_certification_test() -> Self {
+        Self {
+            ranges: vec![ProtectedReferenceRange::singleton()],
+        }
+    }
+
     pub fn contains_reference(&self, reference: ProtectedPhysicalReference) -> bool {
         let Some((family, value)) = range_coordinate(reference) else {
             return self

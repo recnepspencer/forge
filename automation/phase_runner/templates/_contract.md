@@ -85,11 +85,16 @@ Use them this way:
 - phase-done QA found a real gap -> `status: regressed`, `qa_status: failed`
 - genuinely blocked -> `status: blocked`
 
-The only mandatory loop is the phase-done loop: `review` may send the phase to
-`repair`, and `repair` returns to `review`. Do not create loops because tests
-could be stronger, directories could be prettier, or aerospace-grade is not yet
-claimable. Those are close-pass hardening inputs, not runner loop conditions,
-unless they prove the phase itself is not actually done.
+  The phase-done loop and structural code-quality loop are mandatory gates.
+  `review` may send the phase to `repair`, and `repair` returns to `review`.
+  `code_quality_review` sends the phase to `code_quality_repair` when it finds
+  concrete composition-law, domain-structure-law, file-size, directory-topology,
+  public-facade, `mod.rs` business-logic, helper-placement, missed-abstraction,
+  or ownership-boundary violations. Vague perfection concerns do not loop, but
+  concrete structural-law violations are phase defects and must not be recorded
+  as optional residue. Do not route structural findings through generic
+  `repair`; semantic repair, test repair, and structural repair are separate
+  turns.
 
 ## Cursor rules
 
@@ -127,10 +132,13 @@ Default phase turns advance like this:
 - after `test_repair_plan`: same phase, turn `test_repair_implement`
 - after `test_repair_implement`: same phase, turn `test_review` if fixes need
   re-review; turn `code_quality_review` if tests are now honest enough
-- after `code_quality_review`: next phase at turn `plan`, or `current: null`
-  and `completed_at` if this was the last phase
+- after `code_quality_review`: same phase, turn `code_quality_repair` if
+  structural QA found concrete law violations; otherwise next phase at turn
+  `plan`, or `current: null` and `completed_at` if this was the last phase
+- after `code_quality_repair`: same phase, turn `code_quality_review`
 
-Only `code_quality_review` advances to the next phase in this prompt set.
+Only passing `code_quality_review` advances to the next phase in this prompt
+set.
 
 ## Stale-cursor recovery example
 

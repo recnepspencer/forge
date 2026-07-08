@@ -1,7 +1,9 @@
-use crate::{RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness};
+use crate::{
+    PartialPublicationBeforeWalReplayRead, RecoveryMemoryEnvelope,
+    S4RecoveryPhysicsIntegrityReadiness,
+};
 use forge_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
-use forge_store_contracts::StableDigest;
-use forge_store_readiness::PhysicalAuthorityRecap;
+use forge_store_contracts::{PhysicalAuthorityRecap, StableDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBasis {
@@ -12,6 +14,7 @@ pub struct RecoveryEntryBasis {
     physical_reference_count: u32,
     header_decode_witness_count: u32,
     payload_admission_witness_count: u32,
+    partial_publication_before_wal_replay_read: Option<PartialPublicationBeforeWalReplayRead>,
 }
 
 impl RecoveryEntryBasis {
@@ -28,6 +31,10 @@ impl RecoveryEntryBasis {
             physical_reference_count: physical_authority.physical_reference_count(),
             header_decode_witness_count: physical_authority.header_decode_witness_count(),
             payload_admission_witness_count: physical_authority.payload_admission_witness_count(),
+            partial_publication_before_wal_replay_read: integrity_readiness
+                .payload()
+                .partial_publication_before_wal_replay_read()
+                .cloned(),
         }
     }
 
@@ -57,5 +64,11 @@ impl RecoveryEntryBasis {
 
     pub const fn payload_admission_witness_count(&self) -> u32 {
         self.payload_admission_witness_count
+    }
+
+    pub(crate) fn partial_publication_before_wal_replay_read(
+        &self,
+    ) -> Option<&PartialPublicationBeforeWalReplayRead> {
+        self.partial_publication_before_wal_replay_read.as_ref()
     }
 }

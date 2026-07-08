@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::AdmittedPrimitiveConstructionIntent`
- --> src/certification/public_facade_contracts/compile_fail/phases/public_admitted_intent_not_exported.rs:1:5
-  |
-1 | use worth_kernel::facade::AdmittedPrimitiveConstructionIntent;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `AdmittedPrimitiveConstructionIntent` in `facade`

@@ -6,16 +6,16 @@ mod s6_access_policy_support;
 mod s6_evidence_materialization_support;
 
 use forge_store_certification::{
-    adopt_materialized_s6_certification_evidence_for_closeout, close_s6_production_readiness,
+    adopt_materialized_s6_certification_evidence_for_closeout,
     materialize_s6_certification_evidence, S6CertificationEvidenceAdoptionReceipt,
-    S6CertificationRuntimeAuthorityDenial, S6ProductionReadinessClosure,
-    S6ProductionReadinessClosureDenial, S6ProductionReadinessClosureInput,
-    S6ProductionReadinessPosture, S6ResidualDebtKind,
-    StoreOwnedS6CertificationMaterializationSources,
+    S6CertificationRuntimeAuthorityDenial, StoreOwnedS6CertificationMaterializationSources,
 };
 use forge_store_readiness::{
-    S10BackupExportReadinessNonClaim, S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim,
-    S6LaterMilestoneDestination, S6ReadinessResidualDebtEvidenceKind, S7PlacementReadinessNonClaim,
+    close_s6_production_readiness, S10BackupExportReadinessNonClaim,
+    S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S6LaterMilestoneDestination,
+    S6ProductionReadinessClosure, S6ProductionReadinessClosureDenial,
+    S6ProductionReadinessClosureInput, S6ProductionReadinessPosture,
+    S6ReadinessResidualDebtEvidenceKind, S6ResidualDebtKind, S7PlacementReadinessNonClaim,
 };
 
 #[test]

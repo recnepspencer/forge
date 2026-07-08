@@ -2,7 +2,7 @@ use crate::{
     AdmittedBufferPoolEntry, BufferPoolAdmission, BufferPoolBudget, BufferPoolEntryDenial,
     BufferPoolEntryDenialKind, S2PhysicalEntryFacts,
 };
-use forge_store_readiness::S2PhysicalSubstrateReadiness;
+use forge_store_contracts::S2PhysicalSubstrateReadinessSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S2PhysicalResidencyEntry {
@@ -10,16 +10,16 @@ pub struct S2PhysicalResidencyEntry {
 }
 
 impl S2PhysicalResidencyEntry {
-    pub fn from_s1_readiness(
-        readiness: S2PhysicalSubstrateReadiness,
+    pub fn from_physical_substrate_snapshot(
+        snapshot: S2PhysicalSubstrateReadinessSnapshot,
     ) -> Result<Self, BufferPoolEntryDenial> {
-        if !readiness.is_sealed() {
+        if !snapshot.is_sealed() {
             return Err(BufferPoolEntryDenial::new(
                 BufferPoolEntryDenialKind::UnsealedReadiness,
             ));
         }
         Ok(Self {
-            facts: S2PhysicalEntryFacts::from_readiness(&readiness),
+            facts: S2PhysicalEntryFacts::from_snapshot(snapshot),
         })
     }
 

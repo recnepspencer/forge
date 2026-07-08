@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyMutationApplicationRunner`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_mutation_application_runner_not_exported.rs:1:5
-  |
-1 | use topology::facade::TopologyMutationApplicationRunner;
-  |     ^^^^^^^^^^^^^^^^^^---------------------------------
-  |     |                 |
-  |     |                 help: a similar name exists in the module: `TopologyMutationApplicationMode`
-  |     no `TopologyMutationApplicationRunner` in `facade`

@@ -8,6 +8,9 @@ use crate::{
     ObservedPhysicalTrace, PhysicalInterleavingSchedule, PhysicalSimulationPlan,
     PhysicalSimulationPlanIdentity,
 };
+#[cfg(any(test, feature = "certification-test-support"))]
+use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness
+    as S7BlobHarnessExecutedActorEvidence;
 
 use super::{
     evidence::{require_resource_observation_within_envelope, PhysicalResourceEnvelopeObservation},
@@ -19,6 +22,8 @@ pub struct PhysicalCounterExecutionSources {
     plan_identity: PhysicalSimulationPlanIdentity,
     actor_step_count: u64,
     shortcut_rejection_count: u64,
+    blob_chunk_count: u64,
+    blob_logical_bytes: u64,
     protected_ranges: u64,
     compaction_candidate_ranges: u64,
     range_comparisons: u64,
@@ -52,6 +57,51 @@ impl PhysicalCounterExecutionSources {
             plan_identity: plan.identity().clone(),
             actor_step_count: schedule.actor_steps().len() as u64,
             shortcut_rejection_count: trace.shortcut_rejections().len() as u64,
+            blob_chunk_count: plan
+                .s7_blob_harness_topology()
+                .map(|topology| topology.chunk_count())
+                .unwrap_or(0),
+            blob_logical_bytes: plan
+                .s7_blob_harness_topology()
+                .map(|topology| topology.logical_bytes())
+                .unwrap_or(0),
+            protected_ranges: compaction.protected_ranges(),
+            compaction_candidate_ranges: compaction.candidate_ranges(),
+            range_comparisons: compaction.range_comparisons(),
+            overlapping_ranges: compaction.overlapping_ranges(),
+            copied_pages: compaction.copied_pages(),
+            publication_swaps: compaction.publication_swaps(),
+            blocked_reclaims: compaction.blocked_reclaims(),
+            allocation,
+            resident,
+            io,
+        })
+    }
+
+    #[cfg(any(test, feature = "certification-test-support"))]
+    pub(crate) fn admit_for_blob_harness_execution(
+        plan: &PhysicalSimulationPlan,
+        schedule: &PhysicalInterleavingSchedule,
+        trace: &ObservedPhysicalTrace,
+        witness: &S7BlobHarnessExecutedActorEvidence,
+        buffer_pool: BufferPoolExecutedEvidenceSource,
+        io_queue: IoQueueExecutedEvidenceSource,
+    ) -> Result<Self, CounterMismatchEvidence> {
+        require_executed_sources_match_plan(plan, schedule, trace)?;
+        let buffer_counters = buffer_pool.counters();
+        let allocation = buffer_counters.allocation();
+        let resident = buffer_counters.resident_memory();
+        let io = io_queue.counters();
+        let resource_observation =
+            resource_observation_from_sources(plan, allocation, resident, io);
+        require_resource_observation_within_envelope(plan, resource_observation)?;
+        let compaction = require_compaction_observation_for_contracts(plan, trace)?;
+        Ok(Self {
+            plan_identity: plan.identity().clone(),
+            actor_step_count: schedule.actor_steps().len() as u64,
+            shortcut_rejection_count: trace.shortcut_rejections().len() as u64,
+            blob_chunk_count: witness.executed_topology().chunk_count(),
+            blob_logical_bytes: witness.executed_topology().logical_bytes(),
             protected_ranges: compaction.protected_ranges(),
             compaction_candidate_ranges: compaction.candidate_ranges(),
             range_comparisons: compaction.range_comparisons(),
@@ -231,6 +281,8 @@ fn observed_counter_count(
         CounterContractKind::ReplayIdentityExact => 1,
         CounterContractKind::ForbiddenShortcutExact => 0,
         CounterContractKind::ProfileResourceEnvelope => 1,
+        CounterContractKind::BlobChunkCountExact => sources.blob_chunk_count,
+        CounterContractKind::BlobLogicalBytesExact => sources.blob_logical_bytes,
         CounterContractKind::AllocationBytes => allocation_bytes_allocated(sources.allocation),
         CounterContractKind::PagePins => sources.resident.pin_lifecycle().active_pinned_pages(),
         CounterContractKind::IoQueueDepth => u64::from(sources.io.peak_queue_depth()),

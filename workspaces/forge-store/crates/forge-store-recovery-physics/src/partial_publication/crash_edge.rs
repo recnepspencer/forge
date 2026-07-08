@@ -14,6 +14,7 @@ pub struct UnacknowledgedDurableWal {
     generation: WalSegmentGeneration,
     lsn_range: WalLsnRange,
     frame_digest: WalFrameDigest,
+    expected_bytes: u64,
     required_barriers: WalDurabilityBarrierSet,
     completed_barriers: WalDurabilityBarrierSet,
 }
@@ -26,6 +27,7 @@ impl UnacknowledgedDurableWal {
             generation: receipt.generation(),
             lsn_range: receipt.lsn_range(),
             frame_digest: receipt.frame_digest().clone(),
+            expected_bytes: receipt.expected_bytes(),
             required_barriers: receipt.required_barriers(),
             completed_barriers: receipt.completed_barriers(),
         }
@@ -49,6 +51,10 @@ impl UnacknowledgedDurableWal {
 
     pub fn frame_digest(&self) -> &WalFrameDigest {
         &self.frame_digest
+    }
+
+    pub const fn expected_bytes(&self) -> u64 {
+        self.expected_bytes
     }
 
     pub const fn required_barriers(&self) -> WalDurabilityBarrierSet {

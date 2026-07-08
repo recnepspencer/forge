@@ -1,6 +1,6 @@
-use forge_store_readiness::{
+use forge_store_contracts::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload,
+    S3PhysicalIntegrityReadinessPayload,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,10 +9,8 @@ pub struct IntegrityEntryBasis {
 }
 
 impl IntegrityEntryBasis {
-    pub(crate) const fn from_readiness(readiness: S3PhysicalIntegrityReadiness) -> Self {
-        Self {
-            payload: readiness.payload(),
-        }
+    pub(crate) const fn from_payload(payload: S3PhysicalIntegrityReadinessPayload) -> Self {
+        Self { payload }
     }
 
     pub const fn protected_view_count(self) -> u32 {

@@ -1,13 +1,6 @@
 use crate::failure::StoreErrorKind;
+pub use forge_store_contracts::SupportArtifactFamily;
 use serde::Serialize;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub enum SupportArtifactFamily {
-    SchemaSupport,
-    LineageSupport,
-    CursorSupport,
-    EmbeddedCheckpoint,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum SupportArtifactRecoveryDisposition {

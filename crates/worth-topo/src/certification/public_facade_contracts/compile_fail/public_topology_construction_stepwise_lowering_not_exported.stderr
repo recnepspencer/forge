@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::lower_primitive_construction_birth_plan`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_construction_stepwise_lowering_not_exported.rs:1:5
-  |
-1 | use topology::facade::lower_primitive_construction_birth_plan;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_primitive_construction_birth_plan` in `facade`

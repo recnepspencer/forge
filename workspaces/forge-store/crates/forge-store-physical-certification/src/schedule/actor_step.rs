@@ -73,6 +73,16 @@ pub(crate) fn actor_role_token(role: PhysicalScenarioActorRole) -> &'static str 
         PhysicalScenarioActorRole::ScrubDriver => "scrub-driver",
         PhysicalScenarioActorRole::OfflineVerifier => "offline-verifier",
         PhysicalScenarioActorRole::ShortcutRejectionProbe => "shortcut-rejection-probe",
+        PhysicalScenarioActorRole::BlobIngestActor => "blob-ingest-actor",
+        PhysicalScenarioActorRole::BlobReadActor => "blob-read-actor",
+        PhysicalScenarioActorRole::BlobVerifyActor => "blob-verify-actor",
+        PhysicalScenarioActorRole::BlobResumeActor => "blob-resume-actor",
+        PhysicalScenarioActorRole::BlobDedupeActor => "blob-dedupe-actor",
+        PhysicalScenarioActorRole::BlobExportActor => "blob-export-actor",
+        PhysicalScenarioActorRole::BlobImportActor => "blob-import-actor",
+        PhysicalScenarioActorRole::BlobPlacementMoveActor => "blob-placement-move-actor",
+        PhysicalScenarioActorRole::BlobPartialReplicationActor => "blob-partial-replication-actor",
+        PhysicalScenarioActorRole::BlobReclaimActor => "blob-reclaim-actor",
         PhysicalScenarioActorRole::FutureExtensionSlot => "future-extension-slot",
     }
 }

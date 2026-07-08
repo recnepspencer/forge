@@ -1,6 +1,6 @@
 use crate::{
-    physical_scope_admission_test_support::{validation, with_checked_frame},
-    pre_decode_physical_admission_test_support::with_entry_seed,
+    courtroom::harness::test_support::physical_scope_admission_test_support::{validation, with_checked_frame},
+    courtroom::harness::test_support::pre_decode_physical_admission_test_support::with_entry_seed,
 };
 use forge_store_buffer_pool::{
     AllocationAdmission, AllocationByteBudget, AllocationEnvelopeDeclaration,

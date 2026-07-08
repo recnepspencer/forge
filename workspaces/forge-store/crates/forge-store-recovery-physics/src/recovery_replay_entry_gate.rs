@@ -2,8 +2,10 @@ use forge_proof::TransitionOutcome;
 use forge_store_security::{deny_drifted_store_security_scope, StoreSecurityScopePropagationSite};
 
 use crate::{
-    RecoveryEntryAdmission, RecoveryEntryIdentity, RecoverySecurityScopePropagation,
-    RecoverySecurityScopePropagationDenial,
+    PartialPublicationBeforeWalReplayRead, PartialPublicationPersistedBytes,
+    PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,
+    PartialPublicationReplayReadRecord, RecoveryEntryAdmission, RecoveryEntryIdentity,
+    RecoverySecurityScopePropagation, RecoverySecurityScopePropagationDenial,
 };
 
 pub type RecoveryReplayEntryGateOutcome =
@@ -13,6 +15,7 @@ pub type RecoveryReplayEntryGateOutcome =
 pub struct RecoveryReplayEntryGate {
     entry_identity: RecoveryEntryIdentity,
     security_scope: RecoverySecurityScopePropagation,
+    partial_publication_before_wal_replay_read: Option<PartialPublicationBeforeWalReplayRead>,
     replay_planning_started: bool,
     source_precedence_chosen: bool,
 }
@@ -34,6 +37,10 @@ impl RecoveryReplayEntryGate {
 
         TransitionOutcome::success(Self {
             entry_identity: admission.entry_identity().clone(),
+            partial_publication_before_wal_replay_read: admission
+                .recovery_basis()
+                .partial_publication_before_wal_replay_read()
+                .cloned(),
             security_scope,
             replay_planning_started: false,
             source_precedence_chosen: false,
@@ -54,5 +61,30 @@ impl RecoveryReplayEntryGate {
 
     pub const fn security_scope(&self) -> &RecoverySecurityScopePropagation {
         &self.security_scope
+    }
+
+    pub fn read_partial_publication_checkpoint_cutover(
+        &self,
+        checkpoint_digest: impl Into<String>,
+    ) -> PartialPublicationReplayReadRecord {
+        let bytes = PartialPublicationPersistedBytes::during_checkpoint_cutover(checkpoint_digest);
+        let artifact = PartialPublicationReplayReadArtifact::from_replay_entry_gate(self, bytes);
+        PartialPublicationReplayReadRecord::from_replay_read_artifact(artifact)
+    }
+
+    pub fn read_partial_publication_before_wal_append(
+        &self,
+    ) -> Result<PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial> {
+        let Some(replay_read) = self.partial_publication_before_wal_replay_read.clone() else {
+            return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
+                actual_operation_digest: None,
+            });
+        };
+        Ok(
+            PartialPublicationReplayReadArtifact::from_replay_entry_gate(
+                self,
+                replay_read.into_persisted_bytes(),
+            ),
+        )
     }
 }

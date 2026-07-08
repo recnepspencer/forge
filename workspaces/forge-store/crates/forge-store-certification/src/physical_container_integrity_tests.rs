@@ -1,9 +1,9 @@
 use crate::{
-    physical_container_integrity_test_support::{
+    courtroom::harness::test_support::physical_container_integrity_test_support::{
         frame_start, inspect_extent_report, inspect_frame_with_witness_payload,
         inspect_page_denial, inspect_page_report, page_payload_with_record,
     },
-    physical_scope_admission_test_support::{
+    courtroom::harness::test_support::physical_scope_admission_test_support::{
         page_cell, page_request, root_with_slot, scope_membership, validation, with_checked_frame,
         with_checked_page,
     },
@@ -180,7 +180,7 @@ fn container_facade_rejects_scope_admitted_wrong_family_inputs() {
         let scope = PhysicalReferenceScope::wal_frame(validation);
         let root = root_with_slot(1, 2, 3, 7);
         let membership = scope_membership(&root, scope);
-        let request = crate::physical_scope_admission_test_support::frame_request(
+        let request = crate::courtroom::harness::test_support::physical_scope_admission_test_support::frame_request(
             &checked, scope, membership,
         );
         let admission = PhysicalScopeAdmission::admit_frame(checked, request).unwrap();

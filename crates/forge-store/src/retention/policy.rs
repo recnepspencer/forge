@@ -1,4 +1,5 @@
 use crate::{StoreError, StoreErrorKind};
+pub use forge_store_contracts::DerivedFamilyRetentionPolicy;
 use forge_relational::facade::history::BranchId;
 use serde::Serialize;
 
@@ -70,29 +71,6 @@ impl PinnedSnapshotPolicy {
 
     pub fn snapshot_id(&self) -> crate::SnapshotId {
         self.snapshot_id
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-pub enum DerivedFamilyRetentionPolicy {
-    Milestone6LayoutMaterialization,
-    Milestone6ScopeSliceMembership,
-    Milestone6StructuralBlock,
-    Milestone6ChunkMembership,
-}
-
-impl DerivedFamilyRetentionPolicy {
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Milestone6LayoutMaterialization => "milestone_6_layout_materialization",
-            Self::Milestone6ScopeSliceMembership => "milestone_6_scope_slice_membership",
-            Self::Milestone6StructuralBlock => "milestone_6_structural_block",
-            Self::Milestone6ChunkMembership => "milestone_6_chunk_membership",
-        }
-    }
-
-    pub fn requires_retained_basis_survival(self) -> bool {
-        true
     }
 }
 

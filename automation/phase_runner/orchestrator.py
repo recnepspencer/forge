@@ -26,6 +26,11 @@ from runtime_paths import (
 from transition_rules import validate_turn_outcome
 
 RUNNER_EVENT_PATTERN = re.compile(r"RUNNER_EVENT:\s*(\{.*\})")
+QA_REPAIR_COMPLETED_EVENTS = {
+    "repair_completed",
+    "test_repair_completed",
+    "code_quality_repair_completed",
+}
 
 
 def start_run(
@@ -49,12 +54,29 @@ def start_run(
         )
         return drive_run(config_path, active_run_id, loop, sleep_seconds, log_path)
 
-
 def resume_run(
     run_id: str,
     loop: bool,
     sleep_seconds: int,
     log_path: Path | None,
+    reset_thread: bool = False,
+) -> int:
+    return resume_run_with_reason(
+        run_id,
+        loop,
+        sleep_seconds,
+        log_path,
+        "operator resume",
+        reset_thread,
+    )
+
+
+def resume_run_with_reason(
+    run_id: str,
+    loop: bool,
+    sleep_seconds: int,
+    log_path: Path | None,
+    reason: str,
     reset_thread: bool = False,
 ) -> int:
     config_path = config_path_for_run(run_id)
@@ -65,7 +87,7 @@ def resume_run(
             paths,
             "run_resumed",
             payload={
-                "reason": "operator resume",
+                "reason": reason,
                 "reset_session_thread": reset_thread,
             },
         )
@@ -109,8 +131,8 @@ def drive_run(
                 payload={"reason": "all phases are complete"},
                 thread_id=projection["session"]["thread_id"],
             )
-            refresh_projection(config_path, run_id)
-            return 0
+            completed_projection = refresh_projection(config_path, run_id)
+            return run_completion_handoff(completed_projection, run_id)
         if should_stop_before_phase(projection):
             append_runtime_event(
                 RuntimePaths(run_id),
@@ -120,6 +142,9 @@ def drive_run(
             )
             refresh_projection(config_path, run_id)
             return 0
+
+        if maybe_reset_stuck_session(config_path, run_id, projection):
+            projection = refresh_projection(config_path, run_id)
 
         recovery_reason = pending_recovery_reason(
             load_events(RuntimePaths(run_id).events),
@@ -216,7 +241,7 @@ def run_single_turn(config_path: Path, run_id: str, log_path: Path | None) -> in
         return 0
     try:
         outcome = extract_runner_event(capture.get("agent_messages", []), turn_instance_id)
-        validate_turn_outcome(current["turn"], outcome["event_type"])
+        validate_turn_outcome(current_phase_for_projection(projection), current["turn"], outcome["event_type"])
         append_runtime_event(
             paths,
             outcome["event_type"],
@@ -329,7 +354,11 @@ def run_recovery_turn(config_path: Path, run_id: str, log_path: Path | None, rea
     try:
         outcome = extract_runner_event(capture.get("agent_messages", []), turn_instance_id)
         if current is not None:
-            validate_turn_outcome(current["turn"], outcome["event_type"])
+            validate_turn_outcome(
+                current_phase_for_projection(projection),
+                current["turn"],
+                outcome["event_type"],
+            )
             append_runtime_event(
                 paths,
                 outcome["event_type"],
@@ -466,6 +495,65 @@ RUNNER_EVENT: {{"event_type":"...","payload":{{...}}}}
 """
 
 
+def maybe_reset_stuck_session(
+    config_path: Path,
+    run_id: str,
+    projection: dict[str, Any],
+) -> bool:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        return False
+    if projection.get("current_turn_instance_id"):
+        return False
+    threshold = fresh_session_cycle_threshold(projection)
+    if threshold is None:
+        return False
+    paths = RuntimePaths(run_id)
+    events = load_events(paths.events)
+    cycle_count = qa_repair_cycles_since_last_reset(events, current["phase"])
+    if cycle_count < threshold:
+        return False
+    reason = (
+        f"fresh session after {cycle_count} same-phase QA/repair cycles "
+        f"(threshold {threshold})"
+    )
+    append_runtime_event(
+        paths,
+        "session_reset",
+        phase_id=current["phase"],
+        turn=current["turn"],
+        payload={
+            "reason": reason,
+            "cycle_count": cycle_count,
+            "threshold": threshold,
+        },
+    )
+    return True
+
+
+def fresh_session_cycle_threshold(projection: dict[str, Any]) -> int | None:
+    runner_control = projection.get("runner_control", {})
+    if not isinstance(runner_control, dict):
+        return None
+    value = runner_control.get("fresh_session_after_qa_repair_cycles")
+    if isinstance(value, int) and value > 0:
+        return value
+    return None
+
+
+def qa_repair_cycles_since_last_reset(events: list[dict[str, Any]], phase_id: int) -> int:
+    cycle_count = 0
+    for event in reversed(events):
+        if event.get("phase_id") != phase_id:
+            continue
+        event_type = event.get("event_type")
+        if event_type == "session_reset":
+            break
+        if event_type in QA_REPAIR_COMPLETED_EVENTS:
+            cycle_count += 1
+    return cycle_count
+
+
 def pending_recovery_reason(
     events: list[dict[str, Any]],
     current: dict[str, Any],
@@ -514,6 +602,16 @@ def turn_is_current(
     )
 
 
+def current_phase_for_projection(projection: dict[str, Any]) -> dict[str, Any]:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        raise ValueError("current phase is not set")
+    for phase in projection["phases"]:
+        if phase["id"] == current["phase"]:
+            return phase
+    raise ValueError(f"phase {current['phase']!r} is not present")
+
+
 def config_path_for_run(run_id: str) -> Path:
     events = load_events(RuntimePaths(run_id).events)
     if not events:
@@ -534,6 +632,15 @@ def stop_before_phase_reason(projection: dict[str, Any]) -> str:
     current = projection["current"]
     label = projection.get("runner_control", {}).get("stop_reason") or "configured stop-before-phase gate"
     return f"{label}: current phase {current['phase']} {current['turn']} reached stop_before_phase"
+
+
+def run_completion_handoff(projection: dict[str, Any], run_id: str) -> int:
+    from completion_handoff import resume_completion_handoff_target
+
+    return resume_completion_handoff_target(
+        projection.get("runner_control", {}).get("completion_handoff"),
+        polling_run_id=run_id,
+    )
 
 
 def new_run_id() -> str:

@@ -1,3 +1,4 @@
+mod blob_dimensions;
 mod denial;
 mod matrix;
 mod maturity;

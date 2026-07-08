@@ -1,4 +1,4 @@
-use forge_store_readiness::{S3ReadinessDenial, S3ReadinessDenialKind};
+use forge_store_contracts::{S3ReadinessDenial, S3ReadinessDenialKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityEntryDenial {

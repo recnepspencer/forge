@@ -1,11 +1,9 @@
 use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_offline_verifier::OfflineCustodyCapsuleObservation;
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_security::{
-    admit_store_security_scope, readmit_trust_boundary_security_scope_declaration,
+    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
+    readmit_trust_boundary_security_scope_declaration, S51SecurityScopeReadinessReservation,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };

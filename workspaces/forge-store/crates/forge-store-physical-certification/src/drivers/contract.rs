@@ -153,6 +153,7 @@ impl AdmittedDriverContractSet {
             ProductionStorageBoundaryDriver::for_backend_profile(
                 BackendDurabilityProfileId::PosixFileFsyncDirFsync,
             )
+            .declare_yieldpoint(PhysicalBoundaryYieldpoint::wal_append_before_flush())
             .declare_yieldpoint(PhysicalBoundaryYieldpoint::root_publication_before_observe())
             .admit()?,
             CrashRuntimeIsolationDriver::fresh_runtime_recovery()

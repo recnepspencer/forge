@@ -1,6 +1,8 @@
 #![doc = include_str!("api_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
+pub mod layout_access;
+
 mod access_policy_lifecycle;
 mod admission;
 mod allocation_scope;
@@ -52,6 +54,7 @@ mod speculative_work_counters;
 mod speculative_work_denials;
 mod speculative_work_plan;
 mod speculative_work_request;
+mod streaming_allocation;
 
 #[cfg(test)]
 mod allocation_scope_tests;
@@ -165,3 +168,4 @@ pub use speculative_work_request::{
     PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativePhysicalWorkKind,
     SpeculativeWorkRequestDenial, WriteBehindRequest,
 };
+pub use streaming_allocation::{streaming_allocation_kind, streaming_window_allocation_receipt};

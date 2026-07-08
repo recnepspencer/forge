@@ -1,4 +1,4 @@
-use forge_store_readiness::S6LaterMilestoneDestination;
+use forge_store_contracts::S6LaterMilestoneDestination;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S6LaterReadinessHandoffDenial {

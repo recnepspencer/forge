@@ -165,4 +165,28 @@ impl CompactionReadInterlockPlan {
     pub const fn reclaim_deferred(&self) -> bool {
         self.reclaim_deferred
     }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub fn for_certification_test() -> Self {
+        let read_plan = crate::stable_physical_read_plan_for_certification_test(64);
+        let protected = CompactionProtectedReferenceSet::from_read_plan(&read_plan);
+        let candidates =
+            CompactionCandidateRangeSet::from_protected_set_for_certification_test(&protected);
+        let source_epoch = protected.root().epoch();
+        let target_epoch = crate::RootEpoch::from_admitted_physical_basis(source_epoch.get() + 1);
+        let counters = candidates.intersect_protected(&protected);
+        Self {
+            protected,
+            candidates,
+            source_epoch,
+            target_epoch,
+            counters,
+            reclaim_deferred: counters.overlapping_ranges() > 0,
+        }
+    }
+}
+
+#[cfg(any(test, feature = "certification-authority"))]
+pub fn compaction_read_interlock_plan_for_certification_test() -> CompactionReadInterlockPlan {
+    CompactionReadInterlockPlan::for_certification_test()
 }

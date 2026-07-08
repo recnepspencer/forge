@@ -79,3 +79,41 @@ The runner also enforces a few operational guards:
 - serialized event-log appends per `run_id`
 - recovery instead of blind rerun when a prior Codex turn finished but its outcome was not recorded
 - idle and wall-clock turn timeouts through optional `runner_control.idle_timeout_seconds` and `runner_control.turn_timeout_seconds`
+- optional fresh-session recovery through `runner_control.fresh_session_after_qa_repair_cycles`
+
+## Fresh-Session Recovery
+
+Long QA/repair loops can become anchored in one persistent agent session. A
+runner config may set:
+
+```json
+{
+  "runner_control": {
+    "fresh_session_after_qa_repair_cycles": 4
+  }
+}
+```
+
+When the same phase records that many completed repair cycles without passing
+QA, the runner appends a `session_reset` event, clears the persisted thread id
+from the derived projection, and gives the next turn a short fresh-recovery
+preface. The reset does not advance the phase and does not mark QA as passed;
+it only makes the next agent invocation start from a fresh session with the
+existing event log, projection, spec, and phase context as authority.
+
+## Phase Ordering
+
+Phase ids are labels. The configured `phases` array is the authoritative phase
+sequence:
+
+```text
+phases[0] -> phases[1] -> ... -> phases[last]
+```
+
+The runner advances to the next configured phase by array order, not by
+calculating `current_phase_id + 1`. This allows milestones to use native phase
+ids such as `0`, sparse ids, inserted interruption phases, or other numbering
+schemes without lying to the config.
+
+Use `runner_control.phase_id_start` only as a guard for the first configured
+phase id. If present, it must match `phases[0].id`.

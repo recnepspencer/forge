@@ -18,7 +18,7 @@ forge-store-recovery-physics.workspace = true
 forge-store-security.workspace = true
 
 [features]
-certification-authority = []
+certification-authority = ["forge-store-recovery-physics/certification-test-authority"]
 
 [lints]
 workspace = true

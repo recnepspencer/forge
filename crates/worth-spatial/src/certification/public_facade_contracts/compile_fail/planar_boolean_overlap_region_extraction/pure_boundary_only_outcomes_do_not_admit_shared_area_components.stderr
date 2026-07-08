@@ -1,9 +1,0 @@
-error[E0599]: no method named `admit_shared_area_components` found for struct `PlanarBooleanPureBoundaryOnlyOutcomeSet` in the current scope
-  --> src/certification/public_facade_contracts/compile_fail/planar_boolean_overlap_region_extraction/pure_boundary_only_outcomes_do_not_admit_shared_area_components.rs:21:10
-   |
-20 |       let _ = pure_boundary_only_outcomes
-   |  _____________-
-21 | |         .admit_shared_area_components(&containment_map(), &winding_field());
-   | |         -^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `PlanarBooleanPureBoundaryOnlyOutcomeSet`
-   | |_________|
-   |

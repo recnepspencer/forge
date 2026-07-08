@@ -1,4 +1,8 @@
-use forge_store_readiness::{S6LaterMilestoneDestination, S7PlacementReadinessNonClaim};
+//! S.7 placement I/O readiness handoff — admission evidence for movement cost and foreground
+//! interference posture. Does not prove moved bytes are semantically valid; carries explicit
+//! non-claims that deny blob lifecycle and placement policy authority promotion.
+
+use forge_store_contracts::{S6LaterMilestoneDestination, S7PlacementReadinessNonClaim};
 
 use crate::{
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
@@ -20,6 +24,14 @@ pub fn publish_s7_placement_io_readiness_handoff(
         core: S6LaterReadinessEvidenceCore::from_current_readiness(readiness),
         non_claims: S7PlacementReadinessNonClaim::required(),
     }
+}
+
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub fn s7_placement_io_readiness_handoff_for_certification_test() -> S7PlacementIoReadinessHandoff {
+    let readiness = IoSchedulerS6ReadinessAdmission::for_certification_test();
+    readmit_s7_placement_io_readiness_after_publication(publish_s7_placement_io_readiness_handoff(
+        &readiness,
+    ))
 }
 
 pub const fn readmit_s7_placement_io_readiness_after_publication(

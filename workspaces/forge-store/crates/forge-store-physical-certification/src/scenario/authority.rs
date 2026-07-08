@@ -1,3 +1,5 @@
+/// Courtroom-only witness that certifies a scenario definition passed through
+/// physical-certification scenario admission.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalScenarioAuthorityWitness {
     _private: (),

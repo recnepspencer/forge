@@ -1,7 +1,0 @@
-error[E0451]: field `kind` of struct `EvidenceLookupIndexLifecyclePosture` is private
- --> src/certification/public_facade_contracts/compile_fail/evidence_lookup_index_product/struct_literals/lifecycle_posture_not_hand_filled.rs:7:9
-  |
-6 |     let _ = EvidenceLookupIndexLifecyclePosture {
-  |             ----------------------------------- in this type
-7 |         kind: EvidenceLookupIndexLifecyclePostureKind::SparseLookupOnly,
-  |         ^^^^ private field

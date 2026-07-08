@@ -60,10 +60,15 @@ Use them this way:
 - phase-done QA found a real gap -> `status: regressed`, `qa_status: failed`
 - genuinely blocked -> `status: blocked`
 
-The only mandatory loop is the phase-done loop: `review` may send the phase to
-`repair`, and `repair` returns to `review`. Test quality, test repair, and
-code-quality review are follow-up passes after phase done-ness; they do not
-loop on aerospace-grade or vague perfection.
+The phase-done loop and structural code-quality loop are mandatory gates.
+`review` may send the phase to `repair`, and `repair` returns to `review`.
+`code_quality_review` sends the phase to `code_quality_repair` when it finds
+concrete composition-law, domain-structure-law, file-size, directory-topology,
+public-facade, `mod.rs` business-logic, helper-placement, missed-abstraction, or
+ownership-boundary violations. Vague perfection concerns do not loop, but
+concrete structural-law violations are phase defects and must not be recorded as
+optional residue. Do not route structural findings through generic `repair`;
+semantic repair, test repair, and structural repair are separate turns.
 
 ## Cursor rules
 
@@ -86,10 +91,13 @@ Advance like this:
   need fixes; turn `code_quality_review` if test hardening is not needed
 - after `test_repair_plan`: same phase, turn `test_repair_implement`
 - after `test_repair_implement`: same phase, turn `code_quality_review`
-- after `code_quality_review`: next phase at turn `plan`, or `current: null`
-  and `completed_at` if this was the last phase
+- after `code_quality_review`: same phase, turn `code_quality_repair` if
+  structural QA found concrete law violations; otherwise next phase at turn
+  `plan`, or `current: null` and `completed_at` if this was the last phase
+- after `code_quality_repair`: same phase, turn `code_quality_review`
 
-Only `code_quality_review` advances to the next phase in this prompt set.
+Only passing `code_quality_review` advances to the next phase in this prompt
+set.
 
 Runner sync note: The phase runner JSON is the milestone state file in
 `automation/phase_runner/`. If it gets out of sync, use the completed work,

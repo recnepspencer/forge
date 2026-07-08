@@ -1,8 +1,10 @@
 #![forbid(unsafe_code)]
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExtensionFamilyPosture {
-    Registered,
-    RebuildRequired,
-    Rejected,
-}
+mod customization;
+
+pub use customization::{
+    layout_customization_catalog, ExtensionFamilyPosture, FutureLayoutCustomizationAdmission,
+    FutureLayoutCustomizationAdmissionRequest, FutureLayoutCustomizationDeferred,
+    FutureLayoutCustomizationDenial, FutureLayoutCustomizationOutcome, FutureLayoutTarget,
+    FutureLayoutTargetDeclaration,
+};

@@ -3,19 +3,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 use super::catalog::{CompatibilityAuthorityClassification, CompatibilityFamilyDeclaration};
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct ArtifactFamilyId(String);
-
-impl ArtifactFamilyId {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
+use forge_store_contracts::ArtifactFamilyId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ArtifactFormatVersion(u32);

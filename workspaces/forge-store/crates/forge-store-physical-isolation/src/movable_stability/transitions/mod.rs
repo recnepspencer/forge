@@ -1,0 +1,3 @@
+mod admit_chunk_migration_interlock;
+
+pub use admit_chunk_migration_interlock::admit_chunk_migration_interlock;

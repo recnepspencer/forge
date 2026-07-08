@@ -27,7 +27,8 @@ use forge_store_physical_certification::{
     PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence,
 };
 use forge_store_physical_isolation::{
-    PhysicalStabilityAssumption, S5IsolationEvidenceProfile, UnsupportedQoSClaim,
+    publish_s6_io_qos_isolation_readiness_from_s5_closeout, PhysicalStabilityAssumption,
+    S5IsolationEvidenceProfile, UnsupportedQoSClaim,
 };
 
 #[test]
@@ -190,23 +191,26 @@ fn phase15_closeout_denies_mismatched_lane_evidence_fragments() {
 }
 
 #[test]
-fn phase15_closeout_publishes_s6_readiness_only_from_executed_store_closeout() {
-    let published = closeout_suite()
-        .publish_s6_readiness(executed_closeout_fixture::honest_executed_s5_closeout())
-        .expect("aggregate closeout publishes S6 from executed Store closeout");
+fn phase15_closeout_seals_handoff_evidence_without_minting_production_readiness() {
+    let closeout = executed_closeout_fixture::honest_executed_s5_closeout();
+    let handoff = closeout_suite()
+        .seal_executed_closeout_handoff(closeout.clone())
+        .expect("aggregate closeout seals executed handoff evidence");
 
-    assert_eq!(published.suite().lanes().len(), 6);
+    assert_eq!(handoff.suite().lanes().len(), 6);
+    assert_eq!(handoff.executed_closeout(), &closeout);
+
+    let readiness = publish_s6_io_qos_isolation_readiness_from_s5_closeout(closeout)
+        .expect("production readiness minting belongs to physical-isolation");
     assert_eq!(
-        published.s6_readiness().assumptions(),
+        readiness.assumptions(),
         &PhysicalStabilityAssumption::s6_handoff_assumptions()
     );
     assert_eq!(
-        published.s6_readiness().unsupported_qos_claims(),
+        readiness.unsupported_qos_claims(),
         &UnsupportedQoSClaim::canonical_s5_non_claims()
     );
-    executed_closeout_fixture::assert_expected_s6_closeout_counters(
-        published.s6_readiness().counters(),
-    );
+    executed_closeout_fixture::assert_expected_s6_closeout_counters(readiness.counters());
 }
 
 fn closeout_suite() -> PhysicalIsolationCloseoutSuite {

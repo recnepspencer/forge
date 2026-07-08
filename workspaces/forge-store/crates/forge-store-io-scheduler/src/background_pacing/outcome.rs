@@ -1,6 +1,6 @@
 use super::{
-    BackgroundIdleCapacityLease, BackgroundIoDebt, BackgroundPacingCounterSnapshot,
-    BackgroundPacingDenial, BackgroundResourceBudget,
+    BackgroundIdleCapacityLease, BackgroundIoDebt, BackgroundIoPressureClass,
+    BackgroundPacingCounterSnapshot, BackgroundPacingDenial, BackgroundResourceBudget,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -16,16 +16,33 @@ pub enum BackgroundPacingOutcome {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingYield {
+    class: BackgroundIoPressureClass,
     counters: BackgroundPacingCounterSnapshot,
+}
+
+impl BackgroundPacingOutcome {
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        match self {
+            Self::Yield(outcome) => outcome.class(),
+            Self::Deferred(outcome) => outcome.class(),
+            Self::Denied(outcome) => outcome.class(),
+            Self::StaleRebindRequired(outcome) => outcome.class(),
+            Self::Throttled(outcome) => outcome.class(),
+            Self::AdmittedWithDebt(outcome) => outcome.class(),
+            Self::Violation(outcome) => outcome.class(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingDeferred {
+    class: BackgroundIoPressureClass,
     counters: BackgroundPacingCounterSnapshot,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingDenied {
+    class: BackgroundIoPressureClass,
     denial: BackgroundPacingDenial,
     counters: BackgroundPacingCounterSnapshot,
 }
@@ -38,12 +55,14 @@ pub enum BackgroundPacingStaleRebindKind {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingStaleRebindRequired {
+    class: BackgroundIoPressureClass,
     kind: BackgroundPacingStaleRebindKind,
     counters: BackgroundPacingCounterSnapshot,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingThrottle {
+    class: BackgroundIoPressureClass,
     admitted: BackgroundResourceBudget,
     throttled: BackgroundResourceBudget,
     counters: BackgroundPacingCounterSnapshot,
@@ -61,20 +80,32 @@ pub struct BackgroundPacingViolation {
 }
 
 impl BackgroundPacingYield {
-    pub(crate) const fn new(counters: BackgroundPacingCounterSnapshot) -> Self {
-        Self { counters }
+    pub(crate) const fn new(
+        class: BackgroundIoPressureClass,
+        counters: BackgroundPacingCounterSnapshot,
+    ) -> Self {
+        Self { class, counters }
     }
 
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.class
+    }
     pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
         self.counters
     }
 }
 
 impl BackgroundPacingDeferred {
-    pub(crate) const fn new(counters: BackgroundPacingCounterSnapshot) -> Self {
-        Self { counters }
+    pub(crate) const fn new(
+        class: BackgroundIoPressureClass,
+        counters: BackgroundPacingCounterSnapshot,
+    ) -> Self {
+        Self { class, counters }
     }
 
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.class
+    }
     pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
         self.counters
     }
@@ -82,12 +113,20 @@ impl BackgroundPacingDeferred {
 
 impl BackgroundPacingDenied {
     pub(crate) const fn new(
+        class: BackgroundIoPressureClass,
         denial: BackgroundPacingDenial,
         counters: BackgroundPacingCounterSnapshot,
     ) -> Self {
-        Self { denial, counters }
+        Self {
+            class,
+            denial,
+            counters,
+        }
     }
 
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.class
+    }
     pub const fn denial(self) -> BackgroundPacingDenial {
         self.denial
     }
@@ -98,12 +137,20 @@ impl BackgroundPacingDenied {
 
 impl BackgroundPacingStaleRebindRequired {
     pub(crate) const fn new(
+        class: BackgroundIoPressureClass,
         kind: BackgroundPacingStaleRebindKind,
         counters: BackgroundPacingCounterSnapshot,
     ) -> Self {
-        Self { kind, counters }
+        Self {
+            class,
+            kind,
+            counters,
+        }
     }
 
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.class
+    }
     pub const fn kind(self) -> BackgroundPacingStaleRebindKind {
         self.kind
     }
@@ -114,17 +161,22 @@ impl BackgroundPacingStaleRebindRequired {
 
 impl BackgroundPacingThrottle {
     pub(crate) const fn new(
+        class: BackgroundIoPressureClass,
         admitted: BackgroundResourceBudget,
         throttled: BackgroundResourceBudget,
         counters: BackgroundPacingCounterSnapshot,
     ) -> Self {
         Self {
+            class,
             admitted,
             throttled,
             counters,
         }
     }
 
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.class
+    }
     pub const fn admitted_budget(self) -> BackgroundResourceBudget {
         self.admitted
     }
@@ -144,6 +196,9 @@ impl BackgroundPacingAdmittedWithDebt {
     pub const fn lease(self) -> BackgroundIdleCapacityLease {
         self.lease
     }
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.lease.class()
+    }
     pub const fn debt(self) -> BackgroundIoDebt {
         self.lease.debt()
     }
@@ -162,6 +217,9 @@ impl BackgroundPacingViolation {
 
     pub const fn causal_debt(self) -> BackgroundIoDebt {
         self.debt
+    }
+    pub const fn class(self) -> BackgroundIoPressureClass {
+        self.debt.class()
     }
     pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
         self.counters

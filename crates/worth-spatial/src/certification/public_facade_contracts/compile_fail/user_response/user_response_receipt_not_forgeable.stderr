@@ -1,9 +1,0 @@
-error[E0451]: fields `stage_receipt` and `outcome` of struct `WorthUserResponseReceipt` are private
- --> src/certification/public_facade_contracts/compile_fail/user_response/user_response_receipt_not_forgeable.rs:5:9
-  |
-4 |     let _ = WorthUserResponseReceipt {
-  |             ------------------------ in this type
-5 |         stage_receipt: unconstructible(),
-  |         ^^^^^^^^^^^^^ private field
-6 |         outcome: unconstructible(),
-  |         ^^^^^^^ private field

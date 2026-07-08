@@ -17,8 +17,9 @@ The plan must:
 - name focused verification commands
 
 After posting the plan in chat, update only lightweight JSON state: add a short
-`notes.plan` marker, keep `status: complete` and `qa_status: passed`, and
-advance the cursor to `close_fix`.
+`notes.plan` marker, preserve `status: regressed` and `qa_status: failed` when
+the plan addresses blocking test-quality or missing-production-surface findings,
+and advance the cursor to `close_fix`.
 
 Do not put the full plan, logs, artifacts, or command tails into the JSON.
 

@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyGeometryOnlyEvidenceTouch`
- --> tests/ui/touched_graph_basis/geometry_evidence_from_raw_digest.rs:1:5
-  |
-1 | use topology::facade::TopologyGeometryOnlyEvidenceTouch;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyGeometryOnlyEvidenceTouch` in `facade`

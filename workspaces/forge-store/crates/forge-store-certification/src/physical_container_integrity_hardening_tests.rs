@@ -1,8 +1,8 @@
-use crate::physical_container_integrity_test_support::{
+use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     frame_start, inspect_frame_with_witness_payload, inspect_page_denial, page_payload_with_record,
 };
-use crate::physical_scope_admission_test_support::validation;
-use crate::pre_decode_physical_admission_test_support::{
+use crate::courtroom::harness::test_support::physical_scope_admission_test_support::validation;
+use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
     checksum_declaration, crc32c, frame_witness, with_entry_seed,
 };
 use forge_store_physical_format::PhysicalFrameKind;

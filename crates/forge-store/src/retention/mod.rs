@@ -28,5 +28,6 @@ pub use proofs::{
 pub use read_path::{RetainedReadCostSurface, RetainedReadPath};
 pub use work_units::{
     AuthoritativeRangeReclaimUnit, DeltaLayerCompactionUnit, DerivedFamilyReclaimUnit,
-    LayoutFamilyCompactionUnit, RetainedRangeRebuildUnit, SnapshotCompactionUnit,
+    LayoutCompactionFamilyKind, LayoutFamilyCompactionUnit, RetainedRangeRebuildUnit,
+    SnapshotCompactionUnit,
 };

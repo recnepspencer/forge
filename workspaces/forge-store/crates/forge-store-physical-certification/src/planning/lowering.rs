@@ -46,6 +46,14 @@ pub fn lower_physical_simulation_plan(
         evidence_policy,
         forbidden_shortcuts: forbidden_shortcuts.clone(),
         s5_compaction_mutation_origin: context.s5_compaction_mutation_origin().cloned(),
+        s7_blob_harness_metadata: scenario
+            .definition()
+            .expectation()
+            .s7_blob_harness_metadata(),
+        s7_blob_harness_topology: scenario
+            .definition()
+            .expectation()
+            .s7_blob_harness_topology(),
     })?;
     admit_simulation_plan(plan)
 }

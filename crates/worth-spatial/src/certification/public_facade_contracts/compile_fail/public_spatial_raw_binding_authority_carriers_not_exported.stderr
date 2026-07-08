@@ -1,8 +1,0 @@
-error[E0432]: unresolved imports `worth_spatial::facade::bindings::AdmittedFaceSurfaceBinding`, `worth_spatial::facade::bindings::AdmittedRebindingDecision`, `worth_spatial::facade::bindings::SpatialAdmittedPrimitiveBinding`
- --> src/certification/public_facade_contracts/compile_fail/public_spatial_raw_binding_authority_carriers_not_exported.rs:2:5
-  |
-2 |     AdmittedFaceSurfaceBinding, AdmittedRebindingDecision, SpatialAdmittedPrimitiveBinding,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SpatialAdmittedPrimitiveBinding` in `facade::bindings`
-  |     |                           |
-  |     |                           no `AdmittedRebindingDecision` in `facade::bindings`
-  |     no `AdmittedFaceSurfaceBinding` in `facade::bindings`

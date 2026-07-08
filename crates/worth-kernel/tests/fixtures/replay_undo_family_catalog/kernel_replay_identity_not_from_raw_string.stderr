@@ -1,7 +1,0 @@
-error[E0308]: mismatched types
- --> tests/fixtures/replay_undo_family_catalog/kernel_replay_identity_not_from_raw_string.rs:5:35
-  |
-5 |     let _: ReplayFamilyIdentity = raw;
-  |            --------------------   ^^^ expected `ReplayFamilyIdentity`, found `String`
-  |            |
-  |            expected due to this

@@ -1,7 +1,18 @@
 #![forbid(unsafe_code)]
+//! Physical isolation authority must consume executed lower evidence.
+//!
+//! A compaction read verdict cannot be minted from an admitted plan alone:
+//!
+//! ```compile_fail
+//! let _shortcut =
+//!     forge_store_physical_isolation::execute_admitted_compaction_rewrite_for_plan;
+//! ```
 
 extern crate self as forge_store_physical_isolation;
 
+pub mod layout_access;
+
+mod blob_orphan_reclaim;
 mod byte_guard;
 mod checkpoint_interlock;
 mod compaction_interlock;
@@ -24,10 +35,17 @@ mod s6_handoff;
 mod security_scope_propagation;
 mod stable_read_execution;
 
+pub use blob_orphan_reclaim::{
+    BlobOrphanReclaimBarrier, BlobOrphanReclaimCounterSnapshot, BlobOrphanReclaimCoverage,
+    BlobOrphanReclaimDenial, BlobOrphanReclaimIdentity, BlobOrphanReclaimProof,
+    BlobPartialChunkOrphan,
+};
 pub use byte_guard::{
     ByteGuardReleaseReceipt, PhysicalByteGuard, PhysicalByteGuardDenial, PhysicalByteGuardScope,
     PhysicalByteGuardScopeKind,
 };
+#[cfg(any(test, feature = "certification-authority"))]
+pub use checkpoint_interlock::read_during_checkpoint_verdict_for_certification_test;
 pub use checkpoint_interlock::{
     reject_copied_checkpoint_report_as_checkpoint_interlock,
     reject_same_run_self_comparison_as_checkpoint_interlock, CheckpointInterlockEvidenceOrigin,
@@ -36,10 +54,19 @@ pub use checkpoint_interlock::{
     CheckpointReadInterlockDenial, CheckpointReadInterlockPlan, CheckpointRootEpochTransition,
     ReadDuringCheckpointVerdict,
 };
+#[cfg(any(test, feature = "certification-authority"))]
+pub use compaction_interlock::compaction_read_interlock_plan_for_certification_test;
+#[cfg(any(test, feature = "certification-authority"))]
 pub use compaction_interlock::{
-    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
-    CompactionDeferredReclaimQueue, CompactionInterlockFoundationalEvidence,
-    CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
+    compaction_cutover_evidence_for_certification_plan,
+    compaction_cutover_evidence_for_certification_rewrite_manifest,
+    CompactionCutoverEvidenceForCertification,
+};
+pub use compaction_interlock::{
+    execute_read_during_compaction_cutover, CompactionCandidateRangeSet, CompactionCutoverDelta,
+    CompactionCutoverStabilityProof, CompactionDeferredReclaimQueue,
+    CompactionInterlockFoundationalEvidence, CompactionMutationLaneOrigin,
+    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
     CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
@@ -96,12 +123,15 @@ pub use latch::{
     PhysicalLatchDeadlockPolicy, PhysicalLatchFamilyDeadlockPolicy, PhysicalLatchKey,
     PhysicalLatchMode, PhysicalLatchWaitEdge,
 };
+#[cfg(any(test, feature = "certification-authority"))]
+pub use movable_stability::physical_placement_movement_execution_for_certification_test;
 pub use movable_stability::{
     tier_movement_stability_capability, ChunkMigrationReadInterlockPlan,
     FoundationalTierMovementNonClaimEvidence, FutureBlobMigrationNonClaim,
     FutureBlobMigrationNonClaimReport, FutureChunkStabilityBasis, FutureChunkStabilityRecipe,
     MovablePhysicalRef, MovablePhysicalRefKind, PhysicalChunkStabilityPlaceholder,
-    TierMovementAdmissionLabel, TierMovementReadInterlockPlan, TierMovementStabilityCapability,
+    PhysicalPlacementMovementExecutionReceipt, TierMovementAdmissionLabel,
+    TierMovementReadInterlockPlan, TierMovementStabilityCapability,
     TierMovementStabilityCounterSnapshot, TierMovementStabilityDenial,
     TierMovementStabilityVerdict, UnsupportedTierMovementClaim, UnsupportedTierMovementRequest,
 };
@@ -211,6 +241,14 @@ pub use security_scope_propagation::{
     StableReadSecurityScopeCarrierBasis, StableReadSecurityScopePropagation,
     StableReadSecurityScopePropagationCounters, StableReadSecurityScopePropagationDenial,
     StableReadSecurityScopePropagationInput,
+};
+#[cfg(any(test, feature = "certification-authority"))]
+pub use stable_read_execution::{
+    stable_physical_read_plan_for_certification_test,
+    stable_physical_read_receipt_for_certification_root,
+    stable_physical_read_receipt_for_certification_test,
+    stable_physical_read_receipt_for_compaction_plan_test,
+    stable_physical_read_receipt_for_mismatched_compaction_test,
 };
 pub use stable_read_execution::{
     ByteGuardedPhysicalRead, EpochRetryReceipt, PhysicalByteGuardAdmission,

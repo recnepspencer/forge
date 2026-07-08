@@ -1,3 +1,0 @@
-mod spatial_conflict_source_firewall;
-
-pub use spatial_conflict_source_firewall::WorthSpatialTouchedGraphConflictSourceFirewallRegion;

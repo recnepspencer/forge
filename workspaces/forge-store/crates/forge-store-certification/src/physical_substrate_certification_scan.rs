@@ -51,7 +51,7 @@ impl PhysicalSubstrateCertificationScan {
         let mut reopened = PlatformPhysicalFacade::reopen_s1(
             readiness()?,
             PlatformPhysicalOpenRequest::s1_canonical(),
-            published.persisted_layout().clone(),
+            published.replay_artifact(),
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         reopened

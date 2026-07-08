@@ -7,6 +7,15 @@ description = "Roadmap 2 S.1 physical page, segment, extent, frame, and referenc
 
 [dependencies]
 forge-store-contracts.workspace = true
+forge-store-budgets.workspace = true
+
+[dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-proof = { path = "../../../../crates/forge-proof" }
+forge-store-aspect-native = { path = "../forge-store-aspect-native" }
+forge-store-authority = { path = "../forge-store-authority" }
+forge-store-layout-indexes = { path = "../forge-store-layout-indexes" }
+forge-store-security = { path = "../forge-store-security" }
 
 [lints]
 workspace = true

@@ -9,6 +9,12 @@ use forge_foundational::canonicalization_api::lower_lane::digest::{
 use forge_foundational::InternedString;
 use forge_proof::TransitionOutcome;
 
+use crate::scenario::canonical_tokens::{
+    blob_harness_access_mode_token, blob_harness_actor_mix_token,
+    blob_harness_chunk_size_class_token, blob_harness_failure_point_token,
+    blob_harness_placement_class_token, blob_harness_security_scope_class_token,
+    blob_harness_size_class_token,
+};
 use crate::PhysicalSimulationScenarioFamily;
 
 use super::capabilities::capability_token;
@@ -122,6 +128,7 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
         ),
     ];
     entries.extend(s5_compaction_mutation_origin_entries(parts));
+    entries.extend(s7_blob_harness_metadata_entries(parts));
     entries.extend(
         parts
             .required_capabilities
@@ -239,6 +246,45 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
     entries
 }
 
+fn s7_blob_harness_metadata_entries(
+    parts: &PhysicalSimulationPlanParts,
+) -> Vec<CanonicalBasisEntry> {
+    let Some(metadata) = parts.s7_blob_harness_metadata else {
+        return vec![text_entry("plan.s7_blob_harness.present", "false")];
+    };
+    vec![
+        text_entry("plan.s7_blob_harness.present", "true"),
+        text_entry(
+            "plan.s7_blob_harness.size_class",
+            blob_harness_size_class_token(metadata.size_class()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.chunk_size_class",
+            blob_harness_chunk_size_class_token(metadata.chunk_size_class()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.placement_class",
+            blob_harness_placement_class_token(metadata.placement_class()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.security_scope_class",
+            blob_harness_security_scope_class_token(metadata.security_scope_class()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.access_mode",
+            blob_harness_access_mode_token(metadata.access_mode()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.failure_point",
+            blob_harness_failure_point_token(metadata.failure_point()),
+        ),
+        text_entry(
+            "plan.s7_blob_harness.actor_mix",
+            blob_harness_actor_mix_token(metadata.actor_mix()),
+        ),
+    ]
+}
+
 fn s5_compaction_mutation_origin_entries(
     parts: &PhysicalSimulationPlanParts,
 ) -> Vec<CanonicalBasisEntry> {
@@ -302,6 +348,7 @@ fn scenario_family_token(family: PhysicalSimulationScenarioFamily) -> &'static s
         PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
         PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
         PhysicalSimulationScenarioFamily::S6IoPressureHarness => "s6-io-pressure-harness",
+        PhysicalSimulationScenarioFamily::S7BlobHarnessSeed => "s7-blob-harness-seed",
         PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
     }

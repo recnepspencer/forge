@@ -16,6 +16,7 @@ EVENT_TYPES = {
     "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
+    "single_prompt_completed",
     "review_failed",
     "review_passed",
     "repair_completed",
@@ -29,6 +30,7 @@ EVENT_TYPES = {
     "runner_fault",
     "recovery_requested",
     "recovery_completed",
+    "session_reset",
     "operator_override",
     "legacy_imported",
 }
@@ -37,6 +39,7 @@ PHASE_PROGRESS_EVENTS = {
     "boundary_review_completed",
     "plan_posted",
     "implementation_completed",
+    "single_prompt_completed",
     "review_failed",
     "review_passed",
     "repair_completed",
@@ -104,6 +107,16 @@ def validate_payload(event_type: str | None, payload: dict[str, Any]) -> list[st
         reason = payload.get("reason")
         if reason is not None and not isinstance(reason, str):
             errors.append(f"{event_type} payload.reason must be a string when present")
+    if event_type == "session_reset":
+        reason = payload.get("reason")
+        if not isinstance(reason, str) or not reason:
+            errors.append("session_reset payload.reason is required")
+        threshold = payload.get("threshold")
+        if not isinstance(threshold, int) or threshold <= 0:
+            errors.append("session_reset payload.threshold must be a positive integer")
+        cycle_count = payload.get("cycle_count")
+        if not isinstance(cycle_count, int) or cycle_count <= 0:
+            errors.append("session_reset payload.cycle_count must be a positive integer")
     if event_type == "turn_outcome_recorded":
         outcome_event_type = payload.get("outcome_event_type")
         if not isinstance(outcome_event_type, str) or not outcome_event_type:

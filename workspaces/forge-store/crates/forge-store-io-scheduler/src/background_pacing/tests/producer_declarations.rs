@@ -32,11 +32,11 @@ fn producer_pressure_declarations_lower_into_scheduler_shapes() {
         ),
         (
             forge_store_blob_chunks::blob_ingest_background_pressure_shape(4096),
-            BackgroundIoPressureClass::BlobIngestPressure,
+            BackgroundIoPressureClass::IngestPressure,
         ),
         (
             forge_store_blob_chunks::blob_migration_background_pressure_shape(4096),
-            BackgroundIoPressureClass::BlobMigrationPressure,
+            BackgroundIoPressureClass::MigrationPressure,
         ),
         (
             forge_store_operations::backup_prep_background_pressure_shape(4096, 4),

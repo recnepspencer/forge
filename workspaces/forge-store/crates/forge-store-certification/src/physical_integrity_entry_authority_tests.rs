@@ -1,9 +1,9 @@
 use crate::{
-    bounded_memory_closeout_test_support::{
+    courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, pressure_bundles, s2_readiness, synthetic_rejections,
     },
-    record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
+    courtroom::harness::test_support::record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, S2BoundaryDenialKind,
 };
@@ -34,7 +34,7 @@ fn s3_entry_denies_empty_live_protected_s2_view_before_witness_minting() {
     let readiness = complete_closeout_report()
         .publish_s3_physical_integrity_readiness(s2_readiness())
         .unwrap();
-    let admission = IntegrityEntryAdmission::from_s3_readiness(readiness).unwrap();
+    let admission = IntegrityEntryAdmission::from_s3_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, b"");
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -64,7 +64,7 @@ fn admit_entry_from_independent_closeout(payload: &[u8]) -> EntryAdmissionObserv
     let readiness = complete_closeout_report()
         .publish_s3_physical_integrity_readiness(s2_readiness())
         .unwrap();
-    let admission = IntegrityEntryAdmission::from_s3_readiness(readiness).unwrap();
+    let admission = IntegrityEntryAdmission::from_s3_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 31, 5, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -161,7 +161,7 @@ fn suite() -> BoundedMemoryResidencySuite {
 
 fn operation_reports() -> Vec<BoundedOperationEnvelopeReport> {
     let background = background_bundle();
-    crate::bounded_memory_closeout_test_support::operation_reports(
+    crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::operation_reports(
         &foundational_receipt(),
         &background,
     )

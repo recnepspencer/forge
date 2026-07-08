@@ -10,12 +10,15 @@ mod authenticity_result;
 mod authenticity_vocabulary;
 mod authenticity_witness;
 mod authority_source;
+pub mod layout_access;
 mod physical_security_metadata;
 mod physical_security_metadata_canonical;
 #[cfg(test)]
 mod physical_security_metadata_tests;
 mod raw_security_declarations;
 mod repair_blast_radius;
+mod s5_1_later_milestone_handoff;
+mod s5_1_security_scope_readiness;
 mod scope_vocabulary;
 mod security_scope_admission;
 mod security_scope_admission_basis;
@@ -75,6 +78,9 @@ pub use authority_source::{
     classify_store_current_authority_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source, StoreSecurityAuthoritySource,
 };
+pub use layout_access::scope_partition_basis::{
+    admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
+};
 pub use physical_security_metadata::{
     admit_store_physical_security_metadata, StoreAllocationClassSecurityMetadataEnvelope,
     StoreExtentSecurityMetadataEnvelope, StoreFreeSpaceSecurityMetadataEnvelope,
@@ -97,6 +103,13 @@ pub use repair_blast_radius::{
     reject_repair_authority_source, repair_blast_radius_authenticity,
     repair_blast_radius_expectation, StoreRepairPhysicalRegionAdmissionOutcome,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness,
+};
+pub use s5_1_later_milestone_handoff::{
+    S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
+};
+pub use s5_1_security_scope_readiness::{
+    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
+    S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
 };
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
@@ -142,6 +155,11 @@ pub use security_scope_roles::{
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use security_scope_test_authority::{
     admitted_store_internal_security_scope_for_s6_test,
+    admitted_store_managed_root_security_scope_for_layout_access_test,
+    admitted_tenant_artifact_security_scope_for_layout_access_test,
+    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
+    admitted_tenant_page_security_scope_for_layout_access_test,
+    admitted_tenant_page_without_authenticity_for_layout_access_test,
     admitted_wrong_s6_io_qos_security_scope_for_test,
 };
 pub use security_scope_witnesses::{

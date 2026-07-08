@@ -48,4 +48,26 @@ impl ExecutedReachabilityEvidence {
     pub const fn candidates(&self) -> &ReclaimCandidateSet {
         &self.candidates
     }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn for_certification_test() -> Self {
+        let candidates = ReclaimCandidateSet::for_certification_test();
+        Self {
+            root_epoch: candidates.root_epoch(),
+            footprint_basis: candidates.footprint_basis(),
+            candidates,
+        }
+    }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn for_certification_reference(
+        reference: crate::CurrentGenerationPhysicalReference,
+    ) -> Self {
+        let candidates = ReclaimCandidateSet::for_certification_reference(reference);
+        Self {
+            root_epoch: candidates.root_epoch(),
+            footprint_basis: candidates.footprint_basis(),
+            candidates,
+        }
+    }
 }

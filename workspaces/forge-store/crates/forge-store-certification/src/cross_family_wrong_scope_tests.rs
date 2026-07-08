@@ -1,4 +1,4 @@
-use crate::physical_scope_admission_test_support::{
+use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
     extent_validation, mismatched_checksum_request, page_cell, root_with_extent, root_with_slot,
     scope_membership, validation, with_checked_frame, with_checked_page,
 };

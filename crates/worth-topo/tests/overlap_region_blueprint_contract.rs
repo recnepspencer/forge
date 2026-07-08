@@ -28,8 +28,13 @@ fn unnamed_helper_operator_is_rejected() {
         Authority::WorthSpatialPrepared,
         Surface::None,
     ));
-    let denial =
-        PlanarBooleanOverlapBlueprintRegistry::try_from_rows(operators, validators.validators().to_vec())
-            .unwrap_err();
-    assert_eq!(denial, PlanarBooleanOverlapBlueprintCloseoutDenial::UnexpectedOperatorName);
+    let denial = PlanarBooleanOverlapBlueprintRegistry::try_from_rows(
+        operators,
+        validators.validators().to_vec(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        denial,
+        PlanarBooleanOverlapBlueprintCloseoutDenial::UnexpectedOperatorName
+    );
 }

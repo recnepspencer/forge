@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::compiled_product_family::TopologyDerivedRebuildDenial`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_compiled_product_rebuild_denial_not_exported.rs:1:5
-  |
-1 | use topology::facade::compiled_product_family::TopologyDerivedRebuildDenial;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyDerivedRebuildDenial` in `facade::compiled_product_family`

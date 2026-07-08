@@ -17,7 +17,9 @@ from event_log import load_events, validate_event_log
 from orchestrator import (
     extract_runner_event,
     import_legacy_run,
+    maybe_reset_stuck_session,
     pending_recovery_reason,
+    qa_repair_cycles_since_last_reset,
     refresh_projection,
     turn_is_current,
 )
@@ -46,6 +48,107 @@ class DurableRunnerTests(unittest.TestCase):
         second = project_run(config, events, "run123")
         self.assertEqual(first, second)
         self.assertEqual(first["current"], {"phase": 2, "turn": "plan"})
+
+    def test_phase_id_start_allows_zero_based_milestones(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["runner_control"] = {"phase_id_start": 0}
+        config["phases"] = [phase_row(0, "Phase 0"), phase_row(1, "Phase 1")]
+        config["_config_path"] = "C:/tmp/config.json"
+
+        self.assertEqual(validate_config(config, RUNNER_DIR / "config" / "zero-start.json"), [])
+
+        started = project_run(config, [event("run_started", 1)], "run123")
+        self.assertEqual(started["current"], {"phase": 0, "turn": "plan"})
+
+        after_phase_zero = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertEqual(after_phase_zero["current"], {"phase": 1, "turn": "plan"})
+
+        after_phase_one = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+                event("plan_posted", 7, 1, "plan"),
+                event("implementation_completed", 8, 1, "implement"),
+                event("review_passed", 9, 1, "review"),
+                event("test_review_passed", 10, 1, "test_review"),
+                event("code_quality_review_passed", 11, 1, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertIsNone(after_phase_one["current"])
+
+    def test_phase_advancement_follows_config_order_not_id_arithmetic(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["runner_control"] = {"phase_id_start": 0}
+        config["phases"] = [phase_row(0, "Phase 0"), phase_row(10, "Phase 10")]
+        config["_config_path"] = "C:/tmp/config.json"
+
+        self.assertEqual(validate_config(config, RUNNER_DIR / "config" / "sparse.json"), [])
+
+        after_phase_zero = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertEqual(after_phase_zero["current"], {"phase": 10, "turn": "plan"})
+
+        after_phase_ten = project_run(
+            config,
+            [
+                event("run_started", 1),
+                event("plan_posted", 2, 0, "plan"),
+                event("implementation_completed", 3, 0, "implement"),
+                event("review_passed", 4, 0, "review"),
+                event("test_review_passed", 5, 0, "test_review"),
+                event("code_quality_review_passed", 6, 0, "code_quality_review"),
+                event("plan_posted", 7, 10, "plan"),
+                event("implementation_completed", 8, 10, "implement"),
+                event("review_passed", 9, 10, "review"),
+                event("test_review_passed", 10, 10, "test_review"),
+                event("code_quality_review_passed", 11, 10, "code_quality_review"),
+            ],
+            "run123",
+        )
+        self.assertIsNone(after_phase_ten["current"])
+
+    def test_phase_validation_rejects_duplicate_phase_ids(self) -> None:
+        config = minimal_config_public()
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["phases"] = [phase_row(1, "Phase 1"), phase_row(1, "Phase 1 again")]
+
+        errors = validate_config(config, RUNNER_DIR / "config" / "duplicate.json")
+        self.assertTrue(any("duplicates phase id 1" in error for error in errors))
 
     def test_projection_repairs_stale_cursor_after_phase_is_complete(self) -> None:
         config = minimal_config()
@@ -86,7 +189,6 @@ class DurableRunnerTests(unittest.TestCase):
         ]
         projection = project_run(config, events, "run123")
         self.assertIsNone(projection["session"]["thread_id"])
-
     def test_code_quality_review_failure_reopens_repair_gate(self) -> None:
         config = minimal_config()
         events = [
@@ -128,6 +230,63 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(projection["phases"][0]["status"], "complete")
         self.assertEqual(projection["phases"][0]["qa_status"], "needed")
 
+    def test_qa_repair_cycle_count_resets_after_fresh_session_reset(self) -> None:
+        events = [
+            event("repair_completed", 1, 1, "repair"),
+            event("code_quality_repair_completed", 2, 1, "code_quality_repair"),
+            event(
+                "session_reset",
+                3,
+                1,
+                "code_quality_review",
+                {"reason": "fresh session", "cycle_count": 2, "threshold": 2},
+            ),
+            event("repair_completed", 4, 1, "repair"),
+        ]
+
+        self.assertEqual(qa_repair_cycles_since_last_reset(events, 1), 1)
+
+    def test_stuck_qa_repair_cycles_clear_persisted_session_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            original_root = runtime_paths.RUNTIME_ROOT
+            runtime_paths.RUNTIME_ROOT = temp_root / "runtime"
+            try:
+                config = minimal_config_public()
+                config["runner_control"] = {"fresh_session_after_qa_repair_cycles": 2}
+                config_path = temp_root / "config.json"
+                config_path.write_text(json.dumps(config), encoding="utf-8")
+                paths = RuntimePaths("fresh-reset")
+                paths.events.parent.mkdir(parents=True, exist_ok=True)
+                events = [
+                    event("run_started", 1, payload={"config_path": str(config_path)}),
+                    event("plan_posted", 2, 1, "plan"),
+                    event("implementation_completed", 3, 1, "implement"),
+                    event("review_failed", 4, 1, "review"),
+                    event("repair_completed", 5, 1, "repair"),
+                    event("review_failed", 6, 1, "review"),
+                    event("repair_completed", 7, 1, "repair"),
+                ]
+                events[-1]["thread_id"] = "old-thread"
+                paths.events.write_text(
+                    "\n".join(json.dumps({**item, "run_id": "fresh-reset"}) for item in events)
+                    + "\n",
+                    encoding="utf-8",
+                )
+                projection = refresh_projection(config_path, "fresh-reset")
+
+                self.assertTrue(maybe_reset_stuck_session(config_path, "fresh-reset", projection))
+                reset_projection = refresh_projection(config_path, "fresh-reset")
+                self.assertIsNone(reset_projection["session"]["thread_id"])
+                self.assertEqual(
+                    reset_projection["session"]["fresh_recovery"]["cycle_count"],
+                    2,
+                )
+                self.assertFalse(
+                    maybe_reset_stuck_session(config_path, "fresh-reset", reset_projection)
+                )
+            finally:
+                runtime_paths.RUNTIME_ROOT = original_root
     def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
         config = minimal_config()
         events = [

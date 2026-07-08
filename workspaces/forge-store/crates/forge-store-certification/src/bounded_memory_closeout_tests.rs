@@ -1,5 +1,5 @@
 use crate::{
-    bounded_memory_closeout_test_support::{
+    courtroom::harness::test_support::bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
         harness_evidence, harness_evidence_for_class, harness_evidence_without_acceptance_suite,
         pressure_bundles, s2_readiness, synthetic_rejections,
@@ -266,7 +266,7 @@ fn suite() -> BoundedMemoryResidencySuite {
 
 fn operation_reports() -> Vec<crate::BoundedOperationEnvelopeReport> {
     let background = background_bundle();
-    crate::bounded_memory_closeout_test_support::operation_reports(
+    crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::operation_reports(
         &foundational_receipt(),
         &background,
     )

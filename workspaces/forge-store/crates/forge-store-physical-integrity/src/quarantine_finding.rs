@@ -1,10 +1,12 @@
 use crate::{
-    AmbiguousBoundaryDamage, ChunkDamageLocality, ChunkIntegrityDenial, DamageClassification,
-    DerivedDamageClassification, IndexPageIntegrityDenial, IndexPageIntegrityReport,
-    IntactPhysicalBoundary, PageIntegrityReport, PhysicalBoundaryLocalization,
-    PhysicalContainerIntegrityDenial, PhysicalLocalityReport, QuarantineSealDenial,
-    QuarantineSealDenialKind, QuarantinedPhysicalDamage, WalFrameDamageDenial,
+    AmbiguousBoundaryDamage, AuthorityDamageBoundary, ChunkDamageLocality, ChunkIntegrityDenial,
+    DamageClassification, DerivedDamageClassification, IndexPageIntegrityDenial,
+    IndexPageIntegrityReport, IntactPhysicalBoundary, PageIntegrityReport,
+    PhysicalBoundaryLocalization, PhysicalContainerIntegrityDenial, PhysicalLocalityReport,
+    QuarantineSealDenial, QuarantineSealDenialKind, QuarantinedPhysicalDamage,
+    UnrecoverableAuthorityDamage, WalFrameDamageDenial,
 };
+use forge_store_physical_format::PhysicalReferenceScope;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedQuarantineFinding {
@@ -13,6 +15,27 @@ pub struct ExecutedQuarantineFinding {
 }
 
 impl ExecutedQuarantineFinding {
+    pub fn authoritative_quarantine(scope: PhysicalReferenceScope) -> Self {
+        let locality = PhysicalLocalityReport::exact_reference_scope(scope);
+        let damage = QuarantinedPhysicalDamage::exact(locality);
+        Self {
+            locality,
+            damage_classification: DamageClassification::QuarantinedPhysicalDamage(damage),
+        }
+    }
+
+    pub fn unresolved_authority(
+        scope: PhysicalReferenceScope,
+        boundary: AuthorityDamageBoundary,
+    ) -> Self {
+        Self {
+            locality: PhysicalLocalityReport::exact_reference_scope(scope),
+            damage_classification: DamageClassification::UnrecoverableAuthorityDamage(
+                UnrecoverableAuthorityDamage::new(boundary, Some(scope.owner())),
+            ),
+        }
+    }
+
     pub fn intact_page(report: &PageIntegrityReport) -> Self {
         let locality = PhysicalLocalityReport::exact_scope(report.basis());
         Self {

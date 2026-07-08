@@ -9,6 +9,7 @@ keywords = ["storage", "durability", "replay", "runtime", "database"]
 categories = ["database-implementations", "data-structures", "science"]
 
 [dependencies]
+forge-store-contracts.workspace = true
 forge-relational.workspace = true
 serde.workspace = true
 serde_json.workspace = true

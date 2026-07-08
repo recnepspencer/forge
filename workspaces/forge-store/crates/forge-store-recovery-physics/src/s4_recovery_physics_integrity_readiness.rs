@@ -15,11 +15,11 @@ impl S4RecoveryPhysicsIntegrityReadiness {
     }
 
     pub const fn counters(&self) -> S4IntegrityHandoffCounters {
-        self.payload.counters()
+        self.payload().counters()
     }
 
-    pub fn proves_no_raw_bytes_crossed(&self) -> bool {
-        self.payload.proves_no_raw_bytes_crossed()
+    pub const fn proves_no_raw_bytes_crossed(&self) -> bool {
+        self.payload().proves_no_raw_bytes_crossed()
     }
 
     pub const fn claims_recovery(&self) -> bool {

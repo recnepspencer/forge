@@ -1,0 +1,51 @@
+use crate::key_domain::CanonicalKeyBytes;
+use crate::strategy::{S8BTreeLookupBranch, S8BTreeSeparatorLaw, S8StrategyDenial};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct S8BTreeSearchPathLaw {
+    separator: S8BTreeSeparatorLaw,
+}
+
+impl S8BTreeSearchPathLaw {
+    pub(crate) const fn new(separator: S8BTreeSeparatorLaw) -> Self {
+        Self { separator }
+    }
+
+    pub fn verify_search_and_insertion_path(
+        self,
+        probe: &CanonicalKeyBytes,
+        left_max: &CanonicalKeyBytes,
+        separator: &CanonicalKeyBytes,
+        right_min: &CanonicalKeyBytes,
+        chosen_branch: S8BTreeLookupBranch,
+    ) -> Result<(), S8StrategyDenial> {
+        self.separator
+            .verify_separator_partition(left_max, separator, right_min)?;
+        if self.separator.route_lookup(probe, separator)? == chosen_branch {
+            return Ok(());
+        }
+        Err(S8StrategyDenial::SearchPathViolation)
+    }
+
+    pub fn verify_search_and_insertion_path_from_observation(
+        self,
+        probe_precedes_separator: bool,
+        left_max_precedes_separator: bool,
+        separator_precedes_right_min: bool,
+        observed_branch: S8BTreeLookupBranch,
+    ) -> Result<(), S8StrategyDenial> {
+        if !left_max_precedes_separator || !separator_precedes_right_min {
+            return Err(S8StrategyDenial::ComparatorOrderViolation);
+        }
+
+        let expected_branch = if probe_precedes_separator {
+            S8BTreeLookupBranch::Left
+        } else {
+            S8BTreeLookupBranch::RightOrEqual
+        };
+        if observed_branch == expected_branch {
+            return Ok(());
+        }
+        Err(S8StrategyDenial::SearchPathViolation)
+    }
+}

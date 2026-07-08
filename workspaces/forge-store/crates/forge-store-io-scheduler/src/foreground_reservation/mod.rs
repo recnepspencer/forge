@@ -13,6 +13,7 @@ mod receipt;
 mod request;
 mod resource_contract;
 mod resource_units;
+mod streaming_read_lane_link;
 #[cfg(any(test, feature = "certification-test-authority"))]
 mod test_authority;
 mod violation;
@@ -48,13 +49,17 @@ pub use resource_units::{
     ForegroundResourceUnitDenial, ForegroundResourceUnitKind, QueueSlot, ReadAheadWindow,
     ReclaimPermit, SyncDebt, WorkerPermit, WriteBackWindow,
 };
+pub use streaming_read_lane_link::admits_streaming_read_lane;
 pub use violation::{ForegroundReservationViolationCause, ReservationViolatedWithCause};
 
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use test_authority::{
+    admitted_page_write_reservation_for_certification_test,
     admitted_point_read_reservation_for_certification_test,
+    admitted_point_read_reservation_for_security_scope_for_certification_test,
     admitted_range_read_reservation_for_certification_test,
     admitted_secure_frame_read_reservation_for_certification_test,
+    admitted_wal_write_reservation_for_certification_test,
 };
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use forge_store_readiness::{S10BackupExportReadinessNonClaim, S6LaterMilestoneDestination};
+use forge_store_contracts::{S10BackupExportReadinessNonClaim, S6LaterMilestoneDestination};
 
 use crate::{
     BackgroundPacingCounterSnapshot, IoSchedulerBackgroundMaintenanceAssumption,

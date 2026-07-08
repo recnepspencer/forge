@@ -1,13 +1,13 @@
+use super::{
+    blob_dimensions::{append_blob_plan_dimensions, blob_scenario_dimensions},
+    CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, GeneratedCoverageMatrix,
+    MutationValidationPosture, PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence,
+    Roadmap2HarnessSequence, Roadmap2PhysicalCoverageMatrix,
+};
 use crate::{
     AdmittedDriverContractSet, CertifiedPhysicalScenario, PhysicalCounterEvidenceReceipt,
     PhysicalInterleavingSchedule, PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind,
     PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan, SimulationReplayBundle,
-};
-
-use super::{
-    CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, GeneratedCoverageMatrix,
-    MutationValidationPosture, PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence,
-    Roadmap2HarnessSequence, Roadmap2PhysicalCoverageMatrix,
 };
 
 #[derive(Debug, Clone)]
@@ -52,7 +52,9 @@ impl Roadmap2CoverageRegistry {
                         .to_owned(),
                 ),
                 CoverageRowDimension::FaultPhase(scenario.definition().fault().kind()),
-            ],
+            ]
+            .into_iter()
+            .chain(blob_scenario_dimensions(scenario)),
         ));
         Ok(self)
     }
@@ -154,6 +156,30 @@ impl Roadmap2CoverageRegistry {
         Ok(self)
     }
 
+    pub fn register_required_oracle_families_from_plan(
+        mut self,
+    ) -> Result<Self, CoverageGapDenial> {
+        self.require_surface_not_registered(CoverageSurfaceKind::Oracle)?;
+        let plan =
+            self.plan
+                .as_ref()
+                .ok_or(CoverageGapDenial::MissingPlanBeforeDependentSurface {
+                    surface: CoverageSurfaceKind::Oracle,
+                })?;
+        if plan.oracle_families().iter().next().is_none() {
+            return Err(CoverageGapDenial::EmptyOracleVerdictRegistration);
+        }
+        self.rows.push(PhysicalCoverageMatrixRow::generated(
+            self.sequence,
+            CoverageSurfaceKind::Oracle,
+            *plan.identity().digest_bytes(),
+            plan.oracle_families()
+                .iter()
+                .map(CoverageRowDimension::AuthorityFamily),
+        ));
+        Ok(self)
+    }
+
     pub fn register_oracle_verdicts(
         mut self,
         verdicts: &[PhysicalProofOracleVerdict],
@@ -228,6 +254,27 @@ impl Roadmap2CoverageRegistry {
         Ok(self)
     }
 
+    pub fn register_counter_contracts_from_plan(
+        mut self,
+    ) -> Result<Self, CoverageGapDenial> {
+        self.require_surface_not_registered(CoverageSurfaceKind::Counter)?;
+        let plan =
+            self.plan
+                .as_ref()
+                .ok_or(CoverageGapDenial::MissingPlanBeforeDependentSurface {
+                    surface: CoverageSurfaceKind::Counter,
+                })?;
+        self.rows.push(PhysicalCoverageMatrixRow::generated(
+            self.sequence,
+            CoverageSurfaceKind::Counter,
+            *plan.identity().digest_bytes(),
+            plan.counter_contracts()
+                .iter()
+                .map(|contract| CoverageRowDimension::CounterContract(contract.kind())),
+        ));
+        Ok(self)
+    }
+
     pub fn register_transcript(
         mut self,
         replay: &SimulationReplayBundle,
@@ -250,6 +297,29 @@ impl Roadmap2CoverageRegistry {
                 CoverageRowDimension::TranscriptOutput,
                 CoverageRowDimension::OfflineVerifier(replay.trace().observer()),
             ],
+        ));
+        Ok(self)
+    }
+
+    pub fn register_transcript_surface_from_plan(
+        mut self,
+    ) -> Result<Self, CoverageGapDenial> {
+        self.require_surface_not_registered(CoverageSurfaceKind::Transcript)?;
+        let plan =
+            self.plan
+                .as_ref()
+                .ok_or(CoverageGapDenial::MissingPlanBeforeDependentSurface {
+                    surface: CoverageSurfaceKind::Transcript,
+                })?;
+        self.rows.push(PhysicalCoverageMatrixRow::generated(
+            self.sequence,
+            CoverageSurfaceKind::Transcript,
+            *plan.identity().digest_bytes(),
+            std::iter::once(CoverageRowDimension::TranscriptOutput).chain(
+                plan.observers()
+                    .iter()
+                    .map(CoverageRowDimension::OfflineVerifier),
+            ),
         ));
         Ok(self)
     }
@@ -318,6 +388,7 @@ fn plan_dimensions(plan: &PhysicalSimulationPlan) -> Vec<CoverageRowDimension> {
     let mut dimensions = vec![CoverageRowDimension::ResourceEnvelopeProfile(
         plan.profile(),
     )];
+    append_blob_plan_dimensions(&mut dimensions, plan);
     dimensions.extend(
         plan.fixture_classes()
             .iter()

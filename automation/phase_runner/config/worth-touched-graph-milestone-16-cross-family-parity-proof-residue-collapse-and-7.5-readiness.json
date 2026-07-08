@@ -1,4 +1,4 @@
-{
+﻿{
   "schema_version": 1,
   "project": {
     "name": "Worth Touched Graph Milestone 16 Cross Family Parity Proof Residue Collapse And 7.5 Readiness",
@@ -316,7 +316,7 @@
         "matrix counts match live derived coverage and residue ledgers exactly",
         "uncertified family kinds fail closeout"
       ],
-      "instructions": "Emit the final matrix proving the roadmap’s declared family coverage, residue counts, and architecture claims match live implementation state.",
+      "instructions": "Emit the final matrix proving the roadmapâ€™s declared family coverage, residue counts, and architecture claims match live implementation state.",
       "qa_focus": "No hand-maintained matrix and no approximate counts."
     },
     {

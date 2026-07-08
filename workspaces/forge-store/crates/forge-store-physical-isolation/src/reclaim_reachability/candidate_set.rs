@@ -61,4 +61,27 @@ impl ReclaimCandidateSet {
     ) -> bool {
         self.ranges.contains_owner(owner)
     }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn for_certification_test() -> Self {
+        Self {
+            root_epoch: crate::epoch::root_epoch_from_entry_seed(17),
+            basis: PhysicalReadProtectedFootprintBasis::for_certification_test(1),
+            ranges: ProtectedReferenceRangeSet::for_certification_test(),
+        }
+    }
+
+    #[cfg(any(test, feature = "certification-authority"))]
+    pub(crate) fn for_certification_reference(
+        reference: CurrentGenerationPhysicalReference,
+    ) -> Self {
+        let protected = [crate::ProtectedPhysicalReference::from_current_generation(
+            reference,
+        )];
+        Self {
+            root_epoch: crate::epoch::root_epoch_from_entry_seed(17),
+            basis: PhysicalReadProtectedFootprintBasis::for_certification_test(1),
+            ranges: ProtectedReferenceRangeSet::from_references(&protected, Vec::new()),
+        }
+    }
 }

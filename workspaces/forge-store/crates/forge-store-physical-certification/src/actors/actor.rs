@@ -41,6 +41,16 @@ actor_wrapper!(RecoveryActor, recovery_driver);
 actor_wrapper!(ReclaimActor, maintenance_reclaimer);
 actor_wrapper!(ScrubActor, scrub_driver);
 actor_wrapper!(OfflineVerifierActor, offline_verifier);
+actor_wrapper!(BlobIngestActor, blob_ingest_actor);
+actor_wrapper!(BlobReadActor, blob_read_actor);
+actor_wrapper!(BlobVerifyActor, blob_verify_actor);
+actor_wrapper!(BlobResumeActor, blob_resume_actor);
+actor_wrapper!(BlobDedupeActor, blob_dedupe_actor);
+actor_wrapper!(BlobExportActor, blob_export_actor);
+actor_wrapper!(BlobImportActor, blob_import_actor);
+actor_wrapper!(BlobPlacementMoveActor, blob_placement_move_actor);
+actor_wrapper!(BlobPartialReplicationActor, blob_partial_replication_actor);
+actor_wrapper!(BlobReclaimActor, blob_reclaim_actor);
 
 impl PhysicalSimulationActor {
     pub(crate) fn admit(
@@ -89,6 +99,36 @@ impl PhysicalSimulationActor {
             }
             PhysicalScenarioActorRole::ShortcutRejectionProbe => {
                 PhysicalScenarioActor::shortcut_rejection_probe(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobIngestActor => {
+                PhysicalScenarioActor::blob_ingest_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobReadActor => {
+                PhysicalScenarioActor::blob_read_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobVerifyActor => {
+                PhysicalScenarioActor::blob_verify_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobResumeActor => {
+                PhysicalScenarioActor::blob_resume_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobDedupeActor => {
+                PhysicalScenarioActor::blob_dedupe_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobExportActor => {
+                PhysicalScenarioActor::blob_export_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobImportActor => {
+                PhysicalScenarioActor::blob_import_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobPlacementMoveActor => {
+                PhysicalScenarioActor::blob_placement_move_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobPartialReplicationActor => {
+                PhysicalScenarioActor::blob_partial_replication_actor(self.id.clone())
+            }
+            PhysicalScenarioActorRole::BlobReclaimActor => {
+                PhysicalScenarioActor::blob_reclaim_actor(self.id.clone())
             }
             PhysicalScenarioActorRole::FutureExtensionSlot => {
                 PhysicalScenarioActor::future_extension_slot(self.id.clone())

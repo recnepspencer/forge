@@ -62,6 +62,30 @@ let _forged = S2PhysicalSubstrateReadiness {
 };
 ```
 
+Certification closeout cannot mint `S2PhysicalSubstrateReadiness` directly; use `forge_store_readiness`:
+
+```compile_fail
+use forge_store_certification::{
+    certify_physical_page_segment_extent_substrate, PhysicalPageSegmentExtentSubstrateCloseout,
+};
+
+let closeout: PhysicalPageSegmentExtentSubstrateCloseout =
+    certify_physical_page_segment_extent_substrate().unwrap();
+let _readiness = closeout.into_s2_readiness();
+```
+
+S.6 production readiness closure is owned by `forge_store_readiness`, not certification:
+
+```compile_fail
+use forge_store_certification::close_s6_production_readiness;
+```
+
+S.6 IO/QoS readiness is minted by `forge_store_physical_isolation`, not certification:
+
+```compile_fail
+use forge_store_certification::materialize_s6_io_qos_isolation_readiness;
+```
+
 Raw closeout evidence descriptors cannot be assembled outside certification:
 
 ```compile_fail
@@ -96,7 +120,7 @@ let _forged = PhysicalPageSegmentExtentSubstrateRun::new(
 S.3 physical integrity readiness cannot be minted from raw payload fields:
 
 ```compile_fail
-use forge_store_certification::S3PhysicalIntegrityReadiness;
+use forge_store_readiness::S3PhysicalIntegrityReadiness;
 
 let _forged = S3PhysicalIntegrityReadiness {
     s2_readiness: todo!(),
@@ -342,4 +366,14 @@ use forge_store_certification::StoreCertificationProgram;
 
 let digest_text = String::from("sha256:certification");
 let _program = StoreCertificationProgram::from_digest_text(digest_text);
+```
+
+Certification cannot skip the readiness-owned S.7 capsule handoff:
+
+```compile_fail
+use forge_store_blob_chunks::BlobCapsuleReadinessWitness;
+use forge_store_certification::certify_s7_capsule_readiness;
+
+let readiness: BlobCapsuleReadinessWitness = todo!();
+let _report = certify_s7_capsule_readiness(&readiness);
 ```
