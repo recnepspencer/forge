@@ -29,7 +29,7 @@ const RESPONSIBILITY_ROWS: &[S8CrateResponsibilityRow] = &[
         "S.8 layout/access grammar and sealed progression witnesses",
         "Store family authority declarations",
         S8ProjectionOutputPosture::ProductionBoundaryEvidence,
-        "forge_store_layout_indexes::{layout_declarations,strategy_admission,access_planning,layout_readmission,layout_closeout}",
+        "forge_store_layout_indexes::{layout_declarations,layout_customization_boundary,access_planning,layout_readmission,layout_closeout}",
         PHASE_ZERO_ONLY,
     ),
     S8CrateResponsibilityRow::new(

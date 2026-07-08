@@ -112,6 +112,10 @@ impl PhysicalHeaderAuthority {
     pub(crate) const fn byte_order(&self) -> PhysicalByteOrder {
         self.binary.declaration().byte_order()
     }
+
+    pub(crate) fn physical_format_version(&self) -> crate::PhysicalFormatVersion {
+        self.binary.declaration().identity().version()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -56,10 +56,12 @@ pub(crate) fn construct_storage_from_verified_layout(
 
 pub(crate) fn reopen_s1(
     readiness: AcceptedHandoffReadiness,
-    request: PlatformPhysicalOpenRequest,
+    _request: PlatformPhysicalOpenRequest,
+    headers: PhysicalHeaderAuthority,
     layout: PersistedPhysicalLayout,
 ) -> Result<PlatformPhysicalFacade, PlatformPhysicalFacadeDenial> {
     verify_handoff_readiness(&readiness)?;
+    let request = PlatformPhysicalOpenRequest::new(headers);
     let evidence = collect_reopen_layout_evidence(&request, &layout);
     let verifier_report = verify_persisted_layout_for_reopen(&evidence)?;
     let storage = construct_storage_from_verified_layout(&layout, &verifier_report);

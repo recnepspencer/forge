@@ -1,6 +1,10 @@
+use crate::strategy::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
+use crate::strategy_registry::{
+    layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+};
 use crate::{
-    layout_declarations, strategy_admission, ArtifactFamilyLifecycleAdmission, CanonicalKeyBytes,
-    PhysicalKeyDomainWitness, S8AdmittedLayoutStrategy, S8LayoutStrategyFamily,
+    layout_declarations, ArtifactFamilyAccessLane, ArtifactFamilyLifecycleAdmission,
+    CanonicalKeyBytes, PhysicalKeyDomainWitness,
 };
 use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
@@ -21,7 +25,7 @@ use forge_store_security::{
 };
 use forge_store_wal::StoreWalRecordIdentity;
 
-pub(super) fn admit_phase_five_scope(
+pub(crate) fn admit_phase_five_scope(
     family_id: DurableArtifactFamilyId,
     key_scope: StoreKeyScope,
     tenant_scope: StoreTenantScope,
@@ -51,7 +55,7 @@ pub(super) fn admit_phase_five_scope(
     (lifecycle, key_domain)
 }
 
-pub(super) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
+pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
     let (lifecycle, key_domain) = admit_phase_five_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
@@ -61,12 +65,19 @@ pub(super) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    strategy_admission()
-        .admit_baseline_strategy(lifecycle, key_domain, S8LayoutStrategyFamily::BTree)
-        .unwrap()
+    match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+        lifecycle,
+        key_domain,
+        S8LayoutStrategyFamily::BaselineBTreeRange,
+        S8LayoutRequestedCapability::point_lookup(),
+        ArtifactFamilyAccessLane::HotPath,
+    )) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("btree strategy admission should succeed: {outcome:?}"),
+    }
 }
 
-pub(super) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
+pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
     let (lifecycle, key_domain) = admit_phase_five_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
@@ -76,12 +87,19 @@ pub(super) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    strategy_admission()
-        .admit_baseline_strategy(lifecycle, key_domain, S8LayoutStrategyFamily::Lsm)
-        .unwrap()
+    match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+        lifecycle,
+        key_domain,
+        S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+        S8LayoutRequestedCapability::point_lookup(),
+        ArtifactFamilyAccessLane::HotPath,
+    )) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("lsm strategy admission should succeed: {outcome:?}"),
+    }
 }
 
-pub(super) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBytes {
+pub(crate) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBytes {
     let strategy = admit_btree_page_strategy();
     let domain = strategy.key_domain();
     let encoding = layout_declarations().require_canonical_key_encoding(domain);
@@ -94,7 +112,7 @@ pub(super) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBy
         .unwrap()
 }
 
-pub(super) fn admitted_wal_key_bytes(sequence: u64) -> CanonicalKeyBytes {
+pub(crate) fn admitted_wal_key_bytes(sequence: u64) -> CanonicalKeyBytes {
     let strategy = admit_lsm_wal_strategy();
     let domain = strategy.key_domain();
     let encoding = layout_declarations().require_canonical_key_encoding(domain);
@@ -111,7 +129,7 @@ pub(super) fn admitted_wal_key_bytes(sequence: u64) -> CanonicalKeyBytes {
         .unwrap()
 }
 
-pub(super) fn root_manifest_scope() -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness)
+pub(crate) fn root_manifest_scope() -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness)
 {
     admit_phase_five_scope(
         DurableArtifactFamilyId::PhysicalRootManifest,

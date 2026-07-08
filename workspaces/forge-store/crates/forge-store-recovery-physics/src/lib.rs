@@ -65,10 +65,10 @@ pub use checkpoint_cutover::{
     WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
 };
 pub use corruption_readmission::{
-    admit_recovery_corruption_readmission, build_recovery_readmission_handoff,
-    classify_recovery_repair_capability, verify_quarantine_handoff_for_readmission,
-    verify_store_authority_for_readmission, RecoveryCorruptionReadmissionDenial,
-    RecoveryCorruptionReadmissionHandoff, RecoveryCorruptionRepairCapability,
+    admit_recovery_corruption_readmission, classify_recovery_repair_capability,
+    verify_quarantine_handoff_for_readmission, verify_store_authority_for_readmission,
+    RecoveryCorruptionReadmissionDenial, RecoveryCorruptionReadmissionHandoff,
+    RecoveryCorruptionRepairCapability,
 };
 pub use durable_publication::{
     CheckpointCrashDurabilityPosture, DurabilityRecoveryReplaySource,
@@ -86,6 +86,11 @@ pub use integrity_vetted_records::{
     IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
     IntegrityVettedWalFrame,
+};
+pub use layout_access::readmission_family::{
+    recovery_readmission_layout_family, RecoveryLayoutReadmissionAdmissionDenial,
+    RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
+    RecoveryLayoutReadmissionWitness,
 };
 pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
 pub use offline_verifier::{

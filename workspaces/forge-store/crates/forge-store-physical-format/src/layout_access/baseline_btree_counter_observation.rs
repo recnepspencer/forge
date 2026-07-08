@@ -2,23 +2,24 @@
 mod baseline_btree_counter_support;
 #[path = "baseline_btree_execution_witness.rs"]
 mod baseline_btree_execution_witness;
+#[path = "baseline_btree_exact_counter_witness.rs"]
+mod baseline_btree_exact_counter_witness;
 
 use self::baseline_btree_counter_support::readiness;
-pub use self::baseline_btree_execution_witness::{
-    execute_baseline_btree_lookup, execute_baseline_btree_replay_recovery,
-    execute_baseline_btree_root_publication, execute_baseline_btree_transcript,
-};
+pub use self::baseline_btree_exact_counter_witness::BaselineBTreeExactCounterWitness;
+pub(crate) use self::baseline_btree_execution_witness::execute_baseline_btree_transcript;
 use crate::{
     PersistedPhysicalLayout, PhysicalRecordSlot, PhysicalReference, PlatformPhysicalFacade,
     PlatformPhysicalOpenRequest, PlatformPhysicalRootPublicationReport, SlotGenerationCell,
 };
+use forge_store_budgets::S8PreExecutionPlanBinding;
 
 #[cfg(test)]
 #[path = "baseline_btree_counter_observation_tests.rs"]
 mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct BaselineBTreeCounterObservation {
+pub(crate) struct BaselineBTreeCounterObservation {
     point_lookups: u16,
     range_lookups: u16,
     publications: u16,
@@ -64,29 +65,53 @@ pub enum BaselineBTreeLookupBranch {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BaselineBTreeReadShape {
+    PointLookup,
+    RangeLookup,
+    PrefixLookup,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineBTreeLookupExecution {
+    plan_binding: S8PreExecutionPlanBinding,
+    shape: BaselineBTreeReadShape,
     probe_slot: PhysicalRecordSlot,
     separator_slot: PhysicalRecordSlot,
     branch: BaselineBTreeLookupBranch,
     selected_reference: PhysicalReference,
     counters: BaselineBTreeCounterObservation,
+    exact_counters: BaselineBTreeExactCounterWitness,
 }
 
 impl BaselineBTreeLookupExecution {
     const fn new(
+        plan_binding: S8PreExecutionPlanBinding,
+        shape: BaselineBTreeReadShape,
         probe_slot: PhysicalRecordSlot,
         separator_slot: PhysicalRecordSlot,
         branch: BaselineBTreeLookupBranch,
         selected_reference: PhysicalReference,
         counters: BaselineBTreeCounterObservation,
+        exact_counters: BaselineBTreeExactCounterWitness,
     ) -> Self {
         Self {
+            plan_binding,
+            shape,
             probe_slot,
             separator_slot,
             branch,
             selected_reference,
             counters,
+            exact_counters,
         }
+    }
+
+    pub const fn shape(self) -> BaselineBTreeReadShape {
+        self.shape
+    }
+
+    pub const fn plan_binding(self) -> S8PreExecutionPlanBinding {
+        self.plan_binding
     }
 
     pub const fn probe_slot(self) -> PhysicalRecordSlot {
@@ -105,39 +130,54 @@ impl BaselineBTreeLookupExecution {
         self.selected_reference
     }
 
-    pub const fn counters(self) -> BaselineBTreeCounterObservation {
+    pub(crate) const fn counters(self) -> BaselineBTreeCounterObservation {
         self.counters
     }
+
+    pub const fn exact_counters(self) -> BaselineBTreeExactCounterWitness {
+        self.exact_counters
+    }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselineBTreeRootPublicationExecution {
+    plan_binding: S8PreExecutionPlanBinding,
     publication_report: PlatformPhysicalRootPublicationReport,
     root_reference: PhysicalReference,
     root_payload: Vec<u8>,
     left_child: SlotGenerationCell,
     right_child: SlotGenerationCell,
+    exact_counters: BaselineBTreeExactCounterWitness,
 }
 
 impl BaselineBTreeRootPublicationExecution {
     fn new(
+        plan_binding: S8PreExecutionPlanBinding,
         publication_report: PlatformPhysicalRootPublicationReport,
         root_reference: PhysicalReference,
         root_payload: Vec<u8>,
         left_child: SlotGenerationCell,
         right_child: SlotGenerationCell,
+        exact_counters: BaselineBTreeExactCounterWitness,
     ) -> Self {
         Self {
+            plan_binding,
             publication_report,
             root_reference,
             root_payload,
             left_child,
             right_child,
+            exact_counters,
         }
     }
 
     pub fn published_layout(&self) -> &PersistedPhysicalLayout {
         self.publication_report.persisted_layout()
+    }
+
+    pub const fn plan_binding(&self) -> S8PreExecutionPlanBinding {
+        self.plan_binding
     }
 
     pub const fn root_reference(&self) -> PhysicalReference {
@@ -163,42 +203,57 @@ impl BaselineBTreeRootPublicationExecution {
         self.published_layout().root_manifest_candidates().len() as u16
     }
 
-    pub const fn counters(&self) -> BaselineBTreeCounterObservation {
+    pub(crate) const fn counters(&self) -> BaselineBTreeCounterObservation {
         BaselineBTreeCounterObservation::new(0, 0, 1, 0)
     }
+
+    pub const fn exact_counters(&self) -> BaselineBTreeExactCounterWitness {
+        self.exact_counters
+    }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselineBTreeReplayRecoveryExecution {
+    plan_binding: S8PreExecutionPlanBinding,
     reopened_layout: PersistedPhysicalLayout,
     published_root_reference: PhysicalReference,
     published_root_manifest: Vec<u8>,
     rebuild_authority_records: u16,
     rebuild_output_records: u16,
     rebuild_source_authoritative: bool,
+    exact_counters: BaselineBTreeExactCounterWitness,
 }
 
 impl BaselineBTreeReplayRecoveryExecution {
     fn new(
+        plan_binding: S8PreExecutionPlanBinding,
         reopened_layout: PersistedPhysicalLayout,
         published_root_reference: PhysicalReference,
         published_root_manifest: Vec<u8>,
         rebuild_authority_records: u16,
         rebuild_output_records: u16,
         rebuild_source_authoritative: bool,
+        exact_counters: BaselineBTreeExactCounterWitness,
     ) -> Self {
         Self {
+            plan_binding,
             reopened_layout,
             published_root_reference,
             published_root_manifest,
             rebuild_authority_records,
             rebuild_output_records,
             rebuild_source_authoritative,
+            exact_counters,
         }
     }
 
     pub fn reopened_layout(&self) -> &PersistedPhysicalLayout {
         &self.reopened_layout
+    }
+
+    pub const fn plan_binding(&self) -> S8PreExecutionPlanBinding {
+        self.plan_binding
     }
 
     pub fn replay_generation_monotonic(&self) -> bool {
@@ -222,9 +277,14 @@ impl BaselineBTreeReplayRecoveryExecution {
         self.rebuild_source_authoritative
     }
 
-    pub const fn counters(&self) -> BaselineBTreeCounterObservation {
+    pub(crate) const fn counters(&self) -> BaselineBTreeCounterObservation {
         BaselineBTreeCounterObservation::new(0, 0, 0, 1)
     }
+
+    pub const fn exact_counters(&self) -> BaselineBTreeExactCounterWitness {
+        self.exact_counters
+    }
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -270,7 +330,10 @@ fn reopen_facade(layout: PersistedPhysicalLayout) -> PlatformPhysicalFacade {
     PlatformPhysicalFacade::reopen_s1(
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
-        layout,
+        crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
+            PlatformPhysicalOpenRequest::s1_canonical().headers().clone(),
+            layout,
+        ),
     )
     .expect("reopen S.1 physical facade")
 }

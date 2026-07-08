@@ -1,7 +1,13 @@
 #[test]
-fn phase_five_denies_non_baseline_or_domain_mismatched_strategy_claims() {
+fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
     use super::tests_support::{admit_phase_five_scope, root_manifest_scope};
-    use crate::{strategy_admission, S8LayoutStrategyFamily, S8StrategyDenial};
+    use crate::strategy::S8LayoutStrategyFamily;
+    use crate::strategy_registry::S8LayoutAdmissionDenial;
+    use crate::strategy_registry::{
+        layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+    };
+    use crate::{ArtifactFamilyAccessLane, S8StrategyDenial};
+    use forge_proof::TransitionOutcome;
     use forge_store_contracts::DurableArtifactFamilyId;
     use forge_store_security::{
         StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -18,43 +24,75 @@ fn phase_five_denies_non_baseline_or_domain_mismatched_strategy_claims() {
         StoreCustodyPosture::InternalStoreCustody,
     );
     let (root_lifecycle, root_domain) = root_manifest_scope();
-
     assert_eq!(
-        strategy_admission().admit_baseline_strategy(
+        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+            page_lifecycle,
+            page_domain,
+            S8LayoutStrategyFamily::StreamingCursorIndex,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        )),
+        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+            S8StrategyDenial::UnsupportedFamily,
+        ))
+    );
+    assert_eq!(
+        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+            root_lifecycle,
+            root_domain,
+            S8LayoutStrategyFamily::BaselineBTreeRange,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::MaintenancePath,
+        )),
+        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+            S8StrategyDenial::PhysicalKeyDomainDoesNotSupportBaselineBTree,
+        ))
+    );
+    assert_eq!(
+        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+            page_lifecycle,
+            root_domain,
+            S8LayoutStrategyFamily::BaselineBTreeRange,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        )),
+        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+            S8StrategyDenial::FamilyDoesNotMatchKeyDomain,
+        ))
+    );
+    assert_eq!(
+        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
             page_lifecycle,
             page_domain,
             S8LayoutStrategyFamily::ExactScan,
-        ),
-        Err(S8StrategyDenial::UnsupportedFamily)
+            S8LayoutRequestedCapability::exact_scan(),
+            ArtifactFamilyAccessLane::HotPath,
+        )),
+        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+            S8StrategyDenial::UnsupportedFamily,
+        ))
     );
     assert_eq!(
-        strategy_admission().admit_baseline_strategy(
-            root_lifecycle,
-            root_domain,
-            S8LayoutStrategyFamily::BTree,
-        ),
-        Err(S8StrategyDenial::PhysicalKeyDomainDoesNotSupportBaselineBTree)
-    );
-    assert_eq!(
-        strategy_admission().admit_baseline_strategy(
+        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
             page_lifecycle,
-            root_domain,
-            S8LayoutStrategyFamily::BTree,
-        ),
-        Err(S8StrategyDenial::FamilyDoesNotMatchKeyDomain)
+            page_domain,
+            S8LayoutStrategyFamily::ManifestTable,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        )),
+        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+            S8StrategyDenial::UnsupportedFamily,
+        ))
     );
 }
 
 #[test]
-fn phase_five_admission_binds_counter_profiles_to_baseline_strategy_families() {
+fn phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families() {
     use super::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
-    use crate::execution::S8AccessPathKind;
-    use crate::{S8StrategyLookupInvariant, S8StrategyPublicationInvariant};
-    use forge_store_physical_format::layout_access::baseline_btree_counter_observation::{
-        execute_baseline_btree_lookup, BaselineBTreeLookupBranch,
-    };
-    use forge_store_wal::layout_access::baseline_lsm_counter_observation::{
-        execute_baseline_lsm_lookup, execute_baseline_lsm_replay, BaselineLsmLookupDisposition,
+    use crate::{
+        ArtifactFamilyAccessLane, S8AccessShapeDetail, S8MaterializationStateClass,
+        S8StrategyAmplificationProfile, S8StrategyLocalityProfile, S8StrategyLookupInvariant,
+        S8StrategyPublicationInvariant, S8StrategyRebuildSourceRequirement,
     };
 
     let btree = admit_btree_page_strategy();
@@ -70,119 +108,248 @@ fn phase_five_admission_binds_counter_profiles_to_baseline_strategy_families() {
         lsm_suite.publication_invariant(),
         S8StrategyPublicationInvariant::ManifestPublication
     );
+    assert!(btree.supports_point_access());
+    assert!(btree.supports_range_access());
+    assert!(btree.supports_prefix_access());
+    assert!(!btree.supports_streaming_access());
+    assert!(lsm.supports_point_access());
+    assert!(!lsm.supports_range_access());
+    assert!(btree.allows_access_lane(ArtifactFamilyAccessLane::HotPath));
+    assert!(btree.allows_access_lane(ArtifactFamilyAccessLane::MaintenancePath));
+    assert!(!btree.allows_access_lane(ArtifactFamilyAccessLane::VerifierPath));
+    assert_eq!(
+        btree.locality_profile(),
+        S8StrategyLocalityProfile::OrderedPageLocality
+    );
+    assert_eq!(
+        lsm.locality_profile(),
+        S8StrategyLocalityProfile::BufferedRunLocality
+    );
+    assert_eq!(
+        btree.amplification_profile(),
+        S8StrategyAmplificationProfile::SplitMergeBounded
+    );
+    assert_eq!(
+        lsm.amplification_profile(),
+        S8StrategyAmplificationProfile::CompactionWriteAmplified
+    );
+    assert_eq!(
+        btree.rebuild_source_requirement(),
+        S8StrategyRebuildSourceRequirement::PhysicalSnapshotReplay
+    );
+    assert_eq!(
+        lsm.rebuild_source_requirement(),
+        S8StrategyRebuildSourceRequirement::WalReplay
+    );
+    assert!(btree.supports_materialization_state(S8MaterializationStateClass::Exact));
+    assert!(lsm.supports_materialization_state(S8MaterializationStateClass::Lagged));
+    assert!(!lsm.supports_materialization_state(S8MaterializationStateClass::Exact));
+    assert!(btree.canonical_key_encoding().is_some());
+    assert!(btree.comparator_law().is_some());
+    assert!(btree.prefix_law().is_some());
+    assert!(btree.range_bound_law().is_some());
+    assert!(lsm.canonical_key_encoding().is_some());
+    assert!(lsm.comparator_law().is_some());
+    assert!(lsm.prefix_law().is_none());
+    assert!(lsm.range_bound_law().is_none());
+    assert_eq!(
+        btree.planned_counter_envelope(),
+        None
+    );
+    assert_eq!(
+        lsm.planned_counter_envelope()
+            .expect("lsm strategy should declare planned counters")
+            .aggregate_profile(),
+        lsm.declared_counter_profile()
+    );
+    assert_eq!(
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .expect("btree point counters should be available")
+            .aggregate_profile(),
+        crate::S8StrategyCounterProfile::new(1, 0, 0, 1, 1)
+    );
+    assert_eq!(
+        btree.declared_counter_profile(),
+        btree_suite.counter_evidence().aggregate_profile()
+    );
+    assert!(btree
+        .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
+            crate::S8RangeBasis::CanonicalRangeBounds
+        ))
+        .is_some());
+    assert!(btree
+        .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
+            crate::S8PrefixBasis::CanonicalPrefixBounds
+        ))
+        .is_some());
+
     let btree_evidence = btree_suite.counter_evidence();
     let lsm_evidence = lsm_suite.counter_evidence();
 
+    assert_eq!(btree_evidence.lookup(), None);
     assert_eq!(
-        btree_evidence.lookup().path_kind(),
-        S8AccessPathKind::BaselineBTreePointLookup
+        btree_evidence
+            .point_lookup()
+            .expect("btree point declarative envelope should exist"),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .expect("btree point counters should be available")
     );
     assert_eq!(
-        btree_evidence.publication().path_kind(),
-        S8AccessPathKind::BaselineBTreeRootPublication
+        btree_evidence
+            .range_lookup()
+            .expect("btree range declarative envelope should exist"),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
+                crate::S8RangeBasis::CanonicalRangeBounds
+            ))
+            .expect("btree range counters should be available")
     );
     assert_eq!(
-        btree_evidence.recovery().path_kind(),
-        S8AccessPathKind::BaselineBTreeReplayRecovery
+        btree_evidence
+            .prefix_lookup()
+            .expect("btree prefix declarative envelope should exist"),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
+                crate::S8PrefixBasis::CanonicalPrefixBounds
+            ))
+            .expect("btree prefix counters should be available")
     );
     assert_eq!(
-        lsm_evidence.lookup().path_kind(),
-        S8AccessPathKind::BaselineLsmPointLookup
+        btree_evidence.publication(),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .expect("btree point counters should be available")
+            .publication()
     );
     assert_eq!(
-        lsm_evidence.publication().path_kind(),
-        S8AccessPathKind::BaselineLsmManifestPublication
+        btree_evidence.recovery(),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PointLookup)
+            .expect("btree point counters should be available")
+            .recovery()
     );
     assert_eq!(
-        lsm_evidence.recovery().path_kind(),
-        S8AccessPathKind::BaselineLsmWalReplay
+        lsm_evidence
+            .lookup()
+            .expect("lsm lookup envelope should remain singular"),
+        lsm.planned_counter_envelope()
+            .expect("lsm strategy should declare planned counters")
     );
-    let btree_lookup_execution = execute_baseline_btree_lookup();
-    let lsm_lookup_execution = execute_baseline_lsm_lookup();
-    let lsm_replay_execution = execute_baseline_lsm_replay();
+    assert_eq!(
+        lsm_evidence.publication(),
+        lsm.planned_counter_envelope()
+            .expect("lsm strategy should declare planned counters")
+            .publication()
+    );
+    assert_eq!(
+        lsm_evidence.recovery(),
+        lsm.planned_counter_envelope()
+            .expect("lsm strategy should declare planned counters")
+            .recovery()
+    );
+}
 
+#[test]
+fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
+    use super::tests_support::admit_phase_five_scope;
+    use crate::strategy::S8LayoutStrategyFamily;
+    use crate::strategy_registry::{
+        layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+    };
+    use crate::ArtifactFamilyAccessLane;
+    use forge_proof::TransitionOutcome;
+    use forge_store_contracts::DurableArtifactFamilyId;
+    use forge_store_security::{
+        StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
+        StoreKeyScope, StoreTenantScope,
+    };
+
+    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+        DurableArtifactFamilyId::PhysicalPage,
+        StoreKeyScope::PageEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    let (segment_lifecycle, segment_domain) = admit_phase_five_scope(
+        DurableArtifactFamilyId::PhysicalSegment,
+        StoreKeyScope::PageEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+
+    let page = match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+        page_lifecycle,
+        page_domain,
+        S8LayoutStrategyFamily::BaselineBTreeRange,
+        S8LayoutRequestedCapability::point_lookup(),
+        ArtifactFamilyAccessLane::HotPath,
+    )) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("page strategy should admit: {outcome:?}"),
+    };
+    let segment = match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+        segment_lifecycle,
+        segment_domain,
+        S8LayoutStrategyFamily::BaselineBTreeRange,
+        S8LayoutRequestedCapability::point_lookup(),
+        ArtifactFamilyAccessLane::HotPath,
+    )) {
+        TransitionOutcome::Success(admitted) => admitted,
+        outcome => panic!("segment strategy should admit: {outcome:?}"),
+    };
+
+    assert_ne!(page.key_domain(), segment.key_domain());
+    assert_eq!(page.family(), segment.family());
     assert_eq!(
-        btree_lookup_execution.branch(),
-        BaselineBTreeLookupBranch::Left
+        page.declared_access_lane(),
+        ArtifactFamilyAccessLane::HotPath
     );
-    assert!(
-        btree_lookup_execution.probe_slot().get() < btree_lookup_execution.separator_slot().get()
+}
+
+#[test]
+fn phase_seventeen_btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
+    use super::tests_support::admit_btree_page_strategy;
+    use crate::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
+
+    let btree = admit_btree_page_strategy();
+    let evidence = btree.invariant_suite().counter_evidence();
+
+    assert_eq!(btree.planned_counter_envelope(), None);
+    assert_eq!(evidence.lookup(), None);
+    assert_eq!(
+        btree.planned_counter_envelope_for(S8AccessShapeDetail::PointLookup),
+        evidence.point_lookup()
     );
     assert_eq!(
-        btree_lookup_execution
-            .selected_reference()
-            .slot()
-            .map(|slot| slot.get()),
-        Some(1)
+        evidence
+            .range_lookup()
+            .expect("range declarative counters should exist"),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::RangeLookup(
+                S8RangeBasis::CanonicalRangeBounds
+            ))
+            .expect("range counters should be available")
     );
     assert_eq!(
-        lsm_lookup_execution.disposition(),
-        BaselineLsmLookupDisposition::Memtable
+        evidence
+            .prefix_lookup()
+            .expect("prefix declarative counters should exist"),
+        btree
+            .planned_counter_envelope_for(S8AccessShapeDetail::PrefixLookup(
+                S8PrefixBasis::CanonicalPrefixBounds
+            ))
+            .expect("prefix counters should be available")
     );
     assert_eq!(
-        lsm_lookup_execution.memtable_record().sequence(),
-        lsm_lookup_execution.probe_sequence()
-    );
-    assert!(
-        lsm_lookup_execution.sorted_run_record().sequence() < lsm_lookup_execution.probe_sequence()
-    );
-    assert_eq!(lsm_replay_execution.replayable_count(), 1);
-    assert!(btree_evidence.lookup().parity_holds());
-    assert!(btree_evidence.publication().parity_holds());
-    assert!(btree_evidence.recovery().parity_holds());
-    assert!(lsm_evidence.lookup().parity_holds());
-    assert!(lsm_evidence.publication().parity_holds());
-    assert!(lsm_evidence.recovery().parity_holds());
-    assert_eq!(
-        btree_evidence.lookup().observed(),
-        btree_evidence.lookup().planned()
-    );
-    assert_eq!(
-        btree_evidence.publication().observed(),
-        btree_evidence.publication().planned()
-    );
-    assert_eq!(
-        btree_evidence.recovery().observed(),
-        btree_evidence.recovery().planned()
-    );
-    assert_eq!(
-        lsm_evidence.lookup().observed(),
-        lsm_evidence.lookup().planned()
-    );
-    assert_eq!(
-        lsm_evidence.publication().observed(),
-        lsm_evidence.publication().planned()
-    );
-    assert_eq!(
-        lsm_evidence.recovery().observed(),
-        lsm_evidence.recovery().planned()
-    );
-    assert_eq!(
-        btree_evidence.lookup().observed().point_lookups(),
-        btree_lookup_execution.counters().point_lookups()
-    );
-    assert_eq!(
-        lsm_evidence.lookup().observed().range_lookups(),
-        lsm_lookup_execution.counters().range_lookups()
-    );
-    assert_eq!(
-        lsm_evidence.recovery().observed().wal_replays(),
-        lsm_replay_execution.counters().wal_replays()
-    );
-    assert_eq!(btree_evidence.lookup().planned().point_lookups(), 1);
-    assert_eq!(btree_evidence.publication().planned().publications(), 1);
-    assert_eq!(btree_evidence.recovery().planned().maintenance_reads(), 1);
-    assert_eq!(lsm_evidence.lookup().planned().range_lookups(), 1);
-    assert_eq!(lsm_evidence.publication().planned().publications(), 2);
-    assert_eq!(lsm_evidence.recovery().planned().wal_replays(), 1);
-    assert_eq!(btree_evidence.aggregate_profile().wal_replays(), 0);
-    assert_eq!(lsm_evidence.aggregate_profile().wal_replays(), 1);
-    assert!(
-        lsm_evidence.aggregate_profile().publications()
-            > btree_evidence.aggregate_profile().publications()
-    );
-    assert!(
-        lsm_evidence.aggregate_profile().maintenance_reads()
-            > btree_evidence.aggregate_profile().maintenance_reads()
+        evidence.aggregate_profile(),
+        crate::S8StrategyCounterProfile::new(1, 1, 0, 1, 1)
     );
 }

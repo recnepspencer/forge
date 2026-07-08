@@ -72,7 +72,8 @@
     "phase_id_start": 0,
     "boundary_review_start_phase": 0,
     "idle_timeout_seconds": 900,
-    "turn_timeout_seconds": 7200
+    "turn_timeout_seconds": 7200,
+    "fresh_session_after_qa_repair_cycles": 4
   },
   "phases": [
     {

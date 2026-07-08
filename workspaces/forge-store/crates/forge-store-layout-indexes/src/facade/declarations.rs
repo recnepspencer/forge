@@ -1,5 +1,4 @@
 use crate::{
-    access_shape::S8AccessShapeDeclaration,
     artifact_family::{
         classify_family, declare_authority_role, declare_derived_accuracy_class,
         require_exact_accuracy_claim, require_production_authority, require_scope_partition,
@@ -287,10 +286,6 @@ impl LayoutDeclarationsFacade {
     pub fn seed_family(&self) -> &'static PhysicalArtifactFamilyDeclaration {
         self.declaration(DurableArtifactFamilyId::PhysicalRootManifest)
             .expect("seed family must stay declared")
-    }
-
-    pub const fn seed_access_shape(&self) -> S8AccessShapeDeclaration {
-        S8AccessShapeDeclaration
     }
 }
 

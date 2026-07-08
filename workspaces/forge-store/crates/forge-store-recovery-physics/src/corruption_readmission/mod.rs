@@ -3,9 +3,8 @@ mod handoff_types;
 mod repair_capability;
 mod verify_readmission_authority;
 
-pub use admit_recovery_readmission::{
-    admit_recovery_corruption_readmission, build_recovery_readmission_handoff,
-};
+pub use admit_recovery_readmission::admit_recovery_corruption_readmission;
+pub(crate) use admit_recovery_readmission::build_recovery_readmission_handoff;
 pub use handoff_types::{
     RecoveryCorruptionReadmissionDenial, RecoveryCorruptionReadmissionHandoff,
     RecoveryCorruptionRepairCapability,

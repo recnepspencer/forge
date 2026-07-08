@@ -1,6 +1,7 @@
 use crate::{
     ExtentBackedRecordView, ManifestTraversalReport, MinimalManifestVerifierReport,
-    PersistedPhysicalLayout, PhysicalReference, PlatformPhysicalFacadeCounterSnapshot,
+    PersistedPhysicalLayout, PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness,
+    PhysicalHeaderAuthority, PhysicalReference, PlatformPhysicalFacadeCounterSnapshot,
     PlatformPhysicalFacadeEvidence, RecordAppendReport, RecordLocateReport,
 };
 use forge_store_contracts::RoadmapScope;
@@ -81,20 +82,39 @@ impl<'a> PlatformPhysicalLocateReport<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformPhysicalRootPublicationReport {
+    headers: PhysicalHeaderAuthority,
     layout: PersistedPhysicalLayout,
     counters: PlatformPhysicalFacadeCounterSnapshot,
 }
 
 impl PlatformPhysicalRootPublicationReport {
-    pub(crate) const fn new(
+    pub(crate) fn new(
+        headers: PhysicalHeaderAuthority,
         layout: PersistedPhysicalLayout,
         counters: PlatformPhysicalFacadeCounterSnapshot,
     ) -> Self {
-        Self { layout, counters }
+        Self {
+            headers,
+            layout,
+            counters,
+        }
     }
 
     pub const fn persisted_layout(&self) -> &PersistedPhysicalLayout {
         &self.layout
+    }
+
+    pub fn replay_artifact(&self) -> super::PlatformPhysicalReplayArtifact {
+        super::PlatformPhysicalReplayArtifact::from_persisted_layout(
+            self.headers.clone(),
+            self.layout.clone(),
+        )
+    }
+
+    pub fn admit_bootstrap_open_witness(
+        &self,
+    ) -> Result<PhysicalBootstrapCatalogOpenWitness, PhysicalBootstrapCatalogDenial> {
+        PhysicalBootstrapCatalogOpenWitness::admit_persisted_layout(&self.headers, &self.layout)
     }
 
     pub const fn counters(&self) -> PlatformPhysicalFacadeCounterSnapshot {

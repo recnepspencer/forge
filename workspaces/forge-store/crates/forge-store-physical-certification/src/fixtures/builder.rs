@@ -28,13 +28,14 @@ impl FixtureNeedsMaterialization {
         self,
         materialization: ProductionBackedFixtureMaterialization,
     ) -> FixtureNeedsBoundary {
-        let (profile, scale, source, layout) = materialization.into_parts();
+        let (profile, scale, source, layout, replay_artifact) = materialization.into_parts();
         FixtureNeedsBoundary {
             name: self.name,
             profile,
             scale,
             source,
             layout,
+            replay_artifact,
         }
     }
 }
@@ -45,6 +46,7 @@ pub struct FixtureNeedsBoundary {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
+    replay_artifact: Option<forge_store_physical_format::PlatformPhysicalReplayArtifact>,
 }
 
 impl FixtureNeedsBoundary {
@@ -55,6 +57,7 @@ impl FixtureNeedsBoundary {
             scale: self.scale,
             source: self.source,
             layout: self.layout,
+            replay_artifact: self.replay_artifact,
             capability_declarations: vec![declaration],
         }
     }
@@ -66,6 +69,7 @@ pub struct FixtureReadyBuilder {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
+    replay_artifact: Option<forge_store_physical_format::PlatformPhysicalReplayArtifact>,
     capability_declarations: Vec<FixtureCapabilityDeclaration>,
 }
 
@@ -100,7 +104,10 @@ impl FixtureReadyBuilder {
             boundaries,
         );
         Ok(ProductionBackedPhysicalFixture::from_manifest_and_receipt(
-            manifest, receipt,
+            manifest,
+            receipt,
+            self.layout,
+            self.replay_artifact,
         ))
     }
 }

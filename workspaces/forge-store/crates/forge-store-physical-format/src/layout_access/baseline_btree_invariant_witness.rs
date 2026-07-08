@@ -11,6 +11,7 @@ use crate::{
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
+use forge_store_budgets::S8PreExecutionPlanBinding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BaselineBTreeCorruptionObservation {
@@ -150,7 +151,7 @@ impl BaselineBTreeInvariantWitness {
 }
 
 pub fn collect_baseline_btree_invariant_witness() -> BaselineBTreeInvariantWitness {
-    let transcript = execute_baseline_btree_transcript();
+    let transcript = execute_baseline_btree_transcript(S8PreExecutionPlanBinding::new(1, 2, 3, 4, 0));
     let left_lookup = transcript.lookup();
     let publication = transcript.publication();
     let recovery = transcript.recovery();
@@ -247,7 +248,10 @@ fn reopen_facade(layout: PersistedPhysicalLayout) -> PlatformPhysicalFacade {
     PlatformPhysicalFacade::reopen_s1(
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
-        layout,
+        crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
+            PlatformPhysicalOpenRequest::s1_canonical().headers().clone(),
+            layout,
+        ),
     )
     .expect("reopen baseline btree facade")
 }

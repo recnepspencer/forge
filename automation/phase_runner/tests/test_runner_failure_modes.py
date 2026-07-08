@@ -17,7 +17,9 @@ from event_log import load_events, validate_event_log
 from orchestrator import (
     extract_runner_event,
     import_legacy_run,
+    maybe_reset_stuck_session,
     pending_recovery_reason,
+    qa_repair_cycles_since_last_reset,
     refresh_projection,
     turn_is_current,
 )
@@ -209,6 +211,64 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(projection["current"], {"phase": 1, "turn": "code_quality_review"})
         self.assertEqual(projection["phases"][0]["status"], "complete")
         self.assertEqual(projection["phases"][0]["qa_status"], "needed")
+
+    def test_qa_repair_cycle_count_resets_after_fresh_session_reset(self) -> None:
+        events = [
+            event("repair_completed", 1, 1, "repair"),
+            event("code_quality_repair_completed", 2, 1, "code_quality_repair"),
+            event(
+                "session_reset",
+                3,
+                1,
+                "code_quality_review",
+                {"reason": "fresh session", "cycle_count": 2, "threshold": 2},
+            ),
+            event("repair_completed", 4, 1, "repair"),
+        ]
+
+        self.assertEqual(qa_repair_cycles_since_last_reset(events, 1), 1)
+
+    def test_stuck_qa_repair_cycles_clear_persisted_session_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            original_root = runtime_paths.RUNTIME_ROOT
+            runtime_paths.RUNTIME_ROOT = temp_root / "runtime"
+            try:
+                config = minimal_config_public()
+                config["runner_control"] = {"fresh_session_after_qa_repair_cycles": 2}
+                config_path = temp_root / "config.json"
+                config_path.write_text(json.dumps(config), encoding="utf-8")
+                paths = RuntimePaths("fresh-reset")
+                paths.events.parent.mkdir(parents=True, exist_ok=True)
+                events = [
+                    event("run_started", 1, payload={"config_path": str(config_path)}),
+                    event("plan_posted", 2, 1, "plan"),
+                    event("implementation_completed", 3, 1, "implement"),
+                    event("review_failed", 4, 1, "review"),
+                    event("repair_completed", 5, 1, "repair"),
+                    event("review_failed", 6, 1, "review"),
+                    event("repair_completed", 7, 1, "repair"),
+                ]
+                events[-1]["thread_id"] = "old-thread"
+                paths.events.write_text(
+                    "\n".join(json.dumps({**item, "run_id": "fresh-reset"}) for item in events)
+                    + "\n",
+                    encoding="utf-8",
+                )
+                projection = refresh_projection(config_path, "fresh-reset")
+
+                self.assertTrue(maybe_reset_stuck_session(config_path, "fresh-reset", projection))
+                reset_projection = refresh_projection(config_path, "fresh-reset")
+                self.assertIsNone(reset_projection["session"]["thread_id"])
+                self.assertEqual(
+                    reset_projection["session"]["fresh_recovery"]["cycle_count"],
+                    2,
+                )
+                self.assertFalse(
+                    maybe_reset_stuck_session(config_path, "fresh-reset", reset_projection)
+                )
+            finally:
+                runtime_paths.RUNTIME_ROOT = original_root
 
     def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
         config = minimal_config()

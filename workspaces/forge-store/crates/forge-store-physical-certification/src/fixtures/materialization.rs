@@ -1,10 +1,11 @@
 use forge_store_physical_format::{
     AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, PersistedExtentBytes,
-    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalByteOrder,
-    PhysicalExtentId, PhysicalFormatVersion, PhysicalFrameKind, PhysicalGeneration,
-    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
-    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalRootReference, PhysicalSegmentId, SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
+    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness,
+    PhysicalByteOrder, PhysicalExtentId, PhysicalFormatVersion, PhysicalFrameKind,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
+    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState,
+    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalReplayArtifact,
+    SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
 };
 
 use super::{FixtureScaleDeclaration, LargeStoreFixtureProfile, SyntheticFixtureAuthorityDenied};
@@ -26,6 +27,7 @@ pub struct ProductionBackedFixtureMaterialization {
     scale: FixtureScaleDeclaration,
     source: ProductionBackedFixtureSource,
     layout: PersistedPhysicalLayout,
+    replay_artifact: Option<PlatformPhysicalReplayArtifact>,
 }
 
 impl ProductionBackedFixtureMaterialization {
@@ -41,6 +43,24 @@ impl ProductionBackedFixtureMaterialization {
             scale: profile.scale_declaration(),
             source,
             layout: build_persisted_layout(root_reference),
+            replay_artifact: None,
+        })
+    }
+
+    pub fn from_replay_artifact(
+        profile: LargeStoreFixtureProfile,
+        root_reference: u64,
+        replay_artifact: PlatformPhysicalReplayArtifact,
+    ) -> Result<Self, SyntheticFixtureAuthorityDenied> {
+        let root_reference = PhysicalRootReference::from_raw(root_reference)
+            .map_err(|_| SyntheticFixtureAuthorityDenied::InvalidRootReference(root_reference))?;
+        let source = ProductionBackedFixtureSource { root_reference };
+        Ok(Self {
+            profile,
+            scale: profile.scale_declaration(),
+            source,
+            layout: replay_artifact.persisted_layout().clone(),
+            replay_artifact: Some(replay_artifact),
         })
     }
 
@@ -56,6 +76,14 @@ impl ProductionBackedFixtureMaterialization {
         self.source
     }
 
+    pub const fn persisted_layout(&self) -> &PersistedPhysicalLayout {
+        &self.layout
+    }
+
+    pub const fn replay_artifact(&self) -> Option<&PlatformPhysicalReplayArtifact> {
+        self.replay_artifact.as_ref()
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -63,8 +91,15 @@ impl ProductionBackedFixtureMaterialization {
         FixtureScaleDeclaration,
         ProductionBackedFixtureSource,
         PersistedPhysicalLayout,
+        Option<PlatformPhysicalReplayArtifact>,
     ) {
-        (self.profile, self.scale, self.source, self.layout)
+        (
+            self.profile,
+            self.scale,
+            self.source,
+            self.layout,
+            self.replay_artifact,
+        )
     }
 }
 

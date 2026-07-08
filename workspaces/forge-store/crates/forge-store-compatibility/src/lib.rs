@@ -1,4 +1,17 @@
 #![forbid(unsafe_code)]
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ArtifactFormatVersion(pub u32);
+mod denial;
+mod policy;
+mod version;
+mod window;
+mod witness;
+
+pub use denial::ArtifactCompatibilityDenial;
+pub use policy::{
+    CompatibilityManifestIndex, CompatibilityRegistrySnapshot, RestoreCompatibilityPlan,
+    RestoreCompatibilityReceipt, RollingUpgradeAdmissionPlan, RollingUpgradePolicy,
+    RollingWindowCompatibilityReceipt,
+};
+pub use version::{ArtifactFormatVersion, ArtifactSemanticVersion};
+pub use window::ArtifactCompatibilityWindow;
+pub use witness::{BackwardReadCompatibilityWitness, ForwardReadCompatibilityWitness};

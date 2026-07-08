@@ -103,7 +103,7 @@ pub struct S8StrategyInvariantSuite {
 impl S8StrategyInvariantSuite {
     pub(crate) fn declare(declaration: S8StrategyDeclaration) -> Result<Self, S8StrategyDenial> {
         match declaration.family() {
-            S8LayoutStrategyFamily::BTree => Ok(Self {
+            S8LayoutStrategyFamily::BaselineBTreeRange => Ok(Self {
                 declaration,
                 lookup: S8StrategyLookupInvariant::SeparatorDirectedLookup,
                 publication: S8StrategyPublicationInvariant::RootPublication,
@@ -115,7 +115,7 @@ impl S8StrategyInvariantSuite {
                     declaration,
                 )?),
             }),
-            S8LayoutStrategyFamily::Lsm => Ok(Self {
+            S8LayoutStrategyFamily::BaselineLsmWriteOptimized => Ok(Self {
                 declaration,
                 lookup: S8StrategyLookupInvariant::NewestRunLookup,
                 publication: S8StrategyPublicationInvariant::ManifestPublication,
@@ -127,9 +127,7 @@ impl S8StrategyInvariantSuite {
                     declaration,
                 )?),
             }),
-            S8LayoutStrategyFamily::ChunkTree | S8LayoutStrategyFamily::ExactScan => {
-                Err(S8StrategyDenial::InvariantSuiteNotAvailableForFamily)
-            }
+            _ => Err(S8StrategyDenial::InvariantSuiteNotAvailableForFamily),
         }
     }
 

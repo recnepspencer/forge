@@ -1,5 +1,6 @@
 mod admission;
 mod btree;
+mod capability;
 mod counter_evidence;
 mod counter_path;
 mod declaration;
@@ -7,12 +8,13 @@ mod denial;
 mod family;
 mod invariant_suite;
 mod lsm;
+mod posture;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-mod tests_support;
+pub(crate) mod tests_support;
 
-pub(crate) use admission::admit_baseline_strategy;
+pub(crate) use admission::{admit_strategy, planned_counter_envelope_for};
 pub use admission::S8AdmittedLayoutStrategy;
 pub use btree::{
     S8BTreeCorruptionRegion, S8BTreeInvariantSuite, S8BTreeLookupBranch, S8BTreeNodeFormatLaw,
@@ -33,4 +35,9 @@ pub use lsm::{
     S8LsmAdvisoryFilterLaw, S8LsmCompactionOrderingLaw, S8LsmInvariantSuite,
     S8LsmLookupDisposition, S8LsmMemtableWalLaw, S8LsmRunPublicationLaw, S8LsmStaleRunCleanupLaw,
     S8LsmTombstoneLaw, S8LsmWriteAmplificationLaw,
+};
+pub use posture::{
+    S8StrategyAmplificationProfile, S8StrategyCorruptionIsolationBehavior,
+    S8StrategyLocalityProfile, S8StrategyMaterializationPosture,
+    S8StrategyRebuildSourceRequirement,
 };

@@ -3,6 +3,8 @@ pub enum S8StrategyDenial {
     UnsupportedFamily,
     FamilyDoesNotMatchKeyDomain,
     FamilyDoesNotMatchLifecycleAdmission,
+    StrategyDoesNotSupportDeclaredAccessLane,
+    StrategyDoesNotDeclarePlannedCounterEnvelope,
     PhysicalKeyDomainDoesNotSupportBaselineBTree,
     PhysicalKeyDomainDoesNotSupportBaselineLsm,
     InvariantSuiteNotAvailableForFamily,

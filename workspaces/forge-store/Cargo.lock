@@ -367,9 +367,14 @@ dependencies = [
 name = "forge-store-extensions"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
  "forge-store-claim-boundaries",
  "forge-store-contracts",
  "forge-store-layout-indexes",
+ "forge-store-security",
 ]
 
 [[package]]
@@ -409,11 +414,14 @@ dependencies = [
  "forge-store-blob-chunks",
  "forge-store-budgets",
  "forge-store-certification",
+ "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-offline-verifier",
  "forge-store-operations",
  "forge-store-physical-certification",
  "forge-store-physical-format",
+ "forge-store-physical-integrity",
+ "forge-store-recovery-physics",
  "forge-store-security",
  "forge-store-test-support",
  "forge-store-wal",
@@ -523,7 +531,14 @@ dependencies = [
 name = "forge-store-physical-format"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-store-aspect-native",
+ "forge-store-authority",
+ "forge-store-budgets",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
+ "forge-store-security",
 ]
 
 [[package]]

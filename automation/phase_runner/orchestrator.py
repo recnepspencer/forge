@@ -26,6 +26,11 @@ from runtime_paths import (
 from transition_rules import validate_turn_outcome
 
 RUNNER_EVENT_PATTERN = re.compile(r"RUNNER_EVENT:\s*(\{.*\})")
+QA_REPAIR_COMPLETED_EVENTS = {
+    "repair_completed",
+    "test_repair_completed",
+    "code_quality_repair_completed",
+}
 
 
 def start_run(
@@ -111,6 +116,9 @@ def drive_run(
             )
             refresh_projection(config_path, run_id)
             return 0
+
+        if maybe_reset_stuck_session(config_path, run_id, projection):
+            projection = refresh_projection(config_path, run_id)
 
         recovery_reason = pending_recovery_reason(
             load_events(RuntimePaths(run_id).events),
@@ -455,6 +463,65 @@ Your RUNNER_EVENT payload must include exactly "turn_instance_id":"{turn_instanc
 Your final line must be exactly one compact JSON marker:
 RUNNER_EVENT: {{"event_type":"...","payload":{{...}}}}
 """
+
+
+def maybe_reset_stuck_session(
+    config_path: Path,
+    run_id: str,
+    projection: dict[str, Any],
+) -> bool:
+    current = projection.get("current")
+    if not isinstance(current, dict):
+        return False
+    if projection.get("current_turn_instance_id"):
+        return False
+    threshold = fresh_session_cycle_threshold(projection)
+    if threshold is None:
+        return False
+    paths = RuntimePaths(run_id)
+    events = load_events(paths.events)
+    cycle_count = qa_repair_cycles_since_last_reset(events, current["phase"])
+    if cycle_count < threshold:
+        return False
+    reason = (
+        f"fresh session after {cycle_count} same-phase QA/repair cycles "
+        f"(threshold {threshold})"
+    )
+    append_runtime_event(
+        paths,
+        "session_reset",
+        phase_id=current["phase"],
+        turn=current["turn"],
+        payload={
+            "reason": reason,
+            "cycle_count": cycle_count,
+            "threshold": threshold,
+        },
+    )
+    return True
+
+
+def fresh_session_cycle_threshold(projection: dict[str, Any]) -> int | None:
+    runner_control = projection.get("runner_control", {})
+    if not isinstance(runner_control, dict):
+        return None
+    value = runner_control.get("fresh_session_after_qa_repair_cycles")
+    if isinstance(value, int) and value > 0:
+        return value
+    return None
+
+
+def qa_repair_cycles_since_last_reset(events: list[dict[str, Any]], phase_id: int) -> int:
+    cycle_count = 0
+    for event in reversed(events):
+        if event.get("phase_id") != phase_id:
+            continue
+        event_type = event.get("event_type")
+        if event_type == "session_reset":
+            break
+        if event_type in QA_REPAIR_COMPLETED_EVENTS:
+            cycle_count += 1
+    return cycle_count
 
 
 def pending_recovery_reason(

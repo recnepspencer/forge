@@ -6,7 +6,7 @@ use crate::{
     RecoveryCorruptionReadmissionHandoff,
 };
 
-pub fn build_recovery_readmission_handoff(
+pub(crate) fn build_recovery_readmission_handoff(
     summary: &QuarantineSummary,
 ) -> RecoveryCorruptionReadmissionHandoff {
     let primary_damage_case = summary.damage_case();

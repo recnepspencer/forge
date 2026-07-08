@@ -1,12 +1,17 @@
+mod access_lowering;
 mod access_planning;
 mod closeout;
+mod corruption;
+mod customization;
 mod declarations;
 mod key_domains;
 mod maintenance;
 mod migration;
+mod plan_selection;
 mod readmission;
-mod strategy_admission;
 
+pub use crate::access_shape::access_shapes;
+pub use access_lowering::access_lowering;
 pub use access_planning::access_planning;
 pub use closeout::{
     layout_closeout, S8CratePrimaryRole, S8CrateResponsibilityMap, S8CrateResponsibilityRow,
@@ -14,11 +19,16 @@ pub use closeout::{
     S8LayoutHazardInventory, S8PhaseSkeletonObligation, S8PhaseSkeletonObligationRow,
     S8ProjectionOutputPosture, S8SubsystemTopologyCloseout, StorageFoundationS9LayoutHandoff,
 };
+pub use corruption::layout_corruption;
+pub use customization::{
+    layout_customization_boundary, S8FutureLayoutCapabilityRequest,
+    S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
+    S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationOutcome,
+    S8FutureLayoutCustomizationRequest, S8FutureLayoutWorkloadEnvelope,
+};
 pub use declarations::layout_declarations;
 pub use key_domains::key_domain_law;
 pub use maintenance::layout_maintenance;
 pub use migration::layout_migration;
-pub use readmission::{layout_readmission, S8LayoutReadmissionWitness};
-pub use strategy_admission::{
-    strategy_admission, S8AdmittedLayoutStrategy, S8LayoutStrategyFamily,
-};
+pub use plan_selection::deterministic_plan_selection;
+pub(crate) use readmission::layout_execution_freshness;

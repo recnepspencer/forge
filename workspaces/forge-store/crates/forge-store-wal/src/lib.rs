@@ -20,6 +20,7 @@ pub enum DurablePublicationPhase {
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
+    BlobWalReplayRebuildWitness,
 };
 pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,

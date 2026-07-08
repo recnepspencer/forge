@@ -1,27 +1,43 @@
-use crate::execution::{S8AccessPathCounterSnapshot, S8AccessPathKind};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8CorruptionReadmission;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8LayoutReadmissionWitness {
-    path_kind: S8AccessPathKind,
-    planned: S8AccessPathCounterSnapshot,
+    family: crate::PhysicalArtifactFamily,
+    source: super::classification::S8LayoutReadmissionSource,
 }
 
 impl S8LayoutReadmissionWitness {
-    pub(crate) const fn new(
-        path_kind: S8AccessPathKind,
-        planned: S8AccessPathCounterSnapshot,
-    ) -> Self {
-        Self { path_kind, planned }
+    pub(crate) const fn quarantine_recovery(family: crate::PhysicalArtifactFamily) -> Self {
+        Self {
+            family,
+            source: super::classification::S8LayoutReadmissionSource::QuarantineRecovery,
+        }
     }
 
-    pub const fn path_kind(&self) -> S8AccessPathKind {
-        self.path_kind
+    pub(crate) const fn offline_evidence(family: crate::PhysicalArtifactFamily) -> Self {
+        Self {
+            family,
+            source: super::classification::S8LayoutReadmissionSource::OfflineRecoveryEvidence,
+        }
     }
 
-    pub const fn planned(&self) -> S8AccessPathCounterSnapshot {
-        self.planned
+    pub(crate) const fn terminal_import(family: crate::PhysicalArtifactFamily) -> Self {
+        Self {
+            family,
+            source: super::classification::S8LayoutReadmissionSource::TerminalImport,
+        }
     }
+
+    pub const fn family(self) -> crate::PhysicalArtifactFamily {
+        self.family
+    }
+
+    pub const fn source(self) -> super::classification::S8LayoutReadmissionSource {
+        self.source
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum S8NativeReadmissionInput {
+    RecoveryWitness {
+        witness: forge_store_recovery_physics::RecoveryLayoutReadmissionWitness,
+    },
 }

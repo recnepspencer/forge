@@ -84,7 +84,7 @@ fn prove_s1_physical_handoff_evidence(
     let mut reopened = PlatformPhysicalFacade::reopen_s1(
         reopen_readiness,
         PlatformPhysicalOpenRequest::s1_canonical(),
-        published.persisted_layout().clone(),
+        published.replay_artifact(),
     )
     .map_err(|_| proof_rejected())?;
     reopened

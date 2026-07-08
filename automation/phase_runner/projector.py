@@ -71,6 +71,18 @@ def project_run(
             projection["stopped"] = True
             projection["stop_reason"] = event["payload"].get("reason")
             continue
+        if event["event_type"] == "session_reset":
+            projection["session"]["thread_id"] = None
+            projection["session"]["fresh_recovery"] = {
+                "phase": event.get("phase_id"),
+                "turn": event.get("turn"),
+                "reason": event["payload"].get("reason"),
+                "cycle_count": event["payload"].get("cycle_count"),
+                "threshold": event["payload"].get("threshold"),
+                "reset_at": event["at"],
+            }
+            projection["latest_summary"] = event["payload"].get("reason")
+            continue
         if event["event_type"] == "run_completed":
             projection["current"] = None
             projection["current_turn_instance_id"] = None
@@ -121,6 +133,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
             "config": config["session_defaults"].get("config", {}),
             "reuse_session": config["session_defaults"].get("reuse_session", True),
             "thread_id": None,
+            "fresh_recovery": None,
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
         "current": None,

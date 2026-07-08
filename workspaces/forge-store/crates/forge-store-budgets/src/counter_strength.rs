@@ -21,6 +21,6 @@ impl CounterEvidenceStrength {
     }
 
     pub const fn is_declared(self) -> bool {
-        true
+        !matches!(self, Self::Unavailable)
     }
 }

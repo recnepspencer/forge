@@ -14,7 +14,7 @@ mod tenant_partition;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-mod tests_support;
+pub(crate) mod tests_support;
 mod value;
 
 pub(crate) use comparator::{

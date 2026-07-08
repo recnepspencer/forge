@@ -87,6 +87,15 @@ impl StorePhysicalChunkWriteReceipt {
             _seal: private::StorePhysicalChunkWriteReceiptSeal,
         })
     }
+
+    pub(crate) fn admit_bootstrap_payload(
+        payload_bytes: &[u8],
+    ) -> Result<Self, PhysicalChunkChecksumDenial> {
+        Self::from_admitted_payload(
+            payload_bytes,
+            StorePhysicalChunkWriteSource::ExtentBackedReference,
+        )
+    }
 }
 
 impl StorePhysicalChunkWriteSource {
@@ -156,6 +165,15 @@ impl PhysicalChunkChecksumAuthority {
     ) -> Result<PhysicalChunkPayloadIntegrityWitness, PhysicalChunkChecksumDenial> {
         let checksum = self.verify(receipt.payload_bytes())?;
         Ok(PhysicalChunkPayloadIntegrityWitness { receipt, checksum })
+    }
+
+    pub(crate) fn admit_bootstrap_payload(
+        self,
+        payload_bytes: &[u8],
+    ) -> Result<PhysicalChunkPayloadIntegrityWitness, PhysicalChunkChecksumDenial> {
+        self.admit_store_payload(StorePhysicalChunkWriteReceipt::admit_bootstrap_payload(
+            payload_bytes,
+        )?)
     }
 
     fn verify(

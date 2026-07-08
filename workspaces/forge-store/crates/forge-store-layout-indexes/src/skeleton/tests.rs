@@ -170,6 +170,10 @@ fn selected_phase_zero_files_exist_and_displaced_homes_are_gone() {
         "migration/stale_rebind.rs",
         "strategy/invariant_suite.rs",
         "strategy/denial.rs",
+        "strategy_registry/mod.rs",
+        "strategy_registry/request.rs",
+        "strategy_registry/denial.rs",
+        "strategy_registry/registry.rs",
         "facade/declarations.rs",
         "facade/key_domains.rs",
         "facade/maintenance.rs",
@@ -302,7 +306,7 @@ fn responsibility_rows_are_complete_and_point_to_real_phase_zero_homes() {
             S8CratePrimaryRole::LayoutAccessGrammar => {
                 assert_eq!(
                     row.public_facade_home(),
-                    "forge_store_layout_indexes::{layout_declarations,strategy_admission,access_planning,layout_readmission,layout_closeout}"
+                    "forge_store_layout_indexes::{layout_declarations,layout_customization_boundary,access_planning,layout_readmission,layout_closeout}"
                 );
                 assert!(crate_dir.join("src").join("facade").is_dir());
             }

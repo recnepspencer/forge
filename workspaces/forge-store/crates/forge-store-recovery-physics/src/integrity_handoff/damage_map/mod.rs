@@ -7,11 +7,12 @@ use forge_store_physical_integrity::{
 };
 
 use crate::{
-    admit_recovery_corruption_readmission, build_recovery_readmission_handoff,
-    RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
-    RecoveryCorruptionReadmissionDenial, RecoveryCorruptionReadmissionHandoff,
-    RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind,
+    admit_recovery_corruption_readmission, RecoveryBlockedByIntegrityDamage,
+    RecoveryBlockingIntegritySource, RecoveryCorruptionReadmissionDenial,
+    RecoveryCorruptionReadmissionHandoff, RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenial,
+    S4IntegrityHandoffDenialKind,
 };
+use crate::corruption_readmission::build_recovery_readmission_handoff;
 
 pub use classify::classify_recovery_blocking_damage;
 
@@ -171,7 +172,7 @@ impl IntegrityDamageMap {
             .collect()
     }
 
-    pub fn build_corruption_readmission_handoffs(
+    pub(crate) fn build_corruption_readmission_handoffs(
         &self,
     ) -> Vec<RecoveryCorruptionReadmissionHandoff> {
         self.quarantine_summaries

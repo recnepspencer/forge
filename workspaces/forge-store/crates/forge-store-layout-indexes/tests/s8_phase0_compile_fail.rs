@@ -1,7 +1,13 @@
+mod compile_fail_support;
+
 #[test]
 fn phase_zero_public_boundary_denies_forged_or_weaker_authority() {
     for fixture in compile_fail_fixtures() {
-        assert_compile_fails(fixture);
+        compile_fail_support::assert_compile_fails(
+            fixture.name,
+            fixture.expected_stderr,
+            fixture.extern_crates,
+        );
     }
 }
 
@@ -12,11 +18,11 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 13] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 36] {
     [
         fixture(
             "raw_struct_cannot_construct_admitted_layout_strategy.rs",
-            &["private associated function", "new"],
+            &["S8AdmittedLayoutStrategy"],
             &[],
         ),
         fixture(
@@ -46,13 +52,13 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 13] {
         ),
         fixture(
             "offline_report_cannot_satisfy_readmission_witness.rs",
-            &["S8LayoutReadmissionWitness", "OfflineLayoutReport"],
+            &["S8ExecutionReadmissionWitness", "OfflineLayoutReport"],
             &["forge_store_offline_verifier"],
         ),
         fixture(
             "foundational_materialized_report_cannot_satisfy_readmission_witness.rs",
             &[
-                "S8LayoutReadmissionWitness",
+                "S8ExecutionReadmissionWitness",
                 "FoundationalMaterializedPerformanceReport",
             ],
             &["forge_foundational"],
@@ -68,7 +74,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 13] {
         fixture(
             "terminal_projection_fixture_cannot_satisfy_readmission_witness.rs",
             &[
-                "S8LayoutReadmissionWitness",
+                "S8ExecutionReadmissionWitness",
                 "StoreTerminalProjectionJsonFixture",
             ],
             &["forge_store_test_support"],
@@ -84,6 +90,21 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 13] {
             &[],
         ),
         fixture(
+            "strategy_admission_surface_is_not_public.rs",
+            &["strategy_admission"],
+            &[],
+        ),
+        fixture(
+            "policy_receipt_cannot_satisfy_layout_registry_snapshot.rs",
+            &["S8LayoutStrategyRegistrySnapshot"],
+            &["forge_foundational"],
+        ),
+        fixture(
+            "materialized_report_cannot_satisfy_layout_registry_snapshot.rs",
+            &["S8LayoutStrategyRegistrySnapshot"],
+            &["forge_foundational"],
+        ),
+        fixture(
             "generic_execution_surface_is_not_public.rs",
             &[
                 "access_execution",
@@ -92,6 +113,123 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 13] {
                 "S8LoweredAccessPlan",
             ],
             &[],
+        ),
+        fixture(
+            "materialization_raw_constructor_surface_is_not_public.rs",
+            &[
+                "private associated function",
+                "exact",
+                "root_epoch",
+                "physical_range",
+                "partially_covered",
+            ],
+            &[],
+        ),
+        fixture(
+            "raw_strategy_family_cannot_satisfy_future_customization_request.rs",
+            &[
+                "S8FutureLayoutCustomizationRequest",
+                "S8LayoutStrategyFamily",
+            ],
+            &[],
+        ),
+        fixture(
+            "callback_cannot_satisfy_future_customization_request.rs",
+            &["S8FutureLayoutCustomizationRequest", "fn()"],
+            &[],
+        ),
+        fixture(
+            "layout_registry_surface_is_not_public.rs",
+            &["layout_admission_registry", "S8LayoutAdmissionRequest"],
+            &[],
+        ),
+        fixture(
+            "declared_strategy_surface_is_not_public.rs",
+            &["S8FutureDeclaredStrategyClass"],
+            &[],
+        ),
+        fixture(
+            "extensions_generic_target_builder_is_not_public.rs",
+            &["declare_target"],
+            &["forge_store_extensions"],
+        ),
+        fixture(
+            "legacy_access_shape_wrappers_are_not_public.rs",
+            &[
+                "S8AccessShapeDeclaration",
+                "S8PointAccessShape",
+                "S8RangeAccessShape",
+                "S8PrefixAccessShape",
+            ],
+            &[],
+        ),
+        fixture(
+            "legacy_degraded_exact_scan_surface_is_not_public.rs",
+            &["S8DegradedExactScan"],
+            &[],
+        ),
+        fixture(
+            "plan_fingerprint_raw_constructor_is_not_public.rs",
+            &["private associated function", "S8PlanFingerprint"],
+            &[],
+        ),
+        fixture(
+            "layout_readmission_legacy_for_stale_surface_is_not_public.rs",
+            &["unresolved import", "layout_readmission"],
+            &[],
+        ),
+        fixture(
+            "layout_readmission_witness_raw_constructor_is_not_public.rs",
+            &["private associated function", "S8LayoutReadmissionWitness"],
+            &[],
+        ),
+        fixture(
+            "execution_readmission_witness_raw_constructor_is_not_public.rs",
+            &[
+                "private associated function",
+                "S8ExecutionReadmissionWitness",
+            ],
+            &[],
+        ),
+        fixture(
+            "execution_rebind_witness_raw_constructor_is_not_public.rs",
+            &["private associated function", "S8ExecutionRebindWitness"],
+            &[],
+        ),
+        fixture(
+            "derived_index_rebuild_plan_raw_constructor_is_not_public.rs",
+            &["private field", "S8DerivedIndexRebuildPlan"],
+            &[],
+        ),
+        fixture(
+            "derived_index_parity_witness_raw_constructor_is_not_public.rs",
+            &["private field", "S8DerivedIndexParityWitness"],
+            &[],
+        ),
+        fixture(
+            "layout_mutation_plan_raw_constructor_is_not_public.rs",
+            &["private field", "S8LayoutMutationPlan"],
+            &[],
+        ),
+        fixture(
+            "live_maintenance_request_cannot_mint_lower_mutation_proof.rs",
+            &["no method named", "prove_wal_before_data"],
+            &[],
+        ),
+        fixture(
+            "live_exact_maintenance_witness_raw_constructor_is_not_public.rs",
+            &["private field", "S8LiveExactMaintenanceWitness"],
+            &[],
+        ),
+        fixture(
+            "physical_root_manifest_rebuild_witness_raw_constructor_is_not_public.rs",
+            &["private field", "PhysicalRootManifestRebuildWitness"],
+            &["forge_store_physical_format"],
+        ),
+        fixture(
+            "blob_wal_replay_rebuild_witness_raw_constructor_is_not_public.rs",
+            &["private field", "BlobWalReplayRebuildWitness"],
+            &["forge_store_wal"],
         ),
     ]
 }
@@ -106,227 +244,4 @@ const fn fixture(
         expected_stderr,
         extern_crates,
     }
-}
-
-fn assert_compile_fails(fixture: CompileFailFixture) {
-    let case_paths = prepare_compile_fail_case(fixture);
-    let output = run_compile_fail_case(fixture, &case_paths);
-
-    assert!(
-        !output.status.success(),
-        "{} unexpectedly compiled",
-        fixture.name
-    );
-
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    for expected in fixture.expected_stderr {
-        assert!(
-            stderr.contains(expected),
-            "{} failed for the wrong reason; missing stderr fragment {expected:?}\nstderr:\n{stderr}",
-            fixture.name
-        );
-    }
-}
-
-#[derive(Debug)]
-struct CompileFailCasePaths {
-    manifest_path: std::path::PathBuf,
-    source_path: std::path::PathBuf,
-}
-
-fn prepare_compile_fail_case(fixture: CompileFailFixture) -> CompileFailCasePaths {
-    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let case_dir = std::env::temp_dir()
-        .join("layout-indexes-phase0-ui")
-        .join(std::process::id().to_string())
-        .join("cases")
-        .join(fixture.name.trim_end_matches(".rs"));
-    std::fs::create_dir_all(&case_dir).unwrap();
-    let source_dir = case_dir.join("src");
-    std::fs::create_dir_all(&source_dir).unwrap();
-    let source_path = source_dir.join("main.rs");
-    std::fs::copy(
-        manifest_dir
-            .join("tests")
-            .join("ui")
-            .join("phase0")
-            .join(fixture.name),
-        &source_path,
-    )
-    .unwrap();
-
-    let manifest_path = case_dir.join("Cargo.toml");
-    std::fs::write(
-        &manifest_path,
-        compile_fail_manifest_contents(fixture, &manifest_dir),
-    )
-    .unwrap();
-    CompileFailCasePaths {
-        manifest_path,
-        source_path,
-    }
-}
-
-fn compile_fail_manifest_contents(
-    fixture: CompileFailFixture,
-    manifest_dir: &std::path::Path,
-) -> String {
-    let mut dependencies = vec![manifest_dependency_entry(
-        "forge_store_layout_indexes",
-        &manifest_dir.to_path_buf(),
-    )];
-    for crate_name in fixture.extern_crates {
-        dependencies.push(manifest_dependency_entry(
-            crate_name,
-            &dependency_path(crate_name, manifest_dir),
-        ));
-    }
-
-    format!(
-        "[package]\nname = \"phase0-ui-case\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n{}\n",
-        dependencies.join("\n")
-    )
-}
-
-fn manifest_dependency_entry(crate_name: &str, path: &std::path::Path) -> String {
-    format!(
-        "{} = {{ path = \"{}\" }}",
-        crate_name.replace('_', "-"),
-        path.display().to_string().replace('\\', "/")
-    )
-}
-
-fn dependency_path(crate_name: &str, manifest_dir: &std::path::Path) -> std::path::PathBuf {
-    match crate_name {
-        "forge_foundational" => repository_root(manifest_dir)
-            .join("crates")
-            .join("forge-foundational"),
-        _ => store_workspace_root(manifest_dir)
-            .join("crates")
-            .join(crate_name.replace('_', "-")),
-    }
-}
-
-fn run_compile_fail_case(
-    fixture: CompileFailFixture,
-    case_paths: &CompileFailCasePaths,
-) -> std::process::Output {
-    if fixture_uses_direct_rustc() {
-        return run_compile_fail_case_with_rustc(fixture, &case_paths.source_path);
-    }
-
-    run_compile_fail_case_with_cargo(&case_paths.manifest_path)
-}
-
-const fn fixture_uses_direct_rustc() -> bool {
-    true
-}
-
-fn run_compile_fail_case_with_cargo(manifest_path: &std::path::Path) -> std::process::Output {
-    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-    let mut command = std::process::Command::new(cargo);
-    command
-        .arg("check")
-        .arg("--quiet")
-        .arg("--manifest-path")
-        .arg(manifest_path)
-        .arg("--target-dir")
-        .arg(
-            std::env::temp_dir()
-                .join("layout-indexes-phase0-ui")
-                .join("target"),
-        );
-    command.output().unwrap()
-}
-
-fn run_compile_fail_case_with_rustc(
-    fixture: CompileFailFixture,
-    source_path: &std::path::Path,
-) -> std::process::Output {
-    let rustc = std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into());
-    let deps_dir = compiled_dependency_dir();
-    let mut command = std::process::Command::new(rustc);
-    command
-        .arg("--crate-name")
-        .arg("forge_store_layout_indexes_phase0_ui")
-        .arg("--edition=2021")
-        .arg("--emit=metadata")
-        .arg("--out-dir")
-        .arg(source_path.parent().unwrap())
-        .arg("-L")
-        .arg(format!("dependency={}", deps_dir.display()))
-        .arg("--extern")
-        .arg(format!(
-            "forge_store_layout_indexes={}",
-            compiled_extern("forge_store_layout_indexes").display()
-        ));
-
-    for crate_name in fixture.extern_crates {
-        command.arg("--extern").arg(format!(
-            "{crate_name}={}",
-            compiled_extern(crate_name).display()
-        ));
-    }
-
-    command.arg(source_path).output().unwrap()
-}
-
-fn compiled_dependency_dir() -> std::path::PathBuf {
-    store_workspace_root(&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")))
-        .join("target")
-        .join("debug")
-        .join("deps")
-}
-
-fn compiled_extern(crate_name: &str) -> std::path::PathBuf {
-    let crate_prefix = format!("{crate_name}-");
-    let lib_prefix = format!("lib{crate_name}-");
-    let mut matches = std::fs::read_dir(compiled_dependency_dir())
-        .unwrap()
-        .map(|entry| entry.unwrap().path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|ext| ext == "rmeta" || ext == "rlib")
-                && path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| {
-                        name.starts_with(&crate_prefix) || name.starts_with(&lib_prefix)
-                    })
-        })
-        .collect::<Vec<_>>();
-
-    matches.sort_by_key(|path| {
-        std::fs::metadata(path)
-            .and_then(|metadata| metadata.modified())
-            .ok()
-    });
-
-    matches
-        .iter()
-        .rev()
-        .find(|path| path.extension().is_some_and(|ext| ext == "rlib"))
-        .cloned()
-        .or_else(|| {
-            matches
-                .iter()
-                .rev()
-                .find(|path| path.extension().is_some_and(|ext| ext == "rmeta"))
-                .cloned()
-        })
-        .unwrap_or_else(|| panic!("missing compiled extern for {crate_name}"))
-}
-
-fn store_workspace_root(manifest_dir: &std::path::Path) -> &std::path::Path {
-    manifest_dir
-        .ancestors()
-        .nth(2)
-        .expect("layout-indexes crate lives under workspaces/forge-store/crates")
-}
-
-fn repository_root(manifest_dir: &std::path::Path) -> &std::path::Path {
-    manifest_dir
-        .ancestors()
-        .nth(4)
-        .expect("forge repository root sits above workspaces/forge-store/crates")
 }

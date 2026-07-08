@@ -6,6 +6,7 @@ const LAYOUT_INDEXES_HOMES: &[&str] = &[
     "strategy",
     "strategy/btree",
     "strategy/lsm",
+    "strategy_registry",
     "materialization",
     "access_shape",
     "planning",

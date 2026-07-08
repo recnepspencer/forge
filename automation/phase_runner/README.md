@@ -79,6 +79,27 @@ The runner also enforces a few operational guards:
 - serialized event-log appends per `run_id`
 - recovery instead of blind rerun when a prior Codex turn finished but its outcome was not recorded
 - idle and wall-clock turn timeouts through optional `runner_control.idle_timeout_seconds` and `runner_control.turn_timeout_seconds`
+- optional fresh-session recovery through `runner_control.fresh_session_after_qa_repair_cycles`
+
+## Fresh-Session Recovery
+
+Long QA/repair loops can become anchored in one persistent agent session. A
+runner config may set:
+
+```json
+{
+  "runner_control": {
+    "fresh_session_after_qa_repair_cycles": 4
+  }
+}
+```
+
+When the same phase records that many completed repair cycles without passing
+QA, the runner appends a `session_reset` event, clears the persisted thread id
+from the derived projection, and gives the next turn a short fresh-recovery
+preface. The reset does not advance the phase and does not mark QA as passed;
+it only makes the next agent invocation start from a fresh session with the
+existing event log, projection, spec, and phase context as authority.
 
 ## Phase Ordering
 

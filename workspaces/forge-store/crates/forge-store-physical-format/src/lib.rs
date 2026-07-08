@@ -7,6 +7,7 @@
 pub mod layout_access;
 
 mod binary_format;
+mod bootstrap;
 mod blob_manifest;
 mod checksum;
 mod compile_fail;
@@ -40,6 +41,11 @@ pub use binary_format::{
     PhysicalOperationEvidenceRequirement, PhysicalOperationKind, PhysicalPageSizeClass,
     PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration,
 };
+pub use bootstrap::{
+    physical_bootstrap_catalog, PhysicalBootstrapCatalogAuthority, PhysicalBootstrapCatalogDenial,
+    PhysicalBootstrapCatalogIdentity, PhysicalBootstrapCatalogOpenWitness,
+    PhysicalBootstrapCatalogWitness,
+};
 pub use blob_manifest::{
     BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
     BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
@@ -70,7 +76,7 @@ pub use facade::{
     PlatformPhysicalFacadeDenialKind, PlatformPhysicalFacadeEvidence,
     PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary,
     PlatformPhysicalFramedRecord, PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest,
-    PlatformPhysicalRecordTarget, PlatformPhysicalRootPublicationReport,
+    PlatformPhysicalRecordTarget, PlatformPhysicalReplayArtifact, PlatformPhysicalRootPublicationReport,
     PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalScanReport,
 };
 pub use format_identity::{
@@ -98,7 +104,8 @@ pub use manifest::{
     FreeSpaceManifestEntry, ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot,
     ManifestDiscoveryDenial, ManifestDiscoveryDenialKind, ManifestDiscoveryReport,
     ManifestVocabularyKind, PhysicalManifestUniverseBuilder, PhysicalReclaimRegion,
-    PhysicalReclaimRegionDenial, PhysicalRootManifest, PhysicalRootManifestVocabulary,
+    PhysicalReclaimRegionDenial, PhysicalRootManifest, PhysicalRootManifestRebuildRow,
+    PhysicalRootManifestRebuildWitness, PhysicalRootManifestVocabulary,
     ReclaimedByteInterpretation, SegmentManifestEntry, SegmentManifestVocabulary,
     SegmentPageManifestEntry,
 };

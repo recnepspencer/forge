@@ -49,6 +49,10 @@ impl PhysicalReferenceValidationWitness {
     pub fn owner(self) -> PhysicalGenerationOwner {
         self.reference.generation_owner()
     }
+
+    pub const fn admission(self) -> PhysicalReferenceAdmissionWitness {
+        PhysicalReferenceAdmissionWitness::new(self.reference)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,5 +79,9 @@ impl RootPublicationValidationWitness {
 
     pub const fn as_physical_reference_validation(self) -> PhysicalReferenceValidationWitness {
         self.validation
+    }
+
+    pub const fn admission(self) -> PhysicalReferenceAdmissionWitness {
+        self.validation.admission()
     }
 }

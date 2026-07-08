@@ -44,7 +44,7 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
     let mut reopened = PlatformPhysicalFacade::reopen_s1(
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
-        published.persisted_layout().clone(),
+        published.replay_artifact(),
     )
     .expect("reopen through verifier");
     let reopened_locate = reopened
@@ -86,7 +86,10 @@ fn reopen_rejects_ambiguous_root_candidates_without_guessing() {
     let denial = PlatformPhysicalFacade::reopen_s1(
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
-        builder.build(),
+        crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
+            PlatformPhysicalOpenRequest::s1_canonical().headers().clone(),
+            builder.build(),
+        ),
     )
     .expect_err("ambiguous persisted root candidates deny reopen");
 

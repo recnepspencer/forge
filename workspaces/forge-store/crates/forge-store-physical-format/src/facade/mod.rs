@@ -3,6 +3,7 @@ mod counters;
 mod denials;
 mod evidence;
 mod locate;
+mod replay_artifact;
 mod reopen;
 mod reports;
 mod requests;
@@ -14,8 +15,8 @@ mod storage;
 mod tests;
 
 use crate::{
-    PersistedPhysicalLayout, PhysicalHeaderAuthority, PhysicalPageRecordAuthority,
-    PhysicalReference, PhysicalReferenceAuthority,
+    PhysicalHeaderAuthority, PhysicalPageRecordAuthority, PhysicalReference,
+    PhysicalReferenceAuthority,
 };
 use forge_store_contracts::{AcceptedHandoffReadiness, RoadmapScope};
 use storage::PlatformPhysicalFacadeStorage;
@@ -74,9 +75,9 @@ impl PlatformPhysicalFacade {
     pub fn reopen_s1(
         readiness: AcceptedHandoffReadiness,
         request: PlatformPhysicalOpenRequest,
-        layout: PersistedPhysicalLayout,
+        replay_artifact: PlatformPhysicalReplayArtifact,
     ) -> Result<Self, PlatformPhysicalFacadeDenial> {
-        reopen::reopen_s1(readiness, request, layout)
+        replay_artifact.reopen_s1(readiness, request)
     }
 
     pub fn append_physical_record(
@@ -148,6 +149,7 @@ impl PlatformPhysicalFacade {
             .with_flush()
             .with_rename();
         Ok(PlatformPhysicalRootPublicationReport::new(
+            self.headers.clone(),
             self.storage.persisted_layout(),
             self.counters,
         ))
@@ -249,6 +251,7 @@ pub(crate) fn map_verifier_denial_for_reopen(
 pub use counters::PlatformPhysicalFacadeCounterSnapshot;
 pub use denials::{PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind};
 pub use evidence::PlatformPhysicalFacadeEvidence;
+pub use replay_artifact::PlatformPhysicalReplayArtifact;
 pub use reports::{
     PlatformPhysicalAppendReport, PlatformPhysicalFramedRecord, PlatformPhysicalLocateReport,
     PlatformPhysicalRootPublicationReport, PlatformPhysicalRuntimeLayoutReport,

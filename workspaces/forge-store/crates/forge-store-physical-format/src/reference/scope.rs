@@ -101,6 +101,22 @@ pub struct CurrentRootManifestAdmission {
 }
 
 impl CurrentRootManifestAdmission {
+    pub(crate) const fn from_root_owner(root_owner: PhysicalGenerationOwner) -> Self {
+        Self { root_owner }
+    }
+
+    pub const fn from_manifest_membership(membership: ManifestMembershipProof) -> Self {
+        Self {
+            root_owner: membership.root_owner(),
+        }
+    }
+
+    pub fn from_root_publication(validation: RootPublicationValidationWitness) -> Self {
+        Self {
+            root_owner: validation.owner(),
+        }
+    }
+
     pub const fn root_owner(self) -> PhysicalGenerationOwner {
         self.root_owner
     }
@@ -108,15 +124,15 @@ impl CurrentRootManifestAdmission {
 
 impl RootManifestIntegrityPosture {
     pub const fn current_root_admitted(membership: ManifestMembershipProof) -> Self {
-        Self::CurrentRootAdmitted(CurrentRootManifestAdmission {
-            root_owner: membership.root_owner(),
-        })
+        Self::CurrentRootAdmitted(CurrentRootManifestAdmission::from_manifest_membership(
+            membership,
+        ))
     }
 
     pub fn current_root_publication(validation: RootPublicationValidationWitness) -> Self {
-        Self::CurrentRootAdmitted(CurrentRootManifestAdmission {
-            root_owner: validation.owner(),
-        })
+        Self::CurrentRootAdmitted(CurrentRootManifestAdmission::from_root_publication(
+            validation,
+        ))
     }
 
     pub const fn admits_scope(self) -> bool {

@@ -23,7 +23,7 @@ def render_prompt(
     context["contract"] = render_contract(config, config_path, context)
     template_path = resolve_config_path(config_path, config["turn_templates"][turn])
     template = template_path.read_text(encoding="utf-8")
-    rendered = render_template(template, context)
+    rendered = context.get("fresh_recovery_prompt", "") + render_template(template, context)
     if not expected_turn_instance_id:
         return rendered
     return (
@@ -75,6 +75,7 @@ def build_context(
         "qa_status_values": "not_started, needed, in_progress, passed, failed",
         "run_id": projection["run_id"],
         "current_turn_instance_id": projection.get("current_turn_instance_id"),
+        "fresh_recovery_prompt": build_fresh_recovery_prompt(projection),
     }
 
 
@@ -111,6 +112,27 @@ def stringify(value: Any) -> str:
 
 def json_turn_instance_snippet(turn_instance_id: str) -> str:
     return f'"turn_instance_id":"{turn_instance_id}"'
+
+
+def build_fresh_recovery_prompt(projection: dict[str, Any]) -> str:
+    recovery = projection.get("session", {}).get("fresh_recovery")
+    current = projection.get("current")
+    if not isinstance(recovery, dict) or not isinstance(current, dict):
+        return ""
+    if recovery.get("phase") != current.get("phase") or recovery.get("turn") != current.get("turn"):
+        return ""
+    return f"""Fresh recovery session context:
+
+The durable runner intentionally dropped the previous persistent agent session before this turn.
+Reason: {recovery.get('reason')}
+Observed QA/repair cycle count: {recovery.get('cycle_count')} (threshold: {recovery.get('threshold')})
+
+You are a fresh agent stepping into a stuck phase. First rebuild context from the spec, projection,
+event log, current phase, recent findings, recent repair summaries, and touched files. Look for the
+deeper repeated structural cause before editing. This is not permission to bypass the current turn:
+complete the current turn honestly and emit the normal RUNNER_EVENT for this turn when done.
+
+"""
 
 
 def current_phase_required(projection: dict[str, Any]) -> dict[str, Any]:
