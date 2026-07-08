@@ -34,7 +34,6 @@ pub struct UiGraphConsumedAspectIndex {
 }
 
 impl UiGraphConsumedAspectIndex {
-    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             consumers_by_aspect: BTreeMap::new(),

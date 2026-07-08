@@ -16,6 +16,7 @@ syn = { version = "2.0", features = ["full", "visit"] }
 toml = "0.8"
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 worth-ui-runtime = { path = "../worth-ui-runtime" }
+worth-ui-test-support = { path = "../worth-ui-test-support" }
 
 [dev-dependencies]
 trybuild = { workspace = true }

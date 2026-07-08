@@ -14,7 +14,8 @@ use crate::obligations::inspection::{UiObligationEvidenceIndex, UiObligationEvid
 use crate::obligations::touch::UiGraphTouchDescriptor;
 use worth_ui_inspection::{UiInspectionQuery, UiInspectionRelevanceOutcome};
 
-use crate::facade::{foreign_evidence_refs_for_obligation_record, UiInspectionReceipt};
+use crate::facade::foreign_evidence_refs_for_obligation_record;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 
 use super::UiSelectedObligation;
 

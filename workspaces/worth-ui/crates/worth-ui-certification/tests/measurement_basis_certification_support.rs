@@ -3,19 +3,21 @@ mod query_measurement_eligibility_support;
 
 use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclaredMeasurementPolicyPosture};
 use worth_ui::facade::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
-use worth_ui::facade::{WorthUiApp, WorthUiMeasurementHostAdapter};
+use worth_ui::facade::WorthUiApp;
 use worth_ui_host_contract::{
     UiFontMeasurementKey, UiFontMetricsObservation, UiFontMetricsRequest, UiHostObservationValue,
     UiMeasurementEvidenceFamily, UiMeasurementRequest, UiMeasurementRequestIdentity,
     UiPortalAnchorRectObservation, UiPortalAnchorRectRequest, UiScrollContainerViewportObservation,
     UiScrollContainerViewportRequest, UiViewportExtentObservation, UiViewportExtentRequest,
-    WorthUiHostCapabilityReport, WorthUiHostContract,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_runtime::facade::{
+use worth_ui_runtime::facade::evidence::{
+    UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationScenario,
+};
+use worth_ui_runtime::facade::host_observation::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext, UiMeasurementBasisCertificationHostRequest,
-    UiMeasurementBasisCertificationScenario,
+    UiHostMeasurementNormalizationContext,
 };
 
 use self::query_measurement_eligibility_support::{

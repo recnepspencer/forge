@@ -19,7 +19,7 @@ pub(crate) fn normalize_host_measurement_evidence(
         });
     }
 
-    Ok(UiMeasurementResult::from_host_observation(
+    Ok(super::result_construction::construct_measurement_result_from_host_observation(
         observation,
         evidence_generation,
         normalization_context.unit_posture(),

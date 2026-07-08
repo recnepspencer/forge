@@ -52,7 +52,6 @@ impl UiGraphCoreIndexes {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn build_without_aspects(
         nodes: &[UiGraphNode],
         declaration_correspondence: UiGraphDeclarationCorrespondence,

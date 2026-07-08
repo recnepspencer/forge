@@ -1,8 +1,9 @@
 use crate::evidence::{UiEvidenceExpansion, UiEvidenceRef};
-use crate::facade::{
-    UiInspectionClosureReport, UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef,
-    UiInspectionQuery, UiInspectionReceipt, UiInspectionScope, UiInspectionSupportReport,
-    WorthUiApp,
+use crate::facade::inspection_bridge::{UiInspectionClosureReport, UiInspectionReceipt};
+use crate::facade::WorthUiApp;
+use worth_ui_inspection::{
+    UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef, UiInspectionQuery,
+    UiInspectionScope, UiInspectionSupportReport,
 };
 
 pub struct UiInspectionAiHarness<'a> {

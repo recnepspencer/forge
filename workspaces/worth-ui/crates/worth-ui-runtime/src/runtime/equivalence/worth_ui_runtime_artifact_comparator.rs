@@ -20,7 +20,6 @@ impl<'a> WorthUiRuntimeArtifactComparator<'a> {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn with_runtime_basis_for_test(
         mut self,
         runtime_basis: WorthUiRuntimeEquivalenceBasis,

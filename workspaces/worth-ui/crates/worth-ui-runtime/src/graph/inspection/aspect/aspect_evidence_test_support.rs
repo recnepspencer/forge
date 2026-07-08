@@ -144,7 +144,7 @@ pub(super) fn all_mounted_receipt_digests(app: &WorthUiApp) -> Vec<u64> {
 
 pub(super) fn declaration_ref_digests(
     app: &WorthUiApp,
-    receipt: &crate::facade::UiInspectionReceipt,
+    receipt: &crate::facade::inspection_bridge::UiInspectionReceipt,
 ) -> Vec<u64> {
     let mut digests = receipt
         .evidence_slice()
@@ -162,7 +162,7 @@ pub(super) fn declaration_ref_digests(
     digests
 }
 
-pub(super) fn aspect_ref_count(receipt: &crate::facade::UiInspectionReceipt) -> usize {
+pub(super) fn aspect_ref_count(receipt: &crate::facade::inspection_bridge::UiInspectionReceipt) -> usize {
     receipt
         .evidence_slice()
         .expect("aspect query should return an evidence slice")
@@ -189,7 +189,7 @@ pub(super) struct AspectNeighborhoodFacts {
 
 pub(super) fn aspect_neighborhood_facts_from_receipt(
     aspect_name: &str,
-    receipt: &crate::facade::UiInspectionReceipt,
+    receipt: &crate::facade::inspection_bridge::UiInspectionReceipt,
     all_graph_node_digests: &[u64],
     all_mounted_receipt_digests: &[u64],
 ) -> AspectNeighborhoodFacts {

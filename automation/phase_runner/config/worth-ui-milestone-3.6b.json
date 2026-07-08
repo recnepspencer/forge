@@ -30,7 +30,8 @@
     "test_review": "templates/test_review.md",
     "test_repair_plan": "templates/test_repair_plan.md",
     "test_repair_implement": "templates/test_repair_implement.md",
-    "code_quality_review": "templates/code_quality_review.md"
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
   },
   "contract_template": "templates/_contract_test_hardening.md",
   "session_defaults": {
@@ -327,7 +328,7 @@
         "UiAllocationPlanningCostReceipt and solve trace make boundedness and convergence mechanically auditable",
         "host adapters, topology assemblers, and operator-local helpers cannot mint planning semantics outside the admitted lane"
       ],
-      "instructions": "Close 3.6b with proof. The exit bar is that 3.7 can consume one real planning kernel without reopening neighborhood, solver, or handoff semantics.",
+      "instructions": "Close 3.6b with proof. The exit bar is that 3.8 can consume one real planning kernel without reopening neighborhood, solver, or handoff semantics.",
       "qa_focus": "No certification as substitute authority, no hidden cost sink, and no planner bypass through lower helpers."
     }
   ]

@@ -348,3 +348,10 @@ fn node_replacement_counters_are_not_publicly_mintable() {
         "tests/ui/runtime_authority/fail/node_replacement_counters_not_publicly_mintable.rs",
     );
 }
+
+#[test]
+fn replacement_lowering_ready_is_not_publicly_mintable() {
+    runtime_authority_compile_fail(
+        "tests/ui/runtime_authority/fail/replacement_lowering_ready_not_publicly_mintable.rs",
+    );
+}

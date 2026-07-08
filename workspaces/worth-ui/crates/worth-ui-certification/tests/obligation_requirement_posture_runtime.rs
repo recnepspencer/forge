@@ -13,7 +13,9 @@ use worth_ui::facade::obligations::{
     UiObligationDispatchStopPosture, UiObligationFamily, UiObligationVerdictClass,
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
-use worth_ui_runtime::facade::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
+use worth_ui_test_support::{
+    runtime_origin_fixture, WorthUiTouchOriginFixtureVariant,
+};
 
 use self::obligation_dispatch_prerequisite_support::{
     available_host_capability_target, diagnostic_only_host_capability_target, execute_for_target,

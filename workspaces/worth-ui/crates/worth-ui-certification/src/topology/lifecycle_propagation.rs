@@ -30,7 +30,7 @@ pub fn audit_phase3_lifecycle_public_surface(workspace_root: &Path) -> Vec<Strin
         (
             "crates/worth-ui-runtime/src/facade/mod.rs",
             BTreeSet::from([
-                "PHASE3_RUNTIME_SUPPORT_INVENTORY",
+                "RUNTIME_SUPPORT_INVENTORY",
                 "WorthUiRuntimeSupportInventory",
             ]),
         ),

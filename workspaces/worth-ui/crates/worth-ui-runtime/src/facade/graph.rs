@@ -6,7 +6,9 @@ pub use forge_query::facade::{
 };
 
 pub use crate::graph::{
-    UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
+    project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
+    UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind, UiGraphAspectConsumer,
+    UiGraphAspectConsumerKind, UiGraphAspectPublisher,
     UiGraphAspectPublisherKind, UiGraphAttachmentPosture, UiGraphAuthority,
     UiGraphAxisParticipation, UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee,
     UiGraphCloseoutNonGoal, UiGraphCloseoutReport, UiGraphContainmentClaim,

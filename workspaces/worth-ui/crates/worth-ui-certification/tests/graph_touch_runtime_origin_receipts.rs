@@ -2,7 +2,9 @@ use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
     UiGraphTouchTiming,
 };
-use worth_ui_runtime::facade::{runtime_origin_fixture, WorthUiTouchOriginFixtureVariant};
+use worth_ui_test_support::{
+    runtime_origin_fixture, WorthUiTouchOriginFixtureVariant,
+};
 
 #[test]
 fn certification_runtime_origins_require_real_owner_receipts_and_deny_unrelated_targets() {

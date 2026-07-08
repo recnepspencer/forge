@@ -188,11 +188,11 @@ pub fn display_projection_consumptions_across_basis_generations(
     workspace
         .update(entity_identity, |task| {
             task.set_aspect(
-                aspect_touch("title.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("title-{lane_label}-updated")),
+                aspect_touch("size.value"),
+                ForgeQueryAuthoredAspectValue::string(format!("24{lane_label}")),
             )
         })
-        .expect("fixture workspace should admit the follow-up title update");
+        .expect("fixture workspace should admit the follow-up size update");
     let next = projection_consumption_attempt(
         &mut workspace,
         &family,

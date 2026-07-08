@@ -43,7 +43,7 @@ impl WorthUiRuntimeSupportInventory {
     }
 }
 
-pub const PHASE3_RUNTIME_SUPPORT_INVENTORY: WorthUiRuntimeSupportInventory =
+pub const RUNTIME_SUPPORT_INVENTORY: WorthUiRuntimeSupportInventory =
     WorthUiRuntimeSupportInventory {
         rows: [
             WorthUiRuntimeSupportRow {

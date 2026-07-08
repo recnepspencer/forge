@@ -23,13 +23,14 @@ EVENT_TYPES = {
     "test_review_passed",
     "test_repair_plan_posted",
     "test_repair_completed",
+    "code_quality_review_failed",
+    "code_quality_repair_completed",
     "code_quality_review_passed",
     "runner_fault",
     "recovery_requested",
     "recovery_completed",
     "operator_override",
     "legacy_imported",
-    "boundary_review_completed",
 }
 
 PHASE_PROGRESS_EVENTS = {
@@ -43,6 +44,8 @@ PHASE_PROGRESS_EVENTS = {
     "test_review_passed",
     "test_repair_plan_posted",
     "test_repair_completed",
+    "code_quality_review_failed",
+    "code_quality_repair_completed",
     "code_quality_review_passed",
 }
 

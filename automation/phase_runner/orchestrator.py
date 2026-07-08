@@ -50,7 +50,13 @@ def start_run(
         return drive_run(config_path, active_run_id, loop, sleep_seconds, log_path)
 
 
-def resume_run(run_id: str, loop: bool, sleep_seconds: int, log_path: Path | None) -> int:
+def resume_run(
+    run_id: str,
+    loop: bool,
+    sleep_seconds: int,
+    log_path: Path | None,
+    reset_thread: bool = False,
+) -> int:
     config_path = config_path_for_run(run_id)
     paths = RuntimePaths(run_id)
     with acquire_active_run_lock(paths):
@@ -58,7 +64,10 @@ def resume_run(run_id: str, loop: bool, sleep_seconds: int, log_path: Path | Non
         append_runtime_event(
             paths,
             "run_resumed",
-            payload={"reason": "operator resume"},
+            payload={
+                "reason": "operator resume",
+                "reset_session_thread": reset_thread,
+            },
         )
         return drive_run(config_path, run_id, loop, sleep_seconds, log_path)
 

@@ -18,6 +18,8 @@ PHASE_CURSOR_ADVANCING_EVENTS = {
     "test_review_passed",
     "test_repair_plan_posted",
     "test_repair_completed",
+    "code_quality_review_failed",
+    "code_quality_repair_completed",
     "code_quality_review_passed",
 }
 
@@ -58,6 +60,8 @@ def project_run(
             projection["started_at"] = event["at"]
             continue
         if event["event_type"] == "run_resumed":
+            if event.get("payload", {}).get("reset_session_thread") is True:
+                projection["session"]["thread_id"] = None
             projection["stopped"] = False
             projection["stop_reason"] = None
             continue
@@ -113,6 +117,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
             "model": config["session_defaults"]["model"],
             "reasoning_effort": config["session_defaults"].get("reasoning_effort"),
             "config": config["session_defaults"].get("config", {}),
+            "env": config["session_defaults"].get("env", {}),
             "reuse_session": config["session_defaults"].get("reuse_session", True),
             "thread_id": None,
         },
@@ -196,7 +201,13 @@ def prompt_cursor_match_current(
     if current_phase is None:
         return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
-        if current.get("turn") not in {"test_review", "test_repair_plan", "test_repair_implement", "code_quality_review"}:
+        if current.get("turn") not in {
+            "test_review",
+            "test_repair_plan",
+            "test_repair_implement",
+            "code_quality_review",
+            "code_quality_repair",
+        }:
             if current_phase["id"] != first_unfinished["id"]:
                 return {"phase": first_unfinished["id"], "turn": expected_first_turn}
     return current

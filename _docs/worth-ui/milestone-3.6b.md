@@ -6,7 +6,7 @@
 >
 > **Primary prerequisite:** `Milestone 3.6a Measurement Vocabulary, Basis Admission, And Host Evidence Boundaries`
 >
-> **Follow-on sequence:** `Milestone 3.7 bounded measurement invalidation under resize, scroll, portal, and drag churn`
+> **Follow-on sequence:** `Milestone 3.8 bounded measurement invalidation under resize, scroll, portal, and drag churn`
 >
 > **Primary architectural driver:** turn admitted measurement basis into a deterministic, bounded allocation-planning kernel before committed allocation receipts, resize streams, splitter drag loops, and scroll/portal churn broaden the runtime.
 
@@ -540,7 +540,7 @@ The implementation path for 3.6b should be explicit:
 11. Keep safe-frame-boundary activation and atomic plan swap as the future
     commit boundary for candidate plans.
 12. Route allocation-plan denials, inspection, and certification through the
-    shared evidence and diagnostics substrate before 3.7 consumes the result.
+    shared evidence and diagnostics substrate before 3.8 consumes the result.
 
 If implementation begins with per-frame resize loops, host drag handlers, or
 mounted receipt mutation before these twelve steps exist, the milestone has
@@ -1080,7 +1080,7 @@ grow later without corrupting authority boundaries.
   observations.
 - Preserve resize-permission posture in the plan input so user-resizable and
   fixed neighborhoods remain mechanically distinct.
-- Leave continuous drag-stream planning and activation cadence to 3.7.
+- Leave continuous drag-stream planning and activation cadence to 3.8.
 
 **Open questions**
 - None.
@@ -1317,7 +1317,7 @@ architecture seam and not just better helper code.
   - `activation_boundary_suite`
   - `allocation_inspection_suite`
   - `allocation_anti_bypass_suite`
-- Treat 3.6b as closed only when 3.7 can consume its artifacts without
+- Treat 3.6b as closed only when 3.8 can consume its artifacts without
   reopening neighborhood or propagation semantics.
 
 **Open questions**
@@ -1509,7 +1509,7 @@ architecture seam and not just better helper code.
 - 3.6b belongs after 3.6a because allocation planning must consume frozen
   measurement basis rather than co-defining measurement semantics while
   planning.
-- 3.6b belongs before 3.7 because resize, drag, scroll, and portal churn need
+- 3.6b belongs before 3.8 because resize, drag, scroll, and portal churn need
   a stable planning kernel and bounded neighborhood model before continuous
   invalidation broadens the runtime.
 - 3.6b also belongs before committed allocation receipt work because receipt

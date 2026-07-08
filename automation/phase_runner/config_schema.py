@@ -13,6 +13,7 @@ REQUIRED_TURNS = (
     "test_repair_plan",
     "test_repair_implement",
     "code_quality_review",
+    "code_quality_repair",
 )
 
 OPTIONAL_TURNS = (
@@ -29,7 +30,7 @@ STATIC_TOP_LEVEL_KEYS = {
     "phases",
 }
 
-SUPPORTED_PROVIDERS = {"codex", "cursor"}
+SUPPORTED_PROVIDERS = {"codex", "cursor", "grok"}
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -139,6 +140,13 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
             session_defaults["config"] = {}
         elif not isinstance(config_map, dict):
             errors.append("session_defaults.config must be an object")
+        env_map = session_defaults.get("env")
+        if env_map is not None:
+            if not isinstance(env_map, dict) or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in env_map.items()
+            ):
+                errors.append("session_defaults.env must be an object with string keys and values")
 
     runner_control = config.get("runner_control", {})
     if runner_control is not None and not isinstance(runner_control, dict):

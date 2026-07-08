@@ -339,7 +339,7 @@ The implementation path for 3.6a should be explicit:
    declaration posture + world/support posture + Query basis/facts + host
    evidence.
 10. Freeze dependency lineage and neighborhood classes before 3.6b planning and
-   3.7 churn work broaden the surface.
+   3.8 churn work broaden the surface.
 11. Route basis inspection, denial posture, and certification through the
     existing inspection/support lanes and the certification seam before 3.6b
     consumes the result.
@@ -950,7 +950,7 @@ not just preliminary plumbing.
 
 **Warnings**
 - Do not certify only happy-path measurement.
-- Do not close the milestone if future 3.6b/3.7 work would still need to
+- Do not close the milestone if future 3.6b/3.8 work would still need to
   redefine basic vocabulary or boundary ownership.
 - Do not let host adapters or measurement helpers leak deep imports across the
   intended seam.
@@ -966,7 +966,7 @@ not just preliminary plumbing.
 **Engineering decisions**
 - Add certification for vocabulary closure, host-boundary purity, basis
   determinism, and measurement inspection narrowness.
-- Treat 3.6a as closed only when 3.6b and 3.7 have an obvious consumer path
+- Treat 3.6a as closed only when 3.6b and 3.8 have an obvious consumer path
   from the shipped artifacts.
 - Keep measurement proof machine-checkable rather than narrative-only.
 
@@ -1084,7 +1084,7 @@ not just preliminary plumbing.
 - unit, coordinate-space, and rounding posture remain explicit wherever host
   evidence could otherwise look equivalent
 - inspection remains one shared substrate for AI and human consumers
-- future 3.6b and 3.7 work can build on shipped artifacts instead of reopening
+- future 3.6b and 3.8 work can build on shipped artifacts instead of reopening
   vocabulary or boundary ownership
 
 ## Acceptance Evidence
@@ -1117,7 +1117,7 @@ not just preliminary plumbing.
 - 3.6a belongs before 3.6b because allocation-neighborhood planning should
   consume a frozen measurement basis rather than co-defining basic measurement
   semantics while planning.
-- 3.6a belongs before 3.7 because continuous resize, scroll, portal, and drag
+- 3.6a belongs before 3.8 because continuous resize, scroll, portal, and drag
   churn should broaden a stable measurement kernel instead of forcing the kernel
   to form under churn pressure.
 - 3.6a also belongs before later mounted-receipt and rebind milestones because

@@ -1,11 +1,11 @@
 use forge_query::facade::{
-    CompletedProjectionFactConsumption, ProjectionContractSourcePosture,
-    ProjectionFactConsumptionAttempt, ProjectionFactKind,
+    CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt,
 };
 
+use super::receipt_construction::collect_verified_receipt_parts;
 use super::{
-    WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
-    WorthUiQueryMeasurementFactObservationError, WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
+    WorthUiQueryPrerequisiteEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,7 +24,7 @@ pub struct WorthUiQueryMeasurementFactReceipt {
     projection_consumption_receipt_digest: Box<str>,
     projection_fact_set_digest: Box<str>,
     projection_source_identity: Box<str>,
-    consumed_families: Box<[WorthUiQueryMeasurementFactFamily]>,
+    consumed_families: Box<[super::WorthUiQueryMeasurementFactFamily]>,
     observations: Box<[WorthUiQueryMeasurementFactObservation]>,
 }
 
@@ -43,47 +43,18 @@ impl WorthUiQueryMeasurementFactReceipt {
         prerequisites: WorthUiQueryPrerequisiteEvidence,
         completed: &CompletedProjectionFactConsumption,
     ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
-        validate_projection_contract(&prerequisites, completed)?;
-        let prerequisites =
-            prerequisites.bound_to_projection_contract(completed.contract().contract_digest());
-        let mut consumed_families = completed
-            .contract()
-            .fact_families()
-            .iter()
-            .filter_map(|fact_family| match fact_family.kind() {
-                ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-                    Some(WorthUiQueryMeasurementFactFamily::ScrollContentExtent)
-                }
-                ProjectionFactKind::EntityIdentity
-                | ProjectionFactKind::ViewLocalIdentity
-                | ProjectionFactKind::TargetIdentity
-                | ProjectionFactKind::SourceReference
-                | ProjectionFactKind::EffectContinuity
-                | ProjectionFactKind::Membership
-                | ProjectionFactKind::RelationEndpoint => None,
-            })
-            .collect::<Vec<_>>();
-        consumed_families.sort_unstable();
-        consumed_families.dedup();
-        let observations =
-            WorthUiQueryMeasurementFactObservation::from_completed_projection_consumption(
-                prerequisites.clone(),
-                completed,
-            )
-            .map_err(WorthUiQueryMeasurementFactReceiptError::Observation)?;
-
+        let parts = collect_verified_receipt_parts(prerequisites, completed)?;
         Ok(Self {
-            prerequisites,
-            projection_contract_digest: completed.contract().contract_digest().into(),
-            projection_consumption_declaration_digest: completed
-                .receipt()
-                .declaration_digest()
+            prerequisites: parts.prerequisites,
+            projection_contract_digest: parts.projection_contract_digest.into(),
+            projection_consumption_declaration_digest: parts
+                .projection_consumption_declaration_digest
                 .into(),
-            projection_consumption_receipt_digest: completed.receipt().receipt_digest().into(),
-            projection_fact_set_digest: completed.receipt().fact_set_digest().into(),
-            projection_source_identity: completed.receipt().source_identity().into(),
-            consumed_families: consumed_families.into_boxed_slice(),
-            observations,
+            projection_consumption_receipt_digest: parts.projection_consumption_receipt_digest.into(),
+            projection_fact_set_digest: parts.projection_fact_set_digest.into(),
+            projection_source_identity: parts.projection_source_identity.into(),
+            consumed_families: parts.consumed_families.into_boxed_slice(),
+            observations: parts.observations.into_boxed_slice(),
         })
     }
 
@@ -111,7 +82,7 @@ impl WorthUiQueryMeasurementFactReceipt {
         &self.projection_source_identity
     }
 
-    pub fn consumed_families(&self) -> &[WorthUiQueryMeasurementFactFamily] {
+    pub fn consumed_families(&self) -> &[super::WorthUiQueryMeasurementFactFamily] {
         &self.consumed_families
     }
 
@@ -127,7 +98,7 @@ impl WorthUiQueryMeasurementFactReceipt {
         projection_consumption_receipt_digest: impl Into<Box<str>>,
         projection_fact_set_digest: impl Into<Box<str>>,
         projection_source_identity: impl Into<Box<str>>,
-        mut consumed_families: Vec<WorthUiQueryMeasurementFactFamily>,
+        mut consumed_families: Vec<super::WorthUiQueryMeasurementFactFamily>,
         observations: Vec<WorthUiQueryMeasurementFactObservation>,
     ) -> Self {
         consumed_families.sort_unstable();
@@ -146,21 +117,4 @@ impl WorthUiQueryMeasurementFactReceipt {
             observations: observations.into_boxed_slice(),
         }
     }
-}
-
-fn validate_projection_contract(
-    prerequisites: &WorthUiQueryPrerequisiteEvidence,
-    completed: &CompletedProjectionFactConsumption,
-) -> Result<(), WorthUiQueryMeasurementFactReceiptError> {
-    if completed.contract().source_posture()
-        != ProjectionContractSourcePosture::QueryOwnedReceiptSource
-    {
-        return Err(WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource);
-    }
-    if completed.contract().basis_digest()
-        != Some(prerequisites.resolution_report().basis_digest().as_str())
-    {
-        return Err(WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch);
-    }
-    Ok(())
 }

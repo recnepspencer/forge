@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import os
 import queue
 import subprocess
 import sys
 import threading
 import time
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -15,9 +17,13 @@ DEFAULT_IDLE_TIMEOUT_SECONDS = 900
 TIMEOUT_EXIT_CODE = 124
 
 
-def build_command(state: dict[str, Any]) -> list[str]:
+def build_command(state: dict[str, Any], prompt_file: Path | None = None) -> list[str]:
     session = state["session"]
     provider = session.get("provider", "codex")
+    if provider == "grok":
+        if prompt_file is None:
+            raise ValueError("grok provider requires a prompt file")
+        return build_grok_command(state, prompt_file)
     if provider == "cursor":
         return build_cursor_command(state)
     return build_codex_command(state)
@@ -94,6 +100,37 @@ def build_cursor_command(state: dict[str, Any]) -> list[str]:
     return result
 
 
+def build_grok_command(state: dict[str, Any], prompt_file: Path) -> list[str]:
+    session = state["session"]
+    command = session.get("command") or "grok"
+    command_args = session.get("command_args", [])
+    thread_id = session.get("thread_id") if session.get("reuse_session", True) else None
+    config = session.get("config", {})
+    result = [
+        command,
+        *command_args,
+        "--no-auto-update",
+        "--no-alt-screen",
+        "--always-approve",
+        "--output-format",
+        "streaming-json",
+        "--cwd",
+        state["project"]["cwd"],
+        "--model",
+        session["model"],
+        "--prompt-file",
+        str(prompt_file),
+    ]
+    if config.get("sandbox_mode") == "danger-full-access":
+        result.extend(["--sandbox", "off"])
+    effort = session.get("reasoning_effort")
+    if isinstance(effort, str) and effort:
+        result.extend(["--effort", effort])
+    if thread_id:
+        result.extend(["--resume", thread_id])
+    return result
+
+
 def cursor_permission_args(config: dict[str, Any]) -> list[str]:
     args: list[str] = []
     approval_policy = config.get("approval_policy")
@@ -118,22 +155,47 @@ def run_agent(
     stop_requested_fn=None,
 ) -> tuple[int, dict[str, Any]]:
     capture: dict[str, Any] = {"agent_messages": []}
-    process = subprocess.Popen(
-        build_command(state),
-        cwd=state["project"]["cwd"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    prompt_file: Path | None = None
+    provider = state["session"].get("provider", "codex")
+    try:
+        if provider == "grok":
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                errors="replace",
+                delete=False,
+                suffix=".txt",
+            ) as handle:
+                handle.write(prompt)
+                prompt_file = Path(handle.name)
+            stdin = subprocess.DEVNULL
+        else:
+            stdin = subprocess.PIPE
 
-    assert process.stdin is not None
-    process.stdin.write(prompt)
-    process.stdin.close()
+        process = subprocess.Popen(
+            build_command(state, prompt_file),
+            cwd=state["project"]["cwd"],
+            stdin=stdin,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=build_process_env(state),
+        )
 
-    return collect_process_output(process, capture, log_path, state, stop_requested_fn)
+        if provider != "grok":
+            assert process.stdin is not None
+            process.stdin.write(prompt)
+            process.stdin.close()
+
+        return collect_process_output(process, capture, log_path, state, stop_requested_fn)
+    finally:
+        if prompt_file is not None:
+            try:
+                prompt_file.unlink()
+            except OSError:
+                pass
 
 
 def collect_process_output(
@@ -198,6 +260,27 @@ def capture_agent_event(capture: dict[str, Any], line: str) -> None:
     if not isinstance(event, dict):
         return
     event_type = event.get("type")
+    if event_type == "text":
+        text = event.get("data")
+        if isinstance(text, str) and text:
+            capture["grok_text"] = capture.get("grok_text", "") + text
+        return
+
+    if event_type == "end":
+        grok_text = capture.get("grok_text")
+        if isinstance(grok_text, str) and grok_text:
+            capture.setdefault("agent_messages", []).append(grok_text)
+        session_id = event.get("sessionId")
+        if isinstance(session_id, str) and session_id:
+            capture["thread_id"] = session_id
+            capture["thread_started_at"] = now_iso()
+        return
+
+    if event_type == "error":
+        message = event.get("message")
+        if isinstance(message, str) and message:
+            capture["failure_reason"] = message
+        return
 
     if event_type == "thread.started":
         capture["thread_id"] = event["thread_id"]
@@ -235,6 +318,16 @@ def append_cursor_content(capture: dict[str, Any], content: Any) -> None:
         text = item.get("text")
         if isinstance(text, str) and text:
             capture.setdefault("agent_messages", []).append(text)
+
+
+def build_process_env(state: dict[str, Any]) -> dict[str, str]:
+    env = os.environ.copy()
+    session_env = state["session"].get("env", {})
+    if isinstance(session_env, dict):
+        for key, value in session_env.items():
+            if isinstance(key, str) and isinstance(value, str):
+                env[key] = value
+    return env
 
 
 def now_iso() -> str:

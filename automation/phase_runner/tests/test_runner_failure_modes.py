@@ -11,7 +11,7 @@ if str(RUNNER_DIR) not in sys.path:
     sys.path.insert(0, str(RUNNER_DIR))
 
 import runtime_paths
-from agent_cli import runner_timeouts, timeout_reason
+from agent_cli import build_command, runner_timeouts, timeout_reason
 from config_schema import load_config, validate_config
 from event_log import load_events, validate_event_log
 from orchestrator import (
@@ -67,6 +67,66 @@ class DurableRunnerTests(unittest.TestCase):
         projection = project_run(config, events, "run123")
         self.assertEqual(projection["current"], {"phase": 2, "turn": "plan"})
         self.assertIsNone(projection["current_turn_instance_id"])
+
+    def test_run_resumed_can_clear_persisted_session_thread(self) -> None:
+        config = minimal_config()
+        events = [
+            {
+                **event("run_started", 1),
+                "thread_id": "thread-old",
+            },
+            {
+                **event(
+                    "run_resumed",
+                    2,
+                    payload={"reason": "operator resume", "reset_session_thread": True},
+                ),
+                "thread_id": None,
+            },
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertIsNone(projection["session"]["thread_id"])
+
+    def test_code_quality_review_failure_reopens_repair_gate(self) -> None:
+        config = minimal_config()
+        events = [
+            event("run_started", 1),
+            event("plan_posted", 2, 1, "plan"),
+            event("implementation_completed", 3, 1, "implement"),
+            event("review_passed", 4, 1, "review"),
+            event("test_review_passed", 5, 1, "test_review"),
+            event(
+                "code_quality_review_failed",
+                6,
+                1,
+                "code_quality_review",
+                payload={"notes": {"findings": ["flat proof-flow directory"]}},
+            ),
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertEqual(projection["current"], {"phase": 1, "turn": "code_quality_repair"})
+        self.assertEqual(projection["phases"][0]["status"], "regressed")
+        self.assertEqual(projection["phases"][0]["qa_status"], "failed")
+        self.assertEqual(
+            projection["phases"][0]["notes"]["findings"],
+            ["flat proof-flow directory"],
+        )
+
+    def test_code_quality_repair_returns_to_structural_review(self) -> None:
+        config = minimal_config()
+        events = [
+            event("run_started", 1),
+            event("plan_posted", 2, 1, "plan"),
+            event("implementation_completed", 3, 1, "implement"),
+            event("review_passed", 4, 1, "review"),
+            event("test_review_passed", 5, 1, "test_review"),
+            event("code_quality_review_failed", 6, 1, "code_quality_review"),
+            event("code_quality_repair_completed", 7, 1, "code_quality_repair"),
+        ]
+        projection = project_run(config, events, "run123")
+        self.assertEqual(projection["current"], {"phase": 1, "turn": "code_quality_review"})
+        self.assertEqual(projection["phases"][0]["status"], "complete")
+        self.assertEqual(projection["phases"][0]["qa_status"], "needed")
 
     def test_projection_keeps_prompt_instance_after_cursor_repairs_to_next_phase(self) -> None:
         config = minimal_config()
@@ -232,6 +292,29 @@ class DurableRunnerTests(unittest.TestCase):
             "agent turn timed out after 12 seconds",
         )
 
+    def test_grok_provider_uses_prompt_file_and_streaming_json(self) -> None:
+        state = {
+            "project": {"cwd": "C:/work/project"},
+            "session": {
+                "provider": "grok",
+                "command": "C:/Users/Esther/.grok/bin/grok.exe",
+                "model": "grok-composer-2.5-fast",
+                "config": {"sandbox_mode": "danger-full-access"},
+            },
+        }
+        prompt_path = Path("C:/tmp/prompt.txt")
+        command = build_command(state, prompt_path)
+        self.assertEqual(command[0], "C:/Users/Esther/.grok/bin/grok.exe")
+        self.assertIn("--prompt-file", command)
+        self.assertIn(str(prompt_path), command)
+        self.assertIn("--output-format", command)
+        self.assertIn("streaming-json", command)
+        self.assertIn("--model", command)
+        self.assertIn("grok-composer-2.5-fast", command)
+        self.assertIn("--always-approve", command)
+        self.assertIn("--sandbox", command)
+        self.assertIn("off", command)
+
     def test_stop_request_marker_round_trips(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             original_root = runtime_paths.RUNTIME_ROOT
@@ -326,6 +409,7 @@ def minimal_config_public(phase_count: int = 2) -> dict:
             "test_repair_plan": "templates/test_repair_plan.md",
             "test_repair_implement": "templates/test_repair_implement.md",
             "code_quality_review": "templates/code_quality_review.md",
+            "code_quality_repair": "templates/code_quality_repair.md",
         },
         "contract_template": "templates/_contract_test_hardening.md",
         "session_defaults": {

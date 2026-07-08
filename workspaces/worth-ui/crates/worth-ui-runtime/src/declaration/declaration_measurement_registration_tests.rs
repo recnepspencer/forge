@@ -4,15 +4,17 @@ use crate::declaration::{
     UiDeclaredMeasurementMode, UiDeclaredMeasurementOwnershipPosture,
     UiDeclaredMeasurementPolicyPosture,
 };
-use crate::facade::{
+use crate::facade::entry::WorthUi;
+use crate::facade::registry::{
     MeasurementConstraint, MeasurementValue, MosaicChildRule, MosaicClippingPosture,
     MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
     MosaicParentGrowthBehavior, MosaicRegionKindDescriptor, MosaicRegionKindId,
     MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
     MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
     MosaicSizingPersistence, MosaicViewportConstraint, NamedMeasurementDefinition,
-    NamedMeasurementToken, SurfacePlacementClass, WorthUi, WorthUiDslPackage,
+    NamedMeasurementToken, SurfacePlacementClass,
 };
+use crate::facade::WorthUiDslPackage;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken,

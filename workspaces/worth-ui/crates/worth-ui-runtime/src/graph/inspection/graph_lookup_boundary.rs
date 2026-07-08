@@ -7,7 +7,7 @@ use worth_ui_inspection::{
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiInspectionCostMetrics;
 use crate::evidence::{UiEvidenceRef, UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput};
-use crate::facade::UiInspectionReceipt;
+use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::graph::{UiGraphNodeEvidenceIndex, UiGraphSnapshot};
 
 pub(crate) struct WorthUiGraphInspectionBoundary<'a> {

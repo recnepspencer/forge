@@ -1,9 +1,9 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::inspection::{
-    UiEvidenceFamily, UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevance,
-    UiInspectionScope, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
+    UiEvidenceFamily, UiEvidenceRichness, UiInspectionAspectRelevanceDetail, UiInspectionQuery,
+    UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
+    UiRelevanceFilter,
 };
-use worth_ui::facade::UiInspectionAspectRelevanceDetail;
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,

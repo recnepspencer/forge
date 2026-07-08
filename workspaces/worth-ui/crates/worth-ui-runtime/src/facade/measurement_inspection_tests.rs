@@ -7,7 +7,7 @@ use worth_ui_inspection::{
     UiInspectionMeasurementQueryUnsupportedReason, UiInspectionSupportStatus, UiInspectionTarget,
 };
 
-use crate::evidence::projection_fact_test_support::{
+use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_font_metrics,
     host_result_scroll_container_viewport, host_result_viewport_extent,
 };
@@ -17,7 +17,7 @@ use super::measurement_inspection_test_support::{
     measurement_app_in_world, measurement_detail, measurement_query,
     query_measurement_app_in_world, query_measurement_package, repeated_instance_app,
 };
-use super::UiMeasurementInspectionEvidenceBundle;
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 
 #[test]
 fn declared_surface_measurement_inspection_materializes_typed_detail() {

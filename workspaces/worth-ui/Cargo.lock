@@ -1312,6 +1312,7 @@ dependencies = [
  "forge-signal",
  "trybuild",
  "worth-ui-dsl",
+ "worth-ui-inspection",
  "worth-ui-runtime",
 ]
 
@@ -1330,6 +1331,7 @@ dependencies = [
  "worth-ui-inspection",
  "worth-ui-query-binding",
  "worth-ui-runtime",
+ "worth-ui-test-support",
 ]
 
 [[package]]
@@ -1375,6 +1377,13 @@ dependencies = [
  "worth-ui-host-contract",
  "worth-ui-inspection",
  "worth-ui-query-binding",
+]
+
+[[package]]
+name = "worth-ui-test-support"
+version = "0.1.0"
+dependencies = [
+ "worth-ui-runtime",
 ]
 
 [[package]]

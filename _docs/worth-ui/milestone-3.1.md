@@ -696,7 +696,7 @@ ceremonial.
   real enough that inspection can begin answering real semantic questions.
 - Milestone 3.5 operationalizes this milestone’s harness with the first
   substantial evidence families and relevance indexes.
-- Milestone 3.9, 3.10, 3.14, 3.15, 3.16, and 3.17 enrich the same inspection
+- Milestone 3.10, 3.11, 3.15, 3.16, 3.17, and 3.18 enrich the same inspection
   substrate with visual snapshots, rebind explanation, diagnostics closure,
   visual evaluation, AI replay/tooling, and the human inspector.
 - If later work needs a second inspection entry point, a renderer-local

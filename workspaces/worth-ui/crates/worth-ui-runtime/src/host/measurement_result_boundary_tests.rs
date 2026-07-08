@@ -18,7 +18,7 @@ use crate::evidence::{
     UiMeasurementEvidenceCategory, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
 };
 
-use super::measurement_result_test_support::{
+use super::tests::measurement_result_test_support::{
     collected_text_result_for_request, measurement_evidence_family_for, normalization_context_for,
     CountingAdapter,
 };

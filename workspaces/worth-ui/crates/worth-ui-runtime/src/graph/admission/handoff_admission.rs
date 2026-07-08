@@ -1,12 +1,13 @@
+use super::handoff_classification::{
+    assemble_topology_denials, classify_handoff_basis, classify_root_topology_cardinality,
+    HandoffBasisDecision, RootTopologyDecision,
+};
+use super::handoff_entry::construct_instantiation_entry;
 use super::runtime_basis_assignment::UiRuntimeBasisAssignments;
 use crate::declaration::UiDeclarationGraphHandoff;
 use crate::graph::{
-    UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphCoreIndexContributionSeed,
     UiGraphInstantiationDenial, UiGraphInstantiationLocalDenial, UiGraphInstantiationPlan,
-    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry,
-    UiGraphParentResolutionClaim, UiGraphParticipationSeed, UiGraphTopologyLocalDenial,
-    UiGraphTopologySeed, UiRepeatedInstanceBasis, UiRepeatedInstanceBasisDenial,
-    UiRuntimeInstanceBasisAdmission,
+    UiGraphNodeInstantiationEntry, UiRuntimeInstanceBasisAdmission,
 };
 
 pub(crate) fn admit_graph_handoffs(
@@ -21,84 +22,36 @@ pub(crate) fn admit_graph_handoffs(
     let mut seen_handoffs_by_declaration = std::collections::BTreeMap::new();
 
     for handoff in handoffs {
-        let declaration_identity = handoff.identity().clone();
-        let declaration_digest = declaration_identity.digest().raw();
+        let declaration_digest = handoff.identity().digest().raw();
         let occurrence_index = seen_handoffs_by_declaration
             .entry(declaration_digest)
             .and_modify(|count| *count += 1)
             .or_insert(0);
-        let repeated_instance_basis = runtime_basis_assignments
-            .basis_for(declaration_digest, *occurrence_index)
-            .cloned()
-            .unwrap_or_else(|| {
-                UiRepeatedInstanceBasis::declaration_keyed(declaration_identity.digest())
-            });
 
-        if repeated_instance_basis.denial()
-            == Some(&UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied)
-        {
-            local_denials.push(UiGraphInstantiationLocalDenial::repeated_instance_basis(
+        match classify_handoff_basis(handoff, *occurrence_index, &runtime_basis_assignments) {
+            HandoffBasisDecision::Denied {
                 declaration_identity,
-                UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied,
-            ));
-            continue;
+                denial,
+            } => {
+                local_denials.push(UiGraphInstantiationLocalDenial::repeated_instance_basis(
+                    declaration_identity, denial,
+                ));
+            }
+            HandoffBasisDecision::Admitted(repeated_instance_basis) => {
+                node_entries.push(construct_instantiation_entry(
+                    handoff,
+                    repeated_instance_basis,
+                ));
+            }
         }
-
-        node_entries.push(UiGraphNodeInstantiationEntry::new(
-            declaration_identity,
-            handoff.authored_provenance_digest(),
-            handoff
-                .measurement_policy()
-                .admitted()
-                .and_then(|policy| policy.constraint_modifier()),
-            handoff.aspect_contract().clone(),
-            repeated_instance_basis,
-            UiGraphTopologySeed::new(
-                handoff.structural_digest(),
-                handoff.role(),
-                handoff.operator_kind(),
-                UiGraphContainmentClaim::from_declaration_intent(
-                    handoff.containment_intent(),
-                    handoff.mosaic_sizing_contract_id().cloned(),
-                ),
-                parent_resolution_claim_for_handoff(handoff),
-                handoff.slot_participation_intent().clone(),
-                handoff.ordering_guarantee(),
-                handoff.repetition_posture(),
-            ),
-            UiGraphParticipationSeed::from_attachment_and_role(
-                handoff.query_binding().admitted().is_some(),
-                handoff.service_usage().admitted().is_some(),
-                matches!(
-                    handoff.role(),
-                    crate::declaration::UiDeclarationStructuralRole::DiagnosticSurface
-                ),
-            ),
-            UiGraphAttachmentPosture::new(
-                handoff.query_binding().admitted().is_some(),
-                handoff.service_usage().admitted().is_some(),
-            ),
-            UiGraphMountedReceiptAuthoritySeed::reserved(),
-            UiGraphCoreIndexContributionSeed::authoritative(),
-        ));
     }
 
-    localize_unresolved_root_topology(&mut node_entries, &mut local_denials);
+    apply_root_topology_classification(&mut node_entries, &mut local_denials);
 
-    Ok(UiGraphInstantiationPlan::new(node_entries, local_denials))
+    Ok(assemble_instantiation_plan(node_entries, local_denials))
 }
 
-fn parent_resolution_claim_for_handoff(
-    handoff: &UiDeclarationGraphHandoff,
-) -> UiGraphParentResolutionClaim {
-    if handoff.containment_intent().is_root() {
-        UiGraphParentResolutionClaim::RootPage
-    } else {
-        UiGraphParentResolutionClaim::ContainedByRootPage
-    }
-}
-
-fn localize_unresolved_root_topology(
+fn apply_root_topology_classification(
     node_entries: &mut Vec<UiGraphNodeInstantiationEntry>,
     local_denials: &mut Vec<UiGraphInstantiationLocalDenial>,
 ) {
@@ -107,19 +60,19 @@ fn localize_unresolved_root_topology(
         .filter(|entry| entry.topology_seed().containment_claim().is_root_page())
         .count();
 
-    if observed_root_pages == 1 {
-        return;
+    match classify_root_topology_cardinality(observed_root_pages) {
+        RootTopologyDecision::Valid => {}
+        RootTopologyDecision::Invalid { denial } => {
+            local_denials.extend(assemble_topology_denials(node_entries, denial));
+        }
     }
+}
 
-    let denial = UiGraphTopologyLocalDenial::RootPageCardinality {
-        observed_root_pages,
-    };
-    local_denials.extend(node_entries.drain(..).map(|entry| {
-        UiGraphInstantiationLocalDenial::topology(
-            entry.declaration_identity().clone(),
-            denial.clone(),
-        )
-    }));
+fn assemble_instantiation_plan(
+    node_entries: Vec<UiGraphNodeInstantiationEntry>,
+    local_denials: Vec<UiGraphInstantiationLocalDenial>,
+) -> UiGraphInstantiationPlan {
+    UiGraphInstantiationPlan::new(node_entries, local_denials)
 }
 
 #[cfg(test)]
