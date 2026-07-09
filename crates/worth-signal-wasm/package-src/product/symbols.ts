@@ -1,0 +1,13 @@
+export const RAW_SIGNAL_HANDLE = Symbol("WorthSignal.rawSignalHandle");
+export const RAW_SIGNALS = Symbol("WorthSignal.rawSignals");
+export const PRODUCT_SIGNAL_KIND = Symbol("WorthSignal.productSignalKind");
+export const GRAPH_SCOPE_ID = Symbol("WorthSignal.graphScopeId");
+export const GRAPH_OWNER_ID = Symbol("WorthSignal.graphOwnerId");
+export const GRAPH_SCOPE_DESCRIPTOR = Symbol("WorthSignal.graphScopeDescriptor");
+export const GRAPH_LOCAL_ID = Symbol("WorthSignal.graphLocalId");
+export const GRAPH_EXPOSURE = Symbol("WorthSignal.graphExposure");
+export const CONTROLLER_CONTRACT = Symbol("WorthSignal.controllerContract");
+export const INPUT_BASELINE_VALUE = Symbol("WorthSignal.inputBaselineValue");
+export const PUBLIC_GRAPH_INPUT = Symbol("WorthSignal.publicGraphInput");
+export const DEBUG_NAME = Symbol("WorthSignal.debugName");
+export const PRIVATE_AUTHORING_ID = Symbol("WorthSignal.privateAuthoringId");

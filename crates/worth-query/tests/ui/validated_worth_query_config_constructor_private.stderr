@@ -1,0 +1,32 @@
+warning: unreachable expression
+ --> tests/ui/validated_worth_query_config_constructor_private.rs:6:27
+  |
+5 |         raw: todo!(),
+  |              ------- any code following this expression is unreachable
+6 |         query_resolution: todo!(),
+  |                           ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0451]: fields `raw`, `query_resolution`, `relational_resolution`, `signal_resolution`, `runtime_bridge_resolution`, `store_resolution`, `counters` and `validated_digest` of struct `ValidatedWorthQueryConfig` are private
+  --> tests/ui/validated_worth_query_config_constructor_private.rs:5:9
+   |
+ 4 |     let _ = ValidatedWorthQueryConfig {
+   |             ------------------------- in this type
+ 5 |         raw: todo!(),
+   |         ^^^ private field
+ 6 |         query_resolution: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+ 7 |         relational_resolution: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         signal_resolution: todo!(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+ 9 |         runtime_bridge_resolution: todo!(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         store_resolution: todo!(),
+   |         ^^^^^^^^^^^^^^^^ private field
+11 |         counters: todo!(),
+   |         ^^^^^^^^ private field
+12 |         validated_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
