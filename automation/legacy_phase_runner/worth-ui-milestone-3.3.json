@@ -1,0 +1,1107 @@
+{
+  "schema_version": 1,
+  "state_revision": 289,
+  "current": null,
+  "project": {
+    "name": "Worth UI Milestone 3.3",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "spec_file": "_docs\\worth-ui\\milestone-3.3.md",
+    "context_files": [
+      "_docs\\coding_guidelines\\MENTALITY.md",
+      "_docs\\coding_guidelines\\arch_laws.md",
+      "_docs\\coding_guidelines\\composition_laws.md",
+      "_docs\\coding_guidelines\\domain_structure_laws.md",
+      "_docs\\coding_guidelines\\perf_laws.md",
+      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\forge-query\\docs\\AI_README.md",
+      "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
+      "_docs\\worth-ui\\worth-ui-dsl-vision.md",
+      "_docs\\worth-ui\\ai-diagnostics.md",
+      "_docs\\worth-ui\\worth_ui_roadmap.md",
+      "_docs\\worth-ui\\milestone-3.3.md"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:\\nvm4w\\nodejs\\codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f1b9c-12a9-7420-9707-9f53b5f8ba80",
+    "thread_started_at": "2026-07-01T02:57:21.542833+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Freeze Graph Authority Envelope And Runtime Identity Law",
+      "owner": "worth-ui runtime graph authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\identity",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\snapshot",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "UiGraphSnapshot exists as the one committed graph authority artifact and committed snapshots are immutable",
+        "UiGraphNodeIdentity stays distinct from UiDeclarationIdentity and never depends on tree position",
+        "repeated-instance identity basis is explicit, typed, and denies basis-free or position-based runtime identity",
+        "graph authority carries explicit generation and world basis posture so same-world mutation and cross-world re-admission remain distinguishable"
+      ],
+      "instructions": "Freeze the graph authority envelope first. Make snapshot lifecycle, graph identity, repeated-instance basis, generation, and world basis explicit before topology or participation work broadens the surface.",
+      "qa_focus": "No tree-position identity, no mutable committed snapshot, no implicit repeated-instance basis, and no ambient world classification.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "chat plan posted"
+        ],
+        "done": [
+          "phase 1 closed; graph authority lane accepted"
+        ],
+        "remaining": [
+          "split graph_snapshot.rs by snapshot authority vs freeze-build helpers in later graph phases",
+          "move query-basis interop out of graph facade into narrower graph-world or query interop surface"
+        ],
+        "findings": [
+          "graph_snapshot.rs still mixes snapshot type, freeze build, identity digestion, and local test scaffolding",
+          "graph facade currently teaches query-basis construction as ordinary graph surface"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.74s",
+          "cargo check -p worth-ui --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.39s",
+          "cargo test -p worth-ui-certification --test graph_authority_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 7 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_forge_graph_identity_or_snapshot.rs ... ok"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Admit Graph Nodes Only Through The Sealed 3.2 Handoff Boundary",
+      "owner": "worth-ui graph instantiation boundary",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\admission",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "only sealed UiDeclarationGraphHandoff inputs can instantiate graph truth",
+        "graph instantiation decides nodes, topology, participation posture, attachment posture, mounted-receipt authority seeds, and core index contributions only",
+        "graph instantiation does not absorb graph-touch obligations, Query support/admission, service admission, measurement admission, or intent operability",
+        "runtime-data-keyed repeated-instance basis enters through an admitted typed boundary or denies locally"
+      ],
+      "instructions": "Keep this boundary narrow and named honestly. Implement graph instantiation from sealed 3.2 handoff and deny contradictory or basis-free inputs before graph mutation begins.",
+      "qa_focus": "No source reopening, no parser-local graph construction, no 3.4 admission bleed, and no caller-local instance keys.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "Tighten freeze-denial proof to assert sealed handoff failure cause and add graph invariance proof against touch/measurement-only deltas."
+        ],
+        "done": [
+          "Phase-2 graph admission boundary remains structurally narrow and predictive."
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo test -p worth-ui-runtime handoff_admission => 0; tail: 4 passed, 0 failed.",
+          "cargo test -p worth-ui-certification --test graph_instantiation_runtime => 0; tail: 4 passed, 0 failed.",
+          "cargo test -p worth-ui-certification --test graph_instantiation_compile => 0; tail: 1 passed, 0 failed."
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Materialize Parent Child Slot And Membership Topology As Graph Truth",
+      "owner": "worth-ui graph topology authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\topology",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\indexes",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "parent-child-slot topology becomes graph-owned runtime truth, not declaration leftovers",
+        "page, region, and mosaic membership are explicit graph facts with bounded lookup surfaces",
+        "graph-owned attachment posture has one authoritative home in graph truth rather than future side registries",
+        "topology indexes land with topology truth instead of temporary traversal-based access"
+      ],
+      "instructions": "Turn structural intent into runtime topology and explicit memberships. Make topology index-backed as it lands so later phases never normalize temporary recursive-walk access.",
+      "qa_focus": "No implicit sibling-order slots, no generic membership tags, no side topology for attachments, and no temporary walk-based ordinary lookup.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [
+          "explicit parent-resolution claim now admits non-root parentage before topology mutation",
+          "test hardening added typed topology denial and cross-index authority proof",
+          "test QA passed; topology certification now proves typed denial and full-family index agreement",
+          "code-quality review passed; topology and index modules remain narrowly owned and phase-predictive"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo test -p worth-ui-certification --test graph_topology_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 5 passed; 0 failed; Finished test profile; Running graph_topology_runtime",
+          "cargo test -p worth-ui-certification --test graph_topology_authority_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 3 passed; 0 failed; Finished test profile; Running graph_topology_authority_runtime"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Encode Participation As Explicit Multi Axis Runtime Posture",
+      "owner": "worth-ui graph participation authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\participation",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\indexes",
+        "workspaces\\worth-ui\\crates\\worth-ui-inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "participation axes remain explicit: exists, mounted, visible, layout, hit-test, focus, accessibility, paint, input, query-bound, service-bound, and diagnostic",
+        "each participation posture carries status, source/reason classification, and evidence reference or equivalent handle",
+        "page participation lookup returns enough structure to explain axis-specific inclusion without descendant walks",
+        "participation index surfaces land with participation truth rather than after a temporary boolean or containment-based phase"
+      ],
+      "instructions": "Make participation explicit and explainable, not just stored. The runtime must know both what participates and why without inferring posture from host or renderer residue.",
+      "qa_focus": "No one-boolean participation collapse, no hidden source for disabled axes, no containment-only page participation, and no unexplained false posture.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden participation tests for full-axis page index parity and seed-to-node posture authority parity"
+        ],
+        "done": [
+          "participation admission seed is now explicit multi-axis posture seed instead of boolean residue",
+          "graph participation mutation artifact now carries axis transition and page participation effect",
+          "test QA passed; participation certification now proves full-axis page index parity and seed-to-node posture authority parity"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo check -p worth-ui-runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo check -p worth-ui --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_participation_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_instantiation_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Seed Mounted Receipt Authority At The Graph Boundary",
+      "owner": "worth-ui graph-mounted authority seed",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\mounted_receipt",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\indexes",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "mounted receipt identity, graph correspondence, mounted posture relationship, and authority seed storage are graph-owned",
+        "mounted receipt authority seeds are indexable and correspond explicitly to graph nodes",
+        "phase 5 does not produce mounted frame receipts, paint intent, allocation boxes, visual geometry, layout-derived boxes, or host adapter output",
+        "mounted receipt authority seed lookup lands with the seed lane instead of later side storage"
+      ],
+      "instructions": "Keep mounted receipts narrow here. This phase seeds graph-owned mounted evidence slots only and must not accidentally pull in the later mounting runtime.",
+      "qa_focus": "No host-local mounted store, no mounted-frame creep, no authority seed without graph correspondence, and no fake mounting semantics.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden mounted receipt tests for reservation-to-slot identity preservation and graph-bound mutation derivation"
+        ],
+        "done": [
+          "phase 5 review passed; mounted receipt seed authority stays graph-owned and narrow",
+          "phase 5 test hardening landed; reservation identity and graph-bound mutation proof are explicit",
+          "phase 5 mounted receipt tests now prove exact materialization input parity and transition-artifact mutation derivation",
+          "phase 5 test lane reviewed hostilely; reservation input parity and transition artifact proof are honest enough",
+          "phase 5 closed; mounted receipt authority stays graph-owned, narrow, and bounded"
+        ],
+        "remaining": [
+          "split reservation/materializer from mounted_receipt_authority_seed_store.rs in a later structural pass"
+        ],
+        "findings": [
+          "test QA found reservation proof still circular and mounted mutation proof still wrapper-level",
+          "mounted_receipt_authority_seed_store.rs still bundles reservation row, store, and materializer under one filename"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 11.05s",
+          "cargo test -p worth-ui-certification --test mounted_receipt_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: 3 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_instantiation_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: 4 passed; 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Build The Core Index Set And Make Ordinary Lookup Bounded",
+      "owner": "worth-ui graph index authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\indexes",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "the mandatory core index set exists for node identity, declaration correspondence, topology, page participation, aspect publishers/consumers, and mounted receipt slots",
+        "lookup receipts make cost class and index family explicit enough to prove no silent traversal occurred",
+        "aspect indexes are many-to-many and classify publisher/consumer kinds without future side maps",
+        "phase 6 closes the full index set, cost-honesty contract, and residue proof while earlier phases already landed the indexes their truth lanes needed"
+      ],
+      "instructions": "Close the index set as proof, not as a late optimization. Make ordinary graph lookup bounded, typed, receipt-backed, and aspect-aware.",
+      "qa_focus": "No hidden recursive walks, no untyped aspect maps, no index-free ordinary lookup, and no phase-local temporary traversal APIs left behind.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden aspect tests with competing-aspect discrimination through lookup and inspection"
+        ],
+        "done": [
+          "phase 6 closed; core index, lookup receipt, and inspection lanes are structurally in place"
+        ],
+        "remaining": [
+          "narrow facade graph exports in a later pass so ordinary callers see lookup and inspection first, construction and seed types second"
+        ],
+        "findings": [
+          "public graph facades still export graph construction and seed vocabulary beside the bounded lookup and inspection lane"
+        ],
+        "verification": [
+          "cargo check -p worth-ui-runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.66s",
+          "cargo test -p worth-ui-certification --test graph_lookup_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: 2 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_aspect_index_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: 1 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_inspection_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0 | tail: 1 passed; 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Transactionally Align Graph Mutation And Index Mutation",
+      "owner": "worth-ui graph mutation authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\mutation",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\snapshot",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\indexes",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "all graph mutation occurs through admitted graph mutation plans and the closed initial mutation vocabulary",
+        "committed graph snapshots and committed index state always move together as one coherent generation transition",
+        "public graph authority exposes either the prior coherent snapshot or the new coherent snapshot, never a half-committed or repair-required state",
+        "direct node-map, index, membership, or mounted-receipt authority-seed mutation outside the mutation boundary is mechanically rejected"
+      ],
+      "instructions": "Turn transaction language into an operational boundary. Close the mutation vocabulary, make generation-based commit explicit, and ban every ordinary bypass path.",
+      "qa_focus": "No best-effort coherence, no direct index surgery, no partial publish, and no decorative transaction wrapper over mutable side stores.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "harden phase 7 boundary audit semantics and move denial proof onto the real freeze/publication seam",
+          "upgrade mutation boundary audit from lexical scan to rebinding-resistant proof"
+        ],
+        "done": [
+          "phase 7 review passed; mutation commit and graph-part assembly boundary now mechanically enforced at the current architecture level",
+          "hardened boundary audit semantics and freeze-seam denial proof",
+          "strengthened mutation boundary audit against alias and local rebinding evasions",
+          "added boundary audit self-tests for direct, alias, rebinding, and comment/literal cases",
+          "phase 7 test lane hostile review found no remaining hardening gaps"
+        ],
+        "remaining": [
+          "split graph_snapshot.rs into snapshot authority vs comparison/digest support",
+          "split graph_mutation_boundary_audit.rs into scan core, repo audit, and self-tests"
+        ],
+        "findings": [
+          "boundary audit is syntactic string-scan only; denied commit test is detached from the real public publication seam",
+          "boundary audit still relies on lexical call-shape matching and can be evaded by local rebinding or type-alias indirection",
+          "graph_snapshot.rs still mixes authority artifact, digest derivation, comparison law, and local test fixture",
+          "graph_mutation_boundary_audit.rs is over line cap and now mixes scanner, policy table, repo walk, and self-tests"
+        ],
+        "verification": [
+          "focused graph authority and mutation proof lane passed after audit tightening",
+          "focused phase 7 test hardening proof rerun passed",
+          "cargo test -p worth-ui-certification graph_mutation_boundary --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_mutation_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_authority_runtime --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_mutation_boundary_audit --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 1 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_mutation_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 3 passed; 0 failed",
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_mint_graph_successor_from_snapshot.rs ... ok",
+          "cargo test -p worth-ui-certification --test graph_authority_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: 5 passed; 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Close Graph Authority And Hand 3.4 A Proof Bearing Runtime Surface",
+      "owner": "worth-ui graph closeout authority",
+      "scope": [
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\closeout",
+        "workspaces\\worth-ui\\crates\\worth-ui-runtime\\src\\graph\\inspection",
+        "workspaces\\worth-ui\\crates\\worth-ui\\src",
+        "workspaces\\worth-ui\\crates\\worth-ui-certification"
+      ],
+      "acceptance": [
+        "3.4 consumes graph-owned identity, correspondence, topology, participation, attachment posture, aspect indexes, and mounted receipt authority seeds through proof-bearing graph surfaces",
+        "graph truth is inspectable through the formal inspection architecture with thin targetability, evidence refs, and graph-relevant stop points",
+        "closeout enumerates the exact identity, topology, participation, attachment, mounted receipt, index, and graph-inspection support lanes 3.3 closes",
+        "the milestone rejects raw graph internals, recursive tree walks, and side topologies as ordinary public graph-access surfaces"
+      ],
+      "instructions": "Close the milestone with proof instead of ceremony. Make the 3.4 handoff exact, keep graph inspection thin, and preserve the truth that Query-owned and later runtime lanes remain outside 3.3.",
+      "qa_focus": "Honest closeout, exact 3.4 handoff, no overclaiming Query/service/measurement runtime behavior, and no ambiguous graph boundary residue.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [],
+        "done": [
+          "phase 8 test lane is honest enough; public graph proof now rides real record-based lookup, inspection, and compile-fail boundaries",
+          "phase 8 closed; proof-bearing graph boundary and closeout surface accepted"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo test -p worth-ui-certification graph closeout+authority+lookup+inspection+participation+topology+mounted+mutation runtime => 0",
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml => 0",
+          "cargo test -p worth-ui-certification --test graph_closeout_runtime --test graph_authority_runtime --test graph_lookup_runtime --test graph_inspection_runtime --test graph_participation_runtime --test graph_topology_runtime --test graph_topology_authority_runtime --test graph_aspect_index_runtime --test mounted_receipt_runtime --test graph_mutation_runtime --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: graph_closeout 2 passed; graph_inspection 1 passed; graph_lookup 2 passed; graph_mutation 3 passed; graph_participation 3 passed; graph_topology 5 passed; graph_topology_authority 3 passed; mounted_receipt 3 passed",
+          "cargo test -p worth-ui-certification --test graph_authority_compile --manifest-path workspaces/worth-ui/Cargo.toml | exit 0 | tail: external_callers_cannot_forge_graph_identity_or_snapshot.rs ok; external_callers_cannot_mint_graph_successor_from_snapshot.rs ok; external_callers_cannot_import_raw_graph_runtime_internals_from_runtime_facade.rs ok"
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-07-01T08:07:17.279445+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:11:05.020241+00:00",
+      "phase": 5,
+      "turn": "test_repair_implement",
+      "note": "Hardened mounted receipt tests around exact reservation input and transition artifact; advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T08:11:18.611793+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:11:48.622222+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:12:26.487706+00:00",
+      "phase": 5,
+      "turn": "test_review",
+      "note": "Mounted receipt test review found no meaningful remaining hardening gaps; advanced to code_quality_review."
+    },
+    {
+      "at": "2026-07-01T08:12:41.797818+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:13:11.807982+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 5 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:14:35.641583+00:00",
+      "phase": 5,
+      "turn": "code_quality_review",
+      "note": "Closed phase 5 and advanced to phase 6 plan; recorded mounted receipt store file-ownership residue."
+    },
+    {
+      "at": "2026-07-01T08:14:50.712756+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 5 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:15:20.723634+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:16:09.471065+00:00",
+      "phase": 6,
+      "turn": "plan",
+      "note": "Posted phase 6 implementation plan and advanced cursor to implement."
+    },
+    {
+      "at": "2026-07-01T08:17:10.407687+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:17:40.418309+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:43:10.780605+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:43:40.789392+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T08:45:24.012754+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T08:45:54.022273+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:01:39.232098+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:02:09.244354+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:05:56.195779+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:06:26.206231+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:16:16.214760+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:16:46.226307+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:18:24.747615+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:18:54.758464+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:24:18.483037+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:24:48.492355+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:26:00.766552+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:26:30.775119+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:27:24.798796+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:27:54.808067+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:28:26.777892+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 6 test_repair_plan did not advance; forced test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:28:26.777892+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:28:56.788538+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:32:32.540752+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:33:02.552344+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:36:29.0914460Z",
+      "phase": 6,
+      "turn": "test_review",
+      "note": "Phase 6 test review found aspect lookup tests still lack competing-aspect discrimination proof; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T09:36:57.018040+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:37:27.029088+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:37:45.2430084Z",
+      "phase": 6,
+      "turn": "test_repair_plan",
+      "note": "Planned phase 6 test hardening for competing-aspect discrimination and advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-01T09:38:13.280439+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:38:43.289464+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:41:32.2323524Z",
+      "phase": 6,
+      "turn": "test_repair_implement",
+      "note": "Hardened phase 6 aspect tests with competing-aspect discrimination and advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T09:41:42.609702+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:42:12.621947+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:42:49.1796245Z",
+      "phase": 6,
+      "turn": "test_review",
+      "note": "Phase 6 test review found no meaningful remaining hardening gaps; advanced to code_quality_review."
+    },
+    {
+      "at": "2026-07-01T09:43:11.978482+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:43:41.988707+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 6 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:46:04.8998762Z",
+      "phase": 6,
+      "turn": "code_quality_review",
+      "note": "Closed phase 6 and advanced to phase 7 plan; recorded public graph facade over-export residue."
+    },
+    {
+      "at": "2026-07-01T09:46:22.249411+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 6 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:46:52.258626+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T09:52:16.256608+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T09:52:46.269153+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:01:33.433503+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:02:03.444027+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:03:57.848704+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:04:27.858592+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:07:49.721282+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:08:19.732443+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:12:29.3345067Z",
+      "phase": 7,
+      "turn": "review",
+      "note": "Phase 7 review failed: mutation boundary audit still misses crate-internal topology and mounted-seed constructor bypass surfaces; advanced to repair."
+    },
+    {
+      "at": "2026-07-01T10:12:54.038845+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:13:24.048739+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:17:22.0625682Z",
+      "phase": 7,
+      "turn": "repair",
+      "note": "Tightened topology and mounted-seed assembly ownership, broadened mutation-boundary audit, and advanced to review."
+    },
+    {
+      "at": "2026-07-01T10:17:48.659234+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:18:18.669891+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:19:16.1651005Z",
+      "phase": 7,
+      "turn": "review",
+      "note": "Phase 7 review failed: graph mutation boundary audit still over-whitelists graph_snapshot.rs for topology/membership constructors; advanced to repair."
+    },
+    {
+      "at": "2026-07-01T10:19:32.596036+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:20:02.605763+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:20:44.6815617Z",
+      "phase": 7,
+      "turn": "repair",
+      "note": "Removed stale graph_snapshot.rs topology/membership audit allowlist and advanced to review."
+    },
+    {
+      "at": "2026-07-01T10:20:58.365954+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:21:28.376136+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:21:54.8468480Z",
+      "phase": 7,
+      "turn": "review",
+      "note": "Phase 7 hostile review found no meaningful remaining done-check gaps; advanced to test_review."
+    },
+    {
+      "at": "2026-07-01T10:22:14.916844+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:22:44.927527+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:23:38.5572620Z",
+      "phase": 7,
+      "turn": "test_review",
+      "note": "Phase 7 test review found syntactic boundary-audit proof and a detached denial/publication test; advanced to test_repair_plan."
+    },
+    {
+      "at": "2026-07-01T10:23:53.544183+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:24:23.558084+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:24:55.222074+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 7 test_repair_plan did not advance; forced test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:24:55.222074+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:25:25.235130+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:25:58.7943654Z",
+      "phase": 7,
+      "turn": "test_repair_plan",
+      "note": "Planned phase 7 test hardening for structural boundary audit and real freeze-seam denial proof; advanced to test_repair_implement."
+    },
+    {
+      "at": "2026-07-01T10:26:26.596081+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: phase 7 test_repair_implement completed without advancing cursor: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:27:00.3126547Z",
+      "event": "runner_recovery_applied",
+      "detail": "phase 7 test_repair_implement had no objective completion marker; preserved cursor and normalized note buckets",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:27:14.2489227Z",
+      "event": "state_validation",
+      "detail": "python automation\\\\phase_runner\\\\runner.py worth-ui-milestone-3.3.json --validate passed",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:27:21.388005+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:27:51.398929+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:32:01.090992+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:32:31.101679+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:34:05.717698+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:34:35.728384+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:35:20.403471+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:35:50.414058+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:39:53.466483+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:40:23.478497+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:41:09.517714+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:41:39.534362+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 7 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:43:17.135143+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 7 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:43:47.150175+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:44:24.341444+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 8 plan did not advance; forced implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T10:44:24.341444+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T10:44:54.356392+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:08:16.0555620Z",
+      "phase": 8,
+      "turn": "implement",
+      "note": "Implemented graph closeout and proof-bearing graph handoff surface; advanced to review."
+    },
+    {
+      "at": "2026-07-01T11:08:37.596447+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:09:07.613756+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:12:23.710154+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "RunnerFailure: phase 8 review completed without advancing cursor: Traceback (most recent call last):",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:13:07.318065+00:00",
+      "event": "runner_recovery_applied",
+      "detail": "phase 8 review result was not persisted; restored regressed/failed state and advanced cursor to repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:13:25.061753+00:00",
+      "event": "state_validation",
+      "detail": "python automation\\phase_runner\\runner.py worth-ui-milestone-3.3.json --validate passed",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:13:41.833021+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:14:11.848653+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:23:42.291497+00:00",
+      "phase": 8,
+      "turn": "repair",
+      "note": "Closed raw graph-inspection/runtime internal leak with proof-bearing node/topology/mounted records and narrowed public graph facades; advanced to review."
+    },
+    {
+      "at": "2026-07-01T11:24:13.482483+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:24:43.492699+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:25:49.738652+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:26:19.749182+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:27:09.056177+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:27:39.067159+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 8 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T05:30:21.3881537-06:00",
+      "phase": 8,
+      "turn": "code_quality_review",
+      "note": "Closed phase 8 and milestone 3.3; no meaningful remaining structural findings in phase scope."
+    },
+    {
+      "at": "2026-07-01T11:30:43.608770+00:00",
+      "event": "runner_cursor_autofix",
+      "detail": "phase 8 code_quality_review did not advance; repaired cursor",
+      "exit_code": null
+    },
+    {
+      "at": "2026-07-01T11:30:43.608770+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 8 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-07-01T11:31:13.618126+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-07-01T11:30:43.608770+00:00"
+}

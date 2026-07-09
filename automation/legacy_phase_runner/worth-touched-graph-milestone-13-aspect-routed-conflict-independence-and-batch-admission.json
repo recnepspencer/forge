@@ -1,0 +1,1376 @@
+{
+  "schema_version": 1,
+  "state_revision": 989,
+  "current": null,
+  "project": {
+    "name": "Worth Touched Graph Milestone 13 Aspect-Routed Conflict Independence And Batch Admission",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "crates/forge-query/docs/AI_README.md",
+      "crates/forge-query/docs/foundations/consumer-kit.md",
+      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/forge-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-12-canonical-semantic-graph-contract-for-replay-and-undo.md",
+      "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
+      "crates/worth-kernel/src/workload_composition/worth_workload.rs",
+      "crates/worth-kernel/src/workload_composition/worth_workload/lookup_consumed_workload/mod.rs",
+      "crates/worth-kernel/src/workload_composition/worth_workload/replay_undo_boundary/mod.rs",
+      "crates/worth-spatial/src/workload_platform/workload_operators/coplanar_overlap.rs",
+      "crates/worth-spatial/src/workload_platform/workload_operators/coplanar_overlap_receipt.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog/declaration.rs",
+      "crates/worth-spatial/src/workload_platform/evidence_lookup_family_catalog/posture/mod.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md"
+  },
+  "contract_template": "templates/_contract_test_hardening.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f0a9a-b534-7730-a5ec-e7b967ad0936",
+    "thread_started_at": "2026-06-27T19:42:19.391577+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Conflict And Batch-Admission Folklore Inventory And Cut Line",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md"
+      ],
+      "acceptance": [
+        "typed inventory rows classify every ordinary conflict, serialization, speculative-admission, and compatibility path as migrate, delete, cap, certification-only, or Query-gap",
+        "the inventory carries exact current-surface identity for seeded operational surfaces such as WorthWorkload, LookupConsumedWorkloadComposition, and CoplanarOverlapWorkloadOperator",
+        "closeout fails when a new ordinary overlap helper or lock-first path appears without an inventory row",
+        "the inventory explicitly covers current authority, Query-proof/support surfaces, and cut-line residue classification"
+      ],
+      "instructions": "Freeze every current conflict and batch-admission authority surface before replacement code is written. Treat this as the hard cut-line and do not let broad scans, speculative rollback, or helper-local compatibility survive as unnamed residue.",
+      "qa_focus": "Inventory completeness, exact current surface naming, no grep-only theater, and no uncapped ordinary overlap shortcut left unclassified.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "harden firewall proof with exact surfaced violations and real-shape scanner fixtures"
+        ],
+        "done": [
+          "phase 1 closeout passed; inventory authority, query-gap naming, and firewall proof are in place"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel conflict_batch_admission_inventory | exit 0 | tail: test result ok, 17 passed, 0 failed",
+          "cargo check -p worth-kernel | exit 0 | tail: Finished dev profile target(s) in 0.42s"
+        ],
+        "remaining": [
+          "later cleanup: split inventory rows/scanning/closeout topology into predictive submodules",
+          "later cleanup: rename broad files like closeout/catalog_additions to owned responsibilities"
+        ],
+        "findings": [
+          "code-quality: flat 17-file inventory directory still needs substructure",
+          "code-quality: closeout/catalog naming still teaches broad sink boundaries"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Shared Aspect And Locality Overlap Vocabulary",
+      "owner": "worth-schema, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-schema",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "one shared conflict-routing contract type family lands in worth-schema",
+        "shared overlap identities distinguish entity, relation, aspect, locality, evidence, validator, replay/undo, and transaction overlap when routing changes",
+        "stable-identity tests prove rerun equivalence while wrong-authority values cannot mint overlap identities",
+        "topology and spatial lanes consume one shared contract instead of separately named overlap ontologies"
+      ],
+      "instructions": "Freeze the shared aspect, locality, and overlap vocabulary in worth-schema as the only ordinary routing language for later conflict, independence, batch-admission, and execution-receipt work.",
+      "qa_focus": "Real worth-schema ownership, proof-bearing identity distinctions, no crate-local vocabulary drift, and one shared contract rather than loose enums.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "Removed the schema-side implementable conflict source seam; owner crates now lower through owner-local methods into shared schema products."
+        ],
+        "done": [
+          "Owner-local topo/spatial lowering now feeds the shared schema contract through proof-bearing digest carriers.",
+          "phase 2 closeout passed; shared conflict-routing vocabulary is sealed behind the feature-gated internal authority lane, direct aspect-vs-entity distinction is proven on runnable topo surfaces, and ordinary callers cannot mint hidden authority by default"
+        ],
+        "remaining": [],
+        "findings": [],
+        "verification": [
+          "cargo test -p worth-schema --test touched_graph_conflict_internal_authority --features conflict-routing-internal-authority",
+          "cargo test -p worth-schema --test compile_fail",
+          "cargo test -p worth-topo --test touched_graph_conflict_validator_identity",
+          "cargo test -p worth-topo --lib conflict_routing_tests::topology_aspect_overlap_identity_is_stable_under_rerun",
+          "cargo test -p worth-topo --lib conflict_routing_tests::topology_locality_distinguishes_aspect_overlap",
+          "cargo test -p worth-topo --lib conflict_routing_tests::topology_validator_identity_lowers_into_shared_validator_overlap",
+          "cargo test -p worth-topo --lib conflict_routing_tests::topology_locality_distinguishes_replay_and_transaction_overlap",
+          "cargo test -p worth-spatial declaration_derives_shared_evidence_routing_contract_from_spatial_touch_authority",
+          "cargo test -p worth-topo conflict_routing_tests --lib -- --nocapture",
+          "cargo test -p worth-spatial conflict_routing_contract -- --nocapture",
+          "cargo test -p worth-schema --test compile_fail schema_public_boundary_is_curated -- --nocapture",
+          "cargo check -p worth-topo -p worth-spatial",
+          "cargo check -p worth-schema"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Parallel Conflict Family Catalogs",
+      "owner": "worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "parallel topology and spatial conflict-family catalogs exist beside old overlap helpers before broad cutover",
+        "family declarations are as explicit as EvidenceLookupFamilyDeclaration about authority requirements, posture, diagnostic witness, and digest basis",
+        "declared-once tests prove one family declaration can serve multiple consumers without consumer-local wiring",
+        "raw strings and operation labels cannot mint conflict family identity"
+      ],
+      "instructions": "Build topology and spatial conflict-family catalogs as parallel declarers of one architecture. They may extend the shared contract with family-local proof, but they may not redefine core overlap identities or postures.",
+      "qa_focus": "Parallel declarer architecture, no callback-list design, no topology/spatial ontology drift, and explicit family fields instead of vague predicates.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test hardening: add hostile declared-once contrast cases, field-by-field digest perturbation proof, and real replay/aspect family coverage using minimal production routing helpers only if required"
+        ],
+        "done": [
+          "phase 3 acceptance checks re-ran clean; catalogs remain phase-done with explicit closeout and hardened route coverage"
+        ],
+        "remaining": [
+          "later cleanup: split WorthTopologyLegalityFamilyIdentity selection/lowering out of validator_invariant_catalog/family_identity/mod.rs",
+          "later cleanup: move admits_*_selection policy from conflict family declaration files into catalog/current-family ownership"
+        ],
+        "findings": [
+          "code-quality: topo family_identity/mod.rs is still a facade-shaped implementation sink",
+          "code-quality: conflict family declaration files still embed current-family classification policy"
+        ],
+        "verification": [
+          "cargo test -p worth-topo touched_graph_conflict | exit 0 | tail: 7 passed; topology_conflict_family_identity_denials trybuild ok",
+          "cargo test -p worth-spatial touched_graph_conflict | exit 0 | tail: 6 passed; spatial_conflict_family_identity_denials trybuild ok",
+          "cargo check -p worth-topo -p worth-spatial | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.71s"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Admitted Conflict Input Boundary",
+      "owner": "worth-topo, worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "admitted conflict input accepts only sealed touched closure or spatial touch authority plus typed prior proof products",
+        "LookupConsumedWorkloadComposition-like constraints deny raw row scans, broad receipt scans, caller-owned scans, and stage-index mismatch before selection",
+        "entity-only overlap cannot satisfy required aspect-aware input",
+        "wrong receipt family and wrong authority deny before family selection"
+      ],
+      "instructions": "Freeze admitted conflict input as the only legal entry to conflict routing. Preserve the same no-folklore admission posture already enforced by existing consumed-workload handoff boundaries.",
+      "qa_focus": "Admission purity, zero raw/broad/caller-owned scan fallback, exact stage-index binding, and denial before planning.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test hardening: add spatial fallback and wrong-authority denials, positive topology replay proof, and an admitted-only public-boundary fence"
+        ],
+        "done": [
+          "phase 4 closed; acceptance reran clean, with structural debt left explicit in preexisting topo/spatial authority and declaration sinks"
+        ],
+        "remaining": [
+          "split conflict-family matching out of topo touched_closure into planner/catalog-owned lowering",
+          "split spatial authority/declaration matching helpers into phase-owned conflict selection surfaces"
+        ],
+        "findings": [
+          "code-quality: topo touched_closure still mixes authority with conflict-family matching",
+          "code-quality: spatial touch authority still embeds conflict-family selection helpers",
+          "code-quality: evidence lookup declaration still acts as a declaration-plus-matching sink"
+        ],
+        "verification": [
+          "cargo check -p worth-kernel -p worth-topo -p worth-spatial | exit 0 | tail: warning worth-spatial lib generated 2 warnings; Finished dev profile target(s) in 0.47s",
+          "cargo test -p worth-kernel conflict_input | exit 0 | tail: ui filtered 10; test result ok; 0 failed",
+          "cargo test -p worth-kernel --test ui kernel_public_boundary_rejects_internal_constructor_bypass | exit 0 | tail: 1 passed; 0 failed; finished in 80.24s",
+          "cargo test -p worth-topo touched_graph_conflict | exit 0 | tail: touched_graph_conflict_validator_identity filtered 2; test result ok; 0 failed",
+          "cargo test -p worth-spatial touched_graph_conflict | exit 0 | tail: ui filtered 3; test result ok; 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Selected Conflict Plan Lowering",
+      "owner": "worth-topo, worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "selected conflict plans lower admitted inputs plus family catalogs into stable plan identity",
+        "unrelated families remain unselected and missing proof denies before execution",
+        "plan identity reflects shared-contract overlap classes and prior-proof posture rather than command labels or execution order",
+        "public explanation or downstream proof binds to Query-owned envelope or projection-consumption categories rather than payload archaeology"
+      ],
+      "instructions": "Lower admitted conflict inputs through the family catalogs into selected conflict plans before any batch or serialization decision executes. Execution may not rediscover family applicability or overlap class.",
+      "qa_focus": "Planner-owned lowering, deterministic plan identity, no execution-side rediscovery, and honest Query-owned explanation surfaces.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test hardening: prove equivalent-catalog order independence and selected-row explanation fields"
+        ],
+        "done": [
+          "phase 5 closed; acceptance reran clean, with residual selector ownership debt left explicit"
+        ],
+        "remaining": [
+          "delete or relocate dead selector logic from topo touched_closure, topo/spatial catalogs, spatial authority, and evidence-lookup declaration in a later cleanup phase"
+        ],
+        "findings": [
+          "code-quality: demoted topo/spatial selector helpers still live on authority and catalog surfaces"
+        ],
+        "verification": [
+          "cargo check -p worth-kernel -p worth-topo -p worth-spatial | exit 0 | tail: warning worth-spatial lib generated 10 warnings; Finished dev profile target(s) in 0.41s",
+          "cargo test -p worth-kernel conflict_plan | exit 0 | tail: test result ok; compile_fail_contracts runner launched after filtered conflict_plan pass",
+          "cargo test -p worth-kernel --test ui kernel_public_boundary_rejects_internal_constructor_bypass | exit 0 | tail: 1 passed; 0 failed; finished in 100.42s",
+          "cargo test -p worth-topo touched_graph_conflict | exit 0 | tail: touched_graph_conflict validator lane completed with 0 failed",
+          "cargo test -p worth-spatial touched_graph_conflict | exit 0 | tail: touched_graph_conflict compile-fail lane completed with 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Independence Proof Product",
+      "owner": "worth-topo, worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "independence is a typed proof product rather than absence-of-conflict folklore",
+        "proof variants distinguish disjointness, compatible aspect overlap, serializable-only overlap, and denial",
+        "execution success without explicit independence proof cannot satisfy batch admission",
+        "compatible aspect overlap remains distinct from fully disjoint locality"
+      ],
+      "instructions": "Freeze independence as positive proof that overlap is either disjoint or declared compatible. Do not let lock acquisition or execution success substitute for proof.",
+      "qa_focus": "Positive proof shape, explicit variants, no execution-fabricated independence, and no collapse of compatible overlap into disjointness.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "owner-backed posture test catalogs, selected-plan-denied tests, pair-order digest canonicality, rerun focused independence proof"
+        ],
+        "done": [
+          "phase 6 closed; proof product and hardened verification hold"
+        ],
+        "remaining": [
+          "later cleanup: split or rename common.rs into predictive proof-identity/disposition ownership"
+        ],
+        "findings": [
+          "code-quality: common.rs is a bucket name for shared proof identity/disposition authority"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel conflict_independence | exit 0 | tail: test result ok, 12 passed, 0 failed",
+          "cargo check -p worth-kernel -p worth-topo -p worth-spatial | exit 0 | tail: Finished dev profile target(s)"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Batch-Admission Family Catalog",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "batch-admission family catalog exists beside old batching and serialization shortcuts",
+        "family declarations consume only the shared conflict-routing contract plus prior proof products",
+        "declared-once tests prove one batch family can serve multiple grouped consumers without caller-local wiring",
+        "kernel does not invent a kernel-native overlap language while lowering grouped posture"
+      ],
+      "instructions": "Build kernel-owned batch-admission families as orchestration consumers of the shared routing contract, not as a second semantic authority lane.",
+      "qa_focus": "Kernel as consumer/orchestrator, no caller-authored compatibility lists, no kernel-local overlap ontology, and explicit serialization posture variants.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "harden tests with current-owner lanes, triad coverage, advisory serial, and selected-plan-denied proof"
+        ],
+        "done": [
+          "code-quality review clean for batch-admission subtree"
+        ],
+        "remaining": [],
+        "findings": [
+          "tests still rely on custom owner closeouts and miss triad coverage, advisory serial, and selected-plan-denied proof"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel workload_composition::batch_admission::tests --lib | exit 0 | test result: ok. 11 passed; 0 failed",
+          "cargo check -p worth-kernel | exit 0 | Finished dev profile [unoptimized + debuginfo] target(s)"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Selected Batch-Admission Plan",
+      "owner": "worth-kernel",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition"
+      ],
+      "acceptance": [
+        "selected batch-admission plans lower selected conflict plans plus independence proofs into grouped execution posture",
+        "ParallelAdmit requires explicit independence proof and serial-only overlap cannot upgrade to parallel",
+        "plan identity binds exact participants, selected posture, and supporting conflict-family rows",
+        "executors cannot choose grouped admission posture after planning"
+      ],
+      "instructions": "Lower selected conflict plans and independence proofs into selected batch-admission plans before grouped execution begins. Do not hide serialization fallback inside executor policy.",
+      "qa_focus": "Planner-owned grouped posture, deterministic batch-plan identity, no speculative lock-driven admission, and explicit participant binding.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace synthetic serial/denied owner-lane tests with real topology-owner proofs or add a narrow owner-backed seam",
+          "strengthen triad edge identity assertions and add grouped-input denial tests for self-bound and out-of-group proofs"
+        ],
+        "done": [
+          "phase 8 closed with honest test hardening and batch-admission module split under the workspace line cap"
+        ],
+        "remaining": [
+          "split proof summary/family selection out of batch_admission/plan_lowering.rs",
+          "move supporting conflict-family row projection out of batch_admission/grouped_input.rs into plan-owned lowering shape"
+        ],
+        "findings": [
+          "code-quality: plan_lowering.rs still mixes lowering, proof summarization, family matching, and denial/advisory policy",
+          "code-quality: grouped_input.rs still owns selected-plan support-row projection instead of only grouped-input admission"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel <5 targeted batch_admission filters>; exit 0; tail: selected_plan_denial_is_preserved_in_batch_plan_denial_kind ok",
+          "cargo check -p worth-kernel; exit 0; tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.28s"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Batch-Admission Execution Receipt",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "execution receipt binds selected conflict plan identity, independence-proof identity, selected batch-plan identity, and participant identities",
+        "receipt exposes semantic breadth counters modeled with the same rigor as CoplanarOverlapOperatorReceipt",
+        "execution success cannot be fabricated without a selected batch-admission plan",
+        "WorthWorkload consumers accept the execution receipt as a first-class evidence stage"
+      ],
+      "instructions": "Freeze execution as a typed receipt-bearing product rather than ending the milestone at selected plans. Counters must be semantic, not generic.",
+      "qa_focus": "Real execution receipt product, semantic breadth counters, no boolean success collapse, and first-class workload evidence consumption.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test hardening: exact receipt row/advisory-denial binding, hostile denial counters, and a public-boundary constructor fence"
+        ],
+        "done": [
+          "phase 9 closed; receipt authority and hardened proof hold, with two structural debt markers left explicit"
+        ],
+        "remaining": [
+          "either remove BatchAdmissionExecution from generic spatial stage authority or bind it uniformly through a receipt-derived ledger path",
+          "collapse duplicate selected-conflict-plan identity storage or introduce a truly distinct participant concept"
+        ],
+        "findings": [
+          "code-quality: batch execution still has a split kernel-receipt vs global-stage ownership story",
+          "code-quality: execution receipt stores selected conflict plan ids as duplicated participant state"
+        ],
+        "verification": [
+          "cargo check -p worth-kernel -p worth-spatial | exit 0 | tail: worth-topo generated 10 warnings; worth-spatial generated 10 warnings; Finished dev profile target(s)",
+          "cargo test -p worth-kernel execution_receipt_binds_selected_batch_plan_and_independence_proof_chain -- --nocapture | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel declared_denied_execution_receipt_preserves_exact_denial_and_counters -- --nocapture | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel worth_workload_accepts_batch_admission_execution_as_first_class_stage -- --nocapture | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel kernel_public_boundary_rejects_batch_admission_execution_receipt_constructor_bypass -- --nocapture | exit 0 | tail: lib/ui constructor fence passed"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "First Vertical Migration Slice",
+      "owner": "worth-kernel with one real ordinary consumer",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "one real ordinary grouped-operation slice migrates through admitted input, selected conflict plan, independence proof, selected batch plan, and execution receipt",
+        "the migrated slice matches or strengthens prior admit/serialize/deny posture",
+        "the old overlap helper cannot satisfy the migrated slice after cutover",
+        "the slice preserves aspect-local distinctions instead of collapsing to entity-only overlap"
+      ],
+      "instructions": "Prove the full chain on one real ordinary slice before broad sweep. Prefer an already-real seed surface such as LookupConsumedWorkloadComposition or CoplanarOverlapWorkloadOperator over a synthetic path.",
+      "qa_focus": "Real consumer choice, full-chain parity proof, no silent adapter fallback, and aspect-local distinction preservation.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test_repair_plan: replace synthetic compatible-aspect fixture with production-owned route, add real legacy parity/mismatch lanes, and keep any unavailable legacy comparison as explicit debt"
+        ],
+        "done": [
+          "code_quality_review: phase10 closes complete/passed; acceptance rerun clean with operator-harness cutover and hardened denial lanes intact"
+        ],
+        "remaining": [
+          "later cleanup: subdivide operator_harness by declaration/run/query/outcome authority",
+          "later cleanup: split conflict_independence/test_support by topology closeouts, spatial closeouts, and replay-boundary fixtures"
+        ],
+        "findings": [
+          "code-quality: operator_harness remains a flat 14-file directory with broad query/support buckets",
+          "code-quality: conflict_independence/test_support.rs still acts as a mixed topology-spatial boundary fixture sink"
+        ],
+        "verification": [
+          "cargo check -p worth-kernel --tests | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 4.04s",
+          "cargo test -p worth-kernel migrated_coplanar_overlap_slice_executes_through_real_batch_execution_chain | exit 0 | tail: test result ok. 1 passed; 0 failed; finished in 179.73s",
+          "cargo test -p worth-kernel legacy_overlap_requirement_cannot_admit_migrated_slice_after_cutover | exit 0 | tail: test result ok. 1 passed; 0 failed; finished in 179.09s",
+          "cargo test -p worth-kernel migrated_slice_strengthens_old_parallel_posture_to_denied_without_proof | exit 0 | tail: test result ok. 1 passed; 0 failed; finished in 178.73s",
+          "cargo test -p worth-kernel migrated_slice_preserves_spatial_aspect_local_distinctions | exit 0 | tail: test result ok. 1 passed; 0 failed; finished in 0.46s",
+          "cargo test -p worth-kernel migrated_slice_rejects_mismatched_batch_execution_receipt | exit 0 | tail: test result ok. 1 passed; 0 failed; finished in 179.02s"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "Ordinary Consumer Sweep And Parallel Cutover",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "every covered ordinary conflict and batch-admission consumer routes through selected plans and execution receipts or is explicitly capped as residue",
+        "ordinary cutover does not revive broad topology scans, broad evidence scans, or executor-side overlap rediscovery",
+        "consumer-cluster cutover batches all terminate at the same selected-plan and execution-receipt authority chain",
+        "residue rows are exact, owned, blocked, and non-authoritative"
+      ],
+      "instructions": "Cut over all covered ordinary consumers through explicit consumer-cluster batches. The authority is already frozen by earlier phases; this phase is broad by consumer count, not by semantics.",
+      "qa_focus": "Real broad cutover, no optional new lane, no generic bridge residue hiding in ordinary paths, and honest consumer-cluster slicing.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace synthetic attachment test path with real attached-workload seam; add positive shared-chain proofs, typed grouped denials, and deleted-wrapper public-boundary proof"
+        ],
+        "done": [
+          "phase 11 closed; ordinary consumer cutover, hardened proofs, and code-quality review completed"
+        ],
+        "remaining": [
+          "later cleanup: move attached-handoff test support behind existing runtime/support ownership instead of core handoff API"
+        ],
+        "findings": [
+          "code-quality: CompletedBooleanSplitHandoff::with_batch_admission_execution is a test-owned seam on a production proof type"
+        ],
+        "verification": [
+          "cargo check -p worth-kernel --tests | exit 0 | tail: warning worth-kernel lib generated 1 warning; Finished dev profile target(s) in 0.36s",
+          "cargo test -p worth-kernel exact ordinary_consumer_sweep proofs (9 ids) | exit 0 | tail: 9 passed across exact ids; typed replay/undo denial and positive chain proofs green",
+          "cargo test -p worth-kernel --lib construction::tests::compile_fail_contracts::kernel_public_boundary_rejects_deleted_ordinary_consumer_wrapper_lane -- --exact | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel phase_eleven_consumer_sweep_rows_are_exact | exit 0 | tail: 1 passed, 0 failed",
+          "cargo test -p worth-kernel phase_eleven_residue_rows_match_worth_workload_consumer_sweep_manifest | exit 0 | tail: 1 passed, 0 failed"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Source Firewalls Constructor Denials And Hard Deletion",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src"
+      ],
+      "acceptance": [
+        "source firewalls reject reintroduction of entity-only overlap helpers, broad scans, lock-first admission, speculative rollback admission, and caller-owned serialization",
+        "compile-fail fixtures reject public construction of conflict-family rows, admitted inputs, selected plans, independence proofs, selected batch plans, and closeout products",
+        "deletion closeout consumes firewall report digests while naming concrete deleted or capped surfaces",
+        "one unofficial second authority lane cannot survive as a generic overlap utility"
+      ],
+      "instructions": "Install the semantic firewalls and delete or cap displaced authority before closeout. Firewall success is not a substitute for deletion.",
+      "qa_focus": "Semantic firewall strength, real hard deletion, compile-fail proof for constructor denial, and no surviving second authority lane.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "test hardening: path-specific firewall cases, concrete closeout row assertions, compile-fail expected-denial checks"
+        ],
+        "done": [
+          "phase 12 closed; acceptance reran clean and structural debt is recorded explicitly"
+        ],
+        "remaining": [
+          "split semantic firewall registry by forbidden-surface family or owned region and remove dead ExactFile lane",
+          "split compile-fail constructor denial lanes into narrower boundary-owned fixture runners"
+        ],
+        "findings": [
+          "code-quality: semantic_source_registry.rs is still an oversized cross-domain registry sink",
+          "code-quality: compile_fail_contracts.rs is still a broad facade-shaped test harness"
+        ],
+        "verification": [
+          "cargo test -p worth-kernel --lib workload_composition::source_firewall::tests::source_firewall_scans_kernel_topo_and_spatial_regions -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 1.34s",
+          "cargo test -p worth-kernel --lib workload_composition::source_firewall::tests::source_firewall_rejects_registered_overlap_and_scan_relapse -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 1.00s",
+          "cargo test -p worth-kernel --lib workload_composition::deletion_closeout::tests::deletion_closeout_binds_firewall_report_to_named_phase_twelve_rows -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 2.45s",
+          "cargo test -p worth-kernel --lib workload_composition::deletion_closeout::tests::deletion_closeout_rejects_source_firewall_relapse -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 1.97s",
+          "cargo test -p worth-kernel --lib construction::tests::compile_fail_contracts::kernel_public_boundary_rejects_touched_graph_conflict_constructor_bypass -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 9.08s"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Public Closeout And Milestone 14 Seed",
+      "owner": "worth-kernel, worth-topo, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src",
+        "crates/worth-topo/src",
+        "crates/worth-spatial/src",
+        "_docs/worth/touched-graph-roadmap.md"
+      ],
+      "acceptance": [
+        "final closeout fails if any covered ordinary consumer still depends on old conflict or serialization authority",
+        "closeout digests bind the full chain from touched or spatial authority through selected conflict plan, independence proof, selected batch plan, execution receipt, residue, and firewall proof",
+        "Milestone 14 seed carries enough overlap, independence, and batch-admission identity to start cache/equivalence work without rediscovery",
+        "public closeout consumes proof products only and does not rely on diagnostics strings or local reports"
+      ],
+      "instructions": "Publish Milestone 13 only after ordinary consumers route through the new proof chain, old authority is deleted or capped, and the Milestone 14 seed is real enough to avoid overlap rediscovery.",
+      "qa_focus": "Closeout honesty, full authority-chain binding, real Milestone 14 seed identity, and zero fallback to local report strings or helper semantics.",
+      "status": "complete",
+      "qa_status": "passed",
+      "notes": {
+        "plan": [
+          "replace synthetic closeout denial test with nearest-boundary adversarial lane plus minimal proof-owned override seam",
+          "add direct replay-undo boundary proof mismatch tests for stage and lookup parity using narrow current-proof support",
+          "add touched-graph public-closeout mismatch rejection test proving foreign replay-undo identities cannot publish or seed"
+        ],
+        "done": [
+          "hardened closeout denial, replay-undo parity, and foreign-proof rejection test lanes",
+          "code-quality review completed; phase closes with explicit structural debt left visible"
+        ],
+        "findings": [
+          "test_review: closeout denial test still uses synthetic residue/input assembly instead of the nearest real closeout boundary",
+          "test_review: no hostile denial lane directly pressures replay/undo packet stage/lookup parity in current replay-undo boundary proof",
+          "test_review: phase-13 closeout/seed tests prove propagation but not foreign-proof mismatch rejection at the touched-graph closeout surface",
+          "code-quality: public_closeout.rs still mixes public API, current assembly, and proof-chain policing",
+          "code-quality: current_cutover.rs still mixes published cutover artifact with inventory lowering/binding policy",
+          "code-quality: ordinary_consumer_sweep remains a flat multi-responsibility directory over 10 files",
+          "code-quality: replay-undo route authority still carries audit metadata fields that do not belong to route proof ownership"
+        ],
+        "verification": [
+          "cargo check, focused phase-13 tests, compile-fail fence, and runner validation passed",
+          "cargo check -p worth-kernel | exit 0 | tail: Finished dev profile [unoptimized + debuginfo] target(s) in 0.69s",
+          "cargo test -p worth-kernel --lib workload_composition::public_closeout::tests -- --nocapture | exit 0 | tail: 4 passed; 0 failed; finished in 75.51s",
+          "cargo test -p worth-kernel --lib workload_composition::worth_workload::ordinary_consumer_sweep::current_cutover_tests -- --nocapture | exit 0 | tail: 2 passed; 0 failed; finished in 17.33s",
+          "cargo test -p worth-kernel kernel_public_boundary_rejects_touched_graph_conflict_constructor_bypass -- --exact | exit 0 | tail: 1 passed; 0 failed; finished in 12.84s"
+        ],
+        "remaining": [
+          "split public closeout assembly/proof enforcement from the exported closeout surface",
+          "split ordinary-consumer cutover lowering from the published cutover artifact and subdivide ordinary_consumer_sweep",
+          "separate replay-undo route proof from inventory/firewall audit metadata"
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-06-29T01:10:57.881462+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:11:27.891564+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:12:57.023514+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:13:27.035290+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:18:15.916319+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:18:45.937002+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "StateValidationFailure: validation error: project.context_files entry does not exist: C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worktree_2\\crates\\worth-kernel\\src\\workload_composition\\worth_workload\\lookup_consumed_workload.rs",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-28T19:19:15.111447",
+      "phase": 12,
+      "turn": "review",
+      "kind": "recovery",
+      "summary": "updated stale context_files path for lookup_consumed_workload.rs to lookup_consumed_workload/mod.rs after module-directory split"
+    },
+    {
+      "at": "2026-06-28T19:19:28.426038",
+      "phase": 12,
+      "turn": "review",
+      "kind": "recovery_validation",
+      "summary": "python automation\\phase_runner\\runner.py automation\\phase_runner\\worth-touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.json --validate -> exit 0; state file is valid"
+    },
+    {
+      "at": "2026-06-29T01:19:36.464461+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:19:36.464461+00:00",
+      "event": "runner_recovery_succeeded",
+      "detail": "codex recovery completed",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:20:06.476574+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:22:12.848241+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:22:42.857747+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:28:50.427954+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:29:20.441093+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:30:29.780671+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:30:59.792078+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:35:44.690278+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:36:14.699935+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "timestamp": "2026-06-28T19:43:34.5979379-06:00",
+      "phase": 12,
+      "turn": "review",
+      "kind": "qa",
+      "summary": "phase 12 regressed: owned files still hide private helper relapse"
+    },
+    {
+      "at": "2026-06-29T01:43:55.606135+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:44:25.620497+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:50:36.093234+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:51:06.103964+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T01:52:06.521902+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T01:52:36.533328+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:00:55.615902+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:01:25.629131+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:03:31.665776+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:04:01.677151+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-28T20:09:37.8628756-06:00",
+      "phase": 12,
+      "turn": "repair",
+      "note": "phase-12 repair restored exact private trait-method ownership rows; focused proof clean"
+    },
+    {
+      "at": "2026-06-29T02:10:03.038417+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:10:33.049483+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-28T20:12:34.8433162-06:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "phase-12 review passed; focused firewall, deletion-closeout, and constructor-denial proofs clean"
+    },
+    {
+      "at": "2026-06-29T02:12:48.033503+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:13:18.052176+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-28T20:17:19",
+      "phase": 12,
+      "turn": "test_review",
+      "note": "qa-tests found synthetic firewall/closeout proof and weak compile-fail reason checks"
+    },
+    {
+      "at": "2026-06-29T02:17:47.007602+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:18:17.026007+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:19:05.672059+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:19:35.687625+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:28:16.507887+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:28:46.519141+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:29:41.478661+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:30:11.490199+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:30:55.035488+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:31:25.052175+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 12 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:33:55.110930+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 12 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:34:25.128758+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:36:27.023274+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:36:57.041742+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:58:22.633177+00:00",
+      "event": "runner_state_normalized",
+      "detail": "normalized malformed state buckets before validation",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T02:58:49.926936+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T02:59:19.935684+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T03:02:31.328757+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T03:03:01.339663+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T03:22:40.025493+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T03:23:10.045748+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T03:25:58.574330+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T03:26:28.591809+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:00:46.625564+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:01:16.638499+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:03:25.087815+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:03:55.098058+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:12:44.222016+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:13:14.232463+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:14:58.140995+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:15:28.153856+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:26:13.389711+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:26:43.401983+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:29:39.757661+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:30:09.770485+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:38:21.519653+00:00",
+      "event": "runner_state_normalized",
+      "detail": "normalized malformed state buckets before validation",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:38:37.469489+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:39:07.480939+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:40:04.476374+00:00",
+      "event": "runner_state_normalized",
+      "detail": "normalized malformed state buckets before validation",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:40:21.939523+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:40:51.950690+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T04:58:38.484716+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T04:59:08.496766+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T05:02:35.396738+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T05:03:05.407213+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T05:14:00.609946+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T05:14:30.621037+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T05:15:50.340625+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T05:16:20.352680+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T05:43:08.394020+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T05:43:38.405119+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T05:46:08.381044+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T05:46:38.391965+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:01:11.060446+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:01:41.072197+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:04:38.594258+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:05:08.605097+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:15:53.194930+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:16:23.199592+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:18:43.214335+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:19:13.225455+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:37:57.716754+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:38:27.727936+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:40:47.221775+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:41:17.232355+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:46:44.431578+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:47:14.443164+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:50:44.293664+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:51:14.304922+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:54:17.727038+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:54:47.738507+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T06:55:45.986224+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_repair_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T06:56:15.996223+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 test_repair_implement",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T07:29:11.039219+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 test_repair_implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T07:29:41.050408+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T07:30:06.677759+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": 1
+    },
+    {
+      "at": "2026-06-29T07:30:06.686326+00:00",
+      "event": "runner_recovery_requested",
+      "detail": "CodexExitFailure: codex exited with 1",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T07:30:58.753496+00:00",
+      "event": "runner_recovery_validated",
+      "detail": "state validated after codex exit; cursor preserved at phase 13 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T07:31:17.204383+00:00",
+      "event": "codex_turn_completed",
+      "detail": "runner recovery",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T07:31:17.205385+00:00",
+      "event": "runner_recovery_succeeded",
+      "detail": "codex recovery completed",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T07:31:47.216063+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-29T07:35:44.559824+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 code_quality_review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-29T07:36:14.570450+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "runner_history": [
+    {
+      "at": "2026-06-29T02:00:20.680204+00:00",
+      "phase": 12,
+      "turn": "repair",
+      "note": "phase 12 private helper firewall moved to exact owned private surfaces; ready for review"
+    },
+    {
+      "at": "2026-06-29T02:03:09.260051+00:00",
+      "phase": 12,
+      "turn": "review",
+      "note": "phase 12 regressed: private-source registry allows borrowed owned identifiers to bypass semantic firewall"
+    },
+    {
+      "at": "2026-06-29T02:58:12.948365+00:00",
+      "phase": 13,
+      "turn": "implement",
+      "note": "phase 13 public closeout and milestone 14 seed wired to proof-chain digests; ready for review"
+    },
+    {
+      "at": "2026-06-29T03:02:01.440581+00:00",
+      "phase": 13,
+      "turn": "review",
+      "note": "phase 13 regressed: closeout ordinary-dependency denial is synthetic and no production current closeout chain exists"
+    },
+    {
+      "at": "2026-06-28T23:42:40.3134560-06:00",
+      "phase": 13,
+      "turn": "repair",
+      "note": "phase 13 repair replaced synthetic replay-undo topo boundary with current-head local-rewire authority; ready for review"
+    },
+    {
+      "at": "2026-06-28T23:45:40.9551394-06:00",
+      "phase": 13,
+      "turn": "review",
+      "note": "phase 13 regressed: replay-undo topo boundary still derives from seeded sample runtime instead of actual ordinary route authority"
+    },
+    {
+      "at": "2026-06-29T07:30:58.753496+00:00",
+      "phase": 13,
+      "turn": "code_quality_review",
+      "note": "recovery validated state after codex exit; retry code_quality_review"
+    }
+  ],
+  "completed_at": "2026-06-29T07:34:59.228698+00:00"
+}

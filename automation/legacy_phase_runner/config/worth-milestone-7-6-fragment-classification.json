@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth Milestone 7.6 Fragment Classification",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/milestone-7.6.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth/milestone-7-roadmap.md",
+      "_docs/worth/milestone-7.4.md",
+      "_docs/worth/milestone-7.5.md",
+      "_docs/worth/milestone-7.6.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
+      "_docs/worth_topo/operators-list.md",
+      "_docs/worth_topo/validators.md",
+      "crates/forge-query/docs/AI_README.md",
+      "crates/forge-query/docs/foundations/consumer-kit.md",
+      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/forge-query/docs/foundations/downstream-runtime-integration.md"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_worth_geometry.md",
+    "repair": "templates/repair_worth_geometry.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_worth_geometry.md",
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "reuse_session": true,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "turn_timeout_seconds": 14400,
+    "idle_timeout_seconds": 1800
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Fragment Classification Request Boundary",
+      "owner": "worth-kernel, worth-spatial, Forge Query",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction"
+      ],
+      "acceptance": [
+        "the only 7.6 entry path consumes PlanarBooleanOverlapRegionLedgerReceipt plus an admitted operation profile",
+        "PlanarBooleanFragmentClassificationRequest carries operation profile identity and semantic-graph carry-forward proof",
+        "raw fragments, raw loops, copied overlap rows, untyped operation strings, and unproven carry-forward fail before subject recovery"
+      ],
+      "instructions": "Implement Phase 1 from the 7.6 spec as the request-boundary lane. Start by rereading the spec, the 7.5 overlap ledger surfaces, the touched-graph roadmap, operators-list.md, validators.md, and Forge Query AI_README.",
+      "qa_focus": "No raw-geometry request construction, no copied route summaries, no list-order subtraction direction, and no classification-local semantic graph proof."
+    },
+    {
+      "id": 2,
+      "title": "Classification Catalog Operator Binding",
+      "owner": "worth-spatial, worth-topo, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/operator_surface",
+        "crates/worth-topo/src/topology_operators",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "existing boolean classification catalog operators map to exactly one 7.6 classification class",
+        "new milestone-scoped proof operators are subordinate to the public catalog operator families",
+        "classification-affecting operators without catalog binding fail closeout certification"
+      ],
+      "instructions": "Bind existing catalog operators to the milestone-specific proof products before any classification helpers spread across crates.",
+      "qa_focus": "No unnamed classify/filter/apply_boolean_rule helpers and no second public classifier vocabulary."
+    },
+    {
+      "id": 3,
+      "title": "Classification Registered Family And Validator Routing",
+      "owner": "worth-spatial, worth-topo, worth-kernel, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/registered_family",
+        "crates/worth-topo/src/topology_operators",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "one registered family binding routes validators, diagnostics, replay, evidence, and ambiguity posture",
+        "the binding consumes inherited touched graph proof and overlap-product proof",
+        "operator-local validator, diagnostic, replay, evidence, or ambiguity lists fail closeout certification"
+      ],
+      "instructions": "Make validator routing part of the ordinary classification architecture before operation semantics are implemented.",
+      "qa_focus": "No deferred validator registration, no local lists, and no registered-family bypass."
+    },
+    {
+      "id": 4,
+      "title": "Classification Fragment Subject Recovery",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/subject_recovery",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/ledger",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "PlanarBooleanClassificationFragmentUniverseReceipt is recovered only from the 7.5 overlap ledger receipt",
+        "subject set, subject-kind map, provenance map, and overlap binding include non-overlap and overlap-adjacent subjects",
+        "dangling, foreign, duplicated, incomplete, or overlap-ledger-unbacked subjects deny before support-field construction"
+      ],
+      "instructions": "Recover the full classification universe from ledger authority, including A-only, B-only, containment-only, disjoint, untouched, hole-boundary, and overlap-adjacent subjects.",
+      "qa_focus": "No subject discovery by raw split fragments, loop walks, arrangement cells, overlap chains, or pairwise scans."
+    },
+    {
+      "id": 5,
+      "title": "Classification Support Field Construction",
+      "owner": "worth-spatial, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/support_field",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction",
+        "crates/forge-query"
+      ],
+      "acceptance": [
+        "support field and predicate authority are rebuildable from overlap-ledger and projection-consumption proof",
+        "support counters expose subjects, inherited overlap products, projection receipts, and missing-support denials",
+        "raw arrangement cells, local point-in-polygon helpers, direct materialization reads, and local tolerance choices fail public-contract proof"
+      ],
+      "instructions": "Build support as derived state with inherited predicate authority, not as a new geometry authority.",
+      "qa_focus": "No coordinate recomputation, no new epsilon model, and no bridge-only materialization reads."
+    },
+    {
+      "id": 6,
+      "title": "Boundary Posture Classification",
+      "owner": "worth-spatial, worth-topo",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/boundary_posture",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "boundary-only, shared-boundary, mixed boundary/area, source operand, overlap-region link, and denial posture remain typed",
+        "boundary posture is stable across replay and reversed source-edge sense where semantics permit",
+        "area membership claims from boundary-only overlap outcomes deny before operation-rule lowering"
+      ],
+      "instructions": "Classify boundary posture before inside/outside membership or operation-specific keep/discard rules can consume it.",
+      "qa_focus": "No on_boundary boolean, no boundary-only-to-area promotion, and no generic boundary failure bucket."
+    },
+    {
+      "id": 7,
+      "title": "Operand Membership Classification",
+      "owner": "worth-spatial, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/operand_membership",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "membership outcomes are operand-local, operation-neutral, and support-field-backed",
+        "inside, outside, boundary, overlap-interior, overlap-boundary, ambiguous, and unsupported remain distinct",
+        "raw coordinate tests, missing support evidence, and contradictory membership deny before overlap classification"
+      ],
+      "instructions": "Classify each subject relative to each operand without executing operation semantics or subtraction direction.",
+      "qa_focus": "No point-in-polygon reruns as the ordinary path and no binary membership truth value."
+    },
+    {
+      "id": 8,
+      "title": "Coplanar Overlap Fragment Classification",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/overlap_fragment",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction"
+      ],
+      "acceptance": [
+        "overlap fragments classify separately from ordinary non-overlap fragments",
+        "shared-area, boundary-only, mixed boundary/area, and opposite-sense outcomes are stable across replay",
+        "missing or inconsistent inherited region, winding, or mixed-boundary/area evidence denies before keep/discard assignment"
+      ],
+      "instructions": "Preserve overlap-region truth from 7.5 as operation-neutral classification facts.",
+      "qa_focus": "No treating overlap fragments as ordinary inside/outside rows with metadata and no lost opposite-sense normalization."
+    },
+    {
+      "id": 9,
+      "title": "Boolean Operation Rule Lowering",
+      "owner": "worth-spatial, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/rule_lowering",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/operator_surface"
+      ],
+      "acceptance": [
+        "union, intersection, and subtraction lower into one explicit operation rule plan",
+        "rule plans trace to catalog keep/discard and ambiguity operators",
+        "missing operation profile, swapped subtraction authority, unsupported operations, boolean-only plans, and catalog bypasses deny"
+      ],
+      "instructions": "Lower operation semantics into a rule plan before terminal classification executes.",
+      "qa_focus": "No scattered executor conditionals, no vector-position subtraction direction, and no untraceable keep/discard strategy."
+    },
+    {
+      "id": 10,
+      "title": "Terminal Classification And Result Contribution Assignment",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/terminal_outcome",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/contribution",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "every admitted subject receives exactly one terminal outcome or typed localized denial",
+        "result contribution carries result side, orientation action, source role, operation role, boundary preservation, and downstream assembly posture",
+        "unclassified subjects, duplicate terminal rows, missing contribution sense, hidden operation branching, and boundary-only-to-area promotion deny before ambiguity classification"
+      ],
+      "instructions": "Execute the lowered rule plan and assign terminal outcome plus result contribution posture for every admitted subject.",
+      "qa_focus": "No orphaned subjects, no final face identity, no implicit orientation, and no keep/discard rows without contribution semantics."
+    },
+    {
+      "id": 11,
+      "title": "Ambiguity Classification",
+      "owner": "worth-spatial, worth-topo",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/ambiguity",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "ambiguous outcomes are explicit terminal-classification products routed through the catalog ambiguity operator",
+        "ambiguity localization names missing support, conflicting evidence, unsupported contact, or operation-policy pressure",
+        "ambiguous rows cannot masquerade as kept, discarded, denied, or policy-exited rows"
+      ],
+      "instructions": "Model ambiguity as a first-class terminal posture instead of a catch-all failure or diagnostic note.",
+      "qa_focus": "No silent fallback to discard, no diagnostics-only ambiguity, and no ambiguity path outside registered-family routing."
+    },
+    {
+      "id": 12,
+      "title": "Policy-Required Exit And Recovery Posture",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/policy_exit",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "policy exits are typed terminal outcomes distinct from ambiguity and local denial",
+        "exit rows carry recovery posture, unsupported-operation reason, and downstream handoff impact",
+        "unsupported policy paths cannot be hidden as discard, ambiguity, or successful keep rows"
+      ],
+      "instructions": "Separate policy-required exits from ambiguous or locally denied classifications before ordering and counters.",
+      "qa_focus": "No generic unsupported bucket, no lost recovery posture, and no policy exit that still contributes to result geometry."
+    },
+    {
+      "id": 13,
+      "title": "Deterministic Classification Ordering",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/ordering"
+      ],
+      "acceptance": [
+        "classification ordering basis is stable across replay, benign input ordering, and hash-map variation",
+        "ordering consumes typed subject, overlap, rule, terminal, contribution, ambiguity, and policy-exit products",
+        "missing tie-breakers, unstable ordering, and hash-dependent traversal fail before identity minting"
+      ],
+      "instructions": "Make deterministic ordering a proof product consumed by identity and ledger assembly.",
+      "qa_focus": "No formatting-only ordering, no incidental map iteration order, and no order-dependent identities."
+    },
+    {
+      "id": 14,
+      "title": "Classification Counters And Complexity Proof",
+      "owner": "worth-spatial, worth-kernel",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/counters",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "classification counters cover subjects, overlap bindings, support rows, posture rows, membership rows, rules, kept, discarded, ambiguous, policy exits, and denials",
+        "the production-confidence path proves O(S + R + P + M + B + O)",
+        "raw-loop, raw-edge, repeated containment, and pairwise rediscovery shapes fail complexity proof"
+      ],
+      "instructions": "Freeze visible cost accounting after deterministic ordering is stable.",
+      "qa_focus": "No elapsed-time-only performance proof and no broad scans hidden behind certification."
+    },
+    {
+      "id": 15,
+      "title": "Classified Fragment Identity",
+      "owner": "worth-spatial, worth-topo, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/identity",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "classified-fragment identities, persistent names, subshape signatures, and naming seeds derive from terminal proof, ordering, and counters",
+        "naming seeds carry source role, operation role, result side, orientation action, subject kind, source loop, overlap-region, and containment-only provenance",
+        "duplicate identities, dangling names, unsupported naming seeds, and raw keep/discard identity rows deny before handoff construction"
+      ],
+      "instructions": "Mint classified-fragment identity without widening into final face, hole, shell, body, or topology conflict identity.",
+      "qa_focus": "No final face naming semantics and no identity from raw rows without terminal posture proof."
+    },
+    {
+      "id": 16,
+      "title": "Face Assembly Input Handoff",
+      "owner": "worth-spatial, worth-topo",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/face_assembly_handoff",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "PlanarBooleanFaceAssemblyInputHandoff carries terminal posture, contribution, identity, naming, ambiguity, and policy-exit products",
+        "the handoff is a prepared spatial product and not a topology mutation",
+        "missing identity, terminal posture, or policy-exit rows deny before ledger assembly"
+      ],
+      "instructions": "Prepare the only raw handoff product 7.7 may receive, while reserving authority for the later ledger receipt.",
+      "qa_focus": "No raw keep/discard inspection by face assembly and no final face, hole, shell, body, or conflict decisions."
+    },
+    {
+      "id": 17,
+      "title": "Classification Decision Log And Ledger Assembly",
+      "owner": "worth-spatial, worth-kernel, Forge Query",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/ledger",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "one decision log records every typed branch and downstream-visible classification outcome",
+        "PlanarBooleanFragmentClassificationLedgerReceipt is the only downstream authority accepted by 7.7",
+        "PlanarBooleanFaceAssemblyInputHandoffReceipt is minted by ledger assembly and preserves unified route, family, product, witness, Query posture, residue, source-firewall, and architecture-claim identity"
+      ],
+      "instructions": "Assemble the canonical classification decision log, ledger, ledger receipt, and face-assembly handoff receipt from prior proof products only.",
+      "qa_focus": "No summarized rows, no diagnostic-richness identity drift, no locally derived route identity, and no raw handoff authority."
+    },
+    {
+      "id": 18,
+      "title": "Workload Evidence And Stage Requirement",
+      "owner": "worth-kernel, worth-spatial, worth-topo",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/evidence",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "fragment classification has its own evidence receipt and workload-stage requirement",
+        "evidence proves overlap receipt, semantic-graph carry-forward, registered family binding, operation profile, operator matrix, validator plan, and classification ledger receipt participated",
+        "synthetic evidence, manual keep/discard rows, copied labels, bypassed overlap proof, and local route summaries fail stage requirement"
+      ],
+      "instructions": "Make classification a real workload stage with typed evidence instead of piggy-backing on overlap evidence.",
+      "qa_focus": "No evidence that proves only execution and no evidence-as-validator substitute."
+    },
+    {
+      "id": 19,
+      "title": "Replay And Checkpoint Parity",
+      "owner": "worth-kernel, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/replay"
+      ],
+      "acceptance": [
+        "classification replay and checkpoint receipts preserve ledger, keep/discard, ambiguity, identity, naming, handoff, semantic-graph carry-forward, and registered family binding",
+        "replay consumes the classification ledger instead of reconstructing from raw fragments",
+        "raw loops, raw scans, bypassed overlap proof, local summaries, and serialized-row-only replay fail parity"
+      ],
+      "instructions": "Prove the canonical classification ledger is replay-safe and checkpoint-safe.",
+      "qa_focus": "No replay success if any classification, identity, naming, handoff, or family-binding truth drifts."
+    },
+    {
+      "id": 20,
+      "title": "Public Contract And Anti-Theatre Fences",
+      "owner": "worth-kernel, worth-spatial, worth-topo",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/public_contracts",
+        "crates/worth-topo/src/topology_operators"
+      ],
+      "acceptance": [
+        "public contracts expose receipts and proof status without public authority constructors",
+        "anti-theatre proof admits the real workload-backed classification receipt chain and rejects forged products",
+        "synthetic ledgers, raw fragment keep/discard rows, raw overlap rows, copied selected-route digests, local support summaries, and pseudo-Query proof fail compile-fail/source-firewall proof"
+      ],
+      "instructions": "Fence the classification lane against forged products, bypassed ledgers, and local pseudo-Query proof before closeout.",
+      "qa_focus": "No optional source-firewall proof and no public bypass constructor."
+    },
+    {
+      "id": 21,
+      "title": "Summum Bonum Closeout Certification",
+      "owner": "worth-kernel, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/closeout",
+        "_docs/worth/milestone-7.6.md"
+      ],
+      "acceptance": [
+        "planar_boolean_fragment_classification_metaboss_preserves_operation_truth_across_coplanar_overlap_boundary_and_subtraction_pressure is the summum bonum closeout",
+        "the metaboss proves stable request digest, operation-rule plan digest, classification-ledger digest, keep/discard outcomes, ambiguity outcomes, classified identities, and assembly handoff across replay, ordering variation, and checkpoint consumption",
+        "boundary-only-to-area promotion, reversed subtraction roles, mixed-overlap collapse, ambiguity bypass, raw-fragment overlap bypass, and classification-local route lanes deny with typed localization"
+      ],
+      "instructions": "Run the hostile closeout program and do not close 7.6 unless the unified touched-graph route chain remains sufficient and the catalog operators remain the public semantic lane.",
+      "qa_focus": "No synthetic closeout rows, no local helper fixtures as primary proof, no reopened touched graph/Query/split/loop/overlap work, and no second classifier."
+    }
+  ]
+}

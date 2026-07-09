@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Worth 7.6 Hot Cold Test Architecture Side Quest",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "_docs/worth/worth-fragment-classification-hot-cold-test-architecture-side-quest.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/worth/milestone-7-roadmap.md",
+      "_docs/worth/milestone-7.5.md",
+      "_docs/worth/milestone-7.6.md",
+      "_docs/worth/worth-fragment-classification-hot-cold-test-architecture-side-quest.md",
+      "_docs/worth/touched-graph-roadmap.md",
+      "_docs/worth_topo/operators-list.md",
+      "_docs/worth_topo/validators.md",
+      "crates/forge-query/docs/AI_README.md"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_worth_geometry.md",
+    "repair": "templates/repair_worth_geometry.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_worth_geometry.md",
+  "session_defaults": {
+    "provider": "codex",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.4",
+    "reasoning_effort": "medium",
+    "reuse_session": true,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "turn_timeout_seconds": 14400,
+    "idle_timeout_seconds": 1800,
+    "completion_handoff": {
+      "next_run_id": "worth76",
+      "loop": true,
+      "sleep_seconds": 30,
+      "reason": "side-quest complete; resume milestone 7.6"
+    }
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Shared Retained-Authority Progression Law",
+      "execution_mode": "standard_loop",
+      "owner": "worth-retained-authority, worth-spatial",
+      "scope": [
+        "crates/worth-retained-authority",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/current_authority",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/phase_boundary"
+      ],
+      "acceptance": [
+        "worth-retained-authority owns a real proof-bearing retained-authority lifecycle rather than a wrapper-only vocabulary",
+        "the shared lifecycle runs on forge-proof and covers ordinary current authority, certification current authority, admitted basis-input posture, stale posture, and readmission-required posture",
+        "raw retained artifacts, wrong-lane authorities, and certification-only progression cannot masquerade as ordinary basis-admissible authority"
+      ],
+      "instructions": "Implement Phase 1 from the side-quest spec exactly as written. Overbuild the shared retained-authority substrate first. Build the lifecycle directly on forge-proof. Use forge-foundational only for explicit shared descriptive identity, family, locator, or equivalence vocabulary when that vocabulary is cross-crate and recurring. Do not build a Worth-local mini-proof system, and do not import Query handles or consumer-proof ownership into this crate.",
+      "qa_focus": "No wrapper-only pseudo-substrate, no Query-handle ownership in the shared crate, no local proof-kernel duplication, and no descriptive grab-bag imports passed off as foundational rigor."
+    },
+    {
+      "id": 2,
+      "title": "Overlap Authority First Spatial Specimen",
+      "execution_mode": "standard_loop",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/current_authority",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/phase_boundary"
+      ],
+      "acceptance": [
+        "the phase75 overlap authority family is the first concrete retained-authority specimen using the shared progression",
+        "ordinary and certification current sources are structurally distinct and do not share one blended source home",
+        "the phase75 to phase76 entry basis mints only from admitted retained-authority progression rather than from raw seam or receipt surfaces"
+      ],
+      "instructions": "Implement Phase 2 from the side-quest spec. Make the 7.5 overlap authority family the first concrete retained-authority specimen. Separate ordinary-source ownership, certification-source ownership, progression bridging, and basis admission structurally. This phase is not complete if ordinary current authority still reaches cold owner-seam helpers under the hood.",
+      "qa_focus": "No blended current.rs hiding both lanes, no raw seam or receipt entry into basis minting, and no ordinary source secretly backed by certification reconstruction."
+    },
+    {
+      "id": 3,
+      "title": "Hot Spatial Request-Boundary Cutover",
+      "execution_mode": "standard_loop",
+      "owner": "worth-spatial",
+      "scope": [
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification/request_boundary",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_overlap_region_extraction/phase_boundary"
+      ],
+      "acceptance": [
+        "ordinary request-boundary admission consumes the shared retained-authority progression and carried basis rather than raw overlap receipts or cold support",
+        "hot request-boundary setup lives with the request boundary rather than in a broad overlap extraction support bucket",
+        "ordinary request-boundary tests no longer require selected-witness or readiness reconstruction"
+      ],
+      "instructions": "Implement Phase 3 from the side-quest spec. Cut the spatial request-boundary family over to the hot retained-authority lane. Keep hot support local to the hot boundary and remove any remaining ordinary-looking raw-receipt or cold-path entry shapes.",
+      "qa_focus": "No ordinary request-boundary helper may accept raw overlap receipts, no hot support may import cold support by convenience path, and no generic test_support gravity well may re-form."
+    },
+    {
+      "id": 4,
+      "title": "Representative Kernel Entry Cutover",
+      "execution_mode": "standard_loop",
+      "owner": "worth-kernel, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_overlap_region_extraction"
+      ],
+      "acceptance": [
+        "the timeout-driving representative kernel entry path consumes the spatial ordinary retained-authority specimen rather than rebuilding the owner seam",
+        "kernel no longer owns a local ordinary retained-authority source after the spatial specimen exists",
+        "the representative hot lane preserves parent authority identity while avoiding replay and readiness reconstruction"
+      ],
+      "instructions": "Implement Phase 4 from the side-quest spec. Migrate the representative kernel fragment-classification entry path onto the shared retained-authority lane. Kernel must become a consumer of the spatial specimen, not the author of a local ordinary source.",
+      "qa_focus": "No cached reconstruction disguised as cutover, no kernel-owned ordinary retained authority after spatial adoption, and no representative hot path that still reopens replay or readiness."
+    },
+    {
+      "id": 5,
+      "title": "Cold Certification Lane And Hot/Cold Parity",
+      "execution_mode": "standard_loop",
+      "owner": "worth-kernel, worth-spatial",
+      "scope": [
+        "crates/worth-kernel/src/workload_composition/planar_boolean_overlap_region_extraction",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification"
+      ],
+      "acceptance": [
+        "cold owner-seam support is structurally distinct from hot ordinary support",
+        "representative hot and cold lanes agree on request identity, overlap-ledger lineage, operation profile, subject universe, and downstream entry truth",
+        "the side-quest summum bonum test proves hot-entry parity without reopening runtime on the ordinary path"
+      ],
+      "instructions": "Implement Phase 5 from the side-quest spec. Make the owner seam explicitly cold, then certify parity only on the exact truths 7.6 consumes. Keep parity narrow and certification-shaped.",
+      "qa_focus": "No blended support names, no parity based on ad hoc internal blob comparison, and no cold seam helper that still looks like the default ordinary entry path."
+    },
+    {
+      "id": 6,
+      "title": "Mechanical Guardrails, Counters, And Source Firewalls",
+      "execution_mode": "standard_loop",
+      "owner": "worth-retained-authority, worth-kernel, worth-spatial",
+      "scope": [
+        "crates/worth-retained-authority",
+        "crates/worth-kernel/src/workload_composition/planar_boolean_fragment_classification",
+        "crates/worth-spatial/src/workload_platform/planar_boolean_fragment_classification",
+        "automation/phase_runner"
+      ],
+      "acceptance": [
+        "hot tests cannot import or use cold owner-seam helpers through the ordinary surface",
+        "the representative hot lane exposes structural proof that replay, readiness reconstruction, and owner-seam reconstruction counts stay at zero",
+        "compile-fail and source-firewall proof prevent reintroduction of wrong-lane shortcuts and ordinary reconstructive aliases"
+      ],
+      "instructions": "Implement Phase 6 from the side-quest spec. Turn the new architecture into enforced guardrails with compile-fail proof, source-firewall proof, lane-specific visibility, and structural counters at the hot boundary being optimized.",
+      "qa_focus": "No documentation-only bans, no elapsed-time-only performance claim, and no surviving ordinary reconstructive alias hidden behind hot naming."
+    },
+    {
+      "id": 7,
+      "title": "Thread Test Law Into 7.6 Spec",
+      "execution_mode": "single_prompt",
+      "owner": "_docs/worth",
+      "prompt_template": "templates/single_prompt.md",
+      "contract_template": "templates/_contract_single_prompt_worth_geometry.md",
+      "success_event_type": "single_prompt_completed",
+      "scope": [
+        "_docs/worth/milestone-7.6.md",
+        "_docs/worth/worth-fragment-classification-hot-cold-test-architecture-side-quest.md"
+      ],
+      "acceptance": [
+        "milestone-7.6.md explicitly states that ordinary later-phase 7.6 tests default to the shared retained-authority progression and hot carried-authority lane",
+        "milestone-7.6.md explicitly reserves cold owner-seam reconstruction for seam-certification boundaries only",
+        "future 7.6 phase work inherits the new test setup law without reopening the old fixture pattern"
+      ],
+      "instructions": "This is a doc-threading phase, not a new production implementation lane. Use this phase to update milestone-7.6.md so the shared retained-authority progression and hot/cold testing law become the default setup rule for all later 7.6 phases. Keep the work tightly scoped to the spec language that teaches future phase authors how to set up tests.",
+      "qa_focus": "No generic performance appendix, no reopening roadmap debates, and no vague wording that leaves the old owner-seam fixture pattern or raw retained-artifact shortcuts as acceptable ordinary defaults."
+    }
+  ]
+}

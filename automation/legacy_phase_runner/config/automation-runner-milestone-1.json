@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Automation Runner Milestone 1 — Legacy JSON Execution Lane",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "spec_file": "automation/runner/docs/milestone-1-graph-orchestrated-runner-foundation.md",
+    "context_files": [
+      "AGENTS.md",
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "automation/runner/docs/ROADMAP.md",
+      "automation/runner/docs/milestone-1-graph-orchestrated-runner-foundation.md",
+      "automation/legacy_phase_runner/README.md"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/boundary_review.md",
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract.md",
+  "session_defaults": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.6-terra",
+    "reasoning_effort": "medium",
+    "reuse_session": true,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "phase_id_start": 1,
+    "boundary_review_start_phase": 1,
+    "idle_timeout_seconds": 1800,
+    "turn_timeout_seconds": 14400,
+    "fresh_session_after_qa_repair_cycles": 4
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Canonical Runner Authority",
+      "owner": "automation/runner authority",
+      "scope": ["automation/runner", "automation/phase_runner"],
+      "acceptance": ["Freeze authority, projection, graph runtime, recovery, and operator-signal seams in the new runner without removing this legacy execution lane."],
+      "instructions": "Implement Milestone 1 Phase 1 from the governing runner spec. Keep the legacy JSON runner operational; do not cut over production execution to automation/runner.",
+      "qa_focus": "Reject placeholder topology, authority confusion, and changes that disable the legacy runner."
+    },
+    {
+      "id": 2,
+      "title": "Prompt Authority Library",
+      "owner": "automation/runner prompt library",
+      "scope": ["automation/runner"],
+      "acceptance": ["Separate prompt assets, assemblies, bindings, and runtime instantiations with registry-only admission."],
+      "instructions": "Implement Milestone 1 Phase 2 from the governing runner spec.",
+      "qa_focus": "Reject raw-path binding and collapsed prompt authority."
+    },
+    {
+      "id": 3,
+      "title": "Role Registry And Session Policy",
+      "owner": "automation/runner roles",
+      "scope": ["automation/runner"],
+      "acceptance": ["Keep implementer and reviewer roles distinct from model, session, and prompt policy."],
+      "instructions": "Implement Milestone 1 Phase 3 from the governing runner spec.",
+      "qa_focus": "Reject role proliferation and session policy hidden in prompts."
+    },
+    {
+      "id": 4,
+      "title": "Phase Programs And Prompt Bindings",
+      "owner": "automation/runner phase programs",
+      "scope": ["automation/runner"],
+      "acceptance": ["Lower declared phase programs and bind prompts through named policy rather than ad-hoc conditionals."],
+      "instructions": "Implement Milestone 1 Phase 4 from the governing runner spec.",
+      "qa_focus": "Reject branch-heavy execution policy and unvalidated program bindings."
+    },
+    {
+      "id": 5,
+      "title": "LangGraph Orchestration Graph",
+      "owner": "automation/runner graph runtime",
+      "scope": ["automation/runner"],
+      "acceptance": ["Graph-owned execution, checkpoint continuity, and authority-event append paths are explicit and testable."],
+      "instructions": "Implement Milestone 1 Phase 5 from the governing runner spec.",
+      "qa_focus": "Reject checkpoint-as-authority confusion and imperative orchestration leakage."
+    },
+    {
+      "id": 6,
+      "title": "Recovery, Loop Reset, And Session Cutover",
+      "owner": "automation/runner recovery",
+      "scope": ["automation/runner"],
+      "acceptance": ["Recovery, malformed outcome repair, stale-turn handling, and session reset preserve authoritative event history."],
+      "instructions": "Implement Milestone 1 Phase 6 from the governing runner spec.",
+      "qa_focus": "Reject blind reruns, stale outcome acceptance, and recovery paths that mutate authority incorrectly."
+    },
+    {
+      "id": 7,
+      "title": "Operator Signals And Notification Policy",
+      "owner": "automation/runner operator signals",
+      "scope": ["automation/runner"],
+      "acceptance": ["Operator intervention and notification policy are explicit, scoped, and non-authoritative unless recorded as events."],
+      "instructions": "Implement Milestone 1 Phase 7 from the governing runner spec.",
+      "qa_focus": "Reject notification as control authority and uncontrolled live injection."
+    },
+    {
+      "id": 8,
+      "title": "Consumer Configuration And Runner Generation",
+      "owner": "automation/runner generation",
+      "scope": ["automation/runner"],
+      "acceptance": ["Finish Milestone 1 with consumer configuration and generation boundaries while retaining the validated legacy lane until an explicit cutover gate passes."],
+      "instructions": "Implement Milestone 1 Phase 8 from the governing runner spec. Do not retire automation/legacy_phase_runner in this milestone.",
+      "qa_focus": "Reject a premature cutover, generated compatibility ballast, and source/projection confusion."
+    }
+  ]
+}
