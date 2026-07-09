@@ -1,4 +1,4 @@
-use forge_query::facade::BasisResolutionMode;
+use worth_query::facade::BasisResolutionMode;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 use worth_ui_query_binding::{
     WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,
@@ -148,7 +148,7 @@ pub fn consume_declared_measurement_projection_facts(
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     measurement_policy: &UiDeclaredMeasurementPolicyPosture,
     query_prerequisites: WorthUiQueryPrerequisiteEvidence,
-    consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+    consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
 ) -> Result<UiProjectionFactReceipt, UiProjectionFactReceiptDenial> {
     let dependencies = declared_query_measurement_dependencies(measurement_policy)
         .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;

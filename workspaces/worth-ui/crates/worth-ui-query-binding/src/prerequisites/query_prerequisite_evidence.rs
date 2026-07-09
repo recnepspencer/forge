@@ -1,4 +1,4 @@
-use forge_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
 use super::{
     WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,

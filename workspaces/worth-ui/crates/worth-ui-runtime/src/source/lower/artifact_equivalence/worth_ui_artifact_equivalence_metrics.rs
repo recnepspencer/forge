@@ -19,18 +19,22 @@ impl WorthUiArtifactEquivalenceMetrics {
         self.semantic_payloads_compared += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn modules_compared(&self) -> usize {
         self.modules_compared
     }
 
+    #[cfg(test)]
     pub(crate) fn nodes_compared(&self) -> usize {
         self.nodes_compared
     }
 
+    #[cfg(test)]
     pub(crate) fn semantic_payloads_compared(&self) -> usize {
         self.semantic_payloads_compared
     }
 
+    #[cfg(test)]
     pub(crate) fn broad_scans(&self) -> usize {
         self.broad_scans
     }

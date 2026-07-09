@@ -1,4 +1,4 @@
-﻿//! SUPPORT AUTHORITY â€” runtime-origin touch fixture for certification consumers.
+//! SUPPORT AUTHORITY â€” runtime-origin touch fixture for certification consumers.
 
 use crate::certification_support::layout_admission::snapshot_after_layout_admission_support;
 use crate::certification_support::touch_origin_source::{
@@ -231,7 +231,9 @@ fn honest_planning_for_pending(
     let snapshot = snapshot_after_layout_admission_support(app, &[root]);
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
-        .expect("touch-origin neighborhood admits through measurement basis + layout-admitted graph");
+        .expect(
+            "touch-origin neighborhood admits through measurement basis + layout-admitted graph",
+        );
     runtime.plan_allocation(pending, &basis, &neighborhood)
 }
 
@@ -262,4 +264,3 @@ fn artifact_from_file_provenance<'a>(
         })
         .expect("fixture declaration should exist")
 }
-

@@ -28,9 +28,7 @@ pub use super::certification_entry::{
     plan_handoff_suite, sibling_negotiation_suite, special_input_suite,
 };
 
-pub fn certify_allocation_anti_bypass_boundaries(
-    workspace_root: &Path,
-) -> Result<(), Vec<String>> {
+pub fn certify_allocation_anti_bypass_boundaries(workspace_root: &Path) -> Result<(), Vec<String>> {
     let violations = audit_allocation_planning_anti_bypass_boundaries(workspace_root);
     if violations.is_empty() {
         Ok(())
@@ -45,9 +43,8 @@ mod tests {
         activation_boundary_suite, allocation_inspection_suite, allocation_neighborhood_suite,
         bounded_reconciliation_suite, certify_allocation_anti_bypass_boundaries,
         constraint_edge_suite, durable_resize_input_suite, equal_share_suite,
-        intrinsic_return_flow_suite, NAMED_PLANNING_SUITE_KINDS,
-        parent_child_propagation_suite, plan_handoff_suite, sibling_negotiation_suite,
-        special_input_suite,
+        intrinsic_return_flow_suite, parent_child_propagation_suite, plan_handoff_suite,
+        sibling_negotiation_suite, special_input_suite, NAMED_PLANNING_SUITE_KINDS,
     };
     use std::collections::BTreeSet;
     use std::path::Path;
@@ -86,9 +83,19 @@ mod tests {
             allocation_inspection_suite(),
         ];
         for (report, kind) in reports.into_iter().zip(NAMED_PLANNING_SUITE_KINDS) {
-            assert_eq!(report.suite_kind(), Some(kind), "wrong suite kind for {kind:?}");
-            assert!(report.suite_verified(), "suite contract failed for {kind:?}: {report:?}");
-            assert!(report.is_equivalent(), "planning diverged for {kind:?}: {report:?}");
+            assert_eq!(
+                report.suite_kind(),
+                Some(kind),
+                "wrong suite kind for {kind:?}"
+            );
+            assert!(
+                report.suite_verified(),
+                "suite contract failed for {kind:?}: {report:?}"
+            );
+            assert!(
+                report.is_equivalent(),
+                "planning diverged for {kind:?}: {report:?}"
+            );
             match kind {
                 UiAllocationPlanningCertificationSuiteKind::AllocationNeighborhood => {
                     assert!(report.neighborhood_identity_matches());

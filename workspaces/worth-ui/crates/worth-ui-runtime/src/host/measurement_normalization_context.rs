@@ -27,6 +27,18 @@ impl UiHostMeasurementNormalizationContext {
         )
     }
 
+    pub fn text_intrinsic_graph_node_local_logical_exact(
+        assumption_profile: UiHostMeasurementAssumptionProfile,
+    ) -> Self {
+        Self::new(
+            UiMeasurementEvidenceCategory::TextIntrinsicSize,
+            UiMeasurementUnitPosture::LogicalPx,
+            UiMeasurementCoordinateSpace::GraphNodeLocal,
+            UiMeasurementRoundingPosture::ExactFloat,
+            assumption_profile,
+        )
+    }
+
     pub fn text_baseline_surface_logical_exact(
         assumption_profile: UiHostMeasurementAssumptionProfile,
     ) -> Self {

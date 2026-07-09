@@ -1,18 +1,18 @@
 //! Launch lane — seal artifact, derive plan, build active state, host shell.
 
-pub(crate) mod host;
-mod launch_request;
-mod lifecycle_state;
-mod preservation;
-mod seal_artifact;
-mod derive_plan;
 mod build_active_state;
-mod launch_transition;
-mod staging_transition;
-mod planning_transition;
+mod derive_plan;
+pub(crate) mod host;
 mod host_accessors;
 #[cfg(test)]
 mod host_test_support;
+mod launch_request;
+mod launch_transition;
+mod lifecycle_state;
+mod planning_transition;
+mod preservation;
+mod seal_artifact;
+mod staging_transition;
 
 pub use host::WorthUiRuntimeHost;
 pub use launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};

@@ -16,8 +16,13 @@ use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_l
 
 #[test]
 fn equal_share_is_explicit_and_records_solve_order() {
-    let (_, _, world_profile) = display_field_projection_context("allocation-constraint-equal-share");
-    let app = peer_app(world_profile.clone(), "operator:grid", &[false, false, false]);
+    let (_, _, world_profile) =
+        display_field_projection_context("allocation-constraint-equal-share");
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -31,9 +36,15 @@ fn equal_share_is_explicit_and_records_solve_order() {
         &open_policy(),
         &[MeasurementEvidenceInput::host_capability_report(&report)],
     );
-    let neighborhood = basis.admit_allocation_neighborhood_from_graph(&snapshot).expect("grid neighborhood should admit");
-    let constraints = basis.admit_allocation_constraint_set(&neighborhood).expect("grid equal-share constraints should admit");
-    let equal_share = constraints.equal_share_distribution().expect("grid peers should emit explicit equal-share distribution");
+    let neighborhood = basis
+        .admit_allocation_neighborhood_from_graph(&snapshot)
+        .expect("grid neighborhood should admit");
+    let constraints = basis
+        .admit_allocation_constraint_set(&neighborhood)
+        .expect("grid equal-share constraints should admit");
+    let equal_share = constraints
+        .equal_share_distribution()
+        .expect("grid peers should emit explicit equal-share distribution");
 
     assert_eq!(
         equal_share.solve_order(),
@@ -83,7 +94,11 @@ fn equal_share_is_explicit_and_records_solve_order() {
 fn equivalent_peer_reorder_converges_on_the_same_equal_share_result() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-equal-share-reorder");
-    let app = peer_app(world_profile.clone(), "operator:grid", &[false, false, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -97,7 +112,9 @@ fn equivalent_peer_reorder_converges_on_the_same_equal_share_result() {
         &open_policy(),
         &[MeasurementEvidenceInput::host_capability_report(&report)],
     );
-    let neighborhood = basis.admit_allocation_neighborhood_from_graph(&snapshot).expect("grid neighborhood should admit");
+    let neighborhood = basis
+        .admit_allocation_neighborhood_from_graph(&snapshot)
+        .expect("grid neighborhood should admit");
     let reordered = UiAllocationNeighborhood::new_with_authority(
         neighborhood.root_graph_node_identity(),
         neighborhood.graph_generation(),
@@ -132,7 +149,11 @@ fn equivalent_peer_reorder_converges_on_the_same_equal_share_result() {
 fn bounded_split_peers_deny_before_bounded_reconciliation() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-equal-share-denial");
-    let app = three_peer_app(world_profile.clone(), "operator:split", &[true, true, true, true]);
+    let app = three_peer_app(
+        world_profile.clone(),
+        "operator:split",
+        &[true, true, true, true],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -149,15 +170,27 @@ fn bounded_split_peers_deny_before_bounded_reconciliation() {
             MeasurementEvidenceInput::host_capability_report(&report),
             MeasurementEvidenceInput::child_host_measurement_result(
                 peer_a,
-                &host_result_text_intrinsic_size(831, &report, UiEvidenceAuthorityGeneration::new(83)),
+                &host_result_text_intrinsic_size(
+                    831,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(83),
+                ),
             ),
             MeasurementEvidenceInput::child_host_measurement_result(
                 peer_b,
-                &host_result_text_intrinsic_size(832, &report, UiEvidenceAuthorityGeneration::new(83)),
+                &host_result_text_intrinsic_size(
+                    832,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(83),
+                ),
             ),
             MeasurementEvidenceInput::child_host_measurement_result(
                 peer_c,
-                &host_result_text_intrinsic_size(833, &report, UiEvidenceAuthorityGeneration::new(83)),
+                &host_result_text_intrinsic_size(
+                    833,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(83),
+                ),
             ),
         ],
     );
@@ -170,11 +203,11 @@ fn bounded_split_peers_deny_before_bounded_reconciliation() {
 
     assert_eq!(
         denial.reason(),
-        UiConstraintPropagationDenialReason::ContradictoryEqualShareRequirements
+        UiConstraintPropagationDenialReason::UnsupportedSiblingFixedPoint
     );
     assert_eq!(
         denial.family(),
-        Some(crate::evidence::UiConstraintPropagationEdgeFamily::EqualShareDistribution)
+        Some(crate::evidence::UiConstraintPropagationEdgeFamily::SiblingNegotiation)
     );
 }
 
@@ -182,7 +215,11 @@ fn bounded_split_peers_deny_before_bounded_reconciliation() {
 fn zero_share_and_single_survivor_resolve_through_typed_posture() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-equal-share-posture");
-    let app = peer_app(world_profile.clone(), "operator:grid", &[false, false, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -196,7 +233,9 @@ fn zero_share_and_single_survivor_resolve_through_typed_posture() {
         &open_policy(),
         &[MeasurementEvidenceInput::host_capability_report(&report)],
     );
-    let neighborhood = basis.admit_allocation_neighborhood_from_graph(&snapshot).expect("grid neighborhood should admit");
+    let neighborhood = basis
+        .admit_allocation_neighborhood_from_graph(&snapshot)
+        .expect("grid neighborhood should admit");
     let root_member = neighborhood
         .members()
         .iter()

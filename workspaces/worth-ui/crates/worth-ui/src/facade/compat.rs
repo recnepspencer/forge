@@ -2,7 +2,6 @@
 //!
 //! Prefer the named facade submodules such as `app`, `inspection`, `diagnostics`,
 //! `dsl`, `host`, `registry`, and `support` for new code.
-
 pub use crate::facade::app::{WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
 pub use crate::facade::diagnostics::{
     CapabilityDiagnosticCode, CapabilityDiagnosticRichness, CapabilityDiagnosticSeverity,
@@ -12,8 +11,6 @@ pub use crate::facade::diagnostics::{
     SnapshotMetrics, SnapshotReferenceValidationReport, SnapshotReferenceViolation,
     SnapshotReferenceViolationKind,
 };
-pub use crate::facade::dsl::WorthUiDslPackage;
-pub use crate::facade::entry::WorthUi;
 pub use crate::facade::graph::{
     project_aspect_evidence_ref, project_aspect_evidence_refs, UiAspectEvidenceLane,
     UiAspectEvidenceRefProjection, UiAspectEvidenceSubjectKind, UiGraphNodeIdentity,
@@ -30,15 +27,15 @@ pub use crate::facade::inspection::{
     UiEvidenceLinkKind, UiEvidenceMaterializationPosture, UiEvidenceMaterializedDetail,
     UiEvidenceRef, UiEvidenceRetentionPosture, UiEvidenceRichness, UiEvidenceSlice,
     UiEvidenceSliceOmission, UiEvidenceSliceRef, UiInspectionAdmissionHostCapability,
-    UiInspectionAdmissionPosture, UiInspectionAdmissionQueryBasis, UiInspectionAdmissionStaleEvidence,
-    UiInspectionAiHarness, UiInspectionAiHarnessLane, UiInspectionClosedSemanticLane,
-    UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal, UiInspectionCloseoutReport,
-    UiInspectionClosureReport, UiInspectionCostLane, UiInspectionCostReceipt,
-    UiInspectionDeferredPosture, UiInspectionDerivedIndexLane, UiInspectionDiagnosticOnlyPosture,
-    UiInspectionEvidenceSource, UiInspectionFacadeObservation, UiInspectionForeignEvidenceCitation,
-    UiInspectionForeignEvidenceRef, UiInspectionMeasurementBasisInput,
-    UiInspectionMeasurementBasisPosture, UiInspectionMeasurementBasisSource,
-    UiInspectionMeasurementDenialPosture,
+    UiInspectionAdmissionPosture, UiInspectionAdmissionQueryBasis,
+    UiInspectionAdmissionStaleEvidence, UiInspectionAiHarness, UiInspectionAiHarnessLane,
+    UiInspectionClosedSemanticLane, UiInspectionCloseoutGuarantee, UiInspectionCloseoutNonGoal,
+    UiInspectionCloseoutReport, UiInspectionClosureReport, UiInspectionCostLane,
+    UiInspectionCostReceipt, UiInspectionDeferredPosture, UiInspectionDerivedIndexLane,
+    UiInspectionDiagnosticOnlyPosture, UiInspectionEvidenceSource,
+    UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef,
+    UiInspectionMeasurementBasisInput, UiInspectionMeasurementBasisPosture,
+    UiInspectionMeasurementBasisSource, UiInspectionMeasurementDenialPosture,
     UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementDependencyLineageKind,
     UiInspectionMeasurementEvidenceCategory, UiInspectionMeasurementEvidenceSlot,
     UiInspectionMeasurementEvidenceView, UiInspectionMeasurementFailureSource,
@@ -59,8 +56,8 @@ pub use crate::facade::inspection::{
     UiInspectionSupportRowSchemaKind, UiInspectionSupportStatus, UiInspectionSupportWorld,
     UiInspectionTarget, UiInspectionTargetClass, UiInspectionTouchAspectPosture,
     UiInspectionTouchOriginClass, UiInspectionTouchRuntimeLane, UiInspectionTouchTargetClass,
-    UiInspectionUnsupportedPosture, UiInspectionWrongWorldPosture, UiMeasurementInspectionEvidenceBundle,
-    UiRelevanceFamily, UiRelevanceFilter,
+    UiInspectionUnsupportedPosture, UiInspectionWrongWorldPosture,
+    UiMeasurementInspectionEvidenceBundle, UiRelevanceFamily, UiRelevanceFilter,
 };
 pub use crate::facade::registry::{
     CommandCategory, CommandDescriptor, CommandId, CommandProjectionCommandReference,
@@ -117,20 +114,19 @@ pub use crate::facade::registry::{
     ThemeTokenId, ThemeTokenKey, ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor,
     ViewBindingFamily, ViewBindingId, VisibleStateBindingDeclaration,
 };
-pub use crate::facade::support::{WorthUiRuntimeSupportInventory, PHASE3_RUNTIME_SUPPORT_INVENTORY};
 pub use worth_ui_runtime::facade::entry::CapabilityRegistrationBuilder;
 pub use worth_ui_runtime::facade::inspection_bridge::{
     classify_inspection_dispatch, InspectionDispatchLane,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
-    WorthUiActiveRuntimeObservation, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
-    WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
-    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport, WorthUiRuntimeDiagnostics,
-    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeFrameEpoch, WorthUiRuntimeHandle,
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
-    WorthUiRuntimeShutdownReceipt,
-};
-pub use worth_ui_runtime::facade::runtime_handoff::{
     WorthUiActivationLaneInput, WorthUiExecutionLaneInput, WorthUiPlanningLaneInput,
     WorthUiReplacementLoweringReady,
+};
+pub use worth_ui_runtime::facade::runtime_handoff::{
+    WorthUiActiveRuntimeObservation, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
+    WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
+    WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
+    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeFrameEpoch,
+    WorthUiRuntimeHandle, WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
+    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
 };

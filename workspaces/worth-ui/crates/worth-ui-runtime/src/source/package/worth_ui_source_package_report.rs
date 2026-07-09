@@ -34,22 +34,27 @@ impl WorthUiSourcePackageDiagnostic {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn code(&self) -> WorthUiSourcePackageDiagnosticCode {
         self.code
     }
 
+    #[cfg(test)]
     pub(crate) fn message(&self) -> &str {
         &self.message
     }
 
+    #[cfg(test)]
     pub(crate) fn module_path(&self) -> Option<&PathBuf> {
         self.module_path.as_ref()
     }
 
+    #[cfg(test)]
     pub(crate) fn module_id_text(&self) -> Option<&str> {
         self.module_id_text.as_deref()
     }
 
+    #[cfg(test)]
     pub(crate) fn related_module_id_text(&self) -> Option<&str> {
         self.related_module_id_text.as_deref()
     }
@@ -65,10 +70,12 @@ impl WorthUiSourcePackageReport {
         Self { diagnostics }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiSourcePackageDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
         self.diagnostics.is_empty()
     }

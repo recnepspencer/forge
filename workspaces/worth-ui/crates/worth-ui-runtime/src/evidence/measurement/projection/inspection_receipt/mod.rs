@@ -54,9 +54,11 @@ pub(crate) fn project_measurement_inspection_compatibility_view(
     measurement_view_from_parts(
         support_report,
         None,
-        Some(UiInspectionMeasurementDenialPosture::GenerationIncompatible {
-            compatibility: compatibility.clone(),
-        }),
+        Some(
+            UiInspectionMeasurementDenialPosture::GenerationIncompatible {
+                compatibility: compatibility.clone(),
+            },
+        ),
         Some(compatibility),
         Some(UiInspectionMeasurementFailureSource::CompatibilityMismatch),
     )

@@ -14,6 +14,7 @@ mod closeout;
 mod identity;
 mod indexes;
 mod inspection;
+#[cfg(test)]
 mod measurement_neighborhood_hint;
 #[cfg(test)]
 mod measurement_neighborhood_hint_tests;
@@ -73,6 +74,7 @@ pub(crate) use inspection::{
     WorthUiGraphInspectionBoundary,
 };
 
+#[cfg(test)]
 pub(crate) use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
 
 // --- mounted receipt ---
@@ -85,6 +87,8 @@ pub use mounted_receipt::{
 };
 
 // --- mutation ---
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use mutation::UiGraphMutationStage;
 pub use mutation::{UiGraphMutationCommitDenial, UiGraphMutationCommitResult};
 
 // --- participation ---

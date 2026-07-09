@@ -1,13 +1,12 @@
 use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicClippingPosture,
-    MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
-    MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicRegionKindDescriptor,
-    MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission,
-    MosaicScrollOwnership, MosaicSizingBehavior, MosaicSizingContractDescriptor,
-    MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence,
-    MosaicViewportConstraint, NamedMeasurementDefinition, NamedMeasurementToken,
-    SurfacePlacementClass,
+    MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
+    MosaicParentGrowthBehavior, MosaicRegionKindDescriptor, MosaicRegionKindId,
+    MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
+    MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
+    MosaicSizingPersistence, MosaicViewportConstraint, NamedMeasurementDefinition,
+    NamedMeasurementToken, SurfacePlacementClass,
 };
 use crate::facade::WorthUi;
 use crate::graph::UiGraphNodeIdentity;
@@ -38,11 +37,9 @@ fn file_source_ingress_derives_sealed_source_backed_package_without_helper_sidec
         .into_parts();
 
     assert_eq!(dsl_package.admitted_declarations().len(), 1);
-    assert!(
-        declaration_witness
-            .claims_for("app/source_backed_package_boundary.wui", 0)
-            .is_some()
-    );
+    assert!(declaration_witness
+        .claims_for("app/source_backed_package_boundary.wui", 0)
+        .is_some());
 }
 
 #[test]
@@ -153,7 +150,14 @@ component workspace.component.source_backed_boundary.peer {
         .with_source_backed_dsl_package(source_backed_package)
         .freeze();
 
-    assert_eq!(app.graph_snapshot().lookup().mosaic_members(&left_name).value().len(), 1);
+    assert_eq!(
+        app.graph_snapshot()
+            .lookup()
+            .mosaic_members(&left_name)
+            .value()
+            .len(),
+        1
+    );
     assert_eq!(
         app.graph_snapshot()
             .lookup()
@@ -306,9 +310,7 @@ fn source_backed_submission(
         .expect("source-backed provider should lower through ingress")
 }
 
-fn support_app_with_sizing(
-    sizing: MosaicSizingContractDescriptor,
-) -> crate::facade::WorthUiApp {
+fn support_app_with_sizing(sizing: MosaicSizingContractDescriptor) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .register_component(source_backed_boundary_component())
         .register_mosaic_region_kind(source_backed_boundary_region())

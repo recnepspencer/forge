@@ -1,10 +1,9 @@
 use crate::evidence::{
     MeasurementEvidenceInput, UiAllocationNeighborhood, UiConstraintPropagationDenial,
     UiConstraintPropagationDenialReason, UiConstraintPropagationEdgeFamily,
-    UiConstraintScrollOwnerPlanningInputResult, UiMeasurementBasis,
-    UiMeasurementCoordinateSpace, UiMeasurementDependencyLineageKind,
-    UiMeasurementRoundingPosture, UiMeasurementUnitPosture, UiScrollOwnerPlanningInputPosture,
-    UiScrollOwnerPlanningInputSolveOrder, UiMeasurementValue,
+    UiConstraintScrollOwnerPlanningInputResult, UiMeasurementBasis, UiMeasurementCoordinateSpace,
+    UiMeasurementDependencyLineageKind, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
+    UiMeasurementValue, UiScrollOwnerPlanningInputPosture, UiScrollOwnerPlanningInputSolveOrder,
 };
 
 pub(super) fn admit_scroll_owner_planning_input(
@@ -59,24 +58,24 @@ pub(super) fn admit_scroll_owner_planning_input(
 
     match result.posture() {
         UiScrollOwnerPlanningInputPosture::AdmittedPlanningTimeOnly => Ok(Some(result)),
-        UiScrollOwnerPlanningInputPosture::MissingRequiredEvidence => Err(
-            UiConstraintPropagationDenial::new(
+        UiScrollOwnerPlanningInputPosture::MissingRequiredEvidence => {
+            Err(UiConstraintPropagationDenial::new(
                 UiConstraintPropagationDenialReason::MissingRequiredScrollOwnerPlanningInput,
                 neighborhood_identity_digest,
                 contract_identity_digest,
                 Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput),
                 result.identity_digest(),
-            ),
-        ),
-        UiScrollOwnerPlanningInputPosture::IncompatibleMeasurementPosture => Err(
-            UiConstraintPropagationDenial::new(
+            ))
+        }
+        UiScrollOwnerPlanningInputPosture::IncompatibleMeasurementPosture => {
+            Err(UiConstraintPropagationDenial::new(
                 UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture,
                 neighborhood_identity_digest,
                 contract_identity_digest,
                 Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput),
                 result.identity_digest(),
-            ),
-        ),
+            ))
+        }
     }
 }
 
@@ -93,15 +92,23 @@ fn scroll_owner_source(
         .dependency_lineage()
         .entries()
         .iter()
-        .find(|entry| entry.kind() == UiMeasurementDependencyLineageKind::HostScrollContainerViewport)?;
-    let result = measurement_basis.evidence_inputs().iter().find_map(|input| match input {
-        MeasurementEvidenceInput::HostMeasurementResult(result)
-            if matches!(result.value(), UiMeasurementValue::ScrollContainerViewport(_)) =>
-        {
-            Some(result)
-        }
-        _ => None,
-    })?;
+        .find(|entry| {
+            entry.kind() == UiMeasurementDependencyLineageKind::HostScrollContainerViewport
+        })?;
+    let result = measurement_basis
+        .evidence_inputs()
+        .iter()
+        .find_map(|input| match input {
+            MeasurementEvidenceInput::HostMeasurementResult(result)
+                if matches!(
+                    result.value(),
+                    UiMeasurementValue::ScrollContainerViewport(_)
+                ) =>
+            {
+                Some(result)
+            }
+            _ => None,
+        })?;
     Some((
         source.identity_digest(),
         source.generation_digest(),

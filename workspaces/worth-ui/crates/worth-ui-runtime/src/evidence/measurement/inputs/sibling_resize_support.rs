@@ -73,7 +73,11 @@ impl UiMeasurementSiblingResizeSupport {
                 ^ target_graph_node_identity.digest().rotate_left(13)
                 ^ sizing_contract_id
                     .map(|value| stable_text_digest(value.as_str()))
-                    .unwrap_or_else(|| stable_text_digest("worth-ui.measurement-sibling-resize-support.no-contract"))
+                    .unwrap_or_else(|| {
+                        stable_text_digest(
+                            "worth-ui.measurement-sibling-resize-support.no-contract",
+                        )
+                    })
                     .rotate_left(19)
                 ^ axis_scope_identity_digest(axis_scope).rotate_left(23),
         })

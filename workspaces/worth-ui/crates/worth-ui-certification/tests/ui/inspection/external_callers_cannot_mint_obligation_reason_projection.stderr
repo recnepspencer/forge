@@ -4,7 +4,7 @@ error[E0624]: associated function `new` is private
 6 |       let _ = UiInspectionObligationReasonProjection::new(
   |                                                       ^^^ private associated function
   |
- ::: $WORKSPACE/crates/worth-ui-runtime/src/evidence/obligation_reason_projection.rs
+ ::: $WORKSPACE/crates/worth-ui-runtime/src/evidence/obligation/reason_projection.rs
   |
   | /     pub(crate) fn new(
   | |         handle_digest: u64,

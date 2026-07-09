@@ -48,9 +48,7 @@ impl WorthUiSourceBackedDeclarationWitness {
     pub(crate) fn new(
         declaration_claims: BTreeMap<(String, usize), WorthUiSourceBackedDeclarationClaims>,
     ) -> Self {
-        Self {
-            declaration_claims,
-        }
+        Self { declaration_claims }
     }
 
     pub(crate) fn claims_for(
@@ -91,10 +89,11 @@ impl WorthUiSourceBackedDslPackage {
         }
     }
 
-    pub(crate) fn dsl_package(&self) -> &WorthUiDslPackage {
+    pub fn dsl_package(&self) -> &WorthUiDslPackage {
         &self.dsl_package
     }
 
+    #[cfg(test)]
     pub(crate) fn declaration_witness(&self) -> &WorthUiSourceBackedDeclarationWitness {
         &self.declaration_witness
     }

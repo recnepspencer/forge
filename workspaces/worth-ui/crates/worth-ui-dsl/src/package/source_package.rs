@@ -37,10 +37,7 @@ impl WorthUiDslPackage {
         receipts
     }
 
-    pub fn with_semantic_artifact_spec(
-        mut self,
-        semantic_spec: UiDslSemanticArtifactSpec,
-    ) -> Self {
+    pub fn with_semantic_artifact_spec(mut self, semantic_spec: UiDslSemanticArtifactSpec) -> Self {
         let receipt = self.admit_semantic_artifact(semantic_spec);
         self.admitted_declarations.push(receipt);
         rebuild_source_artifact_generations(&mut self.admitted_declarations);
@@ -80,10 +77,8 @@ fn runtime_bootstrap_receipt() -> UiDslLoweringReceipt {
     .with_support_token(UiDslSupportToken::new("support:runtime-bootstrap"))
     .into_artifact();
     let semantic_input_digest = semantic_input_digest(&semantic_artifact);
-    let source_artifact_generation = source_artifact_generation(
-        semantic_artifact.provenance(),
-        [semantic_input_digest],
-    );
+    let source_artifact_generation =
+        source_artifact_generation(semantic_artifact.provenance(), [semantic_input_digest]);
 
     UiDslLoweringReceipt::new(
         semantic_artifact.clone(),
@@ -102,10 +97,13 @@ fn rebuild_source_artifact_generations(receipts: &mut [UiDslLoweringReceipt]) {
                 receipt.semantic_input_digest(),
             )
         })
-        .fold(std::collections::BTreeMap::new(), |mut groups, (key, digest)| {
-            groups.entry(key).or_insert_with(Vec::new).push(digest);
-            groups
-        });
+        .fold(
+            std::collections::BTreeMap::new(),
+            |mut groups, (key, digest)| {
+                groups.entry(key).or_insert_with(Vec::new).push(digest);
+                groups
+            },
+        );
 
     for receipt in receipts {
         let key = source_artifact_key(receipt.source_provenance());
@@ -171,7 +169,10 @@ fn digest_string_slice<T>(values: &[T]) -> u64
 where
     T: DslDigestText,
 {
-    let mut canonical = values.iter().map(DslDigestText::digest_text).collect::<Vec<_>>();
+    let mut canonical = values
+        .iter()
+        .map(DslDigestText::digest_text)
+        .collect::<Vec<_>>();
     canonical.sort();
     canonical.dedup();
 
@@ -230,18 +231,11 @@ mod tests {
     fn admitted_semantic_artifact_uses_package_authoritative_source_generation() {
         let package = WorthUiDslPackage::named("worth-ui.dsl.package.authoritative-generation")
             .with_semantic_artifact_spec(spec("ui.workflow.editor", "control:workflow", 0));
-        let admitted = package.admit_semantic_artifact(spec(
-            "ui.workflow.sidebar",
-            "control:sidebar",
-            1,
-        ));
+        let admitted =
+            package.admit_semantic_artifact(spec("ui.workflow.sidebar", "control:sidebar", 1));
         let authoritative = package
             .clone()
-            .with_semantic_artifact_spec(spec(
-                "ui.workflow.sidebar",
-                "control:sidebar",
-                1,
-            ))
+            .with_semantic_artifact_spec(spec("ui.workflow.sidebar", "control:sidebar", 1))
             .admitted_declarations()[1]
             .clone();
 

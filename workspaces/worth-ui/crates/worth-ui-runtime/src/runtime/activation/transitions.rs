@@ -5,6 +5,7 @@ use crate::runtime::replacement::WorthUiReplacementLoweringReady;
 pub struct WorthUiActivationLaneInput(pub(crate) WorthUiReplacementLoweringReady);
 
 impl WorthUiActivationLaneInput {
+    #[cfg(test)]
     pub(crate) fn from_lowering(lowering: WorthUiReplacementLoweringReady) -> Self {
         Self(lowering)
     }

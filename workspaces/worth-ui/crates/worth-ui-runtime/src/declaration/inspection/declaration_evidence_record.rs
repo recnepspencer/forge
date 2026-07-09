@@ -6,14 +6,12 @@ use crate::evidence::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) struct UiDeclarationEvidenceRecord {
     identity: UiEvidenceIdentity,
     artifact_digest: UiDeclarationArtifactDigest,
 }
 
 impl UiDeclarationEvidenceRecord {
-    #[allow(dead_code)]
     pub(crate) fn for_artifact(artifact: &UiDeclarationArtifact) -> Self {
         Self {
             identity: evidence_identity(
@@ -24,7 +22,6 @@ impl UiDeclarationEvidenceRecord {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn bind_ref(
         &self,
         authority_generation: UiEvidenceAuthorityGeneration,

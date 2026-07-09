@@ -5,6 +5,7 @@ use crate::runtime::{
 };
 
 use super::host::WorthUiRuntimeHost;
+#[cfg(test)]
 use super::launch_request::WorthUiRuntimeLaunchDenial;
 use super::preservation::WorthUiLastValidRuntimeState;
 
@@ -37,7 +38,7 @@ impl WorthUiRuntimeHost {
         self.last_valid = WorthUiLastValidRuntimeState::record_from_active(&self.active);
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn reject_if_pending_activation_is_stale(
         &self,
         pending_activation: crate::runtime::WorthUiPendingActivation,

@@ -2,11 +2,11 @@ use crate::declaration::UiDeclaredMeasurementConstraintModifier;
 use crate::evidence::{
     UiAllocationNeighborhood, UiConstraintAvailableSpacePosture, UiConstraintAxisScope,
     UiConstraintBoundedMinMaxRequirement, UiConstraintNormalizationPosture,
-    UiConstraintParentAvailableSpace, UiMeasurementValue,
-    UiConstraintPropagationDenial, UiConstraintPropagationDenialReason,
-    UiConstraintPropagationEdge, UiConstraintPropagationEdgeFamily,
-    UiConstraintPropagationEdgePayload, UiLayoutOperatorCrossAxis,
-    UiLayoutOperatorPlanningContract, UiLayoutOperatorPrimaryAxis, UiMeasurementBasis,
+    UiConstraintParentAvailableSpace, UiConstraintPropagationDenial,
+    UiConstraintPropagationDenialReason, UiConstraintPropagationEdge,
+    UiConstraintPropagationEdgeFamily, UiConstraintPropagationEdgePayload,
+    UiLayoutOperatorCrossAxis, UiLayoutOperatorPlanningContract, UiLayoutOperatorPrimaryAxis,
+    UiMeasurementBasis, UiMeasurementValue,
 };
 
 use super::constraint_normalization::admit_downward_normalization_posture;
@@ -254,16 +254,13 @@ fn primary_extent(width: f32, height: f32, primary_axis: UiLayoutOperatorPrimary
     }
 }
 
-fn cross_extent(
-    width: f32,
-    height: f32,
-    primary_axis: UiLayoutOperatorPrimaryAxis,
-) -> Option<f32> {
+fn cross_extent(width: f32, height: f32, primary_axis: UiLayoutOperatorPrimaryAxis) -> Option<f32> {
     match primary_axis {
         UiLayoutOperatorPrimaryAxis::Vertical => Some(width),
         UiLayoutOperatorPrimaryAxis::Horizontal => Some(height),
-        UiLayoutOperatorPrimaryAxis::TwoDimensional
-        | UiLayoutOperatorPrimaryAxis::Layered => Some(width.min(height)),
+        UiLayoutOperatorPrimaryAxis::TwoDimensional | UiLayoutOperatorPrimaryAxis::Layered => {
+            Some(width.min(height))
+        }
         UiLayoutOperatorPrimaryAxis::None => None,
     }
 }

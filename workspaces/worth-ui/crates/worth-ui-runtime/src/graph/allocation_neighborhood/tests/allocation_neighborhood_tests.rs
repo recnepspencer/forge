@@ -11,8 +11,8 @@ use crate::declaration::{
 };
 use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_font_metrics,
-    host_result_portal_anchor, host_result_scroll_container_viewport,
-    host_result_viewport_extent, scroll_viewport_policy, synthetic_declaration_identity,
+    host_result_portal_anchor, host_result_scroll_container_viewport, host_result_viewport_extent,
+    scroll_viewport_policy, synthetic_declaration_identity,
 };
 use crate::evidence::{
     admit_measurement_basis, consume_declared_measurement_projection_facts,

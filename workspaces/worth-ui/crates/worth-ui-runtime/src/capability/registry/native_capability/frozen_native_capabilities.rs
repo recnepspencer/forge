@@ -12,6 +12,7 @@ pub struct FrozenNativeCapabilities {
 }
 
 impl FrozenNativeCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

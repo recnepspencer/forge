@@ -8,6 +8,10 @@ pub use lineage::{
     UiMeasurementDependencyLineage, UiMeasurementDependencyLineageEntry,
     UiMeasurementDependencyLineageKind,
 };
-pub(crate) use map::{derive_measurement_dependency_map, derive_measurement_neighborhood_class_hint};
-pub use map::{UiMeasurementDependencyMap, UiMeasurementDependencyMapEntry};
+pub use map::UiMeasurementDependencyMap;
+#[cfg(test)]
+pub(crate) use map::UiMeasurementDependencyMapEntry;
+pub(crate) use map::{
+    derive_measurement_dependency_map, derive_measurement_neighborhood_class_hint,
+};
 pub use neighborhood_class_hint::UiMeasurementNeighborhoodClassHint;

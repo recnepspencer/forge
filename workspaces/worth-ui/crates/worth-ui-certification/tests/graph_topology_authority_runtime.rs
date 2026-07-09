@@ -6,6 +6,7 @@ use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan,
     UiGraphNodeIdentity, UiGraphParentResolutionClaim, UiGraphTopologyLocalDenial,
 };
+use worth_ui::facade::registry::MosaicSizingContractId;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -58,6 +59,10 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
             ),
             UiGraphContainmentClaim::Mosaic {
                 mosaic_name: "workspace".into(),
+                sizing_contract_id: Some(
+                    MosaicSizingContractId::new("workspace.sizing.main")
+                        .expect("expected sizing contract id should be valid"),
+                ),
             },
             None,
             None,
@@ -321,6 +326,9 @@ fn mosaic_spec() -> UiDslSemanticArtifactSpec {
         UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 2),
     )
     .with_structural_token(UiDslStructuralToken::new("mosaic:workspace"))
+    .with_structural_token(UiDslStructuralToken::new(
+        "mosaic-sizing:workspace.sizing.main",
+    ))
 }
 
 fn page_set_spec() -> UiDslSemanticArtifactSpec {

@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 #[cfg(test)]
 use crate::source::{WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceComparator};
-use crate::source::{
-    WorthUiArtifactHandle, WorthUiArtifactModule, WorthUiArtifactNode, WorthUiSourceModuleId,
-};
+#[cfg(test)]
+use crate::source::{WorthUiArtifactHandle, WorthUiArtifactNode};
+use crate::source::{WorthUiArtifactModule, WorthUiSourceModuleId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiArtifact {
@@ -34,6 +34,7 @@ impl WorthUiArtifact {
         &self.canonical_module_order
     }
 
+    #[cfg(test)]
     pub(crate) fn node(&self, handle: &WorthUiArtifactHandle) -> Option<&WorthUiArtifactNode> {
         self.module(handle.module_id())
             .and_then(|module| module.node(handle.node_index()))

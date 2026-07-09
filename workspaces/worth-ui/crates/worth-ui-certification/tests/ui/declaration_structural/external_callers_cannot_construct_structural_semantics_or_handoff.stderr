@@ -15,11 +15,38 @@ error[E0624]: associated function `new` is private
   | /     pub(crate) fn new(
   | |         family_kind: UiDeclarationFamilyKind,
   | |         role: UiDeclarationStructuralRole,
-  | |         containment_intent: UiDeclarationContainmentIntent,
+  | |         operator_kind: UiDeclarationPlanningOperatorKind,
 ... |
   | |         repetition_posture: UiDeclarationRepetitionPosture,
   | |     ) -> Self {
   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 8 arguments but 6 arguments were supplied
+  --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:9:22
+   |
+ 9 |       let _semantics = UiDeclarationStructuralSemantics::new(
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+12 | /         UiDeclarationContainmentIntent::DeclaredControlAttachment {
+13 | |             control_name: "save".into(),
+14 | |         },
+15 | |         UiDeclarationSlotParticipationIntent::None,
+   | |__________________________________________________- two arguments of type `worth_ui_runtime::declaration::structural_semantics::planning_operator_kind::UiDeclarationPlanningOperatorKind` and `Option<MosaicSizingContractId>` are missing
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-ui-runtime/src/declaration/structural_semantics/structural_semantics.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+ 9 |     let _semantics = UiDeclarationStructuralSemantics::new(
+10 |         UiDeclarationFamilyKind::Control,
+11 |         UiDeclarationStructuralRole::Control,
+12 ~         /* worth_ui_runtime::declaration::structural_semantics::planning_operator_kind::UiDeclarationPlanningOperatorKind */,
+13 +         /* Option<MosaicSizingContractId> */,
+14 ~         UiDeclarationContainmentIntent::DeclaredControlAttachment {
+   |
 
 error[E0624]: associated function `new` is private
   --> tests/ui/declaration_structural/external_callers_cannot_construct_structural_semantics_or_handoff.rs:35:47

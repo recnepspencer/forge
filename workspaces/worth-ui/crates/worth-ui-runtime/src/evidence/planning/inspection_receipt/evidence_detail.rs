@@ -74,11 +74,15 @@ impl UiAllocationPlanningEvidenceDetail {
         self.viewport_planning_input.as_ref()
     }
 
-    pub fn scroll_owner_planning_input(&self) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
+    pub fn scroll_owner_planning_input(
+        &self,
+    ) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
         self.scroll_owner_planning_input.as_ref()
     }
 
-    pub fn portal_anchor_planning_input(&self) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
+    pub fn portal_anchor_planning_input(
+        &self,
+    ) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
         self.portal_anchor_planning_input.as_ref()
     }
 

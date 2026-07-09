@@ -7,8 +7,8 @@ use worth_ui::facade::admission::{
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySnapshotIdentity,
-    QueryExternalIdentityToken, SchemaBasisDigest, UiGraphWorldProfile,
+    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    SchemaBasisDigest, UiGraphWorldProfile, WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::inspection::UiInspectionAdmissionPosture;
 use worth_ui_dsl::{
@@ -360,7 +360,7 @@ fn service_bound_control_spec() -> UiDslSemanticArtifactSpec {
 }
 
 fn query_snapshot_world_profile() -> UiGraphWorldProfile {
-    let snapshot_identity = ForgeQuerySnapshotIdentity::admit_external_token(
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from("snapshot:admission-denials")),
     );
     let basis = resolve_runtime_current_snapshot_basis(

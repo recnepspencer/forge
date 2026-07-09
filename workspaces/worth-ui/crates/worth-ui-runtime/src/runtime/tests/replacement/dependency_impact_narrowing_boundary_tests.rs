@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::runtime::{
+use crate::runtime::tests::{
     dependency_impact_narrowing_test_support::{
         candidate_with_forged_query_support, candidate_with_forged_query_support_hook_count,
         lower_rust_authored_artifact, query_bound_app, query_bound_artifact,
@@ -9,8 +9,8 @@ use crate::runtime::{
     replacement_impact_test_support::{
         admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime, surface_module,
     },
-    WorthUiQueryDependencySurface, WorthUiRuntimeImpactNarrowingDenial,
 };
+use crate::runtime::{WorthUiQueryDependencySurface, WorthUiRuntimeImpactNarrowingDenial};
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
 #[test]

@@ -1,7 +1,7 @@
 pub(crate) mod basis;
+mod coordinate_space;
 pub(crate) mod dependency;
 mod evidence_category;
-mod coordinate_space;
 mod generation_compatibility;
 #[cfg(test)]
 mod host_request_shape_digest;
@@ -22,36 +22,34 @@ pub use basis::{
     UiMeasurementBasisDeterminismPosture, UiMeasurementBasisGeneration, UiMeasurementBasisPosture,
     UiMeasurementEvidenceSlot,
 };
-pub use dependency::{
-    UiMeasurementDependencyLineage, UiMeasurementDependencyLineageEntry,
-    UiMeasurementDependencyLineageKind, UiMeasurementDependencyMap,
-    UiMeasurementDependencyMapEntry, UiMeasurementNeighborhoodClassHint,
-};
+pub use coordinate_space::UiMeasurementCoordinateSpace;
 pub(crate) use dependency::{
     derive_measurement_dependency_map, derive_measurement_neighborhood_class_hint,
 };
+pub use dependency::{
+    UiMeasurementDependencyLineage, UiMeasurementDependencyLineageEntry,
+    UiMeasurementDependencyLineageKind, UiMeasurementDependencyMap,
+    UiMeasurementNeighborhoodClassHint,
+};
 pub use evidence_category::UiMeasurementEvidenceCategory;
-pub use coordinate_space::UiMeasurementCoordinateSpace;
 pub use generation_compatibility::UiMeasurementGenerationCompatibility;
+#[cfg(test)]
+pub(crate) use host_request_shape_digest::host_measurement_request_shape_digest;
 pub use inputs::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,
-    UiChildIntrinsicMeasurementSource, UiMeasurementSiblingResizeSupport,
-    UiMeasurementSiblingResizeSupportSource,
-};
-pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
-pub use projection::{
-    consume_declared_measurement_projection_facts, UiProjectionFactObservation, UiProjectionFactReceipt,
-    UiProjectionFactReceiptDenial,
+    UiMeasurementSiblingResizeSupport, UiMeasurementSiblingResizeSupportSource,
 };
 pub(crate) use projection::{
     admit_declared_measurement_projection_fact_receipt,
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
     project_measurement_inspection_view,
 };
-pub use rounding_posture::UiMeasurementRoundingPosture;
-pub use unit_posture::UiMeasurementUnitPosture;
-pub(crate) use crate::evidence::shared::query_measurement_fact_family_digest::query_measurement_fact_family_set_digest;
+pub use projection::{
+    consume_declared_measurement_projection_facts, UiProjectionFactReceipt,
+    UiProjectionFactReceiptDenial,
+};
+pub use result::{UiCurrentMeasurementResult, UiMeasurementResult, UiMeasurementValue};
 #[cfg(test)]
 pub(crate) use result_identity_digest::measurement_result_identity_digest;
-#[cfg(test)]
-pub(crate) use host_request_shape_digest::host_measurement_request_shape_digest;
+pub use rounding_posture::UiMeasurementRoundingPosture;
+pub use unit_posture::UiMeasurementUnitPosture;

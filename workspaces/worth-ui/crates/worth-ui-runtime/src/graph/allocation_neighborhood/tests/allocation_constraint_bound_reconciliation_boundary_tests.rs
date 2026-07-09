@@ -18,7 +18,11 @@ use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_l
 fn root_only_bounded_neighborhood_stays_underconstrained_on_ordinary_lane() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-bounds-underconstrained");
-    let app = peer_app(world_profile.clone(), "operator:stack", &[true, true, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:stack",
+        &[true, true, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let snapshot = snapshot_with_admitted_layout(&app, &[root_node, peer_a]);
@@ -50,7 +54,11 @@ fn root_only_bounded_neighborhood_stays_underconstrained_on_ordinary_lane() {
 fn mixed_bounded_peer_participation_stays_contradictory_on_ordinary_lane() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-bounds-contradiction");
-    let app = peer_app(world_profile.clone(), "operator:scroll", &[true, true, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:scroll",
+        &[true, true, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -83,7 +91,10 @@ fn mixed_bounded_peer_participation_stays_contradictory_on_ordinary_lane() {
         .bound_reconciliation()
         .expect("mixed bounded neighborhood should mint a bound reconciliation artifact");
 
-    assert_eq!(bound.posture(), UiBoundReconciliationPosture::ContradictoryMinMax);
+    assert_eq!(
+        bound.posture(),
+        UiBoundReconciliationPosture::ContradictoryMinMax
+    );
     assert!(constraints.propagation_edges().iter().any(|edge| {
         matches!(
             edge.payload(),
@@ -100,7 +111,11 @@ fn mixed_bounded_peer_participation_stays_contradictory_on_ordinary_lane() {
 fn zero_space_bounded_neighborhood_stays_overconstrained_on_ordinary_lane() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-bounds-overconstrained");
-    let app = peer_app(world_profile.clone(), "operator:scroll", &[true, true, true]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:scroll",
+        &[true, true, true],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -145,7 +160,11 @@ fn zero_space_bounded_neighborhood_stays_overconstrained_on_ordinary_lane() {
 fn final_bound_artifact_reclassifies_to_cyclic_on_ordinary_lane() {
     let (_, _, world_profile) =
         display_field_projection_context("allocation-constraint-bounds-cyclic");
-    let app = peer_app(world_profile.clone(), "operator:stack", &[true, true, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:stack",
+        &[true, true, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let snapshot = snapshot_with_admitted_layout(&app, &[root_node, peer_a]);

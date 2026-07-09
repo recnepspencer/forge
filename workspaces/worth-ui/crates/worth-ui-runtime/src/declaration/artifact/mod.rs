@@ -12,8 +12,6 @@ pub use ui_declaration_digest::{
     UiDeclarationSupportDigest,
 };
 pub use ui_declaration_digest_projection::UiDeclarationDigestProjection;
-pub(crate) use ui_declaration_identity::{
-    authored_source_provenance_digest, stable_text_digest,
-};
+pub(crate) use ui_declaration_identity::{authored_source_provenance_digest, stable_text_digest};
 pub use ui_declaration_identity::{UiDeclarationEquivalenceContract, UiDeclarationIdentity};
 pub use ui_declaration_provenance::UiDeclarationProvenance;

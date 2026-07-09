@@ -8,8 +8,6 @@ mod activation_staging_boundary_tests;
 mod activation_staging_test_support;
 #[path = "lifecycle/active_runtime_authority_tests.rs"]
 mod active_runtime_authority_tests;
-#[path = "lifecycle/lifecycle_path_parity.rs"]
-mod lifecycle_path_parity;
 #[path = "planning/allocation_constraint_boundary_tests.rs"]
 mod allocation_constraint_boundary_tests;
 #[path = "planning/allocation_planning_boundary_tests.rs"]
@@ -32,6 +30,8 @@ mod canvas_spatial_lane_test_support;
 mod dependency_impact_narrowing_boundary_tests;
 #[path = "replacement/dependency_impact_narrowing_test_support.rs"]
 pub(crate) mod dependency_impact_narrowing_test_support;
+#[path = "replacement/durable_resize_input_boundary_tests.rs"]
+mod durable_resize_input_boundary_tests;
 #[path = "replacement/durable_state_inventory_boundary_tests.rs"]
 mod durable_state_inventory_boundary_tests;
 #[path = "replacement/durable_state_inventory_custom_hook_boundary_tests.rs"]
@@ -42,8 +42,6 @@ mod durable_state_inventory_test_support;
 mod durable_state_reconciliation_boundary_tests;
 #[path = "replacement/durable_state_reconciliation_test_support.rs"]
 mod durable_state_reconciliation_test_support;
-#[path = "replacement/durable_resize_input_boundary_tests.rs"]
-mod durable_resize_input_boundary_tests;
 #[path = "planning/execution_plan_input_boundary_tests.rs"]
 mod execution_plan_input_boundary_tests;
 #[path = "replacement/file_rust_replacement_parity_boundary_tests.rs"]
@@ -78,6 +76,8 @@ mod lane_frame_cost_certification_test_support;
 mod lane_meaning_parity_boundary_tests;
 #[path = "execution/lane_meaning_parity_test_support.rs"]
 mod lane_meaning_parity_test_support;
+#[path = "lifecycle/lifecycle_path_parity.rs"]
+mod lifecycle_path_parity;
 #[path = "execution/measurement_boundary_tests.rs"]
 mod measurement_boundary_tests;
 #[path = "replacement/node_replacement_classification_boundary_tests.rs"]
@@ -136,12 +136,14 @@ mod runtime_diagnostics_family_coverage_tests;
 mod runtime_diagnostics_projection_boundary_tests;
 #[path = "diagnostics/runtime_diagnostics_projection_test_support.rs"]
 mod runtime_diagnostics_projection_test_support;
-#[path = "source_ingress/source_ingress_boundary_tests.rs"]
-mod source_ingress_boundary_tests;
-#[path = "source_ingress/source_backed_package_boundary_tests.rs"]
-mod source_backed_package_boundary_tests;
 #[path = "source_ingress/source_backed_graph_identity_boundary_tests.rs"]
 mod source_backed_graph_identity_boundary_tests;
+#[path = "source_ingress/source_backed_package_boundary_tests.rs"]
+mod source_backed_package_boundary_tests;
+#[path = "source_ingress/source_ingress_boundary_test_support.rs"]
+pub(crate) mod source_ingress_boundary_test_support;
+#[path = "source_ingress/source_ingress_boundary_tests.rs"]
+mod source_ingress_boundary_tests;
 #[path = "source_ingress/source_ingress_test_support.rs"]
 pub(crate) mod source_ingress_test_support;
 #[path = "execution/steady_frame_counter_boundary_tests.rs"]
@@ -158,4 +160,3 @@ mod touch_origin_receipt_boundary_tests;
 mod virtualized_data_lane_boundary_tests;
 #[path = "execution/virtualized_data_lane_test_support.rs"]
 mod virtualized_data_lane_test_support;
-

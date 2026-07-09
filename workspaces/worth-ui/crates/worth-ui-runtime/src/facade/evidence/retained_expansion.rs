@@ -12,7 +12,8 @@ pub(crate) fn expand_retained_obligation_ref(
     evidence_ref: UiEvidenceRef,
     requested_richness: UiEvidenceRichness,
 ) -> UiEvidenceExpansion {
-    if let Some(expansion) = lookup_obligation_retained_expansion(app, evidence_ref, requested_richness)
+    if let Some(expansion) =
+        lookup_obligation_retained_expansion(app, evidence_ref, requested_richness)
     {
         record_materialization_if_available(app.lifecycle(), &expansion);
         return expansion;

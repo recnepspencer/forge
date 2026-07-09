@@ -7,12 +7,12 @@ const FORBIDDEN_PLANNING_SEMANTIC_CALLS: &[&str] = &[
     "WorthUiAllocationPlanning::new(",
 ];
 
-pub fn audit_allocation_planning_anti_bypass_boundaries(
-    workspace_root: &Path,
-) -> Vec<String> {
+pub fn audit_allocation_planning_anti_bypass_boundaries(workspace_root: &Path) -> Vec<String> {
     let mut violations = raw_planning_admission_visibility_violations(workspace_root);
     violations.extend(host_adapter_planning_semantics_violations(workspace_root));
-    violations.extend(non_owner_runtime_planning_semantics_violations(workspace_root));
+    violations.extend(non_owner_runtime_planning_semantics_violations(
+        workspace_root,
+    ));
     violations.extend(evidence_local_planning_semantics_violations(workspace_root));
     violations.sort();
     violations.dedup();
@@ -194,8 +194,7 @@ mod tests {
 
     #[test]
     fn workspace_currently_passes_planning_anti_bypass_audit() {
-        let workspace_root =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let violations = audit_allocation_planning_anti_bypass_boundaries(&workspace_root);
         assert!(
             violations.is_empty(),

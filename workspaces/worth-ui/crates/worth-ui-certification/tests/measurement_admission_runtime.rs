@@ -1,46 +1,34 @@
+#[path = "fixtures/measurement_admission_support.rs"]
+mod measurement_admission_support;
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
-    UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld, UiMeasurementAdmissionPosture,
-    UiMeasurementCapabilityGateReason, UiMeasurementUnsupportedReason, UiSupportPosture,
-    UiSupportReason,
+    UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture, UiSupportReason,
 };
 use worth_ui::facade::graph::{
-    ForgeQuerySessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
-    UiGraphWorldProfile,
+    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
+    WorthQuerySessionLabel,
 };
 use worth_ui::facade::obligations::{UiObligationDispatchStopPosture, UiObligationFamily};
 use worth_ui_host_contract::{
     WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport, WorthUiHostContract,
 };
 use worth_ui_test_support::{
-    runtime_origin_fixture, WorthUiTouchOriginFixtureVariant,
+    runtime_origin_fixture, UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
+    UiMeasurementUnsupportedReason, WorthUiTouchOriginFixtureVariant,
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    available_host_capability_target, focus_touch_app, missing_host_capability_target,
+    apps::focus_touch_app,
+    targets::{available_host_capability_target, missing_host_capability_target},
 };
+use measurement_admission_support::{available_measurement_target, host_measurement_touch};
 
 #[test]
 fn identical_measurement_world_and_capability_profiles_admit_identically() {
     let fixture = runtime_origin_fixture(WorthUiTouchOriginFixtureVariant::Baseline);
-    let touch = fixture
-        .app
-        .graph()
-        .touches()
-        .from_node(
-            fixture
-                .app
-                .graph()
-                .touches()
-                .host_observation_receipt(fixture.runtime.inspect_active(), &fixture.inspection)
-                .expect("host observation should admit"),
-            UiGraphTouchTiming::ReactiveObservation,
-            fixture.control_graph_node_identity(),
-            UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
-        )
-        .expect("host measurement touch should admit");
+    let touch = host_measurement_touch(&fixture);
     let target = available_measurement_target(&touch);
 
     let first_selected = fixture
@@ -101,27 +89,12 @@ fn identical_measurement_world_and_capability_profiles_admit_identically() {
 #[test]
 fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct() {
     let fixture = runtime_origin_fixture(WorthUiTouchOriginFixtureVariant::Baseline);
-    let touch = fixture
-        .app
-        .graph()
-        .touches()
-        .from_node(
-            fixture
-                .app
-                .graph()
-                .touches()
-                .host_observation_receipt(fixture.runtime.inspect_active(), &fixture.inspection)
-                .expect("host observation should admit"),
-            UiGraphTouchTiming::ReactiveObservation,
-            fixture.control_graph_node_identity(),
-            UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
-        )
-        .expect("host measurement touch should admit");
+    let touch = host_measurement_touch(&fixture);
 
     let wrong_world_target = UiAdmissionTarget::graph_node(
         touch.target().graph_node_identity(),
         UiAdmissionWorld::from_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"])
                 .expect("preview label should admit"),
         )),
     )
@@ -171,7 +144,7 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
             ),
             observed: UiAdmissionWorld::from_graph_world_profile(
                 UiGraphWorldProfile::preview_session_label(
-                    ForgeQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"],)
+                    WorthQuerySessionLabel::scoped_strs("worth-ui", ["measurement", "preview"],)
                         .expect("preview label should admit"),
                 ),
             ),
@@ -237,7 +210,7 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
 #[test]
 fn unsupported_measurement_touch_without_selected_requirement_denies_structurally() {
     let app = focus_touch_app();
-    let artifact = obligation_dispatch_prerequisite_support::artifact_from_module_path(
+    let artifact = obligation_dispatch_prerequisite_support::touches::artifact_from_module_path(
         &app,
         "app/obligation_dispatch_focus_runtime.wui",
     );
@@ -250,7 +223,7 @@ fn unsupported_measurement_touch_without_selected_requirement_denies_structurall
                 .declaration_change_receipt(artifact)
                 .expect("declaration change should admit"),
             UiGraphTouchTiming::PostMutation,
-            obligation_dispatch_prerequisite_support::graph_node_identity(&app, artifact),
+            obligation_dispatch_prerequisite_support::touches::graph_node_identity(&app, artifact),
             UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
         )
         .expect("measurement touch should admit");
@@ -301,22 +274,7 @@ fn unsupported_measurement_touch_without_selected_requirement_denies_structurall
 #[test]
 fn measurement_admission_rejects_stale_selected_support_authority() {
     let fixture = runtime_origin_fixture(WorthUiTouchOriginFixtureVariant::Baseline);
-    let touch = fixture
-        .app
-        .graph()
-        .touches()
-        .from_node(
-            fixture
-                .app
-                .graph()
-                .touches()
-                .host_observation_receipt(fixture.runtime.inspect_active(), &fixture.inspection)
-                .expect("host observation should admit"),
-            UiGraphTouchTiming::ReactiveObservation,
-            fixture.control_graph_node_identity(),
-            UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
-        )
-        .expect("host measurement touch should admit");
+    let touch = host_measurement_touch(&fixture);
     let selected = fixture.app.admission().select_obligations_for_target(
         &touch,
         UiAdmissionTarget::graph_node(
@@ -371,22 +329,7 @@ fn measurement_admission_rejects_stale_selected_support_authority() {
 #[test]
 fn measurement_admission_retains_host_observation_generation_even_for_same_profile() {
     let fixture = runtime_origin_fixture(WorthUiTouchOriginFixtureVariant::Baseline);
-    let touch = fixture
-        .app
-        .graph()
-        .touches()
-        .from_node(
-            fixture
-                .app
-                .graph()
-                .touches()
-                .host_observation_receipt(fixture.runtime.inspect_active(), &fixture.inspection)
-                .expect("host observation should admit"),
-            UiGraphTouchTiming::ReactiveObservation,
-            fixture.control_graph_node_identity(),
-            UiGraphTouchAspects::new().measurement(UiGraphTouchAspectPosture::Read),
-        )
-        .expect("host measurement touch should admit");
+    let touch = host_measurement_touch(&fixture);
     let first_target = UiAdmissionTarget::graph_node(
         touch.target().graph_node_identity(),
         UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
@@ -433,16 +376,4 @@ fn measurement_admission_retains_host_observation_generation_even_for_same_profi
         first.host_capability_observation_generation(),
         second.host_capability_observation_generation()
     );
-}
-
-fn available_measurement_target(
-    touch: &worth_ui::facade::graph::UiGraphTouchDescriptor,
-) -> UiAdmissionTarget {
-    UiAdmissionTarget::graph_node(
-        touch.target().graph_node_identity(),
-        UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
-    )
-    .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::egui(),
-    ))
 }

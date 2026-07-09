@@ -8,13 +8,14 @@ use worth_ui::facade::inspection::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn obligation_inspection_answers_selected_and_not_selected_from_retained_evidence() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -85,9 +86,10 @@ fn obligation_inspection_answers_selected_and_not_selected_from_retained_evidenc
 
 #[test]
 fn evidence_index_filters_by_graph_touch_family_and_prerequisite_source() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let report = app.admission().admit_selected_obligations(
         &app.admission()
             .select_obligations_for_target(&touch, target),
@@ -135,9 +137,10 @@ fn evidence_index_filters_by_graph_touch_family_and_prerequisite_source() {
 
 #[test]
 fn graph_node_and_touch_routes_converge_on_the_same_retained_obligation_neighborhood() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let report = app.admission().admit_selected_obligations(
         &app.admission()
             .select_obligations_for_target(&touch, target),
@@ -222,15 +225,15 @@ fn denial_posture_filter_excludes_non_matching_admission_rows() {
         UiInspectionObligationDenialPosture,
     };
 
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
 
-    let wrong_basis_report = app
-        .admission()
-        .report(obligation_dispatch_prerequisite_support::wrong_query_basis_target(&touch));
-    let stale_report = app
-        .admission()
-        .report(obligation_dispatch_prerequisite_support::stale_query_basis_target(&touch));
+    let wrong_basis_report = app.admission().report(
+        obligation_dispatch_prerequisite_support::targets::wrong_query_basis_target(&touch),
+    );
+    let stale_report = app.admission().report(
+        obligation_dispatch_prerequisite_support::targets::stale_query_basis_target(&touch),
+    );
 
     let wrong_basis_receipt = wrong_basis_report.inspect(
         UiInspectionQuery::new(

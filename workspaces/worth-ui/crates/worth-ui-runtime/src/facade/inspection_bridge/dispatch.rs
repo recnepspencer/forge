@@ -25,7 +25,9 @@ pub fn classify_inspection_dispatch(query: &UiInspectionQuery) -> InspectionDisp
             InspectionDispatchLane::ProductRootOrDeclaredSurface
         }
         UiInspectionTarget::DeclarationIdentity { .. }
-        | UiInspectionTarget::AuthoredSourceProvenance { .. } => InspectionDispatchLane::AuthoredLookup,
+        | UiInspectionTarget::AuthoredSourceProvenance { .. } => {
+            InspectionDispatchLane::AuthoredLookup
+        }
         UiInspectionTarget::GraphNodeIdentity { .. } => InspectionDispatchLane::GraphNodeIdentity,
         UiInspectionTarget::PublishedAspect { .. } | UiInspectionTarget::ConsumedAspect { .. } => {
             InspectionDispatchLane::AspectEvidence

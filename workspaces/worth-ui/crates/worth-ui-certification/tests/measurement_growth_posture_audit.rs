@@ -48,7 +48,7 @@ fn measurement_basis_growth_audit_rejects_generic_fallback_fixture() {
     ));
     assert_has_violation(
         &violations,
-        "measurement_basis.rs",
+        "basis/admit.rs",
         "forbidden generic fallback `serde_json::Value`",
     );
 }

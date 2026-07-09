@@ -33,7 +33,9 @@ impl WorthUiAdmittedDurableResizeInput {
     ) -> Self {
         let identity_digest = stable_text_digest("worth-ui.runtime.durable-resize-input")
             ^ stable_text_digest(&identity_basis).rotate_left(7)
-            ^ authored_provenance_digest.unwrap_or_default().rotate_left(9)
+            ^ authored_provenance_digest
+                .unwrap_or_default()
+                .rotate_left(9)
             ^ family_digest(&family_id).rotate_left(13)
             ^ transition_digest(transition).rotate_left(19)
             ^ resize_permission_digest(&resize_permission).rotate_left(23)
@@ -94,9 +96,7 @@ impl WorthUiAdmittedDurableResizeInput {
 fn family_digest(family_id: &WorthUiDurableStateFamilyId) -> u64 {
     stable_text_digest(match family_id {
         WorthUiDurableStateFamilyId::FocusChain => "worth-ui.runtime.resize.family.focus-chain",
-        WorthUiDurableStateFamilyId::ScrollAnchor => {
-            "worth-ui.runtime.resize.family.scroll-anchor"
-        }
+        WorthUiDurableStateFamilyId::ScrollAnchor => "worth-ui.runtime.resize.family.scroll-anchor",
         WorthUiDurableStateFamilyId::SelectionRange => {
             "worth-ui.runtime.resize.family.selection-range"
         }

@@ -8,9 +8,7 @@ use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_text_intrinsic_size,
     synthetic_declaration_identity,
 };
-use crate::evidence::{
-    admit_measurement_basis, MeasurementEvidenceInput,
-};
+use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
 use crate::graph::allocation_constraint_sibling_support_test_support::{
     graph_node_identity_for_provenance, mosaic_alternate_runtime_sizing_contract_id,
     mosaic_peer_app, mosaic_peer_app_with_contracts, mosaic_runtime_sizing_contract_id,
@@ -65,7 +63,9 @@ fn mosaic_capability_resize_support_alone_no_longer_admits_on_the_ordinary_sibli
         .expect("mosaic neighborhood should admit");
     let denial = basis
         .admit_allocation_constraint_set(&neighborhood)
-        .expect_err("capability-backed resize support alone must not authorize ordinary durable resize");
+        .expect_err(
+            "capability-backed resize support alone must not authorize ordinary durable resize",
+        );
 
     assert_eq!(
         denial.reason(),

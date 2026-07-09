@@ -2,10 +2,10 @@
 
 #[path = "../activation_staging/mod.rs"]
 pub mod activation_staging;
-#[path = "../frame_activation_gate/mod.rs"]
-pub mod frame_activation_gate;
 #[path = "../atomic_plan_swap/mod.rs"]
 pub mod atomic_plan_swap;
+#[path = "../frame_activation_gate/mod.rs"]
+pub mod frame_activation_gate;
 
 mod gate;
 mod swap;

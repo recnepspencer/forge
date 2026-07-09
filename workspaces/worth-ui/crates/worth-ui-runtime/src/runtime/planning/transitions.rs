@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 
 use crate::evidence::{UiAllocationNeighborhood, UiMeasurementBasis};
+use crate::graph::UiAllocationNeighborhoodDenial;
 use crate::runtime::WorthUiPendingActivation;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -12,6 +13,28 @@ pub enum WorthUiPlanningLaneReadiness {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiPlanningLaneInputDenial {
     BasisNeighborhoodMismatch,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthUiPlanningLaneAdmissionDenial {
+    AllocationNeighborhood(UiAllocationNeighborhoodDenial),
+    BasisNeighborhoodMismatch,
+}
+
+impl From<UiAllocationNeighborhoodDenial> for WorthUiPlanningLaneAdmissionDenial {
+    fn from(denial: UiAllocationNeighborhoodDenial) -> Self {
+        Self::AllocationNeighborhood(denial)
+    }
+}
+
+impl From<WorthUiPlanningLaneInputDenial> for WorthUiPlanningLaneAdmissionDenial {
+    fn from(denial: WorthUiPlanningLaneInputDenial) -> Self {
+        match denial {
+            WorthUiPlanningLaneInputDenial::BasisNeighborhoodMismatch => {
+                Self::BasisNeighborhoodMismatch
+            }
+        }
+    }
 }
 
 /// Planning lane entry proof: allocation planning requires staged pending activation.

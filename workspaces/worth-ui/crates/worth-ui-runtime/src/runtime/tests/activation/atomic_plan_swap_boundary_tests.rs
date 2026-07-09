@@ -347,7 +347,10 @@ fn lane_change_swap_receipt_preserves_candidate_breadth_without_commit_shortcut(
         .swap_ready_activation_at_frame_boundary(ready, fixture.candidate_plan, boundary)
         .expect("lane-change candidate swaps through atomic commit");
 
-    assert_eq!(receipt.previous_active_plan_digest(), previous.active_plan_digest());
+    assert_eq!(
+        receipt.previous_active_plan_digest(),
+        previous.active_plan_digest()
+    );
     assert_eq!(receipt.next_active_plan_digest(), expected_next_plan);
     assert!(receipt.node_classification_count() > 0);
     assert!(receipt.lane_changed_node_count() > 0);

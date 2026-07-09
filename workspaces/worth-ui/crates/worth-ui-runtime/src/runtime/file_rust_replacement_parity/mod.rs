@@ -11,6 +11,7 @@ pub use denial::{
     WorthUiFileRustReplacementParityDenial, WorthUiFileRustReplacementParityDenialReason,
 };
 pub use pipeline_report::WorthUiFileRustReplacementPipelineReport;
+#[cfg(test)]
 pub(crate) use pipeline_report::WorthUiFileRustReplacementPipelineReportParts;
 pub use receipt::WorthUiFileRustReplacementParityReceipt;
 pub use semantic_receipt::WorthUiFileRustReplacementSemanticReceipt;

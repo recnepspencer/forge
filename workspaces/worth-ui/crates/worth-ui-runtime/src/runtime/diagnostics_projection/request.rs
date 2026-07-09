@@ -1,4 +1,4 @@
-use forge_foundational::FoundationalMaterializedPerformanceReport;
+use worth_foundational::FoundationalMaterializedPerformanceReport;
 
 use crate::runtime::diagnostics_projection::digest::{combine_digest, digest_debug};
 use crate::runtime::diagnostics_projection::{

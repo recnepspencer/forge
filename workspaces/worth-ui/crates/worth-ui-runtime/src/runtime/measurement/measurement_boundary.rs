@@ -1,4 +1,4 @@
-use forge_foundational::FoundationalPerformanceBoundary;
+use worth_foundational::FoundationalPerformanceBoundary;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WorthUiMeasurementBoundary {

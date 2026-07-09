@@ -29,14 +29,17 @@ impl WorthUiArtifactEquivalence {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn basis(&self) -> WorthUiArtifactEquivalenceBasis {
         self.basis
     }
 
+    #[cfg(test)]
     pub(crate) fn left_digest(&self) -> WorthUiArtifactDigest {
         self.left_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn right_digest(&self) -> WorthUiArtifactDigest {
         self.right_digest
     }
@@ -49,6 +52,7 @@ impl WorthUiArtifactEquivalence {
         self.first_difference.as_ref()
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiArtifactEquivalenceMetrics {
         self.metrics
     }

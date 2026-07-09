@@ -3,6 +3,7 @@ mod family;
 mod planning_axis;
 mod planning_contract;
 mod planning_semantics;
+mod planning_semantics_names;
 
 pub use contract_identity::UiLayoutOperatorContractIdentity;
 pub use family::UiLayoutOperatorFamily;
@@ -14,8 +15,6 @@ pub use planning_contract::{
     UiLayoutOperatorSlotParticipationKind,
 };
 pub use planning_semantics::{
-    UiLayoutOperatorDenialPolicy, UiLayoutOperatorIntrinsicReturnPolicy,
-    UiLayoutOperatorOverflowPolicy, UiLayoutOperatorPlanningSemantics,
-    UiLayoutOperatorSiblingGroupingRule, UiLayoutOperatorSizingMode,
+    UiLayoutOperatorIntrinsicReturnPolicy, UiLayoutOperatorPlanningSemantics,
     UiLayoutOperatorSpecialInputRequirement,
 };

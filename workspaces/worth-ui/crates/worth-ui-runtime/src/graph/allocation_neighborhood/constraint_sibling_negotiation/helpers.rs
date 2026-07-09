@@ -1,4 +1,4 @@
-﻿use std::collections::BTreeMap;
+use std::collections::BTreeMap;
 
 use crate::declaration::stable_text_digest;
 use crate::declaration::UiDeclaredMeasurementConstraintModifier;
@@ -203,4 +203,3 @@ pub(super) fn sibling_denial(
         witness_digest,
     )
 }
-

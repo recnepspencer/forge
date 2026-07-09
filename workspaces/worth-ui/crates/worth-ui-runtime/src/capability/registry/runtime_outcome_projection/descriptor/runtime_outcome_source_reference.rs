@@ -1,85 +1,85 @@
-use forge_query::facade::{
-    ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
-    ForgeQueryOrdinaryRuntimePosture, ForgeQueryOrdinaryRuntimePostureKind,
-    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::{
+    WorthQueryOrdinaryOutcome, WorthQueryOrdinaryPosture, WorthQueryOrdinaryPostureKind,
+    WorthQueryOrdinaryRuntimePosture, WorthQueryOrdinaryRuntimePostureKind,
+    WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeAsyncResultStateKind,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RuntimeOutcomeSourceReference {
     QueryOrdinaryOutcome {
         kind: String,
-        posture_kind: Option<ForgeQueryOrdinaryPostureKind>,
+        posture_kind: Option<WorthQueryOrdinaryPostureKind>,
     },
     QueryOrdinaryPosture {
-        kind: ForgeQueryOrdinaryPostureKind,
+        kind: WorthQueryOrdinaryPostureKind,
     },
     QueryOrdinaryRuntimePosture {
-        kind: ForgeQueryOrdinaryRuntimePostureKind,
+        kind: WorthQueryOrdinaryRuntimePostureKind,
         posture_digest: String,
     },
     QueryRuntimeAsyncResultState {
-        kind: ForgeQueryRuntimeAsyncResultStateKind,
+        kind: WorthQueryRuntimeAsyncResultStateKind,
         result_state_digest: String,
     },
 }
 
 impl RuntimeOutcomeSourceReference {
-    pub fn from_query_ordinary_outcome<T>(outcome: &ForgeQueryOrdinaryOutcome<T>) -> Self {
+    pub fn from_query_ordinary_outcome<T>(outcome: &WorthQueryOrdinaryOutcome<T>) -> Self {
         match outcome {
-            ForgeQueryOrdinaryOutcome::Bound(_) => Self::QueryOrdinaryOutcome {
+            WorthQueryOrdinaryOutcome::Bound(_) => Self::QueryOrdinaryOutcome {
                 kind: "bound".to_string(),
                 posture_kind: None,
             },
-            ForgeQueryOrdinaryOutcome::Ambiguous(posture) => ordinary_outcome("ambiguous", posture),
-            ForgeQueryOrdinaryOutcome::AspectConflict(posture) => {
+            WorthQueryOrdinaryOutcome::Ambiguous(posture) => ordinary_outcome("ambiguous", posture),
+            WorthQueryOrdinaryOutcome::AspectConflict(posture) => {
                 ordinary_outcome("aspect_conflict", posture)
             }
-            ForgeQueryOrdinaryOutcome::AuthorityMismatch(posture) => {
+            WorthQueryOrdinaryOutcome::AuthorityMismatch(posture) => {
                 ordinary_outcome("authority_mismatch", posture)
             }
-            ForgeQueryOrdinaryOutcome::BasisMismatch(posture) => {
+            WorthQueryOrdinaryOutcome::BasisMismatch(posture) => {
                 ordinary_outcome("basis_mismatch", posture)
             }
-            ForgeQueryOrdinaryOutcome::Deferred(posture) => ordinary_outcome("deferred", posture),
-            ForgeQueryOrdinaryOutcome::Denied(posture) => ordinary_outcome("denied", posture),
-            ForgeQueryOrdinaryOutcome::ExplicitNarrowingRequired(posture) => {
+            WorthQueryOrdinaryOutcome::Deferred(posture) => ordinary_outcome("deferred", posture),
+            WorthQueryOrdinaryOutcome::Denied(posture) => ordinary_outcome("denied", posture),
+            WorthQueryOrdinaryOutcome::ExplicitNarrowingRequired(posture) => {
                 ordinary_outcome("explicit_narrowing_required", posture)
             }
-            ForgeQueryOrdinaryOutcome::Failed(posture) => ordinary_outcome("failed", posture),
-            ForgeQueryOrdinaryOutcome::MissingRequiredAspect(posture) => {
+            WorthQueryOrdinaryOutcome::Failed(posture) => ordinary_outcome("failed", posture),
+            WorthQueryOrdinaryOutcome::MissingRequiredAspect(posture) => {
                 ordinary_outcome("missing_required_aspect", posture)
             }
-            ForgeQueryOrdinaryOutcome::RebindRequired(posture) => {
+            WorthQueryOrdinaryOutcome::RebindRequired(posture) => {
                 ordinary_outcome("rebind_required", posture)
             }
-            ForgeQueryOrdinaryOutcome::Refused(posture) => ordinary_outcome("refused", posture),
-            ForgeQueryOrdinaryOutcome::Stale(posture) => ordinary_outcome("stale", posture),
-            ForgeQueryOrdinaryOutcome::Unavailable(posture) => {
+            WorthQueryOrdinaryOutcome::Refused(posture) => ordinary_outcome("refused", posture),
+            WorthQueryOrdinaryOutcome::Stale(posture) => ordinary_outcome("stale", posture),
+            WorthQueryOrdinaryOutcome::Unavailable(posture) => {
                 ordinary_outcome("unavailable", posture)
             }
-            ForgeQueryOrdinaryOutcome::Unsupported(posture) => {
+            WorthQueryOrdinaryOutcome::Unsupported(posture) => {
                 ordinary_outcome("unsupported", posture)
             }
-            ForgeQueryOrdinaryOutcome::WrongHandle(posture) => {
+            WorthQueryOrdinaryOutcome::WrongHandle(posture) => {
                 ordinary_outcome("wrong_handle", posture)
             }
-            ForgeQueryOrdinaryOutcome::WrongWorld(posture) => {
+            WorthQueryOrdinaryOutcome::WrongWorld(posture) => {
                 ordinary_outcome("wrong_world", posture)
             }
         }
     }
 
-    pub fn from_query_ordinary_posture(posture: &ForgeQueryOrdinaryPosture) -> Self {
+    pub fn from_query_ordinary_posture(posture: &WorthQueryOrdinaryPosture) -> Self {
         Self::QueryOrdinaryPosture {
             kind: posture.kind(),
         }
     }
 
-    pub fn from_query_ordinary_posture_kind(kind: ForgeQueryOrdinaryPostureKind) -> Self {
+    pub fn from_query_ordinary_posture_kind(kind: WorthQueryOrdinaryPostureKind) -> Self {
         Self::QueryOrdinaryPosture { kind }
     }
 
-    pub fn from_query_ordinary_runtime_posture(posture: &ForgeQueryOrdinaryRuntimePosture) -> Self {
+    pub fn from_query_ordinary_runtime_posture(posture: &WorthQueryOrdinaryRuntimePosture) -> Self {
         Self::QueryOrdinaryRuntimePosture {
             kind: posture.kind(),
             posture_digest: posture.posture_digest().to_string(),
@@ -87,7 +87,7 @@ impl RuntimeOutcomeSourceReference {
     }
 
     pub fn from_query_ordinary_runtime_posture_kind(
-        kind: ForgeQueryOrdinaryRuntimePostureKind,
+        kind: WorthQueryOrdinaryRuntimePostureKind,
     ) -> Self {
         Self::QueryOrdinaryRuntimePosture {
             kind,
@@ -95,14 +95,14 @@ impl RuntimeOutcomeSourceReference {
         }
     }
 
-    pub fn from_query_async_result_state(state: &ForgeQueryRuntimeAsyncResultState) -> Self {
+    pub fn from_query_async_result_state(state: &WorthQueryRuntimeAsyncResultState) -> Self {
         Self::QueryRuntimeAsyncResultState {
             kind: state.kind(),
             result_state_digest: state.result_state_for_reporting().to_string(),
         }
     }
 
-    pub fn from_query_async_result_state_kind(kind: ForgeQueryRuntimeAsyncResultStateKind) -> Self {
+    pub fn from_query_async_result_state_kind(kind: WorthQueryRuntimeAsyncResultStateKind) -> Self {
         Self::QueryRuntimeAsyncResultState {
             kind,
             result_state_digest: format!("kind-only:{}", kind.as_str()),
@@ -151,7 +151,7 @@ impl RuntimeOutcomeSourceReference {
 
 fn ordinary_outcome(
     kind: &str,
-    posture: &ForgeQueryOrdinaryPosture,
+    posture: &WorthQueryOrdinaryPosture,
 ) -> RuntimeOutcomeSourceReference {
     RuntimeOutcomeSourceReference::QueryOrdinaryOutcome {
         kind: kind.to_string(),

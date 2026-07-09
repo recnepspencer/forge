@@ -1,5 +1,5 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::obligations::UiObligationFamily;
 use worth_ui_query_binding::{
@@ -8,7 +8,9 @@ use worth_ui_query_binding::{
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    execute_for_target, graph_aligned_query_target, query_touch, query_touch_app,
+    apps::query_touch_app,
+    targets::{execute_for_target, graph_aligned_query_target},
+    touches::query_touch,
 };
 
 #[test]
@@ -39,11 +41,11 @@ fn query_requirement_selection_and_verdicts_retain_query_owned_prerequisite_evid
     );
     assert_eq!(
         query_ref.inspection_lane(),
-        WorthUiQueryInspectionLane::NotRequested
+        WorthUiQueryInspectionLane::WorkspaceInspect
     );
     assert_eq!(
         query_ref.causal_explanation_lane(),
-        WorthUiQueryCausalExplanationLane::NotRequested
+        WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection
     );
 
     let verdict = bundle

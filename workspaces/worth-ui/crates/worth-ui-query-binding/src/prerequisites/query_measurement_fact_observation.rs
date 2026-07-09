@@ -1,5 +1,5 @@
-use forge_foundational::facade::{AspectValue, InternedString};
-use forge_query::facade::{CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt};
+use worth_foundational::facade::{AspectValue, InternedString};
+use worth_query::facade::{CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt};
 
 use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
 

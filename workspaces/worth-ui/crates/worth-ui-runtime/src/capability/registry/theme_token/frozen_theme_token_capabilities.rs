@@ -12,6 +12,7 @@ pub struct FrozenThemeTokenCapabilities {
 }
 
 impl FrozenThemeTokenCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

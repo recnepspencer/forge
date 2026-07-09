@@ -48,18 +48,22 @@ impl WorthUiResolutionDiagnostic {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn code(&self) -> WorthUiResolutionDiagnosticCode {
         self.code
     }
 
+    #[cfg(test)]
     pub(crate) fn authored_text(&self) -> &str {
         &self.authored_text
     }
 
+    #[cfg(test)]
     pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
         &self.module_id
     }
 
+    #[cfg(test)]
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         &self.provenance
     }
@@ -92,6 +96,7 @@ fn stable_provenance_cmp(
         ) => stable_span_cmp(left_declaration, right_declaration)
             .then_with(|| stable_optional_span_cmp(left_detail.as_ref(), right_detail.as_ref()))
             .then_with(|| left_index.cmp(right_index)),
+        #[cfg(any(test, feature = "certification-support"))]
         (
             WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
                 authored_module_path: left_path,
@@ -104,7 +109,9 @@ fn stable_provenance_cmp(
         ) => left_path
             .cmp(right_path)
             .then_with(|| left_index.cmp(right_index)),
+        #[cfg(any(test, feature = "certification-support"))]
         (WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. }, _) => Ordering::Less,
+        #[cfg(any(test, feature = "certification-support"))]
         (_, WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. }) => Ordering::Greater,
     }
 }

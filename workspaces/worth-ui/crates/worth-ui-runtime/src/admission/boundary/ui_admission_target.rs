@@ -85,7 +85,7 @@ impl UiAdmissionTarget {
 
     pub fn with_query_prerequisites_from_projection_consumption(
         mut self,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);

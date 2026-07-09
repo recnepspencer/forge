@@ -25,6 +25,7 @@ impl WorthUiSourceImportGraph {
         self.adjacency.keys()
     }
 
+    #[cfg(test)]
     pub(crate) fn adjacency(&self) -> &BTreeMap<WorthUiSourceModuleId, Vec<WorthUiSourceImport>> {
         &self.adjacency
     }

@@ -5,13 +5,14 @@ use worth_ui::facade::inspection::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn refs_first_expansion_matches_direct_rich_request_for_the_same_obligation_handle() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);
@@ -52,9 +53,10 @@ fn refs_first_expansion_matches_direct_rich_request_for_the_same_obligation_hand
 
 #[test]
 fn refs_only_obligation_inspection_does_not_materialize_before_explicit_expansion() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target);

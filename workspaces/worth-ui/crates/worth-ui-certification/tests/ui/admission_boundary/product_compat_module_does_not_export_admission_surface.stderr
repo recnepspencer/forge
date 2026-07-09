@@ -1,22 +1,8 @@
-error[E0603]: module `compat` is private
- --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:23
+error[E0432]: unresolved import `worth_ui::facade::compat::admission`
+ --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:31
   |
 1 | use worth_ui::facade::compat::admission::{
-  |                       ^^^^^^ private module
-  |
-help: consider importing this module instead:
-      worth_ui_runtime::facade::admission
- --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:40
-  |
-1 |   use worth_ui::facade::compat::admission::{
-  |  ________________________________________^
-2 | |     UiAdmissionBoundary, UiAdmissionTarget, UiSupportSnapshot,
-  | |____^
-note: the module `compat` is defined here
- --> $WORKSPACE/crates/worth-ui/src/facade/mod.rs
-  |
-  | mod compat;
-  | ^^^^^^^^^^
+  |                               ^^^^^^^^^ could not find `admission` in `compat`
 
 error[E0603]: module `compat` is private
  --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:23
@@ -24,34 +10,6 @@ error[E0603]: module `compat` is private
 1 | use worth_ui::facade::compat::admission::{
   |                       ^^^^^^ private module
   |
-help: consider importing this module instead:
-      worth_ui_runtime::facade::admission
- --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:40
-  |
-1 |   use worth_ui::facade::compat::admission::{
-  |  ________________________________________^
-2 | |     UiAdmissionBoundary, UiAdmissionTarget, UiSupportSnapshot,
-  | |_________________________^
-note: the module `compat` is defined here
- --> $WORKSPACE/crates/worth-ui/src/facade/mod.rs
-  |
-  | mod compat;
-  | ^^^^^^^^^^
-
-error[E0603]: module `compat` is private
- --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:23
-  |
-1 | use worth_ui::facade::compat::admission::{
-  |                       ^^^^^^ private module
-  |
-help: consider importing this module instead:
-      worth_ui_runtime::facade::admission
- --> tests/ui/admission_boundary/product_compat_module_does_not_export_admission_surface.rs:1:40
-  |
-1 |   use worth_ui::facade::compat::admission::{
-  |  ________________________________________^
-2 | |     UiAdmissionBoundary, UiAdmissionTarget, UiSupportSnapshot,
-  | |____________________________________________^
 note: the module `compat` is defined here
  --> $WORKSPACE/crates/worth-ui/src/facade/mod.rs
   |

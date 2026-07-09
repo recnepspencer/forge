@@ -11,7 +11,7 @@ use worth_ui_dsl::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn ordinary_35_covered_queries_stay_narrow_index_backed_and_log_free() {
@@ -65,8 +65,8 @@ fn ordinary_35_covered_queries_stay_narrow_index_backed_and_log_free() {
 
 #[test]
 fn ai_harness_and_query_citation_stay_on_the_ordinary_boundary() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
     let ai = UiInspectionAiHarness::new(&app);
     let query = obligation_query(
         touch.target().graph_node_identity().digest(),

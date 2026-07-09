@@ -2,11 +2,14 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::source::{
-    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputImportNode,
-    WorthUiArtifactInputModule, WorthUiArtifactInputNode, WorthUiArtifactInputNormalizer,
-    WorthUiArtifactInputProvenance, WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputModule,
+    WorthUiArtifactInputNode, WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
     WorthUiSourceModuleId,
+};
+#[cfg(test)]
+use crate::source::{
+    WorthUiArtifactInputImportNode, WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
 };
 
 use super::worth_ui_rust_authored_artifact_input_module::WorthUiRustAuthoredDeclaration;
@@ -57,12 +60,14 @@ fn lower_rust_authored_module(
                 declaration_index,
             );
             match declaration {
+                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Import { target_module_path } => {
                     WorthUiArtifactInputNode::Import(WorthUiArtifactInputImportNode::new(
                         WorthUiArtifactInputReference::new(target_module_path),
                         provenance,
                     ))
                 }
+                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Component {
                     name_text,
                     authored_identity,
@@ -73,6 +78,7 @@ fn lower_rust_authored_module(
                     body_atoms.clone(),
                     provenance,
                 )),
+                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Surface {
                     name_text,
                     authored_identity,
@@ -93,6 +99,7 @@ fn lower_rust_authored_module(
                     body_atoms.clone(),
                     provenance,
                 )),
+                #[cfg(test)]
                 WorthUiRustAuthoredDeclaration::Token {
                     name_text,
                     authored_identity,

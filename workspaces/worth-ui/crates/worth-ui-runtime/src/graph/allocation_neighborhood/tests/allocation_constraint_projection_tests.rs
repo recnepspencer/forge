@@ -14,9 +14,9 @@ use crate::evidence::measurement::projection::fact_test_support::{
 };
 use crate::evidence::{
     admit_measurement_basis, MeasurementEvidenceInput, UiConstraintAvailableSpacePosture,
-    UiConstraintNormalizationPosture,
-    UiConstraintParentAvailableSpace, UiConstraintPropagationDenialReason,
-    UiConstraintPropagationEdgeFamily, UiConstraintResizePermissionPosture,
+    UiConstraintNormalizationPosture, UiConstraintParentAvailableSpace,
+    UiConstraintPropagationDenialReason, UiConstraintPropagationEdgeFamily,
+    UiConstraintResizePermissionPosture,
 };
 use crate::facade::WorthUi;
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
@@ -208,7 +208,8 @@ fn operator_specific_contracts_emit_distinct_production_edge_sets() {
 }
 
 #[test]
-fn split_declared_durable_resize_support_stays_latent_without_runtime_witness_on_raw_constraint_lane() {
+fn split_declared_durable_resize_support_stays_latent_without_runtime_witness_on_raw_constraint_lane(
+) {
     let (_, _, world_profile) = display_field_projection_context("allocation-constraint-resize");
     let app = control_app(world_profile.clone(), "operator:split");
     let root_node = graph_node_identity_for_provenance(&app, 0);
@@ -270,13 +271,23 @@ fn parent_available_space_edges_stay_child_facing_and_typed() {
         .collect::<Vec<_>>();
 
     assert_eq!(downward_edges.len(), 1);
+    let root_member = neighborhood
+        .members()
+        .iter()
+        .find(|member| member.graph_node_identity() == root_node)
+        .expect("root member should be present");
+    let peer_member = neighborhood
+        .members()
+        .iter()
+        .find(|member| member.graph_node_identity() == peer_node)
+        .expect("peer member should be present");
     assert_eq!(
         downward_edges[0].source_member_identity_digest(),
-        neighborhood.members()[0].identity_digest()
+        root_member.identity_digest()
     );
     assert_eq!(
         downward_edges[0].target_member_identity_digest(),
-        neighborhood.members()[1].identity_digest()
+        peer_member.identity_digest()
     );
     assert_eq!(
         downward_edges[0]

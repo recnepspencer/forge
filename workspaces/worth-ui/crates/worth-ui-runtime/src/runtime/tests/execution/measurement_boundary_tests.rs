@@ -1,4 +1,4 @@
-use forge_foundational::{
+use worth_foundational::{
     FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceBoundary,
     FoundationalPerformanceEvidenceStrength,
 };

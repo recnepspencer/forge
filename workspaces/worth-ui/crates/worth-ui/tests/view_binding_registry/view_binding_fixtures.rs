@@ -1,9 +1,9 @@
-use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, ForgeQueryConfig, ForgeQueryQueryConfig,
-    ForgeQueryRelationalConfig, ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalConfig,
-    QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ResultShapeFamily,
-    ViewShapeDescriptor,
+use worth_query::facade::{
+    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfig,
+    WorthQueryQueryConfig, WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
+    WorthQuerySignalConfig,
 };
 use worth_ui::facade::{
     QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,
@@ -62,10 +62,10 @@ pub(crate) fn denied_query_live_compatibility() -> QueryLiveCompatibility {
 pub(crate) fn with_query_support_and_composition(
     descriptor: ViewBindingDescriptor,
 ) -> ViewBindingDescriptor {
-    let support_report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = support_report
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("runtime-backed query composition support row");
     let query_composition = support_report
         .query_composition_support_profile()
@@ -85,18 +85,18 @@ pub(crate) fn admitted_basis_posture() -> QueryBasisPostureReference {
 }
 
 pub(crate) fn unsupported_query_capability_binding(id: &str) -> ViewBindingDescriptor {
-    let support_report = ForgeQueryApplicationFacade::new(
-        ForgeQueryConfig::runtime_backed_default()
-            .with_query(ForgeQueryQueryConfig::disabled())
-            .with_signal(ForgeQuerySignalConfig::disabled())
-            .with_runtime_bridge(ForgeQueryRuntimeBridgeConfig::disabled())
-            .with_relational(ForgeQueryRelationalConfig::disabled()),
+    let support_report = WorthQueryApplicationFacade::new(
+        WorthQueryConfig::runtime_backed_default()
+            .with_query(WorthQueryQueryConfig::disabled())
+            .with_signal(WorthQuerySignalConfig::disabled())
+            .with_runtime_bridge(WorthQueryRuntimeBridgeConfig::disabled())
+            .with_relational(WorthQueryRelationalConfig::disabled()),
     )
     .expect("disabled query config still produces a facade")
     .support_report();
     let query_capability = support_report
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("disabled query config still reports query composition posture");
     let basis_support =
         discover_basis_lifecycle_support(BasisFamily::CurrentHead, "subscription_declaration");

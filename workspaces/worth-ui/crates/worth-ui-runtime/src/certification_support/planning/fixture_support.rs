@@ -1,7 +1,7 @@
-﻿use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, QuerySubscriptionFamily, QuerySubscriptionSupportPosture,
-    ResultShapeFamily, ViewShapeDescriptor,
+use worth_query::facade::{
+    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -94,10 +94,10 @@ pub(super) fn intrinsic_basis(
 }
 
 pub(super) fn query_app() -> WorthUiApp {
-    let support_report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = support_report
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("suite query capability posture");
     let query_composition = support_report
         .query_composition_support_profile()
@@ -139,10 +139,10 @@ pub(super) fn artifact_from_modules<const N: usize>(
     let snapshot = app.capabilities();
     let resolved =
         WorthUiArtifactInputResolver::resolve(&input, snapshot).expect("suite input resolves");
-    let structured =
-        WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot).expect("suite structure lowers");
-    let bound =
-        WorthUiBindingSemanticsLowerer::lower(&structured, snapshot).expect("suite semantics lower");
+    let structured = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)
+        .expect("suite structure lowers");
+    let bound = WorthUiBindingSemanticsLowerer::lower(&structured, snapshot)
+        .expect("suite semantics lower");
     let identity_seeded = WorthUiIdentitySeedLowerer::lower(&bound)
         .expect("suite identity seeds lower")
         .0;
@@ -198,7 +198,8 @@ fn multi_control_app(
         .with_structural_token(UiDslStructuralToken::new(operator_token))
         .with_posture_token(UiDslPostureToken::new("touch:press"));
         if bounded {
-            spec = spec.with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"));
+            spec =
+                spec.with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"));
         }
         package = package.with_semantic_artifact_spec(spec);
     }
@@ -222,7 +223,13 @@ pub(super) fn graph_node_identity_for_provenance(
     let artifact = app
         .declaration_artifacts()
         .iter()
-        .find(|artifact| artifact.provenance().source_provenance().declaration_index() == declaration_index)
+        .find(|artifact| {
+            artifact
+                .provenance()
+                .source_provenance()
+                .declaration_index()
+                == declaration_index
+        })
         .expect("suite declaration artifact should exist");
     app.graph()
         .lookup()
@@ -242,4 +249,3 @@ pub(super) fn snapshot_with_admitted_layout(
         admitted_nodes,
     )
 }
-

@@ -162,7 +162,9 @@ pub(super) fn declaration_ref_digests(
     digests
 }
 
-pub(super) fn aspect_ref_count(receipt: &crate::facade::inspection_bridge::UiInspectionReceipt) -> usize {
+pub(super) fn aspect_ref_count(
+    receipt: &crate::facade::inspection_bridge::UiInspectionReceipt,
+) -> usize {
     receipt
         .evidence_slice()
         .expect("aspect query should return an evidence slice")

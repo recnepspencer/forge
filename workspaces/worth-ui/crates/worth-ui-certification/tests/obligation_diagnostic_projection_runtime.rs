@@ -4,13 +4,14 @@ use worth_ui::facade::inspection::{
 };
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let report = app.admission().admit_selected_obligations(
         &app.admission()
             .select_obligations_for_target(&touch, target),
@@ -58,9 +59,9 @@ fn diagnostic_projection_derives_from_the_same_evidence_as_inspection() {
         UiInspectionObligationDecision::Verdict,
     );
 
-    let denied_report = app
-        .admission()
-        .report(obligation_dispatch_prerequisite_support::wrong_query_basis_target(&touch));
+    let denied_report = app.admission().report(
+        obligation_dispatch_prerequisite_support::targets::wrong_query_basis_target(&touch),
+    );
     let denied_inspection = denied_report.inspect(
         UiInspectionQuery::new(
             UiInspectionTarget::obligation_graph_node(

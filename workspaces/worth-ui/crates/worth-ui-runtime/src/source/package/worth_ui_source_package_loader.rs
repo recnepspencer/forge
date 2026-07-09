@@ -57,6 +57,7 @@ impl WorthUiSourcePackageLoader {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn register_module(mut self, relative_path: impl Into<PathBuf>) -> Self {
         self.registrations
             .push(PendingModuleRegistration::without_source(
@@ -65,6 +66,7 @@ impl WorthUiSourcePackageLoader {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn register_module_with_imports(
         mut self,
         relative_path: impl Into<PathBuf>,
@@ -91,6 +93,7 @@ impl WorthUiSourcePackageLoader {
         self
     }
 
+    #[cfg(test)]
     pub(crate) fn register_module_with_imports_and_source(
         mut self,
         relative_path: impl Into<PathBuf>,
@@ -354,6 +357,7 @@ fn canonical_module_relative_path(module_id: &WorthUiSourceModuleId) -> PathBuf 
 }
 
 impl PendingModuleRegistration {
+    #[cfg(test)]
     fn without_source(relative_path: PathBuf) -> Self {
         Self {
             relative_path,
@@ -362,6 +366,7 @@ impl PendingModuleRegistration {
         }
     }
 
+    #[cfg(test)]
     fn without_source_with_imports(relative_path: PathBuf, import_paths: Vec<PathBuf>) -> Self {
         Self {
             relative_path,
@@ -378,6 +383,7 @@ impl PendingModuleRegistration {
         }
     }
 
+    #[cfg(test)]
     fn with_source_and_imports(
         relative_path: PathBuf,
         source_text: String,

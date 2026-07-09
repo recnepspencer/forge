@@ -11,6 +11,7 @@ pub struct FrozenPluginSlotCapabilities {
 }
 
 impl FrozenPluginSlotCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

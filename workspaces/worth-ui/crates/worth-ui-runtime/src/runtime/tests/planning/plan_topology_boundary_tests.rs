@@ -24,7 +24,7 @@ fn equivalent_plan_inputs_assemble_equivalent_topology() {
 
 #[test]
 fn plan_topology_assembly_rejects_missing_child_or_lane_links() {
-    let (_, plan_input, planning, allocation) = topology_fixture();
+    let (_, _plan_input, planning, allocation) = topology_fixture();
     let mut runtime_handles = allocation.runtime_handles().to_vec();
     runtime_handles.pop();
     let broken = allocation_with_runtime_handles(&allocation, runtime_handles);

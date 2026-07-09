@@ -1,6 +1,6 @@
 use worth_ui_inspection::{
-    UiInspectionMeasurementBasisPosture, UiInspectionMeasurementDependencyLineageEntry,
-    UiInspectionMeasurementDenialPosture, UiInspectionMeasurementEvidenceView,
+    UiInspectionMeasurementBasisPosture, UiInspectionMeasurementDenialPosture,
+    UiInspectionMeasurementDependencyLineageEntry, UiInspectionMeasurementEvidenceView,
     UiInspectionMeasurementFailureSource, UiInspectionMeasurementGenerationCompatibility,
     UiInspectionSupportReport,
 };

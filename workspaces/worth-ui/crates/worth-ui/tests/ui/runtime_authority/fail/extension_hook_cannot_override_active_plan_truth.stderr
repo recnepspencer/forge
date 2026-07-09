@@ -10,7 +10,7 @@ note: if you're trying to build a new `WorthUiLaneAdapterHook` consider using on
       WorthUiLaneAdapterHook::identity_seed_contribution
       WorthUiLaneAdapterHook::durable_state_family_admission
       and $N others
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/lane_admission/hook.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/../lane_admission/hook.rs
   |
   |     pub fn source_ingress(hook_id: impl Into<String>) -> Self {
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

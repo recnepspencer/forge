@@ -3,10 +3,10 @@ use crate::runtime::{
     WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
 };
 
+use super::durable_state_inventory_test_support::platform_inventory;
 use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, lane_change_inputs, splitter_replace_inputs,
 };
-use super::durable_state_inventory_test_support::platform_inventory;
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing,
     splitter_surface_node,
@@ -48,13 +48,19 @@ fn splitter_position_state_participates_only_through_admitted_runtime_resize_sea
     let admitted = reconciliation
         .admitted_durable_resize_input("surface:main")
         .expect("surface splitter state should admit durable resize input");
-    assert_eq!(admitted.family_id(), &WorthUiDurableStateFamilyId::SplitterPosition);
+    assert_eq!(
+        admitted.family_id(),
+        &WorthUiDurableStateFamilyId::SplitterPosition
+    );
     assert_eq!(
         admitted.posture(),
         WorthUiDurableResizeInputPosture::AdmittedPlanningTimeOnly
     );
     assert!(admitted.is_planning_time_only());
-    assert_eq!(admitted.resize_permission(), &crate::capability::MosaicResizePermission::user_resizable());
+    assert_eq!(
+        admitted.resize_permission(),
+        &crate::capability::MosaicResizePermission::user_resizable()
+    );
     assert!(
         reconciliation
             .admitted_durable_resize_input("component:dashboard")
@@ -81,7 +87,10 @@ fn lane_change_splitter_state_remaps_explicitly() {
     assert!(resize_input.is_planning_time_only());
     assert_eq!(
         reconciliation
-            .receipt_for("surface:stable", &WorthUiDurableStateFamilyId::SplitterPosition)
+            .receipt_for(
+                "surface:stable",
+                &WorthUiDurableStateFamilyId::SplitterPosition
+            )
             .expect("splitter receipt exists")
             .outcome(),
         crate::runtime::WorthUiDurableStateReconciliationOutcome::Recreate
@@ -108,7 +117,10 @@ fn incompatible_splitter_shape_change_denies_explicitly() {
         .is_none());
     assert_eq!(
         reconciliation
-            .receipt_for("surface:main", &WorthUiDurableStateFamilyId::SplitterPosition)
+            .receipt_for(
+                "surface:main",
+                &WorthUiDurableStateFamilyId::SplitterPosition
+            )
             .expect("splitter replacement receipt exists")
             .outcome(),
         crate::runtime::WorthUiDurableStateReconciliationOutcome::Drop
@@ -128,13 +140,9 @@ fn ordinary_planning_consumes_runtime_resize_witness_instead_of_legacy_support_m
         .admit_allocation_constraint_set(&neighborhood)
         .expect("split neighborhood should still admit without minting durable resize authority");
     assert!(
-        direct_constraints
-            .propagation_edges()
-            .iter()
-            .all(|edge| {
-                edge.family()
-                    != crate::evidence::UiConstraintPropagationEdgeFamily::DurableResizeInput
-            }),
+        direct_constraints.propagation_edges().iter().all(|edge| {
+            edge.family() != crate::evidence::UiConstraintPropagationEdgeFamily::DurableResizeInput
+        }),
         "legacy graph support must not manufacture durable resize authority on its own"
     );
 
@@ -160,7 +168,11 @@ fn ordinary_planning_consumes_runtime_resize_witness_instead_of_legacy_support_m
     }
 }
 
-fn splitter_pending_activation() -> (crate::runtime::WorthUiRuntimeHost, crate::runtime::WorthUiPendingActivation, u64) {
+fn splitter_pending_activation() -> (
+    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiPendingActivation,
+    u64,
+) {
     let app = identity_match_app();
     let active = artifact_from_nodes([(
         "app/main.wui",

@@ -1,4 +1,4 @@
-use forge_query::facade::ViewShapeDescriptor;
+use worth_query::facade::ViewShapeDescriptor;
 
 use crate::capability::{
     AdmittedCapability, CommandDescriptor, CommandId, CommandProjectionDescriptor,

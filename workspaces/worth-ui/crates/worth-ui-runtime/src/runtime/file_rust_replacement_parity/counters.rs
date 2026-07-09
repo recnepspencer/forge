@@ -1,3 +1,4 @@
+#[cfg(test)]
 use crate::runtime::WorthUiCandidateAuthoringLane;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -30,6 +31,7 @@ pub struct WorthUiFileRustReplacementParityCounters {
 }
 
 impl WorthUiFileRustReplacementParityCounters {
+    #[cfg(test)]
     pub(crate) fn record_candidate(&mut self, lane: WorthUiCandidateAuthoringLane) {
         match lane {
             WorthUiCandidateAuthoringLane::FileAuthored => self.file_candidate_count += 1,
@@ -37,70 +39,87 @@ impl WorthUiFileRustReplacementParityCounters {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn record_candidate_admission(&mut self) {
         self.candidate_admission_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_artifact_comparison(&mut self) {
         self.artifact_comparison_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_impact_classification(&mut self) {
         self.impact_classification_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_impact_narrowing(&mut self) {
         self.impact_narrowing_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_identity_matching(&mut self) {
         self.identity_matching_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_node_replacement(&mut self) {
         self.node_replacement_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_durable_state_reconciliation(&mut self) {
         self.durable_state_reconciliation_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_query_binding_comparison(&mut self) {
         self.query_binding_comparison_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_query_live_rebind(&mut self) {
         self.query_live_rebind_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_plan_lowering(&mut self) {
         self.plan_lowering_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_handle_allocation(&mut self) {
         self.handle_allocation_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_lane_admission(&mut self) {
         self.lane_admission_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_topology_assembly(&mut self) {
         self.topology_assembly_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_activation_stage(&mut self) {
         self.activation_stage_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_ready_activation(&mut self) {
         self.ready_activation_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_plan_swap(&mut self) {
         self.plan_swap_count += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn record_swap_forbidden_work(
         &mut self,
         source_reparse_count: usize,

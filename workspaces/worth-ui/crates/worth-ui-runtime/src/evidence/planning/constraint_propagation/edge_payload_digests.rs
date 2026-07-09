@@ -1,11 +1,11 @@
 use crate::declaration::stable_text_digest;
 use crate::evidence::{
-    UiBoundReconciliationPosture, UiBoundReconciliationSolveOrder,
-    UiConstraintEqualSharePosture, UiConstraintEqualShareSolveOrder,
-    UiConstraintSiblingNegotiationFixedPointPolicy, UiConstraintSiblingNegotiationSolveOrder,
-    UiPortalAnchorPlanningInputPosture, UiPortalAnchorPlanningInputSolveOrder,
-    UiScrollOwnerPlanningInputPosture, UiScrollOwnerPlanningInputSolveOrder,
-    UiViewportPlanningInputPosture, UiViewportPlanningInputSolveOrder,
+    UiBoundReconciliationPosture, UiBoundReconciliationSolveOrder, UiConstraintEqualSharePosture,
+    UiConstraintEqualShareSolveOrder, UiConstraintSiblingNegotiationFixedPointPolicy,
+    UiConstraintSiblingNegotiationSolveOrder, UiPortalAnchorPlanningInputPosture,
+    UiPortalAnchorPlanningInputSolveOrder, UiScrollOwnerPlanningInputPosture,
+    UiScrollOwnerPlanningInputSolveOrder, UiViewportPlanningInputPosture,
+    UiViewportPlanningInputSolveOrder,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -187,11 +187,13 @@ pub(super) fn sibling_solve_order_digest(order: UiConstraintSiblingNegotiationSo
     }
 }
 
-pub(super) fn bound_reconciliation_solve_order_digest(order: UiBoundReconciliationSolveOrder) -> u64 {
+pub(super) fn bound_reconciliation_solve_order_digest(
+    order: UiBoundReconciliationSolveOrder,
+) -> u64 {
     match order {
-        UiBoundReconciliationSolveOrder::AfterEqualShareBeforePlanCloseout => {
-            stable_text_digest("worth-ui.constraint-bound.solve-order.after-equal-share-before-closeout")
-        }
+        UiBoundReconciliationSolveOrder::AfterEqualShareBeforePlanCloseout => stable_text_digest(
+            "worth-ui.constraint-bound.solve-order.after-equal-share-before-closeout",
+        ),
     }
 }
 

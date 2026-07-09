@@ -1,7 +1,6 @@
 use worth_ui_host_contract::{
     UiFontMeasurementKey, UiFontMetricsObservation, UiFontMetricsRequest, UiHostObservationValue,
-    UiMeasurementEvidenceFamily, UiMeasurementRequest,
-    UiMeasurementRequestIdentity, UiNativeControlIntrinsicSizeObservation,
+    UiMeasurementEvidenceFamily, UiMeasurementRequest, UiMeasurementRequestIdentity,
     UiPortalAnchorRectObservation, UiPortalAnchorRectRequest, UiTextIntrinsicSizeObservation,
     UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
@@ -14,14 +13,12 @@ use crate::declaration::{
     UiDeclaredMeasurementConstraintModifier, UiDeclaredMeasurementEvidenceRequirement,
     UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
 };
-use crate::host::{UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed};
 use crate::host::tests::measurement_fixture::collect_measurement_via_host_lane_for_test;
 use crate::host::tests::measurement_result_test_support::normalization_context_for;
+use crate::host::UiHostMeasurementNormalizationContext;
+use crate::host::{UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed};
 
-use crate::evidence::measurement::{
-    UiMeasurementCoordinateSpace, UiMeasurementResult, UiMeasurementRoundingPosture,
-    UiMeasurementUnitPosture,
-};
+use crate::evidence::measurement::UiMeasurementResult;
 
 pub(super) use super::query_context_test_support::display_field_projection_consumption;
 pub(crate) use super::query_context_test_support::{
@@ -212,47 +209,12 @@ pub(crate) fn host_result_portal_anchor(
     )
 }
 
-pub(crate) fn host_result_native_control_intrinsic_size(
-    request_seed: u64,
-    report: &WorthUiHostCapabilityReport,
-    generation: UiEvidenceAuthorityGeneration,
-) -> UiMeasurementResult {
-    let request = UiMeasurementRequest::native_control_intrinsic_size(
-        UiMeasurementRequestIdentity::new(request_seed),
-        UiMeasurementEvidenceFamily::NativeControlIntrinsicSize,
-        worth_ui_host_contract::UiNativeControlIntrinsicSizeRequest::new(
-            worth_ui_host_contract::UiNativeControlKind::Button,
-            Some("Save"),
-        ),
-        report,
-    )
-    .expect("native intrinsic request should admit");
-    host_result(
-        &request,
-        UiHostObservationValue::NativeControlIntrinsicSize(
-            UiNativeControlIntrinsicSizeObservation {
-                width: 240.0,
-                height: 48.0,
-            },
-        ),
-        report,
-        generation,
-        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44),
-    )
-}
-
 pub(crate) fn host_result_scroll_container_viewport(
     request_seed: u64,
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
 ) -> UiMeasurementResult {
-    host_result_scroll_container_viewport_with_value(
-        request_seed,
-        report,
-        generation,
-        120.0,
-        60.0,
-    )
+    host_result_scroll_container_viewport_with_value(request_seed, report, generation, 120.0, 60.0)
 }
 
 pub(crate) fn host_result_scroll_container_viewport_with_value(
@@ -272,10 +234,7 @@ pub(crate) fn host_result_scroll_container_viewport_with_value(
     host_result(
         &request,
         UiHostObservationValue::ScrollContainerViewport(
-            worth_ui_host_contract::UiScrollContainerViewportObservation {
-                width,
-                height,
-            },
+            worth_ui_host_contract::UiScrollContainerViewportObservation { width, height },
         ),
         report,
         generation,
@@ -290,9 +249,16 @@ fn host_result(
     generation: UiEvidenceAuthorityGeneration,
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiMeasurementResult {
-    let category = crate::evidence::UiMeasurementEvidenceCategory::from_request_family(
-        request.family(),
-    );
+    let category =
+        crate::evidence::UiMeasurementEvidenceCategory::from_request_family(request.family());
+    let normalization_context = match category {
+        crate::evidence::UiMeasurementEvidenceCategory::TextIntrinsicSize => {
+            UiHostMeasurementNormalizationContext::text_intrinsic_graph_node_local_logical_exact(
+                assumption_profile,
+            )
+        }
+        _ => normalization_context_for(category, assumption_profile),
+    };
     collect_measurement_via_host_lane_for_test(
         request,
         value,
@@ -300,7 +266,7 @@ fn host_result(
         request.evidence_family(),
         generation,
         report,
-        normalization_context_for(category, assumption_profile),
+        normalization_context,
     )
 }
 
@@ -308,7 +274,10 @@ fn projection_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMe
     match request.family() {
         worth_ui_host_contract::UiMeasurementRequestFamily::TextIntrinsicSize => {
             UiHostMeasurementNeed::TextIntrinsicSize(
-                request.text_intrinsic_size_input().expect("text request").clone(),
+                request
+                    .text_intrinsic_size_input()
+                    .expect("text request")
+                    .clone(),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::FontMetrics => {
@@ -318,12 +287,18 @@ fn projection_host_need_from_request(request: &UiMeasurementRequest) -> UiHostMe
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::ViewportExtent => {
             UiHostMeasurementNeed::ViewportExtent(
-                request.viewport_extent_input().expect("viewport request").clone(),
+                request
+                    .viewport_extent_input()
+                    .expect("viewport request")
+                    .clone(),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::PortalAnchorRect => {
             UiHostMeasurementNeed::PortalAnchorRect(
-                request.portal_anchor_rect_input().expect("portal request").clone(),
+                request
+                    .portal_anchor_rect_input()
+                    .expect("portal request")
+                    .clone(),
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::NativeControlIntrinsicSize => {

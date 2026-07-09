@@ -2,10 +2,8 @@ error[E0432]: unresolved imports `worth_ui_runtime::facade::UiAdmissionBoundary`
  --> tests/ui/admission_boundary/runtime_facade_root_does_not_export_admission_surface.rs:1:32
   |
 1 | use worth_ui_runtime::facade::{UiAdmissionBoundary, UiAdmissionTarget, UiSupportSnapshot};
-  |                                ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
-  |                                |                    |                  |
-  |                                |                    |                  no `UiSupportSnapshot` in `facade`
-  |                                |                    |                  help: a similar name exists in the module: `SupportSnapshot`
+  |                                ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^ no `UiSupportSnapshot` in `facade`
+  |                                |                    |
   |                                |                    no `UiAdmissionTarget` in `facade`
   |                                no `UiAdmissionBoundary` in `facade`
   |

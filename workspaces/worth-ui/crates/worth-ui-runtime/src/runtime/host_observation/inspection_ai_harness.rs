@@ -18,7 +18,8 @@ impl<'a> WorthUiRuntimeInspectionAiHarness<'a> {
         &self,
         allocation_planning: &WorthUiAllocationPlanning,
     ) -> UiAllocationPlanningInspectionReceipt {
-        self.runtime.inspect_allocation_planning(allocation_planning)
+        self.runtime
+            .inspect_allocation_planning(allocation_planning)
     }
 
     pub fn inspect_allocation_planning_query(

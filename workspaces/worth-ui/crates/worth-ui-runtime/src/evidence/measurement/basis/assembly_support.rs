@@ -7,8 +7,8 @@ use super::{denial::UiMeasurementBasisDenial, UiMeasurementEvidenceSlot};
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
-    UiMeasurementGenerationCompatibility, UiMeasurementResult, UiProjectionFactReceipt,
-    UiMeasurementEvidenceCategory,
+    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiMeasurementResult,
+    UiProjectionFactReceipt,
 };
 
 pub(super) fn assign_slot<'a, T>(

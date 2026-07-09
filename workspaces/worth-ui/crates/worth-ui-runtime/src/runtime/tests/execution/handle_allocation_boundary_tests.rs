@@ -167,7 +167,10 @@ fn same_lowered_topology_but_changed_planning_semantics_requires_distinct_plan_r
         .allocate_runtime_handles(&second_planning)
         .expect("second handles allocate");
 
-    assert_eq!(first.basis().active_artifact_digest(), second.basis().active_artifact_digest());
+    assert_eq!(
+        first.basis().active_artifact_digest(),
+        second.basis().active_artifact_digest()
+    );
     assert_eq!(
         first.basis().candidate_artifact_digest(),
         second.basis().candidate_artifact_digest()

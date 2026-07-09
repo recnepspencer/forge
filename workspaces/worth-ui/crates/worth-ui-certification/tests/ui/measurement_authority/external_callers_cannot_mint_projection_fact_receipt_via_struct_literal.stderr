@@ -1,35 +1,8 @@
-error: cannot construct `UiProjectionFactReceipt` with struct literal syntax due to private fields
-  --> tests/ui/measurement_authority/external_callers_cannot_mint_projection_fact_receipt_via_struct_literal.rs:4:13
-   |
- 4 |     let _ = UiProjectionFactReceipt {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^
- 5 |         declaration_identity: unsafe { std::mem::zeroed() },
-   |         --------------------------------------------------- private field
- 6 |         declaration_support_authority_generation: unsafe { std::mem::zeroed() },
-   |         ----------------------------------------------------------------------- private field
- 7 |         query_basis_digest: "basis".into(),
-   |         ---------------------------------- private field
- 8 |         query_resolution_mode: unsafe { std::mem::zeroed() },
-   |         ---------------------------------------------------- private field
- 9 |         projection_contract_digest: "contract".into(),
-   |         --------------------------------------------- private field
-10 |         projection_consumption_declaration_digest: "declaration".into(),
-   |         --------------------------------------------------------------- private field
-11 |         projection_consumption_receipt_digest: "receipt".into(),
-   |         ------------------------------------------------------- private field
-12 |         projection_fact_set_digest: "facts".into(),
-   |         ------------------------------------------ private field
-13 |         projection_source_identity: "source".into(),
-   |         ------------------------------------------- private field
-14 |         required_measurement_dependencies: Box::new([]),
-   |         ----------------------------------------------- private field
-15 |         required_query_fact_families: Box::new([]),
-   |         ------------------------------------------ private field
-16 |         required_query_fact_family_set_digest: 0,
-   |         ---------------------------------------- private field
-17 |         consumed_fact_families: Box::new([]),
-   |         ------------------------------------ private field
-18 |         consumed_fact_family_set_digest: 0,
-   |         ---------------------------------- private field
-   |
-   = note: ...and other private fields `observations` and `observation_identity_digest` that were not provided
+error[E0432]: unresolved import `worth_ui_runtime::facade::evidence::UiProjectionFactReceipt`
+ --> tests/ui/measurement_authority/external_callers_cannot_mint_projection_fact_receipt_via_struct_literal.rs:1:5
+  |
+1 | use worth_ui_runtime::facade::evidence::UiProjectionFactReceipt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------
+  |     |                                   |
+  |     |                                   help: a similar name exists in the module: `UiInspectionCostReceipt`
+  |     no `UiProjectionFactReceipt` in `facade::evidence`

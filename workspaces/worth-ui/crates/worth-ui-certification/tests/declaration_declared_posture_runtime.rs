@@ -2,14 +2,15 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
-    UiDeclarationArtifact, UiDeclaredMeasurementMode, UiDeclaredPostureApplicability,
-    UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
+    UiDeclarationArtifact, UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
+    UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_host_contract::WorthUiHostCapability;
+use worth_ui_test_support::UiDeclaredMeasurementMode;
 
 fn assert_applicability_vector(
     artifact: &UiDeclarationArtifact,

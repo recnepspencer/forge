@@ -14,6 +14,7 @@ impl WorthUiArtifactInputModule {
         Self { module_id, nodes }
     }
 
+    #[cfg(test)]
     pub(crate) fn module_id(&self) -> &WorthUiSourceModuleId {
         &self.module_id
     }

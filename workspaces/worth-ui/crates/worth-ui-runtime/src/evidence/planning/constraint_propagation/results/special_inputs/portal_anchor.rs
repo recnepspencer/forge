@@ -80,16 +80,36 @@ impl UiConstraintPortalAnchorPlanningInputResult {
     pub fn edge_family(&self) -> UiConstraintPropagationEdgeFamily {
         UiConstraintPropagationEdgeFamily::PortalAnchorInput
     }
-    pub fn neighborhood_identity_digest(&self) -> u64 { self.neighborhood_identity_digest }
-    pub fn solve_order(&self) -> UiPortalAnchorPlanningInputSolveOrder { self.solve_order }
-    pub fn posture(&self) -> UiPortalAnchorPlanningInputPosture { self.posture }
-    pub fn source_evidence_identity_digest(&self) -> Option<u64> { self.source_evidence_identity_digest }
-    pub fn source_generation_digest(&self) -> Option<u64> { self.source_generation_digest }
-    pub fn unit_posture(&self) -> Option<UiMeasurementUnitPosture> { self.unit_posture }
-    pub fn coordinate_space(&self) -> Option<UiMeasurementCoordinateSpace> { self.coordinate_space }
-    pub fn rounding_posture(&self) -> Option<UiMeasurementRoundingPosture> { self.rounding_posture }
-    pub fn is_planning_time_only(&self) -> bool { self.planning_time_only }
-    pub fn identity_digest(&self) -> u64 { self.identity_digest }
+    pub fn neighborhood_identity_digest(&self) -> u64 {
+        self.neighborhood_identity_digest
+    }
+    pub fn solve_order(&self) -> UiPortalAnchorPlanningInputSolveOrder {
+        self.solve_order
+    }
+    pub fn posture(&self) -> UiPortalAnchorPlanningInputPosture {
+        self.posture
+    }
+    pub fn source_evidence_identity_digest(&self) -> Option<u64> {
+        self.source_evidence_identity_digest
+    }
+    pub fn source_generation_digest(&self) -> Option<u64> {
+        self.source_generation_digest
+    }
+    pub fn unit_posture(&self) -> Option<UiMeasurementUnitPosture> {
+        self.unit_posture
+    }
+    pub fn coordinate_space(&self) -> Option<UiMeasurementCoordinateSpace> {
+        self.coordinate_space
+    }
+    pub fn rounding_posture(&self) -> Option<UiMeasurementRoundingPosture> {
+        self.rounding_posture
+    }
+    pub fn is_planning_time_only(&self) -> bool {
+        self.planning_time_only
+    }
+    pub fn identity_digest(&self) -> u64 {
+        self.identity_digest
+    }
 }
 
 fn solve_order_digest(order: UiPortalAnchorPlanningInputSolveOrder) -> u64 {

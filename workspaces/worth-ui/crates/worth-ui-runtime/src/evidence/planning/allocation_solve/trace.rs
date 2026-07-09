@@ -143,14 +143,10 @@ pub(crate) fn convergence_posture_for_cycle_and_denial(
             UiAllocationSolveConvergencePosture::DeniedByPlanLowering
         }
         None => match (cycle_posture, fixed_point_policy) {
-            (
-                Some(UiConstraintCycleParticipationPosture::AdmittedFixedPoint),
-                _,
-            )
-            | (
-                _,
-                Some(UiConstraintSiblingNegotiationFixedPointPolicy::AdmittedStablePeerMutual),
-            ) => UiAllocationSolveConvergencePosture::FixedPointDeterministic,
+            (Some(UiConstraintCycleParticipationPosture::AdmittedFixedPoint), _)
+            | (_, Some(UiConstraintSiblingNegotiationFixedPointPolicy::AdmittedStablePeerMutual)) => {
+                UiAllocationSolveConvergencePosture::FixedPointDeterministic
+            }
             _ => UiAllocationSolveConvergencePosture::AcyclicDeterministic,
         },
     }

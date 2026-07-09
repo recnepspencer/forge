@@ -1,4 +1,3 @@
-use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_result_viewport_extent,
     synthetic_declaration_identity,
@@ -12,6 +11,7 @@ use crate::facade::WorthUi;
 use crate::graph::allocation_constraint_equal_share_test_support::viewport_basis_policy;
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
+use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 #[test]
 fn page_root_admits_viewport_as_typed_planning_input() {
@@ -46,23 +46,24 @@ fn page_root_admits_viewport_as_typed_planning_input() {
         .expect("page root should carry viewport planning artifact");
 
     assert_eq!(neighborhood.members().len(), 1);
-    assert_eq!(viewport_input.edge_family(), UiConstraintPropagationEdgeFamily::ViewportInput);
+    assert_eq!(
+        viewport_input.edge_family(),
+        UiConstraintPropagationEdgeFamily::ViewportInput
+    );
     assert_eq!(
         viewport_input.posture(),
         UiViewportPlanningInputPosture::AdmittedPlanningTimeOnly
     );
     assert!(viewport_input.is_planning_time_only());
     assert!(viewport_input.source_evidence_identity_digest().is_some());
-    assert!(
-        constraints.propagation_edges().iter().any(|edge| matches!(
-            edge.payload(),
-            UiConstraintPropagationEdgePayload::ViewportInput {
-                posture: UiViewportPlanningInputPosture::AdmittedPlanningTimeOnly,
-                planning_time_only: true,
-                ..
-            }
-        ))
-    );
+    assert!(constraints.propagation_edges().iter().any(|edge| matches!(
+        edge.payload(),
+        UiConstraintPropagationEdgePayload::ViewportInput {
+            posture: UiViewportPlanningInputPosture::AdmittedPlanningTimeOnly,
+            planning_time_only: true,
+            ..
+        }
+    )));
 }
 
 #[test]
@@ -92,7 +93,10 @@ fn missing_viewport_evidence_denies_through_typed_viewport_lane() {
         denial.reason(),
         UiConstraintPropagationDenialReason::MissingRequiredViewportPlanningInput
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::ViewportInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::ViewportInput)
+    );
 }
 
 #[test]
@@ -129,7 +133,10 @@ fn stale_viewport_evidence_denies_as_incompatible_measurement_posture() {
         denial.reason(),
         UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::ViewportInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::ViewportInput)
+    );
 }
 
 fn page_root_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {

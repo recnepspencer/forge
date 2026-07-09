@@ -1,14 +1,20 @@
 use crate::declaration::stable_text_digest;
 
 use crate::evidence::{
-    UiConstraintAvailableSpacePosture, UiConstraintAxisScope, UiConstraintBoundReconciliationResult,
-    UiConstraintEqualShareDistributionResult, UiConstraintPortalAnchorPlanningInputResult,
-    UiConstraintPropagationEdge, UiConstraintScrollOwnerPlanningInputResult,
-    UiConstraintSiblingNegotiationResult, UiConstraintViewportPlanningInputResult,
-    UiLayoutOperatorContractIdentity, UiMeasurementCoordinateSpace, UiMeasurementRoundingPosture,
-    UiMeasurementUnitPosture,
+    UiConstraintAvailableSpacePosture, UiConstraintAxisScope,
+    UiConstraintBoundReconciliationResult, UiConstraintEqualShareDistributionResult,
+    UiConstraintPortalAnchorPlanningInputResult, UiConstraintPropagationEdge,
+    UiConstraintScrollOwnerPlanningInputResult, UiConstraintSiblingNegotiationResult,
+    UiConstraintViewportPlanningInputResult, UiLayoutOperatorContractIdentity,
+    UiMeasurementCoordinateSpace, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
 };
 
+use super::digest::{
+    available_space_posture_digest, axis_scope_digest, bounded_requirement_digest,
+    coordinate_space_digest, equal_share_group_digest, resize_permission_posture_digest,
+    rounding_posture_digest, sibling_negotiation_mode_digest, special_input_posture_digest,
+    unit_posture_digest,
+};
 use super::identity::UiAllocationConstraintSetIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -110,19 +116,45 @@ impl UiAllocationConstraintSummary {
         }
     }
 
-    pub fn incoming_available_space(&self) -> Option<UiConstraintAxisScope> { self.incoming_available_space }
-    pub fn incoming_available_space_posture(&self) -> Option<UiConstraintAvailableSpacePosture> { self.incoming_available_space_posture }
-    pub fn intrinsic_contribution_requirements(&self) -> Option<UiConstraintAxisScope> { self.intrinsic_contribution_requirements }
-    pub fn sibling_negotiation_mode(&self) -> UiConstraintSiblingNegotiationMode { self.sibling_negotiation_mode }
-    pub fn equal_share_group(&self) -> UiConstraintEqualShareGroup { self.equal_share_group }
-    pub fn bounded_min_max_requirements(&self) -> UiConstraintBoundedMinMaxRequirement { self.bounded_min_max_requirements }
-    pub fn viewport_requirement(&self) -> UiConstraintSpecialInputPosture { self.viewport_requirement }
-    pub fn scroll_owner_requirement(&self) -> UiConstraintSpecialInputPosture { self.scroll_owner_requirement }
-    pub fn portal_anchor_requirement(&self) -> UiConstraintSpecialInputPosture { self.portal_anchor_requirement }
-    pub fn resize_permission_posture(&self) -> UiConstraintResizePermissionPosture { self.resize_permission_posture }
-    pub fn unit_posture(&self) -> Option<UiMeasurementUnitPosture> { self.unit_posture }
-    pub fn coordinate_space(&self) -> Option<UiMeasurementCoordinateSpace> { self.coordinate_space }
-    pub fn rounding_posture(&self) -> Option<UiMeasurementRoundingPosture> { self.rounding_posture }
+    pub fn incoming_available_space(&self) -> Option<UiConstraintAxisScope> {
+        self.incoming_available_space
+    }
+    pub fn incoming_available_space_posture(&self) -> Option<UiConstraintAvailableSpacePosture> {
+        self.incoming_available_space_posture
+    }
+    pub fn intrinsic_contribution_requirements(&self) -> Option<UiConstraintAxisScope> {
+        self.intrinsic_contribution_requirements
+    }
+    pub fn sibling_negotiation_mode(&self) -> UiConstraintSiblingNegotiationMode {
+        self.sibling_negotiation_mode
+    }
+    pub fn equal_share_group(&self) -> UiConstraintEqualShareGroup {
+        self.equal_share_group
+    }
+    pub fn bounded_min_max_requirements(&self) -> UiConstraintBoundedMinMaxRequirement {
+        self.bounded_min_max_requirements
+    }
+    pub fn viewport_requirement(&self) -> UiConstraintSpecialInputPosture {
+        self.viewport_requirement
+    }
+    pub fn scroll_owner_requirement(&self) -> UiConstraintSpecialInputPosture {
+        self.scroll_owner_requirement
+    }
+    pub fn portal_anchor_requirement(&self) -> UiConstraintSpecialInputPosture {
+        self.portal_anchor_requirement
+    }
+    pub fn resize_permission_posture(&self) -> UiConstraintResizePermissionPosture {
+        self.resize_permission_posture
+    }
+    pub fn unit_posture(&self) -> Option<UiMeasurementUnitPosture> {
+        self.unit_posture
+    }
+    pub fn coordinate_space(&self) -> Option<UiMeasurementCoordinateSpace> {
+        self.coordinate_space
+    }
+    pub fn rounding_posture(&self) -> Option<UiMeasurementRoundingPosture> {
+        self.rounding_posture
+    }
 
     pub(crate) fn identity_digest(&self) -> u64 {
         stable_text_digest("worth-ui.allocation-constraint-summary")
@@ -195,14 +227,18 @@ impl UiAllocationConstraintSet {
                     ^ scroll_owner_planning_input
                         .as_ref()
                         .map_or(
-                            stable_text_digest("worth-ui.allocation-constraint-set.no-scroll-owner"),
+                            stable_text_digest(
+                                "worth-ui.allocation-constraint-set.no-scroll-owner",
+                            ),
                             UiConstraintScrollOwnerPlanningInputResult::identity_digest,
                         )
                         .rotate_left(22)
                     ^ portal_anchor_planning_input
                         .as_ref()
                         .map_or(
-                            stable_text_digest("worth-ui.allocation-constraint-set.no-portal-anchor"),
+                            stable_text_digest(
+                                "worth-ui.allocation-constraint-set.no-portal-anchor",
+                            ),
                             UiConstraintPortalAnchorPlanningInputResult::identity_digest,
                         )
                         .rotate_left(23)
@@ -268,10 +304,14 @@ impl UiAllocationConstraintSet {
     pub fn viewport_planning_input(&self) -> Option<&UiConstraintViewportPlanningInputResult> {
         self.viewport_planning_input.as_ref()
     }
-    pub fn scroll_owner_planning_input(&self) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
+    pub fn scroll_owner_planning_input(
+        &self,
+    ) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
         self.scroll_owner_planning_input.as_ref()
     }
-    pub fn portal_anchor_planning_input(&self) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
+    pub fn portal_anchor_planning_input(
+        &self,
+    ) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
         self.portal_anchor_planning_input.as_ref()
     }
 
@@ -286,138 +326,4 @@ impl UiAllocationConstraintSet {
     pub fn propagation_edges(&self) -> &[UiConstraintPropagationEdge] {
         &self.propagation_edges
     }
-}
-
-fn axis_scope_digest(scope: Option<UiConstraintAxisScope>) -> u64 {
-    match scope {
-        Some(UiConstraintAxisScope::Primary) => {
-            stable_text_digest("worth-ui.constraint-axis.primary")
-        }
-        Some(UiConstraintAxisScope::Cross) => stable_text_digest("worth-ui.constraint-axis.cross"),
-        Some(UiConstraintAxisScope::Both) => stable_text_digest("worth-ui.constraint-axis.both"),
-        None => stable_text_digest("worth-ui.constraint-axis.none"),
-    }
-}
-
-fn sibling_negotiation_mode_digest(mode: UiConstraintSiblingNegotiationMode) -> u64 {
-    match mode {
-        UiConstraintSiblingNegotiationMode::None => {
-            stable_text_digest("worth-ui.constraint-sibling.none")
-        }
-        UiConstraintSiblingNegotiationMode::StablePeerPrimaryAxis => {
-            stable_text_digest("worth-ui.constraint-sibling.primary-axis")
-        }
-        UiConstraintSiblingNegotiationMode::StablePeerTwoDimensional => {
-            stable_text_digest("worth-ui.constraint-sibling.two-dimensional")
-        }
-    }
-}
-
-fn equal_share_group_digest(group: UiConstraintEqualShareGroup) -> u64 {
-    match group {
-        UiConstraintEqualShareGroup::None => {
-            stable_text_digest("worth-ui.constraint-equal-share.none")
-        }
-        UiConstraintEqualShareGroup::StablePeerPrimaryAxis => {
-            stable_text_digest("worth-ui.constraint-equal-share.primary-axis")
-        }
-        UiConstraintEqualShareGroup::StablePeerTwoDimensional => {
-            stable_text_digest("worth-ui.constraint-equal-share.two-dimensional")
-        }
-    }
-}
-
-fn bounded_requirement_digest(requirement: UiConstraintBoundedMinMaxRequirement) -> u64 {
-    match requirement {
-        UiConstraintBoundedMinMaxRequirement::None => {
-            stable_text_digest("worth-ui.constraint-bounds.none")
-        }
-        UiConstraintBoundedMinMaxRequirement::PrimaryAxis => {
-            stable_text_digest("worth-ui.constraint-bounds.primary-axis")
-        }
-        UiConstraintBoundedMinMaxRequirement::BothAxes => {
-            stable_text_digest("worth-ui.constraint-bounds.both-axes")
-        }
-    }
-}
-
-fn special_input_posture_digest(posture: UiConstraintSpecialInputPosture) -> u64 {
-    match posture {
-        UiConstraintSpecialInputPosture::NotRequired => {
-            stable_text_digest("worth-ui.constraint-special-input.not-required")
-        }
-        UiConstraintSpecialInputPosture::Required => {
-            stable_text_digest("worth-ui.constraint-special-input.required")
-        }
-    }
-}
-
-fn resize_permission_posture_digest(posture: UiConstraintResizePermissionPosture) -> u64 {
-    match posture {
-        UiConstraintResizePermissionPosture::None => {
-            stable_text_digest("worth-ui.constraint-resize.none")
-        }
-        UiConstraintResizePermissionPosture::DurableAuthorityLane => {
-            stable_text_digest("worth-ui.constraint-resize.durable-authority-lane")
-        }
-    }
-}
-
-fn unit_posture_digest(posture: Option<UiMeasurementUnitPosture>) -> u64 {
-    stable_text_digest(match posture {
-        Some(UiMeasurementUnitPosture::LogicalPx) => "worth-ui.constraint-unit.logical-px",
-        Some(UiMeasurementUnitPosture::PhysicalPx) => "worth-ui.constraint-unit.physical-px",
-        Some(UiMeasurementUnitPosture::UnitlessScale) => "worth-ui.constraint-unit.unitless-scale",
-        None => "worth-ui.constraint-unit.none",
-    })
-}
-
-fn coordinate_space_digest(space: Option<UiMeasurementCoordinateSpace>) -> u64 {
-    stable_text_digest(match space {
-        Some(UiMeasurementCoordinateSpace::Viewport) => "worth-ui.constraint-coordinate.viewport",
-        Some(UiMeasurementCoordinateSpace::Window) => "worth-ui.constraint-coordinate.window",
-        Some(UiMeasurementCoordinateSpace::GraphNodeLocal) => {
-            "worth-ui.constraint-coordinate.graph-node-local"
-        }
-        Some(UiMeasurementCoordinateSpace::HostSurface) => {
-            "worth-ui.constraint-coordinate.host-surface"
-        }
-        Some(UiMeasurementCoordinateSpace::PortalLayer) => {
-            "worth-ui.constraint-coordinate.portal-layer"
-        }
-        None => "worth-ui.constraint-coordinate.none",
-    })
-}
-
-fn rounding_posture_digest(posture: Option<UiMeasurementRoundingPosture>) -> u64 {
-    stable_text_digest(match posture {
-        Some(UiMeasurementRoundingPosture::ExactFloat) => {
-            "worth-ui.constraint-rounding.exact-float"
-        }
-        Some(UiMeasurementRoundingPosture::HostRounded) => {
-            "worth-ui.constraint-rounding.host-rounded"
-        }
-        Some(UiMeasurementRoundingPosture::RuntimeRounded) => {
-            "worth-ui.constraint-rounding.runtime-rounded"
-        }
-        Some(UiMeasurementRoundingPosture::DeferredToAllocation) => {
-            "worth-ui.constraint-rounding.deferred-to-allocation"
-        }
-        None => "worth-ui.constraint-rounding.none",
-    })
-}
-
-fn available_space_posture_digest(posture: Option<UiConstraintAvailableSpacePosture>) -> u64 {
-    stable_text_digest(match posture {
-        Some(UiConstraintAvailableSpacePosture::DeclaredExtentUnknown) => {
-            "worth-ui.constraint-available-space.unknown"
-        }
-        Some(UiConstraintAvailableSpacePosture::AdmittedZeroExtent) => {
-            "worth-ui.constraint-available-space.zero"
-        }
-        Some(UiConstraintAvailableSpacePosture::AdmittedPositiveExtent) => {
-            "worth-ui.constraint-available-space.positive"
-        }
-        None => "worth-ui.constraint-available-space.none",
-    })
 }

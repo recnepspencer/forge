@@ -10,11 +10,11 @@ use worth_ui_host_contract::{
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
+use crate::evidence::{UiMeasurementEvidenceCategory, UiMeasurementResult};
 use crate::host::{
     collect_host_measurement_evidence, UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext,
 };
-use crate::evidence::{UiMeasurementEvidenceCategory, UiMeasurementResult};
 
 pub(crate) struct CountingAdapter {
     call_count: Cell<u32>,
@@ -25,11 +25,6 @@ impl CountingAdapter {
         Self {
             call_count: Cell::new(0),
         }
-    }
-
-    #[allow(dead_code)]
-    pub(super) fn call_count(&self) -> u32 {
-        self.call_count.get()
     }
 }
 

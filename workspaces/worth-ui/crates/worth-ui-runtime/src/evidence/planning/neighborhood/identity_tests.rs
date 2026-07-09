@@ -13,9 +13,9 @@ use crate::declaration::{
 use crate::evidence::measurement::projection::fact_test_support::synthetic_declaration_identity;
 use crate::evidence::{
     admit_measurement_basis, UiAllocationNeighborhood, UiAllocationNeighborhoodClass,
-    UiAllocationNeighborhoodMember,
-    UiAllocationNeighborhoodMemberRole, UiAllocationNeighborhoodMembershipRule,
-    UiLayoutOperatorContainmentKind, UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract,
+    UiAllocationNeighborhoodMember, UiAllocationNeighborhoodMemberRole,
+    UiAllocationNeighborhoodMembershipRule, UiLayoutOperatorContainmentKind,
+    UiLayoutOperatorFamily, UiLayoutOperatorPlanningContract,
     UiLayoutOperatorSlotParticipationKind, UiMeasurementDependencyMap,
 };
 use crate::facade::WorthUi;

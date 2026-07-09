@@ -23,7 +23,11 @@ pub(crate) fn admit_neighborhood_from_graph(
             graph_node_identity: basis.graph_node_identity(),
         });
     };
-    classify_layout_participation(snapshot, basis.graph_node_identity(), root_record.value_ref())?;
+    classify_layout_participation(
+        snapshot,
+        basis.graph_node_identity(),
+        root_record.value_ref(),
+    )?;
     construct_allocation_neighborhood(snapshot, basis, root_record.value_ref())
 }
 

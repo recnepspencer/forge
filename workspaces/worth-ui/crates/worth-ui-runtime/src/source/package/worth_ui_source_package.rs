@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+#[cfg(test)]
 use std::path::Path;
 
 use crate::source::{
@@ -32,10 +33,12 @@ impl WorthUiSourcePackage {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn workspace_root(&self) -> &Path {
         &self.workspace_root
     }
 
+    #[cfg(test)]
     pub(crate) fn digest(&self) -> WorthUiSourcePackageDigest {
         self.digest
     }
@@ -51,6 +54,7 @@ impl WorthUiSourcePackage {
         self.modules.get(module_id)
     }
 
+    #[cfg(test)]
     pub(crate) fn import_graph(&self) -> &WorthUiSourceImportGraph {
         &self.import_graph
     }

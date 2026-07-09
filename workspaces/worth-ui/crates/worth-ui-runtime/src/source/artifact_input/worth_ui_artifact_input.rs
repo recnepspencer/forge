@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::source::{
-    WorthUiArtifactInputEquivalentShape, WorthUiArtifactInputModule, WorthUiSourceModuleId,
-};
+#[cfg(test)]
+use crate::source::WorthUiArtifactInputEquivalentShape;
+use crate::source::{WorthUiArtifactInputModule, WorthUiSourceModuleId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiArtifactInput {
@@ -32,6 +32,7 @@ impl WorthUiArtifactInput {
         &self.canonical_module_order
     }
 
+    #[cfg(test)]
     pub(crate) fn equivalent_shape(&self, other: &Self) -> bool {
         WorthUiArtifactInputEquivalentShape::packages_are_equivalent(self, other)
     }

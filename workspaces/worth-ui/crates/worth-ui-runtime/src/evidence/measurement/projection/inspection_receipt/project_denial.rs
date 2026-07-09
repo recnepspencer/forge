@@ -7,7 +7,9 @@ use super::project_evidence_maps::{
     project_basis_source, project_evidence_category, project_ownership_posture, project_slot,
 };
 
-pub(crate) fn project_denial(denial: &UiMeasurementBasisDenial) -> UiInspectionMeasurementDenialPosture {
+pub(crate) fn project_denial(
+    denial: &UiMeasurementBasisDenial,
+) -> UiInspectionMeasurementDenialPosture {
     match denial {
         UiMeasurementBasisDenial::GenerationIncompatible { compatibility } => {
             UiInspectionMeasurementDenialPosture::GenerationIncompatible {

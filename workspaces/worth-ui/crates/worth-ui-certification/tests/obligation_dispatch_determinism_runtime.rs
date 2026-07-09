@@ -1,13 +1,15 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::obligations::UiObligationDispatchStopPosture;
 
 use self::obligation_dispatch_prerequisite_support::{
-    ambiguous_host_capability_target, ambiguous_query_basis_target, budget_exceeded_target,
-    execute_for_target, missing_host_capability_target, query_touch, query_touch_app,
-    service_touch, service_touch_app, structural_touch, structural_touch_app,
-    wrong_query_basis_target,
+    apps::{query_touch_app, service_touch_app, structural_touch_app},
+    targets::{
+        ambiguous_host_capability_target, ambiguous_query_basis_target, budget_exceeded_target,
+        execute_for_target, missing_host_capability_target, wrong_query_basis_target,
+    },
+    touches::{query_touch, service_touch, structural_touch},
 };
 
 #[test]
@@ -105,8 +107,8 @@ fn blocked_prerequisite_dispatch_stays_deterministic_for_host_and_budget_denials
 }
 
 fn assert_deterministic_bundle(
-    left: obligation_dispatch_prerequisite_support::DispatchExecutionBundle,
-    right: obligation_dispatch_prerequisite_support::DispatchExecutionBundle,
+    left: obligation_dispatch_prerequisite_support::targets::DispatchExecutionBundle,
+    right: obligation_dispatch_prerequisite_support::targets::DispatchExecutionBundle,
     expected_stop: UiObligationDispatchStopPosture,
 ) {
     assert_eq!(left.selected, right.selected);

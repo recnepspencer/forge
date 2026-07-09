@@ -197,7 +197,7 @@ fn query_owned_inspection_links_are_preserved_not_reauthored() {
 
 #[test]
 fn plan_inspection_rejects_mismatched_plan_input_before_provenance() {
-    let (runtime, plan_input, planning, plan) = inspection_fixture();
+    let (runtime, plan_input, _planning, plan) = inspection_fixture();
     let mismatched_input = plan_input_with_first_different_family(plan_input);
     let mismatched_planning =
         allocation_planning(&runtime, &mismatched_input, "plan-inspection.mismatch");

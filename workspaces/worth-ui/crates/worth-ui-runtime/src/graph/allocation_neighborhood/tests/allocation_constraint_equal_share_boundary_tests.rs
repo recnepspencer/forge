@@ -19,7 +19,11 @@ fn zero_available_space_reaches_typed_equal_share_posture_on_ordinary_lane() {
         crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
             "allocation-constraint-equal-share-zero-space",
         );
-    let app = peer_app(world_profile.clone(), "operator:grid", &[false, false, false]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -67,7 +71,11 @@ fn ordinary_lane_proves_remainder_policy_and_non_integral_denial_from_admitted_s
             "allocation-constraint-equal-share-remainder",
         );
 
-    let grid_app = peer_app(world_profile.clone(), "operator:grid", &[false, false, false]);
+    let grid_app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let grid_root = graph_node_identity_for_provenance(&grid_app, 0);
     let grid_peer_a = graph_node_identity_for_provenance(&grid_app, 1);
     let grid_peer_b = graph_node_identity_for_provenance(&grid_app, 2);
@@ -120,7 +128,11 @@ fn ordinary_lane_proves_remainder_policy_and_non_integral_denial_from_admitted_s
         vec![Some(0), Some(1)]
     );
 
-    let split_app = three_peer_app(world_profile.clone(), "operator:split", &[true, true, true, true]);
+    let split_app = three_peer_app(
+        world_profile.clone(),
+        "operator:split",
+        &[true, true, true, true],
+    );
     let split_root = graph_node_identity_for_provenance(&split_app, 0);
     let split_peer_a = graph_node_identity_for_provenance(&split_app, 1);
     let split_peer_b = graph_node_identity_for_provenance(&split_app, 2);
@@ -182,6 +194,6 @@ fn ordinary_lane_proves_remainder_policy_and_non_integral_denial_from_admitted_s
 
     assert_eq!(
         denial.reason(),
-        UiConstraintPropagationDenialReason::ContradictoryEqualShareRequirements
+        UiConstraintPropagationDenialReason::UnsupportedSiblingFixedPoint
     );
 }

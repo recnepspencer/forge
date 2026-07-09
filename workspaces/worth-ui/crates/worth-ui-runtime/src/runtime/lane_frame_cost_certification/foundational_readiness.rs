@@ -2,7 +2,7 @@ use crate::runtime::{
     WorthUiCertifiedFrameExecutionReceipt, WorthUiSteadyFrameFoundationalBridge,
     WorthUiSteadyFrameFoundationalEvidence,
 };
-use forge_proof::TransitionOutcome;
+use worth_proof::TransitionOutcome;
 
 use super::denial::WorthUiLaneFrameCostCertificationDenialReason;
 
@@ -37,9 +37,9 @@ impl WorthUiLaneFrameCostFoundationalReadiness {
         }
         let certified_foundational_receipt_count =
             certify_foundational_counter_backed_receipts(&foundational_evidence)?;
-        let readiness = forge_foundational::performance_api::stronger_lane::readiness::
+        let readiness = worth_foundational::performance_api::stronger_lane::readiness::
             certify_foundational_performance_milestone8_production_test_readiness();
-        let readiness_satisfied = forge_foundational::performance_api::stronger_lane::readiness::
+        let readiness_satisfied = worth_foundational::performance_api::stronger_lane::readiness::
             require_foundational_performance_milestone8_production_test_readiness(&readiness)
             .passes_readiness_checklist();
         if !readiness_satisfied {
@@ -71,9 +71,9 @@ fn certify_foundational_counter_backed_receipts(
 ) -> Result<usize, WorthUiLaneFrameCostCertificationDenialReason> {
     let mut certified_count = 0;
     for receipt_evidence in evidence.evidence() {
-        let authority = forge_foundational::performance_api::stronger_lane::certified::
+        let authority = worth_foundational::performance_api::stronger_lane::certified::
             foundational_performance_certified_attachment_authority();
-        match forge_foundational::performance_api::stronger_lane::certified::
+        match worth_foundational::performance_api::stronger_lane::certified::
             certify_hot_path_counter_backed_performance_receipt(
                 receipt_evidence.counter_backed_receipt().clone(),
                 authority,

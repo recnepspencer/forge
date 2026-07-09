@@ -1,8 +1,9 @@
 use crate::declaration::UiDeclarationGraphHandoff;
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphCoreIndexContributionSeed,
-    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry, UiGraphParentResolutionClaim,
-    UiGraphParticipationSeed, UiGraphTopologySeed, UiRepeatedInstanceBasis,
+    UiGraphMountedReceiptAuthoritySeed, UiGraphNodeInstantiationEntry,
+    UiGraphParentResolutionClaim, UiGraphParticipationSeed, UiGraphTopologySeed,
+    UiRepeatedInstanceBasis,
 };
 
 pub(super) fn construct_instantiation_entry(

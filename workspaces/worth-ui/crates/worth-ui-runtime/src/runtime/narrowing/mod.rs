@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod worth_ui_accessibility_invalidation;
 mod worth_ui_command_binding_invalidation;
 mod worth_ui_impact_lookup_counters;

@@ -78,7 +78,7 @@ fn inspection_inventory_projects_typed_support_and_closure_reports() {
         rebind_report.current_world(),
         UiInspectionSupportWorld::Authoritative
     );
-    assert_eq!(closure_report.rows().len(), 16);
+    assert_eq!(closure_report.rows().len(), 20);
 }
 
 #[test]

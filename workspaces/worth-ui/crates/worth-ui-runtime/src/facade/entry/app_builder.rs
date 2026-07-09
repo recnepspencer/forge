@@ -3,16 +3,16 @@ use crate::facade::host_observation::{WorthUiHostAdapter, WorthUiHostContract};
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::lifecycle::WorthUiCapabilityRegistrationFreezeCore;
 use crate::facade::registry::{
-    CapabilityRegistrationReport, CommandDescriptor, CommandProjectionDescriptor, ComponentDescriptor,
-    IconDescriptor, MosaicPlacementPolicyDescriptor, MosaicRegionKindDescriptor,
-    MosaicSizingContractDescriptor, MosaicStateSlotDescriptor, NativeCapabilityDescriptor,
-    PluginSlotDescriptor, RuntimeOutcomeProjectionDescriptor, SettingDescriptor, SurfaceDescriptor,
-    TaskPresentationDescriptor, ThemeTokenDescriptor, ViewBindingDescriptor,
+    CapabilityRegistrationReport, CommandDescriptor, CommandProjectionDescriptor,
+    ComponentDescriptor, IconDescriptor, MosaicPlacementPolicyDescriptor,
+    MosaicRegionKindDescriptor, MosaicSizingContractDescriptor, MosaicStateSlotDescriptor,
+    NativeCapabilityDescriptor, PluginSlotDescriptor, RuntimeOutcomeProjectionDescriptor,
+    SettingDescriptor, SurfaceDescriptor, TaskPresentationDescriptor, ThemeTokenDescriptor,
+    ViewBindingDescriptor,
 };
 use crate::facade::{WorthUiApp, WorthUiDslPackage};
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::{WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage};
-use worth_ui_inspection::UiInspectionScopeInventory;
 
 /// Builder for a Worth UI application definition.
 pub struct WorthUiBuilder {
@@ -21,7 +21,7 @@ pub struct WorthUiBuilder {
     host_contract: WorthUiHostContract,
     graph_world_profile: UiGraphWorldProfile,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
-    source_backed_declaration_witness: Option<WorthUiSourceBackedDeclarationWitness>,
+    source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot,
 }
 
 pub type WorthUiAppBuilder = WorthUiBuilder;
@@ -34,13 +34,13 @@ impl WorthUiBuilder {
             host_contract: WorthUiHostContract::headless(),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             measurement_inspection_evidence: Vec::new(),
-            source_backed_declaration_witness: None,
+            source_backed_declaration_witness: WorthUiSourceBackedDeclarationWitnessSlot::Absent,
         }
     }
 
     pub fn with_dsl_package(mut self, dsl_package: WorthUiDslPackage) -> Self {
         self.dsl_package = dsl_package;
-        self.source_backed_declaration_witness = None;
+        self.source_backed_declaration_witness = WorthUiSourceBackedDeclarationWitnessSlot::Absent;
         self
     }
 
@@ -63,7 +63,8 @@ impl WorthUiBuilder {
     ) -> Self {
         let (dsl_package, source_backed_declaration_witness) = source_backed_package.into_parts();
         self.dsl_package = dsl_package;
-        self.source_backed_declaration_witness = Some(source_backed_declaration_witness);
+        self.source_backed_declaration_witness =
+            WorthUiSourceBackedDeclarationWitnessSlot::Present(source_backed_declaration_witness);
         self
     }
 
@@ -170,14 +171,16 @@ impl WorthUiBuilder {
             .inner
             .freeze_with_registration_report()
             .into_accepted_snapshot();
-        WorthUiApp::from_freeze_core(WorthUiCapabilityRegistrationFreezeCore::freeze_from_registration(
-            capability_snapshot,
-            self.dsl_package,
-            self.host_contract,
-            self.graph_world_profile,
-            self.measurement_inspection_evidence.into_boxed_slice(),
-            self.source_backed_declaration_witness,
-        ))
+        WorthUiApp::from_freeze_core(
+            WorthUiCapabilityRegistrationFreezeCore::freeze_from_registration(
+                capability_snapshot,
+                self.dsl_package,
+                self.host_contract,
+                self.graph_world_profile,
+                self.measurement_inspection_evidence.into_boxed_slice(),
+                self.source_backed_declaration_witness.into_option(),
+            ),
+        )
     }
 
     pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
@@ -193,25 +196,18 @@ impl WorthUiBuilder {
         self.inner = self.inner.with_rich_registration_diagnostics();
         self
     }
+}
 
-    pub(crate) fn freeze_with_inspection_scope_inventory(
-        self,
-        inspection_scope_inventory: UiInspectionScopeInventory,
-    ) -> WorthUiApp {
-        let capability_snapshot = self
-            .inner
-            .freeze_with_registration_report()
-            .into_accepted_snapshot();
-        WorthUiApp::from_freeze_core(
-            WorthUiCapabilityRegistrationFreezeCore::freeze_from_registration_with_inspection_scope_inventory(
-                capability_snapshot,
-                self.dsl_package,
-                self.host_contract,
-                self.graph_world_profile,
-                self.measurement_inspection_evidence.into_boxed_slice(),
-                self.source_backed_declaration_witness,
-                inspection_scope_inventory,
-            ),
-        )
+enum WorthUiSourceBackedDeclarationWitnessSlot {
+    Absent,
+    Present(WorthUiSourceBackedDeclarationWitness),
+}
+
+impl WorthUiSourceBackedDeclarationWitnessSlot {
+    fn into_option(self) -> Option<WorthUiSourceBackedDeclarationWitness> {
+        match self {
+            Self::Absent => None,
+            Self::Present(witness) => Some(witness),
+        }
     }
 }

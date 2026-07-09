@@ -3,14 +3,16 @@ use super::assembly_support::{
     child_intrinsic_query_compatibility, host_result_compatibility, ownership_posture_denial,
     push_child_intrinsic_lineage, push_host_lineage, query_receipt_compatibility,
 };
-use super::{denial::UiMeasurementBasisDenial, UiMeasurementBasisPosture, UiMeasurementEvidenceSlot};
+use super::{
+    denial::UiMeasurementBasisDenial, UiMeasurementBasisPosture, UiMeasurementEvidenceSlot,
+};
+use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence, UiMeasurementDependencyLineage,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
     UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiMeasurementResult,
     UiProjectionFactReceipt,
 };
-use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::graph::UiGraphWorldProfile;
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;

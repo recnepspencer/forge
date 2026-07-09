@@ -20,22 +20,27 @@ impl WorthUiArtifactAssemblyMetrics {
         self.modules_with_reordered_nodes += 1;
     }
 
+    #[cfg(test)]
     pub(crate) fn modules_assembled(&self) -> usize {
         self.modules_assembled
     }
 
+    #[cfg(test)]
     pub(crate) fn nodes_assembled(&self) -> usize {
         self.nodes_assembled
     }
 
+    #[cfg(test)]
     pub(crate) fn modules_with_reordered_nodes(&self) -> usize {
         self.modules_with_reordered_nodes
     }
 
+    #[cfg(test)]
     pub(crate) fn re_resolved_capability_count(&self) -> usize {
         self.re_resolved_capability_count
     }
 
+    #[cfg(test)]
     pub(crate) fn rechecked_legality_count(&self) -> usize {
         self.rechecked_legality_count
     }

@@ -9,10 +9,10 @@ use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, entity_identity_projection_context, host_result_font_metrics,
 };
 
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use super::measurement_inspection_test_support::{
     graph_node_identity, measurement_detail, measurement_query, query_measurement_app_in_world,
 };
-use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 
 #[test]
 fn graph_node_measurement_inspection_reports_unavailable_fact_families_on_public_lane() {

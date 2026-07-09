@@ -1,4 +1,4 @@
-use forge_query::facade::{
+use worth_query::facade::{
     CanonicalResultShapeArtifact, ResultShapeFamily, ValidatedResultShapeArtifact,
 };
 

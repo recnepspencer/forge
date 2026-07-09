@@ -1,6 +1,4 @@
-use forge_query::facade::{
-    CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt,
-};
+use worth_query::facade::{CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt};
 
 use super::receipt_construction::collect_verified_receipt_parts;
 use super::{
@@ -50,7 +48,9 @@ impl WorthUiQueryMeasurementFactReceipt {
             projection_consumption_declaration_digest: parts
                 .projection_consumption_declaration_digest
                 .into(),
-            projection_consumption_receipt_digest: parts.projection_consumption_receipt_digest.into(),
+            projection_consumption_receipt_digest: parts
+                .projection_consumption_receipt_digest
+                .into(),
             projection_fact_set_digest: parts.projection_fact_set_digest.into(),
             projection_source_identity: parts.projection_source_identity.into(),
             consumed_families: parts.consumed_families.into_boxed_slice(),

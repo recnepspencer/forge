@@ -1,4 +1,4 @@
-use forge_foundational::FoundationalPerformanceReportMaterializationBoundary;
+use worth_foundational::FoundationalPerformanceReportMaterializationBoundary;
 
 use super::{
     WorthUiFrameReportMaterializationBoundary, WorthUiOrdinaryLaneCounters,

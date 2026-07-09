@@ -20,7 +20,9 @@ pub fn planning_pair_for_certification_suite(
         UiAllocationPlanningCertificationSuiteKind::IntrinsicReturnFlow => {
             intrinsic_return_flow_pair()
         }
-        UiAllocationPlanningCertificationSuiteKind::SiblingNegotiation => sibling_negotiation_pair(),
+        UiAllocationPlanningCertificationSuiteKind::SiblingNegotiation => {
+            sibling_negotiation_pair()
+        }
         UiAllocationPlanningCertificationSuiteKind::EqualShare => equal_share_pair(),
         UiAllocationPlanningCertificationSuiteKind::BoundedReconciliation => {
             bounded_reconciliation_pair()

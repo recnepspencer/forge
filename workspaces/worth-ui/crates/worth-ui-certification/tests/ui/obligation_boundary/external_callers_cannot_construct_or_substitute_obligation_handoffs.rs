@@ -2,7 +2,7 @@ use worth_ui::facade::obligations::{
     UiAdmissionAuthorityHandoff, UiObligationCloseoutReport, UiObligationSelectionHandoff,
 };
 
-struct ForgedLaterSliceState;
+struct WorthLaterSliceState;
 
 fn require_selection_handoff(_: UiObligationSelectionHandoff<'_>) {}
 fn require_admission_handoff(_: UiAdmissionAuthorityHandoff<'_>) {}
@@ -16,5 +16,5 @@ fn main() {
         unsafe { std::mem::MaybeUninit::<UiObligationCloseoutReport>::zeroed().assume_init() };
 
     require_admission_handoff(fake_closeout);
-    require_selection_handoff(ForgedLaterSliceState);
+    require_selection_handoff(WorthLaterSliceState);
 }

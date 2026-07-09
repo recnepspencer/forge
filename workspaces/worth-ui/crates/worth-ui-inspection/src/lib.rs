@@ -1,13 +1,13 @@
 //! Public inspection surfaces grouped by lifecycle authority:
 //! target identity → query admission → receipt projection → evidence contract → posture → scope.
 
-pub mod evidence_contract;
-pub mod facade;
-pub mod posture;
-pub mod query;
-pub mod receipt;
-pub mod scope;
-pub mod target;
+mod evidence_contract;
+mod facade;
+mod posture;
+mod query;
+mod receipt;
+mod scope;
+mod target;
 
 // Target identity lane
 pub use target::{

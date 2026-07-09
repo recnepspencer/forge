@@ -1,4 +1,4 @@
-use forge_query::facade::ProjectionFactConsumptionAttempt;
+use worth_query::facade::ProjectionFactConsumptionAttempt;
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity, WorthUiHostCapabilityReport,
     WorthUiMeasurementHostAdapter,

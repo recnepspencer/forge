@@ -22,9 +22,9 @@ pub fn audit_measurement_future_growth_posture(workspace_root: &Path) -> Vec<Str
 
 pub fn audit_measurement_basis_artifact_growth_posture(workspace_root: &Path) -> Vec<String> {
     let basis_path =
-        workspace_root.join("crates/worth-ui-runtime/src/evidence/measurement_basis.rs");
+        workspace_root.join("crates/worth-ui-runtime/src/evidence/measurement/basis/admit.rs");
     let lineage_path = workspace_root
-        .join("crates/worth-ui-runtime/src/evidence/measurement_dependency_lineage.rs");
+        .join("crates/worth-ui-runtime/src/evidence/measurement/dependency/lineage.rs");
     let inspection_path = workspace_root.join(
         "crates/worth-ui-inspection/src/receipt/measurement/inspection_measurement_evidence_receipt.rs",
     );

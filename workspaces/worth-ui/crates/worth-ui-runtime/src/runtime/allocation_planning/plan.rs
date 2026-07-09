@@ -71,7 +71,7 @@ impl WorthUiAllocationPlanning {
             .map(WorthUiAllocationPlanningLowering::basis)
     }
 
-    pub(crate) fn lowering_context(&self) -> Option<&WorthUiPlanLoweringContext> {
+    pub fn lowering_context(&self) -> Option<&WorthUiPlanLoweringContext> {
         self.lowering
             .as_ref()
             .map(WorthUiAllocationPlanningLowering::context)
@@ -83,7 +83,7 @@ impl WorthUiAllocationPlanning {
             .map(WorthUiAllocationPlanningLowering::node_inputs)
     }
 
-    pub(crate) fn lowered_input(&self) -> Option<crate::runtime::WorthUiExecutionPlanInput> {
+    pub fn lowered_input(&self) -> Option<crate::runtime::WorthUiExecutionPlanInput> {
         self.lowering
             .as_ref()
             .map(WorthUiAllocationPlanningLowering::execution_plan_input)

@@ -1,5 +1,5 @@
-use forge_query::facade::{
-    BasisSupportPosture, ForgeQueryCapabilityStatus, QuerySubscriptionSupportPosture,
+use worth_query::facade::{
+    BasisSupportPosture, QuerySubscriptionSupportPosture, WorthQueryCapabilityStatus,
 };
 
 use crate::runtime::candidate::WorthUiCandidateDependencyMetadata;
@@ -98,9 +98,9 @@ fn support_status_for_runtime_hook(
 
 fn capability_support_status(hook: &WorthUiRuntimeDependencyHook) -> WorthUiQuerySupportStatus {
     match hook.query_capability().status() {
-        ForgeQueryCapabilityStatus::Admitted => WorthUiQuerySupportStatus::Supported,
-        ForgeQueryCapabilityStatus::DeferredDebt => WorthUiQuerySupportStatus::Deferred,
-        ForgeQueryCapabilityStatus::Unsupported => WorthUiQuerySupportStatus::Unsupported,
+        WorthQueryCapabilityStatus::Admitted => WorthUiQuerySupportStatus::Supported,
+        WorthQueryCapabilityStatus::DeferredDebt => WorthUiQuerySupportStatus::Deferred,
+        WorthQueryCapabilityStatus::Unsupported => WorthUiQuerySupportStatus::Unsupported,
     }
 }
 
@@ -142,12 +142,12 @@ fn fold_text(text: &str) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use forge_query::facade::{
-        discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-        ForgeQueryCapabilityFamily, ForgeQueryConfig, ForgeQueryQueryConfig,
-        ForgeQueryRelationalConfig, ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalConfig,
-        QuerySubscriptionFamily, QuerySubscriptionSupportPosture, ResultShapeFamily,
-        ViewShapeDescriptor,
+    use worth_query::facade::{
+        discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
+        QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
+        WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfig,
+        WorthQueryQueryConfig, WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
+        WorthQuerySignalConfig,
     };
 
     use crate::capability::{
@@ -258,29 +258,29 @@ mod tests {
     }
 
     fn runtime_backed_query_capability() -> QueryViewCapabilityReference {
-        query_capability_from_facade(ForgeQueryApplicationFacade::runtime_backed_default())
+        query_capability_from_facade(WorthQueryApplicationFacade::runtime_backed_default())
     }
 
     fn disabled_query_capability() -> QueryViewCapabilityReference {
         query_capability_from_facade(
-            ForgeQueryApplicationFacade::new(
-                ForgeQueryConfig::runtime_backed_default()
-                    .with_query(ForgeQueryQueryConfig::disabled())
-                    .with_signal(ForgeQuerySignalConfig::disabled())
-                    .with_runtime_bridge(ForgeQueryRuntimeBridgeConfig::disabled())
-                    .with_relational(ForgeQueryRelationalConfig::disabled()),
+            WorthQueryApplicationFacade::new(
+                WorthQueryConfig::runtime_backed_default()
+                    .with_query(WorthQueryQueryConfig::disabled())
+                    .with_signal(WorthQuerySignalConfig::disabled())
+                    .with_runtime_bridge(WorthQueryRuntimeBridgeConfig::disabled())
+                    .with_relational(WorthQueryRelationalConfig::disabled()),
             )
             .expect("disabled query config still produces support posture"),
         )
     }
 
     fn query_capability_from_facade(
-        facade: ForgeQueryApplicationFacade,
+        facade: WorthQueryApplicationFacade,
     ) -> QueryViewCapabilityReference {
         let query_support = facade.support_report();
         let query_capability = query_support
             .support_matrix()
-            .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+            .descriptor(WorthQueryCapabilityFamily::QueryComposition)
             .expect("query composition support posture");
         QueryViewCapabilityReference::from_query_capability_descriptor(query_capability)
     }

@@ -3,7 +3,9 @@ use worth_ui_inspection::{
     UiInspectionQuery,
 };
 
-use super::{evidence_materialized_detail::UiEvidenceMaterializedDetail, evidence_reference::UiEvidenceRef};
+use super::{
+    evidence_materialized_detail::UiEvidenceMaterializedDetail, evidence_reference::UiEvidenceRef,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiEvidenceExpansion {

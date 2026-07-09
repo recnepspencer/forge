@@ -1,18 +1,12 @@
-﻿use std::collections::BTreeMap;
-
 use crate::declaration::stable_text_digest;
-use crate::declaration::UiDeclaredMeasurementConstraintModifier;
 use crate::evidence::{
     UiAllocationConstraintSummary, UiAllocationNeighborhood, UiAllocationNeighborhoodMemberRole,
-    UiConstraintAxisScope, UiConstraintChildIntrinsicContribution,
-    UiConstraintCycleParticipationPosture, UiConstraintPropagationDenial,
+    UiConstraintAxisScope, UiConstraintCycleParticipationPosture, UiConstraintPropagationDenial,
     UiConstraintPropagationDenialReason, UiConstraintPropagationEdge,
     UiConstraintPropagationEdgeFamily, UiConstraintPropagationEdgePayload,
-    UiConstraintResizeInputPosture, UiConstraintSiblingNegotiationFixedPointPolicy,
-    UiConstraintSiblingNegotiationGroup, UiConstraintSiblingNegotiationMember,
-    UiConstraintSiblingNegotiationMode, UiConstraintSiblingNegotiationResult,
-    UiConstraintSiblingNegotiationSolveOrder, UiLayoutOperatorCrossAxis,
-    UiLayoutOperatorPlanningContract,
+    UiConstraintSiblingNegotiationFixedPointPolicy, UiConstraintSiblingNegotiationGroup,
+    UiConstraintSiblingNegotiationMember, UiConstraintSiblingNegotiationMode,
+    UiConstraintSiblingNegotiationResult, UiConstraintSiblingNegotiationSolveOrder,
 };
 
 use super::constraint_summary::axis_scope_for_sibling_mode;
@@ -247,4 +241,3 @@ impl UiSiblingNegotiationPeerContract {
 
 mod helpers;
 use helpers::*;
-

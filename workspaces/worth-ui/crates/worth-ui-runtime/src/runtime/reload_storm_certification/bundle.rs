@@ -2,7 +2,7 @@ use crate::runtime::{
     WorthUiFoundationalCounterEvidence, WorthUiReloadLatencyCounters,
     WorthUiReloadStormIterationOutcome,
 };
-use forge_foundational::performance_api::lower_lane::basis::{
+use worth_foundational::performance_api::lower_lane::basis::{
     compare_performance_bundles, FoundationalPerformanceComparison,
 };
 

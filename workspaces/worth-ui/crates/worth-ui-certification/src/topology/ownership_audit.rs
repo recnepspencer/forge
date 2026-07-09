@@ -201,10 +201,10 @@ pub fn audit_preboundary_receipt_and_posture_files_do_not_lower_to_foundational(
         for segments in collect_file_paths(&path) {
             if segments
                 .first()
-                .is_some_and(|segment| segment == "forge_foundational")
+                .is_some_and(|segment| segment == "worth_foundational")
             {
                 violations.push(format!(
-                    "{} lowers runtime-local receipt/support/posture truth into forge_foundational before a real boundary",
+                    "{} lowers runtime-local receipt/support/posture truth into worth_foundational before a real boundary",
                     path.display()
                 ));
             }

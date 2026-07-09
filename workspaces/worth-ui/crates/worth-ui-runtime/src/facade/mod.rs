@@ -8,11 +8,11 @@ pub mod declaration;
 pub mod entry;
 pub mod evidence;
 pub mod graph;
+pub mod host_observation;
 mod inspection;
+pub mod inspection_bridge;
 mod inspection_observation;
 mod inspection_receipt;
-pub mod host_observation;
-pub mod inspection_bridge;
 pub mod lifecycle;
 mod measurement_inspection_evidence;
 #[cfg(test)]
@@ -29,8 +29,9 @@ pub mod runtime_handoff;
 
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
-pub use entry::{CapabilityRegistrationBuilder, WorthUi, WorthUiApp, WorthUiAppBuilder, WorthUiBuilder};
+pub use crate::runtime::exports::*;
+pub use entry::{
+    CapabilityRegistrationBuilder, WorthUi, WorthUiApp, WorthUiAppBuilder, WorthUiBuilder,
+};
 pub use lifecycle::{WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY};
-#[allow(deprecated)]
-pub use lifecycle::PHASE3_RUNTIME_SUPPORT_INVENTORY;
 pub use worth_ui_dsl::WorthUiDslPackage;

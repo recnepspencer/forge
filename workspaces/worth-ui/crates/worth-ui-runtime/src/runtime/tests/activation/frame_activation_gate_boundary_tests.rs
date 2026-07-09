@@ -282,7 +282,5 @@ fn lane_change_ready_activation_keeps_local_replanning_breadth_explicit() {
 
     assert!(receipt.node_classification_count() > 0);
     assert!(receipt.lane_changed_node_count() > 0);
-    assert!(
-        receipt.lane_changed_node_count() <= receipt.node_classification_count()
-    );
+    assert!(receipt.lane_changed_node_count() <= receipt.node_classification_count());
 }

@@ -5,11 +5,11 @@ use worth_ui_inspection::{
 };
 
 use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementOwnershipPosture};
+use crate::evidence::measurement::basis::UiMeasurementEvidenceSlot;
 use crate::evidence::measurement::{
     UiMeasurementDependencyLineageKind, UiMeasurementEvidenceCategory,
     UiMeasurementNeighborhoodClassHint,
 };
-use crate::evidence::measurement::basis::UiMeasurementEvidenceSlot;
 
 pub(crate) fn project_lineage_kind(
     kind: UiMeasurementDependencyLineageKind,

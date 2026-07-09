@@ -1,4 +1,4 @@
-#![cfg(any(test, feature = "support-authority"))]
+#![cfg(any(test, feature = "certification-support"))]
 
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
@@ -6,9 +6,8 @@ use worth_ui_dsl::{
 };
 
 use crate::declaration::{
-    UiDeclaredMeasurementBasisSource,
-    UiDeclaredMeasurementConstraintModifier, UiDeclaredMeasurementMode,
-    UiDeclaredMeasurementPolicyPosture,
+    UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementConstraintModifier,
+    UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
 };
 use crate::facade::WorthUi;
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
@@ -35,9 +34,7 @@ pub(crate) fn open_policy() -> UiDeclaredMeasurementPolicyPosture {
     .expect("open policy should admit")
 }
 
-pub(crate) fn viewport_basis_policy(
-    bounded: bool,
-) -> UiDeclaredMeasurementPolicyPosture {
+pub(crate) fn viewport_basis_policy(bounded: bool) -> UiDeclaredMeasurementPolicyPosture {
     UiDeclaredMeasurementPolicyPosture::new(
         Some(UiDeclaredMeasurementMode::HugHeight),
         bounded.then_some(UiDeclaredMeasurementConstraintModifier::Bounded),

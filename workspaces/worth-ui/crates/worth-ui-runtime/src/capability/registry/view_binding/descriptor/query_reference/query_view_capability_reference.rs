@@ -1,16 +1,16 @@
-use forge_query::facade::{
-    ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus,
+use worth_query::facade::{
+    WorthQueryCapabilityDescriptor, WorthQueryCapabilityFamily, WorthQueryCapabilityStatus,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryViewCapabilityReference {
-    family: ForgeQueryCapabilityFamily,
-    status: ForgeQueryCapabilityStatus,
+    family: WorthQueryCapabilityFamily,
+    status: WorthQueryCapabilityStatus,
     reason: &'static str,
 }
 
 impl QueryViewCapabilityReference {
-    pub fn from_query_capability_descriptor(descriptor: &ForgeQueryCapabilityDescriptor) -> Self {
+    pub fn from_query_capability_descriptor(descriptor: &WorthQueryCapabilityDescriptor) -> Self {
         Self {
             family: descriptor.family(),
             status: descriptor.status(),
@@ -18,16 +18,16 @@ impl QueryViewCapabilityReference {
         }
     }
 
-    pub fn family(&self) -> ForgeQueryCapabilityFamily {
+    pub fn family(&self) -> WorthQueryCapabilityFamily {
         self.family
     }
 
-    pub fn status(&self) -> ForgeQueryCapabilityStatus {
+    pub fn status(&self) -> WorthQueryCapabilityStatus {
         self.status
     }
 
     pub fn is_admitted(&self) -> bool {
-        self.status == ForgeQueryCapabilityStatus::Admitted
+        self.status == WorthQueryCapabilityStatus::Admitted
     }
 
     pub fn digest_basis(&self) -> String {

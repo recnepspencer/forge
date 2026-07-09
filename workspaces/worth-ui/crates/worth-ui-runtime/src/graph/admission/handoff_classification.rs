@@ -29,7 +29,9 @@ pub(super) fn classify_handoff_basis(
     let repeated_instance_basis = runtime_basis_assignments
         .basis_for(declaration_digest, occurrence_index)
         .cloned()
-        .unwrap_or_else(|| UiRepeatedInstanceBasis::declaration_keyed(declaration_identity.digest()));
+        .unwrap_or_else(|| {
+            UiRepeatedInstanceBasis::declaration_keyed(declaration_identity.digest())
+        });
 
     if repeated_instance_basis.denial()
         == Some(&UiRepeatedInstanceBasisDenial::BasisFreeRuntimeIdentityDenied)
@@ -50,7 +52,9 @@ pub(super) fn classify_root_topology_cardinality(
         RootTopologyDecision::Valid
     } else {
         RootTopologyDecision::Invalid {
-            denial: UiGraphTopologyLocalDenial::RootPageCardinality { observed_root_pages },
+            denial: UiGraphTopologyLocalDenial::RootPageCardinality {
+                observed_root_pages,
+            },
         }
     }
 }

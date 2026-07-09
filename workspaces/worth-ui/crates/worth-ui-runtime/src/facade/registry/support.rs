@@ -2,7 +2,7 @@
 
 pub use crate::capability::{
     AdmittedCapability, AmbientHostCheck, ArbitraryKeyValueSettingBag, CapabilitySupportId,
-    CapabilitySupportKind, CapabilitySupportPosture, CapabilitySupportRejection, DeferredCapability,
-    RegistryFamily, RegistryFamilyFacadeExposure, RegistryFamilyInventoryAudit,
+    CapabilitySupportKind, CapabilitySupportPosture, CapabilitySupportRejection,
+    DeferredCapability, RegistryFamily, RegistryFamilyFacadeExposure, RegistryFamilyInventoryAudit,
     RegistryFamilyLifecyclePropagation, SupportRequirement, SupportSnapshot, UnsupportedCapability,
 };

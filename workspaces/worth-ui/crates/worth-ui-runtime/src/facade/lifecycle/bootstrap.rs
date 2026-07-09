@@ -1,16 +1,16 @@
-use worth_ui_inspection::{UiInspectionScopeInventory, RUNTIME_INSPECTION_SCOPE_INVENTORY};
+use worth_ui_inspection::UiInspectionScopeInventory;
 
 use crate::declaration::{
     derive_declaration_inspection_support_projection, UiDeclarationArtifact,
     UiDeclarationInspectionSupportProjection,
 };
+use crate::facade::host_observation::WorthUiHostContract;
 use crate::facade::inspection_observation::WorthUiInspectionObservationState;
 use crate::facade::measurement_inspection_evidence::UiMeasurementInspectionEvidenceSnapshot;
 use crate::facade::{
-    inspection_bridge::UiMeasurementInspectionEvidenceBundle,
-    registry::CapabilitySnapshot, WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY,
+    inspection_bridge::UiMeasurementInspectionEvidenceBundle, registry::CapabilitySnapshot,
+    WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY,
 };
-use crate::facade::host_observation::WorthUiHostContract;
 use worth_ui_dsl::WorthUiDslPackage;
 use worth_ui_inspection::{UiInspectionScope, UiInspectionSupportReport};
 
@@ -25,21 +25,6 @@ pub(crate) struct WorthUiFacadeLifecycleBootstrap {
 }
 
 impl WorthUiFacadeLifecycleBootstrap {
-    pub(crate) fn bootstrap(
-        dsl_package: WorthUiDslPackage,
-        host_contract: WorthUiHostContract,
-        declaration_artifacts: &[UiDeclarationArtifact],
-        measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
-    ) -> Self {
-        Self::bootstrap_with_inspection_scope_inventory(
-            dsl_package,
-            host_contract,
-            declaration_artifacts,
-            measurement_inspection_evidence,
-            RUNTIME_INSPECTION_SCOPE_INVENTORY,
-        )
-    }
-
     pub(crate) fn bootstrap_with_inspection_scope_inventory(
         dsl_package: WorthUiDslPackage,
         host_contract: WorthUiHostContract,
@@ -73,7 +58,9 @@ impl WorthUiFacadeLifecycleBootstrap {
         self.inspection_scope_inventory.support_report(scope)
     }
 
-    pub(crate) fn inspection_closure_report(&self) -> crate::facade::inspection_bridge::UiInspectionClosureReport {
+    pub(crate) fn inspection_closure_report(
+        &self,
+    ) -> crate::facade::inspection_bridge::UiInspectionClosureReport {
         self.inspection_scope_inventory.closure_report()
     }
 

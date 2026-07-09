@@ -18,6 +18,7 @@ impl WorthUiArtifactDependencyReport {
         &self.basis
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiArtifactDependencyMetrics {
         self.metrics
     }

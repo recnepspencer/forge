@@ -29,6 +29,7 @@ impl WorthUiAllocationPlanningAdmission {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_lowered_input_for_test(
         lowered_input: &WorthUiExecutionPlanInput,
         measurement_basis: &UiMeasurementBasis,

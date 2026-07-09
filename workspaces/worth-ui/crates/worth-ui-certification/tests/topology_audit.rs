@@ -222,7 +222,7 @@ fn foundational_lowering_audit_rejects_known_bad_preboundary_fixture() {
     assert_has_violation(
         &violations,
         "closure_posture.rs",
-        "lowers runtime-local receipt/support/posture truth into forge_foundational before a real boundary",
+        "lowers runtime-local receipt/support/posture truth into worth_foundational before a real boundary",
     );
 }
 
@@ -303,6 +303,13 @@ fn lifecycle_inventories_match_phase3_closure_inventory() {
                     UiInspectionSupportStatus::Unsupported,
                     Some(UiInspectionSupportReason::BelongsArchitecturallyNotYetAdmitted),
                     Some(UiInspectionMilestoneExpectation::Milestone31),
+                ),
+                (
+                    *subsystem,
+                    UiInspectionScope::Planning,
+                    UiInspectionSupportStatus::Supported,
+                    None,
+                    None,
                 ),
                 (
                     *subsystem,

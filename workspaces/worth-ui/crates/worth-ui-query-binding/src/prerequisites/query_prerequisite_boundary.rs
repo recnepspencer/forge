@@ -1,4 +1,4 @@
-use forge_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
 
 use super::prerequisite_assembly::construct_prerequisite_evidence;
 #[cfg(feature = "certification-construction")]
@@ -52,8 +52,8 @@ impl WorthUiQueryPrerequisiteBoundary {
             resolution_report,
             WorthUiQueryBasisPosture::GraphAligned,
             WorthUiQueryProjectionConsumptionLane::ConsumeProjectionFacts,
-            WorthUiQueryInspectionLane::NotRequested,
-            WorthUiQueryCausalExplanationLane::NotRequested,
+            WorthUiQueryInspectionLane::WorkspaceInspect,
+            WorthUiQueryCausalExplanationLane::AdmitAndRequestCausalInspection,
         )
     }
 
@@ -120,7 +120,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn bind_projection_consumption(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryMeasurementFactEligibilityError> {
         let _ = self;
         WorthUiQueryMeasurementFactEligibility::bind_projection_consumption_attempt(
@@ -132,7 +132,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn measurement_fact_eligibility_from_projection_consumption(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Result<WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError>
     {
         let _ = self;
@@ -145,7 +145,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn measurement_fact_receipt_from_projection_consumption(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Result<WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError> {
         let _ = self;
         WorthUiQueryMeasurementFactReceipt::from_projection_consumption_attempt(
@@ -157,7 +157,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn measurement_fact_observation_from_projection_consumption(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Result<
         Box<[WorthUiQueryMeasurementFactObservation]>,
         WorthUiQueryMeasurementFactObservationError,

@@ -52,12 +52,14 @@ fn classify_special_scope_membership_rule(
     operator_kind: UiDeclarationPlanningOperatorKind,
 ) -> UiAllocationNeighborhoodMembershipRule {
     match neighborhood_class {
-        UiAllocationNeighborhoodClass::Viewport | UiAllocationNeighborhoodClass::ScrollContainer
+        UiAllocationNeighborhoodClass::Viewport
+        | UiAllocationNeighborhoodClass::ScrollContainer
             if operator_supports_child_intrinsic_return(operator_kind) =>
         {
             UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup
         }
-        UiAllocationNeighborhoodClass::Viewport | UiAllocationNeighborhoodClass::ScrollContainer => {
+        UiAllocationNeighborhoodClass::Viewport
+        | UiAllocationNeighborhoodClass::ScrollContainer => {
             UiAllocationNeighborhoodMembershipRule::RootOnly
         }
         UiAllocationNeighborhoodClass::LocalIntrinsicContent

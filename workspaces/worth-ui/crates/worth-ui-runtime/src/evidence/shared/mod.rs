@@ -4,7 +4,6 @@ pub(crate) mod evidence_family_summary;
 pub(crate) mod evidence_handle;
 pub(crate) mod evidence_identity;
 pub(crate) mod evidence_materialized_detail;
-pub(crate) mod evidence_provenance;
 pub(crate) mod evidence_reference;
 pub(crate) mod evidence_slice;
 pub(crate) mod evidence_slice_ref;

@@ -1,5 +1,4 @@
-use worth_ui_host_contract::WorthUiHostCapabilityReport;
-use worth_ui_runtime::facade::host_observation::UiHostMeasurementAssumptionProfile;
+use worth_ui_host_contract::{UiHostMeasurementAssumptionProfile, WorthUiHostCapabilityReport};
 
 pub fn egui_measurement_adapter_profile_digest() -> u64 {
     stable_text_digest("worth-ui-host-egui:measurement-profile:v1")

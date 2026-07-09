@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, QuerySubscriptionFamily, ResultShapeFamily, ViewShapeDescriptor,
+use worth_query::facade::{
+    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily, ResultShapeFamily,
+    ViewShapeDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
 };
 
 use crate::capability::{
@@ -10,10 +10,10 @@ use crate::capability::{
 };
 
 pub(super) fn standard_query_owned_view_binding_descriptor() -> ViewBindingDescriptor {
-    let query_support = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = query_support
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("query composition support posture");
     let query_composition = query_support
         .query_composition_support_profile()
@@ -33,10 +33,10 @@ pub(super) fn standard_query_owned_view_binding_descriptor() -> ViewBindingDescr
 
 pub(super) fn query_owned_view_binding_without_live_compatibility_descriptor(
 ) -> ViewBindingDescriptor {
-    let query_support = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = query_support
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("query composition support posture");
     let query_composition = query_support
         .query_composition_support_profile()
@@ -63,7 +63,7 @@ pub(super) fn frozen_view_binding_entry_for_descriptor(
 
 fn query_owned_view_binding_descriptor(
     query_capability: QueryViewCapabilityReference,
-    query_composition: &forge_query::facade::QueryCompositionSupportProfile,
+    query_composition: &worth_query::facade::QueryCompositionSupportProfile,
     basis_posture: QueryBasisPostureReference,
     live_compatibility: Option<QueryLiveCompatibility>,
 ) -> ViewBindingDescriptor {

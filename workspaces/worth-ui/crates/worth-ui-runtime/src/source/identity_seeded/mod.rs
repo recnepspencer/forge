@@ -1,7 +1,9 @@
 mod worth_ui_artifact_identity_seed;
 mod worth_ui_durable_state_eligibility;
+#[cfg(test)]
 mod worth_ui_identity_replacement_class;
 mod worth_ui_identity_seeded_artifact_input;
+#[cfg(test)]
 mod worth_ui_identity_seeded_artifact_input_equivalence;
 mod worth_ui_identity_seeded_artifact_input_module;
 mod worth_ui_identity_seeded_artifact_input_node;
@@ -12,8 +14,10 @@ pub(crate) use worth_ui_artifact_identity_seed::{
 pub(crate) use worth_ui_durable_state_eligibility::{
     WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
 };
+#[cfg(test)]
 pub(crate) use worth_ui_identity_replacement_class::WorthUiIdentityReplacementClass;
 pub(crate) use worth_ui_identity_seeded_artifact_input::WorthUiIdentitySeededArtifactInput;
+#[cfg(test)]
 pub(crate) use worth_ui_identity_seeded_artifact_input_equivalence::WorthUiIdentitySeededArtifactInputEquivalentShape;
 pub(crate) use worth_ui_identity_seeded_artifact_input_module::WorthUiIdentitySeededArtifactInputModule;
 pub(crate) use worth_ui_identity_seeded_artifact_input_node::{

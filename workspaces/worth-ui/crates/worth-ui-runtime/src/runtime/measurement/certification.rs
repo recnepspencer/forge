@@ -1,4 +1,4 @@
-use forge_foundational::{
+use worth_foundational::{
     FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceBoundary,
     FoundationalPerformanceBreadthLocalityPosture, FoundationalPerformanceEvidenceStrength,
     FoundationalPerformanceExecutionTemperature, FoundationalPerformanceFallbackDebtPosture,
@@ -210,7 +210,7 @@ impl WorthUiCertifiedMeasurementPacket {
                 WorthUiMeasurementCertificationDenial::MissingNonzeroWorthUiCounterEvidence,
             );
         }
-        if packet.family().authority() == WorthUiCounterAuthority::ForgeQueryEvidence
+        if packet.family().authority() == WorthUiCounterAuthority::WorthQueryEvidence
             && packet.query_evidence().is_empty()
         {
             return Err(WorthUiMeasurementCertificationDenial::MissingQueryEvidence);

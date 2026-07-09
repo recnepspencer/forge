@@ -1,5 +1,6 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+#[path = "fixtures/declaration_structural_semantics_test_support.rs"]
 mod declaration_structural_semantics_test_support;
 
 use declaration_structural_semantics_test_support::{

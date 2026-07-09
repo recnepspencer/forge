@@ -51,7 +51,10 @@ fn portal_anchor_basis_admits_as_typed_planning_input() {
         .portal_anchor_planning_input()
         .expect("portal anchor should carry planning artifact");
 
-    assert_eq!(portal_input.edge_family(), UiConstraintPropagationEdgeFamily::PortalAnchorInput);
+    assert_eq!(
+        portal_input.edge_family(),
+        UiConstraintPropagationEdgeFamily::PortalAnchorInput
+    );
     assert_eq!(
         portal_input.posture(),
         UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly
@@ -95,7 +98,10 @@ fn missing_portal_anchor_evidence_denies_through_typed_portal_lane() {
         denial.reason(),
         UiConstraintPropagationDenialReason::MissingRequiredPortalAnchorPlanningInput
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::PortalAnchorInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::PortalAnchorInput)
+    );
 }
 
 #[test]
@@ -132,7 +138,10 @@ fn stale_portal_anchor_evidence_denies_as_incompatible_measurement_posture() {
         denial.reason(),
         UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::PortalAnchorInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::PortalAnchorInput)
+    );
 }
 
 fn portal_anchor_policy() -> UiDeclaredMeasurementPolicyPosture {

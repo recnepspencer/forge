@@ -9,6 +9,6 @@ fn main() {
         family_id: WorthUiDurableStateFamilyId::FocusChain,
         transition: WorthUiNodeLifecycleTransition::Replace,
         outcome: WorthUiDurableStateReconciliationOutcome::Drop,
-        reason: "forged",
+        reason: "Worthd",
     };
 }

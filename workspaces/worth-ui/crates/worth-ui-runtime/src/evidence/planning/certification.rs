@@ -154,7 +154,10 @@ fn certification_report(
         suite_kind,
         suite_verified: false,
         neighborhood_identity_matches: first.allocation_neighborhood().identity().identity_digest()
-            == second.allocation_neighborhood().identity().identity_digest(),
+            == second
+                .allocation_neighborhood()
+                .identity()
+                .identity_digest(),
         constraint_set_identity_matches: first
             .allocation_constraint_set()
             .map(|set| set.identity().identity_digest())
@@ -172,7 +175,9 @@ fn certification_report(
             == second_cost.special_inputs_loaded(),
         cost_class_matches: first_cost.cost_class() == second_cost.cost_class(),
         handoff_identity_matches: first.is_admitted() == second.is_admitted()
-            && first.lowering_basis().map(|basis| basis.active_artifact_digest())
+            && first
+                .lowering_basis()
+                .map(|basis| basis.active_artifact_digest())
                 == second
                     .lowering_basis()
                     .map(|basis| basis.active_artifact_digest()),
@@ -227,9 +232,7 @@ pub(crate) fn suite_contract_satisfied(
             report.is_equivalent() && report.special_inputs_match() && report.cost_class_matches()
         }
         UiAllocationPlanningCertificationSuiteKind::DurableResizeInput => {
-            report.is_equivalent()
-                && report.resize_posture_matches()
-                && report.cost_class_matches()
+            report.is_equivalent() && report.resize_posture_matches() && report.cost_class_matches()
         }
         UiAllocationPlanningCertificationSuiteKind::PlanHandoff => {
             report.is_equivalent() && report.handoff_identity_matches()
@@ -254,9 +257,13 @@ fn equivalent_planning(
     second_trace: &crate::evidence::UiAllocationSolveTrace,
 ) -> bool {
     first.planning_identity_digest() == second.planning_identity_digest()
-        && first.measurement_basis().identity_digest() == second.measurement_basis().identity_digest()
+        && first.measurement_basis().identity_digest()
+            == second.measurement_basis().identity_digest()
         && first.allocation_neighborhood().identity().identity_digest()
-            == second.allocation_neighborhood().identity().identity_digest()
+            == second
+                .allocation_neighborhood()
+                .identity()
+                .identity_digest()
         && first
             .allocation_constraint_set()
             .map(|constraint_set| constraint_set.identity().identity_digest())

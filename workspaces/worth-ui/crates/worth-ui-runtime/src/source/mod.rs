@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod artifact;
 mod artifact_input;
 mod bound;
@@ -8,6 +6,7 @@ mod dependency;
 mod equivalence;
 mod identity_seeded;
 mod import_graph;
+#[cfg(test)]
 mod inspection;
 mod lower;
 mod module;
@@ -16,7 +15,6 @@ mod parse;
 mod resolved;
 mod structured;
 
-#[allow(unused_imports)]
 pub(crate) use artifact::{
     WorthUiArtifact, WorthUiArtifactBindingHandle, WorthUiArtifactBindingNode,
     WorthUiArtifactComponentHandle, WorthUiArtifactComponentNode, WorthUiArtifactHandle,
@@ -25,102 +23,117 @@ pub(crate) use artifact::{
     WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
 };
 pub(crate) use artifact_input::WorthUiArtifactInputBodyAtom;
+#[cfg(test)]
+pub(crate) use artifact_input::WorthUiArtifactInputEquivalentShape;
 pub(crate) use artifact_input::{
-    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputEquivalentShape,
-    WorthUiArtifactInputImportNode, WorthUiArtifactInputModule, WorthUiArtifactInputNode,
-    WorthUiArtifactInputNodeKind, WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance,
-    WorthUiArtifactInputReference, WorthUiArtifactInputTokenNode,
+    WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputImportNode,
+    WorthUiArtifactInputModule, WorthUiArtifactInputNode, WorthUiArtifactInputNodeKind,
+    WorthUiArtifactInputNormalizer, WorthUiArtifactInputProvenance, WorthUiArtifactInputReference,
+    WorthUiArtifactInputTokenNode,
 };
+#[cfg(test)]
+pub(crate) use bound::WorthUiBoundArtifactInputEquivalentShape;
 pub(crate) use bound::{
     WorthUiBoundArtifactInput, WorthUiBoundArtifactInputBindingNode,
-    WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputEquivalentShape,
-    WorthUiBoundArtifactInputModule, WorthUiBoundArtifactInputNode,
-    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
-    WorthUiBoundCommandProjectionReference, WorthUiBoundCommandReference,
-    WorthUiBoundCommandSemantics, WorthUiBoundIconReference, WorthUiBoundQueryViewSemantics,
-    WorthUiBoundSurfaceSemantics, WorthUiBoundThemeTokenSemantics,
+    WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputModule,
+    WorthUiBoundArtifactInputNode, WorthUiBoundArtifactInputSurfaceNode,
+    WorthUiBoundArtifactInputThemeTokenNode, WorthUiBoundCommandProjectionReference,
+    WorthUiBoundCommandReference, WorthUiBoundCommandSemantics, WorthUiBoundIconReference,
+    WorthUiBoundQueryViewSemantics, WorthUiBoundSurfaceSemantics, WorthUiBoundThemeTokenSemantics,
     WorthUiBoundViewBindingReference,
 };
 pub(crate) use canonical::WorthUiCanonicalModuleOrder;
 pub use dependency::WorthUiArtifactSubtreeDigest;
-#[allow(unused_imports)]
+#[cfg(test)]
+pub(crate) use dependency::WorthUiRuntimeQuerySurface;
 pub(crate) use dependency::{
     WorthUiArtifactDependencyEdge, WorthUiArtifactDependencyEdgeKind,
-    WorthUiArtifactDependencyGraph, WorthUiArtifactDependencyTarget, WorthUiArtifactImpact,
-    WorthUiArtifactImpactMetadata, WorthUiIncrementalInvalidationBasis,
-    WorthUiRuntimeDependencyHook, WorthUiRuntimeDependencyHookKind, WorthUiRuntimeQuerySurface,
+    WorthUiArtifactDependencyGraph, WorthUiArtifactDependencyTarget, WorthUiArtifactImpactMetadata,
+    WorthUiIncrementalInvalidationBasis, WorthUiRuntimeDependencyHook,
+    WorthUiRuntimeDependencyHookKind,
 };
 pub(crate) use equivalence::{
     WorthUiArtifactDifference, WorthUiArtifactDigest, WorthUiArtifactDigestReport,
     WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis, WorthUiArtifactSemanticDelta,
 };
-#[allow(unused_imports)]
+#[cfg(test)]
+pub(crate) use identity_seeded::WorthUiIdentityReplacementClass;
+#[cfg(test)]
+pub(crate) use identity_seeded::WorthUiIdentitySeededArtifactInputEquivalentShape;
 pub(crate) use identity_seeded::{
     WorthUiArtifactIdentitySeed, WorthUiArtifactIdentitySeedKind, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiIdentityReplacementClass,
-    WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputBindingNode,
-    WorthUiIdentitySeededArtifactInputComponentNode,
-    WorthUiIdentitySeededArtifactInputEquivalentShape,
+    WorthUiDurableStateIneligibilityReason, WorthUiIdentitySeededArtifactInput,
+    WorthUiIdentitySeededArtifactInputBindingNode, WorthUiIdentitySeededArtifactInputComponentNode,
     WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputModule,
     WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
     WorthUiIdentitySeededArtifactInputThemeTokenNode,
 };
 pub(crate) use import_graph::{WorthUiSourceImport, WorthUiSourceImportGraph};
+#[cfg(test)]
 pub(crate) use inspection::{
     WorthUiArtifactCapabilityReference, WorthUiArtifactCapabilityReferenceInspection,
     WorthUiArtifactCapabilityReferenceRole, WorthUiArtifactInspection,
     WorthUiArtifactNodeInspection, WorthUiArtifactProvenanceMap, WorthUiArtifactSourceOrigin,
     WorthUiQueryInspectionLink, WorthUiQueryInspectionLinkRole,
 };
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) use lower::WorthUiRustAuthoredArtifactInputModule;
-#[allow(unused_imports)]
 pub(crate) use lower::{
-    WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyDiagnosticCode,
-    WorthUiArtifactAssemblyMetrics, WorthUiArtifactAssemblyReport,
-    WorthUiArtifactDependencyDeriver, WorthUiArtifactDependencyMetrics,
-    WorthUiArtifactDependencyReport, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceComparator,
-    WorthUiArtifactEquivalenceMetrics, WorthUiArtifactInputResolver,
-    WorthUiArtifactInspectionBasis, WorthUiArtifactInspectionBasisBuilder,
-    WorthUiArtifactInspectionDeriver, WorthUiArtifactInspectionDiagnostic,
-    WorthUiArtifactInspectionDiagnosticCode, WorthUiArtifactInspectionMetrics,
-    WorthUiArtifactInspectionReport, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
+    WorthUiArtifactAssemblyDiagnostic, WorthUiArtifactAssemblyMetrics,
+    WorthUiArtifactAssemblyReport, WorthUiArtifactDependencyDeriver,
+    WorthUiArtifactDependencyMetrics, WorthUiArtifactDependencyReport, WorthUiArtifactDigestor,
+    WorthUiArtifactEquivalenceComparator, WorthUiArtifactEquivalenceMetrics,
+    WorthUiArtifactInputResolver, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
     WorthUiBindingSemanticsLowerer, WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
-    WorthUiCanonicalArtifactAssembler, WorthUiIdentityReplacementClassifier,
-    WorthUiIdentitySeedLowerer, WorthUiIdentitySeedingDiagnostic,
-    WorthUiIdentitySeedingDiagnosticCode, WorthUiIdentitySeedingMetrics,
-    WorthUiIdentitySeedingReport, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
-    WorthUiResolutionReport, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiRustCompositionInput,
+    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
+    WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport,
+    WorthUiParsedSourceToArtifactInputLowerer, WorthUiResolutionDiagnostic,
+    WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics, WorthUiResolutionReport,
+    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
+    WorthUiStructuralLegalityLowerer, WorthUiStructuralLegalityMetrics,
+    WorthUiStructuralLegalityReport,
+};
+#[cfg(test)]
+pub(crate) use lower::{
+    WorthUiArtifactAssemblyDiagnosticCode, WorthUiArtifactInspectionBasisBuilder,
+    WorthUiArtifactInspectionDeriver, WorthUiArtifactInspectionDiagnosticCode,
+    WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedingDiagnosticCode,
+    WorthUiRustCompositionToArtifactInputLowerer,
+};
+#[cfg(test)]
+pub(crate) use lower::{
+    WorthUiArtifactInspectionBasis, WorthUiArtifactInspectionDiagnostic,
+    WorthUiArtifactInspectionMetrics, WorthUiArtifactInspectionReport, WorthUiRustCompositionInput,
     WorthUiRustCompositionMetrics, WorthUiRustCompositionModule, WorthUiRustCompositionReport,
-    WorthUiRustCompositionToArtifactInputLowerer, WorthUiStructuralLegalityDiagnostic,
-    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer,
-    WorthUiStructuralLegalityMetrics, WorthUiStructuralLegalityReport,
+};
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use lower::{
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredToArtifactInputLowerer,
 };
 pub(crate) use module::{WorthUiSourceModuleId, WorthUiSourceModuleRecord};
-#[allow(unused_imports)]
 pub(crate) use package::{
     WorthUiSourcePackage, WorthUiSourcePackageDiagnostic, WorthUiSourcePackageDiagnosticCode,
-    WorthUiSourcePackageDigest, WorthUiSourcePackageLoader, WorthUiSourcePackagePlan,
-    WorthUiSourcePackageReport, WorthUiValidatedSourcePackagePlan,
+    WorthUiSourcePackageDigest, WorthUiSourcePackageLoader, WorthUiSourcePackageReport,
 };
-#[allow(unused_imports)]
 pub(crate) use parse::{
     WorthUiParseDiagnostic, WorthUiParseDiagnosticCode, WorthUiParseReport, WorthUiParsedBlockBody,
     WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration, WorthUiParsedSourceDeclaration,
     WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTokenDeclaration,
     WorthUiSourceParser, WorthUiSourceSpan, WorthUiSourceToken, WorthUiSourceTokenKind,
 };
+#[cfg(test)]
+pub(crate) use resolved::WorthUiResolvedArtifactInputEquivalentShape;
 pub(crate) use resolved::{
     WorthUiResolvedArtifactInput, WorthUiResolvedArtifactInputBindingNode,
-    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputEquivalentShape,
-    WorthUiResolvedArtifactInputModule, WorthUiResolvedArtifactInputNode,
-    WorthUiResolvedArtifactInputSurfaceNode, WorthUiResolvedArtifactInputThemeTokenNode,
+    WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputModule,
+    WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
+    WorthUiResolvedArtifactInputThemeTokenNode,
 };
+#[cfg(test)]
+pub(crate) use structured::WorthUiLegallyStructuredArtifactInputEquivalentShape;
 pub(crate) use structured::{
     WorthUiLegallyStructuredArtifactInput, WorthUiLegallyStructuredArtifactInputBindingNode,
     WorthUiLegallyStructuredArtifactInputComponentNode,
-    WorthUiLegallyStructuredArtifactInputEquivalentShape,
     WorthUiLegallyStructuredArtifactInputModule, WorthUiLegallyStructuredArtifactInputNode,
     WorthUiLegallyStructuredArtifactInputSurfaceNode,
     WorthUiLegallyStructuredArtifactInputThemeTokenNode, WorthUiMosaicMountFacts,

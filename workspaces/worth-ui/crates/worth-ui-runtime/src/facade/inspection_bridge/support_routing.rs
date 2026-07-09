@@ -6,7 +6,9 @@ use worth_ui_inspection::{
 use crate::facade::inspection_bridge::boundary_access::{
     aspect_inspection_boundary, authored_inspection_boundary, graph_inspection_boundary,
 };
-use crate::facade::inspection_bridge::dispatch::{classify_inspection_dispatch, InspectionDispatchLane};
+use crate::facade::inspection_bridge::dispatch::{
+    classify_inspection_dispatch, InspectionDispatchLane,
+};
 use crate::facade::WorthUiApp;
 
 pub(crate) fn inspection_support_report_for(

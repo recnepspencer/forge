@@ -1,4 +1,4 @@
-﻿use crate::capability::{
+use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
 };
 use crate::facade::entry::{WorthUi, WorthUiApp};
@@ -6,7 +6,9 @@ use crate::facade::registry::{
     ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,
 };
-use crate::runtime::{WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatcherEvent};
+use crate::runtime::{
+    WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatcherEvent,
+};
 use crate::source::{
     WorthUiArtifact, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
     WorthUiIdentitySeedLowerer, WorthUiRustAuthoredArtifactInput,
@@ -106,7 +108,9 @@ fn touch_runtime_support_app() -> WorthUiApp {
 fn empty_runtime_artifact(app: &WorthUiApp) -> WorthUiArtifact {
     artifact_from_modules(
         app,
-        [WorthUiRustAuthoredArtifactInputModule::new("touch-origin.empty")],
+        [WorthUiRustAuthoredArtifactInputModule::new(
+            "touch-origin.empty",
+        )],
     )
 }
 
@@ -172,4 +176,3 @@ fn runtime_origin_source_text(variant: WorthUiTouchOriginFixtureVariant) -> &'st
         }
     }
 }
-

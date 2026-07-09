@@ -58,7 +58,6 @@ impl UiMeasurementValue {
             }
         }
     }
-
 }
 
 impl UiMeasurementResult {

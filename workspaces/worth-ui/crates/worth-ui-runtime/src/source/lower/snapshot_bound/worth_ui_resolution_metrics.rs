@@ -14,14 +14,17 @@ impl WorthUiResolutionMetrics {
         self.families_scanned += counters.families_scanned();
     }
 
+    #[cfg(test)]
     pub(crate) fn direct_lookup_count(&self) -> usize {
         self.direct_lookup_count
     }
 
+    #[cfg(test)]
     pub(crate) fn total_family_width(&self) -> usize {
         self.total_family_width
     }
 
+    #[cfg(test)]
     pub(crate) fn families_scanned(&self) -> usize {
         self.families_scanned
     }

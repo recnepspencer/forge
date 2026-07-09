@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, QuerySubscriptionFamily, ResultShapeFamily, ViewShapeDescriptor,
+use worth_query::facade::{
+    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily, ResultShapeFamily,
+    ViewShapeDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
 };
 
 use crate::capability::{
@@ -36,10 +36,10 @@ pub(super) fn standard_artifact_input() -> WorthUiArtifactInput {
 }
 
 pub(super) fn admitted_app() -> WorthUiApp {
-    let query_support = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let query_support = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = query_support
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("query composition support posture");
     let query_composition = query_support
         .query_composition_support_profile()

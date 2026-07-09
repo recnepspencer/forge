@@ -1,16 +1,18 @@
 use crate::capability::MosaicResizePermission;
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
-    WorthUiDurableStateFamily, WorthUiDurableStateFamilyId,
-    WorthUiDurableStateReconciliationReceipt, WorthUiIdentityMatchNodeKind,
-    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
+    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture, WorthUiDurableStateFamily,
+    WorthUiDurableStateFamilyId, WorthUiDurableStateReconciliationReceipt,
+    WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition,
+    WorthUiNodeReplacementClassification,
 };
 
 pub(super) fn classification_targets_splitter_surface(
     classification: &WorthUiNodeReplacementClassification,
 ) -> bool {
     matches!(
-        classification.active_kind().or(classification.candidate_kind()),
+        classification
+            .active_kind()
+            .or(classification.candidate_kind()),
         Some(WorthUiIdentityMatchNodeKind::Surface)
     )
 }
@@ -19,7 +21,9 @@ pub(super) fn splitter_resize_input_for_carry(
     classification: &WorthUiNodeReplacementClassification,
     family: &WorthUiDurableStateFamily,
 ) -> Option<WorthUiAdmittedDurableResizeInput> {
-    if !is_splitter_surface_family(classification, family) || !splitter_resize_shapes_match(classification) {
+    if !is_splitter_surface_family(classification, family)
+        || !splitter_resize_shapes_match(classification)
+    {
         return None;
     }
     let resize_permission = classification
@@ -92,5 +96,6 @@ fn is_splitter_surface_family(
 fn splitter_resize_shapes_match(classification: &WorthUiNodeReplacementClassification) -> bool {
     classification.active_resize_contract_id() == classification.candidate_resize_contract_id()
         && classification.active_resize_permission() == classification.candidate_resize_permission()
-        && classification.active_resize_shape_digest() == classification.candidate_resize_shape_digest()
+        && classification.active_resize_shape_digest()
+            == classification.candidate_resize_shape_digest()
 }

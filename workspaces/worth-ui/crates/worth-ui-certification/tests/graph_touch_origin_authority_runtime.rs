@@ -134,7 +134,7 @@ fn query_snapshot_world_profile(
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
     let snapshot_identity =
-        worth_ui::facade::graph::ForgeQuerySnapshotIdentity::admit_external_token(
+        worth_ui::facade::graph::WorthQuerySnapshotIdentity::admit_external_token(
             QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
         );
     let basis = resolve_runtime_current_snapshot_basis(

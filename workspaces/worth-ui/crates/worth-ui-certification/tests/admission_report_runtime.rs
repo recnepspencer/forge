@@ -7,8 +7,8 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
-    ForgeQuerySnapshotIdentity, QueryExternalIdentityToken, SchemaBasisDigest, UiGraphWorldProfile,
+    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    SchemaBasisDigest, UiGraphWorldProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::inspection::UiInspectionAdmissionPosture;
 use worth_ui_dsl::{
@@ -73,7 +73,7 @@ fn admission_report_keeps_support_truth_separate_from_legality_truth() {
     ));
     let observed_world =
         UiAdmissionWorld::from_graph_world_profile(UiGraphWorldProfile::preview_session_label(
-            ForgeQuerySessionLabel::scoped_strs("worth-ui", ["preview", "report"])
+            WorthQuerySessionLabel::scoped_strs("worth-ui", ["preview", "report"])
                 .expect("preview label should admit"),
         ));
     let wrong_world_report = boundary.report(UiAdmissionTarget::graph_node(
@@ -291,7 +291,7 @@ fn foreign_control_spec() -> UiDslSemanticArtifactSpec {
 }
 
 fn query_snapshot_world_profile() -> UiGraphWorldProfile {
-    let snapshot_identity = ForgeQuerySnapshotIdentity::admit_external_token(
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from("snapshot:admission-report")),
     );
     let basis = resolve_runtime_current_snapshot_basis(

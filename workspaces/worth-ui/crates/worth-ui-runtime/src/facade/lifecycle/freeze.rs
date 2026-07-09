@@ -1,11 +1,11 @@
 use worth_ui_inspection::UiInspectionScopeInventory;
 
+use crate::facade::host_observation::WorthUiHostContract;
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::registry::CapabilitySnapshot;
-use crate::facade::host_observation::WorthUiHostContract;
-use worth_ui_dsl::WorthUiDslPackage;
 use crate::graph::{admit_graph_handoffs, UiGraphWorldProfile};
 use crate::runtime::WorthUiSourceBackedDeclarationWitness;
+use worth_ui_dsl::WorthUiDslPackage;
 
 use super::bootstrap::{WorthUiCapabilityRegistrationFreezeCore, WorthUiFacadeLifecycleBootstrap};
 use super::declaration_freeze::{lower_declaration_artifacts, lower_graph_handoffs};
@@ -55,6 +55,11 @@ impl WorthUiCapabilityRegistrationFreezeCore {
             measurement_inspection_evidence,
             inspection_scope_inventory,
         );
-        Self::assemble(capability_snapshot, declaration_artifacts, graph_snapshot, lifecycle)
+        Self::assemble(
+            capability_snapshot,
+            declaration_artifacts,
+            graph_snapshot,
+            lifecycle,
+        )
     }
 }

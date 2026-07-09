@@ -1,9 +1,7 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::declaration::{
-    UiAspectContractAdmissionDenial, UiAspectFamily, UiAspectSemanticSlice, UiDeclarationArtifact,
-};
+use worth_ui::facade::declaration::{UiAspectSemanticSlice, UiDeclarationArtifact};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,

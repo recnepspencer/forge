@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 mod worth_ui_identity_match_counters;
 mod worth_ui_identity_match_denial;
 mod worth_ui_identity_match_edge;

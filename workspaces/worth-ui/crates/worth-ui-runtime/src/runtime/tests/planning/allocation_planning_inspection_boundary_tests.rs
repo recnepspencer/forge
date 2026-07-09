@@ -1,8 +1,9 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
     admitted_allocation_neighborhood, admitted_allocation_neighborhood_for_basis,
-    admitted_measurement_basis, admitted_measurement_basis_with_generation,
-    denied_allocation_neighborhood, denied_measurement_basis,
+    admitted_measurement_basis, admitted_measurement_basis_with_font_seed,
+    admitted_measurement_basis_with_generation, denied_allocation_neighborhood,
+    denied_measurement_basis,
 };
 use crate::evidence::{UiEvidenceExpansion, UiEvidenceMaterializedDetail};
 use crate::facade::evidence::{
@@ -26,7 +27,9 @@ fn planning_detail_preserves_neighborhood_propagation_and_special_inputs() {
     let retained_receipt = runtime.inspect_allocation_planning(&planning);
     let cost = retained_receipt.cost();
     let solve_trace = retained_receipt.solve_trace();
-    let receipt = app.inspect(planning_detail_query(UiAllocationPlanningQuestion::Neighborhood));
+    let receipt = app.inspect(planning_detail_query(
+        UiAllocationPlanningQuestion::Neighborhood,
+    ));
     let detail = detail_from_receipt(&receipt);
     let constraint_set = planning
         .allocation_constraint_set()
@@ -42,7 +45,10 @@ fn planning_detail_preserves_neighborhood_propagation_and_special_inputs() {
         Some(constraint_set.identity().identity_digest())
     );
     assert_eq!(detail.constraint_summary(), Some(constraint_set.summary()));
-    assert_eq!(detail.propagation_edges(), constraint_set.propagation_edges());
+    assert_eq!(
+        detail.propagation_edges(),
+        constraint_set.propagation_edges()
+    );
     assert_eq!(
         detail.viewport_planning_input(),
         constraint_set.viewport_planning_input()
@@ -62,21 +68,39 @@ fn planning_detail_preserves_neighborhood_propagation_and_special_inputs() {
     assert_eq!(detail.solve_trace(), solve_trace);
     assert_eq!(
         cost.neighborhood_identity_digest(),
-        planning.allocation_neighborhood().identity().identity_digest()
+        planning
+            .allocation_neighborhood()
+            .identity()
+            .identity_digest()
     );
-    assert_eq!(cost.nodes_considered(), planning.allocation_neighborhood().members().len());
-    assert_eq!(cost.nodes_admitted(), planning.allocation_neighborhood().members().len());
-    assert_eq!(cost.edges_emitted(), constraint_set.propagation_edges().len());
+    assert_eq!(
+        cost.nodes_considered(),
+        planning.allocation_neighborhood().members().len()
+    );
+    assert_eq!(
+        cost.nodes_admitted(),
+        planning.allocation_neighborhood().members().len()
+    );
+    assert_eq!(
+        cost.edges_emitted(),
+        constraint_set.propagation_edges().len()
+    );
     assert_eq!(cost.special_inputs_loaded(), 0);
     assert_eq!(cost.cost_class(), UiAllocationPlanningCostClass::Local);
-    assert_eq!(solve_trace.planning_identity_digest(), planning.planning_identity_digest());
+    assert_eq!(
+        solve_trace.planning_identity_digest(),
+        planning.planning_identity_digest()
+    );
     assert_eq!(solve_trace.pass_order().len(), cost.propagation_passes());
     assert!(solve_trace.is_deterministic());
     assert_eq!(
         solve_trace.convergence_posture(),
         UiAllocationSolveConvergencePosture::AcyclicDeterministic
     );
-    assert_eq!(solve_trace.remainder_policy(), UiAllocationSolveRemainderPolicy::None);
+    assert_eq!(
+        solve_trace.remainder_policy(),
+        UiAllocationSolveRemainderPolicy::None
+    );
     assert_eq!(
         receipt.authority_generation(),
         Some(retained_receipt.evidence_slice().authority_generation())
@@ -98,11 +122,20 @@ fn retained_planning_expansion_converges_on_registered_detail() {
     let neighborhood = admitted_allocation_neighborhood("allocation-inspection.retained");
     let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     runtime.inspect_allocation_planning(&planning);
-    let receipt = app.inspect(planning_detail_query(UiAllocationPlanningQuestion::PropagationEdges));
-    let evidence_ref = receipt.evidence_slice().expect("planning receipt exposes slice").refs()[0];
-    let expansion = app.expand_evidence_ref(evidence_ref, UiEvidenceRichness::materialized_detail());
+    let receipt = app.inspect(planning_detail_query(
+        UiAllocationPlanningQuestion::PropagationEdges,
+    ));
+    let evidence_ref = receipt
+        .evidence_slice()
+        .expect("planning receipt exposes slice")
+        .refs()[0];
+    let expansion =
+        app.expand_evidence_ref(evidence_ref, UiEvidenceRichness::materialized_detail());
 
-    assert_eq!(expansion.outcome(), worth_ui_inspection::UiEvidenceExpansionOutcome::Available);
+    assert_eq!(
+        expansion.outcome(),
+        worth_ui_inspection::UiEvidenceExpansionOutcome::Available
+    );
     assert_eq!(
         detail_from_expansion(&expansion),
         detail_from_receipt(&receipt)
@@ -118,12 +151,17 @@ fn summary_expansion_stays_refs_first_until_detail_is_requested() {
     let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     runtime.inspect_allocation_planning(&planning);
     let receipt = app.inspect(
-        UiInspectionQuery::new(UiInspectionTarget::ProductRoot, UiInspectionScope::planning())
-            .with_richness(UiEvidenceRichness::materialized_detail())
-            .with_budget(UiEvidenceBudget::narrow())
-            .with_allocation_planning_question(UiAllocationPlanningQuestion::DurableResizePosture),
+        UiInspectionQuery::new(
+            UiInspectionTarget::ProductRoot,
+            UiInspectionScope::planning(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail())
+        .with_budget(UiEvidenceBudget::narrow())
+        .with_allocation_planning_question(UiAllocationPlanningQuestion::DurableResizePosture),
     );
-    let evidence_slice = receipt.evidence_slice().expect("summary planning receipt exposes slice");
+    let evidence_slice = receipt
+        .evidence_slice()
+        .expect("summary planning receipt exposes slice");
     let evidence_ref = evidence_slice.refs()[0];
     let expansion = app.expand_evidence_ref(evidence_ref, UiEvidenceRichness::summary());
 
@@ -132,7 +170,10 @@ fn summary_expansion_stays_refs_first_until_detail_is_requested() {
         receipt.query().allocation_planning_question(),
         Some(UiAllocationPlanningQuestion::DurableResizePosture)
     );
-    assert_eq!(expansion.outcome(), worth_ui_inspection::UiEvidenceExpansionOutcome::Available);
+    assert_eq!(
+        expansion.outcome(),
+        worth_ui_inspection::UiEvidenceExpansionOutcome::Available
+    );
     assert_eq!(expansion.evidence_ref(), evidence_ref);
     assert!(expansion.materialized_detail().is_none());
     assert!(evidence_slice.materialized_detail().is_none());
@@ -148,12 +189,17 @@ fn planning_requires_explicit_question_before_materializing_detail() {
     runtime.inspect_allocation_planning(&planning);
 
     let receipt = app.inspect(
-        UiInspectionQuery::new(UiInspectionTarget::ProductRoot, UiInspectionScope::planning())
-            .with_richness(UiEvidenceRichness::materialized_detail())
-            .with_budget(UiEvidenceBudget::ordinary()),
+        UiInspectionQuery::new(
+            UiInspectionTarget::ProductRoot,
+            UiInspectionScope::planning(),
+        )
+        .with_richness(UiEvidenceRichness::materialized_detail())
+        .with_budget(UiEvidenceBudget::ordinary()),
     );
 
-    let evidence_slice = receipt.evidence_slice().expect("planning receipt exposes retained slice");
+    let evidence_slice = receipt
+        .evidence_slice()
+        .expect("planning receipt exposes retained slice");
     assert!(evidence_slice.materialized_detail().is_none());
     assert_eq!(
         evidence_slice.omission(),
@@ -167,18 +213,29 @@ fn planning_requires_explicit_question_before_materializing_detail() {
 fn explicit_planning_question_stays_refs_first_when_multiple_receipts_are_retained() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
-    let first_basis = admitted_measurement_basis("allocation-inspection.multiple.first");
-    let first_neighborhood = admitted_allocation_neighborhood("allocation-inspection.multiple.first");
-    let second_basis = admitted_measurement_basis("allocation-inspection.multiple.second");
-    let second_neighborhood =
-        admitted_allocation_neighborhood("allocation-inspection.multiple.second");
+    let first_basis =
+        admitted_measurement_basis_with_font_seed("allocation-inspection.multiple.first", 101);
+    let first_neighborhood = admitted_allocation_neighborhood_for_basis(
+        "allocation-inspection.multiple.first",
+        first_basis.clone(),
+    );
+    let second_basis =
+        admitted_measurement_basis_with_font_seed("allocation-inspection.multiple.second", 202);
+    let second_neighborhood = admitted_allocation_neighborhood_for_basis(
+        "allocation-inspection.multiple.second",
+        second_basis.clone(),
+    );
     let first = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
     let second = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
     runtime.inspect_allocation_planning(&first);
     runtime.inspect_allocation_planning(&second);
 
-    let receipt = app.inspect(planning_detail_query(UiAllocationPlanningQuestion::PropagationEdges));
-    let evidence_slice = receipt.evidence_slice().expect("planning receipt exposes retained slice");
+    let receipt = app.inspect(planning_detail_query(
+        UiAllocationPlanningQuestion::PropagationEdges,
+    ));
+    let evidence_slice = receipt
+        .evidence_slice()
+        .expect("planning receipt exposes retained slice");
 
     assert_eq!(evidence_slice.refs().len(), 2);
     assert!(evidence_slice.materialized_detail().is_none());
@@ -217,7 +274,9 @@ fn mixed_planning_authorities_do_not_collapse_into_one_public_slice() {
         second_receipt.evidence_slice().authority_generation()
     );
 
-    let public = app.inspect(planning_detail_query(UiAllocationPlanningQuestion::Neighborhood));
+    let public = app.inspect(planning_detail_query(
+        UiAllocationPlanningQuestion::Neighborhood,
+    ));
 
     assert!(public.evidence_slice().is_none());
     assert!(public.authority_generation().is_none());
@@ -281,7 +340,9 @@ fn denied_planning_detail_keeps_neighborhood_without_claiming_admitted_special_i
     let neighborhood = denied_allocation_neighborhood("allocation-inspection.denied");
     let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
     runtime.inspect_allocation_planning(&planning);
-    let receipt = app.inspect(planning_detail_query(UiAllocationPlanningQuestion::SpecialInputs));
+    let receipt = app.inspect(planning_detail_query(
+        UiAllocationPlanningQuestion::SpecialInputs,
+    ));
     let detail = detail_from_receipt(&receipt);
     let cost = runtime.inspect_allocation_planning(&planning).cost();
     let constraint_set = planning.allocation_constraint_set();
@@ -290,7 +351,8 @@ fn denied_planning_detail_keeps_neighborhood_without_claiming_admitted_special_i
     assert_eq!(detail.neighborhood(), planning.allocation_neighborhood());
     assert_eq!(
         detail.constraint_set_identity_digest(),
-        constraint_set.map(|retained_constraint_set| retained_constraint_set.identity().identity_digest())
+        constraint_set
+            .map(|retained_constraint_set| retained_constraint_set.identity().identity_digest())
     );
     assert_eq!(
         detail.propagation_edges(),
@@ -308,7 +370,10 @@ fn denied_planning_detail_keeps_neighborhood_without_claiming_admitted_special_i
     );
     assert_eq!(cost.nodes_admitted(), 0);
     assert!(cost.denied_broadening_reason().is_some());
-    assert_eq!(cost.cost_class(), UiAllocationPlanningCostClass::DeniedUnbounded);
+    assert_eq!(
+        cost.cost_class(),
+        UiAllocationPlanningCostClass::DeniedUnbounded
+    );
     assert!(detail.denial().is_some());
 }
 
@@ -335,8 +400,11 @@ fn detail_from_expansion(
 }
 
 fn planning_detail_query(question: UiAllocationPlanningQuestion) -> UiInspectionQuery {
-    UiInspectionQuery::new(UiInspectionTarget::ProductRoot, UiInspectionScope::planning())
-        .with_richness(UiEvidenceRichness::materialized_detail())
-        .with_budget(UiEvidenceBudget::ordinary())
-        .with_allocation_planning_question(question)
+    UiInspectionQuery::new(
+        UiInspectionTarget::ProductRoot,
+        UiInspectionScope::planning(),
+    )
+    .with_richness(UiEvidenceRichness::materialized_detail())
+    .with_budget(UiEvidenceBudget::ordinary())
+    .with_allocation_planning_question(question)
 }

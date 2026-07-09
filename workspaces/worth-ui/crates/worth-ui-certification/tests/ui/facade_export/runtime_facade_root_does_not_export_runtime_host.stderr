@@ -4,6 +4,11 @@ error[E0432]: unresolved import `worth_ui_runtime::facade::WorthUiRuntimeHost`
 1 | use worth_ui_runtime::facade::WorthUiRuntimeHost;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiRuntimeHost` in `facade`
   |
+help: a similar name exists in the module
+  |
+1 - use worth_ui_runtime::facade::WorthUiRuntimeHost;
+1 + use worth_ui_runtime::facade::WorthUiRuntimeHandle;
+  |
 help: consider importing one of these structs instead
   |
 1 - use worth_ui_runtime::facade::WorthUiRuntimeHost;

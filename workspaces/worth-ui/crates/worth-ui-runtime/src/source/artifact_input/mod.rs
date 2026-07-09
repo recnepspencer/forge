@@ -1,4 +1,5 @@
 mod worth_ui_artifact_input;
+#[cfg(test)]
 mod worth_ui_artifact_input_equivalence;
 mod worth_ui_artifact_input_module;
 mod worth_ui_artifact_input_node;
@@ -7,6 +8,7 @@ mod worth_ui_artifact_input_provenance;
 mod worth_ui_artifact_input_reference;
 
 pub(crate) use worth_ui_artifact_input::WorthUiArtifactInput;
+#[cfg(test)]
 pub(crate) use worth_ui_artifact_input_equivalence::WorthUiArtifactInputEquivalentShape;
 pub(crate) use worth_ui_artifact_input_module::WorthUiArtifactInputModule;
 pub use worth_ui_artifact_input_node::WorthUiArtifactInputBodyAtom;

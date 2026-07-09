@@ -115,8 +115,7 @@ pub(super) fn denied_query_ready_activation() -> WorthUiActivationGateDenial {
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
     let measurement_basis = admitted_measurement_basis("frame-activation.denied-query");
-    let allocation_neighborhood =
-        admitted_allocation_neighborhood("frame-activation.denied-query");
+    let allocation_neighborhood = admitted_allocation_neighborhood("frame-activation.denied-query");
     let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
     let handles = runtime
         .allocate_runtime_handles(&planning)
@@ -232,8 +231,7 @@ pub(super) fn lane_change_fixture(include_parity: bool) -> LaneChangeFixture {
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
     let measurement_basis = admitted_measurement_basis("frame-activation.lane-change");
-    let allocation_neighborhood =
-        admitted_allocation_neighborhood("frame-activation.lane-change");
+    let allocation_neighborhood = admitted_allocation_neighborhood("frame-activation.lane-change");
     let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
     let handle_allocation = runtime
         .allocate_runtime_handles(&planning)

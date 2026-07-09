@@ -1,9 +1,9 @@
+use crate::runtime::activation::WorthUiActivationLaneInput;
 use crate::runtime::tests::activation_staging_test_support::activation_staging_inputs;
 use crate::runtime::tests::allocation_planning_test_support::{
     admitted_allocation_neighborhood, admitted_measurement_basis,
 };
 use crate::runtime::tests::durable_state_inventory_test_support::platform_inventory;
-use crate::runtime::activation::WorthUiActivationLaneInput;
 use crate::runtime::WorthUiRuntimeHost;
 
 #[test]
@@ -51,18 +51,13 @@ fn lifecycle_path_parity_planning_lane_matches_direct_plan_allocation() {
     let measurement_basis = admitted_measurement_basis("lifecycle-path.parity");
     let allocation_neighborhood = admitted_allocation_neighborhood("lifecycle-path.parity");
 
-    let direct = runtime.plan_allocation(
-        &pending,
-        &measurement_basis,
-        &allocation_neighborhood,
-    );
-    let via_lane_input = runtime.plan_allocation_from_lane_input(
-        crate::runtime::WorthUiPlanningLaneInput::new(
+    let direct = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
+    let via_lane_input =
+        runtime.plan_allocation_from_lane_input(crate::runtime::WorthUiPlanningLaneInput::new(
             &pending,
             measurement_basis.clone(),
             allocation_neighborhood.clone(),
-        ),
-    );
+        ));
 
     assert_eq!(
         direct.planning_identity_digest(),
@@ -80,11 +75,7 @@ fn lifecycle_path_parity_execution_lane_matches_direct_handle_allocation() {
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("lifecycle-path.execution");
     let allocation_neighborhood = admitted_allocation_neighborhood("lifecycle-path.execution");
-    let planning = runtime.plan_allocation(
-        &pending,
-        &measurement_basis,
-        &allocation_neighborhood,
-    );
+    let planning = runtime.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
 
     let direct = runtime
         .allocate_runtime_handles(&planning)

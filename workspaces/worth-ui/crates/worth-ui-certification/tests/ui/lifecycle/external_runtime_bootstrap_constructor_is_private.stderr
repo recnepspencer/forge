@@ -2,7 +2,4 @@ error[E0432]: unresolved import `worth_ui_runtime::facade::WorthUiRuntimeBootstr
  --> tests/ui/lifecycle/external_runtime_bootstrap_constructor_is_private.rs:1:44
   |
 1 | use worth_ui_runtime::facade::{WorthUiApp, WorthUiRuntimeBootstrap};
-  |                                            ^^^^^^^^^^^^^^^^^^^^^^^
-  |                                            |
-  |                                            no `WorthUiRuntimeBootstrap` in `facade`
-  |                                            help: a similar name exists in the module: `WorthUiRuntimeHost`
+  |                                            ^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUiRuntimeBootstrap` in `facade`

@@ -141,4 +141,21 @@ impl UiAllocationNeighborhood {
     pub fn members(&self) -> &[UiAllocationNeighborhoodMember] {
         &self.members
     }
+
+    pub(crate) fn rebind_measurement_basis_identity(
+        &self,
+        measurement_basis_identity_digest: u64,
+    ) -> Self {
+        Self::new_with_authority(
+            self.root_graph_node_identity(),
+            self.graph_generation(),
+            self.world_identity_digest(),
+            measurement_basis_identity_digest,
+            self.layout_operator_planning_contract.clone(),
+            self.dependency_map.clone(),
+            self.neighborhood_class(),
+            self.membership_rule(),
+            self.members.to_vec(),
+        )
+    }
 }

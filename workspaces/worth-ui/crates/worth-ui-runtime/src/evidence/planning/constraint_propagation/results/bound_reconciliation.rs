@@ -220,12 +220,8 @@ fn posture_digest(posture: UiBoundReconciliationPosture) -> u64 {
         UiBoundReconciliationPosture::SatisfiedWithDeclaredClamp => {
             "worth-ui.bound.posture.satisfied-with-declared-clamp"
         }
-        UiBoundReconciliationPosture::Underconstrained => {
-            "worth-ui.bound.posture.underconstrained"
-        }
-        UiBoundReconciliationPosture::Overconstrained => {
-            "worth-ui.bound.posture.overconstrained"
-        }
+        UiBoundReconciliationPosture::Underconstrained => "worth-ui.bound.posture.underconstrained",
+        UiBoundReconciliationPosture::Overconstrained => "worth-ui.bound.posture.overconstrained",
         UiBoundReconciliationPosture::ContradictoryMinMax => {
             "worth-ui.bound.posture.contradictory-min-max"
         }
@@ -293,9 +289,7 @@ fn coordinate_space_digest(space: Option<UiMeasurementCoordinateSpace>) -> u64 {
         Some(UiMeasurementCoordinateSpace::GraphNodeLocal) => {
             "worth-ui.bound.coordinate.graph-node-local"
         }
-        Some(UiMeasurementCoordinateSpace::HostSurface) => {
-            "worth-ui.bound.coordinate.host-surface"
-        }
+        Some(UiMeasurementCoordinateSpace::HostSurface) => "worth-ui.bound.coordinate.host-surface",
         Some(UiMeasurementCoordinateSpace::PortalLayer) => "worth-ui.bound.coordinate.portal-layer",
         None => "worth-ui.bound.coordinate.none",
     })

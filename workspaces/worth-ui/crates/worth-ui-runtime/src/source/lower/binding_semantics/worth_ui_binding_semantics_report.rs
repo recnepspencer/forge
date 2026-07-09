@@ -18,10 +18,12 @@ impl WorthUiBindingSemanticsReport {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiBindingDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiBindingSemanticsMetrics {
         self.metrics
     }

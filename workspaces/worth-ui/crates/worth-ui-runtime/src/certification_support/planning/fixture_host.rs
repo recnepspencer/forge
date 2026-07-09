@@ -1,4 +1,4 @@
-﻿use worth_ui_host_contract::{
+use worth_ui_host_contract::{
     UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
     UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
@@ -169,7 +169,9 @@ fn suite_normalization_context_for_request(
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::ScrollContainerViewport => {
-            UiHostMeasurementNormalizationContext::scroll_container_logical_exact(assumption_profile)
+            UiHostMeasurementNormalizationContext::scroll_container_logical_exact(
+                assumption_profile,
+            )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::PortalAnchorRect => {
             UiHostMeasurementNormalizationContext::portal_anchor_logical_exact(assumption_profile)

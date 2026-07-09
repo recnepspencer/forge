@@ -1,8 +1,8 @@
 use crate::evidence::{
-    MeasurementEvidenceInput, UiAllocationNeighborhood, UiConstraintPortalAnchorPlanningInputResult,
-    UiConstraintPropagationDenial, UiConstraintPropagationDenialReason,
-    UiConstraintPropagationEdgeFamily, UiMeasurementBasis, UiMeasurementCoordinateSpace,
-    UiMeasurementDependencyLineageKind, UiMeasurementRoundingPosture,
+    MeasurementEvidenceInput, UiAllocationNeighborhood,
+    UiConstraintPortalAnchorPlanningInputResult, UiConstraintPropagationDenial,
+    UiConstraintPropagationDenialReason, UiConstraintPropagationEdgeFamily, UiMeasurementBasis,
+    UiMeasurementCoordinateSpace, UiMeasurementDependencyLineageKind, UiMeasurementRoundingPosture,
     UiMeasurementUnitPosture, UiMeasurementValue, UiPortalAnchorPlanningInputPosture,
     UiPortalAnchorPlanningInputSolveOrder,
 };
@@ -94,14 +94,17 @@ fn portal_anchor_source(
         .entries()
         .iter()
         .find(|entry| entry.kind() == UiMeasurementDependencyLineageKind::HostPortalAnchorRect)?;
-    let result = measurement_basis.evidence_inputs().iter().find_map(|input| match input {
-        MeasurementEvidenceInput::HostMeasurementResult(result)
-            if matches!(result.value(), UiMeasurementValue::PortalAnchorRect(_)) =>
-        {
-            Some(result)
-        }
-        _ => None,
-    })?;
+    let result = measurement_basis
+        .evidence_inputs()
+        .iter()
+        .find_map(|input| match input {
+            MeasurementEvidenceInput::HostMeasurementResult(result)
+                if matches!(result.value(), UiMeasurementValue::PortalAnchorRect(_)) =>
+            {
+                Some(result)
+            }
+            _ => None,
+        })?;
     Some((
         source.identity_digest(),
         source.generation_digest(),

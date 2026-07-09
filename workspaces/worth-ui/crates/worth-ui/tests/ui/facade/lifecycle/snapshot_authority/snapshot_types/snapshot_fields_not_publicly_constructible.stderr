@@ -14,7 +14,7 @@ error: cannot construct `CapabilitySnapshot` with struct literal syntax due to p
    |           ------------------ private field
    |
    = note: ...and other private fields that were not provided
-help: you might have meant to use an associated function to build this type
+help: you might have meant to use the `from_freeze_parts` associated function
    |
  6 -     let _ = CapabilitySnapshot {
  7 -         registered_capabilities: RegisteredCapabilitySet {
@@ -26,34 +26,3 @@ help: you might have meant to use an associated function to build this type
 13 -     };
  6 +     let _ = CapabilitySnapshot::from_freeze_parts(_, _, _, _, _);
    |
- 6 -     let _ = CapabilitySnapshot {
- 7 -         registered_capabilities: RegisteredCapabilitySet {
- 8 -             registered_family_count: 0,
- 9 -             total_width: 0,
-10 -         },
-11 -         digest: digest(),
-12 -         metrics: metrics(),
-13 -     };
- 6 +     let _ = CapabilitySnapshot::from_registered_capabilities(_);
-   |
- 6 -     let _ = CapabilitySnapshot {
- 7 -         registered_capabilities: RegisteredCapabilitySet {
- 8 -             registered_family_count: 0,
- 9 -             total_width: 0,
-10 -         },
-11 -         digest: digest(),
-12 -         metrics: metrics(),
-13 -     };
- 6 +     let _ = CapabilitySnapshot::from_registered_capabilities_and_commands(_, _);
-   |
- 6 -     let _ = CapabilitySnapshot {
- 7 -         registered_capabilities: RegisteredCapabilitySet {
- 8 -             registered_family_count: 0,
- 9 -             total_width: 0,
-10 -         },
-11 -         digest: digest(),
-12 -         metrics: metrics(),
-13 -     };
- 6 +     let _ = CapabilitySnapshot::from_registered_capabilities_commands_and_components(_, _, _);
-   |
-   = and 8 other candidates

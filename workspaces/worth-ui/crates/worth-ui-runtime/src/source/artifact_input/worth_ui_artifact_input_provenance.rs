@@ -7,6 +7,7 @@ pub(crate) enum WorthUiArtifactInputProvenance {
         detail_span: Option<WorthUiSourceSpan>,
         declaration_index: usize,
     },
+    #[cfg(any(test, feature = "certification-support"))]
     RustAuthoredDeclaration {
         authored_module_path: String,
         declaration_index: usize,
@@ -26,6 +27,7 @@ impl WorthUiArtifactInputProvenance {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn rust_authored(
         authored_module_path: impl Into<String>,
         declaration_index: usize,
@@ -41,6 +43,7 @@ impl WorthUiArtifactInputProvenance {
             Self::ParsedSourceDeclaration {
                 declaration_span, ..
             } => declaration_span.module_id().as_str(),
+            #[cfg(any(test, feature = "certification-support"))]
             Self::RustAuthoredDeclaration {
                 authored_module_path,
                 ..
@@ -52,8 +55,9 @@ impl WorthUiArtifactInputProvenance {
         match self {
             Self::ParsedSourceDeclaration {
                 declaration_index, ..
-            }
-            | Self::RustAuthoredDeclaration {
+            } => *declaration_index,
+            #[cfg(any(test, feature = "certification-support"))]
+            Self::RustAuthoredDeclaration {
                 declaration_index, ..
             } => *declaration_index,
         }

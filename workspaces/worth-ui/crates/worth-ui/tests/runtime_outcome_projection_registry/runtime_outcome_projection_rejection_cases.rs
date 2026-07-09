@@ -171,7 +171,7 @@ fn unsupported_query_posture_cannot_be_projected_as_failed() {
                 projection_id("workspace.outcome.unsupported_as_failed"),
                 RuntimeOutcomeFamily::failed(),
                 worth_ui::facade::RuntimeOutcomeSourceReference::from_query_ordinary_posture_kind(
-                    forge_query::facade::ForgeQueryOrdinaryPostureKind::Unsupported,
+                    worth_query::facade::WorthQueryOrdinaryPostureKind::Unsupported,
                 ),
             )
             .with_recovery_posture(RuntimeOutcomeRecoveryPosture::retry_hint()),

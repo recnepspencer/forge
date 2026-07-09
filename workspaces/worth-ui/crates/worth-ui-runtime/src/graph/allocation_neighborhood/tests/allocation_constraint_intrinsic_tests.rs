@@ -5,8 +5,8 @@ use crate::declaration::{
     UiDeclaredMeasurementPolicyPosture,
 };
 use crate::evidence::measurement::projection::fact_test_support::{
-    capability_report, display_field_projection_context, host_result_text_intrinsic_size,
-    synthetic_declaration_identity,
+    capability_report, display_field_projection_context, host_result_font_metrics,
+    host_result_text_intrinsic_size, synthetic_declaration_identity,
 };
 use crate::evidence::{
     admit_measurement_basis, consume_declared_measurement_projection_facts,
@@ -180,16 +180,22 @@ fn stale_query_intrinsic_evidence_denies_before_neighborhood_solve() {
         &attempt,
     )
     .expect("query receipt should admit");
+    let report = capability_report(92);
     let basis = admit_measurement_basis(
         synthetic_declaration_identity("allocation-constraint-intrinsic-stale-query"),
         root_node,
         world_profile,
         UiEvidenceAuthorityGeneration::new(92),
         &query_intrinsic_policy(),
-        &[MeasurementEvidenceInput::child_query_projection_fact(
-            child_node,
-            &query_receipt,
-        )],
+        &[
+            MeasurementEvidenceInput::host_capability_report(&report),
+            MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
+                910,
+                &report,
+                UiEvidenceAuthorityGeneration::new(92),
+            )),
+            MeasurementEvidenceInput::child_query_projection_fact(child_node, &query_receipt),
+        ],
     );
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
@@ -201,7 +207,7 @@ fn stale_query_intrinsic_evidence_denies_before_neighborhood_solve() {
 
     assert_eq!(
         denial.reason(),
-        UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
+        UiConstraintPropagationDenialReason::MissingRequiredDownwardConstraint
     );
 }
 
@@ -222,6 +228,11 @@ fn stale_host_intrinsic_evidence_denies_before_neighborhood_solve() {
         &host_intrinsic_policy(),
         &[
             MeasurementEvidenceInput::host_capability_report(&report),
+            MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
+                1010,
+                &report,
+                UiEvidenceAuthorityGeneration::new(102),
+            )),
             MeasurementEvidenceInput::child_host_measurement_result(
                 child_node,
                 &host_result_text_intrinsic_size(
@@ -242,7 +253,7 @@ fn stale_host_intrinsic_evidence_denies_before_neighborhood_solve() {
 
     assert_eq!(
         denial.reason(),
-        UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
+        UiConstraintPropagationDenialReason::MissingRequiredDownwardConstraint
     );
 }
 

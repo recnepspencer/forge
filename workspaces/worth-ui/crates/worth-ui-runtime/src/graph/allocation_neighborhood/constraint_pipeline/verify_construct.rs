@@ -1,33 +1,13 @@
 use crate::declaration::stable_text_digest;
 use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationNeighborhood, UiBoundReconciliationPosture,
-    UiConstraintBoundReconciliationResult, UiConstraintPropagationDenial,
-    UiConstraintPropagationDenialReason, UiConstraintPropagationEdge,
-    UiConstraintPropagationEdgeFamily, UiConstraintPropagationEdgePayload,
-    UiLayoutOperatorContractIdentity, UiMeasurementBasis,
+    UiAllocationConstraintSet, UiBoundReconciliationPosture, UiConstraintBoundReconciliationResult,
+    UiConstraintPropagationDenial, UiConstraintPropagationDenialReason,
+    UiConstraintPropagationEdge, UiConstraintPropagationEdgeFamily,
+    UiConstraintPropagationEdgePayload, UiLayoutOperatorContractIdentity,
 };
 
-use super::super::constraint_bound_reconciliation::admit_bound_reconciliation;
-use super::super::constraint_child_intrinsic_contribution::admit_child_intrinsic_contributions;
-use super::super::constraint_cycle_posture::admit_cycle_postures;
-use super::super::constraint_durable_resize_input::admit_durable_resize_inputs;
-use super::super::constraint_edge_assembly::{
-    assemble_base_propagation_edges, assemble_special_input_edges,
-};
-use super::super::constraint_equal_share_distribution::admit_equal_share_distribution;
-use super::super::constraint_parent_available_space::{
-    admit_parent_available_space, UiConstraintDownwardAdmission,
-};
-use super::super::constraint_portal_anchor_planning_input::admit_portal_anchor_planning_input;
-use super::super::constraint_sibling_negotiation::admit_sibling_negotiation;
-use super::super::constraint_scroll_owner_planning_input::admit_scroll_owner_planning_input;
-use super::super::constraint_summary::derive_constraint_summary;
-use super::super::constraint_viewport_planning_input::admit_viewport_planning_input;
 use super::classify_special_inputs::family_for_requirement;
-use super::types::{
-    ConstraintAuthorityContext, PropagationEdgeAdmissionParts, SpecialInputAdmissionParts,
-};
-
+use super::types::ConstraintAuthorityContext;
 
 pub(super) fn verify_required_special_inputs(
     context: &ConstraintAuthorityContext<'_>,
@@ -131,8 +111,12 @@ pub(super) fn construct_constraint_set(
     contract_identity: UiLayoutOperatorContractIdentity,
     summary: crate::evidence::UiAllocationConstraintSummary,
     viewport_planning_input: Option<crate::evidence::UiConstraintViewportPlanningInputResult>,
-    scroll_owner_planning_input: Option<crate::evidence::UiConstraintScrollOwnerPlanningInputResult>,
-    portal_anchor_planning_input: Option<crate::evidence::UiConstraintPortalAnchorPlanningInputResult>,
+    scroll_owner_planning_input: Option<
+        crate::evidence::UiConstraintScrollOwnerPlanningInputResult,
+    >,
+    portal_anchor_planning_input: Option<
+        crate::evidence::UiConstraintPortalAnchorPlanningInputResult,
+    >,
     sibling_negotiation: Option<crate::evidence::UiConstraintSiblingNegotiationResult>,
     equal_share_distribution: Option<crate::evidence::UiConstraintEqualShareDistributionResult>,
     bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
@@ -151,4 +135,3 @@ pub(super) fn construct_constraint_set(
         edges,
     ))
 }
-

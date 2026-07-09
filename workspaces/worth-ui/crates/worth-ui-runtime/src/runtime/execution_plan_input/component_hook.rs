@@ -12,14 +12,15 @@ pub struct WorthUiComponentLoweringHook {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum WorthUiComponentLoweringHookAdmission {
+    #[cfg(any(test, feature = "certification-support"))]
     Registered(WorthUiComponentLoweringHookFamily),
-    Unregistered(String),
+    #[cfg(test)]
+    Unregistered,
 }
 
 impl WorthUiComponentLoweringHookFamily {
-    #[allow(dead_code)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn admitted(plan_node_family: WorthUiPlanNodeInputFamily) -> Self {
         Self { plan_node_family }
     }
@@ -30,7 +31,7 @@ impl WorthUiComponentLoweringHookFamily {
 }
 
 impl WorthUiComponentLoweringHook {
-    #[allow(dead_code)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn registered(
         hook_id: impl Into<String>,
         family: WorthUiPlanNodeInputFamily,
@@ -48,9 +49,10 @@ impl WorthUiComponentLoweringHook {
         hook_id: impl Into<String>,
         family: impl Into<String>,
     ) -> Self {
+        let _ = family.into();
         Self {
             hook_id: hook_id.into(),
-            admission: WorthUiComponentLoweringHookAdmission::Unregistered(family.into()),
+            admission: WorthUiComponentLoweringHookAdmission::Unregistered,
         }
     }
 
@@ -59,12 +61,20 @@ impl WorthUiComponentLoweringHook {
     }
 
     pub fn admitted_family(&self) -> Option<&WorthUiComponentLoweringHookFamily> {
+        #[cfg(any(test, feature = "certification-support"))]
         match &self.admission {
             WorthUiComponentLoweringHookAdmission::Registered(family) => Some(family),
-            WorthUiComponentLoweringHookAdmission::Unregistered(_) => None,
+            #[cfg(test)]
+            WorthUiComponentLoweringHookAdmission::Unregistered => None,
+        }
+
+        #[cfg(not(any(test, feature = "certification-support")))]
+        {
+            None
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn admission(&self) -> &WorthUiComponentLoweringHookAdmission {
         &self.admission
     }

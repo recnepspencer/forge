@@ -1,15 +1,15 @@
 use std::borrow::Borrow;
 
+use super::construct_verified_planning_input_handoff;
 use crate::evidence::{
     UiAllocationConstraintSet, UiConstraintPropagationDenial, UiMeasurementBasis,
 };
 use crate::runtime::allocation_planning::WorthUiAllocationPlanner;
-use super::construct_verified_planning_input_handoff;
 use crate::runtime::launch::host::WorthUiRuntimeHost;
 use crate::runtime::{
     WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis, WorthUiAllocationPlanningCounters,
-    WorthUiAllocationPlanningDenial, WorthUiAllocationPlanningDenialReason, WorthUiExecutionPlanInput,
-    WorthUiPendingActivation, WorthUiPlanLoweringDenial,
+    WorthUiAllocationPlanningDenial, WorthUiAllocationPlanningDenialReason,
+    WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringDenial,
 };
 
 use super::measurement_basis::collect_planning_measurement_basis;
@@ -83,11 +83,13 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
             .reconciliation_plan()
             .durable_resize_inputs(),
     );
-    match classify_constraint_set_admission(&measurement_basis, allocation_neighborhood) {
+    let allocation_neighborhood = allocation_neighborhood
+        .rebind_measurement_basis_identity(measurement_basis.identity_digest());
+    match classify_constraint_set_admission(&measurement_basis, &allocation_neighborhood) {
         ConstraintSetAdmissionDecision::Denied(constraint_set_denial) => {
             return build_constraint_set_denial_planning(
                 &measurement_basis,
-                allocation_neighborhood,
+                &allocation_neighborhood,
                 constraint_set_denial,
             );
         }
@@ -95,7 +97,7 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
             let handoff = construct_verified_planning_input_handoff(
                 pending_activation,
                 &measurement_basis,
-                allocation_neighborhood,
+                &allocation_neighborhood,
                 &constraint_set,
             )
             .expect("constraint admission must preserve graph-planning alignment");
@@ -109,7 +111,7 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
                 PlanLoweringDecision::Denied(plan_lowering_denial) => {
                     WorthUiAllocationPlanner::deny_from_plan_lowering(
                         &measurement_basis,
-                        allocation_neighborhood,
+                        &allocation_neighborhood,
                         plan_lowering_denial,
                     )
                 }

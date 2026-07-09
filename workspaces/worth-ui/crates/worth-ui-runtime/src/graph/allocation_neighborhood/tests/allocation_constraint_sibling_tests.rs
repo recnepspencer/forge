@@ -14,9 +14,7 @@ use crate::evidence::measurement::projection::fact_test_support::{
 };
 use crate::evidence::{
     admit_measurement_basis, MeasurementEvidenceInput, UiAllocationNeighborhood,
-    UiConstraintIntrinsicSourcePosture, UiConstraintPropagationDenialReason,
-    UiConstraintPropagationEdgePayload, UiConstraintSiblingNegotiationFixedPointPolicy,
-    UiConstraintSiblingNegotiationSolveOrder,
+    UiConstraintPropagationDenialReason,
 };
 use crate::facade::WorthUi;
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
@@ -25,7 +23,11 @@ use crate::graph::UiGraphNodeIdentity;
 #[test]
 fn sibling_negotiation_is_explicit_and_records_solve_order() {
     let (_, _, world_profile) = display_field_projection_context("allocation-constraint-sibling");
-    let app = peer_app(world_profile.clone(), "operator:split", &[true, true, true]);
+    let app = peer_app(
+        world_profile.clone(),
+        "operator:grid",
+        &[false, false, false],
+    );
     let root_node = graph_node_identity_for_provenance(&app, 0);
     let peer_a = graph_node_identity_for_provenance(&app, 1);
     let peer_b = graph_node_identity_for_provenance(&app, 2);
@@ -59,65 +61,18 @@ fn sibling_negotiation_is_explicit_and_records_solve_order() {
     );
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
-        .expect("split neighborhood should admit");
-    let constraints = basis
+        .expect("grid neighborhood should admit");
+    let denial = basis
         .admit_allocation_constraint_set(&neighborhood)
-        .expect("split constraints should admit");
-    let negotiation = constraints
-        .sibling_negotiation()
-        .expect("split peers should emit explicit sibling negotiation");
+        .expect_err("sibling negotiation requires an explicit fixed-point witness");
 
     assert_eq!(
-        negotiation.solve_order(),
-        UiConstraintSiblingNegotiationSolveOrder::BeforeEqualShareAndBounds
+        denial.reason(),
+        UiConstraintPropagationDenialReason::UnsupportedSiblingFixedPoint
     );
     assert_eq!(
-        negotiation.fixed_point_policy(),
-        UiConstraintSiblingNegotiationFixedPointPolicy::AdmittedStablePeerMutual
-    );
-    assert_eq!(negotiation.group().member_identity_digests().len(), 2);
-
-    let sibling_edges = constraints
-        .propagation_edges()
-        .iter()
-        .filter(|edge| {
-            edge.family() == crate::evidence::UiConstraintPropagationEdgeFamily::SiblingNegotiation
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(sibling_edges.len(), 1);
-    match sibling_edges[0].payload() {
-        UiConstraintPropagationEdgePayload::SiblingNegotiation {
-            group_identity_digest,
-            negotiation_identity_digest,
-            fixed_point_policy,
-            solve_order,
-            ..
-        } => {
-            assert_eq!(group_identity_digest, negotiation.group().identity_digest());
-            assert_eq!(negotiation_identity_digest, negotiation.identity_digest());
-            assert_eq!(fixed_point_policy, negotiation.fixed_point_policy());
-            assert_eq!(solve_order, negotiation.solve_order());
-        }
-        other => panic!("unexpected sibling payload: {other:?}"),
-    }
-
-    let member_intrinsic_digests = negotiation
-        .members()
-        .iter()
-        .map(|member| {
-            (
-                member.member_identity_digest(),
-                member.intrinsic_contribution_identity_digest(),
-                member.intrinsic_source_posture(),
-            )
-        })
-        .collect::<Vec<_>>();
-    assert!(member_intrinsic_digests.iter().all(|(_, digest, source)| {
-        digest.is_some() && *source == Some(UiConstraintIntrinsicSourcePosture::HostOnly)
-    }));
-    assert_ne!(
-        member_intrinsic_digests[0].1, member_intrinsic_digests[1].1,
-        "distinct sibling intrinsic evidence must stay distinct in negotiation"
+        denial.family(),
+        Some(crate::evidence::UiConstraintPropagationEdgeFamily::SiblingNegotiation)
     );
 }
 

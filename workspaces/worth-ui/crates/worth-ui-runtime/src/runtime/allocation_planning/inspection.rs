@@ -30,16 +30,23 @@ impl WorthUiAllocationPlanningInspection {
         let constraint_set = planning.allocation_constraint_set();
         Self {
             solve_trace: solve_trace_for(planning, constraint_set),
-            constraint_set_identity: constraint_set.map(|retained_constraint_set| retained_constraint_set.identity()),
+            constraint_set_identity: constraint_set
+                .map(|retained_constraint_set| retained_constraint_set.identity()),
             neighborhood: planning.allocation_neighborhood().clone(),
-            constraint_summary: constraint_set.map(|retained_constraint_set| retained_constraint_set.summary()),
-            viewport_planning_input: constraint_set
-                .and_then(|retained_constraint_set| retained_constraint_set.viewport_planning_input().cloned()),
+            constraint_summary: constraint_set
+                .map(|retained_constraint_set| retained_constraint_set.summary()),
+            viewport_planning_input: constraint_set.and_then(|retained_constraint_set| {
+                retained_constraint_set.viewport_planning_input().cloned()
+            }),
             scroll_owner_planning_input: constraint_set.and_then(|retained_constraint_set| {
-                retained_constraint_set.scroll_owner_planning_input().cloned()
+                retained_constraint_set
+                    .scroll_owner_planning_input()
+                    .cloned()
             }),
             portal_anchor_planning_input: constraint_set.and_then(|retained_constraint_set| {
-                retained_constraint_set.portal_anchor_planning_input().cloned()
+                retained_constraint_set
+                    .portal_anchor_planning_input()
+                    .cloned()
             }),
             propagation_edges: constraint_set
                 .map(|retained_constraint_set| retained_constraint_set.propagation_edges().to_vec())
@@ -85,11 +92,15 @@ impl WorthUiAllocationPlanningInspection {
         self.viewport_planning_input.as_ref()
     }
 
-    pub fn scroll_owner_planning_input(&self) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
+    pub fn scroll_owner_planning_input(
+        &self,
+    ) -> Option<&UiConstraintScrollOwnerPlanningInputResult> {
         self.scroll_owner_planning_input.as_ref()
     }
 
-    pub fn portal_anchor_planning_input(&self) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
+    pub fn portal_anchor_planning_input(
+        &self,
+    ) -> Option<&UiConstraintPortalAnchorPlanningInputResult> {
         self.portal_anchor_planning_input.as_ref()
     }
 
@@ -175,7 +186,9 @@ fn solve_trace_for(
         pass_order.push(UiAllocationSolvePass::BoundedReconciliation);
     }
     if constraint_set.is_some_and(|retained_constraint_set| {
-        retained_constraint_set.summary().resize_permission_posture()
+        retained_constraint_set
+            .summary()
+            .resize_permission_posture()
             == UiConstraintResizePermissionPosture::DurableAuthorityLane
     }) {
         pass_order.push(UiAllocationSolvePass::DurableResizeInput);
@@ -183,7 +196,9 @@ fn solve_trace_for(
 
     let cycle_posture = planning
         .allocation_constraint_set()
-        .map(|retained_constraint_set| highest_cycle_posture(retained_constraint_set.propagation_edges()));
+        .map(|retained_constraint_set| {
+            highest_cycle_posture(retained_constraint_set.propagation_edges())
+        });
     let fixed_point_policy = planning
         .allocation_constraint_set()
         .and_then(|retained_constraint_set| retained_constraint_set.sibling_negotiation())
@@ -194,15 +209,19 @@ fn solve_trace_for(
             .and_then(|retained_constraint_set| retained_constraint_set.equal_share_distribution())
             .map(|distribution| distribution.policy()),
     );
-    let normalization_posture = planning
-        .allocation_constraint_set()
-        .and_then(|retained_constraint_set| {
-            retained_constraint_set.propagation_edges().iter().find_map(|edge| {
-                edge.payload()
-                    .parent_available_space()
-                    .map(|available_space| available_space.normalization_posture())
-            })
-        });
+    let normalization_posture =
+        planning
+            .allocation_constraint_set()
+            .and_then(|retained_constraint_set| {
+                retained_constraint_set
+                    .propagation_edges()
+                    .iter()
+                    .find_map(|edge| {
+                        edge.payload()
+                            .parent_available_space()
+                            .map(|available_space| available_space.normalization_posture())
+                    })
+            });
 
     UiAllocationSolveTrace::new(
         planning.planning_identity_digest(),
@@ -215,7 +234,11 @@ fn solve_trace_for(
         ),
         planning
             .allocation_constraint_set()
-            .map(|retained_constraint_set| retained_constraint_set.summary().resize_permission_posture()),
+            .map(|retained_constraint_set| {
+                retained_constraint_set
+                    .summary()
+                    .resize_permission_posture()
+            }),
         normalization_posture,
     )
 }

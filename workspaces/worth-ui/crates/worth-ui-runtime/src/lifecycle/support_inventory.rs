@@ -4,7 +4,7 @@ pub struct WorthUiRuntimeSupportRow {
 }
 
 impl WorthUiRuntimeSupportRow {
-    pub(crate) fn new(subsystem: &'static str) -> Self {
+    pub const fn new(subsystem: &'static str) -> Self {
         Self { subsystem }
     }
 
@@ -14,30 +14,11 @@ impl WorthUiRuntimeSupportRow {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct WorthUiRuntimeSupportInventoryFields {
-    pub(crate) dsl_package: WorthUiRuntimeSupportRow,
-    pub(crate) inspection: WorthUiRuntimeSupportRow,
-    pub(crate) query_binding: WorthUiRuntimeSupportRow,
-    pub(crate) host_contract: WorthUiRuntimeSupportRow,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeSupportInventory {
     rows: [WorthUiRuntimeSupportRow; 4],
 }
 
 impl WorthUiRuntimeSupportInventory {
-    pub(crate) fn new(fields: WorthUiRuntimeSupportInventoryFields) -> Self {
-        Self {
-            rows: [
-                fields.dsl_package,
-                fields.inspection,
-                fields.query_binding,
-                fields.host_contract,
-            ],
-        }
-    }
-
     pub fn rows(&self) -> &[WorthUiRuntimeSupportRow] {
         &self.rows
     }
@@ -46,17 +27,9 @@ impl WorthUiRuntimeSupportInventory {
 pub const RUNTIME_SUPPORT_INVENTORY: WorthUiRuntimeSupportInventory =
     WorthUiRuntimeSupportInventory {
         rows: [
-            WorthUiRuntimeSupportRow {
-                subsystem: "dsl_package",
-            },
-            WorthUiRuntimeSupportRow {
-                subsystem: "inspection",
-            },
-            WorthUiRuntimeSupportRow {
-                subsystem: "query_binding",
-            },
-            WorthUiRuntimeSupportRow {
-                subsystem: "host_contract",
-            },
+            WorthUiRuntimeSupportRow::new("dsl_package"),
+            WorthUiRuntimeSupportRow::new("inspection"),
+            WorthUiRuntimeSupportRow::new("query_binding"),
+            WorthUiRuntimeSupportRow::new("host_contract"),
         ],
     };

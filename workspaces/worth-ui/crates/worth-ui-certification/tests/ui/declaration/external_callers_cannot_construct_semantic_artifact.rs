@@ -4,9 +4,9 @@ use worth_ui_dsl::{
 
 fn main() {
     let _ = UiDslSemanticArtifact::new(
-        UiDslSemanticKey::new("forged.declaration"),
+        UiDslSemanticKey::new("Worthd.declaration"),
         UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/forged.wui", 0),
+        UiDslSourceProvenance::file_authored("app/Worthd.wui", 0),
         Vec::new(),
         Vec::new(),
         Vec::new(),

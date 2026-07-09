@@ -9,6 +9,7 @@ pub struct FrozenSurfaceCapabilities {
 }
 
 impl FrozenSurfaceCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             descriptors: Vec::new(),

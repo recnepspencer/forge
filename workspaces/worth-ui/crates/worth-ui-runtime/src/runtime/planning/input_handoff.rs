@@ -1,6 +1,4 @@
-use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationNeighborhood, UiMeasurementBasis,
-};
+use crate::evidence::{UiAllocationConstraintSet, UiAllocationNeighborhood, UiMeasurementBasis};
 use crate::graph::UiGraphGeneration;
 use crate::runtime::allocation_planning::WorthUiAllocationPlanningAdmission;
 use crate::runtime::WorthUiPendingActivation;
@@ -23,19 +21,11 @@ pub(crate) enum WorthUiPlanningInputHandoffDenial {
 /// Verified graph→planning handoff: witness must be present before admission is consumed.
 #[derive(Debug, Clone)]
 pub(crate) struct WorthUiVerifiedPlanningInputHandoff {
-    witness: WorthUiPlanningInputHandoffWitness,
+    _witness: WorthUiPlanningInputHandoffWitness,
     admission: WorthUiAllocationPlanningAdmission,
 }
 
 impl WorthUiVerifiedPlanningInputHandoff {
-    pub(crate) fn witness(&self) -> WorthUiPlanningInputHandoffWitness {
-        self.witness
-    }
-
-    pub(crate) fn admission(&self) -> &WorthUiAllocationPlanningAdmission {
-        &self.admission
-    }
-
     pub(crate) fn into_admission(self) -> WorthUiAllocationPlanningAdmission {
         self.admission
     }
@@ -76,7 +66,7 @@ pub(crate) fn construct_verified_planning_input_handoff(
         constraint_set,
     )?;
     Ok(WorthUiVerifiedPlanningInputHandoff {
-        witness,
+        _witness: witness,
         admission: WorthUiAllocationPlanningAdmission::from_pending_activation(
             pending_activation,
             measurement_basis,

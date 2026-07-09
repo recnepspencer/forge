@@ -1,14 +1,15 @@
 use crate::evidence::{
     preflight_evidence_expansion, project_allocation_planning_inspection_receipt,
-    UiAllocationPlanningInspectionReceipt, UiEvidenceExpansion, UiEvidenceRef, UiEvidenceSliceAssembly,
-    UiEvidenceSliceAssemblyInput, UiEvidenceSliceRef, UiInspectionCostMetrics,
+    UiAllocationPlanningInspectionReceipt, UiEvidenceExpansion, UiEvidenceRef,
+    UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput, UiEvidenceSliceRef,
+    UiInspectionCostMetrics,
 };
 use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::runtime::host::WorthUiRuntimeHost;
 use crate::runtime::WorthUiAllocationPlanning;
 use worth_ui_inspection::{
-    RUNTIME_INSPECTION_SCOPE_INVENTORY, UiEvidenceRichness, UiInspectionQuery,
-    UiInspectionRelevanceOutcome, UiInspectionScope,
+    UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevanceOutcome, UiInspectionScope,
+    RUNTIME_INSPECTION_SCOPE_INVENTORY,
 };
 
 pub(crate) fn register_allocation_planning_inspection(
@@ -51,7 +52,11 @@ pub(crate) fn assemble_allocation_planning_inspection_receipt(
         &query,
         UiEvidenceSliceAssemblyInput::new(
             authority_generation,
-            projected.evidence_slice().refs().to_vec().into_boxed_slice(),
+            projected
+                .evidence_slice()
+                .refs()
+                .to_vec()
+                .into_boxed_slice(),
         )
         .with_materialized_detail(projected.evidence_slice().materialized_detail().cloned())
         .with_detail_available(true)

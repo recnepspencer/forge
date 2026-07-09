@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    worth_ui_query_binding_evidence_identity, ForgeQueryRuntimeAsyncResultState,
-    ForgeQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::{
+    worth_ui_query_binding_evidence_identity, WorthQueryRuntimeAsyncResultState,
+    WorthQueryRuntimeAsyncResultStateKind,
 };
 use worth_ui::facade::{
     RuntimeOutcomeAffordance, RuntimeOutcomeDenialPosture, RuntimeOutcomeFamily,
@@ -9,8 +9,8 @@ use worth_ui::facade::{
 };
 
 fn main() {
-    let state = ForgeQueryRuntimeAsyncResultState::new(
-        ForgeQueryRuntimeAsyncResultStateKind::Denied,
+    let state = WorthQueryRuntimeAsyncResultState::new(
+        WorthQueryRuntimeAsyncResultStateKind::Denied,
         &worth_ui_query_binding_evidence_identity(
             "runtime-outcome-fixture",
             &["causality.digest".to_string()],

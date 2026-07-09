@@ -30,7 +30,9 @@ pub(super) fn durable_state_is_eligible(eligibility: &WorthUiDurableStateEligibi
     matches!(eligibility, WorthUiDurableStateEligibility::Eligible { .. })
 }
 
-pub(super) fn node_resize_contract_id(node: &WorthUiArtifactNode) -> Option<MosaicSizingContractId> {
+pub(super) fn node_resize_contract_id(
+    node: &WorthUiArtifactNode,
+) -> Option<MosaicSizingContractId> {
     node_structure(node)
         .and_then(|structure| structure.unique_root_sizing_contract_id().ok())
         .flatten()

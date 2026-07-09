@@ -2,8 +2,8 @@ use crate::declaration::{
     UiDeclarationArtifact, UiDeclarationGraphHandoff, UiDeclarationGraphHandoffDenial,
     UiDeclarationLowering,
 };
-use worth_ui_dsl::WorthUiDslPackage;
 use crate::runtime::WorthUiSourceBackedDeclarationWitness;
+use worth_ui_dsl::WorthUiDslPackage;
 
 pub(crate) fn lower_declaration_artifacts(
     dsl_package: &WorthUiDslPackage,
@@ -48,8 +48,7 @@ fn admit_source_backed_mosaic_sizing_contracts(
             artifact.admit_source_backed_mosaic_sizing_contract_id(
                 claims.mosaic_sizing_contract_id().clone(),
             )?;
-            artifact
-                .admit_source_backed_mosaic_membership_name(claims.mosaic_membership_name());
+            artifact.admit_source_backed_mosaic_membership_name(claims.mosaic_membership_name());
             artifact.admit_source_backed_measurement_constraint_modifier(
                 claims.measurement_constraint_modifier(),
             );

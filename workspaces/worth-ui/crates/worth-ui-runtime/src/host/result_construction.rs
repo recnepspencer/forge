@@ -37,7 +37,9 @@ pub(super) fn construct_measurement_result_from_host_observation(
 
 fn measurement_value_from_host_observation(value: UiHostObservationValue) -> UiMeasurementValue {
     match value {
-        UiHostObservationValue::TextIntrinsicSize(value) => UiMeasurementValue::TextIntrinsicSize(value),
+        UiHostObservationValue::TextIntrinsicSize(value) => {
+            UiMeasurementValue::TextIntrinsicSize(value)
+        }
         UiHostObservationValue::TextBaselineMetrics(value) => {
             UiMeasurementValue::TextBaselineMetrics(value)
         }
@@ -47,7 +49,9 @@ fn measurement_value_from_host_observation(value: UiHostObservationValue) -> UiM
         }
         UiHostObservationValue::ViewportExtent(value) => UiMeasurementValue::ViewportExtent(value),
         UiHostObservationValue::DpiScaleFactor(value) => UiMeasurementValue::DpiScaleFactor(value),
-        UiHostObservationValue::PortalAnchorRect(value) => UiMeasurementValue::PortalAnchorRect(value),
+        UiHostObservationValue::PortalAnchorRect(value) => {
+            UiMeasurementValue::PortalAnchorRect(value)
+        }
         UiHostObservationValue::ScrollContainerViewport(value) => {
             UiMeasurementValue::ScrollContainerViewport(value)
         }

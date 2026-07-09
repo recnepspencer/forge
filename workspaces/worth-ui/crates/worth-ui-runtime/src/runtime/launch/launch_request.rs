@@ -19,7 +19,7 @@ pub enum WorthUiRuntimeLaunchDenial {
 }
 
 impl WorthUiRuntimeLaunch {
-    #[allow(dead_code)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn from_canonical_artifact(artifact: WorthUiArtifact) -> Self {
         Self {
             artifact,

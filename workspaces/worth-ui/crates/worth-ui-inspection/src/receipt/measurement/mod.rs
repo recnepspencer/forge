@@ -1,4 +1,3 @@
-mod dummy_measurement_family;
 mod inspection_measurement_evidence_receipt;
 
 pub use inspection_measurement_evidence_receipt::{

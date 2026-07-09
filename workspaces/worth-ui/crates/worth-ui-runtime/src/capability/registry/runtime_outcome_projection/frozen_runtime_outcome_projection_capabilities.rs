@@ -11,6 +11,7 @@ pub struct FrozenRuntimeOutcomeProjectionCapabilities {
 }
 
 impl FrozenRuntimeOutcomeProjectionCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

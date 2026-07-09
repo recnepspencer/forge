@@ -1,4 +1,5 @@
 mod constraint_set;
+mod digest;
 mod identity;
 #[cfg(test)]
 mod tests;

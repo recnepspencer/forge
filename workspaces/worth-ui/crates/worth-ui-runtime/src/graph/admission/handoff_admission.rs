@@ -34,7 +34,8 @@ pub(crate) fn admit_graph_handoffs(
                 denial,
             } => {
                 local_denials.push(UiGraphInstantiationLocalDenial::repeated_instance_basis(
-                    declaration_identity, denial,
+                    declaration_identity,
+                    denial,
                 ));
             }
             HandoffBasisDecision::Admitted(repeated_instance_basis) => {
@@ -79,7 +80,7 @@ fn assemble_instantiation_plan(
 mod tests {
     use std::sync::Arc;
 
-    use forge_query::facade::QueryExternalIdentityToken;
+    use worth_query::facade::QueryExternalIdentityToken;
     use worth_ui_dsl::{
         UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
         UiDslSourceProvenance, UiDslStructuralToken,

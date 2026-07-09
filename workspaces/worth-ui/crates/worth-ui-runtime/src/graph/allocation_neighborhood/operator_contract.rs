@@ -4,9 +4,7 @@ use crate::evidence::{
     UiAllocationNeighborhoodClass, UiLayoutOperatorContainmentKind, UiLayoutOperatorFamily,
     UiLayoutOperatorPlanningContract, UiLayoutOperatorSlotParticipationKind, UiMeasurementBasis,
 };
-use crate::graph::{
-    UiGraphContainmentClaim, UiGraphNodeRecord, UiGraphNodeTopology,
-};
+use crate::graph::{UiGraphContainmentClaim, UiGraphNodeRecord, UiGraphNodeTopology};
 
 use super::membership_rule::classify_allocation_neighborhood_membership_rule;
 
@@ -41,7 +39,9 @@ pub(crate) fn construct_allocation_neighborhood_operator_contract(
     )
 }
 
-fn containment_kind(containment_claim: &UiGraphContainmentClaim) -> UiLayoutOperatorContainmentKind {
+fn containment_kind(
+    containment_claim: &UiGraphContainmentClaim,
+) -> UiLayoutOperatorContainmentKind {
     match containment_claim {
         UiGraphContainmentClaim::RootPage => UiLayoutOperatorContainmentKind::RootPage,
         UiGraphContainmentClaim::PageSet { .. } => UiLayoutOperatorContainmentKind::PageSet,

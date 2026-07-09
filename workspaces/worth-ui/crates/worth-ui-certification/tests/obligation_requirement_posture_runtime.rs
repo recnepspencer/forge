@@ -1,9 +1,8 @@
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 use worth_ui::facade::admission::{
-    UiAdmissionFamily, UiAdmissionOutcome, UiAdmissionTarget, UiAdmissionWorld,
-    UiMeasurementAdmissionPosture, UiSupportPosture,
+    UiAdmissionFamily, UiAdmissionOutcome, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture,
 };
 use worth_ui::facade::declaration::UiDeclarationSupportMilestoneExpectation;
 use worth_ui::facade::graph::{
@@ -14,13 +13,16 @@ use worth_ui::facade::obligations::{
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
 use worth_ui_test_support::{
-    runtime_origin_fixture, WorthUiTouchOriginFixtureVariant,
+    runtime_origin_fixture, UiMeasurementAdmissionPosture, WorthUiTouchOriginFixtureVariant,
 };
 
 use self::obligation_dispatch_prerequisite_support::{
-    available_host_capability_target, diagnostic_only_host_capability_target, execute_for_target,
-    focus_touch, focus_touch_app, motion_touch, motion_touch_app, selection_target, service_touch,
-    service_touch_app,
+    apps::{focus_touch_app, motion_touch_app, service_touch_app},
+    targets::{
+        available_host_capability_target, diagnostic_only_host_capability_target,
+        execute_for_target, selection_target,
+    },
+    touches::{focus_touch, motion_touch, service_touch},
 };
 
 #[test]

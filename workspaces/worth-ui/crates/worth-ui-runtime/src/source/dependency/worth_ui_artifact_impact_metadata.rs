@@ -38,11 +38,13 @@ impl WorthUiArtifactImpact {
         &self.impacted_handles
     }
 
+    #[cfg(test)]
     pub(crate) fn requires_less_than_full_artifact_scan(&self) -> bool {
         !self.full_artifact_scan_required
             && self.impacted_handles.len() < self.full_artifact_handle_count
     }
 
+    #[cfg(test)]
     pub(crate) fn full_artifact_handle_count(&self) -> usize {
         self.full_artifact_handle_count
     }

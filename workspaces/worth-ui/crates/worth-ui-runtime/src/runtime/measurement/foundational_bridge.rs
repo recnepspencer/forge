@@ -1,4 +1,4 @@
-use forge_foundational::{
+use worth_foundational::{
     performance_api::{
         common_path,
         lower_lane::{basis, receipts},
@@ -8,7 +8,7 @@ use forge_foundational::{
     FoundationalPerformanceCounterRow, FoundationalPerformanceCounterSpec,
     FoundationalPerformanceEvidenceStrength, FoundationalPerformanceWorkClass,
 };
-use forge_proof::TransitionOutcome;
+use worth_proof::TransitionOutcome;
 
 use super::certification::WorthUiCertifiedMeasurementPacket;
 use super::denial::WorthUiMeasurementCertificationDenial;

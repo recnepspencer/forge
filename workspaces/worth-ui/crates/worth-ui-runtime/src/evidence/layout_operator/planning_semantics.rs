@@ -1,12 +1,17 @@
-use crate::declaration::{
-    stable_text_digest, UiDeclarationPlanningOperatorKind, UiDeclaredMeasurementBasisSource,
-    UiDeclaredMeasurementMode, UiDeclaredMeasurementOwnershipPosture,
-};
 use super::planning_axis::{
     child_participation_rule_name, cross_axis_name, primary_axis_name,
     UiLayoutOperatorChildParticipationRule, UiLayoutOperatorCrossAxis, UiLayoutOperatorPrimaryAxis,
 };
+use crate::declaration::{
+    stable_text_digest, UiDeclarationPlanningOperatorKind, UiDeclaredMeasurementBasisSource,
+    UiDeclaredMeasurementMode, UiDeclaredMeasurementOwnershipPosture,
+};
 use crate::evidence::UiConstraintPropagationEdgeFamily;
+
+use super::planning_semantics_names::{
+    denial_policy_name, family_name, intrinsic_return_policy_name, overflow_policy_name,
+    sibling_grouping_rule_name, sizing_mode_name, special_input_requirement_name,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiLayoutOperatorSizingMode {
@@ -280,10 +285,18 @@ impl UiLayoutOperatorPlanningSemantics {
         }
     }
 
-    pub fn allowed_propagation_families(&self) -> &[UiConstraintPropagationEdgeFamily] { &self.allowed_propagation_families }
-    pub fn primary_axis(&self) -> UiLayoutOperatorPrimaryAxis { self.primary_axis }
-    pub fn admitted_cycle_families(&self) -> &[UiConstraintPropagationEdgeFamily] { &self.admitted_cycle_families }
-    pub fn cross_axis(&self) -> UiLayoutOperatorCrossAxis { self.cross_axis }
+    pub fn allowed_propagation_families(&self) -> &[UiConstraintPropagationEdgeFamily] {
+        &self.allowed_propagation_families
+    }
+    pub fn primary_axis(&self) -> UiLayoutOperatorPrimaryAxis {
+        self.primary_axis
+    }
+    pub fn admitted_cycle_families(&self) -> &[UiConstraintPropagationEdgeFamily] {
+        &self.admitted_cycle_families
+    }
+    pub fn cross_axis(&self) -> UiLayoutOperatorCrossAxis {
+        self.cross_axis
+    }
     pub fn child_participation_rule(&self) -> UiLayoutOperatorChildParticipationRule {
         self.child_participation_rule
     }
@@ -352,70 +365,5 @@ impl UiLayoutOperatorPlanningSemantics {
                 .rotate_left(23)
             ^ stable_text_digest(overflow_policy_name(self.overflow_policy)).rotate_left(29)
             ^ stable_text_digest(denial_policy_name(self.denial_policy)).rotate_left(31)
-    }
-}
-
-fn family_name(family: UiConstraintPropagationEdgeFamily) -> &'static str {
-    match family {
-        UiConstraintPropagationEdgeFamily::ParentAvailableSpace => "parent-available-space",
-        UiConstraintPropagationEdgeFamily::ChildIntrinsicContribution => "child-intrinsic",
-        UiConstraintPropagationEdgeFamily::SiblingNegotiation => "sibling-negotiation",
-        UiConstraintPropagationEdgeFamily::EqualShareDistribution => "equal-share",
-        UiConstraintPropagationEdgeFamily::BoundedReconciliation => "bounded-reconciliation",
-        UiConstraintPropagationEdgeFamily::ViewportInput => "viewport-input",
-        UiConstraintPropagationEdgeFamily::ScrollViewportInput => "scroll-viewport-input",
-        UiConstraintPropagationEdgeFamily::PortalAnchorInput => "portal-anchor-input",
-        UiConstraintPropagationEdgeFamily::DurableResizeInput => "durable-resize-input",
-    }
-}
-
-fn sizing_mode_name(mode: UiLayoutOperatorSizingMode) -> &'static str {
-    match mode {
-        UiLayoutOperatorSizingMode::AvailableSpace => "available-space",
-        UiLayoutOperatorSizingMode::IntrinsicContent => "intrinsic-content",
-        UiLayoutOperatorSizingMode::BoundedContent => "bounded-content",
-        UiLayoutOperatorSizingMode::ViewportBound => "viewport-bound",
-        UiLayoutOperatorSizingMode::PortalAnchorBound => "portal-anchor-bound",
-    }
-}
-
-fn intrinsic_return_policy_name(policy: UiLayoutOperatorIntrinsicReturnPolicy) -> &'static str {
-    match policy {
-        UiLayoutOperatorIntrinsicReturnPolicy::None => "none",
-        UiLayoutOperatorIntrinsicReturnPolicy::ChildrenToParent => "children-to-parent",
-    }
-}
-
-fn sibling_grouping_rule_name(rule: UiLayoutOperatorSiblingGroupingRule) -> &'static str {
-    match rule {
-        UiLayoutOperatorSiblingGroupingRule::None => "none",
-        UiLayoutOperatorSiblingGroupingRule::StablePeerGroup => "stable-peer-group",
-    }
-}
-
-fn overflow_policy_name(policy: UiLayoutOperatorOverflowPolicy) -> &'static str {
-    match policy {
-        UiLayoutOperatorOverflowPolicy::None => "none",
-        UiLayoutOperatorOverflowPolicy::Clip => "clip",
-        UiLayoutOperatorOverflowPolicy::ScrollViewport => "scroll-viewport",
-        UiLayoutOperatorOverflowPolicy::PortalAnchorBounded => "portal-anchor-bounded",
-    }
-}
-
-fn special_input_requirement_name(
-    requirement: UiLayoutOperatorSpecialInputRequirement,
-) -> &'static str {
-    match requirement {
-        UiLayoutOperatorSpecialInputRequirement::ViewportExtent => "viewport-extent",
-        UiLayoutOperatorSpecialInputRequirement::ScrollViewportExtent => "scroll-viewport-extent",
-        UiLayoutOperatorSpecialInputRequirement::PortalAnchorRect => "portal-anchor-rect",
-    }
-}
-
-fn denial_policy_name(policy: UiLayoutOperatorDenialPolicy) -> &'static str {
-    match policy {
-        UiLayoutOperatorDenialPolicy::RejectUnsupportedPropagationAuthority => {
-            "reject-unsupported-propagation-authority"
-        }
     }
 }

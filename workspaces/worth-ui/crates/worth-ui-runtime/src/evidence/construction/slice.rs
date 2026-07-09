@@ -2,7 +2,9 @@ use crate::evidence::shared::evidence_family_summary::UiEvidenceFamilySummary;
 use crate::evidence::shared::evidence_materialized_detail::UiEvidenceMaterializedDetail;
 use crate::evidence::shared::evidence_reference::UiEvidenceRef;
 use crate::evidence::shared::evidence_slice::UiEvidenceSlice;
-use worth_ui_inspection::{UiEvidenceAuthorityGeneration, UiEvidenceFamily, UiEvidenceSliceOmission};
+use worth_ui_inspection::{
+    UiEvidenceAuthorityGeneration, UiEvidenceFamily, UiEvidenceSliceOmission,
+};
 
 pub(crate) fn evidence_family_summary(
     family: UiEvidenceFamily,

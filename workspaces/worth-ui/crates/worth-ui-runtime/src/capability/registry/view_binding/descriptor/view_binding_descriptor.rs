@@ -1,4 +1,4 @@
-use forge_query::facade::{QueryCompositionSupportProfile, ViewShapeDescriptor};
+use worth_query::facade::{QueryCompositionSupportProfile, ViewShapeDescriptor};
 
 use crate::capability::ViewBindingId;
 

@@ -8,6 +8,7 @@ pub struct FrozenMosaicSizingCapabilities {
 }
 
 impl FrozenMosaicSizingCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             descriptors: Vec::new(),

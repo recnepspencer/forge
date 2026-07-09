@@ -1,13 +1,12 @@
 use crate::capability::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicClippingPosture,
-    MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
-    MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicRegionKindDescriptor,
-    MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission,
-    MosaicScrollOwnership, MosaicSizingBehavior, MosaicSizingContractDescriptor,
-    MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence,
-    MosaicViewportConstraint, NamedMeasurementDefinition, NamedMeasurementToken,
-    SurfacePlacementClass,
+    MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
+    MosaicParentGrowthBehavior, MosaicRegionKindDescriptor, MosaicRegionKindId,
+    MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
+    MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
+    MosaicSizingPersistence, MosaicViewportConstraint, NamedMeasurementDefinition,
+    NamedMeasurementToken, SurfacePlacementClass,
 };
 use crate::declaration::UiDeclarationArtifact;
 use crate::facade::{WorthUi, WorthUiApp};
@@ -49,7 +48,11 @@ component workspace.component.source_backed_boundary {
 
     assert_eq!(
         source_backed_graph_identity_rows(&first),
-        source_backed_graph_identity_rows(&second)
+        source_backed_graph_identity_rows(&second),
+    );
+    assert_eq!(
+        source_backed_authored_provenance_digests(&first),
+        source_backed_authored_provenance_digests(&second),
     );
 }
 
@@ -84,13 +87,43 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .freeze()
 }
 
-fn source_backed_graph_identity_rows(app: &WorthUiApp) -> Vec<(u64, u64, u64, u64)> {
+fn source_backed_graph_identity_rows(app: &WorthUiApp) -> Vec<(u64, u64, u64)> {
+    let mut rows = source_backed_graph_rows(app)
+        .into_iter()
+        .map(
+            |(
+                declaration_identity_digest,
+                graph_node_identity_digest,
+                repeated_instance_basis_digest,
+                _,
+            )| {
+                (
+                    declaration_identity_digest,
+                    graph_node_identity_digest,
+                    repeated_instance_basis_digest,
+                )
+            },
+        )
+        .collect::<Vec<_>>();
+    rows.sort_unstable();
+    rows
+}
+
+fn source_backed_authored_provenance_digests(app: &WorthUiApp) -> Vec<u64> {
+    let mut digests = source_backed_graph_rows(app)
+        .into_iter()
+        .map(|(_, _, _, authored_provenance_digest)| authored_provenance_digest)
+        .collect::<Vec<_>>();
+    digests.sort_unstable();
+    digests
+}
+
+fn source_backed_graph_rows(app: &WorthUiApp) -> Vec<(u64, u64, u64, u64)> {
     let declaration_correspondence = app
         .graph_snapshot()
         .core_indexes()
         .declaration_correspondence();
-    let mut rows = app
-        .declaration_artifacts()
+    app.declaration_artifacts()
         .iter()
         .filter(|artifact: &&UiDeclarationArtifact| {
             artifact.provenance().source_provenance().module_path()
@@ -122,9 +155,7 @@ fn source_backed_graph_identity_rows(app: &WorthUiApp) -> Vec<(u64, u64, u64, u6
                 authored_provenance_digest,
             )
         })
-        .collect::<Vec<_>>();
-    rows.sort_unstable();
-    rows
+        .collect::<Vec<_>>()
 }
 
 fn source_backed_boundary_component() -> ComponentDescriptor {

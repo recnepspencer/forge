@@ -1,3 +1,18 @@
+error[E0432]: unresolved import `worth_ui::facade::entry::WorthUi`
+ --> tests/ui/facade/topology/facade_reexports/facade_reexport_does_not_expose_internal_topology.rs:1:5
+  |
+1 | use worth_ui::facade::entry::WorthUi;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthUi` in `facade::entry`
+  |
+help: consider importing one of these structs instead
+  |
+1 - use worth_ui::facade::entry::WorthUi;
+1 + use worth_ui::facade::WorthUi;
+  |
+1 - use worth_ui::facade::entry::WorthUi;
+1 + use worth_ui_runtime::facade::WorthUi;
+  |
+
 error[E0603]: module `entry` is private
  --> tests/ui/facade/topology/facade_reexports/facade_reexport_does_not_expose_internal_topology.rs:1:23
   |
@@ -7,5 +22,5 @@ error[E0603]: module `entry` is private
 note: the module `entry` is defined here
  --> src/facade/mod.rs
   |
-  | mod entry;
+  | mod entry {}
   | ^^^^^^^^^

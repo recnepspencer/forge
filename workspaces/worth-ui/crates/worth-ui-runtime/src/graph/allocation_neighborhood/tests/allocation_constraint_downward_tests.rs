@@ -2,11 +2,7 @@ use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
-use worth_ui_host_contract::{
-    UiHostObservation, UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
-    UiMeasurementRequestIdentity, UiScrollContainerViewportObservation,
-    UiScrollContainerViewportRequest, WorthUiHostCapabilityReport,
-};
+use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::{
@@ -20,11 +16,9 @@ use crate::evidence::measurement::projection::fact_test_support::{
 };
 use crate::evidence::{
     admit_measurement_basis, MeasurementEvidenceInput, UiConstraintAvailableSpacePosture,
-    UiConstraintBoundedMinMaxRequirement,
-    UiConstraintNormalizationPosture, UiConstraintParentAvailableSpace,
-    UiConstraintPropagationDenialReason, UiConstraintPropagationEdgeFamily,
-    UiMeasurementCoordinateSpace, UiMeasurementResult, UiMeasurementRoundingPosture,
-    UiMeasurementUnitPosture,
+    UiConstraintBoundedMinMaxRequirement, UiConstraintNormalizationPosture,
+    UiConstraintParentAvailableSpace, UiConstraintPropagationDenialReason,
+    UiConstraintPropagationEdgeFamily, UiMeasurementResult,
 };
 use crate::facade::WorthUi;
 use crate::graph::allocation_constraint_projection_tests::{
@@ -32,7 +26,6 @@ use crate::graph::allocation_constraint_projection_tests::{
 };
 use crate::graph::allocation_neighborhood_test_support::snapshot_with_admitted_layout;
 use crate::graph::UiGraphWorldProfile;
-use crate::host::UiHostMeasurementAssumptionProfile;
 
 #[test]
 fn contradictory_downward_normalization_denies_before_other_flows() {

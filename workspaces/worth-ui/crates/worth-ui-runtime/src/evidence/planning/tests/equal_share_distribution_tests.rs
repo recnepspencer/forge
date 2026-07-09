@@ -65,7 +65,10 @@ fn equal_share_result_identity_preserves_posture_and_remainder_contract() {
         vec![UiConstraintEqualShareMember::new(810, None, None)],
     );
 
-    assert_ne!(deterministic.identity_digest(), single_survivor.identity_digest());
+    assert_ne!(
+        deterministic.identity_digest(),
+        single_survivor.identity_digest()
+    );
 }
 
 #[test]
@@ -95,6 +98,12 @@ fn equal_share_result_identity_preserves_policy_distinctions() {
         ],
     );
 
-    assert_ne!(left_to_right.group_identity_digest(), center_out.group_identity_digest());
-    assert_ne!(left_to_right.identity_digest(), center_out.identity_digest());
+    assert_ne!(
+        left_to_right.group_identity_digest(),
+        center_out.group_identity_digest()
+    );
+    assert_ne!(
+        left_to_right.identity_digest(),
+        center_out.identity_digest()
+    );
 }

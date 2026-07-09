@@ -19,7 +19,7 @@ error[E0308]: mismatched types
   = note: expected reference `&WorthUiOrdinaryLanePlan`
              found reference `&WorthUiExecutionPlanInput`
 note: method defined here
- --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/host_ordinary_lane.rs
+ --> $WORKSPACE/crates/worth-ui-runtime/src/runtime/execution/host_lanes/ordinary.rs
   |
   |     pub fn execute_ordinary_lane_frame(
   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

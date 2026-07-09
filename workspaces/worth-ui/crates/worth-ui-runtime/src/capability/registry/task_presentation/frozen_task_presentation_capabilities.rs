@@ -11,6 +11,7 @@ pub struct FrozenTaskPresentationCapabilities {
 }
 
 impl FrozenTaskPresentationCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

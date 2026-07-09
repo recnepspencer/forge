@@ -1,7 +1,7 @@
 #[path = "trybuild_support.rs"]
 mod trybuild_support;
 #[test]
-fn inspection_boundary_compile_failures_prevent_forged_receipts_postures_and_helper_bypasses() {
+fn inspection_boundary_compile_failures_prevent_worthd_receipts_postures_and_helper_bypasses() {
     let tests = trybuild_support::new_test_cases();
     tests.compile_fail("tests/ui/inspection/external_callers_cannot_mint_inspection_receipts.rs");
     tests.compile_fail(

@@ -8,7 +8,9 @@ use crate::declaration::{
 };
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
 
-use super::{denial::UiMeasurementBasisDenial, UiMeasurementBasisGeneration, UiMeasurementEvidenceSlot};
+use super::{
+    denial::UiMeasurementBasisDenial, UiMeasurementBasisGeneration, UiMeasurementEvidenceSlot,
+};
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiMeasurementDependencyLineage, UiMeasurementDependencyMap,
     UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility,
@@ -159,10 +161,7 @@ fn compatibility_digest(compatibility: &UiMeasurementGenerationCompatibility) ->
         UiMeasurementGenerationCompatibility::Compatible => {
             stable_text_digest("compatibility:compatible")
         }
-        UiMeasurementGenerationCompatibility::StaleQueryFactReceipt {
-            expected,
-            observed,
-        } => {
+        UiMeasurementGenerationCompatibility::StaleQueryFactReceipt { expected, observed } => {
             stable_text_digest("compatibility:stale-query-fact-receipt")
                 ^ expected.as_u64().rotate_left(7)
                 ^ observed.as_u64().rotate_left(13)
@@ -209,10 +208,7 @@ fn denial_digest(denial_posture: Option<&UiMeasurementBasisDenial>) -> u64 {
         Some(UiMeasurementBasisDenial::MissingEvidence { slot }) => {
             stable_text_digest("denial:missing-evidence") ^ slot_digest(*slot).rotate_left(7)
         }
-        Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence {
-            basis_source,
-            slot,
-        }) => {
+        Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence { basis_source, slot }) => {
             stable_text_digest("denial:missing-basis-source-evidence")
                 ^ stable_text_digest(match basis_source {
                     UiDeclaredMeasurementBasisSource::ScrollViewport => "scroll-viewport",
@@ -237,10 +233,7 @@ fn denial_digest(denial_posture: Option<&UiMeasurementBasisDenial>) -> u64 {
                 .rotate_left(7)
                 ^ slot_digest(*slot).rotate_left(13)
         }
-        Some(UiMeasurementBasisDenial::MissingRequiredMeasurementEvidence {
-            category,
-            slot,
-        }) => {
+        Some(UiMeasurementBasisDenial::MissingRequiredMeasurementEvidence { category, slot }) => {
             stable_text_digest("denial:missing-required-measurement-evidence")
                 ^ measurement_category_digest(*category).rotate_left(7)
                 ^ slot_digest(*slot).rotate_left(13)
@@ -254,9 +247,7 @@ fn denial_digest(denial_posture: Option<&UiMeasurementBasisDenial>) -> u64 {
 
 fn slot_digest(slot: UiMeasurementEvidenceSlot) -> u64 {
     stable_text_digest(match slot {
-        UiMeasurementEvidenceSlot::QueryProjectionFactReceipt => {
-            "query-projection-fact-receipt"
-        }
+        UiMeasurementEvidenceSlot::QueryProjectionFactReceipt => "query-projection-fact-receipt",
         UiMeasurementEvidenceSlot::HostCapabilityReport => "host-capability-report",
         UiMeasurementEvidenceSlot::HostTextIntrinsicSize => "host-text-intrinsic-size",
         UiMeasurementEvidenceSlot::HostFontMetrics => "host-font-metrics",
@@ -280,8 +271,6 @@ fn measurement_category_digest(category: UiMeasurementEvidenceCategory) -> u64 {
         UiMeasurementEvidenceCategory::ViewportExtent => "viewport-extent",
         UiMeasurementEvidenceCategory::DpiScaleFactor => "dpi-scale-factor",
         UiMeasurementEvidenceCategory::PortalAnchorRect => "portal-anchor-rect",
-        UiMeasurementEvidenceCategory::ScrollContainerViewport => {
-            "scroll-container-viewport"
-        }
+        UiMeasurementEvidenceCategory::ScrollContainerViewport => "scroll-container-viewport",
     })
 }

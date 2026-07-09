@@ -274,29 +274,28 @@ fn splitter_structure(surface_id: &str, sizing_contract_id: &str) -> WorthUiMosa
         .with_persistence(MosaicRegionPersistence::restorable())
         .with_clipping(MosaicClippingPosture::clip_to_region())
         .with_hit_test(MosaicHitTestPosture::participates());
-    let sizing = MosaicSizingContractDescriptor::new(sizing_contract_id.clone(), MosaicSizingKind::fill())
-        .with_measurement_authority(MosaicMeasurementAuthority::runtime_token())
-        .with_resize_permission(MosaicResizePermission::user_resizable())
-        .with_persistence(MosaicSizingPersistence::restorable())
-        .with_overflow_behavior(MosaicOverflowBehavior::scroll_when_constrained())
-        .with_parent_growth_behavior(MosaicParentGrowthBehavior::does_not_force_parent())
-        .with_viewport_constraint(MosaicViewportConstraint::clamp_to_viewport())
-        .with_named_measurement(NamedMeasurementDefinition::new(
-            NamedMeasurementToken::new("workspace.measurement.splitter").unwrap(),
-            MeasurementValue::logical_pixels(320),
-            MeasurementConstraint::between(
-                MeasurementValue::logical_pixels(200),
-                MeasurementValue::logical_pixels(640),
-            ),
-        ));
-    let state_slot = MosaicStateSlotDescriptor::new(
-        state_slot_id,
-        MosaicStateSlotKind::splitter_position(),
-    )
-    .with_owner_identity(MosaicStateOwnerIdentity::surface(surface_id.clone()))
-    .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
-    .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
-    .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state());
+    let sizing =
+        MosaicSizingContractDescriptor::new(sizing_contract_id.clone(), MosaicSizingKind::fill())
+            .with_measurement_authority(MosaicMeasurementAuthority::runtime_token())
+            .with_resize_permission(MosaicResizePermission::user_resizable())
+            .with_persistence(MosaicSizingPersistence::restorable())
+            .with_overflow_behavior(MosaicOverflowBehavior::scroll_when_constrained())
+            .with_parent_growth_behavior(MosaicParentGrowthBehavior::does_not_force_parent())
+            .with_viewport_constraint(MosaicViewportConstraint::clamp_to_viewport())
+            .with_named_measurement(NamedMeasurementDefinition::new(
+                NamedMeasurementToken::new("workspace.measurement.splitter").unwrap(),
+                MeasurementValue::logical_pixels(320),
+                MeasurementConstraint::between(
+                    MeasurementValue::logical_pixels(200),
+                    MeasurementValue::logical_pixels(640),
+                ),
+            ));
+    let state_slot =
+        MosaicStateSlotDescriptor::new(state_slot_id, MosaicStateSlotKind::splitter_position())
+            .with_owner_identity(MosaicStateOwnerIdentity::surface(surface_id.clone()))
+            .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
+            .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
+            .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state());
 
     WorthUiMosaicStructureFacts::new(vec![WorthUiMosaicRegionFacts::new(
         AdmittedCapability::from_checked_id(region_id),

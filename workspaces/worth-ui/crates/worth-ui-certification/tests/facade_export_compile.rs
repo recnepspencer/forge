@@ -10,7 +10,6 @@ fn facade_export_compile_failures_block_host_bypass_and_certify_root_leakage() {
     tests.compile_fail(
         "tests/ui/facade_export/runtime_facade_root_does_not_export_certify_suites.rs",
     );
-    tests.compile_fail(
-        "tests/ui/facade_export/runtime_facade_root_does_not_export_runtime_host.rs",
-    );
+    tests
+        .compile_fail("tests/ui/facade_export/runtime_facade_root_does_not_export_runtime_host.rs");
 }

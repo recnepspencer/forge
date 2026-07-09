@@ -11,6 +11,7 @@ pub struct FrozenMosaicStateCapabilities {
 }
 
 impl FrozenMosaicStateCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

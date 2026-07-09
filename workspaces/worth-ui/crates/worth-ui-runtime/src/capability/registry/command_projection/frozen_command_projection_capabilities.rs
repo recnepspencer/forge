@@ -12,6 +12,7 @@ pub struct FrozenCommandProjectionCapabilities {
 }
 
 impl FrozenCommandProjectionCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

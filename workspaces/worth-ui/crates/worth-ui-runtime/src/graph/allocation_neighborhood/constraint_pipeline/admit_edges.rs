@@ -1,10 +1,6 @@
-use crate::declaration::stable_text_digest;
 use crate::evidence::{
-    UiAllocationConstraintSet, UiAllocationNeighborhood, UiBoundReconciliationPosture,
-    UiConstraintBoundReconciliationResult, UiConstraintPropagationDenial,
-    UiConstraintPropagationDenialReason, UiConstraintPropagationEdge,
-    UiConstraintPropagationEdgeFamily, UiConstraintPropagationEdgePayload,
-    UiLayoutOperatorContractIdentity, UiMeasurementBasis,
+    UiAllocationNeighborhood, UiConstraintBoundReconciliationResult, UiConstraintPropagationDenial,
+    UiConstraintPropagationEdge, UiConstraintPropagationEdgeFamily, UiMeasurementBasis,
 };
 
 use super::super::constraint_bound_reconciliation::admit_bound_reconciliation;
@@ -19,11 +15,10 @@ use super::super::constraint_parent_available_space::{
     admit_parent_available_space, UiConstraintDownwardAdmission,
 };
 use super::super::constraint_portal_anchor_planning_input::admit_portal_anchor_planning_input;
-use super::super::constraint_sibling_negotiation::admit_sibling_negotiation;
 use super::super::constraint_scroll_owner_planning_input::admit_scroll_owner_planning_input;
+use super::super::constraint_sibling_negotiation::admit_sibling_negotiation;
 use super::super::constraint_summary::derive_constraint_summary;
 use super::super::constraint_viewport_planning_input::admit_viewport_planning_input;
-use super::classify_special_inputs::family_for_requirement;
 use super::types::{
     ConstraintAuthorityContext, PropagationEdgeAdmissionParts, SpecialInputAdmissionParts,
 };
@@ -45,11 +40,8 @@ pub(super) fn admit_propagation_edge_families(
         context,
         required_special_families,
     )?;
-    let downward = admit_parent_available_space(
-        measurement_basis,
-        neighborhood,
-        context.allowed_families,
-    )?;
+    let downward =
+        admit_parent_available_space(measurement_basis, neighborhood, context.allowed_families)?;
     let intrinsic = admit_child_intrinsic_contributions(
         measurement_basis,
         neighborhood,
@@ -66,9 +58,13 @@ pub(super) fn admit_propagation_edge_families(
     );
     let downward_bounded_targets = downward.bounded_targets().to_vec();
 
-    verify_required_special_inputs(context, observed_special_families, required_special_families)?;
+    verify_required_special_inputs(
+        context,
+        observed_special_families,
+        required_special_families,
+    )?;
 
-    let mut edges = assemble_initial_propagation_edges(
+    let edges = assemble_initial_propagation_edges(
         context,
         &special_inputs,
         downward,
@@ -117,22 +113,19 @@ pub(super) fn admit_required_special_inputs(
     let viewport_planning_input = admit_viewport_planning_input(
         measurement_basis,
         neighborhood,
-        required_special_families
-            .contains(&UiConstraintPropagationEdgeFamily::ViewportInput),
+        required_special_families.contains(&UiConstraintPropagationEdgeFamily::ViewportInput),
         context.allowed_families,
     )?;
     let scroll_owner_planning_input = admit_scroll_owner_planning_input(
         measurement_basis,
         neighborhood,
-        required_special_families
-            .contains(&UiConstraintPropagationEdgeFamily::ScrollViewportInput),
+        required_special_families.contains(&UiConstraintPropagationEdgeFamily::ScrollViewportInput),
         context.allowed_families,
     )?;
     let portal_anchor_planning_input = admit_portal_anchor_planning_input(
         measurement_basis,
         neighborhood,
-        required_special_families
-            .contains(&UiConstraintPropagationEdgeFamily::PortalAnchorInput),
+        required_special_families.contains(&UiConstraintPropagationEdgeFamily::PortalAnchorInput),
         context.allowed_families,
     )?;
     Ok(SpecialInputAdmissionParts {
@@ -157,11 +150,8 @@ pub(super) fn assemble_initial_propagation_edges(
         special_inputs.scroll_owner_planning_input.as_ref(),
         special_inputs.portal_anchor_planning_input.as_ref(),
     );
-    let mut edges = assemble_base_propagation_edges(
-        downward.into_edges(),
-        intrinsic,
-        special_input_edges,
-    );
+    let mut edges =
+        assemble_base_propagation_edges(downward.into_edges(), intrinsic, special_input_edges);
     edges.extend(admit_durable_resize_inputs(
         measurement_basis,
         neighborhood,
@@ -219,4 +209,3 @@ pub(super) fn admit_negotiation_and_reconciliation_edges(
         edges,
     ))
 }
-

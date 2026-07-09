@@ -18,10 +18,12 @@ impl WorthUiStructuralLegalityReport {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiStructuralLegalityDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiStructuralLegalityMetrics {
         self.metrics
     }

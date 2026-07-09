@@ -5,8 +5,12 @@ use crate::declaration::{
     UiDeclaredMeasurementMode, UiDeclaredMeasurementPolicyPosture,
 };
 
-use super::fact_test_support::{display_field_projection_consumption, synthetic_declaration_identity};
-use crate::evidence::{consume_declared_measurement_projection_facts, UiProjectionFactReceiptDenial};
+use super::fact_test_support::{
+    display_field_projection_consumption, synthetic_declaration_identity,
+};
+use crate::evidence::{
+    consume_declared_measurement_projection_facts, UiProjectionFactReceiptDenial,
+};
 
 #[test]
 fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_assembly() {
@@ -120,31 +124,31 @@ fn entity_identity_projection_consumption(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    forge_query::facade::ProjectionFactConsumptionAttempt,
+    worth_query::facade::ProjectionFactConsumptionAttempt,
 ) {
     projection_consumption(
         lane_label,
-        forge_query::facade::ProjectMaterializedFacts::declare().entity_identities(),
+        worth_query::facade::ProjectMaterializedFacts::declare().entity_identities(),
     )
 }
 
 fn projection_consumption(
     lane_label: &str,
-    requested: forge_query::facade::ProjectMaterializedFacts,
+    requested: worth_query::facade::ProjectMaterializedFacts,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    forge_query::facade::ProjectionFactConsumptionAttempt,
+    worth_query::facade::ProjectionFactConsumptionAttempt,
 ) {
     let (mut workspace, family) = measurement_projection_workspace(lane_label);
     let read_result = workspace
         .execute_read_family(&family)
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
-        forge_query::facade::public_bridge_projection_artifacts_for_read_graph(family.read_graph());
+        worth_query::facade::public_bridge_projection_artifacts_for_read_graph(family.read_graph());
     let attempt = read_result
         .consume_projection_facts(&result_shape, &authorized_projection, requested)
         .expect("real query read should consume projection facts");
-    let basis = forge_query::facade::resolve_runtime_current_snapshot_basis(
+    let basis = worth_query::facade::resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
         family.read_graph().schema_basis().clone(),
     )
@@ -153,7 +157,7 @@ fn projection_consumption(
         .prerequisites()
         .graph_aligned(
             basis.clone(),
-            forge_query::facade::snapshot_resolution_report(&basis),
+            worth_query::facade::snapshot_resolution_report(&basis),
         )
         .expect("query prerequisites should admit");
     (prerequisites, attempt)
@@ -162,16 +166,16 @@ fn projection_consumption(
 fn measurement_projection_workspace(
     lane_label: &str,
 ) -> (
-    forge_query::facade::runtime::ForgeQueryWorkspace,
-    forge_query::facade::runtime::ForgeQueryReadFamily,
+    worth_query::facade::runtime::WorthQueryWorkspace,
+    worth_query::facade::runtime::WorthQueryReadFamily,
 ) {
     let schema =
-        forge_query::facade::consumer_kit::ForgeQueryTestBackendSchema::single_collection("task")
+        worth_query::facade::consumer_kit::WorthQueryTestBackendSchema::single_collection("task")
             .aspect("identity.id", "identity.id")
             .expect("identity aspect should admit")
             .aspect("size.value", "size.value")
             .expect("size aspect should admit");
-    let mut workspace = forge_query::facade::consumer_kit::in_memory_test_runtime()
+    let mut workspace = worth_query::facade::consumer_kit::in_memory_test_runtime()
         .with_schema(schema)
         .workspace(&format!(
             "worth-ui.phase8.projection-fact-receipt.{lane_label}"
@@ -181,11 +185,11 @@ fn measurement_projection_workspace(
         .insert("task", |task| {
             task.set_aspect(
                 aspect_touch("identity.id"),
-                forge_query::facade::ForgeQueryAuthoredAspectValue::string("task"),
+                worth_query::facade::WorthQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
                 aspect_touch("size.value"),
-                forge_query::facade::ForgeQueryAuthoredAspectValue::string("240"),
+                worth_query::facade::WorthQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("fixture insert should admit");
@@ -199,10 +203,10 @@ fn measurement_projection_workspace(
 }
 
 fn size_family_graph(
-    read: forge_query::facade::runtime::ForgeQueryReadBuilder,
+    read: worth_query::facade::runtime::WorthQueryReadBuilder,
 ) -> Result<
-    forge_query::facade::runtime::ForgeQueryReadGraph,
-    forge_query::facade::runtime::ForgeQueryReadDenial,
+    worth_query::facade::runtime::WorthQueryReadGraph,
+    worth_query::facade::runtime::WorthQueryReadDenial,
 > {
     read.local_detail(
         "task",
@@ -210,10 +214,10 @@ fn size_family_graph(
         |query| {
             query
                 .where_equal(
-                    forge_query::facade::EqualityPredicate::new(
+                    worth_query::facade::EqualityPredicate::new(
                         "identity",
                         "id",
-                        forge_query::facade::ScalarPredicateValue::String("task".to_string()),
+                        worth_query::facade::ScalarPredicateValue::String("task".to_string()),
                     )
                     .expect("identity anchor predicate should build"),
                 )
@@ -223,28 +227,28 @@ fn size_family_graph(
     )
 }
 
-fn task_query_schema() -> forge_query::facade::runtime::QuerySchemaView {
-    forge_query::facade::runtime::QuerySchemaView::new(
+fn task_query_schema() -> worth_query::facade::runtime::QuerySchemaView {
+    worth_query::facade::runtime::QuerySchemaView::new(
         "task",
         [
-            forge_query::facade::runtime::SchemaFieldView::new(
-                forge_query::facade::AspectName::new("identity")
+            worth_query::facade::runtime::SchemaFieldView::new(
+                worth_query::facade::AspectName::new("identity")
                     .expect("schema aspect should admit"),
-                forge_query::facade::FieldName::new("id").expect("schema field should admit"),
-                forge_query::facade::runtime::SchemaFieldKind::String,
+                worth_query::facade::FieldName::new("id").expect("schema field should admit"),
+                worth_query::facade::runtime::SchemaFieldKind::String,
             ),
-            forge_query::facade::runtime::SchemaFieldView::new(
-                forge_query::facade::AspectName::new("size").expect("schema aspect should admit"),
-                forge_query::facade::FieldName::new("value").expect("schema field should admit"),
-                forge_query::facade::runtime::SchemaFieldKind::String,
+            worth_query::facade::runtime::SchemaFieldView::new(
+                worth_query::facade::AspectName::new("size").expect("schema aspect should admit"),
+                worth_query::facade::FieldName::new("value").expect("schema field should admit"),
+                worth_query::facade::runtime::SchemaFieldKind::String,
             ),
         ],
         [],
     )
 }
 
-fn field(aspect: &str, field: &str) -> forge_query::facade::AspectFieldSelector {
-    forge_query::facade::AspectFieldSelector::new(aspect, field)
+fn field(aspect: &str, field: &str) -> worth_query::facade::AspectFieldSelector {
+    worth_query::facade::AspectFieldSelector::new(aspect, field)
         .expect("field selector should build")
 }
 
@@ -252,27 +256,27 @@ fn result_field(
     aspect: &str,
     field: &str,
     delivered: &str,
-) -> forge_query::facade::AuthoredResultShapeField {
-    forge_query::facade::AuthoredResultShapeField::new(aspect, field, delivered)
+) -> worth_query::facade::AuthoredResultShapeField {
+    worth_query::facade::AuthoredResultShapeField::new(aspect, field, delivered)
         .expect("result-shape field should build")
 }
 
-fn aspect_touch(authored_touch_text: &str) -> forge_query::facade::ForgeQueryAspectTouch {
+fn aspect_touch(authored_touch_text: &str) -> worth_query::facade::WorthQueryAspectTouch {
     let mut segments = authored_touch_text.split('.');
     let aspect = segments.next().expect("touch aspect should exist");
     let fields = segments
         .map(|segment| {
-            forge_foundational::facade::FieldKey::new(segment).expect("touch field should admit")
+            worth_foundational::facade::FieldKey::new(segment).expect("touch field should admit")
         })
         .collect::<Vec<_>>();
     if fields.is_empty() {
-        forge_query::facade::ForgeQueryAspectTouch::whole_aspect(
-            forge_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
+        worth_query::facade::WorthQueryAspectTouch::whole_aspect(
+            worth_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
         )
     } else {
-        forge_query::facade::ForgeQueryAspectTouch::aspect_field_path(
-            forge_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
-            forge_foundational::facade::CanonicalFieldPath::new(fields)
+        worth_query::facade::WorthQueryAspectTouch::aspect_field_path(
+            worth_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
+            worth_foundational::facade::CanonicalFieldPath::new(fields)
                 .expect("touch field path should admit"),
         )
     }

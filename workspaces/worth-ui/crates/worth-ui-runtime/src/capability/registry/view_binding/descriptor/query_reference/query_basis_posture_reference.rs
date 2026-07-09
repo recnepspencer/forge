@@ -1,4 +1,4 @@
-use forge_query::facade::{BasisFamily, BasisLifecycleSupportDiscovery, BasisSupportPosture};
+use worth_query::facade::{BasisFamily, BasisLifecycleSupportDiscovery, BasisSupportPosture};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryBasisPostureReference {

@@ -121,24 +121,29 @@ impl UiAllocationPlanningCostReceipt {
     }
 }
 
-fn cost_class_for(inspection: &WorthUiAllocationPlanningInspection) -> UiAllocationPlanningCostClass {
+fn cost_class_for(
+    inspection: &WorthUiAllocationPlanningInspection,
+) -> UiAllocationPlanningCostClass {
     if inspection.denial().is_some() {
         return UiAllocationPlanningCostClass::DeniedUnbounded;
     }
-    if inspection
-        .constraint_summary()
-        .is_some_and(|summary| {
-            summary.resize_permission_posture()
-                == crate::evidence::UiConstraintResizePermissionPosture::DurableAuthorityLane
-        })
-    {
+    if inspection.constraint_summary().is_some_and(|summary| {
+        summary.resize_permission_posture()
+            == crate::evidence::UiConstraintResizePermissionPosture::DurableAuthorityLane
+    }) {
         return UiAllocationPlanningCostClass::DurableResizeGroup;
     }
     match inspection.neighborhood().neighborhood_class() {
-        UiAllocationNeighborhoodClass::LocalIntrinsicContent => UiAllocationPlanningCostClass::Local,
-        UiAllocationNeighborhoodClass::ContainerPeerGroup => UiAllocationPlanningCostClass::Container,
+        UiAllocationNeighborhoodClass::LocalIntrinsicContent => {
+            UiAllocationPlanningCostClass::Local
+        }
+        UiAllocationNeighborhoodClass::ContainerPeerGroup => {
+            UiAllocationPlanningCostClass::Container
+        }
         UiAllocationNeighborhoodClass::Viewport => UiAllocationPlanningCostClass::Viewport,
-        UiAllocationNeighborhoodClass::ScrollContainer => UiAllocationPlanningCostClass::ScrollContainer,
+        UiAllocationNeighborhoodClass::ScrollContainer => {
+            UiAllocationPlanningCostClass::ScrollContainer
+        }
         UiAllocationNeighborhoodClass::PortalAnchor => UiAllocationPlanningCostClass::PortalAnchor,
     }
 }

@@ -1,6 +1,6 @@
 use worth_ui_runtime::facade::{
-    entry::WorthUi, inspection_bridge::InspectionDispatchLane, lifecycle::PHASE3_RUNTIME_SUPPORT_INVENTORY,
-    registry::CapabilitySnapshot,
+    entry::WorthUi, inspection_bridge::InspectionDispatchLane,
+    lifecycle::PHASE3_RUNTIME_SUPPORT_INVENTORY, registry::CapabilitySnapshot,
 };
 
 #[test]

@@ -14,7 +14,9 @@ impl WorthUiRuntimeHost {
     pub(crate) fn launch(
         launch: WorthUiRuntimeLaunch,
         snapshot_digest: CapabilitySnapshotDigest,
-        retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+        retained_allocation_planning_evidence: Rc<
+            WorthUiRetainedAllocationPlanningEvidenceRegistry,
+        >,
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,

@@ -20,9 +20,9 @@ pub(crate) fn expand_evidence_ref(
             .retained_allocation_planning_registry()
             .current_generation_for(evidence_ref.handle().handle_digest())
             .unwrap_or_else(|| evidence_ref.authority_generation()),
-        _ => {
-            worth_ui_inspection::UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64())
-        }
+        _ => worth_ui_inspection::UiEvidenceAuthorityGeneration::new(
+            app.graph().generation().as_u64(),
+        ),
     };
     let evidence_ref = app
         .retained_allocation_planning_registry()

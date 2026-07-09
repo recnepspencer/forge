@@ -53,7 +53,8 @@ pub(crate) fn collected_scroll_container_viewport_for_test(
 ) -> UiMeasurementResult {
     use super::measurement_result_test_support::CountingAdapter;
 
-    let profile = UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44);
+    let profile =
+        UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44);
     collect_host_measurement_evidence(
         &CountingAdapter::new(),
         UiMeasurementRequestIdentity::new(request_seed),

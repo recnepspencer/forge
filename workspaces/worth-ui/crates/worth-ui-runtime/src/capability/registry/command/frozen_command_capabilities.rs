@@ -9,7 +9,7 @@ pub struct FrozenCommandCapabilities {
 }
 
 impl FrozenCommandCapabilities {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             descriptors: Vec::new(),

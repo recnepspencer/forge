@@ -1,4 +1,4 @@
-#![cfg(any(test, feature = "support-authority"))]
+#![cfg(any(test, feature = "certification-support"))]
 
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,

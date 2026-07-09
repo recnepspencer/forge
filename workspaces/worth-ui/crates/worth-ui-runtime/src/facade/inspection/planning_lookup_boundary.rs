@@ -3,8 +3,8 @@ use worth_ui_inspection::{
 };
 
 use crate::evidence::{
-    UiAllocationPlanningInspectionReceipt, UiEvidenceAuthorityGeneration,
-    UiEvidenceSliceAssembly, UiEvidenceSliceAssemblyInput, UiInspectionCostMetrics,
+    UiAllocationPlanningInspectionReceipt, UiEvidenceAuthorityGeneration, UiEvidenceSliceAssembly,
+    UiEvidenceSliceAssemblyInput, UiInspectionCostMetrics,
 };
 use crate::facade::inspection::planning_detail_admission::classify_planning_detail_admission;
 use crate::facade::inspection_bridge::UiInspectionReceipt;
@@ -96,10 +96,7 @@ fn resolve_shared_authority_generation(
         return None;
     }
 
-    let first = receipts
-        .first()?
-        .evidence_slice()
-        .authority_generation();
+    let first = receipts.first()?.evidence_slice().authority_generation();
     receipts
         .iter()
         .all(|receipt| receipt.evidence_slice().authority_generation() == first)

@@ -9,6 +9,6 @@ fn main() {
         unsafe { std::mem::transmute::<u64, UiDeclarationAspectDigest>(2) },
         unsafe { std::mem::transmute::<u64, UiDeclarationStructuralDigest>(3) },
         unsafe { std::mem::transmute::<u64, UiDeclarationPostureDigest>(4) },
-        "forged.identity",
+        "Worthd.identity",
     );
 }

@@ -6,7 +6,9 @@ use crate::evidence::measurement::MeasurementEvidenceInput;
 
 use super::project_evidence_maps::project_evidence_category;
 
-pub(crate) fn project_basis_input(input: &MeasurementEvidenceInput) -> UiInspectionMeasurementBasisInput {
+pub(crate) fn project_basis_input(
+    input: &MeasurementEvidenceInput,
+) -> UiInspectionMeasurementBasisInput {
     match input {
         MeasurementEvidenceInput::QueryProjectionFact(receipt) => {
             UiInspectionMeasurementBasisInput::QueryProjectionFact {

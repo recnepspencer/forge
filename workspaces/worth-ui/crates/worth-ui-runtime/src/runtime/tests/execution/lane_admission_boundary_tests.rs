@@ -78,7 +78,7 @@ fn unsupported_lane_reference_rejected_before_plan_activation() {
 
 #[test]
 fn query_lane_node_without_query_owned_support_link_denies() {
-    let (runtime, broken_input, broken_planning) = spoofed_query_lane_fixture();
+    let (runtime, _broken_input, broken_planning) = spoofed_query_lane_fixture();
 
     let denial = runtime
         .admit_execution_lanes(

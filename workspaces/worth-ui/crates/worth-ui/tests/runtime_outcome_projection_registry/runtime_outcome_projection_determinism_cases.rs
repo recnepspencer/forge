@@ -1,4 +1,4 @@
-use forge_query::facade::{ForgeQueryOrdinaryPostureKind, ForgeQueryOrdinaryRuntimePostureKind};
+use worth_query::facade::{WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind};
 use worth_ui::facade::{
     IconDescriptor, IconFamily, IconId, IconSourceDescriptor, RuntimeOutcomeAffordance,
     RuntimeOutcomeFamily, RuntimeOutcomePresentation, RuntimeOutcomeProjectionDescriptor,
@@ -101,7 +101,7 @@ fn supported_query_source_surfaces_project_distinct_typed_families() {
                 projection_id("workspace.outcome.ordinary_rebind"),
                 RuntimeOutcomeFamily::recoverable(),
                 RuntimeOutcomeSourceReference::from_query_ordinary_posture_kind(
-                    ForgeQueryOrdinaryPostureKind::RebindRequired,
+                    WorthQueryOrdinaryPostureKind::RebindRequired,
                 ),
             )
             .with_recovery_posture(RuntimeOutcomeRecoveryPosture::action_hint()),
@@ -110,7 +110,7 @@ fn supported_query_source_surfaces_project_distinct_typed_families() {
             projection_id("workspace.outcome.runtime_pending"),
             RuntimeOutcomeFamily::loading(),
             RuntimeOutcomeSourceReference::from_query_ordinary_runtime_posture_kind(
-                ForgeQueryOrdinaryRuntimePostureKind::Pending,
+                WorthQueryOrdinaryRuntimePostureKind::Pending,
             ),
         ))
         .register_runtime_outcome_projection(ready_projection("workspace.outcome.async_ready"))

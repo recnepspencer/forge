@@ -12,12 +12,12 @@ use crate::evidence::measurement::projection::fact_test_support::{
     host_result_scroll_container_viewport, host_result_viewport_extent,
 };
 
+use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use super::measurement_inspection_test_support::{
     direct_measurement_view_for_graph_node, graph_node_identity, host_measurement_app,
     measurement_app_in_world, measurement_detail, measurement_query,
     query_measurement_app_in_world, query_measurement_package, repeated_instance_app,
 };
-use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 
 #[test]
 fn declared_surface_measurement_inspection_materializes_typed_detail() {

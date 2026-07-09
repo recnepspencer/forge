@@ -2,9 +2,7 @@ use super::receipt::UiAllocationPlanningInspectionReceipt;
 use crate::evidence::construction::preflight_evidence_expansion;
 use crate::evidence::shared::evidence_expansion::UiEvidenceExpansion;
 use crate::evidence::shared::evidence_reference::UiEvidenceRef;
-use worth_ui_inspection::{
-    UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceRichness,
-};
+use worth_ui_inspection::{UiEvidenceExpansionOutcome, UiEvidenceFamily, UiEvidenceRichness};
 
 impl UiAllocationPlanningInspectionReceipt {
     pub(crate) fn expand_evidence_ref(

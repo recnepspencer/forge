@@ -37,9 +37,9 @@ fn declared_bounded_clamp_is_explicit_on_ordinary_lane() {
             MeasurementEvidenceInput::host_capability_report(&report),
             MeasurementEvidenceInput::host_measurement_result(
                 &host_result_scroll_container_viewport(
-                910,
-                &report,
-                UiEvidenceAuthorityGeneration::new(91),
+                    910,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(91),
                 ),
             ),
         ],
@@ -92,9 +92,9 @@ fn stale_bound_inputs_remain_typed_on_ordinary_lane() {
             MeasurementEvidenceInput::host_capability_report(&report),
             MeasurementEvidenceInput::host_measurement_result(
                 &host_result_scroll_container_viewport(
-                920,
-                &report,
-                UiEvidenceAuthorityGeneration::new(91),
+                    920,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(91),
                 ),
             ),
         ],
@@ -102,16 +102,17 @@ fn stale_bound_inputs_remain_typed_on_ordinary_lane() {
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
         .expect("stack neighborhood should admit");
-    let constraints = basis
+    let denial = basis
         .admit_allocation_constraint_set(&neighborhood)
-        .expect("stale bounded inputs should stay typed on the ordinary lane");
+        .expect_err("stale scroll viewport input should deny before bound reconciliation");
 
     assert_eq!(
-        constraints
-            .bound_reconciliation()
-            .expect("bounded stack should still materialize typed stale posture")
-            .posture(),
-        UiBoundReconciliationPosture::StaleInput
+        denial.reason(),
+        crate::evidence::UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
+    );
+    assert_eq!(
+        denial.family(),
+        Some(crate::evidence::UiConstraintPropagationEdgeFamily::ScrollViewportInput)
     );
 }
 
@@ -175,9 +176,9 @@ fn equivalent_bounded_inputs_converge_on_same_bound_result() {
                 MeasurementEvidenceInput::host_capability_report(&report),
                 MeasurementEvidenceInput::host_measurement_result(
                     &host_result_scroll_container_viewport(
-                    940,
-                    &report,
-                    UiEvidenceAuthorityGeneration::new(94),
+                        940,
+                        &report,
+                        UiEvidenceAuthorityGeneration::new(94),
                     ),
                 ),
             ],

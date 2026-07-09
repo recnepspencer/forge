@@ -13,5 +13,4 @@ workspace = true
 
 [dependencies]
 worth-ui-host-contract = { workspace = true }
-worth-ui-runtime = { workspace = true }
 egui = { workspace = true }

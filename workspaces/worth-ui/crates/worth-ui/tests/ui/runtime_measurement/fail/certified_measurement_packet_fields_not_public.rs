@@ -4,11 +4,11 @@ use worth_ui::facade::{
 
 fn main() {
     let _packet = WorthUiCertifiedMeasurementPacket {
-        packet: forged_packet(),
+        packet: worthd_packet(),
         contract: WorthUiComplexityContract::hot_path("fake"),
     };
 }
 
-fn forged_packet() -> WorthUiMeasurementCounterPacket {
+fn worthd_packet() -> WorthUiMeasurementCounterPacket {
     loop {}
 }

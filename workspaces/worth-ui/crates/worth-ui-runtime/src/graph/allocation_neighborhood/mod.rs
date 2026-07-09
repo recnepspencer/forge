@@ -26,16 +26,16 @@ mod constraint_parent_available_space;
 mod constraint_pipeline;
 mod constraint_portal_anchor_planning_input;
 mod constraint_projection;
-mod constraint_sibling_negotiation;
 mod constraint_scroll_owner_planning_input;
+mod constraint_sibling_negotiation;
 mod constraint_summary;
 mod constraint_viewport_planning_input;
 
 mod denial;
 #[cfg(test)]
-pub(crate) mod tests;
-#[cfg(test)]
 mod equivalence;
+#[cfg(test)]
+pub(crate) mod tests;
 
 pub use denial::UiAllocationNeighborhoodDenial;
 #[cfg(test)]

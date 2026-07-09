@@ -1,6 +1,6 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis_with_font_seed,
+    admitted_allocation_neighborhood_for_basis, admitted_measurement_basis_with_font_seed,
 };
 use crate::runtime::WorthUiPlanTopologyDenialReason;
 
@@ -8,17 +8,20 @@ use crate::runtime::WorthUiPlanTopologyDenialReason;
 fn stale_lane_admission_denies_when_planning_identity_changes_without_topology_drift() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
-    let neighborhood = admitted_allocation_neighborhood("plan-topology.identity-drift");
-    let first_planning = runtime.plan_allocation(
-        &pending,
-        &admitted_measurement_basis_with_font_seed("plan-topology.identity-drift", 100),
-        &neighborhood,
+    let first_basis =
+        admitted_measurement_basis_with_font_seed("plan-topology.identity-drift", 100);
+    let second_basis =
+        admitted_measurement_basis_with_font_seed("plan-topology.identity-drift", 240);
+    let first_neighborhood = admitted_allocation_neighborhood_for_basis(
+        "plan-topology.identity-drift",
+        first_basis.clone(),
     );
-    let second_planning = runtime.plan_allocation(
-        &pending,
-        &admitted_measurement_basis_with_font_seed("plan-topology.identity-drift", 240),
-        &neighborhood,
+    let second_neighborhood = admitted_allocation_neighborhood_for_basis(
+        "plan-topology.identity-drift",
+        second_basis.clone(),
     );
+    let first_planning = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
+    let second_planning = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
     let stale_lane_admission = runtime
         .admit_execution_lanes(
             &first_planning,

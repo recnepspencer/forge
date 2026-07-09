@@ -1,13 +1,14 @@
 #[path = "fixtures/query_measurement_eligibility_support/mod.rs"]
 mod query_measurement_eligibility_support;
 
-use worth_ui::facade::admission::{
-    UiAdmissionQueryBasis, UiAdmissionWorld, UiMeasurementAdmissionPosture,
-    UiMeasurementUnsupportedReason, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
-};
+use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionWorld};
 use worth_ui::facade::obligations::UiObligationFamily;
 use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
+use worth_ui_test_support::{
+    UiMeasurementAdmissionPosture, UiMeasurementUnsupportedReason,
+    UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementUnsupportedQueryReason,
+};
 
 use self::query_measurement_eligibility_support::{
     available_measurement_target, denied_display_field_projection_consumption,

@@ -18,10 +18,7 @@ use crate::facade::inspection_bridge::{
 };
 use crate::facade::WorthUiApp;
 
-pub(crate) fn route_inspection(
-    app: &WorthUiApp,
-    query: UiInspectionQuery,
-) -> UiInspectionReceipt {
+pub(crate) fn route_inspection(app: &WorthUiApp, query: UiInspectionQuery) -> UiInspectionReceipt {
     app.lifecycle().record_inspection_query();
     let authority = collect_inspection_authority(app.graph_snapshot().generation().as_u64());
     match classify_inspection_dispatch(&query) {
@@ -60,8 +57,15 @@ fn route_measurement_scope(
             ) {
                 return receipt;
             }
-            let admission = query.admit_relevance();
-            assemble_relevance_receipt(query, admission, &authority)
+            let support_report = inspection_support_report_for(app, &query);
+            assemble_support_receipt(
+                query.clone(),
+                query
+                    .admit_relevance()
+                    .refined_for_support_report(support_report),
+                support_report,
+                &authority,
+            )
         }
     }
 }

@@ -7,13 +7,6 @@ pub struct CapabilitySnapshotDigest {
 }
 
 impl CapabilitySnapshotDigest {
-    #[allow(dead_code)]
-    pub(crate) fn from_metrics(metrics: SnapshotMetrics) -> Self {
-        Self::from_metrics_and_registry_bases(
-            metrics, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        )
-    }
-
     pub(crate) fn from_metrics_and_registry_bases(
         metrics: SnapshotMetrics,
         command_basis: u64,

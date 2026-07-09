@@ -6,7 +6,9 @@ use crate::source::{
     WorthUiArtifactModule, WorthUiArtifactNode, WorthUiDurableStateEligibility,
     WorthUiDurableStateIneligibilityReason, WorthUiSourceModuleId,
 };
-use forge_foundational::{
+use std::collections::BTreeMap;
+use std::path::Path;
+use worth_foundational::{
     performance, performance_api, profiles, CertificationPostureProfile, DiagnosticRichnessProfile,
     FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceAttachmentTargetKind,
     FoundationalPerformanceBoundary, FoundationalPerformanceBreadthLocalityPosture,
@@ -17,12 +19,10 @@ use forge_foundational::{
     FoundationalPerformanceSupportingEvidenceCode, FoundationalPerformanceSupportingEvidenceRow,
     FoundationalPerformanceWorkClass, RetentionDeliveryProfile, SupportPostureProfile,
 };
-use std::collections::BTreeMap;
-use std::path::Path;
 
 pub(super) fn foundational_frame_report(
     observed_frame_rows: u64,
-) -> forge_foundational::FoundationalMaterializedPerformanceReport<impl std::fmt::Debug> {
+) -> worth_foundational::FoundationalMaterializedPerformanceReport<impl std::fmt::Debug> {
     let claim = performance()
         .claim()
         .authoritative_execution()
@@ -73,8 +73,8 @@ pub(super) fn foundational_frame_report(
                 .set()
                 .diagnostic_richness(DiagnosticRichnessProfile::Standard)
                 .support_posture(SupportPostureProfile::SupportReady)
-                .compatibility_posture(forge_foundational::CompatibilityPostureProfile::NativeOnly)
-                .admission_readiness(forge_foundational::AdmissionReadinessProfile::Admitted)
+                .compatibility_posture(worth_foundational::CompatibilityPostureProfile::NativeOnly)
+                .admission_readiness(worth_foundational::AdmissionReadinessProfile::Admitted)
                 .retention_delivery(RetentionDeliveryProfile::Retained)
                 .certification_posture(CertificationPostureProfile::Uncertified)
                 .compose()

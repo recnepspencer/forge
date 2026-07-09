@@ -7,13 +7,14 @@ use worth_ui::facade::obligations::UiObligationEvidenceDecision;
 use worth_ui_runtime::facade::obligations::UiSelectedObligationEvidenceProjection;
 
 #[path = "fixtures/obligation_dispatch_prerequisite_support/mod.rs"]
-mod obligation_dispatch_prerequisite_support;
+pub mod obligation_dispatch_prerequisite_support;
 
 #[test]
 fn public_selected_rows_exclude_plausible_but_not_selected_candidates() {
-    let app = obligation_dispatch_prerequisite_support::query_touch_app();
-    let touch = obligation_dispatch_prerequisite_support::query_touch(&app);
-    let target = obligation_dispatch_prerequisite_support::graph_aligned_query_target(&touch);
+    let app = obligation_dispatch_prerequisite_support::apps::query_touch_app();
+    let touch = obligation_dispatch_prerequisite_support::touches::query_touch(&app);
+    let target =
+        obligation_dispatch_prerequisite_support::targets::graph_aligned_query_target(&touch);
     let selected = app
         .admission()
         .select_obligations_for_target(&touch, target.clone());

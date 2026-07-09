@@ -13,18 +13,20 @@ use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiAmbiguousReplacementDenial,
     WorthUiDurableStateInventory, WorthUiDurableStateReconciliationDenial,
     WorthUiDurableStateReconciliationPlan, WorthUiIdentityMatchDenial, WorthUiIdentityMatchReport,
-    WorthUiNodeReplacementPlan, WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryBindingComparison,
-    WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlan, WorthUiQueryLiveRebindPlanDenial,
-    WorthUiReplacementImpactClassification, WorthUiReplacementImpactDenial,
-    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
-    WorthUiRuntimeImpactNarrowing, WorthUiRuntimeImpactNarrowingDenial,
+    WorthUiNodeReplacementPlan, WorthUiPendingExecutionPlanLoweringInput,
+    WorthUiQueryBindingComparison, WorthUiQueryBindingComparisonDenial, WorthUiQueryLiveRebindPlan,
+    WorthUiQueryLiveRebindPlanDenial, WorthUiReplacementImpactClassification,
+    WorthUiReplacementImpactDenial, WorthUiRuntimeArtifactComparison,
+    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeImpactNarrowing,
+    WorthUiRuntimeImpactNarrowingDenial,
 };
 
 use super::transitions::{
     WorthUiReplacementAdmissionBasis, WorthUiReplacementComparisonReady,
-    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady, WorthUiReplacementLoweringReady,
-    WorthUiReplacementNarrowingReady, WorthUiReplacementNodePlanReady,
-    WorthUiReplacementQueryComparisonReady, WorthUiReplacementReconciliationReady,
+    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady,
+    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
+    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
+    WorthUiReplacementReconciliationReady,
 };
 use crate::runtime::launch::host::WorthUiRuntimeHost;
 
@@ -176,7 +178,8 @@ impl WorthUiRuntimeHost {
         &self,
         node_plan: &WorthUiNodeReplacementPlan,
         inventory: &WorthUiDurableStateInventory,
-    ) -> Result<WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationDenial> {
+    ) -> Result<WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationDenial>
+    {
         WorthUiDurableStateReconciliationPlanner::reconcile(node_plan, inventory)
     }
 
@@ -273,17 +276,14 @@ impl WorthUiRuntimeHost {
             reconciliation_plan,
             query_comparison,
         } = ready;
-        let query_rebind_plan = self.plan_query_live_rebinds(
-            &query_comparison,
-            &node_plan,
-            &narrowing,
-            &admitted,
-        )?;
-        let pending_execution_plan_lowering_input = self.prepare_pending_execution_plan_lowering_input(
-            &node_plan,
-            &reconciliation_plan,
-            &query_rebind_plan,
-        );
+        let query_rebind_plan =
+            self.plan_query_live_rebinds(&query_comparison, &node_plan, &narrowing, &admitted)?;
+        let pending_execution_plan_lowering_input = self
+            .prepare_pending_execution_plan_lowering_input(
+                &node_plan,
+                &reconciliation_plan,
+                &query_rebind_plan,
+            );
         Ok(WorthUiReplacementLoweringReady {
             admitted,
             impact,

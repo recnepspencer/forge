@@ -19,6 +19,7 @@ pub struct WorthUiFileRustReplacementPipelineReport {
     counters: WorthUiFileRustReplacementParityCounters,
 }
 
+#[cfg(test)]
 pub(crate) struct WorthUiFileRustReplacementPipelineReportParts {
     pub(crate) authoring_lane: WorthUiCandidateAuthoringLane,
     pub(crate) candidate_basis: WorthUiReplacementCandidateBasis,
@@ -34,6 +35,7 @@ pub(crate) struct WorthUiFileRustReplacementPipelineReportParts {
 }
 
 impl WorthUiFileRustReplacementPipelineReport {
+    #[cfg(test)]
     pub(crate) fn new(parts: WorthUiFileRustReplacementPipelineReportParts) -> Self {
         Self {
             authoring_lane: parts.authoring_lane,

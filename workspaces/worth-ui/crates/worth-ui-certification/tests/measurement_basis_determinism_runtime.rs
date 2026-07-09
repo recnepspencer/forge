@@ -1,4 +1,4 @@
-#[path = "measurement_basis_certification_support.rs"]
+#[path = "fixtures/measurement_basis_certification_support.rs"]
 mod measurement_basis_certification_support;
 
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;

@@ -165,7 +165,9 @@ fn constraint_modifier_digest(modifier: Option<UiDeclaredMeasurementConstraintMo
 
 fn equal_share_group_digest(group: UiConstraintEqualShareGroup) -> u64 {
     match group {
-        UiConstraintEqualShareGroup::None => stable_text_digest("worth-ui.constraint-equal-share.none"),
+        UiConstraintEqualShareGroup::None => {
+            stable_text_digest("worth-ui.constraint-equal-share.none")
+        }
         UiConstraintEqualShareGroup::StablePeerPrimaryAxis => {
             stable_text_digest("worth-ui.constraint-equal-share.primary-axis")
         }

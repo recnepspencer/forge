@@ -2,8 +2,8 @@ use worth_ui_inspection::{
     UiInspectionMeasurementFailureSource, UiInspectionSupportPosture, UiInspectionSupportReport,
 };
 
-use crate::evidence::measurement::basis::{UiMeasurementBasis, UiMeasurementBasisDenial};
 use crate::evidence::measurement::basis::UiMeasurementEvidenceSlot;
+use crate::evidence::measurement::basis::{UiMeasurementBasis, UiMeasurementBasisDenial};
 
 pub(crate) fn classify_failure_source(
     support_report: &UiInspectionSupportReport,
@@ -35,7 +35,9 @@ pub(crate) fn classify_failure_source(
     }
 }
 
-pub(crate) fn classify_slot_source(slot: UiMeasurementEvidenceSlot) -> UiInspectionMeasurementFailureSource {
+pub(crate) fn classify_slot_source(
+    slot: UiMeasurementEvidenceSlot,
+) -> UiInspectionMeasurementFailureSource {
     match slot {
         UiMeasurementEvidenceSlot::QueryProjectionFactReceipt => {
             UiInspectionMeasurementFailureSource::QueryFacts

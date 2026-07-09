@@ -1,7 +1,5 @@
 use crate::declaration::UiDeclarationArtifact;
-use crate::graph::{
-    UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, UiGraphSnapshot,
-};
+use crate::graph::{UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, UiGraphSnapshot};
 
 use super::bootstrap::WorthUiFacadeLifecycleBootstrap;
 

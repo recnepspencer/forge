@@ -2,19 +2,20 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::UiDeclaredMeasurementBasisSource;
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
+use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
-    rust_authored_replacement_candidate, WorthUiAdmittedReplacementCandidate,
-    WorthUiCandidateAdmission, WorthUiPendingActivation, WorthUiReplacementCause,
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch,
+    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiPendingActivation,
+    WorthUiReplacementCause, WorthUiRuntimeHost, WorthUiRuntimeLaunch,
 };
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
-use crate::runtime::WorthUiAllocationPlanning;
 use super::fixture_support::{
-    artifact_from_modules, capability_report, container_basis, control_app, declaration_identity_for,
-    graph_node_identity_for_provenance, host_portal_anchor_result, host_scroll_viewport_result,
-    intrinsic_basis, measurement_policy, peer_app, query_app, snapshot_with_admitted_layout,
+    artifact_from_modules, capability_report, container_basis, control_app,
+    declaration_identity_for, graph_node_identity_for_provenance, host_portal_anchor_result,
+    host_scroll_viewport_result, intrinsic_basis, measurement_policy, peer_app, query_app,
+    snapshot_with_admitted_layout,
 };
+use crate::runtime::WorthUiAllocationPlanning;
 
 #[derive(Clone, Copy)]
 pub(super) enum CertificationScenarioShape {
@@ -42,7 +43,10 @@ fn planning_scenario(
     operator_token: &str,
     shape: CertificationScenarioShape,
     basis_source: Option<UiDeclaredMeasurementBasisSource>,
-) -> (crate::evidence::UiMeasurementBasis, crate::evidence::UiAllocationNeighborhood) {
+) -> (
+    crate::evidence::UiMeasurementBasis,
+    crate::evidence::UiAllocationNeighborhood,
+) {
     let generation = UiEvidenceAuthorityGeneration::new(17);
     let world_profile = crate::facade::WorthUi::app()
         .freeze()
@@ -50,15 +54,21 @@ fn planning_scenario(
         .world_profile()
         .clone();
     let (app, nodes, bounded) = match shape {
-        CertificationScenarioShape::Control { nodes, bounded } => {
-            (control_app(world_profile, operator_token, nodes, bounded), nodes, bounded)
-        }
-        CertificationScenarioShape::Peer { nodes, bounded } => {
-            (peer_app(world_profile, operator_token, nodes, bounded), nodes, bounded)
-        }
-        CertificationScenarioShape::Intrinsic { nodes, bounded } => {
-            (control_app(world_profile, operator_token, nodes, bounded), nodes, bounded)
-        }
+        CertificationScenarioShape::Control { nodes, bounded } => (
+            control_app(world_profile, operator_token, nodes, bounded),
+            nodes,
+            bounded,
+        ),
+        CertificationScenarioShape::Peer { nodes, bounded } => (
+            peer_app(world_profile, operator_token, nodes, bounded),
+            nodes,
+            bounded,
+        ),
+        CertificationScenarioShape::Intrinsic { nodes, bounded } => (
+            control_app(world_profile, operator_token, nodes, bounded),
+            nodes,
+            bounded,
+        ),
     };
     let root = graph_node_identity_for_provenance(&app, 0);
     let admitted = (0..nodes)
@@ -144,9 +154,10 @@ fn planning_runtime_fixture() -> (WorthUiRuntimeHost, WorthUiPendingActivation) 
         WorthUiReplacementCause::rust_authored_input_change(17),
     )
     .expect("suite candidate seals");
-    let admitted = WorthUiCandidateAdmission::for_active_basis(runtime.replacement_admission_basis())
-        .admit(candidate)
-        .expect("suite candidate admits");
+    let admitted =
+        WorthUiCandidateAdmission::for_active_basis(runtime.replacement_admission_basis())
+            .admit(candidate)
+            .expect("suite candidate admits");
     let pending = stage_pending_activation(&runtime, admitted);
     (runtime, pending)
 }

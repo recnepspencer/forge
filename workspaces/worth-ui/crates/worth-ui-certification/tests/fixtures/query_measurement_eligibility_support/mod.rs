@@ -1,7 +1,7 @@
 mod projection_consumption_support;
 
-use forge_query::facade::{
-    ForgeQueryAuthoredAspectValue, ProjectMaterializedFacts, ProjectionFactConsumptionAttempt,
+use worth_query::facade::{
+    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, WorthQueryAuthoredAspectValue,
 };
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
@@ -189,7 +189,7 @@ pub fn display_projection_consumptions_across_basis_generations(
         .update(entity_identity, |task| {
             task.set_aspect(
                 aspect_touch("size.value"),
-                ForgeQueryAuthoredAspectValue::string(format!("24{lane_label}")),
+                WorthQueryAuthoredAspectValue::string(format!("24{lane_label}")),
             )
         })
         .expect("fixture workspace should admit the follow-up size update");

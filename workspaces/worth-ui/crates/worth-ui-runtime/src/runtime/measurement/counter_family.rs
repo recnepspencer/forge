@@ -3,7 +3,7 @@ use super::measurement_boundary::WorthUiMeasurementBoundary;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WorthUiCounterAuthority {
     WorthUiRuntime,
-    ForgeQueryEvidence,
+    WorthQueryEvidence,
     DiagnosticsProjection,
 }
 
@@ -86,7 +86,7 @@ impl WorthUiRuntimeCounterFamily {
 
     pub fn authority(self) -> WorthUiCounterAuthority {
         match self {
-            Self::QueryRebindPlanning => WorthUiCounterAuthority::ForgeQueryEvidence,
+            Self::QueryRebindPlanning => WorthUiCounterAuthority::WorthQueryEvidence,
             Self::DiagnosticsProjection => WorthUiCounterAuthority::DiagnosticsProjection,
             _ => WorthUiCounterAuthority::WorthUiRuntime,
         }

@@ -1,13 +1,13 @@
-mod assembly;
 mod assembler;
+mod assembly;
 mod counters;
-mod validation;
 mod denial;
 mod execution_plan;
 mod lane_partition;
 mod lookup_index;
 mod node;
 mod topology;
+mod validation;
 
 pub(crate) use assembler::WorthUiPlanTopologyAssembler;
 pub use counters::WorthUiPlanTopologyCounters;

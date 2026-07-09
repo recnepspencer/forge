@@ -3,7 +3,7 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui_dsl::{UiDslLoweringReceipt, UiDslSemanticArtifact};
 
-struct ForgedGraphReceipt;
+struct WorthGraphReceipt;
 
 fn require_graph_handoff(_: UiDeclarationGraphHandoff) {}
 
@@ -31,5 +31,5 @@ fn main() {
     require_graph_handoff(lowering_receipt);
     require_graph_handoff(support_snapshot);
     require_graph_handoff(support_row);
-    require_graph_handoff(ForgedGraphReceipt);
+    require_graph_handoff(WorthGraphReceipt);
 }

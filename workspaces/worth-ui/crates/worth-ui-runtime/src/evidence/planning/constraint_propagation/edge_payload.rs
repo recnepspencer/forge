@@ -1,11 +1,11 @@
 use crate::declaration::stable_text_digest;
 use crate::evidence::{
     UiBoundReconciliationPosture, UiBoundReconciliationSolveOrder,
-    UiConstraintChildIntrinsicContribution, UiConstraintParentAvailableSpace,
-    UiConstraintEqualSharePosture, UiConstraintEqualShareSolveOrder,
-    UiPortalAnchorPlanningInputPosture, UiPortalAnchorPlanningInputSolveOrder,
+    UiConstraintChildIntrinsicContribution, UiConstraintEqualSharePosture,
+    UiConstraintEqualShareSolveOrder, UiConstraintParentAvailableSpace,
     UiConstraintPropagationEdgeFamily, UiConstraintSiblingNegotiationFixedPointPolicy,
-    UiConstraintSiblingNegotiationSolveOrder, UiScrollOwnerPlanningInputPosture,
+    UiConstraintSiblingNegotiationSolveOrder, UiPortalAnchorPlanningInputPosture,
+    UiPortalAnchorPlanningInputSolveOrder, UiScrollOwnerPlanningInputPosture,
     UiScrollOwnerPlanningInputSolveOrder, UiViewportPlanningInputPosture,
     UiViewportPlanningInputSolveOrder,
 };
@@ -93,7 +93,9 @@ impl UiConstraintPropagationEdgePayload {
                 UiConstraintPropagationEdgeFamily::BoundedReconciliation
             }
             Self::ViewportInput { .. } => UiConstraintPropagationEdgeFamily::ViewportInput,
-            Self::ScrollViewportInput { .. } => UiConstraintPropagationEdgeFamily::ScrollViewportInput,
+            Self::ScrollViewportInput { .. } => {
+                UiConstraintPropagationEdgeFamily::ScrollViewportInput
+            }
             Self::PortalAnchorInput { .. } => UiConstraintPropagationEdgeFamily::PortalAnchorInput,
             Self::DurableResizeInput { .. } => {
                 UiConstraintPropagationEdgeFamily::DurableResizeInput

@@ -1,7 +1,7 @@
-use forge_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, QuerySubscriptionFamily, QuerySubscriptionSupportPosture,
-    ResultShapeFamily, ViewShapeDescriptor,
+use worth_query::facade::{
+    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
+    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
 };
 
 use crate::capability::{
@@ -10,9 +10,9 @@ use crate::capability::{
     ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
+use crate::runtime::tests::replacement_impact_test_support::impact_test_app;
 use crate::runtime::{
-    replacement_impact_test_support::impact_test_app, WorthUiCandidateAdmission,
-    WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
+    WorthUiCandidateAdmission, WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,
     WorthUiCandidateDependencyMetadata, WorthUiCandidateLoweringBasis, WorthUiQuerySupportReceipt,
     WorthUiQuerySupportStatus, WorthUiReplacementCandidate, WorthUiReplacementCause,
 };
@@ -136,10 +136,10 @@ pub(super) fn candidate_with_forged_query_support_hook_count(
 }
 
 fn query_bound_view_binding(id: &str) -> ViewBindingDescriptor {
-    let support_report = ForgeQueryApplicationFacade::runtime_backed_default().support_report();
+    let support_report = WorthQueryApplicationFacade::runtime_backed_default().support_report();
     let query_capability = support_report
         .support_matrix()
-        .descriptor(ForgeQueryCapabilityFamily::QueryComposition)
+        .descriptor(WorthQueryCapabilityFamily::QueryComposition)
         .expect("query composition support posture");
     let query_composition = support_report
         .query_composition_support_profile()

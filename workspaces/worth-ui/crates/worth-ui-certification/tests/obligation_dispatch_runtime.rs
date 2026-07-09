@@ -4,10 +4,10 @@ use worth_ui::facade::admission::UiAdmissionAggregation;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, ForgeQuerySessionLabel,
-    ForgeQuerySnapshotIdentity, QueryExternalIdentityToken, SchemaBasisDigest,
-    UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
-    UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming, UiGraphWorldProfile,
+    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    SchemaBasisDigest, UiGraphAxisParticipation, UiGraphParticipationAxis,
+    UiGraphParticipationStatus, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
+    UiGraphWorldProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::obligations::{
     UiObligationDispatchStopPosture, UiObligationFamily, UiObligationVerdictClass,
@@ -20,7 +20,7 @@ use worth_ui_dsl::{
 #[test]
 fn structural_selected_obligations_lower_to_stable_dispatch_and_success_verdicts() {
     let app = touch_app(UiGraphWorldProfile::hot_reload_candidate(
-        ForgeQuerySessionLabel::scoped_strs("worth-ui", ["phase5", "hot-reload"])
+        WorthQuerySessionLabel::scoped_strs("worth-ui", ["phase5", "hot-reload"])
             .expect("hot-reload label should admit"),
     ));
     let graph = app.graph();
@@ -214,7 +214,7 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = ForgeQuerySnapshotIdentity::admit_external_token(
+    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
     );
     let basis = resolve_runtime_current_snapshot_basis(

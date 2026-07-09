@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    ForgeQueryOrdinaryPostureKind, ForgeQueryOrdinaryRuntimePostureKind,
-    ForgeQueryRuntimeAsyncResultStateKind,
+use worth_query::facade::{
+    WorthQueryOrdinaryPostureKind, WorthQueryOrdinaryRuntimePostureKind,
+    WorthQueryRuntimeAsyncResultStateKind,
 };
 
 use super::{RuntimeOutcomeFamily, RuntimeOutcomeSourceReference};
@@ -24,7 +24,7 @@ impl RuntimeOutcomeSourceReference {
 
 fn ordinary_outcome_family(
     kind: &str,
-    posture_kind: Option<ForgeQueryOrdinaryPostureKind>,
+    posture_kind: Option<WorthQueryOrdinaryPostureKind>,
 ) -> Option<RuntimeOutcomeFamily> {
     if kind == "bound" {
         return Some(RuntimeOutcomeFamily::ready());
@@ -32,64 +32,64 @@ fn ordinary_outcome_family(
     posture_kind.and_then(ordinary_posture_family)
 }
 
-fn ordinary_posture_family(kind: ForgeQueryOrdinaryPostureKind) -> Option<RuntimeOutcomeFamily> {
+fn ordinary_posture_family(kind: WorthQueryOrdinaryPostureKind) -> Option<RuntimeOutcomeFamily> {
     match kind {
-        ForgeQueryOrdinaryPostureKind::Ambiguous
-        | ForgeQueryOrdinaryPostureKind::Deferred
-        | ForgeQueryOrdinaryPostureKind::ExplicitNarrowingRequired
-        | ForgeQueryOrdinaryPostureKind::MissingRequiredAspect => {
+        WorthQueryOrdinaryPostureKind::Ambiguous
+        | WorthQueryOrdinaryPostureKind::Deferred
+        | WorthQueryOrdinaryPostureKind::ExplicitNarrowingRequired
+        | WorthQueryOrdinaryPostureKind::MissingRequiredAspect => {
             Some(RuntimeOutcomeFamily::advisory())
         }
-        ForgeQueryOrdinaryPostureKind::AspectConflict
-        | ForgeQueryOrdinaryPostureKind::AuthorityMismatch
-        | ForgeQueryOrdinaryPostureKind::BasisMismatch
-        | ForgeQueryOrdinaryPostureKind::Refused
-        | ForgeQueryOrdinaryPostureKind::WrongHandle
-        | ForgeQueryOrdinaryPostureKind::WrongWorld => Some(RuntimeOutcomeFamily::violation()),
-        ForgeQueryOrdinaryPostureKind::Denied => Some(RuntimeOutcomeFamily::denied()),
-        ForgeQueryOrdinaryPostureKind::Failed | ForgeQueryOrdinaryPostureKind::Unavailable => {
+        WorthQueryOrdinaryPostureKind::AspectConflict
+        | WorthQueryOrdinaryPostureKind::AuthorityMismatch
+        | WorthQueryOrdinaryPostureKind::BasisMismatch
+        | WorthQueryOrdinaryPostureKind::Refused
+        | WorthQueryOrdinaryPostureKind::WrongHandle
+        | WorthQueryOrdinaryPostureKind::WrongWorld => Some(RuntimeOutcomeFamily::violation()),
+        WorthQueryOrdinaryPostureKind::Denied => Some(RuntimeOutcomeFamily::denied()),
+        WorthQueryOrdinaryPostureKind::Failed | WorthQueryOrdinaryPostureKind::Unavailable => {
             Some(RuntimeOutcomeFamily::failed())
         }
-        ForgeQueryOrdinaryPostureKind::Unsupported => None,
-        ForgeQueryOrdinaryPostureKind::RebindRequired => Some(RuntimeOutcomeFamily::recoverable()),
-        ForgeQueryOrdinaryPostureKind::Stale => Some(RuntimeOutcomeFamily::stale()),
+        WorthQueryOrdinaryPostureKind::Unsupported => None,
+        WorthQueryOrdinaryPostureKind::RebindRequired => Some(RuntimeOutcomeFamily::recoverable()),
+        WorthQueryOrdinaryPostureKind::Stale => Some(RuntimeOutcomeFamily::stale()),
     }
 }
 
 fn runtime_posture_family(
-    kind: ForgeQueryOrdinaryRuntimePostureKind,
+    kind: WorthQueryOrdinaryRuntimePostureKind,
 ) -> Option<RuntimeOutcomeFamily> {
     match kind {
-        ForgeQueryOrdinaryRuntimePostureKind::Current => Some(RuntimeOutcomeFamily::ready()),
-        ForgeQueryOrdinaryRuntimePostureKind::Remasked => Some(RuntimeOutcomeFamily::advisory()),
-        ForgeQueryOrdinaryRuntimePostureKind::Pending => Some(RuntimeOutcomeFamily::loading()),
-        ForgeQueryOrdinaryRuntimePostureKind::Failed => Some(RuntimeOutcomeFamily::failed()),
-        ForgeQueryOrdinaryRuntimePostureKind::Stale => Some(RuntimeOutcomeFamily::stale()),
-        ForgeQueryOrdinaryRuntimePostureKind::Cancelled => Some(RuntimeOutcomeFamily::cancelled()),
-        ForgeQueryOrdinaryRuntimePostureKind::Retried => Some(RuntimeOutcomeFamily::retrying()),
-        ForgeQueryOrdinaryRuntimePostureKind::Revalidating => {
+        WorthQueryOrdinaryRuntimePostureKind::Current => Some(RuntimeOutcomeFamily::ready()),
+        WorthQueryOrdinaryRuntimePostureKind::Remasked => Some(RuntimeOutcomeFamily::advisory()),
+        WorthQueryOrdinaryRuntimePostureKind::Pending => Some(RuntimeOutcomeFamily::loading()),
+        WorthQueryOrdinaryRuntimePostureKind::Failed => Some(RuntimeOutcomeFamily::failed()),
+        WorthQueryOrdinaryRuntimePostureKind::Stale => Some(RuntimeOutcomeFamily::stale()),
+        WorthQueryOrdinaryRuntimePostureKind::Cancelled => Some(RuntimeOutcomeFamily::cancelled()),
+        WorthQueryOrdinaryRuntimePostureKind::Retried => Some(RuntimeOutcomeFamily::retrying()),
+        WorthQueryOrdinaryRuntimePostureKind::Revalidating => {
             Some(RuntimeOutcomeFamily::revalidating())
         }
-        ForgeQueryOrdinaryRuntimePostureKind::Superseded => Some(RuntimeOutcomeFamily::stopped()),
-        ForgeQueryOrdinaryRuntimePostureKind::Denied => Some(RuntimeOutcomeFamily::denied()),
-        ForgeQueryOrdinaryRuntimePostureKind::Unsupported => None,
+        WorthQueryOrdinaryRuntimePostureKind::Superseded => Some(RuntimeOutcomeFamily::stopped()),
+        WorthQueryOrdinaryRuntimePostureKind::Denied => Some(RuntimeOutcomeFamily::denied()),
+        WorthQueryOrdinaryRuntimePostureKind::Unsupported => None,
     }
 }
 
 fn async_result_state_family(
-    kind: ForgeQueryRuntimeAsyncResultStateKind,
+    kind: WorthQueryRuntimeAsyncResultStateKind,
 ) -> Option<RuntimeOutcomeFamily> {
     match kind {
-        ForgeQueryRuntimeAsyncResultStateKind::Pending => Some(RuntimeOutcomeFamily::loading()),
-        ForgeQueryRuntimeAsyncResultStateKind::Current => Some(RuntimeOutcomeFamily::ready()),
-        ForgeQueryRuntimeAsyncResultStateKind::Failed => Some(RuntimeOutcomeFamily::failed()),
-        ForgeQueryRuntimeAsyncResultStateKind::Stale => Some(RuntimeOutcomeFamily::stale()),
-        ForgeQueryRuntimeAsyncResultStateKind::Cancelled => Some(RuntimeOutcomeFamily::cancelled()),
-        ForgeQueryRuntimeAsyncResultStateKind::Retried => Some(RuntimeOutcomeFamily::retrying()),
-        ForgeQueryRuntimeAsyncResultStateKind::Revalidating => {
+        WorthQueryRuntimeAsyncResultStateKind::Pending => Some(RuntimeOutcomeFamily::loading()),
+        WorthQueryRuntimeAsyncResultStateKind::Current => Some(RuntimeOutcomeFamily::ready()),
+        WorthQueryRuntimeAsyncResultStateKind::Failed => Some(RuntimeOutcomeFamily::failed()),
+        WorthQueryRuntimeAsyncResultStateKind::Stale => Some(RuntimeOutcomeFamily::stale()),
+        WorthQueryRuntimeAsyncResultStateKind::Cancelled => Some(RuntimeOutcomeFamily::cancelled()),
+        WorthQueryRuntimeAsyncResultStateKind::Retried => Some(RuntimeOutcomeFamily::retrying()),
+        WorthQueryRuntimeAsyncResultStateKind::Revalidating => {
             Some(RuntimeOutcomeFamily::revalidating())
         }
-        ForgeQueryRuntimeAsyncResultStateKind::Superseded => Some(RuntimeOutcomeFamily::stopped()),
-        ForgeQueryRuntimeAsyncResultStateKind::Denied => Some(RuntimeOutcomeFamily::denied()),
+        WorthQueryRuntimeAsyncResultStateKind::Superseded => Some(RuntimeOutcomeFamily::stopped()),
+        WorthQueryRuntimeAsyncResultStateKind::Denied => Some(RuntimeOutcomeFamily::denied()),
     }
 }

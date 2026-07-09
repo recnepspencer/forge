@@ -17,9 +17,9 @@ default = []
 certification-support = []
 
 [dependencies]
-forge-foundational = { path = "../../../../crates/forge-foundational" }
-forge-proof = { path = "../../../../crates/forge-proof" }
-forge-query = { path = "../../../../crates/forge-query" }
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-query = { path = "../../../../crates/worth-query" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding" }

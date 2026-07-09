@@ -19,12 +19,14 @@ pub(crate) fn normalize_host_measurement_evidence(
         });
     }
 
-    Ok(super::result_construction::construct_measurement_result_from_host_observation(
-        observation,
-        evidence_generation,
-        normalization_context.unit_posture(),
-        normalization_context.coordinate_space(),
-        normalization_context.rounding_posture(),
-        normalization_context.assumption_profile(),
-    ))
+    Ok(
+        super::result_construction::construct_measurement_result_from_host_observation(
+            observation,
+            evidence_generation,
+            normalization_context.unit_posture(),
+            normalization_context.coordinate_space(),
+            normalization_context.rounding_posture(),
+            normalization_context.assumption_profile(),
+        ),
+    )
 }

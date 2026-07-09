@@ -37,11 +37,13 @@ fn scroll_owner_basis_admits_as_typed_planning_input() {
         &scroll_owner_policy(),
         &[
             MeasurementEvidenceInput::host_capability_report(&report),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_scroll_container_viewport(
-                1010,
-                &report,
-                UiEvidenceAuthorityGeneration::new(101),
-            )),
+            MeasurementEvidenceInput::host_measurement_result(
+                &host_result_scroll_container_viewport(
+                    1010,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(101),
+                ),
+            ),
         ],
     );
     let neighborhood = basis
@@ -54,7 +56,10 @@ fn scroll_owner_basis_admits_as_typed_planning_input() {
         .scroll_owner_planning_input()
         .expect("scroll owner should carry scroll planning artifact");
 
-    assert_eq!(scroll_input.edge_family(), UiConstraintPropagationEdgeFamily::ScrollViewportInput);
+    assert_eq!(
+        scroll_input.edge_family(),
+        UiConstraintPropagationEdgeFamily::ScrollViewportInput
+    );
     assert_eq!(
         scroll_input.posture(),
         UiScrollOwnerPlanningInputPosture::AdmittedPlanningTimeOnly
@@ -98,7 +103,10 @@ fn missing_scroll_owner_basis_denies_through_typed_scroll_lane() {
         denial.reason(),
         UiConstraintPropagationDenialReason::MissingRequiredScrollOwnerPlanningInput
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput)
+    );
 }
 
 #[test]
@@ -117,11 +125,13 @@ fn stale_scroll_owner_basis_denies_as_incompatible_measurement_posture() {
         &scroll_owner_policy(),
         &[
             MeasurementEvidenceInput::host_capability_report(&report),
-            MeasurementEvidenceInput::host_measurement_result(&host_result_scroll_container_viewport(
-                1030,
-                &report,
-                UiEvidenceAuthorityGeneration::new(102),
-            )),
+            MeasurementEvidenceInput::host_measurement_result(
+                &host_result_scroll_container_viewport(
+                    1030,
+                    &report,
+                    UiEvidenceAuthorityGeneration::new(102),
+                ),
+            ),
         ],
     );
     let neighborhood = basis
@@ -135,7 +145,10 @@ fn stale_scroll_owner_basis_denies_as_incompatible_measurement_posture() {
         denial.reason(),
         UiConstraintPropagationDenialReason::IncompatibleMeasurementPosture
     );
-    assert_eq!(denial.family(), Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput));
+    assert_eq!(
+        denial.family(),
+        Some(UiConstraintPropagationEdgeFamily::ScrollViewportInput)
+    );
 }
 
 fn scroll_owner_policy() -> UiDeclaredMeasurementPolicyPosture {

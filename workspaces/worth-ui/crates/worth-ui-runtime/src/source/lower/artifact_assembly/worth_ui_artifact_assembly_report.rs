@@ -18,10 +18,12 @@ impl WorthUiArtifactAssemblyReport {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn diagnostics(&self) -> &[WorthUiArtifactAssemblyDiagnostic] {
         &self.diagnostics
     }
 
+    #[cfg(test)]
     pub(crate) fn metrics(&self) -> WorthUiArtifactAssemblyMetrics {
         self.metrics
     }

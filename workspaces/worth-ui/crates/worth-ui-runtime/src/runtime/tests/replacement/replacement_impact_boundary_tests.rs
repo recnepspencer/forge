@@ -1,9 +1,9 @@
 use crate::facade::WorthUi;
+use crate::runtime::tests::replacement_impact_test_support::{
+    admitted_candidate, artifact_from_modules, impact_test_app, import_artifact, launch_runtime,
+    surface_module, token_module, two_module_import_artifact,
+};
 use crate::runtime::{
-    replacement_impact_test_support::{
-        admitted_candidate, artifact_from_modules, impact_test_app, import_artifact,
-        launch_runtime, surface_module, token_module, two_module_import_artifact,
-    },
     WorthUiCommandImpact, WorthUiReplacementImpact, WorthUiReplacementImpactDenial,
     WorthUiRuntimeArtifactComparisonOutcome, WorthUiTokenThemeImpact,
     WorthUiUnsupportedReplacementImpact,

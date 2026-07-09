@@ -7,15 +7,15 @@ use crate::declaration::{
 };
 use crate::graph::UiGraphNodeIdentity;
 
-use crate::evidence::measurement::projection::variant_test_support::display_field_plus_entity_identity_projection_context;
 use crate::evidence::measurement::projection::fact_test_support::{
     capability_report, display_field_projection_context, host_font_metrics_policy,
     host_result_font_metrics, host_result_portal_anchor, host_result_scroll_container_viewport,
     host_result_viewport_extent, scroll_viewport_policy, synthetic_declaration_identity,
 };
+use crate::evidence::measurement::projection::variant_test_support::display_field_plus_entity_identity_projection_context;
 use crate::evidence::{
-    admit_measurement_basis, consume_declared_measurement_projection_facts, MeasurementEvidenceInput,
-    UiMeasurementDependencyLineageKind, UiMeasurementDependencyMapEntry,
+    admit_measurement_basis, consume_declared_measurement_projection_facts,
+    MeasurementEvidenceInput, UiMeasurementDependencyLineageKind, UiMeasurementDependencyMapEntry,
     UiMeasurementNeighborhoodClassHint,
 };
 
@@ -377,7 +377,7 @@ fn entry_class(
 ) -> UiMeasurementNeighborhoodClassHint {
     entries
         .iter()
-        .find(|entry| entry.lineage().kind() == kind)
+        .find(|entry: &&UiMeasurementDependencyMapEntry| entry.lineage().kind() == kind)
         .expect("dependency kind should be preserved")
         .neighborhood_class_hint()
 }

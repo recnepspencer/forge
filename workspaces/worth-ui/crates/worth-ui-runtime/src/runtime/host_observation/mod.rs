@@ -4,14 +4,15 @@
 pub mod diagnostics;
 #[path = "../diagnostics_projection/mod.rs"]
 pub mod diagnostics_projection;
+#[path = "../identity_state_query_certification/mod.rs"]
+pub mod identity_state_query_certification;
 #[path = "../reload_failure/mod.rs"]
 pub mod reload_failure;
 #[path = "reload_failure.rs"]
 mod reload_preservation;
+#[cfg(test)]
 #[path = "../reload_storm_certification/mod.rs"]
 pub mod reload_storm_certification;
-#[path = "../identity_state_query_certification/mod.rs"]
-pub mod identity_state_query_certification;
 
 mod certification;
 #[path = "diagnostics.rs"]

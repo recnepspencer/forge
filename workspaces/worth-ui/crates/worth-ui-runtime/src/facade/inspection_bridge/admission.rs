@@ -54,7 +54,10 @@ pub(crate) fn decide_support_admission(
     let admission = query
         .admit_relevance()
         .refined_for_support_report(support_report);
-    if !matches!(support_report.posture(), UiInspectionSupportPosture::Supported) {
+    if !matches!(
+        support_report.posture(),
+        UiInspectionSupportPosture::Supported
+    ) {
         lifecycle.record_unsupported_inspection_query();
     }
     if matches!(admission.outcome(), UiInspectionRelevanceOutcome::Matched) {

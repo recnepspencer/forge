@@ -1,23 +1,14 @@
 //! Lifecycle-grouped runtime exports.
 
 // --- launch ---
+pub use super::active::WorthUiActiveRuntimeObservation;
 pub use super::launch::{
     WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
+    WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
     WorthUiRuntimeShutdownReceipt,
 };
-pub use super::active::WorthUiActiveRuntimeObservation;
 
 // --- replacement ---
-pub use super::replacement::{
-    WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
-    WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters, WorthUiNodeReplacementPlan,
-    WorthUiReplacementAdmissionBasis, WorthUiReplacementComparisonReady,
-    WorthUiReplacementIdentityReady, WorthUiReplacementImpactReady, WorthUiReplacementLoweringDenial,
-    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
-    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
-    WorthUiReplacementReconciliationReady,
-};
 pub use super::replacement::admission::{
     WorthUiActiveReplacementBasis, WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission,
     WorthUiCandidateAdmissionCounters, WorthUiCandidateAdmissionDenial,
@@ -30,7 +21,6 @@ pub use super::replacement::candidate::{
     WorthUiCandidateProvenanceHandle, WorthUiReplacementCandidate,
     WorthUiReplacementCandidateBasis, WorthUiReplacementCandidateDenial, WorthUiReplacementCause,
 };
-pub(crate) use super::replacement::candidate::rust_authored_replacement_candidate;
 pub use super::replacement::equivalence::{
     WorthUiRuntimeArtifactComparator, WorthUiRuntimeArtifactComparison,
     WorthUiRuntimeArtifactComparisonCounters, WorthUiRuntimeArtifactComparisonDenial,
@@ -93,15 +83,24 @@ pub use super::replacement::state_inventory::{
     WorthUiStatePersistencePosture, WorthUiTransientInteractionPolicy,
     WorthUiTransientInteractionState,
 };
+pub use super::replacement::{
+    WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
+    WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
+    WorthUiNodeReplacementPlan, WorthUiReplacementAdmissionBasis,
+    WorthUiReplacementComparisonReady, WorthUiReplacementIdentityReady,
+    WorthUiReplacementImpactReady, WorthUiReplacementLoweringDenial,
+    WorthUiReplacementLoweringReady, WorthUiReplacementNarrowingReady,
+    WorthUiReplacementNodePlanReady, WorthUiReplacementQueryComparisonReady,
+    WorthUiReplacementReconciliationReady,
+};
 
 // --- planning ---
-pub use super::planning::WorthUiPlanningLaneInput;
+pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 pub use super::planning::allocation_planning::{
     WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis, WorthUiAllocationPlanningCounters,
     WorthUiAllocationPlanningDenial, WorthUiAllocationPlanningDenialReason,
     WorthUiAllocationPlanningInspection, WorthUiAllocationPlanningLoweringMismatch,
 };
-pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 pub use super::planning::execution_plan_input::{
     WorthUiComponentLoweringHook, WorthUiComponentLoweringHookFamily, WorthUiEguiBoundaryInput,
     WorthUiExecutionPlanInput, WorthUiPlanLoweringBasis, WorthUiPlanLoweringContext,
@@ -125,9 +124,9 @@ pub use super::planning::plan_topology::{
     WorthUiPlanTopology, WorthUiPlanTopologyCounters, WorthUiPlanTopologyDenial,
     WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
+pub use super::planning::WorthUiPlanningLaneInput;
 
 // --- activation ---
-pub use super::activation::WorthUiActivationLaneInput;
 pub use super::activation::activation_staging::{
     WorthUiActivationReadiness, WorthUiActivationStagingCounters, WorthUiActivationStagingDenial,
     WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
@@ -142,9 +141,9 @@ pub use super::activation::frame_activation_gate::{
     WorthUiActivationGateReceipt, WorthUiFrameBoundary, WorthUiFrameBoundaryPosture,
     WorthUiReadyActivation,
 };
+pub use super::activation::WorthUiActivationLaneInput;
 
 // --- execution ---
-pub use super::execution::WorthUiExecutionLaneInput;
 pub use super::execution::canvas_spatial_lane::{
     WorthUiCanvasDrawHook, WorthUiCanvasOverlayPlan, WorthUiCanvasSpatialCertification,
     WorthUiCanvasSpatialCounters, WorthUiCanvasSpatialFrameDenial,
@@ -227,11 +226,9 @@ pub use super::execution::virtualized_data_lane::{
     WorthUiVirtualizedDataPlanDenial, WorthUiVirtualizedDataPlanDenialReason, WorthUiVisibleRange,
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
+pub use super::execution::WorthUiExecutionLaneInput;
 
 // --- host observation ---
-pub use super::host_observation::{
-    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeInspectionAiHarness,
-};
 pub use super::host_observation::diagnostics::{
     WorthUiDiagnosticMaterialization, WorthUiDiagnosticProjectionHook,
     WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticRichnessTier, WorthUiDiagnosticSource,
@@ -263,6 +260,7 @@ pub use super::host_observation::reload_failure::{
     WorthUiReloadFailure, WorthUiReloadFailureCounters, WorthUiReloadFailureStage,
     WorthUiReloadPreservationReceipt,
 };
+#[cfg(test)]
 pub use super::host_observation::reload_storm_certification::{
     WorthUiReloadCertificationBundle, WorthUiReloadLatencyCounters,
     WorthUiReloadStormCandidateDenialReason, WorthUiReloadStormCandidateStep,
@@ -272,6 +270,9 @@ pub use super::host_observation::reload_storm_certification::{
     WorthUiReloadStormNoOpIteration, WorthUiReloadStormOrderedTruth,
     WorthUiReloadStormReceiptBinding, WorthUiReloadStormScenario,
     WorthUiReloadStormSuccessfulIteration,
+};
+pub use super::host_observation::{
+    WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeInspectionAiHarness,
 };
 
 // --- source ingress ---

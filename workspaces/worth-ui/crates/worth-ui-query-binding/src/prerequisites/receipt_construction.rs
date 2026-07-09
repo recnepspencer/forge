@@ -1,4 +1,4 @@
-use forge_query::facade::{
+use worth_query::facade::{
     CompletedProjectionFactConsumption, ProjectionContractSourcePosture, ProjectionFactKind,
 };
 
@@ -68,12 +68,13 @@ pub(crate) fn collect_verified_receipt_parts(
     let prerequisites =
         prerequisites.bound_to_projection_contract(completed.contract().contract_digest());
     let consumed_families = classify_consumed_fact_families(completed);
-    let observations = WorthUiQueryMeasurementFactObservation::from_completed_projection_consumption(
-        prerequisites.clone(),
-        completed,
-    )
-    .map_err(WorthUiQueryMeasurementFactReceiptError::Observation)?
-    .into_vec();
+    let observations =
+        WorthUiQueryMeasurementFactObservation::from_completed_projection_consumption(
+            prerequisites.clone(),
+            completed,
+        )
+        .map_err(WorthUiQueryMeasurementFactReceiptError::Observation)?
+        .into_vec();
     Ok(VerifiedMeasurementFactReceiptParts {
         prerequisites,
         projection_contract_digest: completed.contract().contract_digest().to_string(),

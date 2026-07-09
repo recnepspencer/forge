@@ -8,6 +8,7 @@ pub struct FrozenIconCapabilities {
 }
 
 impl FrozenIconCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

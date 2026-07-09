@@ -3,16 +3,16 @@ use super::ordinary_lane_test_support::ordinary_lane_fixture;
 use super::realtime_overlay_lane_test_support::realtime_overlay_fixture;
 use super::virtualized_data_lane_test_support::virtualized_data_fixture;
 use super::{
-    WorthUiCanvasSpatialCounters, WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
-    WorthUiFrameCostCounter, WorthUiFrameReportMaterializationBoundary,
-    WorthUiLaneFrameReceiptKind, WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCounters,
-    WorthUiRealtimeFrameTarget, WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane,
-    WorthUiRuntimeCounterFamily, WorthUiSteadyFrameCounterBoundary,
-    WorthUiSteadyFrameCounterDenialReason, WorthUiSteadyFrameFoundationalBridge,
-    WorthUiSteadyFrameReportPlanner, WorthUiViewBindingHandle, WorthUiVirtualizedDataCounters,
-    WorthUiVirtualizedDataFrameTarget, WorthUiVirtualizedDataLane, WorthUiVisibleRange,
+    WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane, WorthUiFrameCostCounter,
+    WorthUiFrameReportMaterializationBoundary, WorthUiLaneFrameReceiptKind,
+    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneCounters, WorthUiRealtimeFrameTarget,
+    WorthUiRealtimeLaneCounters, WorthUiRealtimeOverlayLane, WorthUiRuntimeCounterFamily,
+    WorthUiSteadyFrameCounterBoundary, WorthUiSteadyFrameCounterDenialReason,
+    WorthUiSteadyFrameFoundationalBridge, WorthUiSteadyFrameReportPlanner,
+    WorthUiViewBindingHandle, WorthUiVirtualizedDataFrameTarget, WorthUiVirtualizedDataLane,
+    WorthUiVisibleRange,
 };
-use forge_foundational::FoundationalPerformanceReportMaterializationBoundary;
+use worth_foundational::FoundationalPerformanceReportMaterializationBoundary;
 
 #[test]
 fn steady_frame_counters_replay_for_equivalent_active_plan() {
@@ -364,8 +364,4 @@ fn packet_row_value(packet: &super::WorthUiMeasurementCounterPacket, name: &str)
         .find(|counter| counter.name() == name)
         .map(WorthUiFrameCostCounter::value)
         .expect("counter row exists")
-}
-
-#[allow(dead_code)]
-fn _lane_counter_type_coverage(_: WorthUiVirtualizedDataCounters, _: WorthUiCanvasSpatialCounters) {
 }

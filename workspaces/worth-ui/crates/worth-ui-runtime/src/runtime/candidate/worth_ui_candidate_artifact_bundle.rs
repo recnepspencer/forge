@@ -1,4 +1,5 @@
 use crate::capability::CapabilitySnapshotDigest;
+#[cfg(test)]
 use crate::runtime::candidate::worth_ui_candidate_dependency_metadata_digest::digest_dependency_report;
 use crate::runtime::candidate::WorthUiCandidateLoweringBasis;
 use crate::runtime::candidate::{
@@ -43,6 +44,7 @@ impl WorthUiCandidateArtifactBundle {
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn seal(
         artifact: WorthUiArtifact,
         dependency_metadata: WorthUiCandidateDependencyMetadata,
@@ -76,6 +78,7 @@ impl WorthUiCandidateArtifactBundle {
         self.artifact_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn artifact_digest_report(&self) -> WorthUiArtifactDigestReport {
         self.artifact_digest_report
     }
@@ -135,6 +138,7 @@ fn digest_artifact(
     )
 }
 
+#[cfg(test)]
 fn reject_stale_dependency_metadata(
     artifact: &WorthUiArtifact,
     dependency_metadata: &WorthUiCandidateDependencyMetadata,

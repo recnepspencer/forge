@@ -9,6 +9,7 @@ pub struct FrozenMosaicRegionCapabilities {
 }
 
 impl FrozenMosaicRegionCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             descriptors: Vec::new(),

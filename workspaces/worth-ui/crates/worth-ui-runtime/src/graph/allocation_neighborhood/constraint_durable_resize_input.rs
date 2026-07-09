@@ -19,7 +19,9 @@ pub(super) fn admit_durable_resize_inputs(
     let Some(axis_scope) = axis_scope_for_sibling_mode(summary.sibling_negotiation_mode()) else {
         return Vec::new();
     };
-    let Some(resize_support) = admitted_runtime_resize_support(measurement_basis, neighborhood, axis_scope) else {
+    let Some(resize_support) =
+        admitted_runtime_resize_support(measurement_basis, neighborhood, axis_scope)
+    else {
         return Vec::new();
     };
     let root_identity_digest = neighborhood

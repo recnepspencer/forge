@@ -8,7 +8,7 @@ pub(crate) mod slice_assembly;
 pub(crate) mod slice_ordering;
 
 pub(crate) use authority_binding::evidence_authority_binding;
-pub(crate) use expansion::{classify_expansion_admission, preflight_evidence_expansion};
+pub(crate) use expansion::preflight_evidence_expansion;
 pub(crate) use identity::{evidence_handle, evidence_identity};
 pub(crate) use reference::{evidence_ref, with_retention_posture};
 pub(crate) use slice::{evidence_family_summary, evidence_slice};

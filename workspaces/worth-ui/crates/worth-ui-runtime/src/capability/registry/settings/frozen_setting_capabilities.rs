@@ -8,6 +8,7 @@ pub struct FrozenSettingCapabilities {
 }
 
 impl FrozenSettingCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

@@ -1,6 +1,7 @@
 use crate::runtime::active::WorthUiActiveArtifact;
 use crate::source::{
-    WorthUiArtifact, WorthUiArtifactDigest, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
+    WorthUiArtifact, WorthUiArtifactDigest, WorthUiArtifactDigestor,
+    WorthUiArtifactEquivalenceBasis,
 };
 
 pub(crate) fn seal_launch_artifact(

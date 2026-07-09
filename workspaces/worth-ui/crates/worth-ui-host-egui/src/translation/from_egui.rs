@@ -1,29 +1,23 @@
-use worth_ui_runtime::facade::host_observation::{
+use worth_ui_host_contract::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNormalizationContext,
 };
 
 pub fn egui_text_intrinsic_normalization_context(
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiHostMeasurementNormalizationContext {
-    UiHostMeasurementNormalizationContext::text_intrinsic_surface_logical_exact(
-        assumption_profile,
-    )
+    UiHostMeasurementNormalizationContext::text_intrinsic_surface_logical_exact(assumption_profile)
 }
 
 pub fn egui_text_baseline_normalization_context(
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiHostMeasurementNormalizationContext {
-    UiHostMeasurementNormalizationContext::text_baseline_surface_logical_exact(
-        assumption_profile,
-    )
+    UiHostMeasurementNormalizationContext::text_baseline_surface_logical_exact(assumption_profile)
 }
 
 pub fn egui_font_metrics_normalization_context(
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiHostMeasurementNormalizationContext {
-    UiHostMeasurementNormalizationContext::font_metrics_surface_logical_exact(
-        assumption_profile,
-    )
+    UiHostMeasurementNormalizationContext::font_metrics_surface_logical_exact(assumption_profile)
 }
 
 pub fn egui_native_control_normalization_context(
@@ -55,17 +49,15 @@ pub fn egui_portal_anchor_normalization_context(
 pub fn egui_scroll_container_normalization_context(
     assumption_profile: UiHostMeasurementAssumptionProfile,
 ) -> UiHostMeasurementNormalizationContext {
-    UiHostMeasurementNormalizationContext::scroll_container_logical_exact(
-        assumption_profile,
-    )
+    UiHostMeasurementNormalizationContext::scroll_container_logical_exact(assumption_profile)
 }
 
 #[cfg(test)]
 mod tests {
     use worth_ui_host_contract::WorthUiHostCapabilityReport;
-    use worth_ui_runtime::facade::{
-        UiMeasurementCoordinateSpace, UiMeasurementEvidenceCategory,
-        UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
+    use worth_ui_host_contract::{
+        UiMeasurementCoordinateSpace, UiMeasurementEvidenceCategory, UiMeasurementRoundingPosture,
+        UiMeasurementUnitPosture,
     };
 
     use super::*;

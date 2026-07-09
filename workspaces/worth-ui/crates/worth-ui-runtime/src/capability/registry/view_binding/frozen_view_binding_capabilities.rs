@@ -11,6 +11,7 @@ pub struct FrozenViewBindingCapabilities {
 }
 
 impl FrozenViewBindingCapabilities {
+    #[cfg(test)]
     pub(crate) fn empty() -> Self {
         Self {
             entries: Vec::new(),

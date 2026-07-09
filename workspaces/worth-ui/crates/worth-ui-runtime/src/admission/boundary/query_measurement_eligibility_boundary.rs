@@ -21,7 +21,7 @@ impl<'a> UiAdmissionBoundary<'a> {
     pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Option<UiQueryMeasurementEligibility> {
         let base_target = crate::admission::UiAdmissionTarget::graph_node(
             touch.target().graph_node_identity(),
@@ -46,7 +46,7 @@ impl<'a> UiAdmissionBoundary<'a> {
         &self,
         _selected: &crate::obligations::selection::UiSelectedObligationSet,
         measurement_admission: &UiMeasurementAdmission,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Option<UiQueryMeasurementEligibility> {
         let declaration_identity = measurement_admission.declaration_identity()?.clone();
         let measurement_policy = measurement_policy_posture(self, measurement_admission)?;
@@ -279,7 +279,7 @@ fn stale_basis_posture(
 fn stale_basis_posture_from_projection_consumption(
     world: crate::admission::UiAdmissionWorld,
     current: &WorthUiQueryPrerequisiteEvidence,
-    consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+    consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
 ) -> Option<UiQueryMeasurementEligibilityPosture> {
     let completed = consumption.completed()?;
     let contract = completed.contract();

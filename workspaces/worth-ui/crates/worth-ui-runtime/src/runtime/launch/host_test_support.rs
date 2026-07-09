@@ -6,9 +6,9 @@ use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
 use crate::runtime::planning::collect_planning_measurement_basis;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiAllocationPlanning, WorthUiComponentLoweringHook,
-    WorthUiExecutionPlanInput, WorthUiIdentityMatchReport, WorthUiPendingActivation,
-    WorthUiPlanLoweringDenial, WorthUiRuntimeArtifactComparison,
-    WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeEquivalenceBasis,
+    WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringDenial,
+    WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial,
+    WorthUiRuntimeEquivalenceBasis,
 };
 
 use super::host::WorthUiRuntimeHost;
@@ -20,11 +20,8 @@ impl WorthUiRuntimeHost {
         measurement_basis: &crate::evidence::UiMeasurementBasis,
         allocation_neighborhood: &crate::evidence::UiAllocationNeighborhood,
     ) -> WorthUiAllocationPlanning {
-        let measurement_basis = collect_planning_measurement_basis(
-            measurement_basis,
-            allocation_neighborhood,
-            &[],
-        );
+        let measurement_basis =
+            collect_planning_measurement_basis(measurement_basis, allocation_neighborhood, &[]);
         crate::runtime::allocation_planning::WorthUiAllocationPlanner::plan_from_lowered_input(
             WorthUiAllocationPlanningAdmission::from_lowered_input_for_test(
                 &plan_input,

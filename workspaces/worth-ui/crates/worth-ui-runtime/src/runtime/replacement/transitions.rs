@@ -1,7 +1,8 @@
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
-    WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan, WorthUiPendingExecutionPlanLoweringInput,
-    WorthUiQueryBindingComparison, WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
+    WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan,
+    WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryBindingComparison,
+    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
     WorthUiRuntimeArtifactComparison, WorthUiRuntimeImpactNarrowing,
 };
 
@@ -12,11 +13,11 @@ pub struct WorthUiReplacementAdmissionBasis(
 );
 
 impl WorthUiReplacementAdmissionBasis {
-    pub(crate) fn into_active_basis(self) -> crate::runtime::WorthUiActiveReplacementBasis {
+    pub fn into_active_basis(self) -> crate::runtime::WorthUiActiveReplacementBasis {
         self.0
     }
 
-    pub(crate) fn active_basis(&self) -> &crate::runtime::WorthUiActiveReplacementBasis {
+    pub fn active_basis(&self) -> &crate::runtime::WorthUiActiveReplacementBasis {
         &self.0
     }
 }
@@ -102,6 +103,20 @@ impl WorthUiReplacementComparisonReady {
 
     pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
         &self.comparison
+    }
+}
+
+impl WorthUiReplacementImpactReady {
+    pub fn admitted(&self) -> &WorthUiAdmittedReplacementCandidate {
+        &self.admitted
+    }
+
+    pub fn comparison(&self) -> &WorthUiRuntimeArtifactComparison {
+        &self.comparison
+    }
+
+    pub fn impact(&self) -> &WorthUiReplacementImpactClassification {
+        &self.impact
     }
 }
 

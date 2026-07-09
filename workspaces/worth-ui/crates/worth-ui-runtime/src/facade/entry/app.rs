@@ -7,7 +7,10 @@ use crate::declaration::{
 use crate::evidence::{UiEvidenceExpansion, UiEvidenceRef};
 use crate::facade::{
     inspection::expand_evidence_ref as expand_inspection_evidence_ref,
-    inspection_bridge::{route_inspection, UiInspectionClosureReport, UiInspectionFacadeObservation, UiInspectionReceipt},
+    inspection_bridge::{
+        route_inspection, UiInspectionClosureReport, UiInspectionFacadeObservation,
+        UiInspectionReceipt,
+    },
     lifecycle::{
         build_graph_evidence_indexes, WorthUiCapabilityRegistrationFreezeCore,
         WorthUiFacadeLifecycleBootstrap,
@@ -16,11 +19,11 @@ use crate::facade::{
     retained_obligation_registry::WorthUiRetainedObligationRegistry,
     runtime_handoff::{WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial},
 };
-use crate::lifecycle::WorthUiRuntimeSupportInventory;
 use crate::graph::{
     UiGraphAspectEvidenceIndexes, UiGraphAuthority, UiGraphCloseoutReport,
     UiGraphNodeEvidenceIndex, UiGraphSnapshot,
 };
+use crate::lifecycle::WorthUiRuntimeSupportInventory;
 use crate::obligations::closeout::UiObligationCloseoutReport;
 use crate::obligations::touch::UiGraphTouchDescriptor;
 use crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry;
@@ -71,11 +74,8 @@ impl WorthUiApp {
     ) -> Self {
         let authored_evidence_index =
             UiDeclarationAuthoredEvidenceIndex::rebuild(&declaration_artifacts, &graph_snapshot);
-        let graph_evidence = build_graph_evidence_indexes(
-            &declaration_artifacts,
-            &graph_snapshot,
-            &lifecycle,
-        );
+        let graph_evidence =
+            build_graph_evidence_indexes(&declaration_artifacts, &graph_snapshot, &lifecycle);
 
         Self {
             capability_snapshot,
@@ -132,7 +132,7 @@ impl WorthUiApp {
     pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
         &self,
         touch: &UiGraphTouchDescriptor,
-        consumption: &forge_query::facade::ProjectionFactConsumptionAttempt,
+        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.admission()
             .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
@@ -267,11 +267,13 @@ impl WorthUiApp {
         )
     }
 
-    pub(crate) fn try_query_touch_for_node(
+    pub fn try_query_touch_for_node(
         &self,
         graph_node_identity: crate::graph::UiGraphNodeIdentity,
-    ) -> Result<crate::obligations::touch::UiGraphTouchDescriptor, crate::obligations::touch::UiGraphTouchDenial>
-    {
+    ) -> Result<
+        crate::obligations::touch::UiGraphTouchDescriptor,
+        crate::obligations::touch::UiGraphTouchDenial,
+    > {
         crate::facade::inspection_bridge::obligation_routes::try_query_touch_for_node(
             self,
             graph_node_identity,

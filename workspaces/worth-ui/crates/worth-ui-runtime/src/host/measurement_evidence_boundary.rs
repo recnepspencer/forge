@@ -21,18 +21,10 @@ pub fn collect_host_measurement_evidence<A: WorthUiMeasurementHostAdapter>(
     evidence_generation: UiEvidenceAuthorityGeneration,
     normalization_context: UiHostMeasurementNormalizationContext,
 ) -> Result<UiMeasurementResult, UiHostMeasurementEvidenceDenial> {
-    let observation = observe_host_measurement(
-        adapter,
-        identity,
-        evidence_family,
-        need,
-        capability_report,
-    )?;
-    let normalized = normalize_host_observation(
-        observation,
-        evidence_generation,
-        normalization_context,
-    )?;
+    let observation =
+        observe_host_measurement(adapter, identity, evidence_family, need, capability_report)?;
+    let normalized =
+        normalize_host_observation(observation, evidence_generation, normalization_context)?;
     let freshness_witness = construct_freshness_witness(
         evidence_generation,
         normalization_context.assumption_profile(),
