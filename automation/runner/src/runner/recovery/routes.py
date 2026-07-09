@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+from runner.recovery.failure_families import (
+    INVALID_OUTCOME_FAMILY,
+    MALFORMED_OUTCOME_EVENT_FAMILY,
+    MALFORMED_RUNNER_EVENT_FAMILY,
+    MISSING_OUTCOME_EVENT_FAMILY,
+    MISSING_RUNNER_EVENT_FAMILY,
+)
+
+OUTCOME_REPAIR_FAMILIES = (
+    INVALID_OUTCOME_FAMILY,
+    MISSING_RUNNER_EVENT_FAMILY,
+    MALFORMED_RUNNER_EVENT_FAMILY,
+    MISSING_OUTCOME_EVENT_FAMILY,
+    MALFORMED_OUTCOME_EVENT_FAMILY,
+)
+
+
+def requires_outcome_repair(failure_family: str) -> bool:
+    return failure_family in OUTCOME_REPAIR_FAMILIES

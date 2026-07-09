@@ -1,0 +1,8 @@
+{
+  "kind": "assembly",
+  "parts": [
+    {
+      "asset_id": "turns/test_repair_implement"
+    }
+  ]
+}
