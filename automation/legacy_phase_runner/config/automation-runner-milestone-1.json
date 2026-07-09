@@ -17,7 +17,6 @@
     ]
   },
   "turn_templates": {
-    "boundary_review": "templates/boundary_review.md",
     "plan": "templates/plan.md",
     "implement": "templates/implement.md",
     "review": "templates/review.md",
@@ -41,7 +40,6 @@
   },
   "runner_control": {
     "phase_id_start": 1,
-    "boundary_review_start_phase": 1,
     "idle_timeout_seconds": 1800,
     "turn_timeout_seconds": 14400,
     "fresh_session_after_qa_repair_cycles": 4
