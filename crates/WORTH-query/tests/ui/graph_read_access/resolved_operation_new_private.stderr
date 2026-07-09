@@ -1,0 +1,10 @@
+error[E0624]: associated function `declaration_traversal` is private
+ --> tests/ui/graph_read_access/resolved_operation_new_private.rs:4:51
+  |
+4 |     let _ = WorthQueryGraphReadResolvedOperation::declaration_traversal;
+  |                                                   ^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/operation_resolution/resolved_operation.rs
+  |
+  |     pub(crate) fn declaration_traversal() -> Self {
+  |     --------------------------------------------- private associated function defined here

@@ -140,7 +140,7 @@ pub(crate) fn load_orientations(
                 .iter()
                 .any(|band| band == &parsed.band)
             {
-                machine_fences.push("Must not depend on forge-query.".to_owned());
+                machine_fences.push("Must not depend on worth-query.".to_owned());
             }
             if parsed.band != "cert" {
                 machine_fences.push(format!(

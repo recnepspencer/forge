@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "WORTH Store S.7.1 Proof-Flow And Domain-Structure Cleanup Gate",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH",
+    "spec_file": "_docs/worth-store/storage-foundation-s7-1.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/storage-foundation-s7-1.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-isolation/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-io-scheduler/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-backend/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-buffer-pool/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-integrity/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-certification/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "boundary_review": "templates/code_cleanup_audit.md",
+    "plan": "templates/code_cleanup_plan.md",
+    "implement": "templates/code_cleanup_implement.md",
+    "review": "templates/code_cleanup_review.md",
+    "repair": "templates/code_cleanup_repair.md",
+    "test_review": "templates/code_cleanup_evidence_review.md",
+    "test_repair_plan": "templates/code_cleanup_evidence_plan.md",
+    "test_repair_implement": "templates/code_cleanup_evidence_implement.md",
+    "code_quality_review": "templates/code_cleanup_final_review.md",
+    "code_quality_repair": "templates/code_cleanup_final_repair.md"
+  },
+  "contract_template": "templates/_contract_code_cleanup.md",
+  "session_defaults": {
+    "provider": "grok",
+    "command": "C:/Users/Esther/.grok/bin/grok.exe",
+    "model": "grok-composer-2.5-fast",
+    "reuse_session": true,
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "env": {
+      "GROK_DISABLE_AUTOUPDATER": "1",
+      "GROK_TELEMETRY_TRACE_UPLOAD": "false"
+    }
+  },
+  "runner_control": {
+    "idle_timeout_seconds": 1800,
+    "turn_timeout_seconds": 7200
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Structural Inventory And Concept Freeze",
+      "owner": "`worth-store` cleanup gate across critical Store crates",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-integrity"
+      ],
+      "acceptance": [
+        "Inventory names critical root-file, facade, wildcard-export, mod.rs, helper-placement, copied-constructor, and overloaded-function cleanup targets.",
+        "Inventory classifies each finding by structural failure mode and evidence needed for closeout.",
+        "No new Store concept expansion is planned as part of the inventory."
+      ],
+      "instructions": "Implement S.7.1 Phase 1. Produce the cleanup map that later phases consume. Treat this as structural evidence work, not feature implementation.",
+      "qa_focus": "Check that the inventory identifies root architectural failure modes rather than surface ugliness, and that it preserves the concept freeze."
+    },
+    {
+      "id": 2,
+      "title": "Certification Courtroom Cleanup",
+      "owner": "`worth-store-certification`, `worth-store-physical-certification`, `worth-store-test-support`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-test-support"
+      ],
+      "acceptance": [
+        "Production law needed by Store crates lives in production crates rather than certification-only vocabulary.",
+        "Certification surfaces are named and structured as evidence, replay, scenario, courtroom, or harness authority.",
+        "Changed construction boundaries have appropriate mechanical evidence."
+      ],
+      "instructions": "Implement S.7.1 Phase 2. Clean certification so it proves and replays Store law without becoming the law.",
+      "qa_focus": "Check for certification-as-law, production crates depending on certification rows, and test authority that can mint production proof."
+    },
+    {
+      "id": 3,
+      "title": "Physical Format Topology Cleanup",
+      "owner": "`worth-store-physical-format`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-format"
+      ],
+      "acceptance": [
+        "Physical-format skeleton is organized by stable artifact responsibility and lifecycle.",
+        "`lib.rs`, facades, and aggregation modules aggregate rather than implement business logic.",
+        "Raw construction boundaries are sealed or documented with focused evidence where changed."
+      ],
+      "instructions": "Implement S.7.1 Phase 3. Clean the physical-format topology before S.8 layout work inherits it.",
+      "qa_focus": "Check for flat roots, broad lib.rs logic, exported topology, and raw format construction seams."
+    },
+    {
+      "id": 4,
+      "title": "Blob Crate Lifecycle Tree",
+      "owner": "`worth-store-blob-chunks`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks"
+      ],
+      "acceptance": [
+        "Blob crate skeleton teaches identity, lifecycle, streaming, publication, recovery, reachability, placement, compaction, corruption, counters, and test support responsibilities.",
+        "Root file count and module depth match the declared lifecycle tree or carry a narrow exemption.",
+        "Helper/test-support placement follows the narrowest responsibility it serves."
+      ],
+      "instructions": "Implement S.7.1 Phase 4. Reshape the blob crate from ontology dump into lifecycle tree.",
+      "qa_focus": "Check for same-level file swamps, vague helper homes, mixed classification axes, and god modules."
+    },
+    {
+      "id": 5,
+      "title": "Blob Public Facade And Export Grammar",
+      "owner": "`worth-store-blob-chunks` public surface",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
+        "workspaces/worth-store/crates/worth-store-blob-chunks/src/exports.rs"
+      ],
+      "acceptance": [
+        "Public facade shape teaches valid blob lifecycle order and authority class.",
+        "Public exports are narrower than internals and no longer mirror accidental topology.",
+        "Changed proof-object construction boundaries have mechanical evidence."
+      ],
+      "instructions": "Implement S.7.1 Phase 5. Shape public exports around lifecycle capabilities and authority, not alphabet soup.",
+      "qa_focus": "Check for ontology dump exports, public raw constructors, deep import pressure, and facades that hide lifecycle order."
+    },
+    {
+      "id": 6,
+      "title": "Chunk Identity And Dedupe Proof Grammar",
+      "owner": "`worth-store-blob-chunks` dedupe and chunk identity",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks"
+      ],
+      "acceptance": [
+        "Dedupe flow has named evidence collection, classification, verification, receipt/counter construction, and next capability.",
+        "Digest equality is represented as evidence within admitted security scope rather than authority by itself.",
+        "Overloaded dedupe functions are decomposed into auditable semantic steps."
+      ],
+      "instructions": "Implement S.7.1 Phase 6. Clean chunk identity and dedupe into explicit proof grammar.",
+      "qa_focus": "Check for digest-only authority, copied receipt fields, counter decoration, hidden collision policy, and god functions."
+    },
+    {
+      "id": 7,
+      "title": "Publication, WAL, And Recovery Proof Grammar",
+      "owner": "`worth-store-blob-chunks`, `worth-store-wal`, `worth-store-recovery-physics`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-recovery-physics"
+      ],
+      "acceptance": [
+        "Publication/recovery state graph is visible in code and public capability flow.",
+        "Partial publication, WAL evidence, replay admission, and visible authority are distinct states.",
+        "Overloaded publication/recovery functions are decomposed into named transition steps."
+      ],
+      "instructions": "Implement S.7.1 Phase 7. Clean publication, WAL, and recovery proof grammar without adding new blob behavior.",
+      "qa_focus": "Check for boolean publication state, recovery records as alternate authority, copied recovery ids, and mixed visibility states."
+    },
+    {
+      "id": 8,
+      "title": "Streaming Ingest, Read, And Resume Proof Grammar",
+      "owner": "`worth-store-blob-chunks`, `worth-store-buffer-pool`, `worth-store-io-scheduler`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-io-scheduler"
+      ],
+      "acceptance": [
+        "Streaming loop shape separates admission, frontier advancement, chunk-window verification, memory counters, and receipt construction.",
+        "Constant-memory evidence remains visible at transition boundaries touched by cleanup.",
+        "Streaming functions read as orchestration plus named semantic steps."
+      ],
+      "instructions": "Implement S.7.1 Phase 8. Clean streaming proof grammar and overloaded streaming loops.",
+      "qa_focus": "Check for whole-object materialization pressure, stale resume authority, mixed read/write authority, and hidden counter updates."
+    },
+    {
+      "id": 9,
+      "title": "Reachability, Retention, And Reclaim Proof Grammar",
+      "owner": "`worth-store-blob-chunks`, `worth-store-physical-isolation`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-physical-isolation"
+      ],
+      "acceptance": [
+        "Reachability/reclaim decision table is named and auditable.",
+        "Reference, retention, recovery, dedupe, and security-scope authorities remain distinct.",
+        "Counters and receipts attach to classified reclaim outcomes."
+      ],
+      "instructions": "Implement S.7.1 Phase 9. Clean reachability, retention, and reclaim proof grammar.",
+      "qa_focus": "Check for generic reference rows, orphan-looking chunk shortcuts, hidden horizon checks, and reclaim god functions."
+    },
+    {
+      "id": 10,
+      "title": "Placement, Movement, And Compaction Proof Grammar",
+      "owner": "`worth-store-blob-chunks`, `worth-store-tiering`, `worth-store-physical-isolation`, `worth-store-io-scheduler`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-tiering",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-io-scheduler"
+      ],
+      "acceptance": [
+        "Placement/movement state graph identifies stable-read, security scope, and I/O admission evidence.",
+        "Movement receipts expose the next valid capability without treating placement as semantic validity.",
+        "Compaction and movement functions are decomposed into named transition steps."
+      ],
+      "instructions": "Implement S.7.1 Phase 10. Clean placement, movement, and compaction proof grammar.",
+      "qa_focus": "Check for movement as metadata rewrite, scheduler admission as semantic proof, backend residue authority, and mixed placement states."
+    },
+    {
+      "id": 11,
+      "title": "Corruption, Quarantine, And Readmission Proof Grammar",
+      "owner": "`worth-store-blob-chunks`, `worth-store-offline-verifier`, `worth-store-physical-integrity`, `worth-store-recovery-physics`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-offline-verifier",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "workspaces/worth-store/crates/worth-store-recovery-physics"
+      ],
+      "acceptance": [
+        "Corruption/quarantine/readmission decision table is explicit before logical decode.",
+        "Checksum failure, authenticity failure, missing chunk, stale generation, and cross-scope import remain distinct cases.",
+        "Quarantine receipts expose diagnostics and repair/readmission capability rather than ordinary read authority."
+      ],
+      "instructions": "Implement S.7.1 Phase 11. Clean corruption, quarantine, and readmission proof grammar.",
+      "qa_focus": "Check for generic corruption errors, readmission from terminal declarations, quarantine as ordinary read proof, and decode-before-damage classification."
+    },
+    {
+      "id": 12,
+      "title": "Recovery, Isolation, Scheduler, And Backend Seam Cleanup",
+      "owner": "`worth-store-recovery-physics`, `worth-store-physical-isolation`, `worth-store-io-scheduler`, `worth-store-physical-backend`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend"
+      ],
+      "acceptance": [
+        "Each touched lower seam clearly owns its production law.",
+        "Blob and certification code adapt to lower seam capabilities rather than copying lower proof fields.",
+        "Cross-crate handoffs are sealed or phase-typed where proof crosses crate boundaries."
+      ],
+      "instructions": "Implement S.7.1 Phase 12. Clean adjacent Store seams that support blob proof flow.",
+      "qa_focus": "Check for copied counters/receipts/proof ids, scheduler-as-semantic-proof, dependency inversion, and S.7 helpers leaking into lower crates."
+    },
+    {
+      "id": 13,
+      "title": "Buffer Pool And Physical Integrity Targeted Cleanup",
+      "owner": "`worth-store-buffer-pool`, `worth-store-physical-integrity`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-integrity"
+      ],
+      "acceptance": [
+        "Blob-adjacent memory and integrity cleanup preserves visible resident-byte/allocation and corruption-first evidence.",
+        "Integrity classification remains before logical decode.",
+        "Any shared helpers preserve identical authority and lifecycle or remain local."
+      ],
+      "instructions": "Implement S.7.1 Phase 13. Clean only buffer-pool and physical-integrity surfaces that affect proof-flow readability, memory bounds, or corruption-first behavior.",
+      "qa_focus": "Check for hidden allocation, page clone pressure, whole-object residency, generic helpers, and decode-before-integrity classification."
+    },
+    {
+      "id": 14,
+      "title": "Test And Certification Topology Cleanup",
+      "owner": "`worth-store-test-support`, `worth-store-physical-certification`, Store tests",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-blob-chunks"
+      ],
+      "acceptance": [
+        "Test support topology identifies production-facade users and named test authority.",
+        "Synthetic certification authority is labeled as courtroom evidence rather than production proof.",
+        "Helper construction boundaries have mechanical evidence where changed."
+      ],
+      "instructions": "Implement S.7.1 Phase 14. Clean test and certification topology so it falsifies production topology rather than bypassing it.",
+      "qa_focus": "Check for test helpers minting impossible production authority, generic fixture worlds, unclear synthetic evidence, and helper swamps."
+    },
+    {
+      "id": 15,
+      "title": "Structural Closeout And S.8 Readiness",
+      "owner": "`worth-store` S.7.1 closeout",
+      "scope": [
+        "workspaces/worth-store",
+        "_docs/worth-store/storage-foundation-s7-1.md",
+        "_docs/worth-store/worth_store_roadmap_2.md"
+      ],
+      "acceptance": [
+        "Closeout bundle shows cleaned Store crates satisfy file-count, aggregation, facade visibility, construction-boundary, and S.7 hostile-lane evidence appropriate to touched surfaces.",
+        "S.8 can consume blob/layout inputs through cleaned S.7/S.7.1 capabilities rather than raw blob internals, copied counters, certification rows, or helper constructors.",
+        "Remaining structural exceptions, if any, have explicit reason, owner, scope, and follow-on milestone."
+      ],
+      "instructions": "Implement S.7.1 Phase 15. Produce the structural closeout and S.8 readiness evidence for this cleanup gate.",
+      "qa_focus": "Check that the milestone is actually ready to hand S.8 a cleaned topology and proof grammar, not just a partially reorganized blob crate."
+    }
+  ]
+}

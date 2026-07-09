@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/composition_detail_entrypoint_rejects_collection_template.rs:18:64
+   |
+18 |     let _ = GuidedCompositionPath::instantiate_detail_template(template, TemplateBindingSet::new());
+   |             -------------------------------------------------- ^^^^^^^^ expected `DetailFamily`, found `CollectionFamily`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `QueryTemplateDescriptor<worth_query::authoring::detail::DetailFamily, worth_query::authoring::detail_result_shape::DetailResultShapeFamily>`
+              found struct `QueryTemplateDescriptor<worth_query::authoring::collection::CollectionFamily, worth_query::authoring::collection_result_shape::CollectionResultShapeFamily>`
+note: associated function defined here
+  --> src/composition/expand.rs
+   |
+   |     pub fn instantiate_detail_template(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^

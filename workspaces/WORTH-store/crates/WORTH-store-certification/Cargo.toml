@@ -1,0 +1,50 @@
+[package]
+name = "worth-store-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 generic and domain Store certification suites."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-analysis.workspace = true
+worth-store-aspect-native.workspace = true
+worth-store-authority.workspace = true
+worth-store-blob-chunks.workspace = true
+worth-store-budgets.workspace = true
+worth-store-buffer-pool.workspace = true
+worth-store-claim-boundaries.workspace = true
+worth-store-compatibility.workspace = true
+worth-store-contracts.workspace = true
+worth-store-maintenance.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-operations.workspace = true
+worth-store-physical-backend.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-physical-integrity.workspace = true
+worth-store-physical-certification.workspace = true
+worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
+worth-store-io-scheduler.workspace = true
+worth-store-readiness.workspace = true
+worth-store-reclaim-policy.workspace = true
+worth-store-recovery-physics.workspace = true
+worth-store-replication.workspace = true
+worth-store-s0-reclassification.workspace = true
+worth-store-security.workspace = true
+worth-store-subscription-support.workspace = true
+worth-store-test-support.workspace = true
+worth-store-tiering.workspace = true
+worth-store-wal.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+worth-relational = { path = "../../../../crates/worth-relational" }
+worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
+worth-store-physical-certification = { workspace = true, features = ["certification-test-support"] }
+worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+serde_json = "1"

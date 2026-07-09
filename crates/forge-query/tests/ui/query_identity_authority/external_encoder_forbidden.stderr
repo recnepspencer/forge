@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::ForgeQueryEvidenceIdentityEncoder`
- --> tests/ui/query_identity_authority/external_encoder_forbidden.rs:1:27
-  |
-1 | use forge_query::facade::{ForgeQueryEvidenceIdentityEncoder, ForgeQueryEvidenceScope};
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                           |
-  |                           no `ForgeQueryEvidenceIdentityEncoder` in `facade`
-  |                           help: a similar name exists in the module: `ForgeQueryEvidenceIdentityScheme`

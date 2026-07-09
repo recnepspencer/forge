@@ -1,7 +1,0 @@
-error[E0560]: struct `ForgeQueryRuntimePublicApiContract` has no field named `contract_digest`
-  --> tests/ui/runtime_public_api_contract_constructor_private.rs:12:9
-   |
-12 |         contract_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ `ForgeQueryRuntimePublicApiContract` does not have this field
-   |
-   = note: all struct fields are already assigned

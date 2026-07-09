@@ -1,7 +1,7 @@
 ---
 pid: 36708
-cwd: "C:\Users\Esther\Documents\Programming\forge_workspace\forge"
-command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\forge\\workspaces\\forge-store\"; cargo test -p forge-store-offline-verifier blob_corruption 2>&1; cargo test -p forge-store-recovery-physics recovery_entry 2>&1"
+cwd: "C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH"
+command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\WORTH\\workspaces\\worth-store\"; cargo test -p worth-store-offline-verifier blob_corruption 2>&1; cargo test -p worth-store-recovery-physics recovery_entry 2>&1"
 started_at: 2026-07-07T02:12:59.068Z
 running_for_ms: 355000   
 ---
@@ -13,14 +13,14 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; fini
 
 cargo :     Blocking waiting for file lock on package cache
 At line:1 char:100
-+ ... rge-store"; cargo test -p forge-store-offline-verifier blob_corruptio ...
++ ... rge-store"; cargo test -p worth-store-offline-verifier blob_corruptio ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (    Bl...n package cache:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
     Blocking waiting for file lock on package cache
 warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -29,19 +29,19 @@ warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_offline_verifier-b377e636fccdf3ed.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_offline_verifier-b377e636fccdf3ed.exe)
 cargo :     Blocking waiting for file lock on artifact directory
 At line:1 char:165
-+ ... ption 2>&1; cargo test -p forge-store-recovery-physics recovery_entry ...
++ ... ption 2>&1; cargo test -p worth-store-recovery-physics recovery_entry ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (    Bl...ifact directory:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
 warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -50,39 +50,39 @@ warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
-   Compiling forge-store-readiness v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-readiness)
-   Compiling forge-store-offline-verifier v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspace
-s\forge-store\crates\forge-store-offline-verifier)
-   Compiling forge-store-wal v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-wal)
-    Building [=====================>     ] 34/41: forge-store-readiness, forg…
-    Building [======================>    ] 35/41: forge-store-readiness, forg…
-    Building [======================>    ] 36/41: forge-store-readiness       
+   Compiling worth-store-readiness v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-readiness)
+   Compiling worth-store-offline-verifier v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspace
+s\worth-store\crates\worth-store-offline-verifier)
+   Compiling worth-store-wal v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-wal)
+    Building [=====================>     ] 34/41: worth-store-readiness, forgâ€¦
+    Building [======================>    ] 35/41: worth-store-readiness, forgâ€¦
+    Building [======================>    ] 36/41: worth-store-readiness       
                                                             
-   Compiling forge-store-buffer-pool v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-buffer-pool)
-    Building [======================>    ] 36/41: forge-store-buffer-pool, fo…
+   Compiling worth-store-buffer-pool v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-buffer-pool)
+    Building [======================>    ] 36/41: worth-store-buffer-pool, foâ€¦
                                                             
-   Compiling forge-store-physical-integrity v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspa
-ces\forge-store\crates\forge-store-physical-integrity)
-   Compiling forge-store-physical-backend v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspace
-s\forge-store\crates\forge-store-physical-backend)
-    Building [======================>    ] 36/41: forge-store-physical-integr…
-    Building [=======================>   ] 37/41: forge-store-physical-integr…
-    Building [========================>  ] 38/41: forge-store-physical-integr…
-    Building [========================>  ] 39/41: forge-store-physical-integr…
+   Compiling worth-store-physical-integrity v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspa
+ces\worth-store\crates\worth-store-physical-integrity)
+   Compiling worth-store-physical-backend v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspace
+s\worth-store\crates\worth-store-physical-backend)
+    Building [======================>    ] 36/41: worth-store-physical-integrâ€¦
+    Building [=======================>   ] 37/41: worth-store-physical-integrâ€¦
+    Building [========================>  ] 38/41: worth-store-physical-integrâ€¦
+    Building [========================>  ] 39/41: worth-store-physical-integrâ€¦
                                                             
-   Compiling forge-store-recovery-physics v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspace
-s\forge-store\crates\forge-store-recovery-physics)
-    Building [=========================> ] 40/41: forge_store_recovery_physic…
+   Compiling worth-store-recovery-physics v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspace
+s\worth-store\crates\worth-store-recovery-physics)
+    Building [=========================> ] 40/41: worth_store_recovery_physicâ€¦
 
 running 0 tests
                                                             
     Finished `test` profile [unoptimized + debuginfo] target(s) in 22.02s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_recovery_physics-32907abda8e35b46.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_recovery_physics-32907abda8e35b46.exe)
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
 

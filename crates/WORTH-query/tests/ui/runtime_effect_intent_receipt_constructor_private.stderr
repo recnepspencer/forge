@@ -1,0 +1,26 @@
+error[E0560]: struct `worth_query::facade::WorthQueryEffectIntentReceipt` has no field named `trigger_commit_identity`
+ --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:8:9
+  |
+8 |         trigger_commit_identity: "commit".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryEffectIntentReceipt` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+warning: unreachable expression
+  --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:13:25
+   |
+12 |         phase_evidence: todo!(),
+   |                         ------- any code following this expression is unreachable
+13 |         intent_receipt: todo!(),
+   |                         ^^^^^^^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0560]: struct `worth_query::facade::WorthQueryEffectIntentReceipt` has no field named `receipt_digest`
+  --> tests/ui/runtime_effect_intent_receipt_constructor_private.rs:14:9
+   |
+14 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryEffectIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

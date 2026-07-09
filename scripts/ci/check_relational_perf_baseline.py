@@ -161,7 +161,7 @@ def case_tolerances(suite, case):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Check forge-relational perf summary against a baseline")
+    parser = argparse.ArgumentParser(description="Check worth-relational perf summary against a baseline")
     parser.add_argument("--baseline", required=True, help="Baseline summary JSONL")
     parser.add_argument("--current", required=True, help="Current summary JSONL")
     parser.add_argument("--elapsed-median-tolerance", type=float, default=1.20)

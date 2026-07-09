@@ -1,0 +1,5 @@
+error[E0599]: no method named `terminal_aspect_path_projection` found for struct `WorthQueryAspectMutationOperation` in the current scope
+ --> tests/ui/aspect_native_query/aspect_mutation_operation_terminal_aspect_path_projection_removed.rs:7:23
+  |
+7 |     let _ = operation.terminal_aspect_path_projection();
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryAspectMutationOperation`

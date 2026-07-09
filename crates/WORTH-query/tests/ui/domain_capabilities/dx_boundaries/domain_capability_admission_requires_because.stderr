@@ -1,0 +1,11 @@
+error[E0599]: no method named `materialize` found for struct `WorthQueryAdmittedPlanAdmissionDraft` in the current scope
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_admission_requires_because.rs:18:10
+   |
+15 |       let _ = worth_query_domain("worth.spatial")
+   |  _____________-
+16 | |         .for_admitted_intent_plan(&plan)
+17 | |         .advises("arbitration.requires_clarification")
+18 | |         .materialize();
+   | |         -^^^^^^^^^^^ method not found in `WorthQueryAdmittedPlanAdmissionDraft`
+   | |_________|
+   |

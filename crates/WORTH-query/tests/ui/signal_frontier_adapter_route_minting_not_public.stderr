@@ -1,0 +1,33 @@
+error[E0432]: unresolved imports `worth_query::facade::FrontierDisjointnessClass`, `worth_query::facade::FrontierPredictionDriftOutcome`, `worth_query::facade::SerialFallbackReason`, `worth_query::facade::SignalFrontierBundleEvidence`
+ --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:2:5
+  |
+2 |     FrontierDisjointnessClass, FrontierPredictionDriftOutcome, SerialFallbackReason,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `SerialFallbackReason` in `facade`
+  |     |                          |
+  |     |                          no `FrontierPredictionDriftOutcome` in `facade`
+  |     no `FrontierDisjointnessClass` in `facade`
+3 |     SignalFrontierBundleEvidence, SignalFrontierSurfaceEvidence,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SignalFrontierBundleEvidence` in `facade`
+  |
+help: a similar name exists in the module
+  |
+2 -     FrontierDisjointnessClass, FrontierPredictionDriftOutcome, SerialFallbackReason,
+2 +     FrontierDisjointnessClass, WorkflowPredictionDriftOutcome, SerialFallbackReason,
+  |
+help: a similar name exists in the module
+  |
+3 -     SignalFrontierBundleEvidence, SignalFrontierSurfaceEvidence,
+3 +     SignalFrontierSurfaceEvidence, SignalFrontierSurfaceEvidence,
+  |
+
+error[E0599]: no method named `to_parallel_admission_evidence` found for struct `SignalFrontierSurfaceEvidence` in the current scope
+  --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:10:21
+   |
+10 |     let _ = surface.to_parallel_admission_evidence(
+   |             --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `SignalFrontierSurfaceEvidence`
+
+error[E0599]: no method named `to_serial_fallback_evidence` found for struct `SignalFrontierSurfaceEvidence` in the current scope
+  --> tests/ui/signal_frontier_adapter_route_minting_not_public.rs:14:21
+   |
+14 |     let _ = surface.to_serial_fallback_evidence(
+   |             --------^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `SignalFrontierSurfaceEvidence`

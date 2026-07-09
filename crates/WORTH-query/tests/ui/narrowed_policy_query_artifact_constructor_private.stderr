@@ -1,0 +1,16 @@
+error: cannot construct `worth_query::facade::NarrowedPolicyQueryArtifact` with struct literal syntax due to private fields
+ --> tests/ui/narrowed_policy_query_artifact_constructor_private.rs:4:21
+  |
+4 |     let _artifact = NarrowedPolicyQueryArtifact {
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         digest: String::new(),
+  |         --------------------- private field
+  |
+  = note: ...and other private fields that were not provided
+help: you might have meant to use the `new` associated function
+  |
+4 -     let _artifact = NarrowedPolicyQueryArtifact {
+5 -         digest: String::new(),
+6 -     };
+4 +     let _artifact = NarrowedPolicyQueryArtifact::new(_, _, _, _, _, _, _, _);
+  |

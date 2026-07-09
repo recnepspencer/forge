@@ -1,4 +1,4 @@
-Now go implement phase {phase.id}: {phase.title} of the Forge Store
+Now go implement phase {phase.id}: {phase.title} of the WORTH Store
 Aspect-Native Workspace Gate.
 
 State file: {state_file}
@@ -23,7 +23,7 @@ Implementation rules:
 - Keep JSON out of production authority, evidence, digest, handoff, recovery,
   certification, and ordinary harness paths except explicitly named terminal
   projection or hostile/readmission test boundaries.
-- Treat legacy `crates/forge-store` JSON/serde as residue inventory unless this
+- Treat legacy `crates/worth-store` JSON/serde as residue inventory unless this
   phase explicitly readmits or quarantines it.
 - Prefer principled production surfaces over adapters, shims, fixture-only
   proof, renamed debt, or compatibility facades.

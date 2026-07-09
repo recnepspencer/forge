@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.2 Canonical Declaration Artifacts And Aspect Contracts`
 >
@@ -79,7 +79,7 @@ meaning is canonical, the runtime must decide what actually exists at runtime
 and how later phases find it without rediscovering topology by walking
 declaration trees or renderer-owned structures.
 
-This is not “a tree representation of declarations.” It is runtime authority
+This is not â€œa tree representation of declarations.â€ It is runtime authority
 for node existence and bounded lookup:
 
 - 3.4 needs graph-owned node identity, participation posture, and declaration
@@ -135,20 +135,20 @@ conventions. That would create folklore instead of architecture.
   requires every serious runtime family to ship typed evidence, targeted
   inspection entry points, relevance hooks, and replay-safe stop surfaces
   alongside the runtime authority it introduces.
-- `forge-query/docs/AI_README.md`
+- `worth-query/docs/AI_README.md`
   requires Worth UI to consume Query through Query-owned public lanes rather
   than a UI-local pseudo runtime. For 3.3 that especially means:
   - Query basis and world posture come from Query-owned basis artifacts such as
     `ResolvedSnapshotBasis` and `SnapshotResolutionReport`
   - projected runtime data comes from Query projection-consumption APIs such as
-    `ForgeQueryReadResult::consume_projection_facts(...)`,
-    `ForgeQueryWriteReceipt::consume_projection_facts(...)`, and
+    `WORTHQueryReadResult::consume_projection_facts(...)`,
+    `WORTHQueryWriteReceipt::consume_projection_facts(...)`, and
     `QueryContextExecutionArtifact::consume_projection_facts(...)`
   - retained Query evidence inspects through `workspace.inspect(...)`
   - cross-runtime causal explanation stays on Query's
     `admit_causal_inspection` / `request_causal_inspection` lane
   - preview and branch world identity stay on typed Query artifacts such as
-    `ForgeQuerySessionLabel` and `BridgePreviewSessionIdentity`, never raw
+    `WORTHQuerySessionLabel` and `BridgePreviewSessionIdentity`, never raw
     strings
 
 ## Adversarial Constraint
@@ -408,8 +408,8 @@ but Query-owned meaning still comes from Query surfaces such as:
 
 - `ResolvedSnapshotBasis`
 - `SnapshotResolutionReport`
-- `ForgeQueryReadResult::consume_projection_facts(...)`
-- `ForgeQueryWriteReceipt::consume_projection_facts(...)`
+- `WORTHQueryReadResult::consume_projection_facts(...)`
+- `WORTHQueryWriteReceipt::consume_projection_facts(...)`
 - `QueryContextExecutionArtifact::consume_projection_facts(...)`
 - `workspace.inspect(...)`
 - `admit_causal_inspection`
@@ -547,7 +547,7 @@ equivalents.
 
 ## Graph And Index Transaction Law
 
-3.3 must turn “the indexes match the graph” into architecture.
+3.3 must turn â€œthe indexes match the graphâ€ into architecture.
 
 The implementation may choose internal transaction mechanics, but it must
 preserve these laws:
@@ -845,7 +845,7 @@ When the world/profile distinction is Query-backed, Worth UI must consume the
 typed Query identity and basis lane rather than inventing UI-local world
 strings. In particular:
 
-- branch or preview session identity belongs to `ForgeQuerySessionLabel` on the
+- branch or preview session identity belongs to `WORTHQuerySessionLabel` on the
   ordinary runtime-facing path
 - declaration-bound preview identity belongs to `BridgePreviewSessionIdentity`
 - snapshot basis posture belongs to `ResolvedSnapshotBasis` and
@@ -1097,7 +1097,7 @@ distinctions every later graph lane depends on.
 
 **Warnings**
 
-- Do not let the first graph snapshot be “just a tree.”
+- Do not let the first graph snapshot be â€œjust a tree.â€
 - Do not collapse declaration identity and runtime node identity.
 - Do not leave repeated-instance identity as a later cleanup item.
 
@@ -1509,8 +1509,8 @@ that still remains outside 3.3.
 
 ## Must Preserve
 
-- Milestone 3.1’s single public facade discipline
-- Milestone 3.2’s declaration authority and sealed graph handoff boundary
+- Milestone 3.1â€™s single public facade discipline
+- Milestone 3.2â€™s declaration authority and sealed graph handoff boundary
 - strict separation between declaration truth and graph truth
 - strict separation between graph truth and later obligation or observation
   truth
@@ -1599,7 +1599,7 @@ Before closeout, answer these with evidence:
 - Can repeated instances keep stable identity without relying on sibling
   position noise?
 - Can later phases name the graph authority surface they consume rather than
-  “the current runtime tree”?
+  â€œthe current runtime treeâ€?
 - Do mounted receipts and participation posture belong to graph authority
   rather than host or renderer side tables?
 

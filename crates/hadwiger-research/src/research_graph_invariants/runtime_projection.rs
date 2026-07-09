@@ -319,7 +319,7 @@ fn projection_payload(
     let mut payload = vec![
         HadwigerArtifactPayloadEntry::text(
             "schema",
-            "forge.hadwiger.research_graph.runtime_projection.v1",
+            "WORTH.hadwiger.research_graph.runtime_projection.v1",
         ),
         HadwigerArtifactPayloadEntry::text("source_corpus_digest", source_corpus_digest),
     ];

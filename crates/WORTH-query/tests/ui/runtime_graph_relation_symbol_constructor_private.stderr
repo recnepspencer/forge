@@ -1,0 +1,16 @@
+error: cannot construct `WorthQueryGraphRelationSymbol` with struct literal syntax due to private fields
+ --> tests/ui/runtime_graph_relation_symbol_constructor_private.rs:6:13
+  |
+6 |     let _ = WorthQueryGraphRelationSymbol {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7 |         reference,
+  |         --------- private field
+  |
+  = note: ...and other private field `relation_kind_id` that was not provided
+help: you might have meant to use the `new` associated function
+  |
+6 -     let _ = WorthQueryGraphRelationSymbol {
+7 -         reference,
+8 -     };
+6 +     let _ = WorthQueryGraphRelationSymbol::new(_, _);
+  |

@@ -1,0 +1,37 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:18:26
+   |
+18 |         commit_identity: String::new(),
+   |                          ^^^^^^^^^^^^^ expected `WorthQueryCommitIdentity`, found `String`
+
+error[E0560]: struct `worth_query::facade::WorthQueryIntentReceipt` has no field named `snapshot_token`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:19:9
+   |
+19 |         snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::WorthQueryIntentReceipt` has no field named `affected_live_view_ids`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:20:9
+   |
+20 |         affected_live_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::WorthQueryIntentReceipt` has no field named `affected_derived_view_ids`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:21:9
+   |
+21 |         affected_derived_view_ids: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::WorthQueryIntentReceipt` has no field named `receipt_digest`
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:30:9
+   |
+30 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ `worth_query::facade::WorthQueryIntentReceipt` does not have this field
+   |
+   = note: all struct fields are already assigned

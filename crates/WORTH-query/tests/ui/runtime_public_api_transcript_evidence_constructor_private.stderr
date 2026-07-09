@@ -1,0 +1,15 @@
+error[E0560]: struct `WorthQueryRuntimePublicApiTranscriptEvidence` has no field named `unsupported_neighbor_denial_digests`
+  --> tests/ui/runtime_public_api_transcript_evidence_constructor_private.rs:13:9
+   |
+13 |         unsupported_neighbor_denial_digests: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryRuntimePublicApiTranscriptEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryRuntimePublicApiTranscriptEvidence` has no field named `transcript_digest`
+  --> tests/ui/runtime_public_api_transcript_evidence_constructor_private.rs:17:9
+   |
+17 |         transcript_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryRuntimePublicApiTranscriptEvidence` does not have this field
+   |
+   = note: all struct fields are already assigned

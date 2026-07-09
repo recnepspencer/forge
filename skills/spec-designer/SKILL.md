@@ -1,6 +1,6 @@
 ---
 name: spec-designer
-description: Design or revise Forge milestone specs and roadmap entries. Use when authoring a new milestone spec, refining an existing milestone plan, inserting a milestone into a crate roadmap, or turning a product goal into a Forge-quality engineering specification grounded in the coding-guideline documents and the target roadmap.
+description: Design or revise WORTH milestone specs and roadmap entries. Use when authoring a new milestone spec, refining an existing milestone plan, inserting a milestone into a crate roadmap, or turning a product goal into a WORTH-quality engineering specification grounded in the coding-guideline documents and the target roadmap.
 ---
 
 # Spec Designer
@@ -11,11 +11,11 @@ Use this skill when the task is specification design, not implementation.
 
 Read these in this order before designing anything:
 
-1. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\composition_laws.md` if it is populated
-4. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_structure_laws.md`
-5. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\perf_laws.md`
+1. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\MENTALITY.md`
+2. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\arch_laws.md`
+3. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\composition_laws.md` if it is populated
+4. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\domain_structure_laws.md`
+5. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\perf_laws.md`
 
 After the coding guidelines, read the target subsystem roadmap.
 
@@ -64,7 +64,7 @@ These summaries are not optional. They are part of the design process and help e
 
 ## Core design stance
 
-The spec must reflect Forge standards:
+The spec must reflect WORTH standards:
 
 - adversarial constraint first
 - hard problem first

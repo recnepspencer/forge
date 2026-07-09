@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query::facade::WorthQueryEvidenceIdentityEncoder`
+ --> tests/ui/query_identity_authority/external_encoder_forbidden.rs:1:27
+  |
+1 | use worth_query::facade::{WorthQueryEvidenceIdentityEncoder, WorthQueryEvidenceScope};
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                           |
+  |                           no `WorthQueryEvidenceIdentityEncoder` in `facade`
+  |                           help: a similar name exists in the module: `WorthQueryEvidenceIdentityScheme`

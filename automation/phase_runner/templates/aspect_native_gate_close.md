@@ -1,5 +1,5 @@
 Phase {phase.id}: {phase.title} has passed the required phase-done loop for the
-Forge Store Aspect-Native Workspace Gate.
+WORTH Store Aspect-Native Workspace Gate.
 
 Now run the non-looping hardening sequence below. These passes can produce work,
 and you should implement the reasonable fixes they uncover, but do not force the

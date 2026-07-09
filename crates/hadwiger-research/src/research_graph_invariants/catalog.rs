@@ -148,7 +148,7 @@ impl ResearchGraphInvariantRule {
             },
             parents,
             vec![
-                HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.research_graph.v1"),
+                HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.research_graph.v1"),
                 HadwigerArtifactPayloadEntry::text("family", family.as_str()),
                 HadwigerArtifactPayloadEntry::text("scope", scope.as_str()),
                 HadwigerArtifactPayloadEntry::text("query_family", family.query_invariant_family()),
@@ -261,16 +261,16 @@ impl ResearchGraphInvariantCompatibilitySurfaces {
         Self {
             surfaces: vec![
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "ForgeQueryRuntime::builder().invariant_catalog(...)",
+                    "WORTHQueryRuntime::builder().invariant_catalog(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "ForgeQueryRuntime::builder().custom_invariant(...)",
+                    "WORTHQueryRuntime::builder().custom_invariant(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "ForgeQueryRuntime::builder().register_invariant(...)",
+                    "WORTHQueryRuntime::builder().register_invariant(...)",
                 ),
                 ResearchGraphInvariantCompatibilitySurface::new(
-                    "ForgeQueryRuntime::builder().invariant_registration_artifact(...)",
+                    "WORTHQueryRuntime::builder().invariant_registration_artifact(...)",
                 ),
             ],
         }
@@ -341,7 +341,7 @@ fn catalog_payload(
     counters: &ResearchGraphInvariantCounters,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.research_graph.catalog.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.research_graph.catalog.v1"),
         HadwigerArtifactPayloadEntry::text("counters", counters.stable_token()),
     ];
     for rule in rules {

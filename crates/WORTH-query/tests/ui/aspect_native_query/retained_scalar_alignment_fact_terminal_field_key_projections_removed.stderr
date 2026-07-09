@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_left_field_key_projection` found for reference `&WorthQueryRetainedScalarAlignmentFact` in the current scope
+ --> tests/ui/aspect_native_query/retained_scalar_alignment_fact_terminal_field_key_projections_removed.rs:4:17
+  |
+4 |     let _ = row.terminal_left_field_key_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryRetainedScalarAlignmentFact`
+
+error[E0599]: no method named `terminal_right_field_key_projection` found for reference `&WorthQueryRetainedScalarAlignmentFact` in the current scope
+ --> tests/ui/aspect_native_query/retained_scalar_alignment_fact_terminal_field_key_projections_removed.rs:5:17
+  |
+5 |     let _ = row.terminal_right_field_key_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryRetainedScalarAlignmentFact`

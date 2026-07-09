@@ -25,9 +25,9 @@ experience.
 For S.5, treat the work as physical isolation for bytes, not semantic MVCC and
 not a new test harness. Store owns physical read stability: latches, epochs,
 stable read plans, byte guards, copy-on-write publication, reachability
-barriers, reclaim eligibility, and S.6 handoff evidence. `forge-relational`
-owns semantic visibility. `forge-store-recovery-physics` owns S.4 recovery
-correctness. `forge-store-physical-certification` and the S.4.5 harness own the
+barriers, reclaim eligibility, and S.6 handoff evidence. `worth-relational`
+owns semantic visibility. `worth-store-recovery-physics` owns S.4 recovery
+correctness. `worth-store-physical-certification` and the S.4.5 harness own the
 shared simulation mechanics and certification-owned oracle/evidence pipeline.
 
 Every hostile S.5 interleaving lane must consume the S.4.5 harness readiness and

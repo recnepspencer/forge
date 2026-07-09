@@ -1,0 +1,19 @@
+warning: unreachable expression
+ --> tests/ui/runtime_aspect_mutation_privates_forbidden.rs:4:19
+  |
+4 |       let _aspect = WorthQueryAdmittedAspectValue {
+  |  ___________________^
+5 | |         parsed: todo!(),
+  | |                 ------- any code following this expression is unreachable
+6 | |     };
+  | |_____^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: field `parsed` of struct `WorthQueryAdmittedAspectValue` is private
+ --> tests/ui/runtime_aspect_mutation_privates_forbidden.rs:5:9
+  |
+4 |     let _aspect = WorthQueryAdmittedAspectValue {
+  |                   ----------------------------- in this type
+5 |         parsed: todo!(),
+  |         ^^^^^^ private field

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": {
     "name": "Worthy Platform Constitution Milestone 1 Contract Stratification",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worthy/platform-constitution-milestone-1-contract-stratification.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -17,7 +17,7 @@
       "_docs/worthy/NAMING.md",
       "_docs/worthy/platform-constitution-roadmap.md",
       "_docs/worthy/platform-constitution-milestone-1-contract-stratification.md",
-      "crates/forge-query/docs/AI_README.md"
+      "crates/worth-query/docs/AI_README.md"
     ]
   },
   "turn_templates": {

@@ -30,9 +30,9 @@ sealed witnesses, admission, physical metadata, propagation, and readiness
 constructors. Certification is the courtroom: it proves the law, but does not
 define or mint Store authority.
 
-Use `forge-foundational` for aspect-native boundary facts, canonical basis,
+Use `worth-foundational` for aspect-native boundary facts, canonical basis,
 boundary artifacts, boundary evidence, profiles, and counter-backed performance
-receipts where the spec names those surfaces. Use `forge-proof` for legal
+receipts where the spec names those surfaces. Use `worth-proof` for legal
 progression, freshness/readmission topology, non-success outcomes, and
 fixed-shape evidence binding. Neither Foundational evidence nor Proof
 progression alone may mint Store security authority.

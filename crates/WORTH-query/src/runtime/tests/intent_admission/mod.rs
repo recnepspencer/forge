@@ -1,0 +1,190 @@
+use super::support::*;
+use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
+use crate::facade::runtime::{
+    admit_runtime_intent_request, certify_intent_admission,
+    worth_query_intent_admission_certification_output_manifest,
+    worth_query_intent_admission_closeout_extension_outputs,
+    worth_query_intent_admission_compile_fail_targets,
+    worth_query_intent_admission_coverage_inventory, worth_query_intent_admission_family_inventory,
+    worth_query_intent_admission_golden_transcripts, worth_query_intent_admission_mutation_audit,
+    worth_query_intent_admission_required_certification_outputs,
+    worth_query_intent_admission_support_matrix, WorthQueryAdmittedIntentExecutionHandoff,
+    WorthQueryAuthoritativeIntentExecutionHandoff, WorthQueryAuthorityLane,
+    WorthQueryEffectTriggeredIntentExecutionHandoff,
+    WorthQueryIntentAdmissionAuthorityLaneEligibility, WorthQueryIntentAdmissionBasisEligibility,
+    WorthQueryIntentAdmissionCapabilityEligibility, WorthQueryIntentAdmissionCoverageStatus,
+    WorthQueryIntentAdmissionCoveredEntrypoint, WorthQueryIntentAdmissionDecision,
+    WorthQueryIntentAdmissionDecisionClass, WorthQueryIntentAdmissionEligibilityAuthority,
+    WorthQueryIntentAdmissionExecutionBoundary, WorthQueryIntentAdmissionExecutionHandoffInventory,
+    WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionInvariantEligibility,
+    WorthQueryIntentAdmissionPlanKind, WorthQueryIntentAdmissionPolicyEligibility,
+    WorthQueryIntentAdmissionPreDecisionPosture,
+    WorthQueryIntentAdmissionProjectionSourceEligibility, WorthQueryIntentAdmissionResultArtifact,
+    WorthQueryIntentAdmissionRoutingSupportEligibility, WorthQueryIntentAdmissionSlopeLane,
+    WorthQueryIntentAdmissionSourceLaneEligibility, WorthQueryIntentAdmissionSupportDetail,
+    WorthQueryIntentAdmissionSupportEligibility, WorthQueryIntentAdmissionSupportPosture,
+    WorthQueryIntentAdmissionSurfaceDescriptor, WorthQueryIntentAdmissionWidthRunScale,
+    WorthQueryIntentConsumerOutcomeClass, WorthQueryIntentDecisionTraceEnvelope,
+    WorthQueryIntentDecisionTraceEnvelopeKind, WorthQueryIntentDecisionTraceEvidence,
+    WorthQueryIntentDecisionTraceEvidenceOwner, WorthQueryIntentDecisionTraceStage,
+    WorthQueryIntentDeclaration, WorthQueryIntentNonAdmittedStop, WorthQueryIntentSourceLane,
+    WorthQueryWorkspace,
+};
+use crate::facade::{
+    admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
+    resolve_snapshot_basis, AdmittedQueryBasisContext, BasisAuthorityFamily, BasisResolutionMode,
+    ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
+    ResolvedSnapshotIdentity, SnapshotLineageClass,
+};
+use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use std::cell::Cell;
+use std::rc::Rc;
+
+mod certification;
+mod dx;
+mod execution;
+mod inventory;
+mod inventory_mutation;
+mod phases;
+
+pub(in crate::runtime::tests) fn intent_runtime_with_authority<
+    T: WorthQueryIntentAuthorityAdapter + 'static,
+>(
+    authority: T,
+) -> WorthQueryRuntime {
+    bridge_runtime_with_support_and_intent_authority(intent_support_profile(), authority)
+}
+
+fn trace_stages(
+    envelope: &WorthQueryIntentDecisionTraceEnvelope,
+) -> Vec<WorthQueryIntentDecisionTraceStage> {
+    envelope.rows().iter().map(|row| row.stage()).collect()
+}
+
+fn read_runtime() -> WorthQueryRuntime {
+    bridge_runtime_with_support(WorthQueryRuntimeSupportProfile::bridge_backed(
+        "test-subscription-activation",
+        "test-preview-basis",
+        "test-inspector-evidence",
+    ))
+}
+
+fn manager_schema() -> QuerySchemaView {
+    QuerySchemaView::new(
+        "runtime-read-composition",
+        [
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("profile")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("display_name")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+        ],
+        [SchemaRelationView::new(
+            crate::authoring::RelationName::new("manager")
+                .expect("schema relation literal must be valid"),
+            1,
+        )],
+    )
+}
+
+fn identity_read_family(
+    workspace: &mut WorthQueryWorkspace,
+    family_name: &str,
+) -> crate::runtime::WorthQueryReadFamily {
+    workspace
+        .define_read_family(family_name, |read| {
+            read.local_detail(
+                "user",
+                manager_schema(),
+                |query| {
+                    query.project(
+                        AspectFieldSelector::new("identity", "id")
+                            .expect("identity projection should build"),
+                    )
+                },
+                |shape| {
+                    shape.field(
+                        AuthoredResultShapeField::new("identity", "id", "id")
+                            .expect("identity result-shape field should build"),
+                    )
+                },
+            )
+        })
+        .expect("read family should define")
+}
+
+fn current_context_for_family(
+    family: &crate::runtime::WorthQueryReadFamily,
+    snapshot_token: &str,
+) -> AdmittedQueryBasisContext {
+    let intent = ExecutionBasisIntent::new(
+        BasisAuthorityFamily::Runtime,
+        SnapshotLineageClass::CurrentHead,
+        false,
+    );
+    let identity = ResolvedSnapshotIdentity::new(
+        BasisAuthorityFamily::Runtime,
+        None,
+        crate::memory_workspace::admit_external_snapshot_label(snapshot_token).evidence_identity(),
+        family.read_graph().schema_basis().clone(),
+        SnapshotLineageClass::CurrentHead,
+    );
+    let basis = resolve_snapshot_basis(intent, identity, BasisResolutionMode::RuntimeDirect)
+        .expect("runtime basis should resolve");
+    let preflight = preflight_execution_basis(family.read_graph().execution_plan().clone(), basis)
+        .expect("family preflight should build");
+    let binding = bind_query_basis_context(
+        QueryBasisContextRequest::current_branch_head(),
+        QueryContextBindingSource::RuntimeCurrent(&preflight),
+    )
+    .expect("current basis context should bind");
+    admit_query_basis_context(binding).expect("current basis context should admit")
+}
+
+fn profile_read_family(
+    workspace: &mut WorthQueryWorkspace,
+    family_name: &str,
+) -> crate::runtime::WorthQueryReadFamily {
+    workspace
+        .define_read_family(family_name, |read| {
+            read.local_detail(
+                "user",
+                manager_schema(),
+                |query| {
+                    query
+                        .project(
+                            AspectFieldSelector::new("identity", "id")
+                                .expect("identity projection should build"),
+                        )
+                        .project(
+                            AspectFieldSelector::new("profile", "display_name")
+                                .expect("profile projection should build"),
+                        )
+                },
+                |shape| {
+                    shape
+                        .field(
+                            AuthoredResultShapeField::new("identity", "id", "id")
+                                .expect("identity result-shape field should build"),
+                        )
+                        .field(
+                            AuthoredResultShapeField::new(
+                                "profile",
+                                "display_name",
+                                "display_name",
+                            )
+                            .expect("profile result-shape field should build"),
+                        )
+                },
+            )
+        })
+        .expect("profile read family should define")
+}

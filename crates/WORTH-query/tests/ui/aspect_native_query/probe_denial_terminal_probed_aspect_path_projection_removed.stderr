@@ -1,0 +1,21 @@
+warning: unreachable statement
+ --> tests/ui/aspect_native_query/probe_denial_terminal_probed_aspect_path_projection_removed.rs:5:5
+  |
+4 |     let denial: WorthQueryExistingTruthProbeDenial = unreachable!();
+  |                                                      -------------- any code following this expression is unreachable
+5 |     let _ = denial.terminal_probed_aspect_path_projection();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `terminal_probed_aspect_path_projection` found for struct `WorthQueryExistingTruthProbeDenial` in the current scope
+ --> tests/ui/aspect_native_query/probe_denial_terminal_probed_aspect_path_projection_removed.rs:5:20
+  |
+5 |     let _ = denial.terminal_probed_aspect_path_projection();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `probed_aspect_touch` with a similar name
+  |
+5 -     let _ = denial.terminal_probed_aspect_path_projection();
+5 +     let _ = denial.probed_aspect_touch();
+  |

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/construction/worth_native/private_direct_delivery_contract_constructor.rs:2:73
+  |
+2 |       let _constructor = worth_server::WorthServerDirectDeliveryContract::new;
+  |                                                                           ^^^ private associated function
+  |
+ ::: src/worth_native/direct/delivery_contract.rs
+  |
+  | /     pub(crate) fn new(
+  | |         plan_proof: crate::WorthServerOperationPlanProof,
+  | |         support_posture: WorthServerQuerySupportPosture,
+  | |         workspace_name: String,
+... |
+  | |         response_envelope: crate::WorthServerResponseEnvelope,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

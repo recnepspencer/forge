@@ -31,14 +31,14 @@ but does not define the law or mint runtime authority.
 
 When review failures repeat in the same phase, treat that as a root-cause signal,
 not a request for another wrapper. Identify the bad ownership boundary or
-forgeable authority path, then repair the law surface directly. It is acceptable
+WORTHable authority path, then repair the law surface directly. It is acceptable
 to move/create a lower Store vocabulary crate, seal constructors, replace public
 count bags with private-field witnesses, move authority out of certification,
 and add compile-fail/API-misuse proof when that is the principled fix.
 
-Use `forge-foundational` only where the S.6 spec names it: profiles, canonical
+Use `worth-foundational` only where the S.6 spec names it: profiles, canonical
 bases, boundary evidence, performance policy receipts, support/compatibility
-posture, and counter-backed evidence publication. Use `forge-proof` for checked
+posture, and counter-backed evidence publication. Use `worth-proof` for checked
 progression, freshness, rebind-required states, denial/failure topology, and
 fixed-shape evidence binding. Neither Foundational nor Proof evidence alone may
 stand in for Store capability, reservation, pacing, durability, security, or

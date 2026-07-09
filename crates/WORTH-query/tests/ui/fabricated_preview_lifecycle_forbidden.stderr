@@ -1,0 +1,43 @@
+warning: unreachable expression
+ --> tests/ui/fabricated_preview_lifecycle_forbidden.rs:6:27
+  |
+5 |         source: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         evaluation_class: PreviewEvaluationClass::read_only(),
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `source`, `evaluation_class`, `replay_bundle` and `promotion_record` of struct `PreviewSessionQueryContext` are private
+ --> tests/ui/fabricated_preview_lifecycle_forbidden.rs:5:9
+  |
+4 |     let _ = PreviewSessionQueryContext {
+  |             -------------------------- in this type
+5 |         source: todo!(),
+  |         ^^^^^^ private field
+6 |         evaluation_class: PreviewEvaluationClass::read_only(),
+  |         ^^^^^^^^^^^^^^^^ private field
+7 |         replay_bundle: None,
+  |         ^^^^^^^^^^^^^ private field
+8 |         promotion_record: None,
+  |         ^^^^^^^^^^^^^^^^ private field
+
+error: type `worth_query::preview::PreviewContextSource` is private
+ --> tests/ui/fabricated_preview_lifecycle_forbidden.rs:5:17
+  |
+5 |         source: todo!(),
+  |                 ^^^^^^^ private type
+  |
+  = note: this error originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: type `worth_query::preview::PreviewReplaySnapshot` is private
+ --> tests/ui/fabricated_preview_lifecycle_forbidden.rs:7:24
+  |
+7 |         replay_bundle: None,
+  |                        ^^^^ private type
+
+error: type `worth_query::preview::PreviewPromotionSnapshot` is private
+ --> tests/ui/fabricated_preview_lifecycle_forbidden.rs:8:27
+  |
+8 |         promotion_record: None,
+  |                           ^^^^ private type

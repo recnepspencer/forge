@@ -17,7 +17,7 @@ The governing rules remain:
 - compiled Rust defines capabilities; hot-reloadable UI source composes them
 - file-authored UI and Rust-authored composition must converge on the same
   canonical artifact and execution-plan pipeline
-- if `forge-query` already owns a stronger runtime-backed public lane for
+- if `worth-query` already owns a stronger runtime-backed public lane for
   support or admission, typed bindings, projection consumption, async or result
   posture, recovery, inspection, explanation, or grouped/read/query products,
   Worth UI must consume that lane rather than rebuild a UI-local pseudo runtime
@@ -69,7 +69,7 @@ Rules for every remaining Worth UI item:
 - each milestone must preserve explicit accessibility, keyboard, focus, and diagnostics posture rather than treating them as polish
 - each milestone must preserve frame-cost honesty through named counters and execution-plan boundaries
 - frame-cost claims that cross diagnostic, report, or certification boundaries
-  should lower Worth UI evidence into Forge Foundational performance claims,
+  should lower Worth UI evidence into WORTH Foundational performance claims,
   canonical bundles, counter-backed receipts, planned reports, and readiness
   envelopes instead of inventing local performance folklore
 - each runtime milestone must ship the evidence, inspection, replay, and
@@ -563,7 +563,7 @@ the runtime.
 - local plan changes can identify a typed affected neighborhood instead of
   widening immediately to whole-page planning
 
-### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate — **Closed**
+### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate â€” **Closed**
 
 This slice is a structural cleanup gate, not a product-capability expansion
 milestone. It hardened the shipped 3.1 through 3.6b runtime surfaces before
@@ -615,7 +615,7 @@ cleaned the runtime topology**.
 - planning: `plan_allocation` after admitted measurement basis + neighborhood +
   constraint pipeline
 - replacement continuity: identity match report after impact narrow
-- measurement: host observation → admit measurement basis → inspection projectors
+- measurement: host observation â†’ admit measurement basis â†’ inspection projectors
 - public facade lifecycle order; no deep-import pressure into private runtime
   modules
 - fixtures only via SUPPORT AUTHORITY (`worth-ui-test-support`); not production
@@ -666,7 +666,7 @@ strategy from graph or declaration artifacts every frame.
 - compact runtime handles for commands, components, children, tokens, and view
   bindings
 - named counters for reload/lowering work and steady-frame execution work
-- Forge Foundational performance-envelope integration for shared claim
+- WORTH Foundational performance-envelope integration for shared claim
   vocabulary and certified claim bundles
 
 **Acceptance evidence**
@@ -1749,7 +1749,7 @@ Worth UI is roadmap-complete only when:
 ## Companion Documents
 
 - [worth-ui-vision.md](./worth-ui-vision.md)
-- [_docs/forge-query/forge_query_vision.md](../forge-query/forge_query_vision.md)
-- [_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md](../forge-runtime-bridge/forge_runtime_bridge_vision.md)
-- [_docs/forge-relational/forge_relational_vision.md](../forge-relational/forge_relational_vision.md)
-- [_docs/forge_signal/forge_signal_vision.md](../forge_signal/forge_signal_vision.md)
+- [_docs/worth-query/worth_query_vision.md](../worth-query/worth_query_vision.md)
+- [_docs/worth-runtime-bridge/worth_runtime_bridge_vision.md](../worth-runtime-bridge/worth_runtime_bridge_vision.md)
+- [_docs/worth-relational/worth_relational_vision.md](../worth-relational/worth_relational_vision.md)
+- [_docs/worth_signal/worth_signal_vision.md](../worth_signal/worth_signal_vision.md)

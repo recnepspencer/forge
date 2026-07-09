@@ -1,0 +1,11 @@
+error[E0599]: no method named `route_relational_truth` found for struct `WorthQueryCanonicalDeclarationArtifact<D, I>` in the current scope
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/lower_authority/canonical_declaration_has_no_direct_relational_truth_routing.rs:77:25
+   |
+77 |     let _ = declaration.route_relational_truth();
+   |                         ^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `relational_truth` with a similar name
+   |
+77 -     let _ = declaration.route_relational_truth();
+77 +     let _ = declaration.relational_truth();
+   |

@@ -1,0 +1,14 @@
+error[E0624]: associated function `from_snapshot_identity` is private
+  --> tests/ui/aspect_native_query/verified_existing_truth_assertion_snapshot_constructor_not_public.rs:11:55
+   |
+11 |       let _ = WorthQueryVerifiedExistingTruthAssertion::from_snapshot_identity(
+   |                                                         ^^^^^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/runtime/mutation/assertion.rs
+   |
+   | /     pub(in crate::runtime) fn from_snapshot_identity(
+   | |         binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
+   | |         aspects: &[WorthQueryAdmittedAspectValue],
+   | |         snapshot_identity: &WorthQuerySnapshotIdentity,
+   | |     ) -> Result<Self, WorthQueryWorkspaceError> {
+   | |_______________________________________________- private associated function defined here

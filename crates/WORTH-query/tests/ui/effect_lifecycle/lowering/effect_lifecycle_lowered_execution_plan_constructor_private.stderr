@@ -1,0 +1,25 @@
+error[E0624]: associated function `compose` is private
+  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:19:77
+   |
+19 |         lowered_effect_execution_plan_identity: WorthQueryEvidenceIdentity::compose(
+   |                                                                             ^^^^^^^ private associated function
+   |
+  ::: src/evidence_identity/artifact.rs
+   |
+   |     pub(crate) fn compose(scope: WorthQueryEvidenceScope) -> WorthQueryEvidenceIdentityEncoder {
+   |     ------------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: method `field_shape` is private
+  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:22:10
+   |
+22 |           .field_shape(WorthQueryEvidenceTag::new("identity_family"), "test")
+   |            ^^^^^^^^^^^ private method
+   |
+  ::: src/evidence_identity/encoder.rs
+   |
+   | /     pub(crate) fn field_shape(
+   | |         mut self,
+   | |         tag: WorthQueryEvidenceTag,
+   | |         value: impl AsRef<str>,
+   | |     ) -> Self {
+   | |_____________- private method defined here

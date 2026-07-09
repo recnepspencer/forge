@@ -1,5 +1,5 @@
 warning: unused imports: `PhysicalIntegrityCertificationBundle`, `PhysicalIntegrityCloseoutDenial`, `PhysicalIntegrityCloseoutReport`, `PhysicalIntegrityCloseoutSuiteEvidence`, `PhysicalIntegrityCloseoutSuite`, `PhysicalIsolationCloseoutDenial`, `PhysicalIsolationCloseoutLaneEvidence`, `PhysicalIsolationCloseoutPublishedReadiness`, `PhysicalIsolationCloseoutSuite`, `PhysicalPageSegmentExtentSubstrateCloseout`, `PhysicalPageSegmentExtentSubstrateEvidence`, `PhysicalPageSegmentExtentSubstrateRun`, `PhysicalSubstrateCloseoutDenial`, `PhysicalSubstrateCloseoutStoryDenial`, `PhysicalSubstrateCloseoutStoryReport`, `PhysicalSubstrateCloseoutStoryRow`, `RecoveryPhysicsCertificationDenial`, `RecoveryPhysicsCertificationMatrix`, `RecoveryPhysicsCertificationRow`, `RecoveryPhysicsCounterExpectation`, `RecoveryPhysicsCounterKind`, `RecoveryPhysicsCrashLane`, `RecoveryPhysicsCrashMatrixBuilder`, `RecoveryPhysicsCrashMatrixDenial`, `RecoveryPhysicsCrashMatrix`, `RecoveryPhysicsEvidenceBundle`, `RecoveryPhysicsMutant`, `RecoveryPhysicsMutationFailureEvidence`, `RecoveryPhysicsMutationSuiteEvidenceDenial`, `RecoveryPhysicsMutationSuiteEvidence`, `RecoveryPhysicsMutationSuiteLaneEvidence`, `RecoveryPhysicsMutationValidationDenial`, `RecoveryPhysicsMutationValidationMatrix`, `RecoveryPhysicsMutationValidationRow`, `RecoveryPhysicsObserverKind`, `RecoveryPhysicsOracleJudgment`, `RecoveryPhysicsOracleKind`, `RecoveryPhysicsRoadmap2HarnessCertification`, `RecoveryPhysicsRoadmap2HarnessDenial`, `RecoveryPhysicsScenarioDefinitionBuilder`, `RecoveryPhysicsScenarioDefinitionDenial`, `RecoveryPhysicsScenarioDefinition`, `RecoveryPhysicsScenarioDrivers`, `RecoveryPhysicsScenarioPlanDenial`, `RecoveryPhysicsScenarioPlan`, `RecoveryPhysicsShortcutAttempt`, `RecoveryPhysicsShortcutDenialBoundary`, `RecoveryPhysicsShortcutDenialReason`, `RecoveryPhysicsShortcutRejection`, `RecoveryPhysicsTranscript`, `S3AcceptanceSuiteKind`, `S3CloseoutDenialBoundary`, `S3CloseoutEvidenceFamily`, `S3CloseoutExecutedOutputKind`, `S3CloseoutHarnessExecutionEvidence`, `S3CloseoutModuleKind`, `S3CloseoutSuiteHarnessSummary`, `S3CorruptionLocalizationBoundary`, `S3ExecutedBoundaryDenialEvidence`, `S3ExecutedCorruptionLocalizationEvidence`, `S3HarnessTranscriptEvidence`, `S3LineCapCompositionEvidence`, `S3LineCapModuleEvidence`, `S3OwnedCloseoutFileEvidence`, `S3S4HandoffCloseoutEvidence`, `S51CertificationCloseoutDenial`, `S51CertificationCloseoutEvidence`, `S51CertificationCloseoutInput`, `S51CertificationEvidencePolicy`, `S51CloseoutApiAdoptionEvidence`, `S51CloseoutBoundaryEvidencePublication`, `S51CloseoutCounterMatrix`, `S51CloseoutFoundationalBoundaryPackage`, `S51CloseoutFoundationalLane`, `S51CloseoutPerformanceReceipts`, `S51CloseoutPerformanceRows`, `S5CloseoutReservationSet`, `S5CloseoutReservedScope`, `S5EvidenceProfileCounterSet`, `S5ExecutedIsolationEvidenceBundle`, `S5ExecutedIsolationEvidenceSource`, `S5ExecutedIsolationFinding`, `S5ExecutedIsolationMaterializationDenial`, `S5ExecutedIsolationOutcome`, `S5ExecutedIsolationRequiredCounters`, `S5ExecutedIsolationSourceBasis`, `S5ExecutedIsolationSourceDenial`, `S5FoundationalCanonicalBasis`, `S5FoundationalDiagnostics`, `S5FoundationalPerformanceReceipts`, `S5PhysicalIsolationHarnessLane`, `S5PhysicalIsolationMutationEvidence`, `S5PhysicalIsolationProofTrace`, `S5PhysicalIsolationTraceFixtures`, `S5ProofProjectionArtifact`, `S6CertificationEvidenceAdoptionReceipt`, `S6ClosedS10BackupExportAdmissionSeed`, `S6ClosedS10RepairAdmissionSeed`, `S6ClosedS11SecureIoFoundationAdmissionSeed`, `S6ClosedS7PlacementAdmissionSeed`, `S6ProductionReadinessClosureDenial`, `S6ProductionReadinessClosureInput`, `S6ProductionReadinessClosure`, `S6ProductionReadinessPosture`, `S6ProductionReadinessProof`, `SyntheticCloseoutRejectionDenial`, `SyntheticCloseoutShortcutAttempt`, `SyntheticCloseoutShortcutInput`, `SyntheticCloseoutShortcutRejectionReport`, `adopt_materialized_s6_certification_evidence_for_closeout`, `assemble_s5_physical_isolation_replay_bundle`, `certify_s5_1_security_scope_closeout`, `close_s3_physical_integrity_from_executed_evidence`, `close_s6_production_readiness`, `materialize_s5_executed_isolation_evidence`, `materialize_s6_certification_evidence`, `materialize_s6_io_qos_isolation_readiness`, `observe_s5_physical_isolation_trace`, `s5_physical_isolation_ci_certification_context_without_lane_registration`, `s5_physical_isolation_ci_certification_planning_context`, `s5_physical_isolation_context_without_lane_registration`, `s5_physical_isolation_coverage_matrix`, `s5_physical_isolation_lanes`, `s5_physical_isolation_planning_context`, and `s5_physical_isolation_required_mutation_rows`
-  --> crates\forge-store-certification\src\late_milestone_exports.rs:4:5
+  --> crates\worth-store-certification\src\late_milestone_exports.rs:4:5
    |
  4 |     certify_s5_1_security_scope_closeout, close_s3_physical_integrity_from_executed_evidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -117,7 +117,7 @@ warning: unused imports: `PhysicalIntegrityCertificationBundle`, `PhysicalIntegr
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
 warning: unused imports: `S6AccessPolicyEvidenceOutcomeKind`, `S6AccessPolicyEvidenceRow`, `S6BackendCapabilityAdmissionCertificationEvidence`, `S6BackendCapabilityReadinessPublication`, `S6BackendQualificationMatrixCertification`, `S6BackendQualificationRowOutcome`, `S6BackgroundPacingCertificationDenial`, `S6BackgroundPacingCertificationEvidence`, `S6BackgroundPacingOutcomeKind`, `S6BackupExportHandoffEvidence`, `S6CanonicalEvidenceBasis`, `S6CanonicalMaterializationDenial`, `S6CertificationMaterializationDenial`, `S6CertificationProofTrace`, `S6CertificationRuntimeAuthorityDenial`, `S6CertifiedQueueExecutionEvidence`, `S6CompactionHandoffEvidence`, `S6CounterStrengthDeclaration`, `S6CounterStrengthFamily`, `S6FlushDurabilityEvidenceRow`, `S6ForegroundReservationCertificationDenial`, `S6ForegroundReservationCertificationEvidence`, `S6FoundationalAuthorityBoundary`, `S6FoundationalPerformanceReceipts`, `S6FoundationalProfileEvidence`, `S6IoPressureHarnessCloseoutDenial`, `S6IoPressureHarnessCloseoutEvidence`, `S6IoQosReadinessHandoffMaterializationDenial`, `S6LatencyInterferenceCertificationDenial`, `S6LatencyInterferenceEvidence`, `S6LaterReadinessHandoffCertification`, `S6MaterializedCertificationEvidenceBundle`, `S6MaterializedCounterStrength`, `S6OperatorHandoffEvidence`, `S6PlacementHandoffEvidence`, `S6PostAdmissionViolationCause`, `S6PostAdmissionViolationEvidenceRow`, `S6PostAdmissionViolationFamily`, `S6ProofProjectionArtifact`, `S6QueueExecutionCertificationDenial`, `S6ReclaimPolicyEvidenceOutcomeKind`, `S6ReclaimPolicyEvidenceRow`, `S6RepairScanHandoffEvidence`, `S6ResidualDebtKind`, `S6ResidualDebtLedger`, `S6ResidualDebtRow`, `StoreOwnedS6CertificationMaterializationSources`, `certify_s6_backend_capability_admission`, `certify_s6_backend_qualification_matrix`, `certify_s6_background_pacing`, `certify_s6_foreground_reservation`, `certify_s6_later_readiness_handoffs`, `publish_s6_backend_capability_readiness`, and `reject_materialized_s6_certification_as_runtime_authority`
-  --> crates\forge-store-certification\src\late_milestone_exports.rs:62:5
+  --> crates\worth-store-certification\src\late_milestone_exports.rs:62:5
    |
 62 |     certify_s6_backend_capability_admission, certify_s6_backend_qualification_matrix,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -169,85 +169,85 @@ warning: unused imports: `S6AccessPolicyEvidenceOutcomeKind`, `S6AccessPolicyEvi
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalIntegrityCertificationBundle` and `close_s3_physical_integrity_from_executed_evidence`
- --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:2:5
+ --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:2:5
   |
 2 |     close_s3_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalIntegrityCloseoutDenial` and `S3CloseoutDenialBoundary`
- --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:5:5
+ --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:5:5
   |
 5 |     PhysicalIntegrityCloseoutDenial, S3CloseoutDenialBoundary,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::physical_integrity_closeout_handoff::S3S4HandoffCloseoutEvidence`
- --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:7:9
+ --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:7:9
   |
 7 | pub use crate::physical_integrity_closeout_handoff::S3S4HandoffCloseoutEvidence;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::physical_integrity_closeout_harness::S3HarnessTranscriptEvidence`
- --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:8:9
+ --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:8:9
   |
 8 | pub use crate::physical_integrity_closeout_harness::S3HarnessTranscriptEvidence;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S3CloseoutExecutedOutputKind` and `S3CloseoutHarnessExecutionEvidence`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:10:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:10:5
    |
 10 |     S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S3CloseoutModuleKind`, `S3LineCapCompositionEvidence`, and `S3LineCapModuleEvidence`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:13:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:13:5
    |
 13 |     S3CloseoutModuleKind, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::physical_integrity_closeout_owned_file::S3OwnedCloseoutFileEvidence`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:15:9
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:15:9
    |
 15 | pub use crate::physical_integrity_closeout_owned_file::S3OwnedCloseoutFileEvidence;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S3ExecutedBoundaryDenialEvidence` and `S3ExecutedCorruptionLocalizationEvidence`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:17:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:17:5
    |
 17 |     S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalIntegrityCloseoutReport` and `S3CloseoutSuiteHarnessSummary`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:20:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:20:5
    |
 20 |     PhysicalIntegrityCloseoutReport, S3CloseoutSuiteHarnessSummary,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalIntegrityCloseoutSuiteEvidence` and `PhysicalIntegrityCloseoutSuite`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:23:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:23:5
    |
 23 |     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S3AcceptanceSuiteKind`, `S3CloseoutEvidenceFamily`, and `S3CorruptionLocalizationBoundary`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:26:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:26:5
    |
 26 |     S3AcceptanceSuiteKind, S3CloseoutEvidenceFamily, S3CorruptionLocalizationBoundary,
    |     ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `certify_physical_page_segment_extent_substrate` and `certify_s2_physical_substrate_readiness`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:29:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:29:5
    |
 29 |     certify_physical_page_segment_extent_substrate, certify_s2_physical_substrate_readiness,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::physical_substrate_certification_denial::PhysicalSubstrateCertificationDenial`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:31:9
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:31:9
    |
 31 | pub use crate::physical_substrate_certification_denial::PhysicalSubstrateCertificationDenial;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalPageSegmentExtentSubstrateCloseout`, `PhysicalPageSegmentExtentSubstrateEvidence`, `PhysicalPageSegmentExtentSubstrateRun`, and `PhysicalSubstrateCloseoutDenial`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:33:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:33:5
    |
 33 |     PhysicalPageSegmentExtentSubstrateCloseout, PhysicalPageSegmentExtentSubstrateEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -255,7 +255,7 @@ warning: unused imports: `PhysicalPageSegmentExtentSubstrateCloseout`, `Physical
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `PhysicalSubstrateCloseoutStoryDenial`, `PhysicalSubstrateCloseoutStoryReport`, and `PhysicalSubstrateCloseoutStoryRow`
-  --> crates\forge-store-certification\src\physical_integrity_closeout_exports.rs:37:5
+  --> crates\worth-store-certification\src\physical_integrity_closeout_exports.rs:37:5
    |
 37 |     PhysicalSubstrateCloseoutStoryDenial, PhysicalSubstrateCloseoutStoryReport,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -263,7 +263,7 @@ warning: unused imports: `PhysicalSubstrateCloseoutStoryDenial`, `PhysicalSubstr
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `RecoveryPhysicsCertificationDenial`, `RecoveryPhysicsCertificationMatrix`, `RecoveryPhysicsCertificationRow`, `RecoveryPhysicsCounterExpectation`, `RecoveryPhysicsCounterKind`, `RecoveryPhysicsCrashLane`, `RecoveryPhysicsCrashMatrixBuilder`, `RecoveryPhysicsCrashMatrixDenial`, `RecoveryPhysicsCrashMatrix`, `RecoveryPhysicsEvidenceBundle`, `RecoveryPhysicsMutant`, `RecoveryPhysicsMutationFailureEvidence`, `RecoveryPhysicsMutationSuiteEvidenceDenial`, `RecoveryPhysicsMutationSuiteEvidence`, `RecoveryPhysicsMutationSuiteLaneEvidence`, `RecoveryPhysicsMutationValidationDenial`, `RecoveryPhysicsMutationValidationMatrix`, `RecoveryPhysicsMutationValidationRow`, `RecoveryPhysicsObserverKind`, `RecoveryPhysicsOracleJudgment`, `RecoveryPhysicsOracleKind`, `RecoveryPhysicsRoadmap2HarnessCertification`, `RecoveryPhysicsRoadmap2HarnessDenial`, `RecoveryPhysicsScenarioDefinitionBuilder`, `RecoveryPhysicsScenarioDefinitionDenial`, `RecoveryPhysicsScenarioDefinition`, `RecoveryPhysicsScenarioDrivers`, `RecoveryPhysicsScenarioPlanDenial`, `RecoveryPhysicsScenarioPlan`, `RecoveryPhysicsShortcutAttempt`, `RecoveryPhysicsShortcutDenialBoundary`, `RecoveryPhysicsShortcutDenialReason`, `RecoveryPhysicsShortcutRejection`, and `RecoveryPhysicsTranscript`
-  --> crates\forge-store-certification\src\s4_recovery_harness_exports.rs:2:5
+  --> crates\worth-store-certification\src\s4_recovery_harness_exports.rs:2:5
    |
  2 |     RecoveryPhysicsCertificationDenial, RecoveryPhysicsCertificationMatrix,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -297,13 +297,13 @@ warning: unused imports: `RecoveryPhysicsCertificationDenial`, `RecoveryPhysicsC
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S5PhysicalIsolationMutationEvidence` and `s5_physical_isolation_required_mutation_rows`
-  --> crates\forge-store-certification\src\s5_physical_isolation_harness\mod.rs:13:5
+  --> crates\worth-store-certification\src\s5_physical_isolation_harness\mod.rs:13:5
    |
 13 |     s5_physical_isolation_required_mutation_rows, S5PhysicalIsolationMutationEvidence,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `S6AccessPolicyEvidenceOutcomeKind`, `S6AccessPolicyEvidenceRow`, `S6BackendCapabilityAdmissionCertificationEvidence`, `S6BackendCapabilityReadinessPublication`, `S6BackendQualificationMatrixCertification`, `S6BackendQualificationRowOutcome`, `S6BackgroundPacingCertificationDenial`, `S6BackgroundPacingCertificationEvidence`, `S6BackgroundPacingOutcomeKind`, `S6BackupExportHandoffEvidence`, `S6CanonicalEvidenceBasis`, `S6CanonicalMaterializationDenial`, `S6CertificationEvidenceAdoptionReceipt`, `S6CertificationMaterializationDenial`, `S6CertificationProofTrace`, `S6CertificationRuntimeAuthorityDenial`, `S6CertifiedQueueExecutionEvidence`, `S6ClosedS10BackupExportAdmissionSeed`, `S6ClosedS10RepairAdmissionSeed`, `S6ClosedS11SecureIoFoundationAdmissionSeed`, `S6ClosedS7PlacementAdmissionSeed`, `S6CompactionHandoffEvidence`, `S6CounterStrengthDeclaration`, `S6CounterStrengthFamily`, `S6FlushDurabilityEvidenceRow`, `S6ForegroundReservationCertificationDenial`, `S6ForegroundReservationCertificationEvidence`, `S6FoundationalAuthorityBoundary`, `S6FoundationalPerformanceReceipts`, `S6FoundationalProfileEvidence`, `S6IoPressureHarnessCloseoutDenial`, `S6IoPressureHarnessCloseoutEvidence`, `S6IoQosReadinessHandoffMaterializationDenial`, `S6LatencyInterferenceCertificationDenial`, `S6LatencyInterferenceEvidence`, `S6LaterReadinessHandoffCertification`, `S6MaterializedCertificationEvidenceBundle`, `S6MaterializedCounterStrength`, `S6OperatorHandoffEvidence`, `S6PlacementHandoffEvidence`, `S6PostAdmissionViolationCause`, `S6PostAdmissionViolationEvidenceRow`, `S6PostAdmissionViolationFamily`, `S6ProductionReadinessClosureDenial`, `S6ProductionReadinessClosureInput`, `S6ProductionReadinessClosure`, `S6ProductionReadinessPosture`, `S6ProductionReadinessProof`, `S6ProofProjectionArtifact`, `S6QueueExecutionCertificationDenial`, `S6ReclaimPolicyEvidenceOutcomeKind`, `S6ReclaimPolicyEvidenceRow`, `S6RepairScanHandoffEvidence`, `S6ResidualDebtKind`, `S6ResidualDebtLedger`, `S6ResidualDebtRow`, `StoreOwnedS6CertificationMaterializationSources`, `adopt_materialized_s6_certification_evidence_for_closeout`, `certify_s6_backend_capability_admission`, `certify_s6_backend_qualification_matrix`, `certify_s6_background_pacing`, `certify_s6_foreground_reservation`, `certify_s6_later_readiness_handoffs`, `close_s6_production_readiness`, `materialize_s6_certification_evidence`, `materialize_s6_io_qos_isolation_readiness`, `publish_s6_backend_capability_readiness`, and `reject_materialized_s6_certification_as_runtime_authority`
-  --> crates\forge-store-certification\src\s6_facade.rs:4:5
+  --> crates\worth-store-certification\src\s6_facade.rs:4:5
    |
  4 |     adopt_materialized_s6_certification_evidence_for_closeout, certify_s6_backend_capability_admission,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -367,19 +367,19 @@ warning: unused imports: `S6AccessPolicyEvidenceOutcomeKind`, `S6AccessPolicyEvi
    |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::store_json_residue_certification::certify_store_json_residue_inventory`
- --> crates\forge-store-certification\src\store_json_residue_exports.rs:1:9
+ --> crates\worth-store-certification\src\store_json_residue_exports.rs:1:9
   |
 1 | pub use crate::store_json_residue_certification::certify_store_json_residue_inventory;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::store_json_residue_denial::StoreJsonResidueDenial`
- --> crates\forge-store-certification\src\store_json_residue_exports.rs:2:9
+ --> crates\worth-store-certification\src\store_json_residue_exports.rs:2:9
   |
 2 | pub use crate::store_json_residue_denial::StoreJsonResidueDenial;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `StoreJsonAuthorityRisk`, `StoreJsonResidueClassification`, `StoreJsonResidueOccurrence`, `StoreJsonResidueTokenKind`, and `StoreJsonResidueZone`
- --> crates\forge-store-certification\src\store_json_residue_exports.rs:4:5
+ --> crates\worth-store-certification\src\store_json_residue_exports.rs:4:5
   |
 4 |     StoreJsonAuthorityRisk, StoreJsonResidueClassification, StoreJsonResidueOccurrence,
   |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -387,18 +387,18 @@ warning: unused imports: `StoreJsonAuthorityRisk`, `StoreJsonResidueClassificati
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
 
 warning: unused import: `crate::store_json_residue_inventory::StoreJsonResidueInventory`
- --> crates\forge-store-certification\src\store_json_residue_exports.rs:7:9
+ --> crates\worth-store-certification\src\store_json_residue_exports.rs:7:9
   |
 7 | pub use crate::store_json_residue_inventory::StoreJsonResidueInventory;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 warning: unused imports: `SyntheticCloseoutRejectionDenial`, `SyntheticCloseoutShortcutAttempt`, `SyntheticCloseoutShortcutInput`, and `SyntheticCloseoutShortcutRejectionReport`
- --> crates\forge-store-certification\src\synthetic_closeout_exports.rs:2:5
+ --> crates\worth-store-certification\src\synthetic_closeout_exports.rs:2:5
   |
 2 |     SyntheticCloseoutRejectionDenial, SyntheticCloseoutShortcutAttempt,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 3 |     SyntheticCloseoutShortcutInput, SyntheticCloseoutShortcutRejectionReport,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-warning: `forge-store-certification` (lib) generated 25 warnings (run `cargo fix --lib -p forge-store-certification` to apply 25 suggestions)
+warning: `worth-store-certification` (lib) generated 25 warnings (run `cargo fix --lib -p worth-store-certification` to apply 25 suggestions)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s

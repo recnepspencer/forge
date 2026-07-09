@@ -2,7 +2,7 @@
 
 > **Status:** Closed
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.6b Allocation Neighborhood Planning And Constraint Propagation`
 >
@@ -83,7 +83,7 @@ wrong place.
   evidence substrate. Inspection and diagnostics must consume runtime truth
   rather than becoming a second graph, a host debug lane, or presentation-only
   folklore.
-- `forge-query/docs/AI_README.md`: the most important thing to protect is the
+- `worth-query/docs/AI_README.md`: the most important thing to protect is the
   Query runtime boundary. Worth UI cleanup may consume Query-owned public
   artifacts and bindings, but it must not restate or rebuild Query runtime
   truth locally.
@@ -488,16 +488,16 @@ Paths relative to `workspaces/worth-ui/crates/worth-ui-runtime/src` unless noted
 
 ```
 lib.rs
-  facade/     # entry → lifecycle → registry → runtime_handoff → evidence → host → inspection
-  runtime/    # launch → replacement → planning → activation → execution → host_observation
+  facade/     # entry â†’ lifecycle â†’ registry â†’ runtime_handoff â†’ evidence â†’ host â†’ inspection
+  runtime/    # launch â†’ replacement â†’ planning â†’ activation â†’ execution â†’ host_observation
     matching/worth_ui_identity_match_graph_builder/
-              # guard → index → classify kind → match graph → report
+              # guard â†’ index â†’ classify kind â†’ match graph â†’ report
     launch/   # host_test_support is cfg(test) only
-  evidence/   # construction → measurement → planning → obligation
+  evidence/   # construction â†’ measurement â†’ planning â†’ obligation
     measurement/projection/inspection_receipt/
-              # classify failure → project maps → assemble view
+              # classify failure â†’ project maps â†’ assemble view
   graph/allocation_neighborhood/constraint_pipeline/
-              # collect authority → classify specials → admit edges → verify → construct set
+              # collect authority â†’ classify specials â†’ admit edges â†’ verify â†’ construct set
   host/       # observation mechanics; no always-on for_test reexports at root
   certification_support/   # SUPPORT AUTHORITY; public only with feature certification-support
 
@@ -510,7 +510,7 @@ worth-ui-certification/    # topology audits, trybuild, certify_* consumers
 
 Facade lifecycle order (see `facade/mod.rs`):
 
-`entry → lifecycle → registry → runtime_handoff → boundaries → evidence → host_observation → inspection_bridge`
+`entry â†’ lifecycle â†’ registry â†’ runtime_handoff â†’ boundaries â†’ evidence â†’ host_observation â†’ inspection_bridge`
 
 Facades **route**. Domain modules **own law**. Product code must not deep-import
 internal runtime topology to invent a parallel lifecycle.
@@ -519,15 +519,15 @@ internal runtime topology to invent a parallel lifecycle.
 
 ```
 declaration freeze / source ingress
-  → graph admit + correspondence
-  → replacement (admit → compare → impact → narrow → identity match → node plan
-                 → reconcile → query rebind)
-  → stage pending activation
-  → measurement basis admit + neighborhood admit + constraint pipeline
-  → plan_allocation
-  → [3.8] allocation receipts / invalidation / replan
-  → handle allocation → lane plan → execute → host observe
-  → inspection / diagnostics consume (do not mint)
+  â†’ graph admit + correspondence
+  â†’ replacement (admit â†’ compare â†’ impact â†’ narrow â†’ identity match â†’ node plan
+                 â†’ reconcile â†’ query rebind)
+  â†’ stage pending activation
+  â†’ measurement basis admit + neighborhood admit + constraint pipeline
+  â†’ plan_allocation
+  â†’ [3.8] allocation receipts / invalidation / replan
+  â†’ handle allocation â†’ lane plan â†’ execute â†’ host observe
+  â†’ inspection / diagnostics consume (do not mint)
 ```
 
 ### Authority map
@@ -546,7 +546,7 @@ declaration freeze / source ingress
 |-------------|--------------|---------------------|
 | Allocation receipt | Post-`plan_allocation` planning artifact + admitted neighborhood identity | Synthetic neighborhood without admit path |
 | Incremental replan | Impact narrow + identity match + neighborhood | Host-local invalidation of UI meaning; whole-tree default |
-| Continuous measurement | Host observation → admit measurement basis → inspect | Host inventing semantic truth |
+| Continuous measurement | Host observation â†’ admit measurement basis â†’ inspect | Host inventing semantic truth |
 | Certification | `worth-ui-test-support` + facade `certify_*` | `certification_support` deep paths / production test mint |
 
 ### Anti-bypass fences retained
@@ -561,7 +561,7 @@ declaration freeze / source ingress
 
 | Exception | Scope | Owner | Follow-on |
 |-----------|-------|-------|-----------|
-| Some production modules remain ~400–423 lines as cohesive single-domain APIs or type catalogs (not phase-7 hotspots) | Individual files outside identity-match builder, inspection_receipt, and constraint_pipeline hotspots | worth-ui runtime maintainers | Split only when a god-function or multi-responsibility bag appears |
+| Some production modules remain ~400â€“423 lines as cohesive single-domain APIs or type catalogs (not phase-7 hotspots) | Individual files outside identity-match builder, inspection_receipt, and constraint_pipeline hotspots | worth-ui runtime maintainers | Split only when a god-function or multi-responsibility bag appears |
 | Full `cargo test -p worth-ui-runtime --lib` still has pre-existing test-module wiring gaps (`replacement_impact_test_support` / private `tests` reexports in some test files) | Test build only | worth-ui runtime tests | Test-hygiene task; not required for 3.8 product start |
 
 ### Verification evidence (closeout run)
@@ -571,19 +571,19 @@ Commands and outcomes recorded for this closeout:
 ```text
 python automation/phase_runner/runner.py validate \
   automation/phase_runner/config/worth-ui-milestone-3.7-code-cleanup.json
-→ config is valid
+â†’ config is valid
 
 cargo test -p worth-ui-certification --test milestone_37_structural_inventory_audit
-→ ok (7 passed)
+â†’ ok (7 passed)
 
 cargo test -p worth-ui-certification --test graph_touch_runtime_origin_receipts
-→ ok (1 passed)
+â†’ ok (1 passed)
 
 cargo test -p worth-ui-certification --test measurement_basis_determinism_runtime
-→ ok (3 passed)
+â†’ ok (3 passed)
 
 cargo test -p worth-ui-certification --test measurement_authority_compile
-→ ok (1 passed)
+â†’ ok (1 passed)
 ```
 
 ### 3.8 non-reopen rules
@@ -600,6 +600,6 @@ Milestone 3.8 must:
 
 ### Closeout judgment
 
-Phases 1–7 delivered structural inventory, facade grammar, lifecycle trees,
+Phases 1â€“7 delivered structural inventory, facade grammar, lifecycle trees,
 evidence topology, seam cleanup, authority fences, and function decomposition.
 Phase 8 freezes that shape as the 3.8 foundation. **Milestone 3.7 is closed.**

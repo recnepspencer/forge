@@ -1,0 +1,35 @@
+error[E0308]: mismatched types
+ --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:6:26
+  |
+6 |         commit_identity: "commit-1".to_string(),
+  |                          ^^^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryCommitIdentity`, found `String`
+
+error[E0308]: mismatched types
+ --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:7:26
+  |
+7 |         entity_identity: "entity:todo-1".to_string(),
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryEntityIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryLivePatch` has no field named `aspect_paths`
+ --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:9:9
+  |
+9 |         aspect_paths: Vec::new(),
+  |         ^^^^^^^^^^^^ `WorthQueryLivePatch` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+warning: unreachable expression
+  --> tests/ui/bridge_truth_identity/live_patch_string_literal_fields_private.rs:4:18
+   |
+ 4 |       let _patch = WorthQueryLivePatch {
+   |  __________________^
+ 5 | |         view_name: "todo-list".to_string(),
+ 6 | |         commit_identity: "commit-1".to_string(),
+ 7 | |         entity_identity: "entity:todo-1".to_string(),
+...  |
+10 | |         envelope: panic!("private-field proof is compile-time only"),
+   | |                   -------------------------------------------------- any code following this expression is unreachable
+11 | |     };
+   | |_____^ unreachable expression
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

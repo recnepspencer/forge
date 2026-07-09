@@ -1,0 +1,31 @@
+warning: unreachable statement
+  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:10:5
+   |
+ 9 |     let support_report: QuerySubscriptionSupportReport = todo!();
+   |                                                          ------- any code following this expression is unreachable
+10 |     let bridge_parity: QuerySubscriptionBridgeParityExplanation = todo!();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0624]: associated function `compose` is private
+  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:22:53
+   |
+22 |         scope_identity: WorthQueryEvidenceIdentity::compose(
+   |                                                     ^^^^^^^ private associated function
+   |
+  ::: src/evidence_identity/artifact.rs
+   |
+   |     pub(crate) fn compose(scope: WorthQueryEvidenceScope) -> WorthQueryEvidenceIdentityEncoder {
+   |     ------------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: method `seal` is private
+  --> tests/ui/subscription_runtime_certification_scope_constructor_private.rs:25:10
+   |
+25 |         .seal(),
+   |          ^^^^ private method
+   |
+  ::: src/evidence_identity/encoder.rs
+   |
+   |     pub(crate) fn seal(self) -> WorthQueryEvidenceIdentity {
+   |     ------------------------------------------------------ private method defined here

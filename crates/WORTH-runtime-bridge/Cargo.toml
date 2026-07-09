@@ -1,0 +1,23 @@
+[package]
+name = "worth-runtime-bridge"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Bridge facade and routing boundary between worth-relational and worth-signal."
+repository = "https://github.com/recnepspencer/WORTH"
+keywords = ["bridge", "runtime", "invalidation", "snapshot", "facade"]
+categories = ["data-structures", "science"]
+
+[dependencies]
+worth-foundational = { path = "../worth-foundational" }
+worth-harness = { path = "../worth-harness" }
+worth-proof = { path = "../worth-proof" }
+worth-signal = { path = "../worth-signal" }
+serde_json = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+trybuild.workspace = true
+
+[lints]
+workspace = true

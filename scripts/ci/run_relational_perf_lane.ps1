@@ -3,17 +3,17 @@ $ErrorActionPreference = "Stop"
 $RootDir = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $RootDir
 
-Write-Host "[relational-perf] Running forge-relational performance lane..."
+Write-Host "[relational-perf] Running worth-relational performance lane..."
 
 $RunnerTemp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
 $PerfLogPath = if ($env:RELATIONAL_PERF_LOG_PATH) { $env:RELATIONAL_PERF_LOG_PATH } else { Join-Path $RunnerTemp "relational-perf.log" }
 $PerfReportPath = if ($env:RELATIONAL_PERF_REPORT_PATH) { $env:RELATIONAL_PERF_REPORT_PATH } else { Join-Path $RunnerTemp "relational-perf-report.jsonl" }
 $PerfSummaryPath = if ($env:RELATIONAL_PERF_SUMMARY_PATH) { $env:RELATIONAL_PERF_SUMMARY_PATH } else { Join-Path $RunnerTemp "relational-perf-summary.jsonl" }
 $PerfMarkdownPath = if ($env:RELATIONAL_PERF_MARKDOWN_PATH) { $env:RELATIONAL_PERF_MARKDOWN_PATH } else { Join-Path $RunnerTemp "relational-perf-summary.md" }
-$PerfBaselinePath = if ($env:RELATIONAL_PERF_BASELINE_PATH) { $env:RELATIONAL_PERF_BASELINE_PATH } else { Join-Path $RootDir "_docs\engineering\forge_relational_performance_baseline.jsonl" }
+$PerfBaselinePath = if ($env:RELATIONAL_PERF_BASELINE_PATH) { $env:RELATIONAL_PERF_BASELINE_PATH } else { Join-Path $RootDir "_docs\engineering\worth_relational_performance_baseline.jsonl" }
 $PerfComparePath = $env:RELATIONAL_PERF_COMPARE_PATH
 $PerfArchiveDir = $env:RELATIONAL_PERF_ARCHIVE_DIR
-$PerfSamples = if ($env:FORGE_RELATIONAL_PERF_SAMPLES) { $env:FORGE_RELATIONAL_PERF_SAMPLES } else { "3" }
+$PerfSamples = if ($env:WORTH_RELATIONAL_PERF_SAMPLES) { $env:WORTH_RELATIONAL_PERF_SAMPLES } else { "3" }
 
 if (-not $PerfComparePath -and (Test-Path $PerfBaselinePath)) {
     $PerfComparePath = $PerfBaselinePath
@@ -26,14 +26,14 @@ if (-not $PerfComparePath -and $PerfArchiveDir) {
     }
 }
 
-$env:FORGE_RELATIONAL_PERF_SAMPLES = $PerfSamples
+$env:WORTH_RELATIONAL_PERF_SAMPLES = $PerfSamples
 
-$cargoCommand = "cargo test -p forge-relational performance_profiles -- --ignored --nocapture --test-threads=1 2>&1"
+$cargoCommand = "cargo test -p worth-relational performance_profiles -- --ignored --nocapture --test-threads=1 2>&1"
 $testOutput = cmd /c $cargoCommand
 $testOutput | Tee-Object -FilePath $PerfLogPath
 
 if ($LASTEXITCODE -ne 0) {
-    throw "forge-relational performance lane failed with exit code $LASTEXITCODE"
+    throw "worth-relational performance lane failed with exit code $LASTEXITCODE"
 }
 
 $jsonLines = $testOutput | Where-Object { $_ -match '^\{' }

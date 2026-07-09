@@ -1,0 +1,405 @@
+#![forbid(unsafe_code)]
+//! Backend/media capability witnesses cannot be synthesized from raw fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::AdmittedBackendCapabilityWitness;
+//! let _WORTHd = AdmittedBackendCapabilityWitness {
+//!     profile: todo!(),
+//!     evidence_class: todo!(),
+//!     support: todo!(),
+//!     media_assumptions: todo!(),
+//!     rebind_triggers: todo!(),
+//!     confidence_limits: todo!(),
+//! };
+//! ```
+//! Claim witnesses cannot be constructed by copying backend labels or rows:
+//! ```compile_fail
+//! use worth_store_physical_backend::BackendCapabilityClaimWitness;
+//! let _WORTHd = BackendCapabilityClaimWitness {
+//!     profile: todo!(),
+//!     evidence_class: todo!(),
+//!     kind: todo!(),
+//! };
+//! ```
+//! Certified backend evidence cannot be selected by public enum wrapping:
+//! ```compile_fail
+//! use worth_store_physical_backend::BackendCapabilityEvidenceBasis;
+//! let _WORTHd = BackendCapabilityEvidenceBasis::certified_backend_profile();
+//! ```
+//! Ordinary callers cannot assemble externally-guaranteed runtime authority from
+//! public support and media declarations:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis,
+//!     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
+//!     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
+//! };
+//! let request = BackendCapabilityAdmissionRequest::new(
+//!     BackendTargetProfile::PosixFileFsyncDirSync,
+//!     BackendCapabilityEvidenceBasis::externally_guaranteed(1),
+//!     BackendCapabilitySupportSet::all_supported(),
+//!     BackendMediaAssumptionSet::platform_file_defaults(),
+//!     BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
+//! );
+//! let _WORTHd =
+//!     PhysicalBackendCapabilityAdmissionAuthority::store_owned().admit_backend_capability(request);
+//! ```
+//! Raw probe rows or terminal projections cannot stand in for Store-owned
+//! capability evidence at the public admission boundary:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendCapabilityAdmissionRequest, BackendCapabilitySupportSet,
+//!     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
+//! };
+//! struct RawProbeRow;
+//! struct TerminalProjection;
+//! let _request = BackendCapabilityAdmissionRequest::new(
+//!     BackendTargetProfile::PosixFileFsyncDirSync,
+//!     RawProbeRow,
+//!     BackendCapabilitySupportSet::all_supported(),
+//!     BackendMediaAssumptionSet::platform_file_defaults(),
+//!     TerminalProjection,
+//! );
+//! ```
+//! Backend residue observations cannot be minted from raw caller fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BlobBackendResidueObservation, BlobBackendResidueObservationKind,
+//! };
+//!
+//! let _WORTHd = BlobBackendResidueObservation::observed(
+//!     BlobBackendResidueObservationKind::OrphanedPlacementResidue,
+//!     "copied-object-key",
+//! );
+//! ```
+//! Backend residue evidence cannot be minted from copied tokens plus a copied
+//! capability claim:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendCapabilityClaimWitness, BlobBackendResidueObservation,
+//!     BlobBackendResidueObservationKind,
+//! };
+//! let capability: BackendCapabilityClaimWitness = todo!();
+//! let _WORTHd = BlobBackendResidueObservation::from_store_backend_residue_scan(
+//!     capability,
+//!     BlobBackendResidueObservationKind::OrphanedPlacementResidue,
+//!     "copied-object-key",
+//! );
+//! ```
+//! Backend manifest evidence cannot be minted from copied digest/scope fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendCapabilityClaimWitness, BlobPhysicalManifestObservation,
+//! };
+//! let capability: BackendCapabilityClaimWitness = todo!();
+//! let _WORTHd = BlobPhysicalManifestObservation::from_store_backend_manifest_traversal(
+//!     capability, "copied-digest", 1, "copied-digest", 1, todo!(), true,
+//! );
+//! ```
+//! Queue execution completion cannot be minted from ordinary caller-supplied
+//! fields in production builds:
+//! ```compile_fail
+//! use worth_store_physical_backend::BackendQueueExecutionCompletion;
+//! let _WORTHd = BackendQueueExecutionCompletion::completed(todo!(), todo!());
+//! ```
+//! Queue execution tickets are backend-issued authority; ordinary callers cannot
+//! construct them from replay bindings:
+//! ```compile_fail
+//! use worth_store_physical_backend::BackendQueueExecutionTicket;
+//! let _WORTHd = BackendQueueExecutionTicket::from_backend_authority(todo!(), todo!());
+//! ```
+//! Ordinary callers cannot issue queue execution tickets from caller-supplied
+//! replay bindings and a borrowed capability witness in production builds:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     AdmittedBackendCapabilityWitness, BackendQueueExecutionAdaptation,
+//!     BackendQueueExecutionAuthority, BackendQueueExecutionPlanBinding,
+//! };
+//! fn WORTH_ticket(
+//!     binding: BackendQueueExecutionPlanBinding,
+//!     witness: &AdmittedBackendCapabilityWitness,
+//! ) {
+//!     let _ = BackendQueueExecutionAuthority::store_owned().issue_ticket(
+//!         binding,
+//!         witness,
+//!         BackendQueueExecutionAdaptation::None,
+//!     );
+//! }
+//! ```
+//! Ordinary callers cannot combine public observations and a backend
+//! implementation into queue completion authority:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendQueueExecutionObservedCounters, BackendQueueExecutionSession, PhysicalReference,
+//!     PhysicalStoreBackend, StoreOwnedBackendQueueExecution,
+//! };
+//! struct Dummy;
+//! impl PhysicalStoreBackend for Dummy {
+//!     type Error = ();
+//!     fn append_framed_record(&mut self, _: &[u8]) -> Result<PhysicalReference, Self::Error> {
+//!         Err(())
+//!     }
+//!     fn read_framed_record(&self, _: PhysicalReference) -> Result<Vec<u8>, Self::Error> {
+//!         Err(())
+//!     }
+//! }
+//! let mut backend = Dummy;
+//! let observations = BackendQueueExecutionObservedCounters::new();
+//! let authority = StoreOwnedBackendQueueExecution { _private: () };
+//! let mut session = BackendQueueExecutionSession::for_store_backend(&mut backend, authority);
+//! let _ = session.complete_after_append(todo!(), todo!(), todo!(), b"payload", observations);
+//! ```
+//! Production queue execution sessions require Store-owned execution authority;
+//! ordinary backend implementations cannot open a completion-minting session:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendQueueExecutionSession, PhysicalReference, PhysicalStoreBackend,
+//!     StoreOwnedBackendQueueExecution,
+//! };
+//! struct Dummy;
+//! impl PhysicalStoreBackend for Dummy {
+//!     type Error = ();
+//!     fn append_framed_record(&mut self, _: &[u8]) -> Result<PhysicalReference, Self::Error> {
+//!         Err(())
+//!     }
+//!     fn read_framed_record(&self, _: PhysicalReference) -> Result<Vec<u8>, Self::Error> {
+//!         Err(())
+//!     }
+//! }
+//! let mut backend = Dummy;
+//! let authority = StoreOwnedBackendQueueExecution { _private: () };
+//! let _session = BackendQueueExecutionSession::for_store_backend(&mut backend, authority);
+//! ```
+//! Store durability receipts cannot be WORTHd from raw fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreDurabilityOrderingBarrierDurable;
+//! let _WORTHd: StoreDurabilityOrderingBarrierDurable<&'static str> =
+//!     StoreDurabilityOrderingBarrierDurable { core: todo!() };
+//! ```
+//! Store durability execution proof cannot be WORTHd from public fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreDurabilityExecutionProof;
+//! let _WORTHd: StoreDurabilityExecutionProof<&'static str> = StoreDurabilityExecutionProof {
+//!     binding: todo!(),
+//!     completed_barriers: todo!(),
+//!     file_sync: todo!(),
+//!     directory_sync_completed: true,
+//!     rename_completed: true,
+//!     ordering_barrier_completed: true,
+//!     delayed_syncs: 0,
+//!     failed_syncs: 0,
+//!     _seal: todo!(),
+//! };
+//! ```
+//! Store durability execution authority cannot be constructed by ordinary
+//! callers:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreOwnedDurabilityExecution;
+//! let _WORTHd = StoreOwnedDurabilityExecution { _private: () };
+//! ```
+//! Certification-only durability authority is not an ordinary production API:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreOwnedDurabilityExecution;
+//! let _WORTHd = StoreOwnedDurabilityExecution::for_certification_test_authority();
+//! ```
+//! Ordinary callers cannot open a Store-owned durability execution session
+//! without receiving Store-owned authority:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreDurabilityExecutionSession;
+//! struct Dummy;
+//! let mut backend = Dummy;
+//! let _session = StoreDurabilityExecutionSession::for_owned_backend(&mut backend);
+//! ```
+//! Raw WAL barrier bits are declarations, not completed sync authority:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     StoreDurabilityWriteAccepted, WalDurabilityBarrierSet,
+//! };
+//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
+//! let _boundary = accepted.reach_durability_boundary(WalDurabilityBarrierSet::EMPTY);
+//! ```
+//! Store durability progression cannot skip from backend-accepted to durable
+//! rename without parent namespace durability:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreDurabilityWriteAccepted;
+//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
+//! let _renamed = accepted.rename_durable();
+//! ```
+//! Store access policy admission cannot be WORTHd from public fields:
+//! ```compile_fail
+//! use worth_store_physical_backend::AdmittedAccessPolicy;
+//! let _WORTHd = AdmittedAccessPolicy {
+//!     request: todo!(),
+//!     capability: todo!(),
+//!     counters: todo!(),
+//! };
+//! ```
+//! Store access execution receipts cannot be constructed without an admitted
+//! policy completing through the Store-owned receipt path:
+//! ```compile_fail
+//! use worth_store_physical_backend::AccessPolicyExecutionReceipt;
+//! let _WORTHd = AccessPolicyExecutionReceipt {
+//!     policy: todo!(),
+//!     counters: todo!(),
+//! };
+//! ```
+//! Store access prerequisite proofs cannot be field-WORTHd downstream:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
+//! };
+//! let _WORTHd = AccessPolicyBufferLifecycle {
+//!     kind: AccessPolicyBufferLifecycleKind::PinnedS2Lease,
+//! };
+//! ```
+//! ```compile_fail
+//! let _WORTHd = worth_store_physical_backend::AccessPolicyBufferLifecycle::from_buffer_pool_pinned_s2_lease();
+//! ```
+//! ```compile_fail
+//! use worth_store_physical_backend::DirectIoAlignmentRequirement;
+//! let _WORTHd = DirectIoAlignmentRequirement {
+//!     page_aligned: true,
+//!     sector_aligned: true,
+//!     buffer_lifetime_stable: true,
+//! };
+//! ```
+//! ```compile_fail
+//! use worth_store_physical_backend::MmapFaultPosture;
+//! let _WORTHd = MmapFaultPosture {
+//!     fault: todo!(),
+//!     writeback: todo!(),
+//!     visibility: todo!(),
+//!     truncate: todo!(),
+//!     punch_hole: todo!(),
+//! };
+//! ```
+//! ```compile_fail
+//! use worth_store_physical_backend::MixedAccessCoherenceBasis;
+//! let _WORTHd = MixedAccessCoherenceBasis {
+//!     transition: todo!(),
+//!     reference: todo!(),
+//!     security_scope: todo!(),
+//!     invalidation: todo!(),
+//!     writeback: todo!(),
+//! };
+//! ```
+//! Store access execution authority cannot be opened without Store authority:
+//! ```compile_fail
+//! use worth_store_physical_backend::StoreOwnedAccessPolicyExecution;
+//! let _WORTHd = StoreOwnedAccessPolicyExecution { _private: () };
+//! ```
+mod access_policy;
+mod placement_observation;
+mod durability_ordering;
+mod durability_profile;
+pub mod external_recovery_compile_fail;
+mod heavy_fixture;
+mod io_capability;
+mod operation_boundary;
+mod s6_queue_execution;
+mod s6_queue_execution_session;
+mod s6_queue_execution_ticket;
+mod s6_secure_io;
+pub use worth_store_physical_format::PhysicalReference;
+
+pub use access_policy::{
+    AccessPolicyAdmission, AccessPolicyBufferLifecycle, AccessPolicyBufferLifecycleKind,
+    AccessPolicyCounterSnapshot, AccessPolicyCounterStrength, AccessPolicyDenial,
+    AccessPolicyDenialKind, AccessPolicyExecutionObservation, AccessPolicyExecutionReceipt,
+    AccessPolicyExecutionRequest, AccessPolicyExecutionSession, AccessPolicyRequest,
+    AccessPolicySecurityScope, AccessPolicyViolation, AccessPolicyViolationKind,
+    AdmittedAccessPolicy, DirectIoAlignmentRequirement, MixedAccessCoherenceBasis,
+    MixedAccessTransition, MmapFaultHandling, MmapFaultPosture, MmapPunchHolePosture,
+    MmapTruncatePosture, MmapVisibilityPosture, MmapWritebackPosture, PageCachePolicyKind,
+    PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
+    StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
+};
+pub use placement_observation::{
+    BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
+    BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
+    BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
+    BlobBackendResidueScanSession, BlobPhysicalManifestObservation,
+    BlobPhysicalManifestObservationDenial, BlobPhysicalManifestTraversalObservation,
+    BlobPhysicalManifestTraversalRequest, BlobPhysicalManifestTraversalSession,
+    BlobPhysicalManifestValidation, ExternalPlacementCleanupExecutionError,
+    ExternalPlacementCleanupObservation, ExternalPlacementCleanupReceipt,
+    ExternalPlacementCleanupRequest, ExternalPlacementCleanupSession,
+    ExternalPlacementMissingDenial, ExternalPlacementOrphanScanReceipt,
+    ExternalPlacementRecoverabilityDenial, ExternalPlacementRecoveryProbe,
+    ExternalPlacementRecoveryProbeExecutionError, ExternalPlacementRecoveryProbeObservation,
+    ExternalPlacementRecoveryProbeRequest, ExternalPlacementRecoveryProbeSession,
+    PhysicalStoreBlobManifestTraverser, PhysicalStoreBlobResidueScanner,
+    PhysicalStoreExternalPlacementCleanupExecutor, PhysicalStoreExternalPlacementRecoveryProber,
+    StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
+    StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
+    StoreOwnedExternalPlacementRecoveryProbe,
+};
+pub use durability_ordering::{
+    PhysicalStoreDurabilityExecutor, StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome,
+    StoreDurabilityBoundaryReached, StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength,
+    StoreDurabilityDenial, StoreDurabilityDenialKind, StoreDurabilityExecutionObservation,
+    StoreDurabilityExecutionProof, StoreDurabilityExecutionRequest,
+    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityOperation,
+    StoreDurabilityOrderingBarrierDurable, StoreDurabilityParentNamespaceDurable,
+    StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
+    StoreDurabilityState, StoreDurabilityWriteAccepted, StoreDurabilityWriteSubmitted,
+    StoreOwnedDurabilityExecution,
+};
+#[cfg(feature = "certification-test-authority")]
+pub use durability_profile::{
+    AdversarialLostFlushAuthority, AdversarialReorderedFlushAuthority,
+    BackendDurabilityBarrierAuthority, BackendDurabilityBarrierDenial,
+    BackendDurabilityBarrierDenialKind, MmapFlushNotDurabilityCertifiedAuthority,
+    PosixFileFsyncDirFsyncAuthority, SimulatedStrictDurabilityAuthority,
+    WindowsFlushFileBuffersAuthority,
+};
+pub use durability_profile::{
+    AdversarialLostFlushProfile, AdversarialReorderedFlushProfile, BackendDurabilityProfile,
+    BackendDurabilityProfileId, BackendDurabilitySupport, MmapFlushNotDurabilityCertifiedProfile,
+    PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
+    WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
+};
+pub use heavy_fixture::{
+    cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
+    HeavyFixtureBackendProfile, HeavyFixtureCleanupReceipt, HeavyFixtureDiskPreflightReceipt,
+    HeavyFixtureMaterializationDirectory, HeavyFixtureTempFileMaterialization,
+};
+pub use io_capability::{
+    reject_certification_only_evidence, reject_copied_qualification_row,
+    reject_environment_variable, reject_raw_backend_label, reject_raw_config_string,
+    reject_raw_os_name, reject_raw_probe_observation, reject_same_process_metric_projection,
+    reject_terminal_projection, AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionDenial,
+    BackendCapabilityAdmissionRequest, BackendCapabilityClaimOutcome,
+    BackendCapabilityClaimWitness, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
+    BackendCapabilityRebindRequired, BackendCapabilityStale, BackendCapabilitySupportPosture,
+    BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
+    BackendTargetProfile, CapabilityConfidenceLimits, CapabilityConfidenceScope,
+    CapabilityEvidenceClass, CapabilityResidualRisk, PhysicalBackendCapabilityAdmissionAuthority,
+};
+pub use operation_boundary::ProductionStorageBoundarySeam;
+pub use s6_queue_execution::{
+    BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
+    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
+    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
+    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
+    BackendQueueSpeculativeScope,
+};
+pub use s6_queue_execution_session::{
+    BackendQueueExecutionObservedCounters, BackendQueueExecutionRunError,
+    BackendQueueExecutionSession, StoreOwnedBackendQueueExecution,
+};
+pub use s6_queue_execution_ticket::{
+    BackendQueueExecutionAuthority, BackendQueueExecutionCompletionBuilder,
+    BackendQueueExecutionTicket, BackendQueueExecutionTicketDenial,
+};
+pub use s6_secure_io::{
+    preserve_secure_io_for_backend_completion, BackendSecureIoPreservationDenial,
+    BackendSecureIoPreservationReceipt, BackendSecureIoScope,
+};
+
+pub trait PhysicalStoreBackend {
+    type Error;
+
+    fn append_framed_record(&mut self, bytes: &[u8]) -> Result<PhysicalReference, Self::Error>;
+
+    fn read_framed_record(&self, reference: PhysicalReference) -> Result<Vec<u8>, Self::Error>;
+}

@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `unsupported_shape` found for struct `ForgeQueryGraphReadOperationUnsupportedDenial` in the current scope
- --> tests/ui/graph_read_access/operation_unsupported_denial_resolved_constructor_private.rs:4:60
-  |
-4 |     let _ = ForgeQueryGraphReadOperationUnsupportedDenial::unsupported_shape(
-  |                                                            ^^^^^^^^^^^^^^^^^ function or associated item not found in `ForgeQueryGraphReadOperationUnsupportedDenial`

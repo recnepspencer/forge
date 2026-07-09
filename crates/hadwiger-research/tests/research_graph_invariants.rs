@@ -1,11 +1,11 @@
-use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryAspectMutationBuilder, ForgeQueryCommitIdentity,
-    ForgeQueryContributionComposedOrchestrationInput, ForgeQueryEntityIdentity,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQuerySnapshotIdentity,
+use worth_query::facade::{
+    WORTHQueryApplicationFacade, WORTHQueryAspectMutationBuilder, WORTHQueryCommitIdentity,
+    WORTHQueryContributionComposedOrchestrationInput, WORTHQueryEntityIdentity,
+    WORTHQueryMutationDelta, WORTHQueryMutationKind, WORTHQueryMutationReceipt,
+    WORTHQueryRuntimeWriteAuthorityAdapter, WORTHQuerySnapshotIdentity,
     WriteAuthorityExecutionReceipt,
 };
-use forge_runtime_bridge::facade::{
+use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
 use hadwiger_research::facade::*;
@@ -84,7 +84,7 @@ fn partial_explanation(
 }
 
 fn query_recovery_explanation(handle: &HadwigerResearchHandle) -> HadwigerQueryRecoveryExplanation {
-    let query_handle = ForgeQueryApplicationFacade::runtime_backed_default()
+    let query_handle = WORTHQueryApplicationFacade::runtime_backed_default()
         .domain(HadwigerResearchDomainEntry)
         .with_operating_context(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .validate()
@@ -92,7 +92,7 @@ fn query_recovery_explanation(handle: &HadwigerResearchHandle) -> HadwigerQueryR
         .admit()
         .unwrap();
     let checked = query_handle.orchestrate_declaration_with_contributions_checked(
-        ForgeQueryContributionComposedOrchestrationInput::new(
+        WORTHQueryContributionComposedOrchestrationInput::new(
             RejectionExplanationDeclaration::new("candidate-a", "bad-edge"),
         ),
     );
@@ -168,13 +168,13 @@ fn suppression_violation(
 #[derive(Clone, Copy, Debug)]
 struct Phase8BoundaryReceiptBuilder;
 
-impl ForgeQueryRuntimeWriteAuthorityAdapter for Phase8BoundaryReceiptBuilder {
+impl WORTHQueryRuntimeWriteAuthorityAdapter for Phase8BoundaryReceiptBuilder {
     fn write(
         &mut self,
-        _bridge: &forge_runtime_bridge::facade::RuntimeBridge,
-        _relational_runtime: Option<&mut forge_relational::facade::runtime::RelationalRuntime>,
-        command: forge_query::facade::ForgeQueryWriteCommand,
-    ) -> Result<WriteAuthorityExecutionReceipt, forge_query::facade::ForgeQueryWorkspaceError> {
+        _bridge: &worth_runtime_bridge::facade::RuntimeBridge,
+        _relational_runtime: Option<&mut worth_relational::facade::runtime::RelationalRuntime>,
+        command: worth_query::facade::WORTHQueryWriteCommand,
+    ) -> Result<WriteAuthorityExecutionReceipt, worth_query::facade::WORTHQueryWorkspaceError> {
         Ok(self.build_write_authority_execution_receipt(
             &command,
             phase8_mutation_receipt("phase8-runtime-commit"),
@@ -183,7 +183,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for Phase8BoundaryReceiptBuilder {
 }
 
 fn phase8_boundary_source(commit_identity: &str) -> WriteAuthorityExecutionReceipt {
-    let command = ForgeQueryAspectMutationBuilder::new()
+    let command = WORTHQueryAspectMutationBuilder::new()
         .aspect("hadwiger.research_graph.invariant", commit_identity)
         .build_insert("hadwiger_research_graph")
         .expect("phase8 boundary command should build");
@@ -191,19 +191,19 @@ fn phase8_boundary_source(commit_identity: &str) -> WriteAuthorityExecutionRecei
         .build_write_authority_execution_receipt(&command, phase8_mutation_receipt(commit_identity))
 }
 
-fn phase8_mutation_receipt(commit_identity: &str) -> ForgeQueryMutationReceipt {
+fn phase8_mutation_receipt(commit_identity: &str) -> WORTHQueryMutationReceipt {
     let commit_position = phase8_commit_position(commit_identity);
-    ForgeQueryMutationReceipt::from_authoritative_parts(
-        ForgeQueryCommitIdentity::from_relational_commit_id(commit_position),
-        ForgeQuerySnapshotIdentity::from_relational_snapshot(
+    WORTHQueryMutationReceipt::from_authoritative_parts(
+        WORTHQueryCommitIdentity::from_relational_commit_id(commit_position),
+        WORTHQuerySnapshotIdentity::from_relational_snapshot(
             RelationalBridgeSnapshotIdentityParts::new(commit_position, commit_position),
         ),
-        vec![ForgeQueryMutationDelta::new(
+        vec![WORTHQueryMutationDelta::new(
             "hadwiger_research_graph",
-            ForgeQueryEntityIdentity::from_relational_record(
+            WORTHQueryEntityIdentity::from_relational_record(
                 RelationalBridgeRecordIdentityParts::entity(8, commit_position, 0),
             ),
-            ForgeQueryMutationKind::Updated,
+            WORTHQueryMutationKind::Updated,
             vec!["hadwiger.research_graph.invariant".to_string()],
         )],
     )

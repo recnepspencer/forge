@@ -1,8 +1,8 @@
-﻿{
+{
   "schema_version": 1,
   "project": {
     "name": "Worth Touched Graph Milestone 16 Cross Family Parity Proof Residue Collapse And 7.5 Readiness",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -16,10 +16,10 @@
       "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
       "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
       "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md",
-      "crates/forge-query/docs/AI_README.md",
-      "crates/forge-query/docs/foundations/consumer-kit.md",
-      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
-      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/foundations/consumer-kit.md",
+      "crates/worth-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/worth-query/docs/foundations/downstream-runtime-integration.md",
       "crates/worth-kernel/src/workload_composition/planner_owned_routing/selected_route/mod.rs",
       "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_proof/mod.rs",
       "crates/worth-kernel/src/workload_composition/planner_owned_routing/public_facade/inspection.rs",
@@ -56,12 +56,12 @@
     {
       "id": 1,
       "title": "Cross-Family Coverage Inventory Cut Line",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",
         "crates/worth-spatial/src/workload_platform",
-        "crates/forge-query/docs",
+        "crates/worth-query/docs",
         "_docs/worth/touched-graph-milestone-16-cross-family-parity-proof-residue-collapse-and-7.5-readiness.md"
       ],
       "acceptance": [
@@ -69,7 +69,7 @@
         "coverage rows name source path, owner crate, replacement lane, selected identity fields consumed, Query surface kind, and ordinary-path reachability",
         "the inventory replaces vague mixed-helper language with exact module or folder paths"
       ],
-      "instructions": "Start by refreshing the coding-guideline docs, the touched-graph roadmap, the milestone-16 spec, and forge-query AI_README context, then freeze the live cross-family coverage inventory from real production surfaces.",
+      "instructions": "Start by refreshing the coding-guideline docs, the touched-graph roadmap, the milestone-16 spec, and worth-query AI_README context, then freeze the live cross-family coverage inventory from real production surfaces.",
       "qa_focus": "No grouped-family theater, no grep-only inventory, and no unowned ordinary-path surfaces hidden behind public closeout language."
     },
     {
@@ -141,11 +141,11 @@
     {
       "id": 6,
       "title": "Evidence Lookup And Retained Spatial Family Parity",
-      "owner": "worth-spatial, worth-kernel, forge-query",
+      "owner": "worth-spatial, worth-kernel, worth-query",
       "scope": [
         "crates/worth-spatial/src/workload_platform",
         "crates/worth-kernel/src/workload_composition",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "spatial contributor catalogs name exact route packet, public-closeout digest, support posture, and consumer-residue inputs",
@@ -288,12 +288,12 @@
     {
       "id": 15,
       "title": "Exact Residue Collapse And Honest Query-Gap Classification",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",
         "crates/worth-spatial/src/workload_platform",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "every surviving row is derived from live code surfaces with explicit owner, blocker, and removal trigger",
@@ -316,13 +316,13 @@
         "matrix counts match live derived coverage and residue ledgers exactly",
         "uncertified family kinds fail closeout"
       ],
-      "instructions": "Emit the final matrix proving the roadmapâ€™s declared family coverage, residue counts, and architecture claims match live implementation state.",
+      "instructions": "Emit the final matrix proving the roadmapÃ¢â‚¬â„¢s declared family coverage, residue counts, and architecture claims match live implementation state.",
       "qa_focus": "No hand-maintained matrix and no approximate counts."
     },
     {
       "id": 17,
       "title": "Final Closeout And Roadmap Completion Gate",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",

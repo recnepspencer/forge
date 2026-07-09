@@ -1,0 +1,14 @@
+error[E0624]: associated function `from_readmission_receipt` is private
+  --> tests/ui/lower_runtime_routing/envelopes/boundary_envelope_from_readmission_receipt_private.rs:12:49
+   |
+12 |           WorthQueryLowerRuntimeBoundaryEnvelope::from_readmission_receipt(seam, readmission, receipt);
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/lower_runtime_routing/envelopes.rs
+   |
+   | /     pub(crate) fn from_readmission_receipt(
+   | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+   | |         readmission_receipt: &WorthQueryLowerRuntimeReadmissionReceipt,
+   | |         boundary_execution_receipt: &WorthQueryLowerRuntimeBoundaryExecutionReceipt,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

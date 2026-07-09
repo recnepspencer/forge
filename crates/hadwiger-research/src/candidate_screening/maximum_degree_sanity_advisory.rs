@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    ForgeQueryAdmissionContributionAuthoring, ForgeQueryContributionComposedOrchestrationInput,
-    ForgeQueryContributionIntent, ForgeQuerySupportContributionAuthoring,
+use worth_query::facade::{
+    WORTHQueryAdmissionContributionAuthoring, WORTHQueryContributionComposedOrchestrationInput,
+    WORTHQueryContributionIntent, WORTHQuerySupportContributionAuthoring,
 };
 
 use crate::domain_artifacts::core_artifact::{
@@ -174,16 +174,16 @@ pub fn advise_maximum_degree_sanity_checked(
         "maximum_degree={maximum_degree};sanity_threshold={threshold};posture={}",
         posture.as_str()
     );
-    let input = ForgeQueryContributionComposedOrchestrationInput::new(declaration)
-        .with_contribution(ForgeQueryContributionIntent::admission(
-            ForgeQueryAdmissionContributionAuthoring::advisory_at_stage(
+    let input = WORTHQueryContributionComposedOrchestrationInput::new(declaration)
+        .with_contribution(WORTHQueryContributionIntent::admission(
+            WORTHQueryAdmissionContributionAuthoring::advisory_at_stage(
                 "candidate_screening",
                 "hadwiger.screening.maximum_degree_sanity",
                 detail.clone(),
             ),
         ))
-        .with_contribution(ForgeQueryContributionIntent::support(
-            ForgeQuerySupportContributionAuthoring::declaration_support(
+        .with_contribution(WORTHQueryContributionIntent::support(
+            WORTHQuerySupportContributionAuthoring::declaration_support(
                 "hadwiger.screening.maximum_degree_sanity.support",
                 detail.clone(),
             ),

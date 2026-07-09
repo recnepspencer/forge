@@ -1,0 +1,11 @@
+error[E0599]: no method named `touches_aspect_path` found for struct `WorthQueryGraphTouchDescriptor` in the current scope
+ --> tests/ui/aspect_native_query/graph_touch_descriptor_aspect_path_lookup_removed.rs:5:24
+  |
+5 |     let _ = descriptor.touches_aspect_path("identity.id");
+  |                        ^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `touches_aspect` with a similar name
+  |
+5 -     let _ = descriptor.touches_aspect_path("identity.id");
+5 +     let _ = descriptor.touches_aspect("identity.id");
+  |

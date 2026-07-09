@@ -1,0 +1,11 @@
+error[E0451]: fields `read_graph_digest`, `schema_basis_digest` and `posture` of struct `WorthQueryGraphReadBasisBinding` are private
+ --> tests/ui/graph_read_access/basis_binding_constructor_private.rs:7:9
+  |
+6 |     let _ = WorthQueryGraphReadBasisBinding {
+  |             ------------------------------- in this type
+7 |         read_graph_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ private field
+8 |         schema_basis_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^ private field
+9 |         posture: WorthQueryGraphReadBasisPosture::RuntimeCurrent,
+  |         ^^^^^^^ private field

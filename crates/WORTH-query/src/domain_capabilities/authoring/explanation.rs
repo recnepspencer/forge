@@ -1,0 +1,227 @@
+use worth_runtime_bridge::facade::BridgeCausalExplanationEnvelope;
+
+use crate::runtime::{
+    CausalEvidenceFamily, CausalEvidenceReferenceSet, CausalInspectionExplanationFamily,
+    CausalInspectionMaterializationPolicy, CausalInspectionRedactionPolicy,
+    CausalInspectionRichness, CausalInspectionTarget, WorthQueryAdmittedIntentPlan,
+    WorthQueryIntentDeclaration, WorthQueryLowerRuntimeBoundaryEnvelope,
+    WorthQueryLowerRuntimeBoundaryEnvelopeSource,
+};
+
+use super::bind_requested;
+use crate::domain_capabilities::payloads::{
+    WorthQueryExplanationContributionPayload, WorthQueryExplanationContributionPosture,
+    WorthQueryExplanationRuntimeSemantics,
+};
+use crate::domain_capabilities::proof_integration::WorthQueryRequestedExplanationContribution;
+use crate::domain_capabilities::targets::{
+    WorthQueryAdmittedPlanBoundContributionTarget, WorthQueryDeclarationBoundContributionTarget,
+    WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryExplanationContributionAuthoring {
+    payload: WorthQueryExplanationContributionPayload,
+}
+
+impl WorthQueryExplanationContributionAuthoring {
+    pub fn requires_context(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryExplanationContributionPosture::RequiresContext,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn explains_fallback(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryExplanationContributionPosture::ExplainsFallback,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn explains_ambiguity(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryExplanationContributionPosture::ExplainsAmbiguity,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn cross_runtime_causal_context(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        reference_set: CausalEvidenceReferenceSet,
+        target: CausalInspectionTarget,
+        requested_evidence_families: Vec<CausalEvidenceFamily>,
+        bridge_envelope: BridgeCausalExplanationEnvelope,
+        redaction_policy: CausalInspectionRedactionPolicy,
+        materialization_policy: CausalInspectionMaterializationPolicy,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryExplanationContributionPosture::RequiresContext,
+            semantic_code,
+            detail,
+            WorthQueryExplanationRuntimeSemantics::new(
+                reference_set,
+                target,
+                CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
+                CausalInspectionRichness::ReferenceOnly,
+                requested_evidence_families,
+                Some(bridge_envelope),
+                redaction_policy,
+                materialization_policy,
+            ),
+        )
+    }
+
+    pub fn cross_runtime_fallback_explanation(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        reference_set: CausalEvidenceReferenceSet,
+        target: CausalInspectionTarget,
+        requested_evidence_families: Vec<CausalEvidenceFamily>,
+        bridge_envelope: BridgeCausalExplanationEnvelope,
+        redaction_policy: CausalInspectionRedactionPolicy,
+        materialization_policy: CausalInspectionMaterializationPolicy,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryExplanationContributionPosture::ExplainsFallback,
+            semantic_code,
+            detail,
+            WorthQueryExplanationRuntimeSemantics::new(
+                reference_set,
+                target,
+                CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
+                CausalInspectionRichness::MaterializedDetail,
+                requested_evidence_families,
+                Some(bridge_envelope),
+                redaction_policy,
+                materialization_policy,
+            ),
+        )
+    }
+
+    pub fn store_backed_replay_gap_explanation(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        reference_set: CausalEvidenceReferenceSet,
+        target: CausalInspectionTarget,
+        requested_evidence_families: Vec<CausalEvidenceFamily>,
+        redaction_policy: CausalInspectionRedactionPolicy,
+        materialization_policy: CausalInspectionMaterializationPolicy,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryExplanationContributionPosture::ExplainsAmbiguity,
+            semantic_code,
+            detail,
+            WorthQueryExplanationRuntimeSemantics::new(
+                reference_set,
+                target,
+                CausalInspectionExplanationFamily::StoreBackedReplayReconstruction,
+                CausalInspectionRichness::ReferenceOnly,
+                requested_evidence_families,
+                None,
+                redaction_policy,
+                materialization_policy,
+            ),
+        )
+    }
+
+    pub fn for_intent_declaration(
+        self,
+        declaration: &WorthQueryIntentDeclaration,
+    ) -> WorthQueryRequestedExplanationContribution<WorthQueryDeclarationBoundContributionTarget>
+    {
+        self.bind_to_declaration_target(
+            WorthQueryDeclarationBoundContributionTarget::for_intent_declaration(declaration),
+        )
+    }
+
+    pub fn for_admitted_intent_plan(
+        self,
+        plan: &WorthQueryAdmittedIntentPlan,
+    ) -> WorthQueryRequestedExplanationContribution<WorthQueryAdmittedPlanBoundContributionTarget>
+    {
+        self.bind_to_admitted_plan_target(
+            WorthQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(plan),
+        )
+    }
+
+    pub fn for_lower_runtime_boundary_envelope(
+        self,
+        envelope: &WorthQueryLowerRuntimeBoundaryEnvelope,
+    ) -> WorthQueryRequestedExplanationContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    > {
+        self.bind_to_lower_runtime_boundary_target(
+            WorthQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(
+                envelope,
+            ),
+        )
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        self,
+        source: &S,
+    ) -> WorthQueryRequestedExplanationContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    >
+    where
+        S: WorthQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
+    }
+
+    pub fn bind_to_declaration_target(
+        self,
+        target: WorthQueryDeclarationBoundContributionTarget,
+    ) -> WorthQueryRequestedExplanationContribution<WorthQueryDeclarationBoundContributionTarget>
+    {
+        bind_requested(self.payload, target)
+    }
+
+    pub fn bind_to_admitted_plan_target(
+        self,
+        target: WorthQueryAdmittedPlanBoundContributionTarget,
+    ) -> WorthQueryRequestedExplanationContribution<WorthQueryAdmittedPlanBoundContributionTarget>
+    {
+        bind_requested(self.payload, target)
+    }
+
+    pub fn bind_to_lower_runtime_boundary_target(
+        self,
+        target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    ) -> WorthQueryRequestedExplanationContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    > {
+        bind_requested(self.payload, target)
+    }
+
+    fn new(
+        posture: WorthQueryExplanationContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            payload: WorthQueryExplanationContributionPayload::new(posture, semantic_code, detail),
+        }
+    }
+
+    fn with_runtime_semantics(
+        posture: WorthQueryExplanationContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        runtime_semantics: WorthQueryExplanationRuntimeSemantics,
+    ) -> Self {
+        Self {
+            payload: WorthQueryExplanationContributionPayload::with_runtime_semantics(
+                posture,
+                semantic_code,
+                detail,
+                Some(runtime_semantics),
+            ),
+        }
+    }
+}

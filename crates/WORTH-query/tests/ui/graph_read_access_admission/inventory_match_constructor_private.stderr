@@ -1,0 +1,11 @@
+error[E0451]: fields `requirement_kind`, `required_capability_owner` and `resolved_posture` of struct `WorthQueryGraphReadAccessInventoryMatch` are private
+  --> tests/ui/graph_read_access_admission/inventory_match_constructor_private.rs:8:9
+   |
+ 7 |     let _ = WorthQueryGraphReadAccessInventoryMatch {
+   |             --------------------------------------- in this type
+ 8 |         requirement_kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+   |         ^^^^^^^^^^^^^^^^ private field
+ 9 |         required_capability_owner: WorthQueryGraphReadRequiredCapabilityOwner::QueryRuntime,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         resolved_posture: WorthQueryGraphReadAccessAdmissionPosture::InlineIndexed,
+   |         ^^^^^^^^^^^^^^^^ private field

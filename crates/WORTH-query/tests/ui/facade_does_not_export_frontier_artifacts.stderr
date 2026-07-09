@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `worth_query::facade::BundleResolvedBasisDigest`, `worth_query::facade::FrontierAwarePlan`, `worth_query::facade::ParallelAdmissionEvidence`, `worth_query::facade::PlannedWorkPacket`, `worth_query::facade::SerialFallbackBundleEvidence`, `worth_query::facade::SerialFallbackEvidence`, `worth_query::facade::SignalFrontierBundleEvidence`
+ --> tests/ui/facade_does_not_export_frontier_artifacts.rs:2:5
+  |
+2 |     BundleResolvedBasisDigest, FrontierAwarePlan, ParallelAdmissionEvidence, PlannedWorkPacket,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^ no `PlannedWorkPacket` in `facade`
+  |     |                          |                  |
+  |     |                          |                  no `ParallelAdmissionEvidence` in `facade`
+  |     |                          no `FrontierAwarePlan` in `facade`
+  |     no `BundleResolvedBasisDigest` in `facade`
+3 |     SerialFallbackBundleEvidence, SerialFallbackEvidence, SignalFrontierBundleEvidence,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |                             |                       |
+  |     |                             |                       no `SignalFrontierBundleEvidence` in `facade`
+  |     |                             |                       help: a similar name exists in the module: `SignalFrontierSurfaceEvidence`
+  |     |                             no `SerialFallbackEvidence` in `facade`
+  |     no `SerialFallbackBundleEvidence` in `facade`

@@ -1,4 +1,4 @@
-use forge_foundational::facade::CanonicalDerivedDigest;
+use worth_foundational::facade::CanonicalDerivedDigest;
 
 use super::query_references::{HadwigerQueryDeclarationReference, HadwigerQueryEnvelopeReference};
 

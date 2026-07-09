@@ -1,5 +1,0 @@
-use forge_store_layout_indexes::access_planning;
-
-fn main() {
-    let _ = access_planning();
-}

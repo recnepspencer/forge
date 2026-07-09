@@ -1,8 +1,8 @@
-use forge_query::facade::{
-    ForgeQueryAdmissionContributionAuthoring, ForgeQueryContributionComposedOrchestrationInput,
-    ForgeQueryContributionIntent, ForgeQueryGroupedContributionComposition,
-    ForgeQueryGroupedContributionInput, ForgeQueryGroupedContributionStop,
-    ForgeQuerySupportContributionAuthoring,
+use worth_query::facade::{
+    WORTHQueryAdmissionContributionAuthoring, WORTHQueryContributionComposedOrchestrationInput,
+    WORTHQueryContributionIntent, WORTHQueryGroupedContributionComposition,
+    WORTHQueryGroupedContributionInput, WORTHQueryGroupedContributionStop,
+    WORTHQuerySupportContributionAuthoring,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -50,9 +50,9 @@ pub fn materialize_agent_declaration_advisory_checked(
 ) -> Result<AgentAdvisoryContributionRecord, AgentAdvisoryError> {
     let source =
         AgentSourceRecord::declaration_advisory(advisory.candidate_id(), advisory.detail());
-    let admission = ForgeQueryContributionIntent::admission(query_admission(advisory.clone()));
-    let support = ForgeQueryContributionIntent::support(query_support(&advisory));
-    let input = ForgeQueryContributionComposedOrchestrationInput::new(declaration.clone())
+    let admission = WORTHQueryContributionIntent::admission(query_admission(advisory.clone()));
+    let support = WORTHQueryContributionIntent::support(query_support(&advisory));
+    let input = WORTHQueryContributionComposedOrchestrationInput::new(declaration.clone())
         .with_contribution(admission)
         .with_contribution(support);
     let proof = handle.orchestrate_declaration_with_contributions_proof(input);
@@ -109,7 +109,7 @@ pub fn screen_agent_experiment_proposals_checked(
 
 pub fn materialize_agent_grouped_advisory_checked<I>(
     handle: &HadwigerResearchHandle,
-    input: ForgeQueryGroupedContributionInput<HadwigerResearchDomainEntry, I>,
+    input: WORTHQueryGroupedContributionInput<HadwigerResearchDomainEntry, I>,
     advisory_artifact: AgentAdvisoryArtifact,
 ) -> Result<AgentAdvisoryContributionRecord, AgentAdvisoryError>
 where
@@ -126,20 +126,20 @@ where
 }
 
 fn grouped_stop_kind<I>(
-    stop: ForgeQueryGroupedContributionStop<HadwigerResearchDomainEntry, I>,
+    stop: WORTHQueryGroupedContributionStop<HadwigerResearchDomainEntry, I>,
 ) -> AgentGroupedContributionStopKind
 where
     I: HadwigerResearchDeclarationInput,
 {
     match stop {
-        ForgeQueryGroupedContributionStop::DeclarationStopped(_) => {
+        WORTHQueryGroupedContributionStop::DeclarationStopped(_) => {
             AgentGroupedContributionStopKind::DeclarationStopped
         }
-        ForgeQueryGroupedContributionStop::MemberStopped(_, _) => {
+        WORTHQueryGroupedContributionStop::MemberStopped(_, _) => {
             AgentGroupedContributionStopKind::MemberStopped
         }
-        ForgeQueryGroupedContributionStop::WrongWorld(_)
-        | ForgeQueryGroupedContributionStop::WrongHandle(_) => {
+        WORTHQueryGroupedContributionStop::WrongWorld(_)
+        | WORTHQueryGroupedContributionStop::WrongHandle(_) => {
             AgentGroupedContributionStopKind::MemberStopped
         }
     }
@@ -183,7 +183,7 @@ fn artifact_from_batch_entry(
 }
 
 fn grouped_contribution_digest<I>(
-    composition: &ForgeQueryGroupedContributionComposition<HadwigerResearchDomainEntry, I>,
+    composition: &WORTHQueryGroupedContributionComposition<HadwigerResearchDomainEntry, I>,
 ) -> String
 where
     I: HadwigerResearchDeclarationInput,
@@ -211,17 +211,17 @@ where
     )
 }
 
-fn query_admission(advisory: AgentAdmissionAdvisory) -> ForgeQueryAdmissionContributionAuthoring {
+fn query_admission(advisory: AgentAdmissionAdvisory) -> WORTHQueryAdmissionContributionAuthoring {
     let semantic_code = format!("hadwiger.agent.{}", advisory.kind().as_str());
     match advisory.kind() {
         AgentAdvisoryKind::AdmissionViolation => {
-            ForgeQueryAdmissionContributionAuthoring::violation_at_stage(
+            WORTHQueryAdmissionContributionAuthoring::violation_at_stage(
                 "agent_advisory",
                 semantic_code,
                 advisory.detail(),
             )
         }
-        _ => ForgeQueryAdmissionContributionAuthoring::advisory_at_stage(
+        _ => WORTHQueryAdmissionContributionAuthoring::advisory_at_stage(
             "agent_advisory",
             semantic_code,
             advisory.detail(),
@@ -229,8 +229,8 @@ fn query_admission(advisory: AgentAdmissionAdvisory) -> ForgeQueryAdmissionContr
     }
 }
 
-fn query_support(advisory: &AgentAdmissionAdvisory) -> ForgeQuerySupportContributionAuthoring {
-    ForgeQuerySupportContributionAuthoring::declaration_support(
+fn query_support(advisory: &AgentAdmissionAdvisory) -> WORTHQuerySupportContributionAuthoring {
+    WORTHQuerySupportContributionAuthoring::declaration_support(
         format!("hadwiger.agent.{}.support", advisory.kind().as_str()),
         advisory.detail(),
     )

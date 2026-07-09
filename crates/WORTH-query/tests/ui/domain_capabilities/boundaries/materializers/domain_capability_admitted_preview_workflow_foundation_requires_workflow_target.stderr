@@ -1,0 +1,25 @@
+error[E0277]: the trait bound `WorthQueryLowerRuntimeBoundaryBoundContributionTarget: worth_query::domain_capabilities::canonical_runtime::workflow::preview::WorthQueryWorkflowPreviewMaterializationTarget` is not satisfied
+  --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_admitted_preview_workflow_foundation_requires_workflow_target.rs:13:9
+   |
+13 |         materialize_admitted_preview_workflow_foundation;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+   = help: the trait `worth_query::domain_capabilities::canonical_runtime::workflow::preview::WorthQueryWorkflowPreviewMaterializationTarget` is not implemented for `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`
+help: the following other types implement trait `worth_query::domain_capabilities::canonical_runtime::workflow::preview::WorthQueryWorkflowPreviewMaterializationTarget`
+  --> src/domain_capabilities/canonical_runtime/workflow/preview.rs
+   |
+   | / impl WorthQueryWorkflowPreviewMaterializationTarget
+   | |     for WorthQueryDeclarationBoundContributionTarget
+   | |____________________________________________________^ `WorthQueryDeclarationBoundContributionTarget`
+...
+   | / impl WorthQueryWorkflowPreviewMaterializationTarget
+   | |     for WorthQueryAdmittedPlanBoundContributionTarget
+   | |_____________________________________________________^ `WorthQueryAdmittedPlanBoundContributionTarget`
+note: required by a bound in `materialize_admitted_preview_workflow_foundation`
+  --> src/domain_capabilities/canonical_runtime/workflow/preview.rs
+   |
+   | pub fn materialize_admitted_preview_workflow_foundation<T>(
+   |        ------------------------------------------------ required by a bound in this function
+...
+   |     T: WorthQueryWorkflowPreviewMaterializationTarget,
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `materialize_admitted_preview_workflow_foundation`

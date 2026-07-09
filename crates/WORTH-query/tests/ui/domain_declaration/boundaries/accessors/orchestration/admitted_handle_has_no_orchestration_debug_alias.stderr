@@ -1,0 +1,11 @@
+error[E0599]: no method named `orchestrate_declaration_entry_debug` found for struct `WorthQueryAdmittedConfiguredDomainHandle<D, C>` in the current scope
+  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_orchestration_debug_alias.rs:75:20
+   |
+75 |     let _ = handle.orchestrate_declaration_entry_debug(TrimSegmentAtIntersection);
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `orchestrate_declaration_entry` with a similar name
+   |
+75 -     let _ = handle.orchestrate_declaration_entry_debug(TrimSegmentAtIntersection);
+75 +     let _ = handle.orchestrate_declaration_entry(TrimSegmentAtIntersection);
+   |

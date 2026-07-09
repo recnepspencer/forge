@@ -65,11 +65,11 @@ roadmap boundaries into one product-grade runtime activation milestone.
 - `milestone-2.md`: protects canonical artifact authority; this milestone must
   consume artifact identity, provenance, equivalence, and dependency metadata
   instead of rediscovering meaning from source text, strings, or builder state.
-- `crates/forge-query/docs/AI_README.md`: protects Query's runtime authority;
+- `crates/worth-query/docs/AI_README.md`: protects Query's runtime authority;
   Worth UI must carry Query-owned support, admission, live view, async/result,
   recovery, inspection, projection-consumption, and causal explanation posture
   instead of building UI-local pseudo Query layers.
-- Forge Foundational performance docs: protect performance language from
+- WORTH Foundational performance docs: protect performance language from
   becoming local profiling folklore; Worth UI should produce its own runtime
   counters and then lower them into Foundational performance claims, canonical
   bundles, counter-backed receipts, planned reports, and certification envelopes
@@ -113,7 +113,7 @@ default.
 - Frame counters are part of product correctness, not optional profiling.
 - Rich diagnostics are derived observation artifacts and must not change active
   UI meaning or steady-state frame cost unless explicitly requested by policy.
-- Forge Foundational performance surfaces are boundary vocabulary and proof
+- WORTH Foundational performance surfaces are boundary vocabulary and proof
   envelopes for Worth UI evidence; they are not the Worth UI frame runtime,
   counter store, lane executor, or plan topology.
 - Extension hooks are allowed only where this milestone names an admission
@@ -128,7 +128,7 @@ Milestone 3 tests must try to break the runtime, not merely prove the happy path
 can be typed.
 
 Every phase-level test suite should include at least one case that attempts to
-forge, omit, reorder, stale, duplicate, drift, broaden, or bypass the proof that
+WORTH, omit, reorder, stale, duplicate, drift, broaden, or bypass the proof that
 the phase claims to establish. If a test only checks that the obvious accepted
 path returns `Ok`, it is not sufficient for this milestone. Tests should prefer
 exact receipts, typed denial kinds, counter values, digest comparisons, and
@@ -181,7 +181,7 @@ diagnostics references.
   state directly.
 - `last_valid_state_exists_before_first_reload_candidate`: the runtime records
   a preservation point before any candidate can replace it.
-- `active_state_rejects_forged_last_valid_receipt`: a forged or stale
+- `active_state_rejects_WORTHd_last_valid_receipt`: a WORTHd or stale
   last-valid preservation receipt cannot be installed as active runtime truth.
 - `frame_epoch_mismatch_rejects_pending_activation`: a pending activation tied
   to an older frame epoch cannot swap into a newer active runtime state.
@@ -276,10 +276,10 @@ runtime posture fail before comparison or plan lowering.
 - `WorthUiAdmittedReplacementCandidate`
 - `WorthUiCandidateAdmissionDenial`
 - `WorthUiCandidateAdmissionReport`
-- Forge Query `Support Matrix And Admission`
-- Forge Query `Query Operating Modes`
-- Forge Query `Ordinary Outcomes`
-- Forge Query declaration entry readiness and support posture surfaces
+- WORTH Query `Support Matrix And Admission`
+- WORTH Query `Query Operating Modes`
+- WORTH Query `Ordinary Outcomes`
+- WORTH Query declaration entry readiness and support posture surfaces
 
 **Warnings**
 
@@ -450,11 +450,11 @@ modules, bindings, and lanes are affected.
 - `WorthUiTokenInvalidation`
 - `WorthUiAccessibilityInvalidation`
 - `WorthUiRendererResourceInvalidation`
-- Forge Query `Aspects And Authority Lanes`
-- Forge Query `Signal Compatibility And Continuation`
-- Forge Query `Region-Scoped Live Invalidation And Stream Contracts`
-- Forge Query `Live Views And Live Promotion`
-- Forge Query `Async Resources And Result State`
+- WORTH Query `Aspects And Authority Lanes`
+- WORTH Query `Signal Compatibility And Continuation`
+- WORTH Query `Region-Scoped Live Invalidation And Stream Contracts`
+- WORTH Query `Live Views And Live Promotion`
+- WORTH Query `Async Resources And Result State`
 
 **Warnings**
 
@@ -763,14 +763,14 @@ or live binding preservation is planned.
 - `WorthUiQueryBindingComparison`
 - `WorthUiQueryBindingIdentity`
 - `WorthUiQueryBindingPosture`
-- Forge Query `Support Matrix And Admission`
-- Forge Query `Basis Capability Lifecycle`
-- Forge Query `Typed Binding And Retained Artifact Reuse`
-- Forge Query `Live Views And Live Promotion`
-- Forge Query `Projection Consumption`
-- Forge Query `Async Resources And Result State`
-- Forge Query `Recovery`
-- Forge Query `Inspection`
+- WORTH Query `Support Matrix And Admission`
+- WORTH Query `Basis Capability Lifecycle`
+- WORTH Query `Typed Binding And Retained Artifact Reuse`
+- WORTH Query `Live Views And Live Promotion`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Async Resources And Result State`
+- WORTH Query `Recovery`
+- WORTH Query `Inspection`
 
 **Warnings**
 
@@ -826,14 +826,14 @@ would require a UI-local pseudo-runtime.
 - `WorthUiQueryBindingPreservation`
 - `WorthUiQueryBindingRebind`
 - `WorthUiQueryBindingDriftDenial`
-- Forge Query `Live Views And Live Promotion`
-- Forge Query `Subscription Selection And Diagnostics`
-- Forge Query `Basis Capability Lifecycle`
-- Forge Query `Projection Consumption`
-- Forge Query `Async Resources And Result State`
-- Forge Query `Recovery`
-- Forge Query `Inspection`
-- Forge Query `Continuation Pipeline`
+- WORTH Query `Live Views And Live Promotion`
+- WORTH Query `Subscription Selection And Diagnostics`
+- WORTH Query `Basis Capability Lifecycle`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Async Resources And Result State`
+- WORTH Query `Recovery`
+- WORTH Query `Inspection`
+- WORTH Query `Continuation Pipeline`
 
 **Warnings**
 
@@ -884,8 +884,8 @@ pending execution-plan lowering input before a frame-boundary swap is allowed.
 - `WorthUiStagedReplacement`
 - `WorthUiActivationReadiness`
 - `WorthUiActivationStagingReport`
-- Forge Query support/admission receipts carried by Query rebind plans
-- Forge Query basis, live-view, async/result, recovery, and inspection
+- WORTH Query support/admission receipts carried by Query rebind plans
+- WORTH Query basis, live-view, async/result, recovery, and inspection
   artifacts carried as staged activation inputs
 
 **Warnings**
@@ -942,10 +942,10 @@ unproven artifact state.
 - `WorthUiPlanNodeInput`
 - `WorthUiComponentLoweringHook`
 - `WorthUiEguiBoundaryInput`
-- Forge Query typed binding/resolver artifacts carried by Query-bound plan
+- WORTH Query typed binding/resolver artifacts carried by Query-bound plan
   inputs
-- Forge Query projection-consumption receipts carried by Query-bound plan inputs
-- Forge Query async/result and recovery posture carried by Query-bound plan
+- WORTH Query projection-consumption receipts carried by Query-bound plan inputs
+- WORTH Query async/result and recovery posture carried by Query-bound plan
   inputs
 
 **Warnings**
@@ -1178,11 +1178,11 @@ lowering produced execution-plan nodes.
 - `WorthUiPlanNodeInspection`
 - `WorthUiArtifactToPlanProvenance`
 - `WorthUiLaneInspection`
-- Forge Query `Inspection`
-- Forge Query `Cross-Runtime Causal Inspection`
-- Forge Query `Projection Consumption`
-- Forge Query `Ordinary Outcomes`
-- Forge Query lower-runtime boundary envelopes where plan diagnostics explain
+- WORTH Query `Inspection`
+- WORTH Query `Cross-Runtime Causal Inspection`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Ordinary Outcomes`
+- WORTH Query lower-runtime boundary envelopes where plan diagnostics explain
   admitted lower-runtime contact
 
 **Warnings**
@@ -1243,9 +1243,9 @@ extensions.
 - `WorthUiExtensionHookAdmission`
 - `WorthUiLaneAdapterHook`
 - `WorthUiUnsupportedHookDenial`
-- Forge Query `Support Matrix And Admission`
-- Forge Query `Query Operating Modes`
-- Forge Query runtime-backed support rows for Query-bound lane inputs
+- WORTH Query `Support Matrix And Admission`
+- WORTH Query `Query Operating Modes`
+- WORTH Query runtime-backed support rows for Query-bound lane inputs
 
 **Warnings**
 
@@ -1361,13 +1361,13 @@ full node breadth.
 - `WorthUiVisibleRange`
 - `WorthUiVirtualizedDataFrameReceipt`
 - `WorthUiVirtualizedDataCounters`
-- Forge Query `Collections, Cursors, Ordering, And Aggregation Reads`
-- Forge Query `Scopes, Templates, View Shapes, And Saved Queries`
-- Forge Query `Read Composition`
-- Forge Query `Live Views And Live Promotion`
-- Forge Query `Projection Consumption`
-- Forge Query `Async Resources And Result State`
-- Forge Query `Subscription Selection And Diagnostics`
+- WORTH Query `Collections, Cursors, Ordering, And Aggregation Reads`
+- WORTH Query `Scopes, Templates, View Shapes, And Saved Queries`
+- WORTH Query `Read Composition`
+- WORTH Query `Live Views And Live Promotion`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Async Resources And Result State`
+- WORTH Query `Subscription Selection And Diagnostics`
 
 **Warnings**
 
@@ -1425,13 +1425,13 @@ scene renderer.
 - `WorthUiCanvasDrawHook`
 - `WorthUiSpatialHitTestHook`
 - `WorthUiSpatialToolStateHook`
-- Forge Query `Graph Composition Authoring`
-- Forge Query `Structural Correspondence And Historical Materialization`
-- Forge Query `Projection Consumption`
-- Forge Query `Basis Capability Lifecycle`
-- Forge Query `Inspection`
-- Forge Query `Cross-Runtime Causal Inspection`
-- Forge Query preview/branch session identity surfaces where spatial workflows
+- WORTH Query `Graph Composition Authoring`
+- WORTH Query `Structural Correspondence And Historical Materialization`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Basis Capability Lifecycle`
+- WORTH Query `Inspection`
+- WORTH Query `Cross-Runtime Causal Inspection`
+- WORTH Query preview/branch session identity surfaces where spatial workflows
   bind to speculative or branch-local meaning
 
 **Warnings**
@@ -1557,7 +1557,7 @@ posture, or diagnostics identity.
 - `WorthUiLaneTransitionParity`
 - `WorthUiCrossLaneSemanticReference`
 - `WorthUiLaneParityReport`
-- Forge Query command/readiness, support/admission, binding, projection
+- WORTH Query command/readiness, support/admission, binding, projection
   consumption, async/result, recovery, and inspection artifacts referenced by
   lane-shared semantic handles
 
@@ -1610,8 +1610,8 @@ and lane-partitioned replacement may become the active execution plan.
 - `WorthUiFrameBoundary`
 - `WorthUiReadyActivation`
 - `WorthUiActivationGateReceipt`
-- Forge Query rebind receipts and basis posture carried by ready activations
-- Forge Query ordinary outcomes or checked stops for activation blockers tied
+- WORTH Query rebind receipts and basis posture carried by ready activations
+- WORTH Query ordinary outcomes or checked stops for activation blockers tied
   to Query-owned posture
 
 **Warnings**
@@ -1662,8 +1662,8 @@ state and preserves the previous active plan as the rollback/diagnostic basis.
 - `WorthUiPlanSwapReceipt`
 - `WorthUiPriorValidPlan`
 - `WorthUiPlanSwapRollback`
-- Forge Query binding preservation/rebind receipts carried across plan swaps
-- Forge Query live-view, async/result, recovery, and inspection references
+- WORTH Query binding preservation/rebind receipts carried across plan swaps
+- WORTH Query live-view, async/result, recovery, and inspection references
   preserved or replaced by the atomic swap receipt
 
 **Warnings**
@@ -1717,9 +1717,9 @@ never blanks, corrupts, or partially mutates.
 - `WorthUiReloadPreservationReceipt`
 - `WorthUiReloadDenial`
 - `WorthUiFailedActivationReport`
-- Forge Query `Ordinary Outcomes`
-- Forge Query `Recovery`
-- Forge Query support/admission and checked-stop posture for Query-caused
+- WORTH Query `Ordinary Outcomes`
+- WORTH Query `Recovery`
+- WORTH Query support/admission and checked-stop posture for Query-caused
   reload denials
 
 **Warnings**
@@ -1774,12 +1774,12 @@ lane admission, activation, and swap failure.
 - `WorthUiDiagnosticRichnessTier`
 - `WorthUiSupportReportPolicy`
 - `WorthUiDiagnosticProjectionHook`
-- Forge Query `Inspection`
-- Forge Query `Cross-Runtime Causal Inspection`
-- Forge Query `Projection Consumption`
-- Forge Query `Recovery`
-- Forge Query `Ordinary Outcomes`
-- Forge Query lower-runtime boundary envelopes where diagnostics explain
+- WORTH Query `Inspection`
+- WORTH Query `Cross-Runtime Causal Inspection`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Recovery`
+- WORTH Query `Ordinary Outcomes`
+- WORTH Query lower-runtime boundary envelopes where diagnostics explain
   admitted lower-runtime contact
 
 **Warnings**
@@ -1841,16 +1841,16 @@ diagnostics model in app code.
 - `WorthUiPlanInspectionSurface`
 - `WorthUiFrameCostSurface`
 - `WorthUiDiagnosticsProjectionHook`
-- Forge Foundational `performance_api::lower_lane::reports`
-- Forge Foundational `plan_performance_report`
-- Forge Foundational `FoundationalPerformanceReportRequest`
-- Forge Foundational `FoundationalMaterializedPerformanceReport`
-- Forge Query `Inspection`
-- Forge Query `Cross-Runtime Causal Inspection`
-- Forge Query `Projection Consumption`
-- Forge Query `Recovery`
-- Forge Query `Async Resources And Result State`
-- Forge Query ordinary outcome and checked-stop presentation artifacts
+- WORTH Foundational `performance_api::lower_lane::reports`
+- WORTH Foundational `plan_performance_report`
+- WORTH Foundational `FoundationalPerformanceReportRequest`
+- WORTH Foundational `FoundationalMaterializedPerformanceReport`
+- WORTH Query `Inspection`
+- WORTH Query `Cross-Runtime Causal Inspection`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Recovery`
+- WORTH Query `Async Resources And Result State`
+- WORTH Query ordinary outcome and checked-stop presentation artifacts
 
 **Warnings**
 
@@ -1974,24 +1974,24 @@ lowering, reconciliation, plan assembly, lane execution, and frame rendering.
 - `WorthUiMeasurementBoundary`
 - `WorthUiFrameCostCounter`
 - `WorthUiComplexityContract`
-- Forge Foundational `performance_api::common_path`
-- Forge Foundational `performance_api::lower_lane::basis`
-- Forge Foundational `FoundationalPerformanceBoundary`
-- Forge Foundational `FoundationalPerformanceEvidenceStrength`
-- Forge Foundational layout, breadth/locality, allocation, access-pattern,
+- WORTH Foundational `performance_api::common_path`
+- WORTH Foundational `performance_api::lower_lane::basis`
+- WORTH Foundational `FoundationalPerformanceBoundary`
+- WORTH Foundational `FoundationalPerformanceEvidenceStrength`
+- WORTH Foundational layout, breadth/locality, allocation, access-pattern,
   execution-temperature, freshness/retention, fallback/debt, and work-class
   definitions
-- Forge Query `Subscription Selection And Diagnostics`
-- Forge Query `Signal Compatibility And Continuation`
-- Forge Query `Planner Parallel Admission And Scale Posture`
-- Forge Query `Async Resources And Result State`
+- WORTH Query `Subscription Selection And Diagnostics`
+- WORTH Query `Signal Compatibility And Continuation`
+- WORTH Query `Planner Parallel Admission And Scale Posture`
+- WORTH Query `Async Resources And Result State`
 
 **Warnings**
 
 - Do not ship performance claims without named counters.
 - Do not use elapsed time alone as proof of frame-path cost.
 - Do not let counter collection alter active UI meaning.
-- Do not treat Forge Foundational vocabulary as runtime instrumentation; Worth
+- Do not treat WORTH Foundational vocabulary as runtime instrumentation; Worth
   UI counters are produced by Worth UI and only then lowered into Foundational
   performance claims, bundles, and receipts.
 
@@ -2042,13 +2042,13 @@ handle allocation, topology assembly, and plan equivalence.
 - `WorthUiImpactNarrowingCounters`
 - `WorthUiReconciliationCounters`
 - `WorthUiPlanLoweringCounters`
-- Forge Foundational `performance_api::lower_lane::basis`
-- Forge Foundational `performance_api::lower_lane::receipts`
-- Forge Foundational `performance_bundle`
-- Forge Foundational `counter_backed_performance_receipt`
-- Forge Foundational `FoundationalPerformanceCounterSpec`
-- Forge Foundational `FoundationalPerformanceCounterRow`
-- Forge Query support/admission, basis lifecycle, subscription diagnostics,
+- WORTH Foundational `performance_api::lower_lane::basis`
+- WORTH Foundational `performance_api::lower_lane::receipts`
+- WORTH Foundational `performance_bundle`
+- WORTH Foundational `counter_backed_performance_receipt`
+- WORTH Foundational `FoundationalPerformanceCounterSpec`
+- WORTH Foundational `FoundationalPerformanceCounterRow`
+- WORTH Query support/admission, basis lifecycle, subscription diagnostics,
   signal-compatibility, and continuation receipts referenced by reload and
   lowering counters where Query-bound surfaces participate
 
@@ -2110,12 +2110,12 @@ real-time overlay work.
 - `WorthUiLaneFrameReceipt`
 - `WorthUiFrameExecutionReceipt`
 - `WorthUiRenderCostReceipt`
-- Forge Foundational `performance_api::lower_lane::receipts`
-- Forge Foundational `performance_api::lower_lane::reports`
-- Forge Foundational `FoundationalCounterBackedPerformanceReceipt`
-- Forge Foundational `FoundationalPerformanceCounterRow`
-- Forge Foundational `FoundationalPerformanceReportMaterializationBoundary`
-- Forge Query subscription diagnostics, live-view delivery posture,
+- WORTH Foundational `performance_api::lower_lane::receipts`
+- WORTH Foundational `performance_api::lower_lane::reports`
+- WORTH Foundational `FoundationalCounterBackedPerformanceReceipt`
+- WORTH Foundational `FoundationalPerformanceCounterRow`
+- WORTH Foundational `FoundationalPerformanceReportMaterializationBoundary`
+- WORTH Query subscription diagnostics, live-view delivery posture,
   async/result posture, and projection-consumption receipts referenced by
   Query-bound lane frame receipts
 
@@ -2232,13 +2232,13 @@ candidate storms.
 - `WorthUiReloadStormScenario`
 - `WorthUiReloadCertificationBundle`
 - `WorthUiReloadLatencyCounters`
-- Forge Foundational `performance_api::lower_lane::basis`
-- Forge Foundational `performance_api::lower_lane::receipts`
-- Forge Foundational `performance_api::lower_lane::reports`
-- Forge Foundational `performance_api::stronger_lane::certified`
-- Forge Foundational `certify_hot_path_counter_backed_performance_receipt`
-- Forge Foundational `certify_support_expansion_performance_report`
-- Forge Query support/admission, live-view, subscription diagnostics,
+- WORTH Foundational `performance_api::lower_lane::basis`
+- WORTH Foundational `performance_api::lower_lane::receipts`
+- WORTH Foundational `performance_api::lower_lane::reports`
+- WORTH Foundational `performance_api::stronger_lane::certified`
+- WORTH Foundational `certify_hot_path_counter_backed_performance_receipt`
+- WORTH Foundational `certify_support_expansion_performance_report`
+- WORTH Query support/admission, live-view, subscription diagnostics,
   async/result, recovery, and inspection receipts included in reload storm
   certification bundles where Query-bound surfaces participate
 
@@ -2263,7 +2263,7 @@ candidate storms.
 - `reload_storm_with_interleaved_invalid_and_valid_candidates_preserves_ordered_truth`:
   valid candidates after invalid ones activate in deterministic order without
   replaying stale invalid state.
-- `reload_storm_rejects_forged_receipt_reuse_across_candidates`: receipts from
+- `reload_storm_rejects_WORTHd_receipt_reuse_across_candidates`: receipts from
   an earlier candidate cannot certify a later candidate with a different digest,
   basis, impact, or Query posture.
 - `reload_storm_foundational_bundle_comparison_uses_full_meaning`: canonical
@@ -2303,15 +2303,15 @@ pseudo-runtime rejection.
 - `WorthUiQueryDriftCertification`
 - `WorthUiStateCarryForwardReceipt`
 - `WorthUiQueryBindingDriftDenial`
-- Forge Query `Support Matrix And Admission`
-- Forge Query `Basis Capability Lifecycle`
-- Forge Query `Live Views And Live Promotion`
-- Forge Query `Subscription Selection And Diagnostics`
-- Forge Query `Projection Consumption`
-- Forge Query `Async Resources And Result State`
-- Forge Query `Recovery`
-- Forge Query `Inspection`
-- Forge Query `Cross-Runtime Causal Inspection`
+- WORTH Query `Support Matrix And Admission`
+- WORTH Query `Basis Capability Lifecycle`
+- WORTH Query `Live Views And Live Promotion`
+- WORTH Query `Subscription Selection And Diagnostics`
+- WORTH Query `Projection Consumption`
+- WORTH Query `Async Resources And Result State`
+- WORTH Query `Recovery`
+- WORTH Query `Inspection`
+- WORTH Query `Cross-Runtime Causal Inspection`
 
 **Warnings**
 
@@ -2366,16 +2366,16 @@ pay diagnostic richness by default.
 - `WorthUiFrameCostCertification`
 - `WorthUiNoSourceFrameProof`
 - `WorthUiBroadScanRegressionDenial`
-- Forge Foundational `performance_api::lower_lane::basis`
-- Forge Foundational `performance_api::lower_lane::receipts`
-- Forge Foundational `performance_api::lower_lane::reports`
-- Forge Foundational `performance_api::stronger_lane::certified`
-- Forge Foundational `performance_api::stronger_lane::readiness`
-- Forge Foundational `compare_performance_bundles`
-- Forge Foundational `prepare_counter_backed_performance_receipt_for_canonical_basis`
-- Forge Foundational `foundational_performance_milestone8_readiness_report`
-- Forge Foundational `require_foundational_performance_milestone8_production_test_readiness`
-- Forge Query collection/read, view-shape, live-view, subscription diagnostics,
+- WORTH Foundational `performance_api::lower_lane::basis`
+- WORTH Foundational `performance_api::lower_lane::receipts`
+- WORTH Foundational `performance_api::lower_lane::reports`
+- WORTH Foundational `performance_api::stronger_lane::certified`
+- WORTH Foundational `performance_api::stronger_lane::readiness`
+- WORTH Foundational `compare_performance_bundles`
+- WORTH Foundational `prepare_counter_backed_performance_receipt_for_canonical_basis`
+- WORTH Foundational `foundational_performance_milestone8_readiness_report`
+- WORTH Foundational `require_foundational_performance_milestone8_production_test_readiness`
+- WORTH Query collection/read, view-shape, live-view, subscription diagnostics,
   projection-consumption, async/result, signal-compatibility, and continuation
   receipts referenced by lane certification when data or runtime posture comes
   from Query-bound surfaces
@@ -2460,7 +2460,7 @@ pay diagnostic richness by default.
 - in-app diagnostics projection for reload and frame-cost issues
 - file-watch and debounce ingress into the candidate pipeline
 - reload/lowering counters and steady-frame lane counters
-- Forge Foundational performance claim, bundle, counter-backed receipt, report
+- WORTH Foundational performance claim, bundle, counter-backed receipt, report
   planning, certified bundle, and readiness integration at the explicit
   performance boundaries
 - hostile reload, identity/state, Query drift, lane, and frame-cost
@@ -2487,7 +2487,7 @@ pay diagnostic richness by default.
 - Execution lanes specialize cost and mechanics without creating shadow UI
   runtimes or redefining command/Query/accessibility meaning.
 - Diagnostics and counters observe; they do not change artifact or plan truth.
-- Forge Foundational performance surfaces preserve shared boundary meaning and
+- WORTH Foundational performance surfaces preserve shared boundary meaning and
   certification shape; they do not own Worth UI runtime execution, live counter
   storage, plan topology, or lane mechanics.
 - Unsupported hook, lane, state, Query, renderer, source, capability snapshot,
@@ -2513,7 +2513,7 @@ pay diagnostic richness by default.
 - frame counters prove steady frames do not parse source, validate artifacts,
   resolve registry strings, broad-scan artifact topology, or pay diagnostics
   cost by default
-- Worth UI counter evidence lowers into Forge Foundational canonical bundles,
+- Worth UI counter evidence lowers into WORTH Foundational canonical bundles,
   counter-backed receipts, planned reports, certified bundles, and readiness
   closure without moving report materialization into the steady frame path
 - hostile reload storm, identity/state, Query drift, data-heavy, real-time, and

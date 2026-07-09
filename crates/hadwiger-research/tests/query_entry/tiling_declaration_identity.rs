@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalValue,
-    ForgeQueryDeclarationInput, ForgeQueryDeclaredFamilyChecked,
+use worth_query::facade::{
+    WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationCanonicalValue,
+    WORTHQueryDeclarationInput, WORTHQueryDeclaredFamilyChecked,
 };
 use hadwiger_research::facade::*;
 
@@ -317,11 +317,11 @@ fn minimal_tiling_canonical_entries_omit_empty_identity_values() {
 }
 
 fn assert_digest_changes<I>(
-    left: forge_query::facade::ForgeQueryCanonicalDeclarationArtifact<
+    left: worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<
         HadwigerResearchDomainEntry,
         I,
     >,
-    right: forge_query::facade::ForgeQueryCanonicalDeclarationArtifact<
+    right: worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<
         HadwigerResearchDomainEntry,
         I,
     >,
@@ -332,13 +332,13 @@ fn assert_digest_changes<I>(
 }
 
 fn admitted_declaration<I>(
-    checked: ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
-) -> forge_query::facade::ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>
+    checked: WORTHQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>,
+) -> worth_query::facade::WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
     match checked {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => panic!("Hadwiger tiling declaration should admit"),
     }
 }
@@ -350,28 +350,28 @@ where
     let entries = request.canonical_declaration_entries();
     assert!(entries.iter().all(|entry| !entry.locus().is_empty()));
     assert!(entries.iter().all(|entry| match entry.value() {
-        ForgeQueryDeclarationCanonicalValue::ExactText(value) => !value.trim().is_empty(),
+        WORTHQueryDeclarationCanonicalValue::ExactText(value) => !value.trim().is_empty(),
         _ => true,
     }));
 }
 
 fn assert_entries(
-    actual: Vec<ForgeQueryDeclarationCanonicalEntry>,
-    expected: &[ForgeQueryDeclarationCanonicalEntry],
+    actual: Vec<WORTHQueryDeclarationCanonicalEntry>,
+    expected: &[WORTHQueryDeclarationCanonicalEntry],
 ) {
     assert_eq!(actual, expected);
     assert_eq!(actual[0].locus(), "declaration_kind");
     assert!(actual.iter().all(|entry| !entry.locus().is_empty()));
 }
 
-fn text(locus: &str, value: &str) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::text(locus, value)
+fn text(locus: &str, value: &str) -> WORTHQueryDeclarationCanonicalEntry {
+    WORTHQueryDeclarationCanonicalEntry::text(locus, value)
 }
 
-fn unsigned(locus: &str, value: u128) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::new(
+fn unsigned(locus: &str, value: u128) -> WORTHQueryDeclarationCanonicalEntry {
+    WORTHQueryDeclarationCanonicalEntry::new(
         locus,
-        forge_query::facade::ForgeQueryDeclarationCanonicalEntryKind::Field,
-        ForgeQueryDeclarationCanonicalValue::UnsignedInteger(value),
+        worth_query::facade::WORTHQueryDeclarationCanonicalEntryKind::Field,
+        WORTHQueryDeclarationCanonicalValue::UnsignedInteger(value),
     )
 }

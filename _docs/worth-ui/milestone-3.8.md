@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/C:/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/C:/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisites:**
 > `Milestone 3.6a Measurement Vocabulary, Basis Admission, And Host Evidence Boundaries`
@@ -130,7 +130,7 @@ truth basis remains folklore.
   later AI visual-critique surfaces can consume for alignment, spacing,
   symmetry, and visual-drift evaluation instead of diagnosing only runtime
   correctness.
-- `crates/forge-query/docs/AI_README.md`
+- `crates/worth-query/docs/AI_README.md`
   protects Query-owned basis, projection consumption, inspection, and
   cross-runtime explanation. 3.8 must consume
   `consume_projection_facts(...)`, `workspace.inspect(...)`,

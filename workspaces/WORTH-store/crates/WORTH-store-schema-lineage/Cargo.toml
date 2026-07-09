@@ -1,0 +1,13 @@
+[package]
+name = "worth-store-schema-lineage"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 durable schema, lineage, cursor, and checkpoint artifacts."
+
+[dependencies]
+worth-store-authority.workspace = true
+worth-store-contracts.workspace = true
+
+[lints]
+workspace = true

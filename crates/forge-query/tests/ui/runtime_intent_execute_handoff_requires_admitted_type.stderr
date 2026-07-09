@@ -1,5 +1,0 @@
-error[E0599]: no method named `execute_admitted_intent_handoff` found for mutable reference `&mut ForgeQueryRuntime` in the current scope
- --> tests/ui/runtime_intent_execute_handoff_requires_admitted_type.rs:4:21
-  |
-4 |     let _ = runtime.execute_admitted_intent_handoff(declaration);
-  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&mut ForgeQueryRuntime`

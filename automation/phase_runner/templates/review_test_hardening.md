@@ -66,7 +66,7 @@ Root-cause review rule:
 - Do not only list the next visible defect.
 - First name the shared root defect if findings point to the same bad boundary.
 - Classify each finding as one of: local bug, missing test, wrong ownership
-  boundary, forgeable authority, certification-overreach, count/projection
+  boundary, WORTHable authority, certification-overreach, count/projection
   pretending to be proof, or adoption not tied to a production API.
 - If two or more findings share a class, write one root repair direction that
   would remove the whole class of failure rather than asking repair to patch
@@ -85,7 +85,7 @@ Root-cause review rule:
     synthetic proof still stands in for it
   - whether the current proof exercises the real production derivation path or a
     test-only shortcut
-- Prefer findings that expose proxy-derived identity, forgeable authority,
+- Prefer findings that expose proxy-derived identity, WORTHable authority,
   synthetic hostile proof, mutable-boundary leakage, displaced ordinary lanes,
   or weak equivalence contracts over findings that only describe downstream
   symptoms.

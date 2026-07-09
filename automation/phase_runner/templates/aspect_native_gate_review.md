@@ -1,5 +1,5 @@
 [$qa-loop](C:\Users\Esther\.codex\skills\qa-loop\SKILL.md) first, make sure
-phase {phase.id}: {phase.title} of the Forge Store Aspect-Native Workspace
+phase {phase.id}: {phase.title} of the WORTH Store Aspect-Native Workspace
 Gate is actually done.
 
 State file: {state_file}

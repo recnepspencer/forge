@@ -1,7 +1,7 @@
-use forge_query::facade::{
-    ForgeQueryContributionComposedOrchestrationChecked,
-    ForgeQueryDeclarationEntryOrchestrationChecked, ForgeQueryGroupedOrchestrationChecked,
-    ForgeQueryGroupedOrchestrationTranscript, ForgeQueryOrdinaryOutcome, ForgeQueryRecoveryBrief,
+use worth_query::facade::{
+    WORTHQueryContributionComposedOrchestrationChecked,
+    WORTHQueryDeclarationEntryOrchestrationChecked, WORTHQueryGroupedOrchestrationChecked,
+    WORTHQueryGroupedOrchestrationTranscript, WORTHQueryOrdinaryOutcome, WORTHQueryRecoveryBrief,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;
@@ -9,15 +9,15 @@ use crate::query_entry::{HadwigerResearchDomainEntry, HadwigerResearchHandle};
 
 pub fn recover_research_stop_from_outcome<T>(
     handle: &HadwigerResearchHandle,
-    outcome: &ForgeQueryOrdinaryOutcome<T>,
-) -> Option<ForgeQueryRecoveryBrief> {
+    outcome: &WORTHQueryOrdinaryOutcome<T>,
+) -> Option<WORTHQueryRecoveryBrief> {
     handle.recover_from_outcome(outcome)
 }
 
 pub fn recover_research_stop_from_declaration_entry_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: ForgeQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<ForgeQueryRecoveryBrief>
+    checked: WORTHQueryDeclarationEntryOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WORTHQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -26,8 +26,8 @@ where
 
 pub fn recover_research_stop_from_contribution_composed_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: ForgeQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<ForgeQueryRecoveryBrief>
+    checked: WORTHQueryContributionComposedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WORTHQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -36,8 +36,8 @@ where
 
 pub fn recover_research_stop_from_grouped_orchestration_checked<I>(
     handle: &HadwigerResearchHandle,
-    checked: ForgeQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
-) -> Option<ForgeQueryRecoveryBrief>
+    checked: WORTHQueryGroupedOrchestrationChecked<HadwigerResearchDomainEntry, I>,
+) -> Option<WORTHQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -46,8 +46,8 @@ where
 
 pub fn recover_research_stop_from_grouped_orchestration_proof<I>(
     handle: &HadwigerResearchHandle,
-    proof: ForgeQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
-) -> Option<ForgeQueryRecoveryBrief>
+    proof: WORTHQueryGroupedOrchestrationTranscript<HadwigerResearchDomainEntry, I>,
+) -> Option<WORTHQueryRecoveryBrief>
 where
     I: HadwigerResearchDeclarationInput,
 {

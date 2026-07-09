@@ -1,0 +1,21 @@
+warning: unreachable expression
+ --> tests/ui/scoped_observation_basis_constructor_private.rs:8:19
+  |
+7 |         admission: panic!() as BasisCapabilityAdmission,
+  |                    -------- any code following this expression is unreachable
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `admission`, `counters` and `scoped_digest` of struct `worth_query::facade::policy::ScopedObservationBasis` are private
+ --> tests/ui/scoped_observation_basis_constructor_private.rs:7:9
+  |
+6 |     let _ = ScopedObservationBasis {
+  |             ---------------------- in this type
+7 |         admission: panic!() as BasisCapabilityAdmission,
+  |         ^^^^^^^^^ private field
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
+  |         ^^^^^^^^ private field
+9 |         scoped_digest: String::new(),
+  |         ^^^^^^^^^^^^^ private field

@@ -1,7 +1,7 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryReadinessReport,
-    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput, ForgeQueryDeclaredFamilyChecked,
-    ForgeQueryOrdinaryOutcome,
+use worth_query::facade::{
+    WORTHQueryDeclarationEntryCrossingInventory, WORTHQueryDeclarationEntryReadinessReport,
+    WORTHQueryDeclarationEnvelope, WORTHQueryDeclarationInput, WORTHQueryDeclaredFamilyChecked,
+    WORTHQueryOrdinaryOutcome,
 };
 
 use super::geometry_screening_request_types::{
@@ -42,7 +42,7 @@ use super::tiling_request_types::{
 use crate::query_entry::{HadwigerResearchDomainEntry, HadwigerResearchHandle};
 
 pub trait HadwigerResearchDeclarationInput:
-    ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> + sealed::HadwigerResearchRequestSeal
+    WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> + sealed::HadwigerResearchRequestSeal
 {
 }
 
@@ -111,7 +111,7 @@ hadwiger_request_input!(
 pub fn declare_research_request_checked<I>(
     handle: &HadwigerResearchHandle,
     input: I,
-) -> ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
+) -> WORTHQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -121,7 +121,7 @@ where
 pub fn orchestrate_research_request_entry<I>(
     handle: &HadwigerResearchHandle,
     input: I,
-) -> ForgeQueryOrdinaryOutcome<ForgeQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
+) -> WORTHQueryOrdinaryOutcome<WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -130,7 +130,7 @@ where
 
 pub fn research_declaration_entry_inventory<I>(
     handle: &HadwigerResearchHandle,
-) -> ForgeQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
+) -> WORTHQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -139,7 +139,7 @@ where
 
 pub fn research_declaration_entry_readiness<I>(
     handle: &HadwigerResearchHandle,
-) -> ForgeQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
+) -> WORTHQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {

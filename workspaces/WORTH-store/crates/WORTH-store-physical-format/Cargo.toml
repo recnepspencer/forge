@@ -1,0 +1,21 @@
+[package]
+name = "worth-store-physical-format"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.1 physical page, segment, extent, frame, and reference format."
+
+[dependencies]
+worth-store-contracts.workspace = true
+worth-store-budgets.workspace = true
+
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-aspect-native = { path = "../worth-store-aspect-native" }
+worth-store-authority = { path = "../worth-store-authority" }
+worth-store-layout-indexes = { path = "../worth-store-layout-indexes" }
+worth-store-security = { path = "../worth-store-security" }
+
+[lints]
+workspace = true

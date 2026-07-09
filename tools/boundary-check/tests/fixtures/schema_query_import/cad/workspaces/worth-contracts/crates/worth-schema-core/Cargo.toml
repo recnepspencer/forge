@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-forge-query = { path = "../../../../../vendor/forge-query" }
+worth-query = { path = "../../../../../vendor/worth-query" }

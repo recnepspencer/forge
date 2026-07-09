@@ -1,0 +1,11 @@
+error[E0599]: no method named `terminal_aspect_key_projection` found for reference `&WorthQueryAdmittedBooleanPredicateLeaf` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_admitted_boolean_leaf_terminal_key_projection_removed.rs:4:17
+  |
+4 |     let _ = row.terminal_aspect_key_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryAdmittedBooleanPredicateLeaf`
+
+error[E0599]: no method named `terminal_field_key_projection` found for reference `&WorthQueryAdmittedBooleanPredicateLeaf` in the current scope
+ --> tests/ui/aspect_native_query/graph_read_admitted_boolean_leaf_terminal_key_projection_removed.rs:5:17
+  |
+5 |     let _ = row.terminal_field_key_projection();
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryAdmittedBooleanPredicateLeaf`

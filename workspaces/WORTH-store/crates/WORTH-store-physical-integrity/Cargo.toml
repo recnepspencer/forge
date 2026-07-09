@@ -1,0 +1,25 @@
+[package]
+name = "worth-store-physical-integrity"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.3 physical checksums, scrub, quarantine, and corruption localization."
+
+[dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-buffer-pool.workspace = true
+worth-store-contracts.workspace = true
+worth-store-aspect-native.workspace = true
+worth-store-offline-verifier.workspace = true
+worth-store-physical-format.workspace = true
+worth-store-security.workspace = true
+
+[dev-dependencies]
+worth-store-readiness.workspace = true
+
+[features]
+test-support = []
+
+[lints]
+workspace = true

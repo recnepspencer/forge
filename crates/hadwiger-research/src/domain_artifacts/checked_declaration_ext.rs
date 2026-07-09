@@ -1,5 +1,5 @@
-use forge_query::facade::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclaredFamilyChecked,
+use worth_query::facade::{
+    WORTHQueryCanonicalDeclarationArtifact, WORTHQueryDeclaredFamilyChecked,
 };
 
 use crate::domain_declarations::HadwigerResearchDeclarationInput;
@@ -11,19 +11,19 @@ where
 {
     fn admitted(
         self,
-    ) -> Option<ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>;
+    ) -> Option<WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>;
 }
 
 impl<I> HadwigerDeclaredFamilyCheckedExt<I>
-    for ForgeQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
+    for WORTHQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
     fn admitted(
         self,
-    ) -> Option<ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>> {
+    ) -> Option<WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>> {
         match self {
-            ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => Some(declaration),
+            WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => Some(declaration),
             _ => None,
         }
     }

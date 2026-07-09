@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Forge icon downloader — equivalent to the web app's add-icon.js
+ * WORTH icon downloader — equivalent to the web app's add-icon.js
  *
  * Downloads SVG icons from Lucide (https://lucide.dev) into the egui icon
- * folder and updates the FgIcon enum in forge-ui-components.
+ * folder and updates the FgIcon enum in worth-ui-components.
  *
  * Usage:
  *   node scripts/add-icon.js cube pencil-line chat-bubble trash-2
  *
  * What it does:
  *   1. Downloads each icon as an SVG from the Lucide CDN
- *   2. Saves to crates/forge-ui-components/icons/<name>.svg
+ *   2. Saves to crates/worth-ui-components/icons/<name>.svg
  *   3. Appends new variants to the FgIcon enum in icons.rs
  *   4. Appends new match arms to the FgIcon::path() function
  */
@@ -23,14 +23,14 @@ const ICONS_DIR = path.join(
   __dirname,
   "..",
   "crates",
-  "forge-ui-components",
+  "worth-ui-components",
   "icons",
 );
 const ICONS_RS = path.join(
   __dirname,
   "..",
   "crates",
-  "forge-ui-components",
+  "worth-ui-components",
   "src",
   "icons.rs",
 );
@@ -193,8 +193,8 @@ async function main() {
   console.log(
     `\n✅ Registered ${newIcons.length} new icon(s): ${newIcons.map((i) => `FgIcon::${i.variant}`).join(", ")}`,
   );
-  console.log(`\nSVG files are in: crates/forge-ui-components/icons/`);
-  console.log(`Enum updated in:  crates/forge-ui-components/src/icons.rs`);
+  console.log(`\nSVG files are in: crates/worth-ui-components/icons/`);
+  console.log(`Enum updated in:  crates/worth-ui-components/src/icons.rs`);
   console.log(
     `\nNext: call icon_store.load() at app start, then draw with draw_icon(ui, FgIcon::${newIcons[0].variant}, 20.0)`,
   );

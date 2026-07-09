@@ -1,0 +1,24 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/domain_handle/boundaries/binding/ordinary_checked_topology_constructors_private.rs:7:52
+  |
+7 |     let linked = WorthQueryBindingLinkedArtifacts::new();
+  |                                                    ^^^ private associated function
+  |
+ ::: src/binding_pipeline/transcript.rs
+  |
+  |     pub(crate) fn new() -> Self {
+  |     --------------------------- private associated function defined here
+
+error[E0624]: associated function `binding` is private
+ --> tests/ui/domain_handle/boundaries/binding/ordinary_checked_topology_constructors_private.rs:8:48
+  |
+8 |       let _ = WorthQueryOrdinaryCheckedTopology::binding(
+  |                                                  ^^^^^^^ private associated function
+  |
+ ::: src/ordinary_outcome/topology.rs
+  |
+  | /     pub(crate) fn binding(
+  | |         kind: WorthQueryOrdinaryBindingCheckedTopologyKind,
+  | |         linked_artifacts: WorthQueryBindingLinkedArtifacts,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

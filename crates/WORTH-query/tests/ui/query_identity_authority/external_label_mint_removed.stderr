@@ -1,0 +1,85 @@
+error[E0599]: no variant or associated item named `from_external_authority_label` found for enum `WorthQueryCommitIdentity` in the current scope
+ --> tests/ui/query_identity_authority/external_label_mint_removed.rs:4:45
+  |
+4 |     let _commit = WorthQueryCommitIdentity::from_external_authority_label("commit:test");
+  |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `WorthQueryCommitIdentity`
+  |
+note: if you're trying to build a new `WorthQueryCommitIdentity` consider using one of the following associated functions:
+      WorthQueryCommitIdentity::from_relational_commit_id
+      WorthQueryCommitIdentity::preview
+      WorthQueryCommitIdentity::admit_external_token
+      WorthQueryCommitIdentity::absent
+ --> src/memory_workspace/identities.rs
+  |
+  |       pub fn from_relational_commit_id(commit_id: u64) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn preview(evidence_identity: WorthQueryEvidenceIdentity) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn admit_external_token(
+  | |         token: crate::identity_authority::QueryExternalIdentityToken<
+  | |             std::sync::Arc<str>,
+  | |             crate::identity_authority::QueryCommitIdentityKind,
+  | |         >,
+  | |     ) -> Self {
+  | |_____________^
+...
+  |       pub fn absent() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no variant or associated item named `from_external_authority_label` found for enum `WorthQuerySnapshotIdentity` in the current scope
+ --> tests/ui/query_identity_authority/external_label_mint_removed.rs:5:49
+  |
+5 |     let _snapshot = WorthQuerySnapshotIdentity::from_external_authority_label("snapshot:test");
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `WorthQuerySnapshotIdentity`
+  |
+note: if you're trying to build a new `WorthQuerySnapshotIdentity` consider using one of the following associated functions:
+      WorthQuerySnapshotIdentity::empty_relational_state
+      WorthQuerySnapshotIdentity::from_relational_snapshot
+      WorthQuerySnapshotIdentity::preview
+      WorthQuerySnapshotIdentity::admit_external_token
+ --> src/memory_workspace/identities.rs
+  |
+  |       pub fn empty_relational_state() -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn from_relational_snapshot(parts: RelationalBridgeSnapshotIdentityParts) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn preview(evidence_identity: WorthQueryEvidenceIdentity) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn admit_external_token(
+  | |         token: crate::identity_authority::QueryExternalIdentityToken<
+  | |             std::sync::Arc<str>,
+  | |             crate::identity_authority::QuerySnapshotIdentityKind,
+  | |         >,
+  | |     ) -> Self {
+  | |_____________^
+
+error[E0599]: no variant or associated item named `authored_command` found for enum `WorthQueryEntityIdentity` in the current scope
+ --> tests/ui/query_identity_authority/external_label_mint_removed.rs:6:45
+  |
+6 |     let _entity = WorthQueryEntityIdentity::authored_command("entity:test");
+  |                                             ^^^^^^^^^^^^^^^^ variant or associated item not found in `WorthQueryEntityIdentity`
+  |
+note: if you're trying to build a new `WorthQueryEntityIdentity` consider using one of the following associated functions:
+      WorthQueryEntityIdentity::from_relational_record
+      WorthQueryEntityIdentity::preview
+      WorthQueryEntityIdentity::admit_authored_entity_token
+ --> src/memory_workspace/identities.rs
+  |
+  |       pub fn from_relational_record(relational_record: RelationalBridgeRecordIdentityParts) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn preview(evidence_identity: WorthQueryEvidenceIdentity) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn admit_authored_entity_token(
+  | |         token: crate::identity_authority::QueryExternalIdentityToken<
+  | |             std::sync::Arc<str>,
+  | |             crate::identity_authority::QueryEntityIdentityKind,
+  | |         >,
+  | |     ) -> Self {
+  | |_____________^

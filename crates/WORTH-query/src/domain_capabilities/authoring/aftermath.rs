@@ -1,0 +1,172 @@
+use crate::projection_consumption::{
+    ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
+};
+use crate::runtime::{
+    WorthQueryAdmittedIntentPlan, WorthQueryLowerRuntimeBoundaryEnvelope,
+    WorthQueryLowerRuntimeBoundaryEnvelopeSource,
+};
+
+use super::bind_requested;
+use crate::domain_capabilities::payloads::{
+    WorthQueryAftermathContributionPayload, WorthQueryAftermathContributionPosture,
+    WorthQueryAftermathRuntimeSemantics,
+};
+use crate::domain_capabilities::proof_integration::WorthQueryRequestedAftermathContribution;
+use crate::domain_capabilities::targets::{
+    WorthQueryAdmittedPlanBoundContributionTarget,
+    WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryAftermathContributionAuthoring {
+    payload: WorthQueryAftermathContributionPayload,
+}
+
+impl WorthQueryAftermathContributionAuthoring {
+    pub fn establishes_fact(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryAftermathContributionPosture::EstablishesFact,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn consumes_fact(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryAftermathContributionPosture::ConsumesFact,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn declares_residue(semantic_code: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryAftermathContributionPosture::DeclaresResidue,
+            semantic_code,
+            detail,
+        )
+    }
+
+    pub fn establishes_projection_contract(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        source: ProjectionConsumptionSource,
+        binding: ProjectionConsumptionBindingContext,
+        requested_facts: ProjectMaterializedFacts,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryAftermathContributionPosture::EstablishesFact,
+            semantic_code,
+            detail,
+            WorthQueryAftermathRuntimeSemantics::new(source, binding, requested_facts),
+        )
+    }
+
+    pub fn consumes_projection_contract(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        source: ProjectionConsumptionSource,
+        binding: ProjectionConsumptionBindingContext,
+        requested_facts: ProjectMaterializedFacts,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryAftermathContributionPosture::ConsumesFact,
+            semantic_code,
+            detail,
+            WorthQueryAftermathRuntimeSemantics::new(source, binding, requested_facts),
+        )
+    }
+
+    pub fn declares_projection_residue(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        source: ProjectionConsumptionSource,
+        binding: ProjectionConsumptionBindingContext,
+        requested_facts: ProjectMaterializedFacts,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            WorthQueryAftermathContributionPosture::DeclaresResidue,
+            semantic_code,
+            detail,
+            WorthQueryAftermathRuntimeSemantics::new(source, binding, requested_facts),
+        )
+    }
+
+    pub fn for_admitted_intent_plan(
+        self,
+        plan: &WorthQueryAdmittedIntentPlan,
+    ) -> WorthQueryRequestedAftermathContribution<WorthQueryAdmittedPlanBoundContributionTarget>
+    {
+        self.bind_to_admitted_plan_target(
+            WorthQueryAdmittedPlanBoundContributionTarget::for_admitted_intent_plan(plan),
+        )
+    }
+
+    pub fn for_lower_runtime_boundary_envelope(
+        self,
+        envelope: &WorthQueryLowerRuntimeBoundaryEnvelope,
+    ) -> WorthQueryRequestedAftermathContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    > {
+        self.bind_to_lower_runtime_boundary_target(
+            WorthQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(
+                envelope,
+            ),
+        )
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        self,
+        source: &S,
+    ) -> WorthQueryRequestedAftermathContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    >
+    where
+        S: WorthQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
+    }
+
+    pub fn bind_to_admitted_plan_target(
+        self,
+        target: WorthQueryAdmittedPlanBoundContributionTarget,
+    ) -> WorthQueryRequestedAftermathContribution<WorthQueryAdmittedPlanBoundContributionTarget>
+    {
+        bind_requested(self.payload, target)
+    }
+
+    pub fn bind_to_lower_runtime_boundary_target(
+        self,
+        target: WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    ) -> WorthQueryRequestedAftermathContribution<
+        WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+    > {
+        bind_requested(self.payload, target)
+    }
+
+    fn new(
+        posture: WorthQueryAftermathContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self {
+            payload: WorthQueryAftermathContributionPayload::new(posture, semantic_code, detail),
+        }
+    }
+
+    fn with_runtime_semantics(
+        posture: WorthQueryAftermathContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        runtime_semantics: WorthQueryAftermathRuntimeSemantics,
+    ) -> Self {
+        Self {
+            payload: WorthQueryAftermathContributionPayload::with_runtime_semantics(
+                posture,
+                semantic_code,
+                detail,
+                Some(runtime_semantics),
+            ),
+        }
+    }
+}

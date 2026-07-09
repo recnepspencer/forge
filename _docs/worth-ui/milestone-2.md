@@ -60,7 +60,7 @@ platform.
 - `milestone-1.md` and `milestone-1-closeout.md`: later Worth UI work must
   start from frozen capability snapshots rather than mutable registries or app-
   local Rust control flow.
-- `crates/forge-query/docs/AI_README.md`: serious downstream runtimes should
+- `crates/worth-query/docs/AI_README.md`: serious downstream runtimes should
   consume existing runtime-owned categories where they already exist:
   support/admission, canonical query/read plans, typed binding/resolver
   surfaces, projection consumption, async/result-state posture, recovery,

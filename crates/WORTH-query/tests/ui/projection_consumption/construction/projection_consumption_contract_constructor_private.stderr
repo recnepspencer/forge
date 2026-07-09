@@ -1,0 +1,41 @@
+error: cannot construct `worth_query::facade::MaterializedProjectionContract` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_contract_constructor_private.rs:11:13
+   |
+11 |     let _ = MaterializedProjectionContract {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12 |         declaration_digest: String::new(),
+   |         --------------------------------- private field
+13 |         eligibility_digest: String::new(),
+   |         --------------------------------- private field
+14 |         query_digest: None,
+   |         ------------------ private field
+15 |         basis_digest: None,
+   |         ------------------ private field
+16 |         result_digest: None,
+   |         ------------------- private field
+17 |         canonical_result_shape_digest: String::new(),
+   |         -------------------------------------------- private field
+18 |         narrowed_result_shape_digest: String::new(),
+   |         ------------------------------------------- private field
+19 |         authorized_projection_identity: String::new(),
+   |         --------------------------------------------- private field
+20 |         policy_digest: String::new(),
+   |         ---------------------------- private field
+21 |         tenant_schema_basis_digest: String::new(),
+   |         ----------------------------------------- private field
+22 |         source_family: ProjectionSourceFamily::QueryReadReceipt,
+   |         ------------------------------------------------------- private field
+23 |         source_posture: ProjectionContractSourcePosture::QueryOwnedReceiptSource,
+   |         ------------------------------------------------------------------------ private field
+24 |         source_identity: String::new().into(),
+   |         ------------------------------------- private field
+25 |         source_reference_identities: vec![impossible::<ProjectionSourceReferenceIdentity>()],
+   |         ------------------------------------------------------------------------------------ private field
+26 |         fact_families: vec![impossible::<BoundProjectionFactFamily>()],
+   |         -------------------------------------------------------------- private field
+27 |         support_posture: ProjectionContractSupportPosture::Admitted,
+   |         ----------------------------------------------------------- private field
+28 |         contract_digest: String::new(),
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `materialized_fact_posture` that was not provided

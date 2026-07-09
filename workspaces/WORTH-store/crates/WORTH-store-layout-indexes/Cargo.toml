@@ -1,0 +1,35 @@
+[package]
+name = "worth-store-layout-indexes"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.8 artifact layout, index, and access-path discipline."
+
+[dependencies]
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-authority = { path = "../worth-store-authority" }
+worth-store-budgets = { path = "../worth-store-budgets" }
+worth-store-blob-chunks = { path = "../worth-store-blob-chunks" }
+worth-store-compatibility = { path = "../worth-store-compatibility" }
+worth-store-contracts = { path = "../worth-store-contracts" }
+worth-store-physical-format = { path = "../worth-store-physical-format" }
+worth-store-physical-integrity = { path = "../worth-store-physical-integrity" }
+worth-store-recovery-physics = { path = "../worth-store-recovery-physics" }
+worth-store-security = { path = "../worth-store-security" }
+worth-store-wal = { path = "../worth-store-wal" }
+
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-store-aspect-native = { path = "../worth-store-aspect-native" }
+worth-store-blob-chunks = { path = "../worth-store-blob-chunks", features = ["certification-test-authority"] }
+worth-store-budgets = { path = "../worth-store-budgets" }
+worth-store-certification = { path = "../worth-store-certification" }
+worth-store-offline-verifier = { path = "../worth-store-offline-verifier" }
+worth-store-operations = { path = "../worth-store-operations" }
+worth-store-physical-certification = { path = "../worth-store-physical-certification" }
+worth-store-physical-format = { path = "../worth-store-physical-format" }
+worth-store-security = { path = "../worth-store-security", features = ["certification-test-authority"] }
+worth-store-test-support = { path = "../worth-store-test-support" }
+
+[lints]
+workspace = true

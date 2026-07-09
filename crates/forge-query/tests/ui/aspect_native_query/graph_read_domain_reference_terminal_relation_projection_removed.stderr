@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_relation_projection` found for struct `ForgeQueryAdmittedGraphReadDomainOperationReference` in the current scope
- --> tests/ui/aspect_native_query/graph_read_domain_reference_terminal_relation_projection_removed.rs:5:23
-  |
-5 |     let _ = reference.terminal_relation_projection();
-  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryAdmittedGraphReadDomainOperationReference`

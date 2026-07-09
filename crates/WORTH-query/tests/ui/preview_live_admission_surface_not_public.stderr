@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `worth_query::facade::admit_preview_live_session_plan`, `worth_query::facade::execute_preview_live_session_plan`
+ --> tests/ui/preview_live_admission_surface_not_public.rs:2:5
+  |
+2 |     admit_preview_live_session_plan, execute_preview_live_session_plan,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `execute_preview_live_session_plan` in `facade`
+  |     |
+  |     no `admit_preview_live_session_plan` in `facade`
+  |
+help: a similar name exists in the module
+  |
+2 |     admit_scoped_preview_live_session_plan, execute_preview_live_session_plan,
+  |           +++++++
+help: a similar name exists in the module
+  |
+2 |     admit_preview_live_session_plan, execute_scoped_preview_live_session_plan,
+  |                                              +++++++

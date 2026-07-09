@@ -1,5 +1,5 @@
 Now create an implementation plan for phase {phase.id}: {phase.title} of the
-Forge Store Aspect-Native Workspace Gate.
+WORTH Store Aspect-Native Workspace Gate.
 
 State file: {state_file}
 Spec file: {spec_file}
@@ -21,7 +21,7 @@ Do the following:
 - Review relevant context, including the gate spec, roadmap, this phase's
   scope paths, the dedicated Store workspace, the legacy Store JSON/serde
   residue only as compatibility/residue inventory, and relevant
-  forge-foundational aspect APIs.
+  worth-foundational aspect APIs.
 - Read `_docs/more_guidelines/dx_laws.md` if it exists.
 - Plan the directory skeleton explicitly.
 - Plan the DX target via DX laws as an actual Rust code block target.

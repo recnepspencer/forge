@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::materialize_grouped_execution_surface`
- --> tests/ui/legacy_grouped_execution_entrypoint_not_exported.rs:1:5
-  |
-1 | use forge_query::facade::materialize_grouped_execution_surface;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialize_grouped_execution_surface` in `facade`

@@ -1,0 +1,30 @@
+warning: unreachable statement
+  --> tests/ui/subscription_phase_seven/subscription_projection_label_cannot_feed_authority.rs:16:5
+   |
+15 |     let label: TerminalProjectionLabel = todo!();
+   |                                          ------- any code following this expression is unreachable
+16 |     require_subscription_authority(label);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+   |
+   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+  --> tests/ui/subscription_phase_seven/subscription_projection_label_cannot_feed_authority.rs:16:36
+   |
+16 |     require_subscription_authority(label);
+   |     ------------------------------ ^^^^^ expected `FoundationalAuthorityIdentity<..., ..., ...>`, found `TerminalProjectionLabel`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `worth_foundational::identities::authority_identity::current::FoundationalAuthorityIdentity<WorthQueryEvidenceIdentity, QuerySubscriptionAuthority, QuerySubscriptionIdentityKind>`
+              found struct `TerminalProjectionLabel`
+note: function defined here
+  --> tests/ui/subscription_phase_seven/subscription_projection_label_cannot_feed_authority.rs:6:4
+   |
+ 6 |   fn require_subscription_authority(
+   |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 | /     _identity: QuerySubscriptionAuthorityIdentity<
+ 8 | |         WorthQueryEvidenceIdentity,
+ 9 | |         QuerySubscriptionIdentityKind,
+10 | |     >,
+   | |_____-

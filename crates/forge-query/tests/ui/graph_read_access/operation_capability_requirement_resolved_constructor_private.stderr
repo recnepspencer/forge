@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `registration_required` found for struct `ForgeQueryGraphReadOperationCapabilityRequirement` in the current scope
- --> tests/ui/graph_read_access/operation_capability_requirement_resolved_constructor_private.rs:4:64
-  |
-4 |     let _ = ForgeQueryGraphReadOperationCapabilityRequirement::registration_required(
-  |                                                                ^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `ForgeQueryGraphReadOperationCapabilityRequirement`

@@ -88,7 +88,7 @@ has a stronger convention:
 
 Use the full template in [references/doc-template.md](references/doc-template.md).
 
-## Forge-Specific Rules
+## WORTH-Specific Rules
 
 - Preserve crate authority boundaries. Never let docs imply that a facade owns
   semantics that belong to a lower runtime.

@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.6a Measurement Vocabulary, Basis Admission, And Host Evidence Boundaries`
 >
@@ -105,7 +105,7 @@ Worth UI with measurement artifacts but no actual architecture for using them.
 - `ai-diagnostics.md`
   protects one shared evidence substrate. 3.6b allocation neighborhoods and
   denials must inspect through typed evidence, not a layout debugger side lane.
-- `crates/forge-query/docs/AI_README.md`
+- `crates/worth-query/docs/AI_README.md`
   protects Query-owned basis, projection consumption, retained inspection, and
   cross-runtime causal explanation. 3.6b must consume `consume_projection_facts(...)`,
   `workspace.inspect(...)`, `ResolvedSnapshotBasis`, `SnapshotResolutionReport`,

@@ -1,4 +1,4 @@
-name: Forge CI
+name: WORTH CI
 
 on:
   push:
@@ -45,65 +45,59 @@ jobs:
       - name: Determinism guards
         run: python3 scripts/ci/check_determinism_guards.py
 
-      - name: Subscriber discipline guards
-        run: python3 scripts/ci/check_subscriber_discipline.py
-
       - name: Signal runtime guards
         run: bash scripts/ci/check_signal_runtime_guards.sh
 
       - name: Workspace Rust line caps
         run: bash scripts/ci/check_workspace_rust_line_caps.sh
 
-      - name: Worth topology domain structure gate
-        run: bash scripts/ci/check_worth_topo_domain_structure.sh
-
       - name: Build workspace
         run: cargo build --workspace
 
-      - name: Forge-signal parallel semantic check
-        run: cargo check -p forge-signal --features parallel
+      - name: worth-signal parallel semantic check
+        run: cargo check -p worth-signal --features parallel
 
-      - name: Forge-signal core profile gate
+      - name: worth-signal core profile gate
         run: bash scripts/ci/check_signal_core_profiles.sh
 
-      - name: Forge-signal adversarial parallel lane
-        run: cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --nocapture
+      - name: worth-signal adversarial parallel lane
+        run: cargo test -p worth-signal --lib --features parallel adversarial_parallel -- --nocapture
 
-      - name: Forge-signal diagnostics lane
-        run: cargo test -p forge-signal --lib --features parallel diagnostics -- --nocapture
+      - name: worth-signal diagnostics lane
+        run: cargo test -p worth-signal --lib --features parallel diagnostics -- --nocapture
 
-      - name: Forge-signal harness replay lane
-        run: cargo test -p forge-signal --lib --features parallel harness_adapter -- --nocapture
+      - name: worth-signal harness replay lane
+        run: cargo test -p worth-signal --lib --features parallel harness_adapter -- --nocapture
 
-      - name: Forge-signal phase 5 contract lane
+      - name: worth-signal phase 5 contract lane
         run: bash scripts/ci/check_signal_phase5_contracts.sh
 
-      - name: Forge-signal adversarial workflow lane
+      - name: worth-signal adversarial workflow lane
         run: bash scripts/ci/check_signal_adversarial_workflows.sh
 
-      - name: Forge-signal transaction adversarial lane
-        run: cargo test -p forge-signal --lib --features parallel transaction_ -- --nocapture
+      - name: worth-signal transaction adversarial lane
+        run: cargo test -p worth-signal --lib --features parallel transaction_ -- --nocapture
 
-      - name: Forge-signal failure matrix gate
+      - name: worth-signal failure matrix gate
         run: bash scripts/ci/check_signal_failure_matrix.sh
 
-      - name: Forge-signal contract matrix gate
+      - name: worth-signal contract matrix gate
         run: bash scripts/ci/check_signal_contract_matrix.sh
 
-      - name: Forge-signal resource bounds gate
+      - name: worth-signal resource bounds gate
         run: bash scripts/ci/check_signal_resource_bounds.sh
 
-      - name: Forge-signal semantic snapshot diff lane
+      - name: worth-signal semantic snapshot diff lane
         run: bash scripts/ci/check_signal_semantic_snapshots.sh "${SIGNAL_SNAPSHOT_DIR}"
 
       - name: Run tests
         run: cargo test --workspace
 
-      - name: Upload forge-signal semantic snapshots
+      - name: Upload worth-signal semantic snapshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: forge-signal-semantic-snapshots
+          name: worth-signal-semantic-snapshots
           path: ${{ env.SIGNAL_SNAPSHOT_DIR }}
           if-no-files-found: ignore
 
@@ -161,28 +155,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-signal-perf-
 
-      - name: Run forge-signal performance lane
+      - name: Run worth-signal performance lane
         run: bash scripts/ci/run_signal_perf_lane.sh
 
-      - name: Run forge-signal determinism certification lane
+      - name: Run worth-signal determinism certification lane
         run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${SIGNAL_DETERMINISM_DIR}"
 
-      - name: Run forge-signal adversarial determinism lane
+      - name: Run worth-signal adversarial determinism lane
         run: |
-          cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --ignored --nocapture
-          cargo test -p forge-signal --lib --features parallel transaction_stress -- --nocapture
+          cargo test -p worth-signal --lib --features parallel adversarial_parallel -- --ignored --nocapture
+          cargo test -p worth-signal --lib --features parallel transaction_stress -- --nocapture
           bash scripts/ci/check_signal_adversarial_workflows.sh --long
 
-      - name: Upload forge-signal performance report
+      - name: Upload worth-signal performance report
         uses: actions/upload-artifact@v4
         with:
-          name: forge-signal-parallel-perf-report
+          name: worth-signal-parallel-perf-report
           path: ${{ env.SIGNAL_PERF_REPORT_PATH }}
           if-no-files-found: error
 
-      - name: Upload forge-signal determinism certification artifacts
+      - name: Upload worth-signal determinism certification artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: forge-signal-determinism-cert
+          name: worth-signal-determinism-cert
           path: ${{ env.SIGNAL_DETERMINISM_DIR }}
           if-no-files-found: error

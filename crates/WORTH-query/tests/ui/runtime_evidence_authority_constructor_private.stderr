@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/runtime_evidence_authority_constructor_private.rs:4:49
+  |
+4 |     let _ = WorthQueryRuntimeEvidenceAuthority::new();
+  |                                                 ^^^ private associated function
+  |
+ ::: src/runtime/support/authority_artifacts.rs
+  |
+  |     pub(crate) fn new() -> Self {
+  |     --------------------------- private associated function defined here

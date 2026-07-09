@@ -1,0 +1,11 @@
+error[E0599]: no method named `selector_kind` found for struct `WorthQueryGraphTouchSelector` in the current scope
+ --> tests/ui/aspect_native_query/graph_touch_selector_kind_alias_removed.rs:5:22
+  |
+5 |     let _ = selector.selector_kind();
+  |                      ^^^^^^^^^^^^^
+  |
+help: there is a method `selector_digest` with a similar name
+  |
+5 -     let _ = selector.selector_kind();
+5 +     let _ = selector.selector_digest();
+  |

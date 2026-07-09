@@ -1,0 +1,10 @@
+error[E0599]: no method named `trigger_aspects` found for reference `&WorthQueryEffectInspectionEvidence` in the current scope
+ --> tests/ui/aspect_native_query/effect_inspection_trigger_aspects_alias_removed.rs:4:22
+  |
+4 |     let _ = evidence.trigger_aspects();
+  |                      ^^^^^^^^^^^^^^^ private field, not a method
+  |
+help: there is a method `trigger_aspect_touches` with a similar name
+  |
+4 |     let _ = evidence.trigger_aspect_touches();
+  |                                    +++++++

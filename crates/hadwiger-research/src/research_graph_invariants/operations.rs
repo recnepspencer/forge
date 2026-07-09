@@ -1,13 +1,13 @@
-use forge_proof::TransitionOutcome;
-use forge_query::facade::runtime::{
+use worth_proof::TransitionOutcome;
+use worth_query::facade::runtime::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution,
     materialize_graph_composition_domain_invariant_denial,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    CustomInvariantRegistrationError, ForgeQueryDomainCapabilityProgressionDenial,
-    ForgeQueryDomainCapabilityProgressionFailure, ForgeQueryDomainCapabilityRebindRequired,
-    ForgeQueryDomainCapabilityStale, ForgeQueryDomainCapabilityTransitionOutcome,
-    ForgeQueryInvariantCapabilityContributionAuthoring,
+    CustomInvariantRegistrationError, WORTHQueryDomainCapabilityProgressionDenial,
+    WORTHQueryDomainCapabilityProgressionFailure, WORTHQueryDomainCapabilityRebindRequired,
+    WORTHQueryDomainCapabilityStale, WORTHQueryDomainCapabilityTransitionOutcome,
+    WORTHQueryInvariantCapabilityContributionAuthoring,
 };
 
 use crate::discovery_loop::{DiscoveryFrontier, ResearchEvidenceCorpus};
@@ -33,10 +33,10 @@ pub enum ResearchGraphInvariantError {
     MissingCorpus,
     MissingLowerRuntimeBoundaryEnvelope,
     NoViolationDetected,
-    QueryInvariantContributionDenied(ForgeQueryDomainCapabilityProgressionDenial),
-    QueryInvariantContributionStale(ForgeQueryDomainCapabilityStale),
-    QueryInvariantContributionRebindRequired(ForgeQueryDomainCapabilityRebindRequired),
-    QueryInvariantContributionFailed(ForgeQueryDomainCapabilityProgressionFailure),
+    QueryInvariantContributionDenied(WORTHQueryDomainCapabilityProgressionDenial),
+    QueryInvariantContributionStale(WORTHQueryDomainCapabilityStale),
+    QueryInvariantContributionRebindRequired(WORTHQueryDomainCapabilityRebindRequired),
+    QueryInvariantContributionFailed(WORTHQueryDomainCapabilityProgressionFailure),
     CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
 
@@ -137,7 +137,7 @@ pub fn materialize_research_graph_invariant_denial(
         .ok_or(ResearchGraphInvariantError::MissingLowerRuntimeBoundaryEnvelope)?;
     let violation = request.violation();
     let family = violation.rule_family().query_invariant_family();
-    let authoring = ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
+    let authoring = WORTHQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
         family,
         ["hadwiger_research_graph"],
         [violation.reference().stable_token()],
@@ -228,7 +228,7 @@ fn scope_for_family(family: ResearchGraphInvariantFamily) -> ResearchGraphInvari
 }
 
 fn transition_success<S>(
-    outcome: ForgeQueryDomainCapabilityTransitionOutcome<S>,
+    outcome: WORTHQueryDomainCapabilityTransitionOutcome<S>,
 ) -> Result<S, ResearchGraphInvariantError> {
     match outcome {
         TransitionOutcome::Success(value) => Ok(value),

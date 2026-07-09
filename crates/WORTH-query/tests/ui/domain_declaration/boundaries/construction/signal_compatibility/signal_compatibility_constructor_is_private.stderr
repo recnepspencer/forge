@@ -1,0 +1,49 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:86
+   |
+50 |       let _ = WorthQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+   |                                                                                        ^^^ private associated function
+   |
+  ::: src/application/declaration_signal_compatibility/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         primary_authority_family: WorthQueryDeclarationPrimaryAuthorityFamily,
+   | |         execution_family: WorthQueryDeclarationSignalExecutionFamily,
+   | |         basis_families: Vec<BasisFamily>,
+...  |
+   | |         explanation: WorthQueryDeclarationSignalCompatibilityExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 13 arguments but 6 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:13
+   |
+50 |       let _ = WorthQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+51 | |         worth_query::facade::WorthQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+52 | |         worth_query::facade::WorthQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution,
+53 | |         Vec::new(),
+...  |
+56 | |         explanation,
+57 | |     );
+   | |_____- multiple arguments are missing
+   |
+note: associated function defined here
+  --> src/application/declaration_signal_compatibility/artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+50 |     let _ = WorthQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+...
+54 |         envelope,
+55 ~         /* WorthQueryDeclarationAspectCoverage */,
+56 +         /* WorthQueryDeclarationAspectCoverageBasis */,
+57 +         /* WorthQueryDeclarationAspectFit */,
+58 +         /* WorthQueryDeclarationAspectContract */,
+59 +         /* WorthQueryDeclarationAspectContract */,
+60 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
+61 +         /* WorthQueryDeclarationEnvelope<ExampleDomain, ExampleInput> */,
+62 ~         "digest".to_string(),
+   |

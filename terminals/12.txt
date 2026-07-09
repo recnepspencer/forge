@@ -1,18 +1,18 @@
 ---
 pid: 23328
-cwd: "C:\Users\Esther\Documents\Programming\forge_workspace\forge"
-command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\forge\\workspaces\\forge-store\"; cargo test -p forge-store-blob-chunks corruption -- --test-threads=1 2>&1"
+cwd: "C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH"
+command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\WORTH\\workspaces\\worth-store\"; cargo test -p worth-store-blob-chunks corruption -- --test-threads=1 2>&1"
 started_at: 2026-07-07T02:02:35.510Z
 running_for_ms: 60011    
 ---
 cargo : warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
 At line:1 char:100
-+ ... rge-store"; cargo test -p forge-store-blob-chunks corruption -- --tes ...
++ ... rge-store"; cargo test -p worth-store-blob-chunks corruption -- --tes ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (warnin...erenceKind`:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -21,24 +21,24 @@ At line:1 char:100
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
 warning: unused import: `stable_digest_for_bytes`
-  --> crates\forge-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
+  --> crates\worth-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
    |
 24 | pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
    |                                               ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 warning: unused import: `rewrite_binding::BlobCompactionPhysicalRewriteBinding`
-  --> crates\forge-store-blob-chunks\src\compaction\mod.rs:38:9
+  --> crates\worth-store-blob-chunks\src\compaction\mod.rs:38:9
    |
 38 | pub use rewrite_binding::BlobCompactionPhysicalRewriteBinding;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused imports: `classify_damage_case_from_detection_context`, 
 `classify_streaming_read_damage_from_checksum_match`, `damage_case_for_localization_denial`, and 
 `map_pre_decode_denial_kind`
-  --> crates\forge-store-blob-chunks\src\corruption\classification\mod.rs:12:5
+  --> crates\worth-store-blob-chunks\src\corruption\classification\mod.rs:12:5
    |
 12 |     classify_damage_case_from_detection_context,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,86 +48,86 @@ warning: unused imports: `classify_damage_case_from_detection_context`,
 15 |     damage_case_for_localization_denial, map_pre_decode_denial_kind,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `localize_detected_damage`
-  --> crates\forge-store-blob-chunks\src\corruption\transitions\mod.rs:14:100
+  --> crates\worth-store-blob-chunks\src\corruption\transitions\mod.rs:14:100
    |
 14 | pub use localize_damage::{from_detected_source, from_read_corruption, from_streaming_read_request, 
 localize_detected_damage};
    |                                                                                                    
 ^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `classify_physical_damage_before_decode`
-  --> crates\forge-store-blob-chunks\src\corruption\mod.rs:40:41
+  --> crates\worth-store-blob-chunks\src\corruption\mod.rs:40:41
    |
 40 |     classify_blob_damage_before_decode, classify_physical_damage_before_decode,
    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `reject_physical_pre_decode_denial_as_blob_authority`
-  --> crates\forge-store-blob-chunks\src\corruption\mod.rs:50:5
+  --> crates\worth-store-blob-chunks\src\corruption\mod.rs:50:5
    |
 50 |     reject_physical_pre_decode_denial_as_blob_authority,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `reject_physical_handoff_as_blob_authority`
-  --> crates\forge-store-blob-chunks\src\corruption\mod.rs:66:43
+  --> crates\worth-store-blob-chunks\src\corruption\mod.rs:66:43
    |
 66 |     classify_and_reject_physical_handoff, reject_physical_handoff_as_blob_authority,
    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `reject_physical_pre_decode_as_blob_authority`
-  --> crates\forge-store-blob-chunks\src\corruption\mod.rs:74:42
+  --> crates\worth-store-blob-chunks\src\corruption\mod.rs:74:42
    |
 74 |     classify_physical_pre_decode_damage, reject_physical_pre_decode_as_blob_authority,
    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `verify_current_store_authority_for_readmission`
-  --> crates\forge-store-blob-chunks\src\corruption\mod.rs:80:5
+  --> crates\worth-store-blob-chunks\src\corruption\mod.rs:80:5
    |
 80 |     verify_current_store_authority_for_readmission,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `map_handoff_damage_case_to_blob`
-  --> crates\forge-store-blob-chunks\src\handoffs\mod.rs:20:5
+  --> crates\worth-store-blob-chunks\src\handoffs\mod.rs:20:5
    |
 20 |     map_handoff_damage_case_to_blob, reject_offline_handoff_as_blob_authority,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `performance::counter_backed_placement_movement_performance_receipt`
-  --> crates\forge-store-blob-chunks\src\placement\movement\mod.rs:56:16
+  --> crates\worth-store-blob-chunks\src\placement\movement\mod.rs:56:16
    |
 56 | pub(crate) use performance::counter_backed_placement_movement_performance_receipt;
    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobReachabilityStagingIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:8:52
+ --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:8:52
   |
 8 | use super::super::{BlobPublicationCounterSnapshot, BlobReachabilityStagingIdentity};
   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `super::identity::BlobPublicationCounterReceiptIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
+ --> crates\worth-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
   |
 1 | use super::identity::BlobPublicationCounterReceiptIdentity;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobPublicationWalCommit`
-  --> crates\forge-store-blob-chunks\src\publication\types\published.rs:11:69
+  --> crates\worth-store-blob-chunks\src\publication\types\published.rs:11:69
    |
 11 |     BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout, BlobPublicationWalCommit,
    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `evidence::BlobPublicationCounterReceiptIdentity`
-  --> crates\forge-store-blob-chunks\src\publication\mod.rs:25:9
+  --> crates\worth-store-blob-chunks\src\publication\mod.rs:25:9
    |
 25 | pub use evidence::BlobPublicationCounterReceiptIdentity;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: function `reject_physical_pre_decode_denial_as_blob_authority` is never used
-  --> crates\forge-store-blob-chunks\src\corruption\denial.rs:77:8
+  --> crates\worth-store-blob-chunks\src\corruption\denial.rs:77:8
    |
 77 | pub fn reject_physical_pre_decode_denial_as_blob_authority(
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `reject_physical_pre_decode_as_blob_authority` is never used
-  --> crates\forge-store-blob-chunks\src\corruption\verification\pre_decode_bridge.rs:11:8
+  --> crates\worth-store-blob-chunks\src\corruption\verification\pre_decode_bridge.rs:11:8
    |
 11 | pub fn reject_physical_pre_decode_as_blob_authority(
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: function `reject_physical_pre_decode_as_blob_authority` is never used
- --> crates\forge-store-blob-chunks\src\handoffs\physical_corruption_handoff.rs:8:8
+ --> crates\worth-store-blob-chunks\src\handoffs\physical_corruption_handoff.rs:8:8
   |
 8 | pub fn reject_physical_pre_decode_as_blob_authority(
   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tree_durable` are never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:40:19
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:40:19
    |
 39 | impl BlobPublicationRecoveryOperationDigest {
    | ------------------------------------------- associated functions in this implementation
@@ -140,12 +140,12 @@ warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tre
 48 |     pub(crate) fn chunk_tree_durable(root: &ChunkTreeRoot) -> Self {
    |                   ^^^^^^^^^^^^^^^^^^
 warning: function `security_receipt_basis` is never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:71:4
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:71:4
    |
 71 | fn security_receipt_basis(metadata: BlobChunkSecurityMetadataWitness) -> String {
    |    ^^^^^^^^^^^^^^^^^^^^^^
 warning: methods `edges` and `holds` are never used
-  --> crates\forge-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
+  --> crates\worth-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
    |
  9 | impl<'a> ReachabilityRegistryView<'a> {
    | ------------------------------------- methods in this implementation
@@ -156,25 +156,25 @@ warning: methods `edges` and `holds` are never used
 21 |     pub(crate) const fn holds(&self) -> &[BlobReachabilityProtectedHold] {
    |                         ^^^^^
 warning: method `record_reclaim_denial` is never used
-   --> crates\forge-store-blob-chunks\src\reachability\counters.rs:143:25
+   --> crates\worth-store-blob-chunks\src\reachability\counters.rs:143:25
     |
  21 | impl BlobReachabilityCounterSnapshot {
     | ------------------------------------ method in this implementation
 ...
 143 |     pub(crate) const fn record_reclaim_denial(self) -> Self {
     |                         ^^^^^^^^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib) generated 22 warnings (run `cargo fix --lib -p forge-store-blob-chunks` to 
+warning: `worth-store-blob-chunks` (lib) generated 22 warnings (run `cargo fix --lib -p worth-store-blob-chunks` to 
 apply 15 suggestions)
 warning: use of deprecated function `harness::physical_reference::test_physical_reference`: use 
-harness_physical_reference — test support must not imply production authority
-  --> crates\forge-store-test-support\src\lib.rs:27:38
+harness_physical_reference â€” test support must not imply production authority
+  --> crates\worth-store-test-support\src\lib.rs:27:38
    |
 27 | pub use harness::physical_reference::test_physical_reference;
    |                                      ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(deprecated)]` on by default
 warning: method `as_physical_reference` is never used
-  --> crates\forge-store-test-support\src\harness\physical_reference.rs:35:19
+  --> crates\worth-store-test-support\src\harness\physical_reference.rs:35:19
    |
 14 | impl HarnessPhysicalReference {
    | ----------------------------- method in this implementation
@@ -183,37 +183,37 @@ warning: method `as_physical_reference` is never used
    |                   ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-test-support` (lib) generated 2 warnings
-   Compiling forge-store-blob-chunks v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-blob-chunks)
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+warning: `worth-store-test-support` (lib) generated 2 warnings
+   Compiling worth-store-blob-chunks v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-blob-chunks)
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
 warning: unused imports: `blob_scope`, `candidate_for_bytes_and_scope`, and `canonical_equivalence`
- --> crates\forge-store-blob-chunks\src\corruption\tests.rs:3:5
+ --> crates\worth-store-blob-chunks\src\corruption\tests.rs:3:5
   |
 3 |     blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
   |     ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `AuthoritativeBlobCorruptionPosture`
- --> crates\forge-store-blob-chunks\src\corruption\tests.rs:8:5
+ --> crates\worth-store-blob-chunks\src\corruption\tests.rs:8:5
   |
 8 |     AuthoritativeBlobCorruptionPosture, BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: unused import: `forge_store_security::StoreTenantScope`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:17:5
+warning: unused import: `worth_store_security::StoreTenantScope`
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:17:5
    |
-17 | use forge_store_security::StoreTenantScope;
+17 | use worth_store_security::StoreTenantScope;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `recovery_entry`
-  --> crates\forge-store-blob-chunks\src\publication\test_support\mod.rs:10:5
+  --> crates\worth-store-blob-chunks\src\publication\test_support\mod.rs:10:5
    |
 10 |     recovery_entry, recovery_replay_entry, replayable_wal_classification,
    |     ^^^^^^^^^^^^^^
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
-warning: `forge-store-blob-chunks` (lib test) generated 26 warnings (22 duplicates) (run `cargo fix --lib -p 
-forge-store-blob-chunks --tests` to apply 4 suggestions)
+warning: `worth-store-blob-chunks` (lib test) generated 26 warnings (22 duplicates) (run `cargo fix --lib -p 
+worth-store-blob-chunks --tests` to apply 4 suggestions)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 14.17s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_blob_chunks-2e9b18c69e3982fe.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_blob_chunks-2e9b18c69e3982fe.exe)
 
 running 24 tests
 test corruption::classification::damage_decision_table::tests::pre_decode_denial_kind_maps_to_distinct_blob_damage_cases ... ok

@@ -1,0 +1,15 @@
+error: cannot construct `WorthQueryGraphObligationRegistrationCatalog` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/registration/registration_catalog_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryGraphObligationRegistrationCatalog {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `registrations` and `catalog_digest` that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = WorthQueryGraphObligationRegistrationCatalog {};
+4 +     let _ = WorthQueryGraphObligationRegistrationCatalog::empty();
+  |
+4 -     let _ = WorthQueryGraphObligationRegistrationCatalog {};
+4 +     let _ = WorthQueryGraphObligationRegistrationCatalog::from_canonicalized_registrations(_);
+  |

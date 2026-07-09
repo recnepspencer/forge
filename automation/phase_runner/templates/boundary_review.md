@@ -59,7 +59,7 @@ and the Worth UI architecture docs. Then post a concise boundary brief covering:
 
 7. The common failure modes worth guarding against in this phase.
    Use judgment, but especially watch for:
-   - forgeable authority
+   - WORTHable authority
    - mixed cutover
    - proxy-derived identity
    - weak equivalence contracts

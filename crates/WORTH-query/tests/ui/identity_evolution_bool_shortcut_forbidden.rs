@@ -1,0 +1,6 @@
+use worth_query::facade::CorrespondenceIdentityComparison;
+
+fn main() {
+    let _: fn(bool) -> CorrespondenceIdentityComparison =
+        CorrespondenceIdentityComparison::from_lineage_match_bool;
+}

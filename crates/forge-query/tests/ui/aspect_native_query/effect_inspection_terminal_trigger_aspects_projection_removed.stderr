@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_trigger_aspects_projection` found for reference `&ForgeQueryEffectInspectionEvidence` in the current scope
- --> tests/ui/aspect_native_query/effect_inspection_terminal_trigger_aspects_projection_removed.rs:4:22
-  |
-4 |     let _ = evidence.terminal_trigger_aspects_projection();
-  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryEffectInspectionEvidence`

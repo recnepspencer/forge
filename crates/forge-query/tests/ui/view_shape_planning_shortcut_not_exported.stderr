@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `forge_query::facade::plan_canonical_bundle_for_view_shape`
- --> tests/ui/view_shape_planning_shortcut_not_exported.rs:1:5
-  |
-1 | use forge_query::facade::plan_canonical_bundle_for_view_shape;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `plan_canonical_bundle_for_view_shape` in `facade`

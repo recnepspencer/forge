@@ -1,6 +1,6 @@
 use worth_math::MathError;
-use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
+use super::private_support::{truth_digest_parts, PrimitiveDigestScope};
 use crate::primitives::shape_realization::schema::{
     PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
@@ -165,5 +165,5 @@ impl From<MathError> for PrimitiveRealizationError {
 }
 
 fn digest_parts(parts: &[String]) -> String {
-    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
+    truth_digest_parts(PrimitiveDigestScope::ArtifactIdentity, parts)
 }

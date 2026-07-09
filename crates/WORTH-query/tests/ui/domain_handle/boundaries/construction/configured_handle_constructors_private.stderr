@@ -1,0 +1,14 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_handle/boundaries/construction/configured_handle_constructors_private.rs:42:101
+   |
+42 |       let _ = WorthQueryConfiguredDomainHandleDraft::<GeometryDomainEntry, GeometryOperatingContext>::new(
+   |                                                                                                       ^^^ private associated function
+   |
+  ::: src/application/domain_handle/draft.rs
+   |
+   | /     pub(crate) fn new(
+   | |         marker: D,
+   | |         operating_context: C,
+   | |         support_snapshot: WorthQueryDomainEntrySupportSnapshot,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

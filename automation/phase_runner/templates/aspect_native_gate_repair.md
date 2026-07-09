@@ -1,5 +1,5 @@
 Now create an in-chat plan to fix the phase {phase.id}: {phase.title}
-done-check issues for the Forge Store Aspect-Native Workspace Gate.
+done-check issues for the WORTH Store Aspect-Native Workspace Gate.
 
 Then go implement that plan.
 

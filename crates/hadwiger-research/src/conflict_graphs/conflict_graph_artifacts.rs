@@ -215,7 +215,7 @@ fn conflict_graph_payload(
     required_color_count: Option<u32>,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.conflict_graph.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.conflict_graph.v1"),
         HadwigerArtifactPayloadEntry::text("graph_id", graph_id.to_string()),
         HadwigerArtifactPayloadEntry::text(
             "query_declaration_digest",

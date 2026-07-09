@@ -1,0 +1,21 @@
+mod clock;
+mod counters;
+mod creation_request;
+mod expiry_posture;
+mod identity;
+mod lifecycle;
+mod lifecycle_gate;
+mod record;
+mod registry;
+
+pub(crate) use clock::default_product_session_clock;
+pub use clock::{WorthServerProductSessionClock, WorthServerSystemProductSessionClock};
+pub use counters::WorthServerProductSessionCounterSnapshot;
+pub use creation_request::WorthServerProductSessionCreationRequest;
+pub use expiry_posture::WorthServerProductSessionExpiryPosture;
+pub use identity::WorthServerProductSessionIdentity;
+pub use lifecycle::WorthServerProductSessionLifecycle;
+pub(crate) use lifecycle_gate::admit_session_for_product_operation;
+pub use lifecycle_gate::{WorthServerProductSessionDenial, WorthServerProductSessionDenialCode};
+pub use record::WorthServerProductSession;
+pub use registry::WorthServerProductSessionRegistry;

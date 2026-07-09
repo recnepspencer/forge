@@ -1,9 +1,9 @@
-use forge_foundational::facade::{
+use worth_foundational::facade::{
     derive_canonical_digest, prepare_canonical_basis_sequence, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
     CanonicalDigestAlgorithmId, CanonicalDigestFrontDoor, CanonicalizationRuleVersion,
 };
-use forge_proof::TransitionOutcome;
+use worth_proof::TransitionOutcome;
 
 use crate::aspect_authority::{HadwigerAspectKind, HadwigerAspectPosture};
 use crate::domain_artifacts::{
@@ -11,7 +11,7 @@ use crate::domain_artifacts::{
     HadwigerQueryDeclarationReference, ProofClaim,
 };
 
-const PROOF_CHAIN_DIGEST_VERSION: &str = "forge.hadwiger.proof_authority_chain.v1";
+const PROOF_CHAIN_DIGEST_VERSION: &str = "WORTH.hadwiger.proof_authority_chain.v1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HadwigerProofAuthorityStepKind {
@@ -190,7 +190,7 @@ fn chain_digest(
     aspect_tokens: &[String],
     background_theorem_reference: Option<&HadwigerArtifactReference>,
 ) -> Result<String, HadwigerArtifactShapeError> {
-    let domain = CanonicalBasisDomain::Future("forge.hadwiger.proof_authority_chain");
+    let domain = CanonicalBasisDomain::Future("WORTH.hadwiger.proof_authority_chain");
     let mut entries = vec![
         text_entry(domain, "digest_schema_version", PROOF_CHAIN_DIGEST_VERSION),
         text_entry(domain, "claim_digest", claim_digest),

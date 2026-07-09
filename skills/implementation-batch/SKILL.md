@@ -1,6 +1,6 @@
 ---
 name: implementation-batch
-description: Continue a Forge milestone by deriving the next unfinished implementation slice from the milestone document, planning it, building it, and verifying it in one turn.
+description: Continue a WORTH milestone by deriving the next unfinished implementation slice from the milestone document, planning it, building it, and verifying it in one turn.
 ---
 
 # Implementation Batch

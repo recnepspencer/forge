@@ -266,7 +266,7 @@ This phase maps the current workspace crates onto the target 3.1 ownership
 split so the new topology does not coexist with parallel public authorities.
 
 **Relevant subsystems**
-- existing `forge-ui-*` workspace crates
+- existing `worth-ui-*` workspace crates
 - existing `worth-ui` public facade
 - migration shims
 - structural residue audits
@@ -278,7 +278,7 @@ split so the new topology does not coexist with parallel public authorities.
 - structural audit harnesses
 
 **Warnings**
-- Do not leave existing `forge-ui-*` crates as parallel public homes for
+- Do not leave existing `worth-ui-*` crates as parallel public homes for
   runtime, inspection, DSL, support, or host-neutral types after the new owners
   exist.
 - Do not preserve migration convenience by keeping multiple public authority
@@ -615,7 +615,7 @@ ceremonial.
 - Do not couple certification to renderer behavior or later evidence families.
 
 **Test requirements**
-- Compile-fail forgery test: external code cannot mint proof-bearing inspection
+- Compile-fail WORTHry test: external code cannot mint proof-bearing inspection
   receipts or unsupported posture witnesses directly.
 - Replay-honesty precursor test: repeated inspection queries against the same
   unsupported scope must return equivalent typed posture rather than drifting
@@ -665,7 +665,7 @@ ceremonial.
 - unsupported inspection remains typed and explicit rather than degrading into
   missing API surface or string-only fallback
 - inspection receipts remain sealed-but-projectable: externally readable,
-  externally unforgeable
+  externally unWORTHable
 - this milestone does not drag in later evidence families, snapshots, replay
   richness, or inspector UI work out of order
 
@@ -683,7 +683,7 @@ ceremonial.
   missing APIs, or strings
 - support reports can state that a scope belongs architecturally, is not yet
   admitted, and is expected in a later milestone
-- inspection contract types and receipts cannot be forged from outside the
+- inspection contract types and receipts cannot be WORTHd from outside the
   owning runtime boundary
 - the physical tree now teaches where runtime truth, inspection authority, host
   mechanics, DSL ownership, Query binding, and certification live

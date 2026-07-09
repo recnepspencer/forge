@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.4 Admission, Support, And Graph Touch Obligations`
 >
@@ -130,7 +130,7 @@ would permanently weaken the platform.
   protects one shared evidence substrate for AI and human diagnostics. 3.5 must
   make evidence family identity, provenance, causal links, relevance filtering,
   and lazy materialization real instead of collapsing back to logs or dumps.
-- `crates/forge-query/docs/AI_README.md`
+- `crates/worth-query/docs/AI_README.md`
   protects Query-owned inspection and projection lanes. 3.5 must keep
   per-target retained Query evidence on `workspace.inspect(...)`, keep
   cross-runtime causal explanation on `admit_causal_inspection` /
@@ -176,7 +176,7 @@ not closed.
   `UiEvidenceSlice` are distinct concepts. The names may vary, but the semantic
   split may not:
   - evidence identity = canonical identity of an evidence record
-  - evidence ref = externally projectable, non-forgeable handle
+  - evidence ref = externally projectable, non-WORTHable handle
   - evidence handle = internal runtime handle where needed
   - evidence slice = projection containing refs, summaries, and optional detail
 - Indexes are runtime-owned derived structures over declaration, admission,
@@ -506,8 +506,8 @@ lanes stay Query-owned:
 - snapshot-basis and world posture:
   `ResolvedSnapshotBasis`, `SnapshotResolutionReport`
 - projection-backed domain facts:
-  `ForgeQueryReadResult::consume_projection_facts(...)`,
-  `ForgeQueryWriteReceipt::consume_projection_facts(...)`,
+  `WORTHQueryReadResult::consume_projection_facts(...)`,
+  `WORTHQueryWriteReceipt::consume_projection_facts(...)`,
   `QueryContextExecutionArtifact::consume_projection_facts(...)`
 - retained per-target Query evidence:
   `workspace.inspect(...)`

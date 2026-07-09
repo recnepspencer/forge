@@ -1,0 +1,162 @@
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
+use crate::{
+    config::WorthServerConfig,
+    diagnostics::WorthServerCounters,
+    middleware::WorthServerMiddlewareFacade,
+    operation_registry::WorthServerOperationRegistry,
+    operator_evidence::WorthServerOperatorEvidenceFacade,
+    product_adapter::WorthServerProductAdapterRegistry,
+    product_operation_contract::WorthServerStoredProductOperation,
+    product_session::{
+        default_product_session_clock, WorthServerProductSessionClock,
+        WorthServerProductSessionRegistry,
+    },
+    query_handoff::WorthServerQueryHandoffFacade,
+    registration::WorthServerSurfaceRegistry,
+    request_context::WorthServerRequestContextFacade,
+    response::WorthServerResponseFacade,
+    surfaces::{
+        compat_http::{WorthServerStoredBinaryIngress, WorthServerStoredCompatibilityMutation},
+        WorthServerSurfacesFacade,
+    },
+    transport::WorthServerRouteAssembly,
+};
+
+#[derive(Debug)]
+pub(crate) struct WorthServerRuntimeAssembly {
+    config: WorthServerConfig,
+    surface_registry: WorthServerSurfaceRegistry,
+    operation_registry: WorthServerOperationRegistry,
+    product_adapter_registry: WorthServerProductAdapterRegistry,
+    surfaces_facade: WorthServerSurfacesFacade,
+    middleware_facade: WorthServerMiddlewareFacade,
+    operator_evidence_facade: WorthServerOperatorEvidenceFacade,
+    query_handoff_facade: WorthServerQueryHandoffFacade,
+    response_facade: WorthServerResponseFacade,
+    request_context_facade: WorthServerRequestContextFacade,
+    route_assembly: WorthServerRouteAssembly,
+    counters: Arc<WorthServerCounters>,
+    product_session_registry: WorthServerProductSessionRegistry,
+    compat_http_mutation_replay_store:
+        Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>>,
+    product_operation_replay_store: Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>>,
+    compat_http_binary_ingress_store: Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>>,
+}
+
+impl WorthServerRuntimeAssembly {
+    pub(crate) fn new(
+        config: WorthServerConfig,
+        surface_registry: WorthServerSurfaceRegistry,
+        operation_registry: WorthServerOperationRegistry,
+        product_adapter_registry: WorthServerProductAdapterRegistry,
+        route_assembly: WorthServerRouteAssembly,
+        counters: Arc<WorthServerCounters>,
+        product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+    ) -> Self {
+        let surfaces_facade = WorthServerSurfacesFacade::new(&surface_registry);
+        let middleware_facade = WorthServerMiddlewareFacade::new(config.middleware().clone());
+        let operator_evidence_facade =
+            WorthServerOperatorEvidenceFacade::new(config.operator_evidence().clone());
+        let query_handoff_facade =
+            WorthServerQueryHandoffFacade::new(config.query_handoff().clone());
+        let response_facade = WorthServerResponseFacade::new(config.response().clone());
+        let request_context_facade =
+            WorthServerRequestContextFacade::new(config.request_context().clone());
+        let product_session_registry = WorthServerProductSessionRegistry::new(
+            counters.clone(),
+            product_session_clock.unwrap_or_else(default_product_session_clock),
+        );
+        Self {
+            config,
+            surface_registry,
+            operation_registry,
+            product_adapter_registry,
+            surfaces_facade,
+            middleware_facade,
+            operator_evidence_facade,
+            query_handoff_facade,
+            response_facade,
+            request_context_facade,
+            route_assembly,
+            counters,
+            product_session_registry,
+            compat_http_mutation_replay_store: Arc::new(Mutex::new(HashMap::new())),
+            product_operation_replay_store: Arc::new(Mutex::new(HashMap::new())),
+            compat_http_binary_ingress_store: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub(crate) fn config(&self) -> &WorthServerConfig {
+        &self.config
+    }
+
+    pub(crate) fn surface_registry(&self) -> &WorthServerSurfaceRegistry {
+        &self.surface_registry
+    }
+
+    pub(crate) fn request_context_facade(&self) -> &WorthServerRequestContextFacade {
+        &self.request_context_facade
+    }
+
+    pub(crate) fn operation_registry(&self) -> &WorthServerOperationRegistry {
+        &self.operation_registry
+    }
+
+    pub(crate) fn surfaces_facade(&self) -> &WorthServerSurfacesFacade {
+        &self.surfaces_facade
+    }
+
+    pub(crate) fn product_adapter_registry(&self) -> &WorthServerProductAdapterRegistry {
+        &self.product_adapter_registry
+    }
+
+    pub(crate) fn middleware_facade(&self) -> &WorthServerMiddlewareFacade {
+        &self.middleware_facade
+    }
+
+    pub(crate) fn operator_evidence_facade(&self) -> &WorthServerOperatorEvidenceFacade {
+        &self.operator_evidence_facade
+    }
+
+    pub(crate) fn query_handoff_facade(&self) -> &WorthServerQueryHandoffFacade {
+        &self.query_handoff_facade
+    }
+
+    pub(crate) fn response_facade(&self) -> &WorthServerResponseFacade {
+        &self.response_facade
+    }
+
+    pub(crate) fn counters(&self) -> &Arc<WorthServerCounters> {
+        &self.counters
+    }
+
+    pub(crate) fn route_assembly(&self) -> &WorthServerRouteAssembly {
+        &self.route_assembly
+    }
+
+    pub(crate) fn product_session_registry(&self) -> &WorthServerProductSessionRegistry {
+        &self.product_session_registry
+    }
+
+    pub(crate) fn compat_http_mutation_replay_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, WorthServerStoredCompatibilityMutation>>> {
+        &self.compat_http_mutation_replay_store
+    }
+
+    pub(crate) fn compat_http_binary_ingress_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, WorthServerStoredBinaryIngress>>> {
+        &self.compat_http_binary_ingress_store
+    }
+
+    pub(crate) fn product_operation_replay_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, WorthServerStoredProductOperation>>> {
+        &self.product_operation_replay_store
+    }
+}

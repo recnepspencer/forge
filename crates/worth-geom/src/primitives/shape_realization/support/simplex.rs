@@ -1,5 +1,4 @@
 use worth_math::MathError;
-use worth_primitives::canonical_simplex_vertices;
 
 use crate::primitives::plane::Plane;
 use crate::primitives::shape_realization::{
@@ -9,6 +8,7 @@ use crate::primitives::shape_realization::{
 use crate::spatial::coordinate::local_space::LocalCoordinateSpace;
 
 use super::{
+    super::private_support::canonical_simplex_vertices,
     direct_realization, escalated_realization, oriented_triangle_face_normal,
     PrimitiveRealizationStrategy, PrimitiveSupportRealization,
 };

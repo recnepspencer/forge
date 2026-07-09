@@ -1,0 +1,99 @@
+use crate::application::{
+    WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
+};
+
+use super::artifacts::{
+    WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
+    WorthQueryDeclarationEntryOrchestrationExposureLevel,
+    WorthQueryDeclarationEntryOrchestrationInput, WorthQueryDeclarationEntryOrchestrationOutcome,
+    WorthQueryDeclarationEntryOrchestrationPlan, WorthQueryDeclarationEntryOrchestrationStage,
+    WorthQueryDeclarationEntryOrchestrationStageRecord,
+};
+use super::sequencing::WorthQueryDeclarationEntryOrchestrationAutomationContext;
+
+mod entry;
+mod envelope;
+mod foundational;
+mod legality;
+mod product;
+mod progression;
+mod reason;
+mod receipt;
+mod route;
+
+pub(crate) struct WorthQueryLoweredDeclarationEntryOrchestration<
+    D: WorthQueryDomainEntryMarker,
+    I: WorthQueryDeclarationInput<D>,
+> {
+    #[allow(dead_code)]
+    pub(crate) input: WorthQueryDeclarationEntryOrchestrationInput<D, I>,
+    pub(crate) plan: WorthQueryDeclarationEntryOrchestrationPlan<D, I>,
+    pub(crate) outcome: WorthQueryDeclarationEntryOrchestrationOutcome<D, I>,
+    pub(crate) step_records: Vec<WorthQueryDeclarationEntryOrchestrationStageRecord>,
+}
+
+pub(crate) fn worth_query_lower_declaration_entry_orchestration_on_handle<
+    D: WorthQueryDomainEntryMarker,
+    C: crate::application::WorthQueryDomainOperatingContext<D>,
+    I: WorthQueryDeclarationInput<D>,
+>(
+    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    input: I,
+    exposure_level: WorthQueryDeclarationEntryOrchestrationExposureLevel,
+    artifact_policy: WorthQueryDeclarationEntryOrchestrationArtifactPolicy,
+) -> WorthQueryLoweredDeclarationEntryOrchestration<D, I> {
+    let orchestration_input = WorthQueryDeclarationEntryOrchestrationInput::new(
+        handle.retained_world_basis(),
+        I::Family::aspect_contract(),
+        I::Family::aspect_coverage(),
+        crate::application::WorthQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,
+        exposure_level,
+        artifact_policy,
+    );
+    let plan = WorthQueryDeclarationEntryOrchestrationPlan::new(orchestration_input.clone());
+    let automation_context = WorthQueryDeclarationEntryOrchestrationAutomationContext::new(
+        plan.orchestration_identity_digest(),
+        plan.automation_boundary(),
+    );
+    let mut step_records = vec![
+        WorthQueryDeclarationEntryOrchestrationStageRecord::admitted(
+            WorthQueryDeclarationEntryOrchestrationStage::AdmittedHandle,
+            Some(handle.handle_identity_digest().to_string()),
+        ),
+    ];
+    let outcome = entry::lower_from_declaration_checked(
+        handle,
+        &plan,
+        &automation_context,
+        &mut step_records,
+        input,
+    );
+    WorthQueryLoweredDeclarationEntryOrchestration {
+        input: orchestration_input,
+        plan,
+        outcome,
+        step_records,
+    }
+}
+
+pub(crate) fn worth_query_checked_declaration_entry_orchestration_on_handle<
+    D: WorthQueryDomainEntryMarker,
+    C: crate::application::WorthQueryDomainOperatingContext<D>,
+    I: WorthQueryDeclarationInput<D>,
+>(
+    handle: &crate::application::WorthQueryAdmittedConfiguredDomainHandle<D, C>,
+    input: I,
+) -> WorthQueryDeclarationEntryOrchestrationOutcome<D, I> {
+    worth_query_lower_declaration_entry_orchestration_on_handle(
+        handle,
+        input,
+        WorthQueryDeclarationEntryOrchestrationExposureLevel::Checked,
+        WorthQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
+    )
+    .outcome
+}
+
+pub(crate) use product::{
+    worth_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
+    WorthQueryDeclarationEntryProductChecked,
+};

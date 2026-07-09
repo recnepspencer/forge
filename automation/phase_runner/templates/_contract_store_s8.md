@@ -23,7 +23,7 @@ Read `_docs/more_guidelines/dx_laws.md` when planning or changing public caller
 experience.
 
 For S.8, treat physical layout, index strategy, and access-path discipline as
-Store-owned database law. `forge-store-layout-indexes` owns shared S.8
+Store-owned database law. `worth-store-layout-indexes` owns shared S.8
 layout/access grammar; family crates own their local execution authority.
 Certification is the courtroom: it proves executed Store law but does not
 define production law or mint runtime authority.
@@ -33,14 +33,14 @@ define production law or mint runtime authority.
 - The Domain Skeleton Contract in the S.8 spec is binding architecture. Use it
   every phase.
 - Phase IDs are native to the milestone config. S.8 starts at phase `0`.
-- Keep `forge-store-layout-indexes` as layout/access grammar, not execution
+- Keep `worth-store-layout-indexes` as layout/access grammar, not execution
   authority for pages, WAL, recovery, blobs, security, operations, or tests.
 - Existing family crates keep execution authority:
-  `forge-store-physical-format`, `forge-store-wal`,
-  `forge-store-recovery-physics`, `forge-store-buffer-pool`,
-  `forge-store-physical-integrity`, `forge-store-physical-isolation`,
-  `forge-store-io-scheduler`, `forge-store-blob-chunks`,
-  `forge-store-security`, and `forge-store-operations`.
+  `worth-store-physical-format`, `worth-store-wal`,
+  `worth-store-recovery-physics`, `worth-store-buffer-pool`,
+  `worth-store-physical-integrity`, `worth-store-physical-isolation`,
+  `worth-store-io-scheduler`, `worth-store-blob-chunks`,
+  `worth-store-security`, and `worth-store-operations`.
 - Build inside the selected target topology. Files may become directories when
   justified, but ownership, lifecycle order, facade position, and authority
   direction must not drift.
@@ -55,16 +55,16 @@ define production law or mint runtime authority.
 - Counters are evidence only when bound to the executed Store path. Copied
   rows, logs, reports, JSON, terminal projections, and certification fixtures
   are not authority.
-- Use `forge-foundational` for shared boundary/performance/aspect vocabulary
+- Use `worth-foundational` for shared boundary/performance/aspect vocabulary
   after Store-owned admission or execution, not as a substitute for Store law.
-- Use `forge-proof` for checked progression, non-success topology, freshness,
+- Use `worth-proof` for checked progression, non-success topology, freshness,
   rebind/readmission, and fixed-shape evidence binding.
 
 ## Root-cause repair rule
 
 When review failures repeat in the same phase, treat that as an ownership or
 transition-grammar signal. Identify the bad crate boundary, proof-flow collapse,
-forgeable constructor, copied-counter path, hidden broad scan, generic helper
+WORTHable constructor, copied-counter path, hidden broad scan, generic helper
 bag, or certification-owned-law path. Repair the law surface directly. It is
 acceptable to move/create a lower Store vocabulary surface, seal constructors,
 split modules, replace public data bags with private-field witnesses, and add

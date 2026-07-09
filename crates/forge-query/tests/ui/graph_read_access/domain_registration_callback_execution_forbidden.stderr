@@ -1,5 +1,0 @@
-error[E0599]: no method named `execute_callback` found for struct `ForgeQueryGraphReadOperationRegistration` in the current scope
- --> tests/ui/graph_read_access/domain_registration_callback_execution_forbidden.rs:9:18
-  |
-9 |     registration.execute_callback(|| Vec::<String>::new());
-  |                  ^^^^^^^^^^^^^^^^ method not found in `ForgeQueryGraphReadOperationRegistration`

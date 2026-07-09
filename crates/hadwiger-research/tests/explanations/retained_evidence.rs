@@ -1,5 +1,5 @@
-use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryContributionComposedOrchestrationInput,
+use worth_query::facade::{
+    WORTHQueryApplicationFacade, WORTHQueryContributionComposedOrchestrationInput,
 };
 use hadwiger_research::facade::*;
 
@@ -252,7 +252,7 @@ fn explanation_digest_changes_when_repair_obligation_changes() {
 #[test]
 fn query_owned_recovery_brief_is_retained_without_local_translation() {
     let hadwiger_handle = handle();
-    let query_handle = ForgeQueryApplicationFacade::runtime_backed_default()
+    let query_handle = WORTHQueryApplicationFacade::runtime_backed_default()
         .domain(HadwigerResearchDomainEntry)
         .with_operating_context(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .validate()
@@ -260,7 +260,7 @@ fn query_owned_recovery_brief_is_retained_without_local_translation() {
         .admit()
         .unwrap();
     let checked = query_handle.orchestrate_declaration_with_contributions_checked(
-        ForgeQueryContributionComposedOrchestrationInput::new(
+        WORTHQueryContributionComposedOrchestrationInput::new(
             RejectionExplanationDeclaration::new("candidate-a", "bad-edge"),
         ),
     );

@@ -1,0 +1,27 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/aspect_native_query/artifact_target_raw_name_constructors_removed.rs:4:53
+  |
+4 |     let _ = WorthQueryDerivedMaterializationTarget::new("computed.title_list");
+  |                                                     ^^^ private associated function
+  |
+ ::: src/runtime/surface/derived_materialization_bundle.rs
+  |
+  |     pub(in crate::runtime) fn new(view_name: impl Into<String>) -> Self {
+  |     ------------------------------------------------------------------- private associated function defined here
+
+error[E0599]: no function or associated item named `new` found for struct `WorthQueryLiveArtifactTarget` in the current scope
+ --> tests/ui/aspect_native_query/artifact_target_raw_name_constructors_removed.rs:5:43
+  |
+5 |     let _ = WorthQueryLiveArtifactTarget::new("live.task_table");
+  |                                           ^^^ function or associated item not found in `WorthQueryLiveArtifactTarget`
+  |
+note: if you're trying to build a new `WorthQueryLiveArtifactTarget`, consider using `WorthQueryLiveArtifactTarget::from_source_adapter_declared_view_name` which returns `WorthQueryLiveArtifactTarget`
+ --> src/runtime/surface/live_artifact_bundle.rs
+  |
+  |     pub fn from_source_adapter_declared_view_name(view_name: impl Into<String>) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is a method `ne` with a similar name
+  |
+5 -     let _ = WorthQueryLiveArtifactTarget::new("live.task_table");
+5 +     let _ = WorthQueryLiveArtifactTarget::ne("live.task_table");
+  |

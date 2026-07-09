@@ -1,0 +1,15 @@
+error[E0451]: fields `digest`, `max_page_width`, `max_resident_frontier`, `max_resident_visited` and `max_page_result_bytes` of struct `WorthQueryGraphReadStreamingPageBudget` are private
+ --> tests/ui/graph_read_access_streaming/page_budget_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryGraphReadStreamingPageBudget {
+  |             -------------------------------------- in this type
+5 |         digest: String::new(),
+  |         ^^^^^^ private field
+6 |         max_page_width: 1,
+  |         ^^^^^^^^^^^^^^ private field
+7 |         max_resident_frontier: 1,
+  |         ^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         max_resident_visited: 1,
+  |         ^^^^^^^^^^^^^^^^^^^^ private field
+9 |         max_page_result_bytes: 1,
+  |         ^^^^^^^^^^^^^^^^^^^^^ private field

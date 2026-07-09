@@ -345,7 +345,7 @@ fn node_payload(
     definition: definitions::CandidateScreeningInvariantDefinition,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.candidate_screening.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.candidate_screening.v1"),
         HadwigerArtifactPayloadEntry::text("family", definition.key),
         HadwigerArtifactPayloadEntry::text("title", definition.title),
         HadwigerArtifactPayloadEntry::text("authority", definition.authority.as_str()),
@@ -361,7 +361,7 @@ fn catalog_payload(
     nodes: &[CandidateScreeningInvariantNode],
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.screening_catalog.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.screening_catalog.v1"),
         HadwigerArtifactPayloadEntry::text("handle_digest", handle_digest),
         HadwigerArtifactPayloadEntry::unsigned("node_count", nodes.len() as u128),
     ];

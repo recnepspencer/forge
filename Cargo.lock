@@ -9,18 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
-name = "ahash"
-version = "0.8.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
-dependencies = [
- "cfg-if",
- "once_cell",
- "version_check",
- "zerocopy",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -70,17 +58,6 @@ name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
-
-[[package]]
-name = "atomicwrites"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ef1bb8d1b645fe38d51dfc331d720fb5fc2c94b440c76cc79c80ff265ca33e3"
-dependencies = [
- "rustix 0.38.44",
- "tempfile",
- "windows-sys 0.52.0",
-]
 
 [[package]]
 name = "autocfg"
@@ -193,16 +170,6 @@ name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
-
-[[package]]
-name = "cc"
-version = "1.2.56"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
-dependencies = [
- "find-msvc-tools",
- "shlex",
-]
 
 [[package]]
 name = "cfg-if"
@@ -494,32 +461,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
-
-[[package]]
-name = "fallible-iterator"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
-name = "fallible-streaming-iterator"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
-
-[[package]]
-name = "find-msvc-tools"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "flate2"
@@ -542,243 +491,6 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
-
-[[package]]
-name = "forge-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tracing",
- "worth-math",
-]
-
-[[package]]
-name = "forge-foundational"
-version = "0.1.0"
-dependencies = [
- "forge-proof",
- "serde",
- "serde_json",
- "trybuild",
-]
-
-[[package]]
-name = "forge-harness"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
-name = "forge-io"
-version = "0.1.0"
-dependencies = [
- "forge-core",
- "forge-kernel",
- "forge-topo",
- "serde",
- "serde_json",
- "tempfile",
- "worth-geom",
- "worth-math",
-]
-
-[[package]]
-name = "forge-kernel"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "forge-core",
- "forge-schema",
- "forge-signal",
- "forge-spatial",
- "forge-spec",
- "forge-topo",
- "proptest",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
- "trybuild",
- "worth-geom",
- "worth-math",
-]
-
-[[package]]
-name = "forge-proof"
-version = "0.1.0"
-dependencies = [
- "trybuild",
-]
-
-[[package]]
-name = "forge-query"
-version = "0.1.0"
-dependencies = [
- "arc-swap",
- "forge-foundational",
- "forge-proof",
- "forge-relational",
- "forge-runtime-bridge",
- "forge-signal",
- "proc-macro2",
- "serde",
- "serde_json",
- "sha2",
- "syn 2.0.116",
- "trybuild",
-]
-
-[[package]]
-name = "forge-relational"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-harness",
- "forge-proof",
- "forge-runtime-bridge",
- "proptest",
- "rayon",
- "rmp-serde",
- "serde",
- "sha2",
- "smallvec",
- "trybuild",
-]
-
-[[package]]
-name = "forge-repr"
-version = "0.1.0"
-
-[[package]]
-name = "forge-runtime-bridge"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-harness",
- "forge-proof",
- "forge-signal",
- "serde_json",
- "sha2",
- "trybuild",
-]
-
-[[package]]
-name = "forge-schema"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "forge-server"
-version = "0.1.0"
-dependencies = [
- "axum",
- "flate2",
- "forge-foundational",
- "forge-proof",
- "forge-query",
- "forge-runtime-bridge",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "tower",
- "tracing",
- "trybuild",
-]
-
-[[package]]
-name = "forge-signal"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-harness",
- "forge-proof",
- "js-sys",
- "rayon",
- "serde",
- "serde_json",
- "sha2",
- "smallvec",
- "stats_alloc",
- "tracing",
- "trybuild",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "forge-signal-wasm"
-version = "1.1.2"
-dependencies = [
- "base64",
- "console_error_panic_hook",
- "forge-proof",
- "forge-signal",
- "js-sys",
- "rmp-serde",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "sha2",
- "trybuild",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "forge-spatial"
-version = "0.1.0"
-dependencies = [
- "forge-core",
- "forge-topo",
- "serde",
- "serde_json",
- "worth-geom",
- "worth-math",
-]
-
-[[package]]
-name = "forge-spec"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "smallvec",
-]
-
-[[package]]
-name = "forge-store"
-version = "0.1.0"
-dependencies = [
- "atomicwrites",
- "forge-relational",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "trybuild",
-]
-
-[[package]]
-name = "forge-topo"
-version = "0.1.0"
-dependencies = [
- "forge-core",
- "forge-signal",
- "forge-spec",
- "indexmap",
- "paste",
- "serde",
- "serde_json",
- "smallvec",
- "tracing",
- "worth-math",
-]
 
 [[package]]
 name = "form_urlencoded"
@@ -884,15 +596,15 @@ name = "hadwiger-research"
 version = "0.1.0"
 dependencies = [
  "clarabel",
- "forge-foundational",
- "forge-proof",
- "forge-query",
- "forge-relational",
- "forge-runtime-bridge",
  "good_lp",
  "trybuild",
  "varisat",
+ "worth-foundational",
  "worth-math",
+ "worth-proof",
+ "worth-query",
+ "worth-relational",
+ "worth-runtime-bridge",
 ]
 
 [[package]]
@@ -904,15 +616,6 @@ dependencies = [
  "cfg-if",
  "crunchy",
  "zerocopy",
-]
-
-[[package]]
-name = "hashbrown"
-version = "0.14.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
-dependencies = [
- "ahash",
 ]
 
 [[package]]
@@ -929,15 +632,6 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
-
-[[package]]
-name = "hashlink"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
-dependencies = [
- "hashbrown 0.14.5",
-]
 
 [[package]]
 name = "heck"
@@ -1063,7 +757,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1131,23 +825,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
-name = "libsqlite3-sys"
-version = "0.30.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
-dependencies = [
- "cc",
- "pkg-config",
- "vcpkg",
-]
-
-[[package]]
-name = "linux-raw-sys"
-version = "0.4.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1158,15 +835,6 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
-
-[[package]]
-name = "matchers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
-dependencies = [
- "regex-automata",
-]
 
 [[package]]
 name = "matchit"
@@ -1225,7 +893,7 @@ checksum = "a69bcab0ad47271a0234d9422b131806bf3968021e5dc9328caf2d4cd58557fc"
 dependencies = [
  "libc",
  "wasi",
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1241,15 +909,6 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "rawpointer",
-]
-
-[[package]]
-name = "nu-ansi-term"
-version = "0.50.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
-dependencies = [
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1344,12 +1003,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "paste"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
-
-[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1360,12 +1013,6 @@ name = "pin-project-lite"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
-
-[[package]]
-name = "pkg-config"
-version = "0.3.32"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "plotters"
@@ -1591,37 +1238,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusqlite"
-version = "0.32.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7753b721174eb8ff87a9a0e799e2d7bc3749323e773db92e0984debb00019d6e"
-dependencies = [
- "bitflags",
- "fallible-iterator",
- "fallible-streaming-iterator",
- "hashlink",
- "libsqlite3-sys",
- "smallvec",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
-
-[[package]]
-name = "rustix"
-version = "0.38.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154"
-dependencies = [
- "bitflags",
- "errno",
- "libc",
- "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "rustix"
@@ -1632,8 +1252,8 @@ dependencies = [
  "bitflags",
  "errno",
  "libc",
- "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "linux-raw-sys",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1782,21 +1402,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sharded-slab"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
-dependencies = [
- "lazy_static",
-]
-
-[[package]]
-name = "shlex"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
 name = "simd-adler32"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1824,7 +1429,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1906,8 +1511,8 @@ dependencies = [
  "fastrand",
  "getrandom 0.4.1",
  "once_cell",
- "rustix 1.1.3",
- "windows-sys 0.61.2",
+ "rustix",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1940,15 +1545,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thread_local"
-version = "1.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
-dependencies = [
- "cfg-if",
-]
-
-[[package]]
 name = "tinytemplate"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1969,7 +1565,7 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio-macros",
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
 
 [[package]]
@@ -2080,36 +1676,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
- "valuable",
-]
-
-[[package]]
-name = "tracing-log"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
-dependencies = [
- "log",
- "once_cell",
- "tracing-core",
-]
-
-[[package]]
-name = "tracing-subscriber"
-version = "0.3.22"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f30143827ddab0d256fd843b7a66d164e9f271cfa0dde49142c5ca0ca291f1e"
-dependencies = [
- "matchers",
- "nu-ansi-term",
- "once_cell",
- "regex-automata",
- "sharded-slab",
- "smallvec",
- "thread_local",
- "tracing",
- "tracing-core",
- "tracing-log",
 ]
 
 [[package]]
@@ -2150,12 +1716,6 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
-name = "valuable"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "varisat"
@@ -2237,12 +1797,6 @@ dependencies = [
  "anyhow",
  "varisat-formula",
 ]
-
-[[package]]
-name = "vcpkg"
-version = "0.2.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vec_mut_scan"
@@ -2414,7 +1968,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys",
 ]
 
 [[package]]
@@ -2425,94 +1979,12 @@ checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
 
 [[package]]
 name = "windows-sys"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
-dependencies = [
- "windows-targets",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.59.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
-dependencies = [
- "windows-targets",
-]
-
-[[package]]
-name = "windows-sys"
 version = "0.61.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
 ]
-
-[[package]]
-name = "windows-targets"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973"
-dependencies = [
- "windows_aarch64_gnullvm",
- "windows_aarch64_msvc",
- "windows_i686_gnu",
- "windows_i686_gnullvm",
- "windows_i686_msvc",
- "windows_x86_64_gnu",
- "windows_x86_64_gnullvm",
- "windows_x86_64_msvc",
-]
-
-[[package]]
-name = "windows_aarch64_gnullvm"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
-
-[[package]]
-name = "windows_aarch64_msvc"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
-
-[[package]]
-name = "windows_i686_gnu"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
-
-[[package]]
-name = "windows_i686_gnullvm"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
-
-[[package]]
-name = "windows_i686_msvc"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
-
-[[package]]
-name = "windows_x86_64_gnu"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
-
-[[package]]
-name = "windows_x86_64_gnullvm"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
-
-[[package]]
-name = "windows_x86_64_msvc"
-version = "0.52.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
@@ -2609,32 +2081,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "worth-geom"
+name = "worth-foundational"
 version = "0.1.0"
 dependencies = [
- "forge-core",
  "serde",
  "serde_json",
- "worth-math",
- "worth-primitives",
+ "trybuild",
+ "worth-proof",
 ]
 
 [[package]]
-name = "worth-kernel"
+name = "worth-harness"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-proof",
- "forge-query",
- "sha2",
- "trybuild",
- "worth-geom",
- "worth-math",
- "worth-primitives",
- "worth-retained-authority",
- "worth-schema",
- "worth-spatial",
- "worth-topo",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]
@@ -2652,72 +2114,114 @@ dependencies = [
 ]
 
 [[package]]
-name = "worth-primitives"
+name = "worth-proof"
 version = "0.1.0"
 dependencies = [
- "sha2",
-]
-
-[[package]]
-name = "worth-retained-authority"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-proof",
  "trybuild",
 ]
 
 [[package]]
-name = "worth-schema"
+name = "worth-query"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-query",
- "forge-relational",
- "forge-runtime-bridge",
- "forge-signal",
+ "arc-swap",
+ "proc-macro2",
  "serde",
  "serde_json",
  "sha2",
+ "syn 2.0.116",
  "trybuild",
- "worth-math",
- "worth-primitives",
+ "worth-foundational",
+ "worth-proof",
+ "worth-relational",
+ "worth-runtime-bridge",
+ "worth-signal",
 ]
 
 [[package]]
-name = "worth-spatial"
+name = "worth-relational"
 version = "0.1.0"
 dependencies = [
- "forge-foundational",
- "forge-proof",
- "forge-query",
- "forge-relational",
- "forge-runtime-bridge",
- "serde_json",
- "trybuild",
- "worth-geom",
- "worth-kernel",
- "worth-math",
- "worth-primitives",
- "worth-retained-authority",
- "worth-schema",
- "worth-topo",
-]
-
-[[package]]
-name = "worth-topo"
-version = "0.1.0"
-dependencies = [
- "forge-foundational",
- "forge-query",
- "forge-relational",
- "forge-runtime-bridge",
+ "proptest",
+ "rayon",
+ "rmp-serde",
  "serde",
+ "sha2",
+ "smallvec",
+ "trybuild",
+ "worth-foundational",
+ "worth-harness",
+ "worth-proof",
+ "worth-runtime-bridge",
+]
+
+[[package]]
+name = "worth-runtime-bridge"
+version = "0.1.0"
+dependencies = [
  "serde_json",
  "sha2",
  "trybuild",
- "worth-primitives",
- "worth-schema",
+ "worth-foundational",
+ "worth-harness",
+ "worth-proof",
+ "worth-signal",
+]
+
+[[package]]
+name = "worth-server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "flate2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tower",
+ "tracing",
+ "trybuild",
+ "worth-foundational",
+ "worth-proof",
+ "worth-query",
+ "worth-runtime-bridge",
+]
+
+[[package]]
+name = "worth-signal"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sha2",
+ "smallvec",
+ "stats_alloc",
+ "tracing",
+ "trybuild",
+ "wasm-bindgen",
+ "worth-foundational",
+ "worth-harness",
+ "worth-proof",
+]
+
+[[package]]
+name = "worth-signal-wasm"
+version = "1.1.2"
+dependencies = [
+ "base64",
+ "console_error_panic_hook",
+ "js-sys",
+ "rmp-serde",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "sha2",
+ "trybuild",
+ "wasm-bindgen",
+ "worth-proof",
+ "worth-signal",
 ]
 
 [[package]]

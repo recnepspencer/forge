@@ -90,7 +90,7 @@ An agent implementing the next milestone must be structurally unable to answer
 the following questions by guessing:
 
 - "where should this new constitutional crate live?"
-- "is this surface allowed to import `forge-query`?"
+- "is this surface allowed to import `worth-query`?"
 - "is replay available here because no fence exists yet?"
 - "can I just put this in a broad contracts crate until the bridge exists?"
 
@@ -135,9 +135,9 @@ reserved for later milestones.
 
 | Class | Band | Tier | M1 status | Legal crate in M1 | Owning later milestone if deferred | Allowed imports | Forbidden imports |
 |---|---|---|---|---|---|---|---|
-| Pure meaning | `schema` | `worth` | legal M1 birth set | `worth-schema-core` | Milestone 2 widens with `worth-schema-graph` | none in-tree | `forge-query`, replay, product-tier crates |
-| Query-native declaration/adoption | `entry` | `worth` | deferred and reserved-only | none born in M1 | Milestone 3 | `schema`, `forge-query` | product-tier crates, replay |
-| Derived/publication posture | `derived` | `worth` | deferred and reserved-only | none born in M1 | Milestone 4 | `schema`, math-only solver surfaces when later justified | `forge-query` as source authority, replay on ordinary path |
+| Pure meaning | `schema` | `worth` | legal M1 birth set | `worth-schema-core` | Milestone 2 widens with `worth-schema-graph` | none in-tree | `worth-query`, replay, product-tier crates |
+| Query-native declaration/adoption | `entry` | `worth` | deferred and reserved-only | none born in M1 | Milestone 3 | `schema`, `worth-query` | product-tier crates, replay |
+| Derived/publication posture | `derived` | `worth` | deferred and reserved-only | none born in M1 | Milestone 4 | `schema`, math-only solver surfaces when later justified | `worth-query` as source authority, replay on ordinary path |
 | Pack seam | `pack` | `worth` | legal M1 birth set | `worth-pack-registry` | widened in Milestone 5 | public seam contracts only | Query imports, runtime adapters, source-authority minting |
 | Cert-only replay/proof | `cert` | `worth` | deferred crate birth; enforcement starts now through tools | none born in M1 | Milestone 5 for first cert crate birth | broad by later design | ordinary crates must not depend back |
 

@@ -15,7 +15,7 @@ from projector import project_run
 
 class BoundaryReviewTurnTests(unittest.TestCase):
     def test_s7_config_accepts_boundary_review_turn(self) -> None:
-        config_path = RUNNER_DIR / "config" / "forge-store-s7.json"
+        config_path = RUNNER_DIR / "config" / "worth-store-s7.json"
         config = load_config(config_path)
         self.assertEqual(validate_config(config, config_path), [])
 
@@ -111,7 +111,7 @@ class BoundaryReviewTurnTests(unittest.TestCase):
 
 
 def minimal_boundary_config() -> dict:
-    config = copy.deepcopy(load_config(RUNNER_DIR / "config" / "forge-store-s7.json"))
+    config = copy.deepcopy(load_config(RUNNER_DIR / "config" / "worth-store-s7.json"))
     config["phases"] = config["phases"][:2]
     return config
 

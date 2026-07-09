@@ -6,17 +6,17 @@ license.workspace = true
 description = "Query-first research artifact pipeline for Hadwiger-Nelson proof search"
 
 [dependencies]
-forge-foundational.workspace = true
-forge-proof.workspace = true
-forge-query.workspace = true
-forge-relational.workspace = true
+worth-foundational.workspace = true
+worth-proof.workspace = true
+worth-query.workspace = true
+worth-relational.workspace = true
 worth-math.workspace = true
 varisat.workspace = true
 good_lp.workspace = true
 clarabel.workspace = true
 
 [dev-dependencies]
-forge-runtime-bridge.workspace = true
+worth-runtime-bridge.workspace = true
 trybuild.workspace = true
 
 [lints]

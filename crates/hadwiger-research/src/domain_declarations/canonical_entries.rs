@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput,
+use worth_query::facade::{
+    WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationCanonicalEntryKind,
+    WORTHQueryDeclarationCanonicalValue, WORTHQueryDeclarationInput,
 };
 
 use super::family_markers::{
@@ -27,35 +27,35 @@ use super::tiling_request_types::{
 };
 use crate::query_entry::HadwigerResearchDomainEntry;
 
-fn kind_entry(kind: &'static str) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::text("declaration_kind", kind)
+fn kind_entry(kind: &'static str) -> WORTHQueryDeclarationCanonicalEntry {
+    WORTHQueryDeclarationCanonicalEntry::text("declaration_kind", kind)
 }
 
 fn optional_text(
-    entries: &mut Vec<ForgeQueryDeclarationCanonicalEntry>,
+    entries: &mut Vec<WORTHQueryDeclarationCanonicalEntry>,
     locus: &'static str,
     value: Option<&str>,
 ) {
     if let Some(value) = value {
-        entries.push(ForgeQueryDeclarationCanonicalEntry::text(locus, value));
+        entries.push(WORTHQueryDeclarationCanonicalEntry::text(locus, value));
     }
 }
 
-fn unsigned_entry(locus: &'static str, value: u32) -> ForgeQueryDeclarationCanonicalEntry {
-    ForgeQueryDeclarationCanonicalEntry::new(
+fn unsigned_entry(locus: &'static str, value: u32) -> WORTHQueryDeclarationCanonicalEntry {
+    WORTHQueryDeclarationCanonicalEntry::new(
         locus,
-        ForgeQueryDeclarationCanonicalEntryKind::Field,
-        ForgeQueryDeclarationCanonicalValue::UnsignedInteger(value as u128),
+        WORTHQueryDeclarationCanonicalEntryKind::Field,
+        WORTHQueryDeclarationCanonicalValue::UnsignedInteger(value as u128),
     )
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for CandidateGraphDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for CandidateGraphDeclaration {
     type Family = CandidateGraphDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         let mut entries = vec![
             kind_entry("candidate_graph"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
         ];
         optional_text(&mut entries, "graph_version", self.graph_version());
         optional_text(&mut entries, "source_note", self.source_note());
@@ -63,130 +63,130 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for CandidateGraphD
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for EmbeddingDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for EmbeddingDeclaration {
     type Family = EmbeddingDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("embedding"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for ColorabilityDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for ColorabilityDeclaration {
     type Family = ColorabilityDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("colorability"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
             unsigned_entry("color_count", self.color_count()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for LowerBoundWitnessDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for LowerBoundWitnessDeclaration {
     type Family = LowerBoundWitnessDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("lower_bound_witness"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
             unsigned_entry("color_count", self.color_count()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for AdvisoryNoteDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for AdvisoryNoteDeclaration {
     type Family = AdvisoryNoteDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("advisory_note"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("note", self.note()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("note", self.note()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for RejectionExplanationDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for RejectionExplanationDeclaration {
     type Family = RejectionExplanationDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("rejection_explanation"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("rejection_basis", self.rejection_basis()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("rejection_basis", self.rejection_basis()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     for PartialAdmissionExplanationDeclaration
 {
     type Family = PartialAdmissionExplanationDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("partial_admission_explanation"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     for UnitDistanceVerificationDeclaration
 {
     type Family = UnitDistanceVerificationDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("unit_distance_verification"),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_id", self.graph_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("embedding_id", self.embedding_id()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     for WholePlaneColoringConstructionDeclaration
 {
     type Family = WholePlaneColoringConstructionDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("whole_plane_coloring_construction"),
-            ForgeQueryDeclarationCanonicalEntry::text("construction_id", self.construction_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("construction_id", self.construction_id()),
             unsigned_entry("color_count", self.color_count()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneLowerBoundClaimDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneLowerBoundClaimDeclaration {
     type Family = PlaneLowerBoundClaimDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("plane_lower_bound_claim"),
-            ForgeQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("graph_version_id", self.graph_version_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("graph_version_id", self.graph_version_id()),
             unsigned_entry("forbidden_color_count", self.forbidden_color_count()),
         ]
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneUpperBoundClaimDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneUpperBoundClaimDeclaration {
     type Family = PlaneUpperBoundClaimDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("plane_upper_bound_claim"),
-            ForgeQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
             unsigned_entry("color_count", self.color_count()),
-            ForgeQueryDeclarationCanonicalEntry::text(
+            WORTHQueryDeclarationCanonicalEntry::text(
                 "upper_bound_source",
                 self.upper_bound_source(),
             ),
@@ -194,19 +194,19 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneUpperBound
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneExactValueClaimDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneExactValueClaimDeclaration {
     type Family = PlaneExactValueClaimDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("plane_exact_value_claim"),
-            ForgeQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("claim_id", self.claim_id()),
             unsigned_entry("color_count", self.color_count()),
-            ForgeQueryDeclarationCanonicalEntry::text(
+            WORTHQueryDeclarationCanonicalEntry::text(
                 "lower_bound_claim_digest",
                 self.lower_bound_claim_digest(),
             ),
-            ForgeQueryDeclarationCanonicalEntry::text(
+            WORTHQueryDeclarationCanonicalEntry::text(
                 "upper_bound_source",
                 self.upper_bound_source(),
             ),
@@ -214,19 +214,19 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneExactValue
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for BackgroundTheoremDeclaration {
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> for BackgroundTheoremDeclaration {
     type Family = BackgroundTheoremDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         vec![
             kind_entry("background_theorem"),
-            ForgeQueryDeclarationCanonicalEntry::text("theorem_id", self.theorem_id()),
-            ForgeQueryDeclarationCanonicalEntry::text(
+            WORTHQueryDeclarationCanonicalEntry::text("theorem_id", self.theorem_id()),
+            WORTHQueryDeclarationCanonicalEntry::text(
                 "theorem_statement",
                 self.theorem_statement(),
             ),
-            ForgeQueryDeclarationCanonicalEntry::text("source", self.source()),
-            ForgeQueryDeclarationCanonicalEntry::text(
+            WORTHQueryDeclarationCanonicalEntry::text("source", self.source()),
+            WORTHQueryDeclarationCanonicalEntry::text(
                 "provenance_digest",
                 self.provenance_digest(),
             ),
@@ -234,31 +234,31 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for BackgroundTheor
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     for LowerBoundTilingIterationDeclaration
 {
     type Family = LowerBoundTilingIterationDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         let mut entries = vec![
             kind_entry("lower_bound_tiling_iteration"),
-            ForgeQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
+            WORTHQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
         ];
         for (index, basis) in self.evidence_basis().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("evidence_basis_{index:04}"),
                 basis,
             ));
         }
         for (index, lane) in self.required_checker_lanes().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("required_checker_lane_{index:04}"),
                 lane,
             ));
         }
         for (index, obligation) in self.reactivation_obligations().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("reactivation_obligation_{index:04}"),
                 obligation,
             ));
@@ -267,31 +267,31 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+impl WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>
     for UpperBoundTilingIterationDeclaration
 {
     type Family = UpperBoundTilingIterationDeclarationFamily;
 
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn canonical_declaration_entries(&self) -> Vec<WORTHQueryDeclarationCanonicalEntry> {
         let mut entries = vec![
             kind_entry("upper_bound_tiling_iteration"),
-            ForgeQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
-            ForgeQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
+            WORTHQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
+            WORTHQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
         ];
         for (index, basis) in self.evidence_basis().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("evidence_basis_{index:04}"),
                 basis,
             ));
         }
         for (index, lane) in self.required_checker_lanes().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("required_checker_lane_{index:04}"),
                 lane,
             ));
         }
         for (index, obligation) in self.reactivation_obligations().iter().enumerate() {
-            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+            entries.push(WORTHQueryDeclarationCanonicalEntry::text(
                 format!("reactivation_obligation_{index:04}"),
                 obligation,
             ));

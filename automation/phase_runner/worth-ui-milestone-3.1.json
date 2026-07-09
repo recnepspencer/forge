@@ -4,7 +4,7 @@
   "current": null,
   "project": {
     "name": "Worth UI Milestone 3.1",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.1.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -12,8 +12,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
       "_docs\\worth-ui\\ai-diagnostics.md",
@@ -97,11 +97,11 @@
       "title": "Legacy Surface Residue Closure",
       "owner": "worth-ui workspace",
       "scope": [
-        "workspaces\\worth-ui\\crates\\forge-ui-adapters",
-        "workspaces\\worth-ui\\crates\\forge-ui-components",
-        "workspaces\\worth-ui\\crates\\forge-ui-state",
-        "workspaces\\worth-ui\\crates\\forge-ui-theme",
-        "workspaces\\worth-ui\\crates\\forge-ui-types",
+        "workspaces\\worth-ui\\crates\\worth-ui-adapters",
+        "workspaces\\worth-ui\\crates\\worth-ui-components",
+        "workspaces\\worth-ui\\crates\\worth-ui-state",
+        "workspaces\\worth-ui\\crates\\worth-ui-theme",
+        "workspaces\\worth-ui\\crates\\worth-ui-types",
         "workspaces\\worth-ui\\crates\\worth-ui",
         "workspaces\\worth-ui\\Cargo.toml"
       ],
@@ -111,7 +111,7 @@
         "any temporary shim forwards only to the new owner and does not reintroduce local semantics or hidden construction paths",
         "public-surface diff proves responsibility moved into the new split narrows or retires the old surface instead of duplicating it"
       ],
-      "instructions": "Treat the current forge-ui-* workspace shape as migration residue, not precedent. Close parallel authority paths instead of preserving convenience exports.",
+      "instructions": "Treat the current worth-ui-* workspace shape as migration residue, not precedent. Close parallel authority paths instead of preserving convenience exports.",
       "qa_focus": "No parallel public homes survive, shims stay non-authoritative, docs/exports/certification agree on crate disposition.",
       "status": "complete",
       "qa_status": "passed",
@@ -124,14 +124,14 @@
           "phase 2 closed with surviving public owners narrowed and legacy authority lanes materially removed"
         ],
         "remaining": [
-          "later cleanup should remove empty forge-ui-adapters/state/types directories so the tree teaches the retired topology directly"
+          "later cleanup should remove empty worth-ui-adapters/state/types directories so the tree teaches the retired topology directly"
         ],
         "findings": [
           "code-quality QA: empty retired crate directories still remain under workspaces/worth-ui/crates"
         ],
         "verification": [
-          "cargo check -p forge-ui-components exit 0; tail: finished dev profile",
-          "cargo check -p forge-ui-theme exit 0; tail: finished dev profile",
+          "cargo check -p worth-ui-components exit 0; tail: finished dev profile",
+          "cargo check -p worth-ui-theme exit 0; tail: finished dev profile",
           "cargo check -p worth-ui exit 0; tail: finished dev profile with pre-existing worth-ui-runtime dead-code warnings",
           "cargo test -p worth-ui-certification --test legacy_surface_residue_audit exit 0; tail: 4 tests passed"
         ]
@@ -367,7 +367,7 @@
         "workspaces\\worth-ui\\crates\\worth-ui-host-egui\\src"
       ],
       "acceptance": [
-        "compile-fail forgery tests prove external code cannot mint inspection receipts or unsupported-posture witnesses directly",
+        "compile-fail WORTHry tests prove external code cannot mint inspection receipts or unsupported-posture witnesses directly",
         "repeated inspection queries against the same unsupported scope return equivalent typed posture rather than drifting through side effects or logs",
         "anti-bypass regression proves a new adapter or consumer crate cannot avoid the inspection facade and still satisfy certification",
         "the physical tree and certification surfaces teach where runtime truth, inspection authority, host mechanics, DSL ownership, Query binding, and certification live"
@@ -379,7 +379,7 @@
       "attempts": 0,
       "notes": {
         "plan": [
-          "harden phase 8 proof against field-based forgery, observable unsupported-query drift, and helper-local anti-bypass certification."
+          "harden phase 8 proof against field-based WORTHry, observable unsupported-query drift, and helper-local anti-bypass certification."
         ],
         "done": [
           "phase 8 closed with hardened certification proof; remaining issues are structural residue, not acceptance gaps."
@@ -391,7 +391,7 @@
           "code-quality QA: dependency_audit is still a mixed scanner-plus-policy bucket, and worth-ui::facade still mirrors runtime topology through one giant export surface."
         ],
         "verification": [
-          "cargo test --manifest-path workspaces/worth-ui/crates/worth-ui-certification/Cargo.toml --test inspection_boundary_compile | exit 0 | tail: unsupported-posture forgery fixtures ok",
+          "cargo test --manifest-path workspaces/worth-ui/crates/worth-ui-certification/Cargo.toml --test inspection_boundary_compile | exit 0 | tail: unsupported-posture WORTHry fixtures ok",
           "cargo test --manifest-path workspaces/worth-ui/crates/worth-ui-certification/Cargo.toml --test inspection_boundary_runtime | exit 0 | tail: repeated_unsupported_inspection_queries_stay_typed_and_equivalent ok",
           "cargo test --manifest-path workspaces/worth-ui/crates/worth-ui-certification/Cargo.toml --test inspection_boundary_bypass | exit 0 | tail: anti_bypass_certification_rejects_hostile_consumer_fixture ok",
           "cargo test --manifest-path workspaces/worth-ui/crates/worth-ui-certification/Cargo.toml --test topology_audit | exit 0 | tail: 22 passed; 0 failed",

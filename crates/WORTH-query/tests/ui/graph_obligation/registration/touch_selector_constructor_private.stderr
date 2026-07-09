@@ -1,0 +1,22 @@
+error: cannot construct `WorthQueryGraphTouchSelector` with struct literal syntax due to private fields
+ --> tests/ui/graph_obligation/registration/touch_selector_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryGraphTouchSelector {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields `kind` and `selector_digest` that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = WorthQueryGraphTouchSelector {};
+4 +     let _ = WorthQueryGraphTouchSelector::new(_);
+  |
+4 -     let _ = WorthQueryGraphTouchSelector {};
+4 +     let _ = WorthQueryGraphTouchSelector::any_graph_touch();
+  |
+4 -     let _ = WorthQueryGraphTouchSelector {};
+4 +     let _ = WorthQueryGraphTouchSelector::relation_kind_id(_);
+  |
+4 -     let _ = WorthQueryGraphTouchSelector {};
+4 +     let _ = WorthQueryGraphTouchSelector::relational_kind_id(_);
+  |
+  = and 5 other candidates

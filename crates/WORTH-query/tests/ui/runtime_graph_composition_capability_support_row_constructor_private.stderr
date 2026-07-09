@@ -1,0 +1,11 @@
+error[E0451]: fields `capability_family`, `capability_class` and `row_digest` of struct `WorthQueryGraphCompositionCapabilitySupportRow` are private
+ --> tests/ui/runtime_graph_composition_capability_support_row_constructor_private.rs:7:9
+  |
+6 |     let _ = WorthQueryGraphCompositionCapabilitySupportRow {
+  |             ---------------------------------------------- in this type
+7 |         capability_family: String::new(),
+  |         ^^^^^^^^^^^^^^^^^ private field
+8 |         capability_class: WorthQueryGraphCompositionCapabilityClass::LifecycleStep,
+  |         ^^^^^^^^^^^^^^^^ private field
+9 |         row_digest: String::new(),
+  |         ^^^^^^^^^^ private field

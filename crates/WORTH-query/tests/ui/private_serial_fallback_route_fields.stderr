@@ -1,0 +1,16 @@
+error[E0432]: unresolved import `worth_query::facade::SerialFallbackRoute`
+ --> tests/ui/private_serial_fallback_route_fields.rs:1:5
+  |
+1 | use worth_query::facade::SerialFallbackRoute;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade`
+
+warning: unreachable expression
+ --> tests/ui/private_serial_fallback_route_fields.rs:6:24
+  |
+5 |         preflight: todo!(),
+  |                    ------- any code following this expression is unreachable
+6 |         frontier_plan: todo!(),
+  |                        ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)

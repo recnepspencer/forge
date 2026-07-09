@@ -1,22 +1,22 @@
-error[E0277]: the trait bound `str: forge_query::lower_runtime_routing::sources::ForgeQueryLowerRuntimeBoundaryEnvelopeSource` is not satisfied
+error[E0277]: the trait bound `str: worth_query::lower_runtime_routing::sources::WORTHQueryLowerRuntimeBoundaryEnvelopeSource` is not satisfied
   --> tests/ui/research_graph_invariants/boundaries/boundary_source/denial_rejects_raw_boundary_source.rs:11:44
    |
 11 |         .for_lower_runtime_boundary_source("raw-envelope");
-   |          --------------------------------- ^^^^^^^^^^^^^^ the trait `forge_query::lower_runtime_routing::sources::ForgeQueryLowerRuntimeBoundaryEnvelopeSource` is not implemented for `str`
+   |          --------------------------------- ^^^^^^^^^^^^^^ the trait `worth_query::lower_runtime_routing::sources::WORTHQueryLowerRuntimeBoundaryEnvelopeSource` is not implemented for `str`
    |          |
    |          required by a bound introduced by this call
    |
-   = help: the following other types implement trait `forge_query::lower_runtime_routing::sources::ForgeQueryLowerRuntimeBoundaryEnvelopeSource`:
-             forge_query::lower_runtime_routing::adapters::runtime_backend::LiveViewDeclarationAdmissionBoundaryReceipt
-             forge_query::lower_runtime_routing::adapters::runtime_backend::SignalInvalidationBoundaryReceipt
-             forge_query::lower_runtime_routing::adapters::runtime_backend::SubscriptionActivationBoundaryReceipt
-             forge_query::lower_runtime_routing::adapters::runtime_backend::WriteAuthorityExecutionReceipt
-             forge_query::lower_runtime_routing::envelopes::ForgeQueryLowerRuntimeBoundaryEnvelope
+   = help: the following other types implement trait `worth_query::lower_runtime_routing::sources::WORTHQueryLowerRuntimeBoundaryEnvelopeSource`:
+             worth_query::lower_runtime_routing::adapters::runtime_backend::LiveViewDeclarationAdmissionBoundaryReceipt
+             worth_query::lower_runtime_routing::adapters::runtime_backend::SignalInvalidationBoundaryReceipt
+             worth_query::lower_runtime_routing::adapters::runtime_backend::SubscriptionActivationBoundaryReceipt
+             worth_query::lower_runtime_routing::adapters::runtime_backend::WriteAuthorityExecutionReceipt
+             worth_query::lower_runtime_routing::envelopes::WORTHQueryLowerRuntimeBoundaryEnvelope
 note: required by a bound in `ResearchGraphInvariantDenialRequest::for_lower_runtime_boundary_source`
   --> src/research_graph_invariants/requests.rs
    |
    |     pub fn for_lower_runtime_boundary_source<S>(mut self, source: &S) -> Self
    |            --------------------------------- required by a bound in this associated function
    |     where
-   |         S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+   |         S: WORTHQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `ResearchGraphInvariantDenialRequest::for_lower_runtime_boundary_source`

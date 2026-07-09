@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryRecoveryBrief;
+use worth_query::facade::WORTHQueryRecoveryBrief;
 
 use crate::aspect_authority::HadwigerAspectPosture;
 use crate::domain_artifacts::core_artifact::{
@@ -180,7 +180,7 @@ pub struct HadwigerQueryRecoveryExplanation {
     core: HadwigerArtifactCore,
     stop_family: HadwigerExplanationStopFamily,
     authority_surface: HadwigerExplanationAuthoritySurface,
-    recovery_brief: ForgeQueryRecoveryBrief,
+    recovery_brief: WORTHQueryRecoveryBrief,
 }
 
 impl HadwigerQueryRecoveryExplanation {
@@ -188,7 +188,7 @@ impl HadwigerQueryRecoveryExplanation {
         query_reference: HadwigerQueryDeclarationReference,
         stop_family: HadwigerExplanationStopFamily,
         authority_surface: HadwigerExplanationAuthoritySurface,
-        recovery_brief: ForgeQueryRecoveryBrief,
+        recovery_brief: WORTHQueryRecoveryBrief,
     ) -> Result<Self, HadwigerArtifactShapeError> {
         let core = explanation_core(
             HadwigerArtifactKind::QueryRecoveryExplanation,
@@ -210,7 +210,7 @@ impl HadwigerQueryRecoveryExplanation {
         true
     }
 
-    pub fn query_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
+    pub fn query_recovery_brief(&self) -> Option<&WORTHQueryRecoveryBrief> {
         Some(&self.recovery_brief)
     }
 
@@ -316,7 +316,7 @@ fn explanation_core(
     )
 }
 
-pub(crate) fn recovery_brief_token(brief: &ForgeQueryRecoveryBrief) -> String {
+pub(crate) fn recovery_brief_token(brief: &WORTHQueryRecoveryBrief) -> String {
     format!(
         "{:?}:{:?}:{:?}:{:?}:{}",
         brief.stop_family(),

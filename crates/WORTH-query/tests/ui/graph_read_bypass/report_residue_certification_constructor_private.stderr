@@ -1,0 +1,23 @@
+warning: unreachable expression
+ --> tests/ui/graph_read_bypass/report_residue_certification_constructor_private.rs:6:34
+  |
+5 |         report_identity: todo!(),
+  |                          ------- any code following this expression is unreachable
+6 |         residue_manifest_digest: String::new(),
+  |                                  ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `report_identity`, `residue_manifest_digest`, `certified_finding_count` and `certification_identity` of struct `WorthQueryGraphReadBypassReportResidueCertification` are private
+ --> tests/ui/graph_read_bypass/report_residue_certification_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryGraphReadBypassReportResidueCertification {
+  |             --------------------------------------------------- in this type
+5 |         report_identity: todo!(),
+  |         ^^^^^^^^^^^^^^^ private field
+6 |         residue_manifest_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+7 |         certified_finding_count: 0,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         certification_identity: todo!(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field

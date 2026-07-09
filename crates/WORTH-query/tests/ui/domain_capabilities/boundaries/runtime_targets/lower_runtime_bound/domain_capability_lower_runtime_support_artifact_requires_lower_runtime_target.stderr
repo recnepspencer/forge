@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/lower_runtime_bound/domain_capability_lower_runtime_support_artifact_requires_lower_runtime_target.rs:48:69
+   |
+48 |     let _ = materialize_lower_runtime_support_traceability_artifact(ready);
+   |             ------------------------------------------------------- ^^^^^ expected `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`, found `WorthQueryAdmittedPlanBoundContributionTarget`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `WorthQueryMaterializationReadyDomainCapabilityContribution<WorthQuerySupportContributionPayload, WorthQueryLowerRuntimeBoundaryBoundContributionTarget>`
+              found struct `WorthQueryMaterializationReadyDomainCapabilityContribution<WorthQuerySupportContributionPayload, WorthQueryAdmittedPlanBoundContributionTarget>`
+note: function defined here
+  --> src/domain_capabilities/canonical_runtime/support.rs
+   |
+   | pub fn materialize_lower_runtime_support_traceability_artifact(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

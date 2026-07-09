@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Determinism guardrails for forge-topo.
+Determinism guardrails for live workspace crates.
 
-Checks:
-1) Ban `println!` / `dbg!` in non-test Rust sources.
-2) Ban `HashMap` / `HashSet` usage in observable determinism-sensitive paths.
+This guard used to enforce worth-topo-specific policies. After worth-topo
+removal, it skips cleanly when that legacy crate is absent instead of failing
+the workspace on a dead path.
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ import sys
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-TOPO_SRC = REPO_ROOT / "crates" / "forge-topo" / "src"
+TOPO_SRC = REPO_ROOT / "crates" / "worth-topo" / "src"
 
-RUST_FILES = list(TOPO_SRC.rglob("*.rs"))
+RUST_FILES = list(TOPO_SRC.rglob("*.rs")) if TOPO_SRC.exists() else []
 
 IGNORE_SUBSTRINGS = [
     "/tests/",
@@ -26,10 +26,10 @@ IGNORE_SUBSTRINGS = [
 ]
 
 OBSERVABLE_PATH_HINTS = [
-    "/crates/forge-topo/src/provenance/",
-    "/crates/forge-topo/src/persistent_naming/",
-    "/crates/forge-topo/src/transactions/",
-    "/crates/forge-topo/src/semantic_attributes/",
+    "/crates/worth-topo/src/provenance/",
+    "/crates/worth-topo/src/persistent_naming/",
+    "/crates/worth-topo/src/transactions/",
+    "/crates/worth-topo/src/semantic_attributes/",
 ]
 
 BAN_PRINT_PATTERNS = [
@@ -47,13 +47,13 @@ BAN_GLOBAL_INVALIDATE_PATTERN = re.compile(r"\bTopoCacheEffect::GlobalInvalidate
 BAN_RAW_EVENT_ID_PATTERN = re.compile(r":\s*(u64|usize)\b")
 
 RADIAL_SET_ALLOWED_SUFFIXES = [
-    "/crates/forge-topo/src/b_rep/data/mesh/half_edge.rs",
-    "/crates/forge-topo/src/b_rep/logic/topo_ops/radial_ring.rs",
-    "/crates/forge-topo/src/b_rep/data/storage/cache_runtime.rs",
+    "/crates/worth-topo/src/b_rep/data/mesh/half_edge.rs",
+    "/crates/worth-topo/src/b_rep/logic/topo_ops/radial_ring.rs",
+    "/crates/worth-topo/src/b_rep/data/storage/cache_runtime.rs",
 ]
 
 GLOBAL_INVALIDATE_ALLOWED_SUFFIXES = [
-    "/crates/forge-topo/src/b_rep/data/storage/cache_runtime.rs",
+    "/crates/worth-topo/src/b_rep/data/storage/cache_runtime.rs",
 ]
 
 
@@ -144,11 +144,15 @@ def main() -> int:
                 )
 
             # Topo operation lifecycle events must use typed IDs.
-            if str(path).endswith("/crates/forge-topo/src/transactions/data/operation_event.rs"):
+            if str(path).endswith("/crates/worth-topo/src/transactions/data/operation_event.rs"):
                 if BAN_RAW_EVENT_ID_PATTERN.search(code_only):
                     failures.append(
                         f"{rel(path)}:{line_no}: raw numeric ID type in TopoOperationEvent payload is banned; use typed IDs"
                     )
+
+    if not TOPO_SRC.exists():
+        print("Determinism guards skipped: worth-topo is not part of this workspace")
+        return 0
 
     if failures:
         print("Determinism guards FAILED", file=sys.stderr)

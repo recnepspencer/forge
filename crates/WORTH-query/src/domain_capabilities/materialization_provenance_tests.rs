@@ -1,0 +1,78 @@
+use super::materialization::{
+    materialize_explanation_explanation_bundle, materialize_support_traceability_support_report,
+};
+use super::payloads::{
+    WorthQueryExplanationContributionPayload, WorthQueryExplanationContributionPosture,
+    WorthQuerySupportContributionPayload, WorthQuerySupportContributionPosture,
+};
+use super::targets::WorthQueryLowerRuntimeBoundaryBoundContributionTarget;
+use super::test_support::{lower_runtime_target, ready_payload};
+use worth_foundational::{
+    AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
+    DiagnosticRichnessProfile, FoundationalDiagnosticDeliveryClass, FoundationalProfileSet,
+    FoundationalProfileSetInput, RetentionDeliveryProfile, SupportPostureProfile,
+};
+
+#[test]
+fn lower_runtime_descriptive_outputs_do_not_claim_current_fresh_provenance() {
+    let support = materialize_support_traceability_support_report(
+        lower_runtime_ready_contribution(WorthQuerySupportContributionPayload::new(
+            WorthQuerySupportContributionPosture::DeclarationTraceability,
+            "runtime.boundary.traceability.replay",
+            "lower runtime support remains replay-derived through replay-capable delivery",
+        )),
+        forensic_support_profile(),
+        FoundationalDiagnosticDeliveryClass::ReconstructableFromReplay,
+    )
+    .expect("support report should materialize");
+    let explanation = materialize_explanation_explanation_bundle(
+        lower_runtime_ready_contribution(WorthQueryExplanationContributionPayload::new(
+            WorthQueryExplanationContributionPosture::ExplainsFallback,
+            "runtime.boundary.explanation.hot",
+            "lower runtime explanation remains replay-derived even when callers request hot delivery",
+        )),
+        forensic_support_profile(),
+        FoundationalDiagnosticDeliveryClass::MustBeHot,
+    )
+    .expect("explanation bundle should materialize");
+
+    for provenance in [support.provenance(), explanation.provenance()] {
+        assert_eq!(
+            provenance.locality(),
+            worth_foundational::FoundationalBoundaryEvidenceLocality::ReplayDerived
+        );
+        assert_eq!(
+            provenance.freshness_posture(),
+            worth_foundational::FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay
+        );
+    }
+}
+
+fn lower_runtime_ready_contribution<P>(
+    payload: P,
+) -> super::WorthQueryMaterializationReadyDomainCapabilityContribution<
+    P,
+    WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+>
+where
+    P: super::WorthQueryDomainCapabilityPayload,
+    (P, WorthQueryLowerRuntimeBoundaryBoundContributionTarget):
+        super::proof_integration::AllowedContributionBinding<
+            P,
+            WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
+        >,
+{
+    ready_payload(lower_runtime_target("boundary-provenance"), payload)
+}
+
+fn forensic_support_profile() -> FoundationalProfileSet {
+    FoundationalProfileSet::new(FoundationalProfileSetInput {
+        diagnostic_richness: DiagnosticRichnessProfile::Forensic,
+        support_posture: SupportPostureProfile::SupportReady,
+        compatibility_posture: CompatibilityPostureProfile::NativeOnly,
+        admission_readiness: AdmissionReadinessProfile::Admitted,
+        retention_delivery: RetentionDeliveryProfile::Retained,
+        certification_posture: CertificationPostureProfile::Uncertified,
+    })
+    .expect("valid profile")
+}

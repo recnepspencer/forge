@@ -1,0 +1,17 @@
+error[E0599]: the method `relational_truth` exists for struct `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, PreviewBridgeDeclaration>`, but its trait bounds were not satisfied
+  --> tests/ui/domain_declaration/boundaries/witnesses/non_relational_family_has_no_relational_truth_witness.rs:72:25
+   |
+37 | struct PreviewBridgeFamily;
+   | -------------------------- doesn't satisfy `_: WorthQueryDeclarationSupportsRelationalTruth<GeometryDomain>`
+...
+72 |     let _ = declaration.relational_truth();
+   |                         ^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
+   |
+  ::: src/application/declaration_capability/tags.rs
+   |
+   |         pub struct $name;
+   |         ----------------- doesn't satisfy `_: WorthQueryRelationalTruthCapableAuthorityTag`
+   |
+   = note: the following trait bounds were not satisfied:
+           `WorthQueryBridgeContinuationAuthority: worth_query::application::declaration_capability::tags::WorthQueryRelationalTruthCapableAuthorityTag`
+           which is required by `PreviewBridgeFamily: WorthQueryDeclarationSupportsRelationalTruth<GeometryDomain>`

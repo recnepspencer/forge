@@ -428,7 +428,7 @@ That means:
 
 The wrong alternatives are:
 
-- externally forgeable receipts, which make proof meaningless
+- externally WORTHable receipts, which make proof meaningless
 - privately unreadable receipts, which make the runtime impossible to consume
 
 ## Visual Snapshots

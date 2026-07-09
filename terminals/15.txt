@@ -1,7 +1,7 @@
 ---
 pid: 8548
-cwd: "C:\Users\Esther\Documents\Programming\forge_workspace\forge"
-command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\forge\\workspaces\\forge-store\"; cargo test -p forge-store-physical-backend --lib"
+cwd: "C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH"
+command: "Set-Location \"C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\WORTH\\workspaces\\worth-store\"; cargo test -p worth-store-physical-backend --lib"
 started_at: 2026-07-07T02:31:13.491Z
 running_for_ms: 85007    
 ---
@@ -10,7 +10,7 @@ running_for_ms: 85007
     Blocking waiting for file lock on package cache
     Blocking waiting for file lock on artifact directory
 warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -20,12 +20,12 @@ warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` to apply 1 suggestion)
-   Compiling forge-store-physical-backend v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-physical-backend)
-    Building [=========================> ] 35/36: forge_store_physical_backen…                                                            
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` to apply 1 suggestion)
+   Compiling worth-store-physical-backend v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-physical-backend)
+    Building [=========================> ] 35/36: worth_store_physical_backenâ€¦                                                            
 running 59 tests
     Finished `test` profile [unoptimized + debuginfo] target(s) in 16.61s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_physical_backend-9f62fdf80bc75a15.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_physical_backend-9f62fdf80bc75a15.exe)
 test access_policy::proof_authority_tests::direct_io_alignment_proof_must_match_request_reference_and_lifecycle ... ok
 test access_policy::policy_parity_tests::equivalent_unaligned_direct_io_declarations_deny_with_same_topology ... ok
 test access_policy::proof_authority_tests::direct_io_alignment_proof_requires_physical_format_page_and_extent_alignment ... ok

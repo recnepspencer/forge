@@ -1,0 +1,16 @@
+error[E0624]: method `probe_existing` is private
+ --> tests/ui/prohibition_registry/existing_truth_probe_forbidden.rs:4:23
+  |
+4 |       let _ = workspace.probe_existing(binding, ["shape.kind"]);
+  |                         ^^^^^^^^^^^^^^ private method
+  |
+ ::: src/runtime/workspace_mutations.rs
+  |
+  | /     pub(crate) fn probe_existing<I>(
+  | |         &self,
+  | |         binding: WorthQueryExistingTruthTargetBinding,
+  | |         aspect_touches: I,
+  | |     ) -> Result<super::WorthQueryExistingTruthProbe, WorthQueryRuntimeError>
+  | |     where
+  | |         I: IntoIterator<Item = super::WorthQueryAspectTouch>,
+  | |_____________________________________________________________- private method defined here

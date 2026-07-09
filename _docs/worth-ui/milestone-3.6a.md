@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.5 Inspection Evidence Expansion And Relevance Indexes`
 >
@@ -108,7 +108,7 @@ special cases. That would create folklore instead of architecture.
 - `ai-diagnostics.md`
   protects one shared evidence substrate. 3.6a measurement posture and host
   evidence must inspect through typed evidence and support rows, not logs.
-- `crates/forge-query/docs/AI_README.md`
+- `crates/worth-query/docs/AI_README.md`
   protects Query-owned basis, retained inspection, projection consumption, and
   cross-runtime causal inspection. 3.6a must consume `ResolvedSnapshotBasis`,
   `SnapshotResolutionReport`, `workspace.inspect(...)`,
@@ -248,8 +248,8 @@ Current Query-owned anchors this milestone must consume rather than replace:
 - `ResolvedSnapshotBasis`
 - `SnapshotResolutionReport`
 - `workspace.inspect(...)`
-- `ForgeQueryReadResult::consume_projection_facts(...)`
-- `ForgeQueryWriteReceipt::consume_projection_facts(...)`
+- `WORTHQueryReadResult::consume_projection_facts(...)`
+- `WORTHQueryWriteReceipt::consume_projection_facts(...)`
 - `QueryContextExecutionArtifact::consume_projection_facts(...)`
 - `admit_causal_inspection`
 - `request_causal_inspection`
@@ -530,8 +530,8 @@ content reads.
 **Relevant APIs**
 - `ResolvedSnapshotBasis`
 - `SnapshotResolutionReport`
-- `ForgeQueryReadResult::consume_projection_facts(...)`
-- `ForgeQueryWriteReceipt::consume_projection_facts(...)`
+- `WORTHQueryReadResult::consume_projection_facts(...)`
+- `WORTHQueryWriteReceipt::consume_projection_facts(...)`
 - `QueryContextExecutionArtifact::consume_projection_facts(...)`
 - `workspace.inspect(...)`
 - `admit_causal_inspection`
@@ -691,8 +691,8 @@ posture.
 - `worth-ui-runtime/evidence`
 
 **Relevant APIs**
-- `ForgeQueryReadResult::consume_projection_facts(...)`
-- `ForgeQueryWriteReceipt::consume_projection_facts(...)`
+- `WORTHQueryReadResult::consume_projection_facts(...)`
+- `WORTHQueryWriteReceipt::consume_projection_facts(...)`
 - `QueryContextExecutionArtifact::consume_projection_facts(...)`
 - `UiProjectionBinding`
 - `UiProjectionFactReceipt`

@@ -1,0 +1,35 @@
+error[E0451]: fields `effect_name`, `trigger_source_kind`, `trigger_commit_identity`, `source_lane`, `terminal_lane`, `effect_policy`, `loop_prevention`, `idempotence`, `termination`, `phase_nodes`, `resubscribed_live_view_count`, `resubscribed_derived_view_count`, `pending_write_intent_count`, `graph_digest` and `inspection_digest` of struct `WorthQueryFeedbackPhaseGraphInspection` are private
+  --> tests/ui/runtime_feedback_phase_graph_inspection_constructor_private.rs:8:9
+   |
+ 7 |     let _ = WorthQueryFeedbackPhaseGraphInspection {
+   |             -------------------------------------- in this type
+ 8 |         effect_name: String::new(),
+   |         ^^^^^^^^^^^ private field
+ 9 |         trigger_source_kind: worth_query::facade::WorthQueryEffectTriggerSourceKind::LiveView,
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+10 |         trigger_commit_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         source_lane: WorthQueryAuthorityLane::AuthoritativeTruth,
+   |         ^^^^^^^^^^^ private field
+12 |         terminal_lane: WorthQueryAuthorityLane::EffectDeliveryState,
+   |         ^^^^^^^^^^^^^ private field
+13 |         effect_policy: Some(WorthQueryEffectPolicy::AuthoritativeAllowed),
+   |         ^^^^^^^^^^^^^ private field
+14 |         loop_prevention: worth_query::facade::WorthQueryEffectLoopPrevention::SingleCommitBoundary,
+   |         ^^^^^^^^^^^^^^^ private field
+15 |         idempotence: worth_query::facade::WorthQueryEffectIdempotence::DeliveryReceiptIdentity,
+   |         ^^^^^^^^^^^ private field
+16 |         termination: WorthQueryFeedbackTermination::Delivered,
+   |         ^^^^^^^^^^^ private field
+17 |         phase_nodes: vec![WorthQueryFeedbackPhaseNode::TruthRead],
+   |         ^^^^^^^^^^^ private field
+18 |         resubscribed_live_view_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         resubscribed_derived_view_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         pending_write_intent_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+21 |         graph_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field
+22 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field

@@ -105,7 +105,7 @@ Iteration evidence is not the same thing as closeout evidence. During `plan`,
 the phase claim: `cargo check`, `cargo test --no-run`, the touched module tests,
 the touched integration target, and the named compile-fail target that protects
 the public boundary. Do not run whole-crate or whole-workspace suites such as
-`cargo test -p forge-query --tests`, `cargo test -p worth-spatial --tests`, or
+`cargo test -p worth-query --tests`, `cargo test -p worth-spatial --tests`, or
 the `worth-spatial` `public_api_contract` umbrella unless the phase acceptance
 explicitly names that exact command as required closeout evidence. Heavy
 metaboss, public API umbrella, architectural closeout, and broad compile-fail

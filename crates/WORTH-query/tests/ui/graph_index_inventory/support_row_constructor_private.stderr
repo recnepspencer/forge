@@ -1,0 +1,76 @@
+error: cannot construct `WorthQueryGraphIndexSupportRow` with struct literal syntax due to private fields
+  --> tests/ui/graph_index_inventory/support_row_constructor_private.rs:9:13
+   |
+ 9 |     let _ = WorthQueryGraphIndexSupportRow {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |         digest: String::new(),
+   |         --------------------- private field
+11 |         requirement_kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+   |         -------------------------------------------------------------------------------- private field
+12 |         supported_relation_direction: None,
+   |         ---------------------------------- private field
+13 |         lifecycle_owner: WorthQueryGraphIndexLifecycleOwner::QueryRuntime,
+   |         ----------------------------------------------------------------- private field
+14 |         lifecycle_class: WorthQueryGraphIndexLifecycleClass::RuntimeMaintained,
+   |         ---------------------------------------------------------------------- private field
+15 |         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+   |         -------------------------------------------------------------------------------- private field
+16 |         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+   |         ------------------------------------------------------------------------------------------ private field
+17 |         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+   |         ------------------------------------------------------------------------------------------- private field
+18 |         posture: WorthQueryGraphIndexPosture::Verified,
+   |         ---------------------------------------------- private field
+19 |         support_state: WorthQueryGraphIndexSupportState::Available,
+   |         ---------------------------------------------------------- private field
+20 |         owning_milestone: None,
+   |         ---------------------- private field
+   |
+   = note: ...and other private fields `supported_predicate_family`, `supported_ordering_posture` and `supported_requirement_lifecycle` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 9 -     let _ = WorthQueryGraphIndexSupportRow {
+10 -         digest: String::new(),
+11 -         requirement_kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+12 -         supported_relation_direction: None,
+13 -         lifecycle_owner: WorthQueryGraphIndexLifecycleOwner::QueryRuntime,
+14 -         lifecycle_class: WorthQueryGraphIndexLifecycleClass::RuntimeMaintained,
+15 -         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+16 -         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+17 -         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+18 -         posture: WorthQueryGraphIndexPosture::Verified,
+19 -         support_state: WorthQueryGraphIndexSupportState::Available,
+20 -         owning_milestone: None,
+21 -     };
+ 9 +     let _ = WorthQueryGraphIndexSupportRow::new(_, _, _, _, _, _, _, _, _, _, _, _, _);
+   |
+ 9 -     let _ = WorthQueryGraphIndexSupportRow {
+10 -         digest: String::new(),
+11 -         requirement_kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+12 -         supported_relation_direction: None,
+13 -         lifecycle_owner: WorthQueryGraphIndexLifecycleOwner::QueryRuntime,
+14 -         lifecycle_class: WorthQueryGraphIndexLifecycleClass::RuntimeMaintained,
+15 -         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+16 -         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+17 -         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+18 -         posture: WorthQueryGraphIndexPosture::Verified,
+19 -         support_state: WorthQueryGraphIndexSupportState::Available,
+20 -         owning_milestone: None,
+21 -     };
+ 9 +     let _ = WorthQueryGraphIndexSupportRow::for_requirement_kind(_);
+   |
+ 9 -     let _ = WorthQueryGraphIndexSupportRow {
+10 -         digest: String::new(),
+11 -         requirement_kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+12 -         supported_relation_direction: None,
+13 -         lifecycle_owner: WorthQueryGraphIndexLifecycleOwner::QueryRuntime,
+14 -         lifecycle_class: WorthQueryGraphIndexLifecycleClass::RuntimeMaintained,
+15 -         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+16 -         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+17 -         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+18 -         posture: WorthQueryGraphIndexPosture::Verified,
+19 -         support_state: WorthQueryGraphIndexSupportState::Available,
+20 -         owning_milestone: None,
+21 -     };
+ 9 +     let _ = WorthQueryGraphIndexSupportRow::with_runtime_support_posture(_, _, _, _, _, _);
+   |

@@ -1,0 +1,17 @@
+error[E0599]: no function or associated item named `from_authoring_path` found for struct `WorthQueryRetainedFieldPath` in the current scope
+ --> tests/ui/aspect_native_query/retained_field_path_terminal_helpers_removed.rs:5:42
+  |
+5 |     let _ = WorthQueryRetainedFieldPath::from_authoring_path("title.value");
+  |                                          ^^^^^^^^^^^^^^^^^^^ function or associated item not found in `WorthQueryRetainedFieldPath`
+  |
+note: if you're trying to build a new `WorthQueryRetainedFieldPath`, consider using `WorthQueryRetainedFieldPath::from_canonical_field_path` which returns `WorthQueryRetainedFieldPath`
+ --> src/runtime/surface/retained_materialized_row.rs
+  |
+  |     pub fn from_canonical_field_path(path: CanonicalFieldPath) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `terminal_projection` found for struct `WorthQueryRetainedFieldPath` in the current scope
+  --> tests/ui/aspect_native_query/retained_field_path_terminal_helpers_removed.rs:10:24
+   |
+10 |     let _ = field_path.terminal_projection();
+   |                        ^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryRetainedFieldPath`

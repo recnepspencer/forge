@@ -1,0 +1,17 @@
+error[E0451]: fields `category`, `ordinary_lane`, `inspectable_lane`, `proof_lane`, `raw_lane` and `implementation_path` of struct `WorthQueryDomainCapabilityCertifiedSurfaceRow` are private
+  --> tests/ui/domain_capabilities/certification/domain_capability_certification_surface_row_constructor_private.rs:7:9
+   |
+ 6 |     let _ = WorthQueryDomainCapabilityCertifiedSurfaceRow {
+   |             --------------------------------------------- in this type
+ 7 |         category: WorthQueryDomainCapabilityCategory::Admission,
+   |         ^^^^^^^^ private field
+ 8 |         ordinary_lane: "ordinary",
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         inspectable_lane: "inspectable",
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         proof_lane: "proof",
+   |         ^^^^^^^^^^ private field
+11 |         raw_lane: "raw",
+   |         ^^^^^^^^ private field
+12 |         implementation_path: "path",
+   |         ^^^^^^^^^^^^^^^^^^^ private field

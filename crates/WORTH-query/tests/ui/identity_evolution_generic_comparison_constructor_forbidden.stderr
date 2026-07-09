@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `between_with_intent_bool` found for struct `worth_query::facade::CorrespondenceIdentityComparison` in the current scope
+ --> tests/ui/identity_evolution_generic_comparison_constructor_forbidden.rs:5:43
+  |
+5 |         CorrespondenceIdentityComparison::between_with_intent_bool;
+  |                                           ^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `worth_query::facade::CorrespondenceIdentityComparison`

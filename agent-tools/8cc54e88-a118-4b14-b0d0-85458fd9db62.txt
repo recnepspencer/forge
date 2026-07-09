@@ -1,11 +1,11 @@
 cargo : warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
 At line:1 char:90
-+ ... rge-store"; cargo test -p forge-store-blob-chunks placement::movement ...
++ ... rge-store"; cargo test -p worth-store-blob-chunks placement::movement ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (warnin...erenceKind`:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -14,110 +14,110 @@ At line:1 char:90
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
-   Compiling forge-store-physical-isolation v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspa
-ces\forge-store\crates\forge-store-physical-isolation)
-    Building [=====================>     ] 41/50: forge-store-physical-isolat…
+   Compiling worth-store-physical-isolation v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspa
+ces\worth-store\crates\worth-store-physical-isolation)
+    Building [=====================>     ] 41/50: worth-store-physical-isolatâ€¦
                                                             
-   Compiling forge-store-io-scheduler v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-io-scheduler)
-   Compiling forge-store-reclaim-policy v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-reclaim-policy)
-    Building [=====================>     ] 41/50: forge-store-reclaim-policy,…
-    Building [=====================>     ] 42/50: forge-store-physical-isolat…
-    Building [======================>    ] 43/50: forge-store-io-scheduler    
+   Compiling worth-store-io-scheduler v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-io-scheduler)
+   Compiling worth-store-reclaim-policy v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-reclaim-policy)
+    Building [=====================>     ] 41/50: worth-store-reclaim-policy,â€¦
+    Building [=====================>     ] 42/50: worth-store-physical-isolatâ€¦
+    Building [======================>    ] 43/50: worth-store-io-scheduler    
                                                             
-   Compiling forge-store-operations v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-operations)
-   Compiling forge-store-tiering v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-tiering)
-    Building [======================>    ] 43/50: forge-store-operations, for…
+   Compiling worth-store-operations v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-operations)
+   Compiling worth-store-tiering v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-tiering)
+    Building [======================>    ] 43/50: worth-store-operations, forâ€¦
                                                             
 warning: unused import: `cold_posture_classifier::ColdPosturePermit`
- --> crates\forge-store-tiering\src\cold_state\mod.rs:4:9
+ --> crates\worth-store-tiering\src\cold_state\mod.rs:4:9
   |
 4 | pub use cold_posture_classifier::ColdPosturePermit;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-    Building [======================>    ] 43/50: forge-store-operations, for…
+    Building [======================>    ] 43/50: worth-store-operations, forâ€¦
                                                             
 warning: enum `ColdPosturePermit` is never used
- --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
+ --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
   |
 4 | pub enum ColdPosturePermit {
   |          ^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `classify_cold_posture_permit` is never used
-  --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
+  --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
    |
 10 | pub const fn classify_cold_posture_permit(state: S7ColdPlacementState) -> ColdPosturePermit {
    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [======================>    ] 43/50: forge-store-operations, for…
+    Building [======================>    ] 43/50: worth-store-operations, forâ€¦
                                                             
-   Compiling forge-store-blob-chunks v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-blob-chunks)
-    Building [======================>    ] 43/50: forge-store-operations, for…
+   Compiling worth-store-blob-chunks v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-blob-chunks)
+    Building [======================>    ] 43/50: worth-store-operations, forâ€¦
                                                             
-warning: `forge-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p forge-store-tiering` to apply 1 
+warning: `worth-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p worth-store-tiering` to apply 1 
 suggestion)
-    Building [======================>    ] 44/50: forge-store-operations, for…
-    Building [=======================>   ] 45/50: forge-store-operations, for…
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [======================>    ] 44/50: worth-store-operations, forâ€¦
+    Building [=======================>   ] 45/50: worth-store-operations, forâ€¦
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `stable_digest_for_bytes`
-  --> crates\forge-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
+  --> crates\worth-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
    |
 24 | pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
    |                                               ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `rewrite_binding::BlobCompactionPhysicalRewriteBinding`
-  --> crates\forge-store-blob-chunks\src\compaction\mod.rs:24:9
+  --> crates\worth-store-blob-chunks\src\compaction\mod.rs:24:9
    |
 24 | pub use rewrite_binding::BlobCompactionPhysicalRewriteBinding;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `performance::counter_backed_placement_movement_performance_receipt`
-  --> crates\forge-store-blob-chunks\src\placement\movement\mod.rs:52:16
+  --> crates\worth-store-blob-chunks\src\placement\movement\mod.rs:52:16
    |
 52 | pub(crate) use performance::counter_backed_placement_movement_performance_receipt;
    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `BlobReachabilityStagingIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:8:52
+ --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:8:52
   |
 8 | use super::super::{BlobPublicationCounterSnapshot, BlobReachabilityStagingIdentity};
   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `super::identity::BlobPublicationCounterReceiptIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
+ --> crates\worth-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
   |
 1 | use super::identity::BlobPublicationCounterReceiptIdentity;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `BlobPublicationWalCommit`
-  --> crates\forge-store-blob-chunks\src\publication\types\published.rs:11:69
+  --> crates\worth-store-blob-chunks\src\publication\types\published.rs:11:69
    |
 11 |     BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout, BlobPublicationWalCommit,
    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: unused import: `evidence::BlobPublicationCounterReceiptIdentity`
-  --> crates\forge-store-blob-chunks\src\publication\mod.rs:25:9
+  --> crates\worth-store-blob-chunks\src\publication\mod.rs:25:9
    |
 25 | pub use evidence::BlobPublicationCounterReceiptIdentity;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tree_durable` are never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:40:19
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:40:19
    |
 39 | impl BlobPublicationRecoveryOperationDigest {
    | ------------------------------------------- associated functions in this implementation
@@ -132,12 +132,12 @@ warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tre
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `security_receipt_basis` is never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:71:4
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:71:4
    |
 71 | fn security_receipt_basis(metadata: BlobChunkSecurityMetadataWitness) -> String {
    |    ^^^^^^^^^^^^^^^^^^^^^^
 warning: methods `edges` and `holds` are never used
-  --> crates\forge-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
+  --> crates\worth-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
    |
  9 | impl<'a> ReachabilityRegistryView<'a> {
    | ------------------------------------- methods in this implementation
@@ -147,42 +147,42 @@ warning: methods `edges` and `holds` are never used
 ...
 21 |     pub(crate) const fn holds(&self) -> &[BlobReachabilityProtectedHold] {
    |                         ^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
 warning: method `record_reclaim_denial` is never used
-   --> crates\forge-store-blob-chunks\src\reachability\counters.rs:143:25
+   --> crates\worth-store-blob-chunks\src\reachability\counters.rs:143:25
     |
  21 | impl BlobReachabilityCounterSnapshot {
     | ------------------------------------ method in this implementation
 ...
 143 |     pub(crate) const fn record_reclaim_denial(self) -> Self {
     |                         ^^^^^^^^^^^^^^^^^^^^^
-    Building [=======================>   ] 46/50: forge-store-blob-chunks     
+    Building [=======================>   ] 46/50: worth-store-blob-chunks     
                                                             
-   Compiling forge-store-physical-certification v0.1.0 (C:\Users\Esther\Documents\Programming\forge_workspace\forge\wor
-kspaces\forge-store\crates\forge-store-physical-certification)
-    Building [=======================>   ] 46/50: forge-store-physical-certif…
+   Compiling worth-store-physical-certification v0.1.0 (C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\wor
+kspaces\worth-store\crates\worth-store-physical-certification)
+    Building [=======================>   ] 46/50: worth-store-physical-certifâ€¦
                                                             
-warning: `forge-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p forge-store-blob-chunks` to 
+warning: `worth-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p worth-store-blob-chunks` to 
 apply 7 suggestions)
-    Building [========================>  ] 47/50: forge-store-physical-certif…
+    Building [========================>  ] 47/50: worth-store-physical-certifâ€¦
                                                             
-   Compiling forge-store-test-support v0.1.0 
-(C:\Users\Esther\Documents\Programming\forge_workspace\forge\workspaces\forge-store\crates\forge-store-test-support)
-    Building [========================>  ] 47/50: forge-store-physical-certif…
+   Compiling worth-store-test-support v0.1.0 
+(C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\workspaces\worth-store\crates\worth-store-test-support)
+    Building [========================>  ] 47/50: worth-store-physical-certifâ€¦
                                                             
 warning: use of deprecated function `harness::physical_reference::test_physical_reference`: use 
-harness_physical_reference — test support must not imply production authority
-  --> crates\forge-store-test-support\src\lib.rs:27:38
+harness_physical_reference â€” test support must not imply production authority
+  --> crates\worth-store-test-support\src\lib.rs:27:38
    |
 27 | pub use harness::physical_reference::test_physical_reference;
    |                                      ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(deprecated)]` on by default
-    Building [========================>  ] 47/50: forge-store-physical-certif…
+    Building [========================>  ] 47/50: worth-store-physical-certifâ€¦
                                                             
 warning: method `as_physical_reference` is never used
-  --> crates\forge-store-test-support\src\harness\physical_reference.rs:35:19
+  --> crates\worth-store-test-support\src\harness\physical_reference.rs:35:19
    |
 14 | impl HarnessPhysicalReference {
    | ----------------------------- method in this implementation
@@ -191,49 +191,49 @@ warning: method `as_physical_reference` is never used
    |                   ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-    Building [========================>  ] 47/50: forge-store-physical-certif…
+    Building [========================>  ] 47/50: worth-store-physical-certifâ€¦
                                                             
-warning: `forge-store-test-support` (lib) generated 2 warnings
-    Building [========================>  ] 48/50: forge-store-physical-certif…
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+warning: `worth-store-test-support` (lib) generated 2 warnings
+    Building [========================>  ] 48/50: worth-store-physical-certifâ€¦
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
 warning: unused import: `BlobChunkOrdinal`
- --> crates\forge-store-blob-chunks\src\corruption\test_support.rs:8:31
+ --> crates\worth-store-blob-chunks\src\corruption\test_support.rs:8:31
   |
 8 |     BlobChunkDedupeAdmission, BlobChunkOrdinal, BlobChunkRegisteredDedupeReference,
   |                               ^^^^^^^^^^^^^^^^
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
 warning: unused imports: `blob_scope`, `candidate_for_bytes_and_scope`, and `canonical_equivalence`
- --> crates\forge-store-blob-chunks\src\corruption\tests.rs:2:5
+ --> crates\worth-store-blob-chunks\src\corruption\tests.rs:2:5
   |
 2 |     blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
   |     ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobStreamingContentFrontier`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:13:60
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:13:60
    |
 13 |     BlobQuarantineAuthority, BlobQuarantineLifecycleState, BlobStreamingContentFrontier,
    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
-warning: unused import: `forge_store_security::StoreTenantScope`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:17:5
+warning: unused import: `worth_store_security::StoreTenantScope`
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:17:5
    |
-17 | use forge_store_security::StoreTenantScope;
+17 | use worth_store_security::StoreTenantScope;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
 warning: unused import: `recovery_entry`
-  --> crates\forge-store-blob-chunks\src\publication\test_support\mod.rs:10:5
+  --> crates\worth-store-blob-chunks\src\publication\test_support\mod.rs:10:5
    |
 10 |     recovery_entry, recovery_replay_entry, replayable_wal_classification,
    |     ^^^^^^^^^^^^^^
-    Building [=========================> ] 49/50: forge_store_blob_chunks(tes…
+    Building [=========================> ] 49/50: worth_store_blob_chunks(tesâ€¦
                                                             
-warning: `forge-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
-forge-store-blob-chunks --tests` to apply 5 suggestions)
+warning: `worth-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
+worth-store-blob-chunks --tests` to apply 5 suggestions)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 12.30s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_blob_chunks-085508f9a87601b9.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_blob_chunks-085508f9a87601b9.exe)
 
 running 12 tests
 test placement::movement::tests::cold_lane_states_have_distinct_surface_outcomes ... ok
@@ -266,12 +266,12 @@ test compaction::tests::compaction_denies_missing_reachability_active_read_cold_
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 139 filtered out; finished in 0.00s
 
 At line:1 char:154
-+ ... ement 2>&1; cargo test -p forge-store-blob-chunks compaction::tests 2 ...
++ ... ement 2>&1; cargo test -p worth-store-blob-chunks compaction::tests 2 ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (warnin...erenceKind`:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -280,68 +280,68 @@ At line:1 char:154
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
 warning: unused import: `cold_posture_classifier::ColdPosturePermit`
- --> crates\forge-store-tiering\src\cold_state\mod.rs:4:9
+ --> crates\worth-store-tiering\src\cold_state\mod.rs:4:9
   |
 4 | pub use cold_posture_classifier::ColdPosturePermit;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 warning: enum `ColdPosturePermit` is never used
- --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
+ --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
   |
 4 | pub enum ColdPosturePermit {
   |          ^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `classify_cold_posture_permit` is never used
-  --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
+  --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
    |
 10 | pub const fn classify_cold_posture_permit(state: S7ColdPlacementState) -> ColdPosturePermit {
    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: `forge-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p forge-store-tiering` to apply 1 
+warning: `worth-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p worth-store-tiering` to apply 1 
 suggestion)
 warning: unused import: `stable_digest_for_bytes`
-  --> crates\forge-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
+  --> crates\worth-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
    |
 24 | pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
    |                                               ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 warning: unused import: `rewrite_binding::BlobCompactionPhysicalRewriteBinding`
-  --> crates\forge-store-blob-chunks\src\compaction\mod.rs:24:9
+  --> crates\worth-store-blob-chunks\src\compaction\mod.rs:24:9
    |
 24 | pub use rewrite_binding::BlobCompactionPhysicalRewriteBinding;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `performance::counter_backed_placement_movement_performance_receipt`
-  --> crates\forge-store-blob-chunks\src\placement\movement\mod.rs:52:16
+  --> crates\worth-store-blob-chunks\src\placement\movement\mod.rs:52:16
    |
 52 | pub(crate) use performance::counter_backed_placement_movement_performance_receipt;
    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobReachabilityStagingIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:8:52
+ --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:8:52
   |
 8 | use super::super::{BlobPublicationCounterSnapshot, BlobReachabilityStagingIdentity};
   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `super::identity::BlobPublicationCounterReceiptIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
+ --> crates\worth-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
   |
 1 | use super::identity::BlobPublicationCounterReceiptIdentity;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobPublicationWalCommit`
-  --> crates\forge-store-blob-chunks\src\publication\types\published.rs:11:69
+  --> crates\worth-store-blob-chunks\src\publication\types\published.rs:11:69
    |
 11 |     BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout, BlobPublicationWalCommit,
    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `evidence::BlobPublicationCounterReceiptIdentity`
-  --> crates\forge-store-blob-chunks\src\publication\mod.rs:25:9
+  --> crates\worth-store-blob-chunks\src\publication\mod.rs:25:9
    |
 25 | pub use evidence::BlobPublicationCounterReceiptIdentity;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tree_durable` are never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:40:19
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:40:19
    |
 39 | impl BlobPublicationRecoveryOperationDigest {
    | ------------------------------------------- associated functions in this implementation
@@ -356,12 +356,12 @@ warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tre
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `security_receipt_basis` is never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:71:4
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:71:4
    |
 71 | fn security_receipt_basis(metadata: BlobChunkSecurityMetadataWitness) -> String {
    |    ^^^^^^^^^^^^^^^^^^^^^^
 warning: methods `edges` and `holds` are never used
-  --> crates\forge-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
+  --> crates\worth-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
    |
  9 | impl<'a> ReachabilityRegistryView<'a> {
    | ------------------------------------- methods in this implementation
@@ -372,7 +372,7 @@ warning: methods `edges` and `holds` are never used
 21 |     pub(crate) const fn holds(&self) -> &[BlobReachabilityProtectedHold] {
    |                         ^^^^^
 warning: method `record_reclaim_denial` is never used
-   --> crates\forge-store-blob-chunks\src\reachability\counters.rs:143:25
+   --> crates\worth-store-blob-chunks\src\reachability\counters.rs:143:25
     |
  21 | impl BlobReachabilityCounterSnapshot 
 running 8 tests
@@ -381,18 +381,18 @@ running 8 tests
 ...
 143 |     pub(crate) const fn record_reclaim_denial(self) -> Self {
     |                         ^^^^^^^^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p forge-store-blob-chunks` to 
+warning: `worth-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p worth-store-blob-chunks` to 
 apply 7 suggestions)
 warning: use of deprecated function `harness::physical_reference::test_physical_reference`: use 
-harness_physical_reference — test support must not imply production authority
-  --> crates\forge-store-test-support\src\lib.rs:27:38
+harness_physical_reference â€” test support must not imply production authority
+  --> crates\worth-store-test-support\src\lib.rs:27:38
    |
 27 | pub use harness::physical_reference::test_physical_reference;
    |                                      ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(deprecated)]` on by default
 warning: method `as_physical_reference` is never used
-  --> crates\forge-store-test-support\src\harness\physical_reference.rs:35:19
+  --> crates\worth-store-test-support\src\harness\physical_reference.rs:35:19
    |
 14 | impl HarnessPhysicalReference {
    | ----------------------------- method in this implementation
@@ -401,36 +401,36 @@ warning: method `as_physical_reference` is never used
    |                   ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-test-support` (lib) generated 2 warnings
+warning: `worth-store-test-support` (lib) generated 2 warnings
 warning: unused import: `BlobChunkOrdinal`
- --> crates\forge-store-blob-chunks\src\corruption\test_support.rs:8:31
+ --> crates\worth-store-blob-chunks\src\corruption\test_support.rs:8:31
   |
 8 |     BlobChunkDedupeAdmission, BlobChunkOrdinal, BlobChunkRegisteredDedupeReference,
   |                               ^^^^^^^^^^^^^^^^
 warning: unused imports: `blob_scope`, `candidate_for_bytes_and_scope`, and `canonical_equivalence`
- --> crates\forge-store-blob-chunks\src\corruption\tests.rs:2:5
+ --> crates\worth-store-blob-chunks\src\corruption\tests.rs:2:5
   |
 2 |     blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
   |     ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobStreamingContentFrontier`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:13:60
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:13:60
    |
 13 |     BlobQuarantineAuthority, BlobQuarantineLifecycleState, BlobStreamingContentFrontier,
    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: unused import: `forge_store_security::StoreTenantScope`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:17:5
+warning: unused import: `worth_store_security::StoreTenantScope`
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:17:5
    |
-17 | use forge_store_security::StoreTenantScope;
+17 | use worth_store_security::StoreTenantScope;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `recovery_entry`
-  --> crates\forge-store-blob-chunks\src\publication\test_support\mod.rs:10:5
+  --> crates\worth-store-blob-chunks\src\publication\test_support\mod.rs:10:5
    |
 10 |     recovery_entry, recovery_replay_entry, replayable_wal_classification,
    |     ^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
-forge-store-blob-chunks --tests` to apply 5 suggestions)
+warning: `worth-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
+worth-store-blob-chunks --tests` to apply 5 suggestions)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_blob_chunks-085508f9a87601b9.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_blob_chunks-085508f9a87601b9.exe)
 test placement::admission::tests::copied_readiness_seed_security_scope_denies_before_placement_admission ... ok
 test placement::admission::tests::external_sidecar_without_store_authority_denies ... ok
 test placement::admission::tests::stale_s6_readiness_denies_before_placement_admission ... ok
@@ -444,12 +444,12 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 139 filtered out; fi
 
 cargo : warning: unused imports: `ManifestDiscoveryAuthority`, `PhysicalGeneration`, and `PhysicalReferenceKind`
 At line:1 char:216
-+ ... tests 2>&1; cargo test -p forge-store-blob-chunks placement::admissio ...
++ ... tests 2>&1; cargo test -p worth-store-blob-chunks placement::admissio ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (warnin...erenceKind`:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-  --> crates\forge-store-physical-format\src\facade\mod.rs:17:5
+  --> crates\worth-store-physical-format\src\facade\mod.rs:17:5
    |
 17 |     ManifestDiscoveryAuthority, PersistedPhysicalLayout, PhysicalGeneration,
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^                           ^^^^^^^^^^^^^^^^^^
@@ -458,68 +458,68 @@ At line:1 char:216
    |                                 ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p forge-store-physical-format` 
+warning: `worth-store-physical-format` (lib) generated 1 warning (run `cargo fix --lib -p worth-store-physical-format` 
 to apply 1 suggestion)
 warning: unused import: `cold_posture_classifier::ColdPosturePermit`
- --> crates\forge-store-tiering\src\cold_state\mod.rs:4:9
+ --> crates\worth-store-tiering\src\cold_state\mod.rs:4:9
   |
 4 | pub use cold_posture_classifier::ColdPosturePermit;
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 warning: enum `ColdPosturePermit` is never used
- --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
+ --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:4:10
   |
 4 | pub enum ColdPosturePermit {
   |          ^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `classify_cold_posture_permit` is never used
-  --> crates\forge-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
+  --> crates\worth-store-tiering\src\cold_state\cold_posture_classifier.rs:10:14
    |
 10 | pub const fn classify_cold_posture_permit(state: S7ColdPlacementState) -> ColdPosturePermit {
    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: `forge-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p forge-store-tiering` to apply 1 
+warning: `worth-store-tiering` (lib) generated 3 warnings (run `cargo fix --lib -p worth-store-tiering` to apply 1 
 suggestion)
 warning: unused import: `stable_digest_for_bytes`
-  --> crates\forge-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
+  --> crates\worth-store-blob-chunks\src\chunk_integrity\mod.rs:24:47
    |
 24 | pub(crate) use integrity::{stable_digest_for, stable_digest_for_bytes};
    |                                               ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 warning: unused import: `rewrite_binding::BlobCompactionPhysicalRewriteBinding`
-  --> crates\forge-store-blob-chunks\src\compaction\mod.rs:24:9
+  --> crates\worth-store-blob-chunks\src\compaction\mod.rs:24:9
    |
 24 | pub use rewrite_binding::BlobCompactionPhysicalRewriteBinding;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `performance::counter_backed_placement_movement_performance_receipt`
-  --> crates\forge-store-blob-chunks\src\placement\movement\mod.rs:52:16
+  --> crates\worth-store-blob-chunks\src\placement\movement\mod.rs:52:16
    |
 52 | pub(crate) use performance::counter_backed_placement_movement_performance_receipt;
    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobReachabilityStagingIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:8:52
+ --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:8:52
   |
 8 | use super::super::{BlobPublicationCounterSnapshot, BlobReachabilityStagingIdentity};
   |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `super::identity::BlobPublicationCounterReceiptIdentity`
- --> crates\forge-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
+ --> crates\worth-store-blob-chunks\src\publication\evidence\payload_digest.rs:1:5
   |
 1 | use super::identity::BlobPublicationCounterReceiptIdentity;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobPublicationWalCommit`
-  --> crates\forge-store-blob-chunks\src\publication\types\published.rs:11:69
+  --> crates\worth-store-blob-chunks\src\publication\types\published.rs:11:69
    |
 11 |     BlobPublicationCounterSnapshot, BlobPublicationSessionCloseout, BlobPublicationWalCommit,
    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `evidence::BlobPublicationCounterReceiptIdentity`
-  --> crates\forge-store-blob-chunks\src\publication\mod.rs:25:9
+  --> crates\worth-store-blob-chunks\src\publication\mod.rs:25:9
    |
 25 | pub use evidence::BlobPublicationCounterReceiptIdentity;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tree_durable` are never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:40:19
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:40:19
    |
 39 | impl BlobPublicationRecoveryOperationDigest {
    | ------------------------------------------- associated functions in this implementation
@@ -534,12 +534,12 @@ warning: associated functions `chunk_write`, `checksum_admitted`, and `chunk_tre
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
 warning: function `security_receipt_basis` is never used
-  --> crates\forge-store-blob-chunks\src\publication\evidence\identity.rs:71:4
+  --> crates\worth-store-blob-chunks\src\publication\evidence\identity.rs:71:4
    |
 71 | fn security_receipt_basis(metadata: BlobChunkSecurityMetadataWitness) -> String {
    |    ^^^^^^^^^^^^^^^^^^^^^^
 warning: methods `edges` and `holds` are never used
-  --> crates\forge-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
+  --> crates\worth-store-blob-chunks\src\reachability\classification\reachability_snapshot.rs:17:25
    |
  9 | impl<'a> ReachabilityRegistryView<'a> {
    | ------------------------------------- methods in this implementation
@@ -550,25 +550,25 @@ warning: methods `edges` and `holds` are never used
 21 |     pub(crate) const fn holds(&self) -> &[BlobReachabilityProtectedHold] {
    |                         ^^^^^
 warning: method `record_reclaim_denial` is never used
-   --> crates\forge-store-blob-chunks\src\reachability\counters.rs:143:25
+   --> crates\worth-store-blob-chunks\src\reachability\counters.rs:143:25
     |
  21 | impl BlobReachabilityCounterSnapshot {
     | ------------------------------------ method in this implementation
 ...
 143 |     pub(crate) const fn record_reclaim_denial(self) -> Self {
     |                         ^^^^^^^^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p forge-store-blob-chunks` to 
+warning: `worth-store-blob-chunks` (lib) generated 11 warnings (run `cargo fix --lib -p worth-store-blob-chunks` to 
 apply 7 suggestions)
 warning: use of deprecated function `harness::physical_reference::test_physical_reference`: use 
-harness_physical_reference — test support must not imply production authority
-  --> crates\forge-store-test-support\src\lib.rs:27:38
+harness_physical_reference â€” test support must not imply production authority
+  --> crates\worth-store-test-support\src\lib.rs:27:38
    |
 27 | pub use harness::physical_reference::test_physical_reference;
    |                                      ^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(deprecated)]` on by default
 warning: method `as_physical_reference` is never used
-  --> crates\forge-store-test-support\src\harness\physical_reference.rs:35:19
+  --> crates\worth-store-test-support\src\harness\physical_reference.rs:35:19
    |
 14 | impl HarnessPhysicalReference {
    | ----------------------------- method in this implementation
@@ -577,33 +577,33 @@ warning: method `as_physical_reference` is never used
    |                   ^^^^^^^^^^^^^^^^^^^^^
    |
    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
-warning: `forge-store-test-support` (lib) generated 2 warnings
+warning: `worth-store-test-support` (lib) generated 2 warnings
 warning: unused import: `BlobChunkOrdinal`
- --> crates\forge-store-blob-chunks\src\corruption\test_support.rs:8:31
+ --> crates\worth-store-blob-chunks\src\corruption\test_support.rs:8:31
   |
 8 |     BlobChunkDedupeAdmission, BlobChunkOrdinal, BlobChunkRegisteredDedupeReference,
   |                               ^^^^^^^^^^^^^^^^
 warning: unused imports: `blob_scope`, `candidate_for_bytes_and_scope`, and `canonical_equivalence`
- --> crates\forge-store-blob-chunks\src\corruption\tests.rs:2:5
+ --> crates\worth-store-blob-chunks\src\corruption\tests.rs:2:5
   |
 2 |     blob_scope, candidate_for_bytes_and_scope, canonical_equivalence, frontier_for,
   |     ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `BlobStreamingContentFrontier`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:13:60
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:13:60
    |
 13 |     BlobQuarantineAuthority, BlobQuarantineLifecycleState, BlobStreamingContentFrontier,
    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-warning: unused import: `forge_store_security::StoreTenantScope`
-  --> crates\forge-store-blob-chunks\src\corruption\tests.rs:17:5
+warning: unused import: `worth_store_security::StoreTenantScope`
+  --> crates\worth-store-blob-chunks\src\corruption\tests.rs:17:5
    |
-17 | use forge_store_security::StoreTenantScope;
+17 | use worth_store_security::StoreTenantScope;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 warning: unused import: `recovery_entry`
-  --> crates\forge-store-blob-chunks\src\publication\test_support\mod.rs:10:5
+  --> crates\worth-store-blob-chunks\src\publication\test_support\mod.rs:10:5
    |
 10 |     recovery_entry, recovery_replay_entry, replayable_wal_classification,
    |     ^^^^^^^^^^^^^^
-warning: `forge-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
-forge-store-blob-chunks --tests` to apply 5 suggestions)
+warning: `worth-store-blob-chunks` (lib test) generated 16 warnings (11 duplicates) (run `cargo fix --lib -p 
+worth-store-blob-chunks --tests` to apply 5 suggestions)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
-     Running unittests src\lib.rs (target\debug\deps\forge_store_blob_chunks-085508f9a87601b9.exe)
+     Running unittests src\lib.rs (target\debug\deps\worth_store_blob_chunks-085508f9a87601b9.exe)

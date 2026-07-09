@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query::facade::causal_evidence_reference_index_record`
+ --> tests/ui/causal_evidence_reference_index_record_public_constructor_forbidden.rs:2:5
+  |
+2 |     causal_evidence_reference_index_record, CausalEvidenceFamily, CausalEvidenceOwner,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     no `causal_evidence_reference_index_record` in `facade`
+  |     help: a similar name exists in the module: `CausalEvidenceReferenceIndexRecord`

@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.1 Inspection Boundary, DSL Ownership, And Certification Topology`
 >
@@ -366,7 +366,7 @@ that every file name above land exactly as written.
 Every major 3.2 contract surface must map to a named proof family:
 
 - `declaration_identity_suite`
-  proves stable identity, semantic equivalence, and anti-forgery construction
+  proves stable identity, semantic equivalence, and anti-WORTHry construction
   rules.
   owning crate: `worth-ui-certification`
   enforcement: compile-fail plus equivalence-runtime proof
@@ -922,7 +922,7 @@ must not pretend to have solved.
 - `UiDeclarationGraphHandoff` as the graph-consumable declaration handoff surface for 3.3
 - exact 3.3 sealed handoff artifact carrying only admitted structural and
   declared posture contracts, never raw source or support-only authority
-- certification proof that declaration authority cannot be forged or replaced by
+- certification proof that declaration authority cannot be WORTHd or replaced by
   source, renderer, host, or graph-local reinterpretation
 
 ## Must Preserve

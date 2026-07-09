@@ -1,5 +1,5 @@
-use forge_query::facade::{
-    ForgeQueryGroupedDeclarationInput, ForgeQuerySupportContributionAuthoring,
+use worth_query::facade::{
+    WORTHQueryGroupedDeclarationInput, WORTHQuerySupportContributionAuthoring,
 };
 use hadwiger_research::facade::*;
 
@@ -210,7 +210,7 @@ fn grouped_agent_advisory_uses_query_grouped_contribution_surface() {
         .unwrap();
     let admitted = admit_agent_exploration_batch_checked(&handle, &corpus, batch).unwrap();
     let advisory_artifact = admitted.advisory_artifacts()[0].clone();
-    let grouped = ForgeQueryGroupedDeclarationInput::<
+    let grouped = WORTHQueryGroupedDeclarationInput::<
         HadwigerResearchDomainEntry,
         CandidateGraphDeclaration,
     >::local_neighborhood(
@@ -218,7 +218,7 @@ fn grouped_agent_advisory_uses_query_grouped_contribution_surface() {
     )
     .with_member(CandidateGraphDeclaration::new("candidate-b").with_graph_version("v1"))
     .with_shared_support_contribution(
-        ForgeQuerySupportContributionAuthoring::declaration_support(
+        WORTHQuerySupportContributionAuthoring::declaration_support(
             "hadwiger.agent.grouped_support",
             "agent support applies to the candidate neighborhood",
         ),

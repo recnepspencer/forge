@@ -1,0 +1,11 @@
+error[E0599]: no method named `aspect_paths` found for reference `&WorthQueryExistingTruthProbeRequest` in the current scope
+ --> tests/ui/aspect_native_query/probe_request_aspect_paths_alias_removed.rs:4:21
+  |
+4 |     let _ = request.aspect_paths();
+  |                     ^^^^^^^^^^^^
+  |
+help: there is a method `aspect_touches` with a similar name
+  |
+4 -     let _ = request.aspect_paths();
+4 +     let _ = request.aspect_touches();
+  |

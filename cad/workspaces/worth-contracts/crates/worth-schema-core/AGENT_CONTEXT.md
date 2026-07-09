@@ -18,7 +18,7 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 
 Machine fences:
 - Must not depend on worthy-* crates.
-- Must not depend on forge-query.
+- Must not depend on worth-query.
 - Must not depend on replay surface families such as certification replay [worth-cert-replay, worthy-cert-replay; cert domains: replay, reconstruction].
 
 Skeleton fence:

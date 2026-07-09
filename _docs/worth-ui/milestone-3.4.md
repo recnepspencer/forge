@@ -2,7 +2,7 @@
 
 > **Status:** Planned
 >
-> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
+> **Roadmap parent:** [worth_ui_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/worth-ui/_docs/worth-ui/worth_ui_roadmap.md)
 >
 > **Primary prerequisite:** `Milestone 3.3 UI Authority Graph, Identity, Participation, And Core Indexes`
 >
@@ -140,7 +140,7 @@ folklore.
   protects typed evidence and one runtime-owned explanation substrate. 3.4
   therefore must emit typed obligation/admission evidence and support posture
   artifacts alongside the runtime family it introduces.
-- `crates/forge-query/docs/AI_README.md`
+- `crates/worth-query/docs/AI_README.md`
   protects Query as the ordinary domain/runtime facade. For 3.4 that means
   Query-backed support, basis, projection consumption, inspection, and causal
   explanation stay Query-owned:
@@ -650,7 +650,7 @@ Every major 3.4 contract surface must map to a named proof family:
   owning crate: `worth-ui-certification`
   enforcement: runtime certification plus inspection-boundary proof
 - `public_facade_boundary_suite`
-  proves callers cannot bypass the facade to forge touch descriptors, selected
+  proves callers cannot bypass the facade to WORTH touch descriptors, selected
   obligations, or verdict identities from raw values.
   owning crate: `worth-ui-certification`
   enforcement: compile-fail plus topology audit
@@ -928,7 +928,7 @@ family rules instead of ad hoc validators.
   family catalog.
 - Rejection test: unknown or contradictory obligation-family claims fail
   through family admission rather than late dispatch.
-- Drift test: adding a new family or expanding one family’s support posture
+- Drift test: adding a new family or expanding one familyâ€™s support posture
   forces explicit compiler and certification updates at every selection site.
 
 **Engineering decisions**

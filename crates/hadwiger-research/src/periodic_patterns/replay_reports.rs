@@ -73,7 +73,7 @@ impl GeneratedPatternReplayReport {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.generated_pattern_replay_report.v1",
+                    "WORTH.hadwiger.generated_pattern_replay_report.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("suite", suite.reference().stable_token()),
                 HadwigerArtifactPayloadEntry::text("evidence", evidence),

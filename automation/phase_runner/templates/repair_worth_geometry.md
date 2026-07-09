@@ -42,7 +42,7 @@ For Worth geometry work, structural repair means replacing the bad authority
 topology, not wrapping the failing test:
 
 - move/create/use the lower crate surface that owns the law
-- seal or remove forgeable/copyable authority paths
+- seal or remove WORTHable/copyable authority paths
 - cut ordinary callers to the new lane
 - preserve honest public DX
 - update public/compile-fail fences so the old shortcut is impossible

@@ -1,7 +1,7 @@
 //! Anonymous data access trait and plane coefficient type.
 //!
 //! DOMAIN: Allows lower layers (`worth-geom`) to request plane data
-//! from higher layers (`forge-kernel`) without depending on them.
+//! from higher layers (`WORTH-kernel`) without depending on them.
 //!
 //! DEPENDENCIES: `MathError` (error type)
 

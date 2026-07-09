@@ -1,0 +1,26 @@
+error[E0407]: method `affected_live_view_ids` is not a member of trait `WorthQueryRuntimeBackend`
+  --> tests/ui/bridge_truth_identity/runtime_backend_snapshot_token_removed.rs:73:5
+   |
+73 |       fn affected_live_view_ids(&self, _receipt: &WorthQueryMutationReceipt) -> Vec<String> {
+   |       ^  ---------------------- help: there is an associated function with a similar name: `affected_live_view_targets`
+   |  _____|
+   | |
+74 | |         Vec::new()
+75 | |     }
+   | |_____^ not a member of trait `WorthQueryRuntimeBackend`
+
+error[E0407]: method `snapshot_token` is not a member of trait `WorthQueryRuntimeBackend`
+   --> tests/ui/bridge_truth_identity/runtime_backend_snapshot_token_removed.rs:109:5
+    |
+109 | /     fn snapshot_token(&self) -> String {
+110 | |         "snapshot-1".to_string()
+111 | |     }
+    | |_____^ not a member of trait `WorthQueryRuntimeBackend`
+
+error[E0046]: not all trait items implemented, missing: `affected_live_view_targets`
+  --> tests/ui/bridge_truth_identity/runtime_backend_snapshot_token_removed.rs:15:1
+   |
+15 | impl WorthQueryRuntimeBackend for StringSnapshotBackend {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `affected_live_view_targets` in implementation
+   |
+   = help: implement the missing item: `fn affected_live_view_targets(&self, _: &WorthQueryMutationReceipt) -> Vec<WorthQueryLiveArtifactTarget> { todo!() }`

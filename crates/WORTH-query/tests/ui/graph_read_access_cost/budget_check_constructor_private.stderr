@@ -1,0 +1,14 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/graph_read_access_cost/budget_check_constructor_private.rs:4:45
+  |
+4 |       let _ = WorthQueryGraphReadBudgetCheck::new;
+  |                                               ^^^ private associated function
+  |
+ ::: src/runtime/graph_read_access/cost_model/budget.rs
+  |
+  | /     fn new(
+  | |         budget: &WorthQueryGraphReadBudget,
+  | |         estimate_digest: &WorthQueryGraphReadAccessCostEstimateDigest,
+  | |         class: WorthQueryGraphReadBudgetClass,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

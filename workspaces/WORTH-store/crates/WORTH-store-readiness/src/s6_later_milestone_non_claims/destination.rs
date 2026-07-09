@@ -1,0 +1,1 @@
+pub use worth_store_contracts::S6LaterMilestoneDestination;

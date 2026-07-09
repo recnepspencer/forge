@@ -1,0 +1,5 @@
+error[E0308]: mismatched types
+ --> tests/ui/runtime_graph_composition_breadth_constructor_private.rs:8:25
+  |
+8 |         breadth_digest: String::new(),
+  |                         ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`

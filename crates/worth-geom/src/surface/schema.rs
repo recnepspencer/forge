@@ -4,7 +4,7 @@
 //! cone, sphere, torus) and freeform (NURBS). Each surface stores its
 //! parametric definition and valid parameter domain.
 //!
-//! DEPENDENCIES: serde (serialization), forge-topo handles (SurfaceRef)
+//! DEPENDENCIES: serde (serialization), WORTH-topo handles (SurfaceRef)
 
 use serde::{Deserialize, Serialize};
 

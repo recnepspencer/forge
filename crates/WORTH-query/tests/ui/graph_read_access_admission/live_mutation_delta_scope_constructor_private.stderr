@@ -1,0 +1,9 @@
+error[E0451]: fields `affected_requirement_row_count` and `delta_scope_digest` of struct `WorthQueryLiveGraphReadMutationDeltaScope` are private
+ --> tests/ui/graph_read_access_admission/live_mutation_delta_scope_constructor_private.rs:5:9
+  |
+4 |     let _scope = WorthQueryLiveGraphReadMutationDeltaScope {
+  |                  ----------------------------------------- in this type
+5 |         affected_requirement_row_count: 0,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+6 |         delta_scope_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^ private field

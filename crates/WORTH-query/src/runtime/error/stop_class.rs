@@ -1,0 +1,165 @@
+use super::*;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryRuntimeMissingComponent {
+    Backend,
+    RuntimeBridge,
+    SchemaAdapter,
+    SourceAdapter,
+    SnapshotIdentityAdapter,
+    WriteAuthority,
+    SignalSink,
+    SubscriptionActivation,
+    PreviewBasis,
+    InspectorEvidence,
+    IntentAuthority,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryRuntimeLookupFailureKind {
+    UnknownProgram,
+    UnknownOperation,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryRuntimeMissingArtifactKind {
+    LiveView,
+    LiveSubscription,
+    DerivedView,
+    Effect,
+    PendingWriteIntent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryRuntimeDeclarationFailureKind {
+    RetainedRowDecode,
+    ComputedDeclaration,
+    EffectDeclaration,
+    LiveSubscriptionInstallation,
+    InvariantRegistration,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum WorthQueryStopClass<'a> {
+    MissingRuntimeComponent {
+        component: WorthQueryRuntimeMissingComponent,
+    },
+    ExistingTruthAssertionDenied {
+        denial: &'a WorthQueryExistingTruthAssertionDenial,
+    },
+    ExistingTruthProbeDenied {
+        denial: &'a WorthQueryExistingTruthProbeDenial,
+    },
+    MutationBindingDenied {
+        denial: &'a WorthQueryExistingTruthBindingDenial,
+    },
+    MutationContinuityDenied {
+        denial: &'a WorthQueryContinuityMutationDenial,
+    },
+    GraphObligationTouchDescriptorDenied {
+        denial: &'a WorthQueryGraphTouchDescriptorDenial,
+    },
+    GraphObligationEffectTouchDescriptorMissing {
+        effect_name: &'a str,
+    },
+    GraphObligationIntentTouchDescriptorMissing {
+        intent_name: &'a str,
+    },
+    GraphMutationPolicyContextDenied {
+        expected: crate::policy_basis::PolicyExecutionModeRequest,
+        actual: crate::policy_basis::PolicyExecutionModeRequest,
+        policy_tenant_admission_digest: &'a str,
+    },
+    GraphMutationPolicyGateDenied {
+        evidence: &'a crate::runtime::WorthQueryGraphMutationPolicyGateEvidence,
+    },
+    GraphObligationDenied {
+        denial: &'a WorthQueryGraphObligationDenial,
+    },
+    GraphCompositionDenied {
+        denial: &'a WorthQueryGraphCompositionDenial,
+    },
+    GraphCompositionDomainInvariantDenied {
+        denial: &'a WorthQueryGraphCompositionDomainInvariantDenial,
+    },
+    MutationNamingDenied {
+        denial: &'a WorthQueryNamingMutationDenial,
+    },
+    MutationTargetReferenceDenied {
+        denial: &'a WorthQuerySymbolicTargetReferenceDenial,
+    },
+    ReadCompositionDenied {
+        denial: &'a WorthQueryReadDenial,
+    },
+    ReadCompositionDomainInvariantDenied {
+        denial: &'a WorthQueryReadDomainInvariantDenial,
+    },
+    Workspace {
+        error: &'a WorthQueryWorkspaceError,
+    },
+    Program {
+        error: &'a WorthQueryProgramError,
+    },
+    RuntimeLookupFailed {
+        kind: WorthQueryRuntimeLookupFailureKind,
+        program_id: &'a str,
+        operation_id: Option<&'a str>,
+    },
+    MissingRuntimeArtifact {
+        kind: WorthQueryRuntimeMissingArtifactKind,
+        name: &'a str,
+    },
+    SharedReadStaleBasis {
+        snapshot_identity: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
+    },
+    JournalReplayDenied {
+        denial: &'a WorthQueryJournalReplayDenial,
+    },
+    RuntimeDeclarationFailed {
+        kind: WorthQueryRuntimeDeclarationFailureKind,
+        name: &'a str,
+        stage: &'static str,
+        message: &'a str,
+    },
+    PreviewOperationEffectDenied {
+        label: &'a WorthQuerySessionLabel,
+        stage: &'static str,
+        message: &'a str,
+    },
+    SessionLabelCollision {
+        authority_lane: WorthQueryAuthorityLane,
+        label: &'a WorthQuerySessionLabel,
+    },
+    UnsupportedAuthorityRequirement {
+        requirement: &'a WorthQueryAuthorityRequirement,
+    },
+    ExistingTruthAssertionRequiresAuthorityLane {
+        required_lane: WorthQueryAuthorityLane,
+    },
+    IntentCommitDenied {
+        intent_name: &'a str,
+        stage: &'static str,
+        message: &'a str,
+        evidence: &'a WorthQueryIntentDenialEvidence,
+    },
+    IntentExecutionRoutingFailed {
+        intent_name: &'a str,
+        stage: &'static str,
+        message: &'a str,
+        evidence: &'a WorthQueryIntentExecutionFailureEvidence,
+        source: &'a WorthQueryRuntimeError,
+    },
+    EffectPolicyDenied {
+        denial: WorthQueryEffectPolicyDenial,
+    },
+    PreviewPromotionDenied {
+        kind: WorthQueryPreviewPromotionDenialKind,
+        evidence: &'a WorthQueryPreviewPromotionDenialEvidence,
+    },
+    FamilyAdmissionDenied {
+        family: WorthQueryRuntimeFacadeFamily,
+        status: WorthQueryRuntimeFamilySupportStatus,
+        teaching_posture: Option<WorthQueryRuntimeFamilyTeachingPosture>,
+        reason: &'a str,
+    },
+}

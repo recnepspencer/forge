@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryRecoveryBrief;
+use worth_query::facade::WORTHQueryRecoveryBrief;
 
 use crate::aspect_authority::HadwigerAspectPosture;
 use crate::domain_artifacts::{HadwigerArtifactShapeError, ProofClaim};
@@ -20,7 +20,7 @@ pub struct HadwigerProofClaimBlocker {
     blocker_kind: HadwigerProofClaimBlockerKind,
     reason: String,
     observed_posture: Option<HadwigerAspectPosture>,
-    query_recovery_brief: Option<ForgeQueryRecoveryBrief>,
+    query_recovery_brief: Option<WORTHQueryRecoveryBrief>,
 }
 
 impl HadwigerProofClaimBlocker {
@@ -49,7 +49,7 @@ impl HadwigerProofClaimBlocker {
         self.observed_posture
     }
 
-    pub fn query_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
+    pub fn query_recovery_brief(&self) -> Option<&WORTHQueryRecoveryBrief> {
         self.query_recovery_brief.as_ref()
     }
 }

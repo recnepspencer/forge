@@ -1,0 +1,23 @@
+error[E0599]: no method named `consume_scalar_fields_by_name` found for struct `WorthQueryDerivedArtifactBinding` in the current scope
+ --> tests/ui/aspect_native_query/retained_scalar_by_name_lookup_not_public.rs:6:21
+  |
+6 |     let _ = binding.consume_scalar_fields_by_name("derived.example", ["field.example"]);
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `consume_scalar_fields` with a similar name
+  |
+6 -     let _ = binding.consume_scalar_fields_by_name("derived.example", ["field.example"]);
+6 +     let _ = binding.consume_scalar_fields("derived.example", ["field.example"]);
+  |
+
+error[E0599]: no method named `verify_scalar_alignment_by_name` found for struct `WorthQueryDerivedArtifactBinding` in the current scope
+ --> tests/ui/aspect_native_query/retained_scalar_by_name_lookup_not_public.rs:7:21
+  |
+7 |     let _ = binding.verify_scalar_alignment_by_name(
+  |             --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `verify_scalar_alignment` with a similar name
+  |
+7 -     let _ = binding.verify_scalar_alignment_by_name(
+7 +     let _ = binding.verify_scalar_alignment(
+  |

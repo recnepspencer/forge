@@ -1,5 +1,0 @@
-error[E0599]: no method named `update_existing` found for struct `ForgeQueryWorkspace` in the current scope
- --> tests/ui/prohibition_registry/existing_truth_update_forbidden.rs:6:23
-  |
-6 |     let _ = workspace.update_existing(binding, |builder: ForgeQueryAspectMutationBuilder| builder);
-  |                       ^^^^^^^^^^^^^^^ method not found in `ForgeQueryWorkspace`

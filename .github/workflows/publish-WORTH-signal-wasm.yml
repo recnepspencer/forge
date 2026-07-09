@@ -1,0 +1,49 @@
+name: Publish WORTH Signal Wasm
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish private npm package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+
+      - name: Install wasm package dev dependencies
+        working-directory: crates/worth-signal-wasm
+        run: npm ci
+
+      - name: Build wasm package
+        run: wasm-pack build crates/worth-signal-wasm --target bundler --release --out-dir pkg
+
+      - name: Prepare npm metadata
+        env:
+          WORTH_SIGNAL_WASM_SCOPE: aust-group
+          WORTH_SIGNAL_WASM_REPOSITORY_URL: https://github.com/AuST-Group/WORTH.git
+        run: node scripts/wasm/prepare-worth-signal-wasm-package.mjs crates/worth-signal-wasm/pkg
+
+      - name: Publish to GitHub Packages
+        working-directory: crates/worth-signal-wasm/pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.AUST_GROUP_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: npm publish

@@ -1,9 +1,0 @@
-error[E0451]: fields `digest` and `rows` of struct `ForgeQueryGraphIndexInventory` are private
- --> tests/ui/graph_index_inventory/inventory_constructor_private.rs:5:9
-  |
-4 |     let _ = ForgeQueryGraphIndexInventory {
-  |             ----------------------------- in this type
-5 |         digest: String::new(),
-  |         ^^^^^^ private field
-6 |         rows: Vec::new(),
-  |         ^^^^ private field

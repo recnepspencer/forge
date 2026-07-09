@@ -1,0 +1,18 @@
+error: cannot construct `WorthQueryGraphReadAccessAdmission` with struct literal syntax due to private fields
+ --> tests/ui/graph_read_access_admission/access_admission_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryGraphReadAccessAdmission {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = WorthQueryGraphReadAccessAdmission {};
+4 +     let _ = WorthQueryGraphReadAccessAdmission::new(_, _, _, _, _, _, _, _, _);
+  |
+4 -     let _ = WorthQueryGraphReadAccessAdmission {};
+4 +     let _ = WorthQueryGraphReadAccessAdmission::admitted_in_authority(_, _, _, _, _, _, _, _);
+  |
+4 -     let _ = WorthQueryGraphReadAccessAdmission {};
+4 +     let _ = WorthQueryGraphReadAccessAdmission::denied_in_authority(_, _, _, _, _, _, _, _);
+  |

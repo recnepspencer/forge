@@ -99,10 +99,10 @@ intents.
 
 **Relevant APIs**
 
-- `ForgeQueryDeclarationInput`
-- `ForgeQueryDeclarationFamilyMarker`
-- `ForgeQueryDeclarationCanonicalEntry`
-- `ForgeQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
+- `WORTHQueryDeclarationInput`
+- `WORTHQueryDeclarationFamilyMarker`
+- `WORTHQueryDeclarationCanonicalEntry`
+- `WORTHQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
 - `declaration_entry_readiness::<I>()`
 - `declaration_entry_crossing_inventory::<I>()`
 

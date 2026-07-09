@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/closeout/closeout_row_constructor_private.rs:8:48
+  |
+8 |       let _ = WorthQueryLowerRuntimeCloseoutRow::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/inventory/closeout_types.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+  | |         capability_label: &'static str,
+  | |         posture: WorthQueryLowerRuntimeCloseoutPosture,
+... |
+  | |         certification_row: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

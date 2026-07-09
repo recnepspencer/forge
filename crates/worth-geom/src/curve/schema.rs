@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// This is `worth-geom`'s internal index type for surface cross-references
 /// (e.g., within `SurfaceIntersection` curves). The kernel bridges these
-/// to `forge-topo::SurfaceRef` handles at the integration boundary.
+/// to `WORTH-topo::SurfaceRef` handles at the integration boundary.
 pub type SurfaceIndex = u32;
 
 /// Parametric 3D curve kinds supported by the kernel.
@@ -131,7 +131,7 @@ pub enum CurveProvenance {
 
 /// Complete 3D curve geometry for one edge.
 ///
-/// This is the geometry-layer mirror of `EdgeData` in `forge-topo`. The
+/// This is the geometry-layer mirror of `EdgeData` in `WORTH-topo`. The
 /// topology stores an opaque `CurveRef` handle; the geometry store holds
 /// the actual `CurveGeom` data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -140,7 +140,7 @@ pub struct CurveGeom {
     pub kind: CurveKind,
     /// Certified 3D uncertainty tube radius around this curve.
     /// For analytic curves this is ≈ 0. For SSI curves this is the solver
-    /// residual. NEVER stored in `forge-topo`.
+    /// residual. NEVER stored in `WORTH-topo`.
     pub tolerance: f64,
     /// How this curve was created and its tolerance derived.
     pub provenance: CurveProvenance,

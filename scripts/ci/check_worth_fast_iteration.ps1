@@ -31,14 +31,14 @@ function Invoke-Step {
     }
 }
 
-Invoke-Step "forge-query compile/check gate" @(
-    "cargo", "check", "-p", "forge-query", "--tests", "--message-format", "short"
+Invoke-Step "worth-query compile/check gate" @(
+    "cargo", "check", "-p", "worth-query", "--tests", "--message-format", "short"
 )
-Invoke-Step "forge-query test compilation gate" @(
-    "cargo", "test", "-p", "forge-query", "--tests", "--no-run", "--message-format", "short"
+Invoke-Step "worth-query test compilation gate" @(
+    "cargo", "test", "-p", "worth-query", "--tests", "--no-run", "--message-format", "short"
 )
-Invoke-Step "forge-query fast unit gate" @(
-    "cargo", "test", "-p", "forge-query", "--lib", "--", "--format", "terse"
+Invoke-Step "worth-query fast unit gate" @(
+    "cargo", "test", "-p", "worth-query", "--lib", "--", "--format", "terse"
 )
 
 Invoke-Step "worth-spatial compile/check gate" @(

@@ -1,0 +1,31 @@
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/computed_patch_observation_raw_name_removed.rs:4:43
+  |
+4 |     let _ = runtime.drain_derived_patches("computed.title_list");
+  |                     --------------------- ^^^^^^^^^^^^^^^^^^^^^ expected `&WorthQueryDerivedViewHandle<_>`, found `&str`
+  |                     |
+  |                     arguments to this method are incorrect
+  |
+  = note: expected reference `&WorthQueryDerivedViewHandle<_>`
+             found reference `&'static str`
+note: method defined here
+ --> src/runtime/runtime_reads_programs.rs
+  |
+  |     pub fn drain_derived_patches<T>(
+  |            ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/computed_patch_observation_raw_name_removed.rs:8:40
+  |
+8 |     let _ = workspace.observe_computed("computed.title_list");
+  |                       ---------------- ^^^^^^^^^^^^^^^^^^^^^ expected `&WorthQueryDerivedViewHandle<_>`, found `&str`
+  |                       |
+  |                       arguments to this method are incorrect
+  |
+  = note: expected reference `&WorthQueryDerivedViewHandle<_>`
+             found reference `&'static str`
+note: method defined here
+ --> src/runtime/workspace_live_queries.rs
+  |
+  |     pub fn observe_computed<T>(
+  |            ^^^^^^^^^^^^^^^^

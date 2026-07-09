@@ -2,7 +2,7 @@
 //!
 //! Hadwiger domain meaning lives here, while declaration identity, handle
 //! admission, readiness, orchestration, aspect contracts, and binding stops stay
-//! on `forge-query` surfaces.
+//! on `worth-query` surfaces.
 
 #![forbid(unsafe_code)]
 

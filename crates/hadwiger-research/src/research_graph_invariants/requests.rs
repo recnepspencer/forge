@@ -1,5 +1,5 @@
-use forge_query::facade::runtime::{
-    ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
+use worth_query::facade::runtime::{
+    WORTHQueryLowerRuntimeBoundaryEnvelope, WORTHQueryLowerRuntimeBoundaryEnvelopeSource,
 };
 
 use crate::discovery_loop::{ExperimentBatch, ResearchEvidenceCorpus};
@@ -65,14 +65,14 @@ impl ResearchGraphInvariantDenialRequest {
 
     pub fn for_lower_runtime_boundary_envelope(
         self,
-        envelope: &ForgeQueryLowerRuntimeBoundaryEnvelope,
+        envelope: &WORTHQueryLowerRuntimeBoundaryEnvelope,
     ) -> Self {
         self.for_lower_runtime_boundary_source(envelope)
     }
 
     pub fn for_lower_runtime_boundary_source<S>(mut self, source: &S) -> Self
     where
-        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+        S: WORTHQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
     {
         self.lower_runtime_boundary_source =
             Some(ResearchGraphInvariantBoundarySource::from_source(source));
@@ -96,7 +96,7 @@ impl ResearchGraphInvariantDenialRequest {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ResearchGraphInvariantBoundarySource {
-    envelope: ForgeQueryLowerRuntimeBoundaryEnvelope,
+    envelope: WORTHQueryLowerRuntimeBoundaryEnvelope,
     source_kind: &'static str,
     source_digest: String,
 }
@@ -104,7 +104,7 @@ pub(crate) struct ResearchGraphInvariantBoundarySource {
 impl ResearchGraphInvariantBoundarySource {
     fn from_source<S>(source: &S) -> Self
     where
-        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+        S: WORTHQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
     {
         Self {
             envelope: source.lower_runtime_boundary_envelope().clone(),
@@ -116,7 +116,7 @@ impl ResearchGraphInvariantBoundarySource {
         }
     }
 
-    pub(crate) fn envelope(&self) -> &ForgeQueryLowerRuntimeBoundaryEnvelope {
+    pub(crate) fn envelope(&self) -> &WORTHQueryLowerRuntimeBoundaryEnvelope {
         &self.envelope
     }
 

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/inventory/crossing_row_constructor_private.rs:8:48
+  |
+8 |       let _ = WorthQueryLowerRuntimeCrossingRow::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/inventory/crossing_types.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: WorthQueryLowerRuntimeSeamKey,
+  | |         capability_label: &'static str,
+  | |         concrete_seam: &'static str,
+... |
+  | |         required_action: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

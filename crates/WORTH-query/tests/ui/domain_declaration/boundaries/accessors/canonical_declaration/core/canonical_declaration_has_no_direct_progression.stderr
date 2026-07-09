@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_declaration_has_no_direct_progression.rs:73:41
+   |
+73 |     let _ = handle.progress_declaration(declaration);
+   |                    -------------------- ^^^^^^^^^^^ expected `WorthQueryDeclarationLegalityEvidence<..., _>`, found `WorthQueryCanonicalDeclarationArtifact<..., ...>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected struct `WorthQueryDeclarationLegalityEvidence<GeometryDomain, _>`
+              found struct `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle/declaration_entry/progression.rs
+   |
+   |     pub fn progress_declaration<I>(
+   |            ^^^^^^^^^^^^^^^^^^^^

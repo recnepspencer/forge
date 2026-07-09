@@ -1,0 +1,40 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/causal_observation_evidence_identity_raw_constructor_private.rs:4:48
+  |
+4 |       let _ = CausalObservationEvidenceIdentity::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: src/runtime/inspection/causal/receipt_types.rs
+  |
+  | /     pub(in crate::runtime) fn new(
+  | |         family: CausalEvidenceFamily,
+  | |         reference_digest: impl Into<CausalEvidenceReferenceInput>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0277]: the trait bound `worth_query::runtime::inspection::causal::observation_identity::CausalEvidenceReferenceInput: From<&str>` is not satisfied
+ --> tests/ui/causal_observation_evidence_identity_raw_constructor_private.rs:6:9
+  |
+4 |     let _ = CausalObservationEvidenceIdentity::new(
+  |             -------------------------------------- required by a bound introduced by this call
+5 |         CausalEvidenceFamily::BridgeRoute,
+6 |         "raw-bridge-route-digest",
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `From<&str>` is not implemented for `worth_query::runtime::inspection::causal::observation_identity::CausalEvidenceReferenceInput`
+  |
+help: the following other types implement trait `From<T>`
+ --> src/runtime/inspection/causal/observation_identity.rs
+  |
+  | impl From<CausalEvidenceReferenceDigest> for CausalEvidenceReferenceInput {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `worth_query::runtime::inspection::causal::observation_identity::CausalEvidenceReferenceInput` implements `From<CausalEvidenceReferenceDigest>`
+...
+  | impl From<BridgeIdentityEvidence> for CausalEvidenceReferenceInput {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `worth_query::runtime::inspection::causal::observation_identity::CausalEvidenceReferenceInput` implements `From<worth_runtime_bridge::identity::BridgeIdentityEvidence>`
+  = note: required for `&str` to implement `Into<worth_query::runtime::inspection::causal::observation_identity::CausalEvidenceReferenceInput>`
+note: required by a bound in `CausalObservationEvidenceIdentity::new`
+ --> src/runtime/inspection/causal/receipt_types.rs
+  |
+  |     pub(in crate::runtime) fn new(
+  |                               --- required by a bound in this associated function
+  |         family: CausalEvidenceFamily,
+  |         reference_digest: impl Into<CausalEvidenceReferenceInput>,
+  |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `CausalObservationEvidenceIdentity::new`

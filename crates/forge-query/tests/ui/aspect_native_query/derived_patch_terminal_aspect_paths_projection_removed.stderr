@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_aspect_paths_projection` found for reference `&ForgeQueryDerivedPatch` in the current scope
- --> tests/ui/aspect_native_query/derived_patch_terminal_aspect_paths_projection_removed.rs:4:19
-  |
-4 |     let _ = patch.terminal_aspect_paths_projection();
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryDerivedPatch`

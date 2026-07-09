@@ -7,7 +7,7 @@ pub(crate) fn cell_payload(
     tiles: &[RectangularTileRegion],
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
-        HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.tiling_cell.v1"),
+        HadwigerArtifactPayloadEntry::text("schema", "WORTH.hadwiger.tiling_cell.v1"),
         HadwigerArtifactPayloadEntry::text("cell_id", cell_id),
         HadwigerArtifactPayloadEntry::unsigned("tile_count", tiles.len() as u128),
     ];

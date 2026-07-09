@@ -1,0 +1,14 @@
+[package]
+name = "worth-store-branch-deltas"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 1 structural delta storage and branch delta layering."
+
+[dependencies]
+worth-store-authority.workspace = true
+worth-store-contracts.workspace = true
+worth-store-layout-indexes.workspace = true
+
+[lints]
+workspace = true

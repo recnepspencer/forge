@@ -1,5 +1,5 @@
-use forge_query::facade::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclaredFamilyChecked,
+use worth_query::facade::{
+    WORTHQueryCanonicalDeclarationArtifact, WORTHQueryDeclaredFamilyChecked,
 };
 
 use crate::domain_artifacts::HadwigerCanonicalArtifact;
@@ -15,7 +15,7 @@ use super::terminal_relations::TerminalForcingRelation;
 
 pub fn build_motif_from_seed_declaration_checked(
     _handle: &HadwigerResearchHandle,
-    source_declaration: ForgeQueryCanonicalDeclarationArtifact<
+    source_declaration: WORTHQueryCanonicalDeclarationArtifact<
         HadwigerResearchDomainEntry,
         MotifSeedDeclaration,
     >,
@@ -37,7 +37,7 @@ pub fn certify_terminal_forcing_relation_checked(
 ) -> Result<TerminalForcingRelation, MotifLanguageError> {
     validate_terminal_study_request(&study_declaration, motif, &certificate)?;
     let source_declaration = match declare_research_request_checked(handle, study_declaration) {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
+        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => declaration,
         _ => return Err(MotifLanguageError::TerminalStudyDeclarationNotAdmitted),
     };
     let source_reference = source_declaration.into();

@@ -50,9 +50,9 @@ Repair rules:
 - Fix the cause, not the symptom.
 - Fix the full visible finding family, not just the first file that failed.
 - If the previous review identified repeated or shared findings, start by
-  naming the root cause category: wrong ownership boundary, forgeable authority,
+  naming the root cause category: wrong ownership boundary, WORTHable authority,
   certification-overreach, count/projection pretending to be proof, adoption not
-  tied to production API, or missing non-forgeability proof.
+  tied to production API, or missing non-WORTHability proof.
 - If this phase has already failed review two or more times, assume the current
   defects may be one unresolved seam unless you can prove they are unrelated.
 - Before editing after repeated review failures, answer briefly in chat:
@@ -72,14 +72,14 @@ Repair rules:
   proxy if the spec requires a runtime-owned admitted artifact.
 - Do not patch hostile proofs with synthetic inputs when the review says the
   production derivation seam is still unsealed.
-- When the defect family is forgeable authority, proxy identity, weak
+- When the defect family is WORTHable authority, proxy identity, weak
   equivalence, mutable-boundary leakage, or displaced ordinary authority,
   prefer one end-to-end seam rewrite over multiple local edits that leave the
   same weaker source alive underneath.
 - Mint canonical witnesses once, admit them once, preserve them end-to-end, and
   cut downstream identity/equivalence/inspection consumers over to them
   directly.
-- Do not add another denial wrapper around a forgeable path. Remove or seal the
+- Do not add another denial wrapper around a WORTHable path. Remove or seal the
   path that made the impossible state constructible.
 - Certification is the courtroom, not the law. It may materialize and prove
   executed Store law; it must not mint runtime authority, lower Store witnesses,

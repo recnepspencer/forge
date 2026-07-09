@@ -151,7 +151,7 @@ impl TilingBoundaryOwnershipReport {
             },
             vec![cell.reference(), evaluation.reference()],
             report_payload(
-                "forge.hadwiger.tiling_boundary_ownership_report.v1",
+                "WORTH.hadwiger.tiling_boundary_ownership_report.v1",
                 &cell.reference().stable_token(),
                 query_digest.as_deref(),
                 Some(&evaluation_digest),
@@ -227,7 +227,7 @@ impl TilingContactReplayReport {
             },
             vec![cell.reference(), evaluation.reference()],
             report_payload(
-                "forge.hadwiger.tiling_contact_replay_report.v1",
+                "WORTH.hadwiger.tiling_contact_replay_report.v1",
                 &cell.reference().stable_token(),
                 query_digest.as_deref(),
                 Some(&evaluation_digest),

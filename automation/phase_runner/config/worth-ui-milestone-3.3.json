@@ -1,8 +1,8 @@
-﻿{
+{
   "schema_version": 1,
   "project": {
     "name": "Worth UI Milestone 3.3",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.3.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -10,8 +10,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
       "_docs\\worth-ui\\ai-diagnostics.md",

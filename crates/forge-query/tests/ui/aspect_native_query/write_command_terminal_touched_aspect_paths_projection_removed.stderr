@@ -1,5 +1,0 @@
-error[E0599]: no method named `terminal_touched_aspect_paths_projection` found for reference `&ForgeQueryWriteCommand` in the current scope
- --> tests/ui/aspect_native_query/write_command_terminal_touched_aspect_paths_projection_removed.rs:4:21
-  |
-4 |     let _ = command.terminal_touched_aspect_paths_projection();
-  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ForgeQueryWriteCommand`

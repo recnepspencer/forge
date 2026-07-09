@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query::facade::consumer_kit::WorthQuerySupportSnapshotDocument`
+ --> tests/ui/support_snapshot/document_constructor_private.rs:1:5
+  |
+1 | use worth_query::facade::consumer_kit::WorthQuerySupportSnapshotDocument;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^---------------------------------
+  |     |                                  |
+  |     |                                  help: a similar name exists in the module: `WorthQuerySupportSnapshotRow`
+  |     no `WorthQuerySupportSnapshotDocument` in `facade::consumer_kit`

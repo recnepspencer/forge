@@ -1,0 +1,27 @@
+error[E0624]: associated function `from_retained_row` is private
+ --> tests/ui/aspect_native_query/derived_patch_payload_rejects_raw_json.rs:4:44
+  |
+4 |     let _ = WorthQueryDerivedPatchPayload::from_retained_row(serde_json::json!({
+  |                                            ^^^^^^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/computed/surface.rs
+  |
+  |     pub(in crate::runtime) fn from_retained_row(row: WorthQueryRetainedMaterializedRow) -> Self {
+  |     ------------------------------------------------------------------------------------------- private associated function defined here
+
+error[E0308]: mismatched types
+ --> tests/ui/aspect_native_query/derived_patch_payload_rejects_raw_json.rs:4:62
+  |
+4 |       let _ = WorthQueryDerivedPatchPayload::from_retained_row(serde_json::json!({
+  |  _____________------------------------------------------------_^
+  | |             |
+  | |             arguments to this function are incorrect
+5 | |         "value": "terminal"
+6 | |     }));
+  | |______^ expected `WorthQueryRetainedMaterializedRow`, found `Value`
+  |
+note: associated function defined here
+ --> src/runtime/computed/surface.rs
+  |
+  |     pub(in crate::runtime) fn from_retained_row(row: WorthQueryRetainedMaterializedRow) -> Self {
+  |                               ^^^^^^^^^^^^^^^^^

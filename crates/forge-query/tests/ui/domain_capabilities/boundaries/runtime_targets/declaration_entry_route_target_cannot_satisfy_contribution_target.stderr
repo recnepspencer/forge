@@ -1,7 +1,0 @@
-error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/boundaries/runtime_targets/declaration_entry_route_target_cannot_satisfy_contribution_target.rs:11:59
-   |
-11 |     let _: ForgeQueryDeclarationBoundContributionTarget = route_target;
-   |            --------------------------------------------   ^^^^^^^^^^^^ expected `ForgeQueryDeclarationBoundContributionTarget`, found `ForgeQueryDeclarationRoutePlanBindingTarget`
-   |            |
-   |            expected due to this

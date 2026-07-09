@@ -1,0 +1,12 @@
+error[E0624]: associated function `from_scalar_values` is private
+  --> tests/ui/aspect_native_query/retained_materialized_row_direct_constructor_private.rs:10:48
+   |
+10 |       let _ = WorthQueryRetainedMaterializedRow::from_scalar_values(BTreeMap::from([(
+   |                                                  ^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/runtime/surface/retained_materialized_row.rs
+   |
+   | /     pub(crate) fn from_scalar_values(
+   | |         scalar_values: BTreeMap<WorthQueryRetainedFieldPath, AspectValue>,
+   | |     ) -> Result<Self, String> {
+   | |_____________________________- private associated function defined here

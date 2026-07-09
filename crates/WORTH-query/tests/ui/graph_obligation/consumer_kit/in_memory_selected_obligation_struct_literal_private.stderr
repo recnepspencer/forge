@@ -1,0 +1,19 @@
+error[E0451]: fields `obligation_kind`, `support_lane`, `support_status`, `rule_identity_digest`, `registration_digest`, `execution_budget_digest` and `row_digest` of struct `WorthQueryGraphObligationInMemorySelectedObligation` are private
+  --> tests/ui/graph_obligation/consumer_kit/in_memory_selected_obligation_struct_literal_private.rs:9:9
+   |
+ 8 |     let _ = WorthQueryGraphObligationInMemorySelectedObligation {
+   |             --------------------------------------------------- in this type
+ 9 |         obligation_kind: WorthQueryGraphObligationKind::BlockingInvariant,
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         support_lane: WorthQueryGraphObligationSupportLane::AssemblyIndexSelection,
+   |         ^^^^^^^^^^^^ private field
+11 |         support_status: WorthQueryGraphObligationSupportStatus::Supported,
+   |         ^^^^^^^^^^^^^^ private field
+12 |         rule_identity_digest: "rule".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         registration_digest: "registration".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+14 |         execution_budget_digest: "budget".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         row_digest: "row".to_string(),
+   |         ^^^^^^^^^^ private field

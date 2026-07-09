@@ -1,8 +1,8 @@
-﻿{
+{
   "schema_version": 1,
   "project": {
     "name": "Worth UI Milestone 3.4",
-    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\WORTH_workspace\\worth-ui",
     "spec_file": "_docs\\worth-ui\\milestone-3.4.md",
     "context_files": [
       "_docs\\coding_guidelines\\MENTALITY.md",
@@ -10,8 +10,8 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "crates\\forge-foundational\\docs\\FOUNDATIONAL_README.md",
-      "crates\\forge-query\\docs\\AI_README.md",
+      "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
+      "crates\\worth-query\\docs\\AI_README.md",
       "workspaces\\worth-ui\\docs\\WORTH_UI_README.md",
       "_docs\\worth-ui\\worth-ui-vision.md",
       "_docs\\worth-ui\\worth-ui-dsl-vision.md",
@@ -78,7 +78,7 @@
         "equivalent touch descriptors converge while coarse or contradictory touch construction denies before selection"
       ],
       "instructions": "Make touch the one canonical selected-work input. Keep it precise enough that the runtime can select obligations without broadening into graph-global validator folklore.",
-      "qa_focus": "No catch-all touch bags, no ambient world inference, no raw caller-forged touches, and no node-changed ordinary path."
+      "qa_focus": "No catch-all touch bags, no ambient world inference, no raw caller-WORTHd touches, and no node-changed ordinary path."
     },
     {
       "id": 3,
@@ -185,7 +185,7 @@
         "workspaces\\worth-ui\\crates\\worth-ui-certification"
       ],
       "acceptance": [
-        "compile-fail, residue, and topology proof block caller-forged touches, caller-selected validator packs, renderer-local legality helpers, and public bypass of obligation authority",
+        "compile-fail, residue, and topology proof block caller-WORTHd touches, caller-selected validator packs, renderer-local legality helpers, and public bypass of obligation authority",
         "the closeout enumerates the exact touch, support, family, selection, dispatch, verdict, Query-boundary, host-boundary, evidence, budget, and aggregation lanes 3.4 closes",
         "later runtime slices consume sealed touch/admission/verdict authority instead of raw graph/declaration internals or ad hoc helper state",
         "equivalent touch descriptors under the same graph generation, support snapshot, and prerequisite evidence converge to equivalent admission reports"

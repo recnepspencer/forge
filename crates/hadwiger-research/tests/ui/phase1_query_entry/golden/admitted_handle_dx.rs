@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryDeclaredFamilyChecked;
+use worth_query::facade::WORTHQueryDeclaredFamilyChecked;
 use hadwiger_research::facade::{
     admit_hadwiger_research_handle, declare_research_request_checked,
     orchestrate_research_request_entry, research_declaration_entry_readiness,
@@ -18,7 +18,7 @@ fn admitted_handle_dx() -> Result<(), HadwigerResearchAdmissionError> {
     let _outcome = orchestrate_research_request_entry(&handle, request);
 
     match checked {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => {
+        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => {
             assert_eq!(
                 declaration.declaration_family_key(),
                 "hadwiger.candidate_graph"

@@ -1,0 +1,22 @@
+error[E0271]: type mismatch resolving `<TaskTitle as TypedSchemaField>::Schema == UserSchema`
+  --> tests/ui/typed_project_rejects_foreign_schema_field.rs:22:68
+   |
+22 |     let _ = TypedDetailQueryBuilder::<UserSchema>::new().project::<TaskTitle>();
+   |                                                                    ^^^^^^^^^ type mismatch resolving `<TaskTitle as TypedSchemaField>::Schema == UserSchema`
+   |
+note: expected this to be `UserSchema`
+  --> tests/ui/typed_project_rejects_foreign_schema_field.rs:12:1
+   |
+12 | / worth_query::worth_query_schema! {
+13 | |     pub schema TaskSchema("task") {
+14 | |         fields {
+15 | |             pub field TaskTitle("text", "title", String) => [projectable, equality(String)];
+...  |
+19 | | }
+   | |_^
+note: required by a bound in `worth_query::typed::query_family::TypedQueryBuilder::<S, F>::project`
+  --> src/typed/query_family.rs
+   |
+   |     pub fn project<P: TypedProjectableField<Schema = S>>(mut self) -> Self {
+   |                                             ^^^^^^^^^^ required by this bound in `TypedQueryBuilder::<S, F>::project`
+   = note: this error originates in the macro `worth_query::worth_query_schema` (in Nightly builds, run with -Z macro-backtrace for more info)

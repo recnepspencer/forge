@@ -1,0 +1,406 @@
+use super::bridge::certification_bridge;
+use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
+use crate::facade::{
+    runtime_subscription_support_evidence_identity, DeclarativeProjectionField,
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
+    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    SubscriptionActivationInput, WorthQueryAuthorityLane, WorthQueryBasisAdmissionEvidenceRow,
+    WorthQueryEffectPolicy, WorthQueryExistingTruthAssertionDenial,
+    WorthQueryExistingTruthProbeDenial, WorthQueryExistingTruthProbeDenialKind,
+    WorthQueryIntentAuthorityAdapter, WorthQueryIntentDeclaration, WorthQueryIntentExecution,
+    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryMutationDelta,
+    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission,
+    WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeFacadeFamily,
+    WorthQueryRuntimeFamilySupport, WorthQueryRuntimeInspectionEvidence,
+    WorthQueryRuntimeInspectorEvidenceAdapter, WorthQueryRuntimePreviewBasisAdapter,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
+    WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
+    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
+    WorthQuerySessionLabel, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+};
+use crate::identity::hash_parts;
+use crate::memory_workspace::WorthQuerySnapshotIdentity;
+use crate::memory_workspace::{WorthQueryEntity, WorthQueryLivePatch};
+use crate::runtime::WorthQueryMutationTargetCollectionIdentity;
+use std::collections::BTreeMap;
+use worth_relational::facade::runtime::RelationalRuntime;
+use worth_runtime_bridge::facade::RuntimeBridge;
+
+use super::write_authority::CertificationWriteAuthority;
+use super::{
+    certification_commit_identity_for, certification_entity_identity,
+    certification_snapshot_identity, certification_snapshot_identity_for, identity_id_touch,
+    title_value_touch,
+};
+
+pub(crate) fn certification_runtime() -> WorthQueryRuntime {
+    WorthQueryRuntime::builder()
+        .runtime_bridge(certification_bridge())
+        .schema_adapter(CertificationSchemaAdapter)
+        .source_adapter(CertificationSourceAdapter::default())
+        .snapshot_identity(CertificationSnapshotIdentity)
+        .existing_truth_verification(CertificationExistingTruthVerification)
+        .write_authority(CertificationWriteAuthority)
+        .signal_sink(CertificationSignalSink)
+        .subscription_activation(CertificationSubscriptionActivation)
+        .preview_basis(CertificationPreviewBasis)
+        .inspector_evidence(CertificationInspectorEvidence)
+        .intent_authority(CertificationIntentAuthority)
+        .support_profile(certification_support_profile())
+        .build_backend_from_parts()
+        .build()
+        .expect("certification runtime backend parts should build")
+}
+
+pub(crate) fn certification_runtime_with_invariant_violation_authority() -> WorthQueryRuntime {
+    WorthQueryRuntime::builder()
+        .runtime_bridge(certification_bridge())
+        .schema_adapter(CertificationSchemaAdapter)
+        .source_adapter(CertificationSourceAdapter::default())
+        .snapshot_identity(CertificationSnapshotIdentity)
+        .existing_truth_verification(CertificationExistingTruthVerification)
+        .write_authority(CertificationWriteAuthority)
+        .signal_sink(CertificationSignalSink)
+        .subscription_activation(CertificationSubscriptionActivation)
+        .preview_basis(CertificationPreviewBasis)
+        .inspector_evidence(CertificationInspectorEvidence)
+        .intent_authority(InvariantViolationCertificationIntentAuthority)
+        .support_profile(certification_support_profile())
+        .build_backend_from_parts()
+        .build()
+        .expect("certification runtime backend parts should build")
+}
+
+struct CertificationSnapshotIdentity;
+
+impl WorthQueryRuntimeSnapshotIdentityAdapter for CertificationSnapshotIdentity {
+    fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
+        certification_snapshot_identity("certification-runtime-current-snapshot")
+    }
+}
+
+pub(super) fn certification_support_profile() -> WorthQueryRuntimeSupportProfile {
+    WorthQueryRuntimeSupportProfile::bridge_backed(
+        "certification-subscription-activation",
+        "certification-preview-basis",
+        "certification-inspector-evidence",
+    )
+    .with_family_support(WorthQueryRuntimeFamilySupport::supported(
+        WorthQueryRuntimeFacadeFamily::Intent,
+        [
+            WorthQueryAuthorityLane::AuthoritativeTruth,
+            WorthQueryAuthorityLane::BranchLocalTruth,
+            WorthQueryAuthorityLane::PreviewTruth,
+        ],
+        [],
+        ["certification-intent-authority"],
+    ))
+    .with_bridge_backed_verification_support(
+        "probe_existing",
+        "direct_entity_identity",
+        true,
+        true,
+        None,
+    )
+}
+
+pub(crate) fn certification_task_live_request() -> DeclarativeLiveQueryRequest {
+    DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
+        .project(
+            DeclarativeProjectionField::from_authoring_parts("identity", "id")
+                .delivered_as("identity.id"),
+        )
+        .project(
+            DeclarativeProjectionField::from_authoring_parts("title", "value")
+                .delivered_as("title"),
+        )
+        .order_by(DeclarativeProjectionField::from_authoring_parts(
+            "title", "value",
+        ))
+}
+
+pub(crate) fn certification_task_schema() -> QuerySchemaView {
+    QuerySchemaView::new(
+        "certification-task",
+        [
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("identity")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+            SchemaFieldView::new(
+                crate::authoring::AspectName::new("title")
+                    .expect("schema aspect literal must be valid"),
+                crate::authoring::FieldName::new("value")
+                    .expect("schema field literal must be valid"),
+                SchemaFieldKind::String,
+            ),
+        ],
+        [],
+    )
+}
+
+struct CertificationSchemaAdapter;
+
+impl WorthQueryRuntimeSchemaAdapter for CertificationSchemaAdapter {
+    fn admit_live_view(
+        &self,
+        name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        _schema_view: &QuerySchemaView,
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, WorthQueryWorkspaceError> {
+        let receipt = self.build_live_view_declaration_admission_receipt(name, request);
+        Ok(self.build_live_view_declaration_boundary_receipt(name, request, receipt))
+    }
+}
+
+#[derive(Default)]
+struct CertificationSourceAdapter {
+    live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
+}
+
+impl WorthQueryRuntimeSourceAdapter for CertificationSourceAdapter {
+    fn declare_live_view(
+        &mut self,
+        name: String,
+        request: DeclarativeLiveQueryRequest,
+        _schema_view: QuerySchemaView,
+    ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError> {
+        let live_target = WorthQueryLiveArtifactTarget::from_view_name(name.clone());
+        self.live_views
+            .insert(live_target, request.target_collection_identity());
+        Ok(WorthQueryLiveViewHandle::new(name))
+    }
+
+    fn live_entities_for_target(
+        &self,
+        _target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryEntity> {
+        Vec::new()
+    }
+
+    fn drain_live_patches_for_target(
+        &mut self,
+        _target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryLivePatch> {
+        Vec::new()
+    }
+
+    fn affected_live_view_targets(
+        &self,
+        receipt: &WorthQueryMutationReceipt,
+    ) -> Vec<WorthQueryLiveArtifactTarget> {
+        let mut affected = receipt
+            .deltas
+            .iter()
+            .flat_map(|delta| {
+                self.live_views
+                    .iter()
+                    .filter(move |(_, collection)| {
+                        delta
+                            .target_collection_identity()
+                            .same_target_collection_as(collection)
+                    })
+                    .map(|(target, _)| target.clone())
+            })
+            .collect::<Vec<_>>();
+        affected.sort();
+        affected.dedup();
+        affected
+    }
+}
+
+struct CertificationExistingTruthVerification;
+
+impl WorthQueryRuntimeExistingTruthVerificationAdapter for CertificationExistingTruthVerification {
+    fn verify_existing_truth_assertion(
+        &self,
+        _binding: &crate::runtime::WorthQueryExistingTruthTargetBinding,
+        _aspects: &[crate::runtime::WorthQueryAdmittedAspectValue],
+    ) -> Result<(), WorthQueryExistingTruthAssertionDenial> {
+        Ok(())
+    }
+
+    fn probe_existing_truth(
+        &self,
+        request: &crate::runtime::WorthQueryExistingTruthProbeRequest,
+    ) -> Result<
+        Vec<crate::runtime::WorthQueryExistingTruthProbeField>,
+        WorthQueryExistingTruthProbeDenial,
+    > {
+        let mut values = Vec::with_capacity(request.aspect_touches().len());
+        for aspect_touch in request.aspect_touches() {
+            let value = if aspect_touch == &identity_id_touch() {
+                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                    "task-1".to_string(),
+                )
+            } else if aspect_touch == &title_value_touch() {
+                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                    "Seed title".to_string(),
+                )
+            } else {
+                return Err(WorthQueryExistingTruthProbeDenial::new(
+                    request.binding(),
+                    WorthQueryExistingTruthProbeDenialKind::MissingProbedAspect,
+                    Some(aspect_touch.clone()),
+                    "certification verification adapter does not expose that aspect",
+                ));
+            };
+            values.push(
+                crate::runtime::WorthQueryExistingTruthProbeField::from_admitted_aspect_touch(
+                    aspect_touch.clone(),
+                    value,
+                ),
+            );
+        }
+        Ok(values)
+    }
+}
+
+struct CertificationIntentAuthority;
+
+impl WorthQueryIntentAuthorityAdapter for CertificationIntentAuthority {
+    fn execute_intent(
+        &mut self,
+        _bridge: &RuntimeBridge,
+        _relational_runtime: Option<&mut RelationalRuntime>,
+        declaration: &WorthQueryIntentDeclaration,
+    ) -> Result<WorthQueryIntentExecution, WorthQueryWorkspaceError> {
+        let collection = declaration
+            .input_string_field("collection")
+            .unwrap_or("Task")
+            .to_string();
+        let commit_identity =
+            certification_commit_identity_for("certification-intent-commit", &collection);
+        let snapshot_identity =
+            certification_snapshot_identity_for("certification-intent-snapshot", &collection);
+        let mutation_receipt = WorthQueryMutationReceipt::from_authoritative_parts(
+            commit_identity,
+            snapshot_identity,
+            vec![WorthQueryMutationDelta::from_touched_aspects(
+                collection,
+                certification_entity_identity("certification-intent-entity-1"),
+                WorthQueryMutationKind::Updated,
+                vec![title_value_touch()],
+            )],
+        );
+        Ok(WorthQueryIntentExecution::admitted(
+            declaration.strategy_name(),
+            declaration.strategy_version(),
+            "certification-strategy-descriptor-digest",
+            declaration.input_digest(),
+            hash_parts(&[
+                "certification-intent-produced-mutation".to_string(),
+                mutation_receipt
+                    .commit_identity
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
+                mutation_receipt
+                    .snapshot_identity
+                    .evidence_identity()
+                    .as_str()
+                    .to_string(),
+            ]),
+            [
+                "certification-relational-invariant:acyclic",
+                "certification-relational-invariant:authority-lane",
+            ],
+            mutation_receipt,
+        ))
+    }
+}
+
+struct CertificationSignalSink;
+
+impl WorthQueryRuntimeSignalSinkAdapter for CertificationSignalSink {
+    fn route_write_receipt(
+        &mut self,
+        receipt: &WorthQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, WorthQueryWorkspaceError> {
+        let routed = self.build_signal_invalidation_routing_receipt(receipt)?;
+        self.build_signal_invalidation_boundary_receipt(receipt, routed)
+    }
+}
+
+struct CertificationSubscriptionActivation;
+
+impl WorthQueryRuntimeSubscriptionActivationAdapter for CertificationSubscriptionActivation {
+    fn support_evidence_identity(&self) -> WorthQueryEvidenceIdentity {
+        runtime_subscription_support_evidence_identity("certification-subscription-activation")
+    }
+
+    fn admit_activation(
+        &mut self,
+        view_name: &str,
+        activation: &SubscriptionActivationInput,
+    ) -> Result<SubscriptionActivationBoundaryReceipt, WorthQueryWorkspaceError> {
+        let receipt = self.build_subscription_activation_receipt(view_name, activation);
+        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
+    }
+}
+
+struct CertificationPreviewBasis;
+
+impl WorthQueryRuntimePreviewBasisAdapter for CertificationPreviewBasis {
+    fn admit_preview_basis(
+        &self,
+        label: &WorthQuerySessionLabel,
+        effect_policy: WorthQueryEffectPolicy,
+        authority: &WorthQueryRuntimeEvidenceAuthority,
+    ) -> Result<WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError> {
+        Ok(WorthQueryPreviewBasisAdmission::new(
+            authority,
+            label.clone(),
+            effect_policy,
+            WorthQueryBasisAdmissionEvidenceRow::rows_from_values(["certification-preview-basis"]),
+        ))
+    }
+}
+
+struct CertificationInspectorEvidence;
+
+impl WorthQueryRuntimeInspectorEvidenceAdapter for CertificationInspectorEvidence {
+    fn inspect_write_receipt(
+        &self,
+        receipt: &WorthQueryWriteReceipt,
+        authority: &WorthQueryRuntimeEvidenceAuthority,
+    ) -> Result<WorthQueryRuntimeInspectionEvidence, WorthQueryWorkspaceError> {
+        Ok(WorthQueryRuntimeInspectionEvidence::new(
+            authority,
+            "certification-write-receipt",
+            receipt.authority_lane(),
+            ["certification-inspector-evidence"],
+        ))
+    }
+}
+
+struct InvariantViolationCertificationIntentAuthority;
+
+impl WorthQueryIntentAuthorityAdapter for InvariantViolationCertificationIntentAuthority {
+    fn execute_intent(
+        &mut self,
+        _bridge: &RuntimeBridge,
+        _relational_runtime: Option<&mut RelationalRuntime>,
+        declaration: &WorthQueryIntentDeclaration,
+    ) -> Result<WorthQueryIntentExecution, WorthQueryWorkspaceError> {
+        Ok(WorthQueryIntentExecution::invariant_violation(
+            declaration.strategy_name(),
+            declaration.strategy_version(),
+            "certification-strategy-descriptor-digest",
+            declaration.input_digest(),
+            hash_parts(&[
+                "certification-invariant-violation".to_string(),
+                declaration.name().to_string(),
+            ]),
+            [
+                "certification-invariant:violated",
+                "certification-invariant:authority-lane",
+            ],
+            certification_snapshot_identity("certification-invariant-snapshot"),
+        ))
+    }
+}

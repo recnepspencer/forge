@@ -1,0 +1,13 @@
+[package]
+name = "worth-store-s0-reclassification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Roadmap 2 S.0 shipped Store reclassification and handoff artifacts."
+
+[dependencies]
+worth-store-claim-boundaries.workspace = true
+worth-store-contracts.workspace = true
+
+[lints]
+workspace = true

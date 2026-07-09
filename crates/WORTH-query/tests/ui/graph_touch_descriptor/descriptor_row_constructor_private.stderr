@@ -1,0 +1,46 @@
+error: cannot construct `WorthQueryGraphTouchDescriptorRow` with struct literal syntax due to private fields
+  --> tests/ui/graph_touch_descriptor/descriptor_row_constructor_private.rs:6:13
+   |
+ 6 |     let _ = WorthQueryGraphTouchDescriptorRow {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |         component_index: 0,
+   |         ------------------ private field
+ 8 |         mutation_family: WorthQueryMutationFamily::Delete,
+   |         ------------------------------------------------- private field
+ 9 |         program_step_kind: None,
+   |         ----------------------- private field
+10 |         lifecycle_family: None,
+   |         ---------------------- private field
+11 |         declared_collection: None,
+   |         ------------------------- private field
+12 |         declared_symbol: None,
+   |         --------------------- private field
+13 |         declared_aspect_operations: Vec::new(),
+   |         -------------------------------------- private field
+14 |         touched_aspects: Vec::new(),
+   |         --------------------------- private field
+15 |         has_symbolic_target_reference: false,
+   |         ------------------------------------ private field
+16 |         has_existing_truth_binding: false,
+   |         --------------------------------- private field
+17 |         symbolic_aspect_reference_count: 0,
+   |         ---------------------------------- private field
+   |
+   = note: ...and other private fields `read_verb`, `relation_kind_id` and `row_digest` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+ 6 -     let _ = WorthQueryGraphTouchDescriptorRow {
+ 7 -         component_index: 0,
+ 8 -         mutation_family: WorthQueryMutationFamily::Delete,
+ 9 -         program_step_kind: None,
+10 -         lifecycle_family: None,
+11 -         declared_collection: None,
+12 -         declared_symbol: None,
+13 -         declared_aspect_operations: Vec::new(),
+14 -         touched_aspects: Vec::new(),
+15 -         has_symbolic_target_reference: false,
+16 -         has_existing_truth_binding: false,
+17 -         symbolic_aspect_reference_count: 0,
+18 -     };
+ 6 +     let _ = WorthQueryGraphTouchDescriptorRow::new(_);
+   |

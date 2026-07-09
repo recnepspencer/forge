@@ -1,5 +1,0 @@
-error[E0599]: no method named `describe_foundational` found for struct `ForgeQueryCanonicalDeclarationArtifact<D, I>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_declaration_has_no_direct_foundational_description.rs:73:25
-   |
-73 |     let _ = declaration.describe_foundational();
-   |                         ^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`

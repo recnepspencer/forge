@@ -1,0 +1,28 @@
+[package]
+name = "worth-relational"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "A standalone truth runtime for transactional, inspectable, replayable graph state."
+readme = "README.md"
+repository = "https://github.com/recnepspencer/WORTH"
+keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
+categories = ["data-structures", "database-implementations", "science"]
+
+[dependencies]
+worth-foundational = { path = "../worth-foundational" }
+worth-proof = { path = "../worth-proof" }
+worth-runtime-bridge = { path = "../worth-runtime-bridge" }
+serde = { version = "1", features = ["derive", "rc"] }
+rmp-serde = "1.3"
+rayon = "1"
+smallvec = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+worth-harness.workspace = true
+proptest = "1"
+trybuild = "1"
+
+[lints]
+workspace = true

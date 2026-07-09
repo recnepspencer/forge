@@ -1,0 +1,12 @@
+error[E0451]: fields `key`, `admitted_references` and `support_families` of struct `WorthQueryGraphReadDomainOperationDeclaration` are private
+  --> tests/ui/graph_read_access/domain_operation_declaration_constructor_private.rs:5:9
+   |
+ 4 |     let _ = WorthQueryGraphReadDomainOperationDeclaration {
+   |             --------------------------------------------- in this type
+ 5 |         key: worth_query::facade::WorthQueryGraphReadOperationKey::new(
+   |         ^^^ private field
+...
+11 |         admitted_references: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+12 |         support_families: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^ private field

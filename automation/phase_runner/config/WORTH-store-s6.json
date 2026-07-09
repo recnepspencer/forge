@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "WORTH Store Roadmap 2 S.6 Hardware-Aware I/O, QoS, And Background Work Pacing",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH",
+    "spec_file": "_docs/worth-store/storage-foundation-s6.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/test-requirements.md",
+      "_docs/worth-store/test-requirements-2.md",
+      "_docs/worth-store/storage-foundation-s4-5.md",
+      "_docs/worth-store/storage-foundation-s5.md",
+      "_docs/worth-store/storage-foundation-s5-1.md",
+      "_docs/worth-store/storage-foundation-s6.md",
+      "crates/worth-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/worth-proof/README.md",
+      "_docs/worth-proof/worth_proof_roadmap.md",
+      "workspaces/worth-store/README.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-physical-backend/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-io-scheduler/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-isolation/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-security/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-readiness/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-certification/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-wal/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-buffer-pool/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-operations/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-offline-verifier/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-tiering/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_store_s6.md",
+  "session_defaults": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "idle_timeout_seconds": 900,
+    "turn_timeout_seconds": 7200
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Backend And Media Capability Admission",
+      "owner": "`worth-store-physical-backend`, `worth-store-io-scheduler`, `worth-store-security`, `worth-store-readiness`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Backend and media capability admission produces sealed witnesses with evidence class, rebind triggers, support posture, and confidence limits.",
+        "Raw backend labels, config strings, OS names, probes, environment variables, terminal projections, and copied rows cannot mint stronger capability.",
+        "Unsupported, unavailable, unknown, stale, and rebind-required posture deny typed before direct I/O, mmap, async, fsync, directory-sync, durable rename, or secure-frame claims are consumed."
+      ],
+      "instructions": "Implement S.6 Phase 1 from the spec. Freeze backend/media capability vocabulary and authority before any scheduler path can claim hardware-aware behavior. Preserve evidence-class strength and keep certification as executed-law proof, not runtime authority.",
+      "qa_focus": "Look for raw capability labels, confidence laundering, backend-selected durability semantics, missing rebind triggers, support posture collapse, and Foundational/Proof evidence replacing Store witnesses."
+    },
+    {
+      "id": 2,
+      "title": "Foreground Lane Contracts And Reservation Admission",
+      "owner": "`worth-store-io-scheduler`, `worth-store-physical-isolation`, `worth-store-physical-backend`, `worth-store-security`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Foreground physical lanes, resource units, latency envelope kinds, and reservation states are Store-owned contracts, not best-effort labels.",
+        "Reservation admission consumes backend/media capability, S.5 stable-read readiness, S.5.1 security readiness, and lane envelope evidence.",
+        "Foreground fairness covers point reads, range reads, commit-critical WAL writes, ordinary page writes, interactive reads, and internal foreground reads without priority laundering."
+      ],
+      "instructions": "Implement S.6 Phase 2. Make reservation admission explicit, typed, and denied before physical I/O when required capacity, capability, or security/stability evidence is missing.",
+      "qa_focus": "Look for priority flags, semantic labels driving physical priority, missing resource units, undeclared foreground-vs-foreground arbitration, and successful reservations that should be violated or denied."
+    },
+    {
+      "id": 3,
+      "title": "Background Work Classes And Pacing Policy",
+      "owner": "`worth-store-io-scheduler`, `worth-store-physical-isolation`, `worth-store-blob-chunks`, `worth-store-operations`, `worth-store-offline-verifier`, and `worth-store-certification`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-offline-verifier",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Background classes are I/O pressure shapes with distinct pacing outcomes for yield, defer, deny, throttle, admit-with-debt, and violation.",
+        "Idle-capacity borrowing uses revocable leases tied to foreground reservations and backend/media capability.",
+        "Background debt remains visible through typed counters and cannot hide in logs, elapsed time, or worker-local state."
+      ],
+      "instructions": "Implement S.6 Phase 3. Model compaction, checkpoint, scrub, replication prep, blob pressure, backup prep, and repair pressure by physical I/O pressure shape only, without importing later semantic lifecycle work.",
+      "qa_focus": "Look for generic background labels, unrevoked idle borrowing, hidden debt, worker-local queues bypassing foreground counters, and background work silently becoming foreground."
+    },
+    {
+      "id": 4,
+      "title": "Queue Admission, Grouping, And Backpressure Execution",
+      "owner": "`worth-store-io-scheduler`, `worth-store-physical-backend`, `worth-store-wal`, `worth-store-buffer-pool`, and certification harnesses",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Admitted queue work lowers to execution plans that preserve lane class, reservation, security scope, durability posture, and grouping basis.",
+        "Execution may adapt mechanically within admitted policy but may not reclassify work, strengthen claims, hide debt, or alter durability/security meaning.",
+        "Grouping, read-ahead, write-back, and backpressure outcomes are typed and replay-visible."
+      ],
+      "instructions": "Implement S.6 Phase 4. Build queue admission and execution lowering that makes positive grouping bases and backpressure causes explicit.",
+      "qa_focus": "Look for queue-internal authority, grouping by absence of known danger, untyped backpressure, starvation through grouping, and execution-time policy mutation."
+    },
+    {
+      "id": 5,
+      "title": "Flush, Sync, Rename, And Durability Ordering",
+      "owner": "`worth-store-physical-backend`, `worth-store-wal`, `worth-store-physical-format`, `worth-store-recovery-physics`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Durability ordering has backend-neutral states for flush, fdatasync/fsync, directory sync, rename, checkpoint, WAL, and manifest publication.",
+        "Unknown, unsupported, stale, or externally-guaranteed durability posture remains visible and cannot satisfy stronger certified APIs.",
+        "Crash/recovery tests prove ordering decisions without relying on backend-specific accidental behavior."
+      ],
+      "instructions": "Implement S.6 Phase 5. Admit durability semantics before execution and keep durable rename/directory sync/flush ordering exact across backend profiles.",
+      "qa_focus": "Look for backend-chosen semantics, fsync/fdatasync collapse, missing directory sync, durable rename optimism, and crash tests that only prove the host machine."
+    },
+    {
+      "id": 6,
+      "title": "Page-Cache, Mmap, And Direct-I/O Access Policy",
+      "owner": "`worth-store-physical-backend`, `worth-store-buffer-pool`, `worth-store-physical-format`, `worth-store-security`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-buffer-pool",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Buffered, mmap, direct-I/O, and mixed-mode access have admitted coherence, alignment, fault, and security posture.",
+        "Unsupported or unknown access-mode posture denies typed before execution.",
+        "Mmap faults, page-cache visibility, direct-I/O alignment, and mixed-mode invalidation are observable through Store outcomes and counters."
+      ],
+      "instructions": "Implement S.6 Phase 6. Keep access mode policy physical and explicit; do not let an execution path discover coherence semantics after it has already touched bytes.",
+      "qa_focus": "Look for implicit OS page-cache trust, direct-I/O alignment guesses, mixed-mode incoherence, mmap fault swallowing, and security scope stripped during access-mode transitions."
+    },
+    {
+      "id": 7,
+      "title": "Trim, Punch-Hole, And Cold-Tier I/O Posture",
+      "owner": "`worth-store-physical-backend`, `worth-store-physical-format`, `worth-store-blob-chunks`, `worth-store-tiering`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-tiering",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Trim, punch-hole, sparse, and cold-tier postures distinguish physical zeros, logical holes, unavailable bytes, and non-observable reclaimed storage.",
+        "S.5 protected reachability and S.5.1 security scope survive space reclamation and cold-tier policy.",
+        "S.6 exposes non-claim handoffs only; it does not implement S.7 placement or S.10 compaction semantics."
+      ],
+      "instructions": "Implement S.6 Phase 7. Define cold and reclaimed storage I/O posture without turning it into compaction or tier-placement authority.",
+      "qa_focus": "Look for hole/zero collapse, protected-byte loss, cold-tier claims masquerading as placement readiness, and reclaim operations bypassing security/read stability."
+    },
+    {
+      "id": 8,
+      "title": "Security-Scope And Secure-I/O Preservation",
+      "owner": "`worth-store-security`, `worth-store-io-scheduler`, `worth-store-physical-isolation`, `worth-store-physical-backend`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "S.5.1 security scope is preserved through reservation, grouping, batching, read-ahead, write-back, background leases, repair scans, and verification pressure.",
+        "Secure-I/O unsupported posture denies typed rather than degrading to ordinary platform I/O.",
+        "Identity-provider claims, key ids, IAM roles, operator identities, and terminal projections cannot become S.6 secure-I/O authority."
+      ],
+      "instructions": "Implement S.6 Phase 8. Bind secure-I/O preservation to the real scheduler and backend paths, not only to certification rows.",
+      "qa_focus": "Look for scope laundering through batching, repair/backup scans reading too broadly, secure posture downgrade, raw identity leakage, and certification-owned security authority."
+    },
+    {
+      "id": 9,
+      "title": "Latency Envelope And Interference Counter Model",
+      "owner": "`worth-store-io-scheduler`, `worth-store-physical-isolation`, `worth-store-budgets`, `worth-store-test-support`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-budgets",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Latency envelope and interference counters declare strength as exact, bounded, sampled, derived, certification-only, or unavailable.",
+        "Replay is deterministic for policy decisions, counter topology, and proof progression, not OS wall-clock timing.",
+        "Post-admission violations are typed outcomes with causal attribution."
+      ],
+      "instructions": "Implement S.6 Phase 9. Make latency and interference evidence precise enough to support adversarial harnesses without pretending every timing measurement is exact.",
+      "qa_focus": "Look for wall-clock determinism claims, sampled counters treated as exact, violation logs instead of outcomes, missing causal attribution, and counter topology hidden from replay."
+    },
+    {
+      "id": 10,
+      "title": "S.4.5 I/O Pressure Harness Extension",
+      "owner": "`worth-store-test-support`, `worth-store-certification`, `worth-store-physical-certification`, and affected Store crates",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-physical-backend"
+      ],
+      "acceptance": [
+        "The S.4.5 harness gains backend, actor, driver, fault, pressure, and oracle support for S.6 I/O pressure simulations.",
+        "Fault evidence classes distinguish simulated, injected, observed-host, certified-backend, and externally-guaranteed behavior.",
+        "Simulated backend success cannot certify real backend safety without explicit qualification."
+      ],
+      "instructions": "Implement S.6 Phase 10. Extend the existing harness rather than creating a separate test island, and keep evidence strength honest.",
+      "qa_focus": "Look for synthetic-only tests pretending to be real, missing oracle state, simulated-to-certified laundering, harness APIs that are harder than production APIs, and non-replayable pressure cases."
+    },
+    {
+      "id": 11,
+      "title": "Cross-Backend Qualification Matrix",
+      "owner": "`worth-store-physical-certification`, `worth-store-physical-backend`, `worth-store-certification`, and `worth-store-test-support`",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-physical-backend",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "Qualification matrix rows bind backend profile, media assumptions, evidence class, capability support, rebind triggers, and test/harness proof.",
+        "Stale, unverifiable, config-only, probe-only, and externally-guaranteed rows cannot satisfy stronger certified-backend APIs.",
+        "Cross-backend parity tests cover equivalent policy results without erasing backend-specific denial causes."
+      ],
+      "instructions": "Implement S.6 Phase 11. Make the matrix a qualification/evidence publication surface, not a runtime authority source.",
+      "qa_focus": "Look for stale matrix rows used as current authority, evidence strength collapse, backend-specific cause loss, and row ids replacing Store witnesses."
+    },
+    {
+      "id": 12,
+      "title": "S.7/S.10/S.11 Readiness And Non-Claim Handoffs",
+      "owner": "`worth-store-readiness`, `worth-store-io-scheduler`, `worth-store-operations`, `worth-store-tiering`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-tiering",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "S.6 produces distinct non-claim handoffs for S.7 placement, S.10 compaction, and S.11 operator readiness.",
+        "Handoffs expose only I/O posture, limits, counters, and non-claim markers; they do not authorize later semantics.",
+        "Cross-substitution between placement, compaction, and operator-readiness handoffs is compile-fail or typed denial."
+      ],
+      "instructions": "Implement S.6 Phase 12. Give later milestones enough physical I/O evidence to consume while making impossible phases impossible.",
+      "qa_focus": "Look for S.7/S.10/S.11 authority smuggled into S.6, one generic future-readiness blob, missing non-claim markers, and handoff substitution."
+    },
+    {
+      "id": 13,
+      "title": "Certification Evidence Materialization And API Adoption Proof",
+      "owner": "`worth-store-certification`, `worth-store-physical-certification`, `worth-store-test-support`, and public adoption tests",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "Certification materializes executed S.6 evidence from Store-owned witnesses, receipts, counters, and proof progression.",
+        "Public adoption tests prove real APIs consume the new S.6 authority surfaces rather than parallel certification-only contracts.",
+        "Foundational and Proof evidence is named and bounded where used, without becoming runtime authority."
+      ],
+      "instructions": "Implement S.6 Phase 13. Prove the APIs are actually adopted in production crates and that certification remains courtroom evidence over executed Store law.",
+      "qa_focus": "Look for certification-only implementation, test-only authority paths, unused production constructors, proof rows replacing Store witnesses, and missing public adoption examples."
+    },
+    {
+      "id": 14,
+      "title": "Production Readiness Closure And Later-Milestone Admission",
+      "owner": "`worth-store-readiness`, `worth-store-certification`, `worth-store-physical-certification`, and workspace closeout owners",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store"
+      ],
+      "acceptance": [
+        "S.6 closeout consumes Phase 13 materialized evidence and publishes sealed readiness for hardware-aware I/O, QoS, and background pacing.",
+        "Residual non-claims and later-milestone debts are explicit, typed, and not accidentally satisfied by S.6.",
+        "Focused verification, line-cap checks, compile-fail coverage, integration tests, and closeout evidence are complete for the milestone."
+      ],
+      "instructions": "Implement S.6 Phase 14. Close the milestone without expanding it into S.7, S.10, S.11, or real-world backend certification beyond the spec's admitted evidence classes.",
+      "qa_focus": "Look for premature readiness, hidden residual debt, overclaiming later milestones, broad green tests masking missing compile-fail coverage, and certification proof without production adoption."
+    }
+  ]
+}

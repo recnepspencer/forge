@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use forge_query::facade::ForgeQueryDeclaredFamilyChecked;
+use worth_query::facade::WORTHQueryDeclaredFamilyChecked;
 
 use crate::aspect_authority::{HadwigerAspectAuthorityError, UnitDistanceAspectRecord};
 use crate::domain_artifacts::{
@@ -364,13 +364,13 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
 }
 
 pub(crate) fn admitted_declaration_reference<I>(
-    checked: ForgeQueryDeclaredFamilyChecked<crate::query_entry::HadwigerResearchDomainEntry, I>,
+    checked: WORTHQueryDeclaredFamilyChecked<crate::query_entry::HadwigerResearchDomainEntry, I>,
 ) -> Option<HadwigerQueryDeclarationReference>
 where
     I: crate::domain_declarations::HadwigerResearchDeclarationInput,
 {
     match checked {
-        ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => Some(declaration.into()),
+        WORTHQueryDeclaredFamilyChecked::Admitted(declaration) => Some(declaration.into()),
         _ => None,
     }
 }

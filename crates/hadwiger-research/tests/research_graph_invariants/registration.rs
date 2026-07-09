@@ -1,5 +1,5 @@
-use forge_query::facade::runtime::{
-    ForgeQueryRuntime, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
+use worth_query::facade::runtime::{
+    WORTHQueryRuntime, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
 };
 use hadwiger_research::facade::*;
 
@@ -19,7 +19,7 @@ fn registration_returns_query_custom_invariant_registrations() {
     );
     assert!(plan
         .compatible_query_surfaces()
-        .contains("ForgeQueryRuntime::builder().custom_invariant(...)"));
+        .contains("WORTHQueryRuntime::builder().custom_invariant(...)"));
     assert!(plan.registers_runtime_invariants());
     assert_eq!(checked.custom_invariant_registrations().len(), 5);
     assert_eq!(checked.descriptors().len(), 5);
@@ -51,7 +51,7 @@ fn query_runtime_builder_accepts_hadwiger_custom_invariant_registrations() {
     let catalog = draft_research_graph_invariant_catalog(&handle, &corpus, &frontier).unwrap();
     let checked = register_research_graph_invariants_checked(&handle, &catalog).unwrap();
 
-    let mut builder = ForgeQueryRuntime::builder();
+    let mut builder = WORTHQueryRuntime::builder();
     for registration in checked.custom_invariant_registrations() {
         builder = builder.custom_invariant(registration.clone());
     }

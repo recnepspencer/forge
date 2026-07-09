@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget;
+use worth_query::facade::WORTHQueryLowerRuntimeBoundaryEnvelopeBindingTarget;
 use hadwiger_research::facade::{
     HadwigerResearchInvariantCatalog, ResearchGraphInvariantDenialRequest,
     ResearchGraphInvariantViolation,
@@ -7,7 +7,7 @@ use hadwiger_research::facade::{
 fn denial_request(
     catalog: &HadwigerResearchInvariantCatalog,
     violation: &ResearchGraphInvariantViolation,
-    target: &ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
+    target: &WORTHQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
 ) {
     let _ = ResearchGraphInvariantDenialRequest::from_violation(catalog, violation)
         .for_lower_runtime_boundary_source(target);

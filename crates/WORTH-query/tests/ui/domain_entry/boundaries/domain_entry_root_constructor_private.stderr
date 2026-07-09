@@ -1,0 +1,9 @@
+error[E0451]: fields `marker` and `support_snapshot` of struct `WorthQueryDomainEntryRoot` are private
+  --> tests/ui/domain_entry/boundaries/domain_entry_root_constructor_private.rs:26:9
+   |
+25 |     let _ = WorthQueryDomainEntryRoot::<LocalDomain> {
+   |             ---------------------------------------- in this type
+26 |         marker: LocalDomain,
+   |         ^^^^^^ private field
+27 |         support_snapshot: query.domain_entry_support_snapshot(),
+   |         ^^^^^^^^^^^^^^^^ private field

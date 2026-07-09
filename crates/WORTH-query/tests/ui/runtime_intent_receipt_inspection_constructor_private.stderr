@@ -1,0 +1,35 @@
+error[E0308]: mismatched types
+  --> tests/ui/runtime_intent_receipt_inspection_constructor_private.rs:19:25
+   |
+19 |         counter_digest: String::new(),
+   |                         ^^^^^^^^^^^^^ expected `WorthQueryEvidenceIdentity`, found `String`
+
+error[E0308]: mismatched types
+  --> tests/ui/runtime_intent_receipt_inspection_constructor_private.rs:33:26
+   |
+33 |         commit_identity: String::new(),
+   |                          ^^^^^^^^^^^^^ expected `WorthQueryCommitIdentity`, found `String`
+
+error[E0560]: struct `WorthQueryIntentReceiptInspection` has no field named `snapshot_token`
+  --> tests/ui/runtime_intent_receipt_inspection_constructor_private.rs:34:9
+   |
+34 |         snapshot_token: String::new(),
+   |         ^^^^^^^^^^^^^^ `WorthQueryIntentReceiptInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryIntentReceiptInspection` has no field named `receipt_digest`
+  --> tests/ui/runtime_intent_receipt_inspection_constructor_private.rs:35:9
+   |
+35 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ `WorthQueryIntentReceiptInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryIntentReceiptInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_intent_receipt_inspection_constructor_private.rs:37:9
+   |
+37 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryIntentReceiptInspection` does not have this field
+   |
+   = note: all struct fields are already assigned

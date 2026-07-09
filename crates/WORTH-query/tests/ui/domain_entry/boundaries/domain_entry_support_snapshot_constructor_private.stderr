@@ -1,0 +1,19 @@
+error: cannot construct `WorthQueryDomainEntrySupportSnapshot` with struct literal syntax due to private fields
+ --> tests/ui/domain_entry/boundaries/domain_entry_support_snapshot_constructor_private.rs:5:13
+  |
+5 |     let _ = WorthQueryDomainEntrySupportSnapshot {
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+6 |         report: query.support_report(),
+  |         ------------------------------ private field
+7 |         snapshot_digest: String::new(),
+  |         ------------------------------ private field
+  |
+  = note: ...and other private field `runtime_support_matrix` that was not provided
+help: you might have meant to use the `from_support_report` associated function
+  |
+5 -     let _ = WorthQueryDomainEntrySupportSnapshot {
+6 -         report: query.support_report(),
+7 -         snapshot_digest: String::new(),
+8 -     };
+5 +     let _ = WorthQueryDomainEntrySupportSnapshot::from_support_report(_);
+  |

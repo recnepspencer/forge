@@ -1,0 +1,65 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:55:49
+   |
+55 |       let _ = WorthQueryDeclarationBridgeRouting::new(
+   |                                                   ^^^ private associated function
+   |
+  ::: src/application/declaration_bridge_routing/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: WorthQueryDeclarationBridgeRoutingClass,
+   | |         continuation_request: WorthQueryDeclarationBridgeContinuationRequest,
+   | |         continuation_family: WorthQueryDeclarationBridgeContinuationFamily,
+...  |
+   | |         explanation: WorthQueryDeclarationBridgeRoutingExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 15 arguments but 7 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:55:13
+   |
+55 |       let _ = WorthQueryDeclarationBridgeRouting::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+56 | |         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
+57 | |         WorthQueryDeclarationBridgeContinuationRequest::new(
+58 | |             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
+...  |
+63 | |         envelope,
+   | |         -------- expected `std::string::String`, found `WorthQueryDeclarationEnvelope<ExampleDomain, ExampleInput>`
+64 | |         "digest".to_string(),
+   | |         -------------------- expected `WorthQueryDeclarationEnvelope<_, _>`, found `std::string::String`
+65 | |         explanation,
+66 | |     );
+   | |     -
+   | |     |
+   | |_____multiple arguments are missing
+   |       argument #14 of type `std::string::String` is missing
+   |
+note: associated function defined here
+  --> src/application/declaration_bridge_routing/artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: did you mean
+   |
+55 ~     let _ = WorthQueryDeclarationBridgeRouting::new(
+56 +         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
+57 +         WorthQueryDeclarationBridgeContinuationRequest::new(
+58 +             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
+59 +             worth_query::facade::WorthQueryDeclarationBridgeTruthContext::Current,
+60 +         ),
+61 +         WorthQueryDeclarationBridgeContinuationFamily::RuntimeRoute,
+62 +         binding,
+63 +         /* WorthQueryDeclarationAspectContract */,
+64 +         /* WorthQueryDeclarationAspectCoverage */,
+65 +         /* WorthQueryDeclarationAspectCoverageBasis */,
+66 +         /* WorthQueryDeclarationAspectFit */,
+67 +         /* WorthQueryDeclarationAspectCoverage */,
+68 +         /* WorthQueryDeclarationAspectFit */,
+69 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
+70 +         "digest".to_string(),
+71 +         envelope,
+72 +         /* std::string::String */,
+73 +         explanation,
+74 ~     );
+   |

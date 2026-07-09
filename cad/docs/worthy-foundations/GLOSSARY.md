@@ -47,7 +47,7 @@ the thing we sell. v1 used "products" for both; this tree does not.
 
 ### Entry vs Query
 
-**forge-query** (usually just **Query**) is the runtime layer we build on.
+**worth-query** (usually just **Query**) is the runtime layer we build on.
 **`entry`** is our band of crates where declared work enters Query
 (`worthy-entry-boolean`). There are deliberately no `worthy-query-*` crates -
 that name is permanently confusable with the runtime itself.
@@ -86,7 +86,7 @@ path is the smell that the schema is wrong.
 
 ## Query-Speak (the runtime's tribal vocabulary, translated)
 
-These come from the Forge Query docs and appear throughout ours. Precise, but
+These come from the WORTH Query docs and appear throughout ours. Precise, but
 tribal - translations:
 
 - **Lane** - a runtime-owned path for a category of work (declaration,
@@ -139,7 +139,7 @@ tribal - translations:
   `resolver`, `solver`, `derived`, `pack`, `app`/`ui`, `cert`. Fixed set.
 - **Domain** - the meaning axis: what a crate is *about*. Open set, grown by
   reviewed extension of the reserved list in `NAMING.md`.
-- **Tier** - `forge` / `worth` / `worthy`: runtime, platform, product.
+- **Tier** - `WORTH` / `worth` / `worthy`: runtime, platform, product.
 - **The grammar** - `{tier}-{band}-{domain}`. The actual architecture; the
   folder tree is packaging.
 - **Reserved name** - a guarantee of what a crate *will* be called. Not a

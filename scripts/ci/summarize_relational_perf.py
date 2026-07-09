@@ -62,7 +62,7 @@ def build_report(summary_rows, compare_rows):
     metric_rows = [row for row in summary_rows if "metric" in row]
 
     lines = []
-    lines.append("# Forge Relational Perf Summary")
+    lines.append("# WORTH Relational Perf Summary")
     lines.append("")
     lines.append(f"- Cases: {len(case_rows)}")
     lines.append(f"- Metrics: {len(metric_rows)}")
@@ -247,7 +247,7 @@ def build_report(summary_rows, compare_rows):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Summarize forge-relational perf summary JSONL")
+    parser = argparse.ArgumentParser(description="Summarize worth-relational perf summary JSONL")
     parser.add_argument("--input", required=True, help="Path to summary JSONL")
     parser.add_argument("--output", required=True, help="Path to markdown report")
     parser.add_argument("--compare", help="Optional prior summary JSONL for delta columns")

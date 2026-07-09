@@ -15,10 +15,14 @@ import sys
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-TOPO_SRC = REPO_ROOT / "crates" / "forge-topo" / "src"
-KERNEL_SRC = REPO_ROOT / "crates" / "forge-kernel" / "src"
+TOPO_SRC = REPO_ROOT / "crates" / "worth-topo" / "src"
+KERNEL_SRC = REPO_ROOT / "crates" / "WORTH-kernel" / "src"
 
-RUST_FILES = list(TOPO_SRC.rglob("*.rs")) + list(KERNEL_SRC.rglob("*.rs"))
+RUST_FILES = []
+if TOPO_SRC.exists():
+    RUST_FILES.extend(TOPO_SRC.rglob("*.rs"))
+if KERNEL_SRC.exists():
+    RUST_FILES.extend(KERNEL_SRC.rglob("*.rs"))
 
 IGNORE_SUBSTRINGS = [
     "/tests/",
@@ -28,7 +32,7 @@ IGNORE_SUBSTRINGS = [
 ]
 
 ALLOWED_DISCIPLINE_PATHS = [
-    "/crates/forge-topo/src/transactions/logic/subscribers/",
+    "/crates/worth-topo/src/transactions/logic/subscribers/",
 ]
 
 BANNED_CALL_PATTERNS = [
@@ -128,15 +132,17 @@ def main() -> int:
     topo_event_file = TOPO_SRC / "transactions" / "data" / "operation_event.rs"
     kernel_event_file = KERNEL_SRC / "engine" / "transaction" / "data" / "feature_event.rs"
 
-    for line_no, snippet in enum_raw_numeric_id_violations(topo_event_file, "TopoOperationEvent"):
-        failures.append(
-            f"{rel(topo_event_file)}:{line_no}: raw numeric ID in TopoOperationEvent payload is banned: `{snippet}`"
-        )
+    if topo_event_file.exists():
+        for line_no, snippet in enum_raw_numeric_id_violations(topo_event_file, "TopoOperationEvent"):
+            failures.append(
+                f"{rel(topo_event_file)}:{line_no}: raw numeric ID in TopoOperationEvent payload is banned: `{snippet}`"
+            )
 
-    for line_no, snippet in enum_raw_numeric_id_violations(kernel_event_file, "KernelFeatureEvent"):
-        failures.append(
-            f"{rel(kernel_event_file)}:{line_no}: raw numeric ID in KernelFeatureEvent payload is banned: `{snippet}`"
-        )
+    if kernel_event_file.exists():
+        for line_no, snippet in enum_raw_numeric_id_violations(kernel_event_file, "KernelFeatureEvent"):
+            failures.append(
+                f"{rel(kernel_event_file)}:{line_no}: raw numeric ID in KernelFeatureEvent payload is banned: `{snippet}`"
+            )
 
     if failures:
         print("Subscriber discipline guards FAILED", file=sys.stderr)

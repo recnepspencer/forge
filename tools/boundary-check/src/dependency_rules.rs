@@ -17,7 +17,7 @@ pub(crate) fn validate_dependency_rules(
         };
 
         for dependency in &package.dependencies {
-            if dependency == "forge-query"
+            if dependency == "worth-query"
                 && !contracts
                     .query_host_bands
                     .iter()
@@ -26,7 +26,7 @@ pub(crate) fn validate_dependency_rules(
                 diagnostics.push(Diagnostic::new(
                     DiagnosticCode::Bc3001QueryImportOutsideEntry,
                     &package.name,
-                    "only entry crates may depend on forge-query",
+                    "only entry crates may depend on worth-query",
                 ));
             }
 

@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `ForgeQueryGraphReadCostEstimateStatus: From<ForgeQueryGraphReadCostEstimateStatusKind>` is not satisfied
- --> tests/ui/graph_read_access_cost/status_kind_upgrade_forbidden.rs:7:61
-  |
-7 |         ForgeQueryGraphReadCostEstimateStatusKind::Measured.into();
-  |                                                             ^^^^ the trait `From<ForgeQueryGraphReadCostEstimateStatusKind>` is not implemented for `ForgeQueryGraphReadCostEstimateStatus`
-  |
-  = note: required for `ForgeQueryGraphReadCostEstimateStatusKind` to implement `Into<ForgeQueryGraphReadCostEstimateStatus>`

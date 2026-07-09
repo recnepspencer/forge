@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "WORTH Store Roadmap 2 S.5.1 Cryptographic Boundary Seeds And Tenant Scope Metadata",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/WORTH",
+    "spec_file": "_docs/worth-store/storage-foundation-s5-1.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/worth-store/worth_store_roadmap_2.md",
+      "_docs/worth-store/test-requirements.md",
+      "_docs/worth-store/test-requirements-2.md",
+      "_docs/worth-store/storage-foundation-s4-5.md",
+      "_docs/worth-store/storage-foundation-s5.md",
+      "_docs/worth-store/storage-foundation-s5-1.md",
+      "crates/worth-foundational/docs/FOUNDATIONAL_README.md",
+      "crates/worth-proof/README.md",
+      "_docs/worth-proof/worth_proof_roadmap.md",
+      "workspaces/worth-store/README.md",
+      "workspaces/worth-store/Cargo.toml",
+      "workspaces/worth-store/crates/worth-store-security/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-readiness/src/lib.rs",
+      "workspaces/worth-store/crates/worth-store-certification/src/lib.rs"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review_test_hardening.md",
+    "repair": "templates/repair.md",
+    "test_review": "templates/test_review.md",
+    "test_repair_plan": "templates/test_repair_plan.md",
+    "test_repair_implement": "templates/test_repair_implement.md",
+    "code_quality_review": "templates/code_quality_review.md",
+    "code_quality_repair": "templates/code_quality_repair.md"
+  },
+  "contract_template": "templates/_contract_store_s5_1.md",
+  "session_defaults": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    }
+  },
+  "runner_control": {
+    "idle_timeout_seconds": 900,
+    "turn_timeout_seconds": 7200
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Security Scope Vocabulary And Authority Separation",
+      "owner": "`worth-store-security`, `worth-store-authority`, `worth-store-readiness`, and lower Store authority crates",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-authority",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Store-owned key scope, key-version posture, tenant scope, authenticity requirement/class, custody posture, legacy posture, result, witness, evidence, and readiness vocabulary are distinct.",
+        "Raw strings, semantic ids, terminal JSON labels, identity-provider claims, and `StoreCurrentAuthorityWitness` alone cannot satisfy Store security-scope APIs.",
+        "Foundational and Proof surfaces are used only for boundary meaning and progression, not as substitutes for Store-owned authority."
+      ],
+      "instructions": "Implement S.5.1 Phase 1 from the spec. Freeze the vocabulary and authority grammar before any admission or metadata carrier lands. Keep certification as courtroom, not law. Explicitly reject JWT subject as tenant scope, app org id as tenant scope, KMS key id as key scope, IAM role as custody posture, and operator identity as repair authority.",
+      "qa_focus": "Look for noun collapse, raw string or serde authority, identity-provider leakage, generic Foundational/Proof wrappers replacing Store authority, and certification-owned vocabulary."
+    },
+    {
+      "id": 2,
+      "title": "Sealed Security-Scope Admission And Current Witnesses",
+      "owner": "`worth-store-security`, `worth-store-authority`, `worth-store-readiness`, `worth-store-contracts`, and `worth-proof` integration",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-authority",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-contracts",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Raw security-scope declarations become current witnesses only through sealed Store admission.",
+        "External crates cannot construct key, tenant, authenticity, or custody witnesses by struct literal, copied fields, JSON readmission text, semantic commit ids, copied counters, copied proof ids, or `StoreCurrentAuthorityWitness` alone.",
+        "Admission emits counter-backed receipts while witnesses carry counter lineage only when downstream certification or performance proof requires it."
+      ],
+      "instructions": "Implement S.5.1 Phase 2. Build the sealed raw-to-admitted-to-ready progression and distinct denial topology. Deserialized or identity-derived values are raw declarations only until Store admission/readmission produces a witness.",
+      "qa_focus": "Check private fields, constructor sealing, bypass compile-fail coverage, counter-lineage overbinding, outcome flattening, and evidence rows pretending to be authority."
+    },
+    {
+      "id": 3,
+      "title": "Physical Security Metadata Carriers",
+      "owner": "`worth-store-physical-format`, `worth-store-wal`, `worth-store-security`, and physical root admission owners",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-wal",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Pages, frames, WAL/checkpoint records, manifests, and root/recovery admission carry typed security metadata without changing existing physical identity.",
+        "Physical metadata may declare authenticity requirement/class, custody posture, legacy posture, key scope, tenant scope, and key-version posture, but cannot declare `AuthenticityResult`.",
+        "Serde-loaded or terminal-projected metadata remains raw declaration input and must be readmitted before witness or readiness use."
+      ],
+      "instructions": "Implement S.5.1 Phase 3. Backfill physical metadata carriers without rewriting S.1/S.3/S.4 history. Keep hot metadata Store-native and use Foundational canonical basis only at evidence/comparison boundaries.",
+      "qa_focus": "Look for optional `None` metadata in platform-grade paths, metadata-as-proof, JSON/serde bypasses, string/digest equality, and carrier constructors that accept copied fields."
+    },
+    {
+      "id": 4,
+      "title": "Stable Read And Recovery Scope Propagation",
+      "owner": "`worth-store-physical-isolation`, `worth-store-recovery-physics`, `worth-store-security`, and logical-decode entry owners",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-physical-isolation",
+        "workspaces/worth-store/crates/worth-store-recovery-physics",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "S.5 stable-read protection, root observation, recovery admission, and logical-decode entry preserve security scope exactly.",
+        "Scope drift is localized before logical decode and is reported as physical security denial rather than semantic decode error.",
+        "Recovery cannot reconstruct security scope from page ids, digests, logs, terminal projections, or semantic visibility."
+      ],
+      "instructions": "Implement S.5.1 Phase 4. Make stable read and recovery consume Phase 3 metadata carriers and produce propagation outcomes with exact counters.",
+      "qa_focus": "Check scope stripping, loose cloning, logical decode seeing bytes before drift localization, recovery rebuilding scope from lower authority, and counter flattening."
+    },
+    {
+      "id": 5,
+      "title": "Authenticity Distinct From Integrity",
+      "owner": "`worth-store-security`, `worth-store-physical-integrity`, scrub/quarantine evidence, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-physical-integrity",
+        "workspaces/worth-store/crates/worth-store-physical-format",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Checksum/content-digest integrity and authenticity requirement/result are separate APIs, types, outcomes, and counters.",
+        "Authenticity-required lanes reject checksum-valid bytes when authenticity witness is absent, stale, wrong-scope, unavailable, unsupported, or failed.",
+        "Only admission/checking can produce `AuthenticityResult`; physical metadata, serde input, and terminal projections cannot."
+      ],
+      "instructions": "Implement S.5.1 Phase 5. Preserve algorithm neutrality while making requirement/class declarations and observed authenticity results impossible to confuse.",
+      "qa_focus": "Look for checksum-valid meaning authentic, digest-as-auth proof, unsupported posture passing silently, physical decode changes caused by policy changes, and result/class collapse."
+    },
+    {
+      "id": 6,
+      "title": "Blob Chunk Scope And Dedupe Readiness",
+      "owner": "`worth-store-blob-chunks`, `worth-store-security`, `worth-store-readiness`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Blob chunk metadata and dedupe admission consume admitted key scope, tenant scope, authenticity requirement, and custody posture before digest equality can imply sharing.",
+        "Identical blob content under different tenant or key scopes does not collapse into a shared claim without explicit admitted equivalence basis.",
+        "Streaming ingest, verification, export-read preparation, tier movement, and reclaim preserve security scope without whole-object residency."
+      ],
+      "instructions": "Implement S.5.1 Phase 6. Seed S.7 blob readiness without implementing later blob behavior. Cross-scope dedupe must require Foundational canonical equivalence plus Store security witnesses, never digest-only equality.",
+      "qa_focus": "Check digest-only dedupe, cross-tenant/key collapse, platform lanes accepting missing scope, whole-object memory assumptions, and readiness that leaks backup/repair semantics."
+    },
+    {
+      "id": 7,
+      "title": "Backup, PITR, Export, And Import Custody Readiness",
+      "owner": "`worth-store-operations`, `worth-store-offline-verifier`, `worth-store-security`, `worth-store-readiness`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-offline-verifier",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Backup, PITR, export, and import declarations bind custody posture and key-version posture before byte stream, capsule, or terminal projection emission.",
+        "Imported/restored bundles crossing a trust boundary regain current security scope through explicit readmission.",
+        "Trust-boundary tests cover different deployment, Store instance, key-scope generation, tenant-scope authority, custody domain, offline export/import, and backup restoration after key rotation."
+      ],
+      "instructions": "Implement S.5.1 Phase 7. Make custody posture variants explicit and keep backup/export/import readiness separate from blob and repair readiness. Serde/deserialized capsule metadata is raw declaration input only.",
+      "qa_focus": "Look for hand-wavy trust boundaries, terminal projection reconstructing custody readiness, skipped readmission, missing custody variants, and byte-stream emission before readiness."
+    },
+    {
+      "id": 8,
+      "title": "Repair And Quarantine Blast-Radius Readiness",
+      "owner": "`worth-store-operations`, `worth-store-offline-verifier`, `worth-store-security`, `worth-store-readiness`, and certification",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-offline-verifier",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "Repair and quarantine plans consume tenant and key scope before repair reads can observe bytes outside the admitted physical blast radius.",
+        "Repair readiness proves only where repair may physically observe/read, not who may initiate repair.",
+        "Offline verifier evidence, operator identity, IAM role, audit record, and correct physical region id cannot mint repair readiness without Store blast-radius admission."
+      ],
+      "instructions": "Implement S.5.1 Phase 8. Keep repair blast-radius readiness separate from operator authorization and identity-provider semantics. S.11 may later decide who initiates repair.",
+      "qa_focus": "Check operator-auth leakage, offline verifier reports becoming authority, correct region ids overriding wrong scope, cross-tenant repair reads, and quarantine field-copy readmission."
+    },
+    {
+      "id": 9,
+      "title": "Later-Milestone Readiness Handoff Closure",
+      "owner": "`worth-store-readiness`, `worth-store-io-scheduler`, `worth-store-blob-chunks`, `worth-store-operations`, and security handoff consumers",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-io-scheduler",
+        "workspaces/worth-store/crates/worth-store-blob-chunks",
+        "workspaces/worth-store/crates/worth-store-operations",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-certification"
+      ],
+      "acceptance": [
+        "S.6, S.7, S.10 backup/export, S.10 repair, and S.11 handoffs are separate types with distinct authority and constructors.",
+        "Handoffs cannot be minted from raw fields, copied proof ids, copied counter receipts, terminal projections, certification-only rows, or the wrong handoff type.",
+        "S.11 security-foundation readiness proves only lifecycle foundation, not encryption, key rotation, audit, or operator authorization."
+      ],
+      "instructions": "Implement S.5.1 Phase 9. Make every handoff carry a unique downstream permission so later milestones consume S.5.1 instead of inventing local metadata.",
+      "qa_focus": "Look for ceremonial wrappers, generic readiness objects, cross-handoff substitution, certification-only minting, and readiness replay with changed tenant/key/auth requirement."
+    },
+    {
+      "id": 10,
+      "title": "Security-Scope Simulation Harness",
+      "owner": "`worth-store-test-support`, `worth-store-certification`, `worth-store-security`, and S.4.5/S.5 harness owners",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/crates/worth-store-physical-certification",
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness"
+      ],
+      "acceptance": [
+        "S.4.5/S.5 harness scenarios can model security-scope metadata, drift, stale key posture, wrong tenant scope, missing authenticity requirement, and replayed custody posture.",
+        "Harness fixtures author native aspect values and Store physical witnesses; JSON appears only in terminal projection or hostile/readmission tests.",
+        "Scenario, schedule, oracle, evidence, and counter responsibilities are split and consume lower Store readiness contracts rather than defining law."
+      ],
+      "instructions": "Implement S.5.1 Phase 10. Extend the existing harness for security-scope failures without making the harness the source of Store authority or implementing later S.11 behavior.",
+      "qa_focus": "Check logs-as-proof, JSON-shaped verdicts, same-run self-comparison, harness-owned legal contracts, combined support modules, and missing replay/drift adversarial scenarios."
+    },
+    {
+      "id": 11,
+      "title": "Certification Evidence And Counter Closeout",
+      "owner": "`worth-store-certification`, lower Store authority crates, Foundational evidence, and Proof progression consumers",
+      "scope": [
+        "workspaces/worth-store/crates/worth-store-certification",
+        "workspaces/worth-store/crates/worth-store-security",
+        "workspaces/worth-store/crates/worth-store-readiness",
+        "workspaces/worth-store/crates/worth-store-test-support",
+        "workspaces/worth-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Certification materializes evidence and counter-backed performance receipts proving S.5.1 contracts are enforced by lower Store crates.",
+        "Certification can publish Foundational boundary evidence but cannot construct Store readiness witnesses by itself.",
+        "Closeout proves Foundational native aspect, canonicalization, boundary artifact, boundary evidence, profile, and performance lanes are used where the spec names them."
+      ],
+      "instructions": "Implement S.5.1 Phase 11. Close the milestone with courtroom evidence, exact counters, and API-adoption proof. Do not let certification become law or use logs/summaries/same-run comparison as proof.",
+      "qa_focus": "Check certification-owned authority, descriptive performance claims without counter receipts, broad logs as proof, missing API-adoption proof, and closeout that skips lower-crate witness enforcement."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+error[E0407]: method `affected_live_view_ids` is not a member of trait `WorthQueryRuntimeSourceAdapter`
+  --> tests/ui/bridge_truth_identity/runtime_source_adapter_snapshot_token_removed.rs:33:5
+   |
+33 |       fn affected_live_view_ids(&self, _receipt: &WorthQueryMutationReceipt) -> Vec<String> {
+   |       ^  ---------------------- help: there is an associated function with a similar name: `affected_live_view_targets`
+   |  _____|
+   | |
+34 | |         Vec::new()
+35 | |     }
+   | |_____^ not a member of trait `WorthQueryRuntimeSourceAdapter`
+
+error[E0407]: method `snapshot_token` is not a member of trait `WorthQueryRuntimeSourceAdapter`
+  --> tests/ui/bridge_truth_identity/runtime_source_adapter_snapshot_token_removed.rs:37:5
+   |
+37 | /     fn snapshot_token(&self) -> String {
+38 | |         "snapshot-1".to_string()
+39 | |     }
+   | |_____^ not a member of trait `WorthQueryRuntimeSourceAdapter`
+
+error[E0046]: not all trait items implemented, missing: `affected_live_view_targets`
+ --> tests/ui/bridge_truth_identity/runtime_source_adapter_snapshot_token_removed.rs:9:1
+  |
+9 | impl WorthQueryRuntimeSourceAdapter for StringSnapshotSource {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `affected_live_view_targets` in implementation
+  |
+  = help: implement the missing item: `fn affected_live_view_targets(&self, _: &WorthQueryMutationReceipt) -> Vec<WorthQueryLiveArtifactTarget> { todo!() }`

@@ -1,0 +1,42 @@
+error[E0560]: struct `worth_query::facade::WorkflowContextBinding` has no field named `digest`
+ --> tests/ui/workflow_context_binding_constructor_private.rs:5:9
+  |
+5 |         digest: todo!(),
+  |         ^^^^^^ `worth_query::facade::WorkflowContextBinding` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::WorkflowContextBinding` has no field named `source_digest`
+ --> tests/ui/workflow_context_binding_constructor_private.rs:6:9
+  |
+6 |         source_digest: todo!(),
+  |         ^^^^^^^^^^^^^ `worth_query::facade::WorkflowContextBinding` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+warning: unreachable expression
+ --> tests/ui/workflow_context_binding_constructor_private.rs:6:24
+  |
+5 |         digest: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         source_digest: todo!(),
+  |                        ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0560]: struct `worth_query::facade::WorkflowContextBinding` has no field named `query_identity_digest`
+ --> tests/ui/workflow_context_binding_constructor_private.rs:7:9
+  |
+7 |         query_identity_digest: todo!(),
+  |         ^^^^^^^^^^^^^^^^^^^^^ `worth_query::facade::WorkflowContextBinding` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `worth_query::facade::WorkflowContextBinding` has no field named `basis_digest`
+ --> tests/ui/workflow_context_binding_constructor_private.rs:9:9
+  |
+9 |         basis_digest: todo!(),
+  |         ^^^^^^^^^^^^ `worth_query::facade::WorkflowContextBinding` does not have this field
+  |
+  = note: all struct fields are already assigned

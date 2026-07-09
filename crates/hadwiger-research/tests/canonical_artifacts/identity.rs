@@ -1,4 +1,4 @@
-use forge_query::facade::ForgeQueryOrdinaryOutcome;
+use worth_query::facade::WORTHQueryOrdinaryOutcome;
 use hadwiger_research::facade::*;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
@@ -47,7 +47,7 @@ fn graph_identity_and_version_keep_query_source_and_parent_links() {
     match graph.source_reference() {
         HadwigerArtifactSourceReference::QueryDeclaration(reference) => {
             assert_eq!(reference, &source);
-            assert_eq!(reference.domain_key(), "forge.hadwiger.research");
+            assert_eq!(reference.domain_key(), "WORTH.hadwiger.research");
             assert_eq!(
                 reference.declaration_family_key(),
                 "hadwiger.candidate_graph"
@@ -56,7 +56,7 @@ fn graph_identity_and_version_keep_query_source_and_parent_links() {
             assert!(!reference.declaration_digest().is_empty());
             assert_eq!(
                 reference.canonicalization_version(),
-                "forge.query.declaration.v1"
+                "WORTH.query.declaration.v1"
             );
         }
         other => panic!("expected query declaration source, got {other:?}"),
@@ -174,12 +174,12 @@ fn query_envelope_references_are_self_describing() {
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
     ) {
-        ForgeQueryOrdinaryOutcome::Bound(envelope) => envelope,
+        WORTHQueryOrdinaryOutcome::Bound(envelope) => envelope,
         _ => panic!("expected bound declaration envelope"),
     };
     let reference: HadwigerQueryEnvelopeReference = envelope.into();
 
-    assert_eq!(reference.domain_key(), "forge.hadwiger.research");
+    assert_eq!(reference.domain_key(), "WORTH.hadwiger.research");
     assert_eq!(
         reference.declaration_family_key(),
         "hadwiger.candidate_graph"

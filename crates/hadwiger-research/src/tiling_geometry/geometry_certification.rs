@@ -36,7 +36,7 @@ impl TilingGeometryCertification {
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "schema",
-                    "forge.hadwiger.tiling_geometry_certification.v1",
+                    "WORTH.hadwiger.tiling_geometry_certification.v1",
                 ),
                 HadwigerArtifactPayloadEntry::text("cell", cell.reference().stable_token()),
                 HadwigerArtifactPayloadEntry::text(

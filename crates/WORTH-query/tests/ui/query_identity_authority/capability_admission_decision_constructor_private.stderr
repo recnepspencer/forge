@@ -1,0 +1,30 @@
+error[E0451]: fields `descriptor`, `validated_config_digest`, `counters` and `decision_digest` of struct `CapabilityAdmissionDecision` are private
+  --> tests/ui/capability_admission_decision_constructor_private.rs:8:9
+   |
+ 7 |     let _ = CapabilityAdmissionDecision {
+   |             --------------------------- in this type
+ 8 |         descriptor: worth_query::facade::WorthQueryCapabilityDescriptor {
+   |         ^^^^^^^^^^ private field
+...
+15 |         validated_config_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counters: WorthQueryFacadeCounters::default(),
+   |         ^^^^^^^^ private field
+17 |         decision_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `family`, `status`, `owner`, `config_section` and `reason` of struct `WorthQueryCapabilityDescriptor` are private
+  --> tests/ui/capability_admission_decision_constructor_private.rs:9:13
+   |
+ 8 |         descriptor: worth_query::facade::WorthQueryCapabilityDescriptor {
+   |                     --------------------------------------------------- in this type
+ 9 |             family: WorthQueryCapabilityFamily::QueryRead,
+   |             ^^^^^^ private field
+10 |             status: WorthQueryCapabilityStatus::Admitted,
+   |             ^^^^^^ private field
+11 |             owner: WorthQuerySubsystemOwner::Query,
+   |             ^^^^^ private field
+12 |             config_section: WorthQueryConfigSectionFamily::Query,
+   |             ^^^^^^^^^^^^^^ private field
+13 |             reason: "forbidden",
+   |             ^^^^^^ private field

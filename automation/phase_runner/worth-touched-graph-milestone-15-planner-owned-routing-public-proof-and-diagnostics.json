@@ -7,7 +7,7 @@
   },
   "project": {
     "name": "Worth Touched Graph Milestone 15 Planner Owned Routing Public Proof And Diagnostics",
-    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2",
+    "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
     "spec_file": "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -21,13 +21,13 @@
       "_docs/worth/touched-graph-milestone-13-aspect-routed-conflict-independence-and-batch-admission.md",
       "_docs/worth/touched-graph-milestone-14-unified-compiled-product-cache-and-equivalence-contracts.md",
       "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md",
-      "crates/forge-query/docs/AI_README.md",
-      "crates/forge-query/docs/foundations/consumer-kit.md",
-      "crates/forge-query/docs/foundations/support-matrix-and-admission.md",
-      "crates/forge-query/docs/foundations/downstream-runtime-integration.md",
-      "crates/forge-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
-      "crates/forge-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
-      "crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
+      "crates/worth-query/docs/AI_README.md",
+      "crates/worth-query/docs/foundations/consumer-kit.md",
+      "crates/worth-query/docs/foundations/support-matrix-and-admission.md",
+      "crates/worth-query/docs/foundations/downstream-runtime-integration.md",
+      "crates/worth-query/docs/domain-capabilities/support/lower-runtime-support-and-boundary-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/support/declaration-scoped-support-and-traceability.md",
+      "crates/worth-query/docs/domain-capabilities/declaration-boundary-envelopes.md",
       "crates/worth-kernel/src/workload_composition/public_closeout/mod.rs",
       "crates/worth-kernel/src/workload_composition/source_firewall/mod.rs",
       "crates/worth-topo/src/projection/diagnostic_surfaces/mod.rs",
@@ -61,12 +61,12 @@
     {
       "id": 1,
       "title": "Public Proof, Diagnostic, And Explainer Inventory Cut Line",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",
         "crates/worth-spatial/src/workload_platform",
-        "crates/forge-query/docs",
+        "crates/worth-query/docs",
         "_docs/worth/touched-graph-milestone-15-planner-owned-routing-public-proof-and-diagnostics.md"
       ],
       "acceptance": [
@@ -201,11 +201,11 @@
     {
       "id": 4,
       "title": "Query-Backed Read Routing Explanation Lane",
-      "owner": "worth-topo, forge-query",
+      "owner": "worth-topo, worth-query",
       "scope": [
         "crates/worth-topo/src/projection/query_backed_consumer_cutover",
         "crates/worth-topo/src/projection",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "query-backed route explanation consumes admitted Query support posture and boundary evidence rather than Worth-local support folklore",
@@ -319,7 +319,7 @@
         "verification": [
           "cargo test -p worth-kernel --lib current_derived_read_diagnostic_input_requires_real_selected_route_packet | exit 0 | tail: 1 passed; 0 failed; finished in 211.75s",
           "cargo test -p worth-topo --lib mismatched_selected_route_authority_cannot_mint_derived_read_diagnostic_input | exit 0 | tail: 1 passed; 0 failed; finished in 3.08s",
-          "cargo test -p worth-topo --lib public_api_cannot_forge_compiled_product_or_reuse_products | exit 0 | tail: 1 passed; 0 failed; compile-fail fixtures ok",
+          "cargo test -p worth-topo --lib public_api_cannot_WORTH_compiled_product_or_reuse_products | exit 0 | tail: 1 passed; 0 failed; compile-fail fixtures ok",
           "cargo check -p worth-topo --lib | exit 0 | tail: worth-topo (lib) generated 76 warnings; Finished dev profile",
           "cargo check -p worth-kernel --lib | exit 0 | tail: worth-kernel (lib) generated 17 warnings; Finished dev profile"
         ]
@@ -629,10 +629,10 @@
     {
       "id": 15,
       "title": "Public Read-Only Facade Boundary",
-      "owner": "worth-kernel, forge-query",
+      "owner": "worth-kernel, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "callers can inspect proof and diagnostics but cannot construct planner route or proof products",
@@ -778,12 +778,12 @@
     {
       "id": 21,
       "title": "Residue Ledger, Query-Gap Ledger, And Honest Public Debt",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",
         "crates/worth-spatial/src/workload_platform",
-        "crates/forge-query/docs"
+        "crates/worth-query/docs"
       ],
       "acceptance": [
         "every remaining unmigrated public or diagnostic surface is counted exactly with owner, blocker, and removal trigger",
@@ -805,12 +805,12 @@
     {
       "id": 22,
       "title": "Milestone 15 Closeout And Milestone 16 Handoff",
-      "owner": "worth-kernel, worth-topo, worth-spatial, forge-query",
+      "owner": "worth-kernel, worth-topo, worth-spatial, worth-query",
       "scope": [
         "crates/worth-kernel/src/workload_composition",
         "crates/worth-topo/src/projection",
         "crates/worth-spatial/src/workload_platform",
-        "crates/forge-query/docs",
+        "crates/worth-query/docs",
         "_docs/worth/touched-graph-roadmap.md"
       ],
       "acceptance": [

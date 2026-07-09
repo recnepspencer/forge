@@ -745,7 +745,7 @@ quietly decay and a seam that future domain knowledge can actually use.
 - Road 1 stays small, substrate-oriented, and dependency-ordered.
 - The thesis remains the constitutional explanation; this roadmap remains the
   implementation sequence.
-- Pure meaning remains Forge Query agnostic by default.
+- Pure meaning remains WORTH Query agnostic by default.
 - Query declaration bridge remains explicit rather than hidden.
 - Ordinary and reconstructive cost posture remain visibly distinct.
 - Pack extension remains a first-class seam rather than a later add-on.

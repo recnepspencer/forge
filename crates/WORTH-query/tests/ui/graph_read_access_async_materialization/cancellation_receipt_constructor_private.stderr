@@ -1,0 +1,25 @@
+error[E0451]: fields `digest`, `job_digest`, `request_digest`, `progress_digest`, `last_checkpoint_digest`, `released_frontier_pages`, `released_allocated_bytes`, `cancellation_poll_count`, `cancellation_scope` and `final_job_state` of struct `WorthQueryGraphReadMaterializationCancellationReceipt` are private
+  --> tests/ui/graph_read_access_async_materialization/cancellation_receipt_constructor_private.rs:8:9
+   |
+ 7 |     let _ = WorthQueryGraphReadMaterializationCancellationReceipt {
+   |             ----------------------------------------------------- in this type
+ 8 |         digest: String::new(),
+   |         ^^^^^^ private field
+ 9 |         job_digest: String::new(),
+   |         ^^^^^^^^^^ private field
+10 |         request_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+11 |         progress_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         last_checkpoint_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         released_frontier_pages: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         released_allocated_bytes: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         cancellation_poll_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         cancellation_scope: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+17 |         final_job_state: WorthQueryGraphReadMaterializationJobState::Cancelled,
+   |         ^^^^^^^^^^^^^^^ private field

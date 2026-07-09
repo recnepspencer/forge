@@ -9,12 +9,13 @@
 //! PUBLIC API: All external access goes through `facade`.
 
 #![forbid(unsafe_code)]
-// Direct float equality is banned workspace-wide. Use forge_core comparison
-// predicates: approximately_equal, positions_coincident, is_effectively_zero.
+// Direct float equality is banned workspace-wide. Use local comparison helpers
+// rather than reintroducing removed cross-crate authority seams.
 #![deny(clippy::float_cmp)]
 
 pub mod facade;
 pub mod prelude;
+pub(crate) mod support;
 pub(crate) mod traits;
 
 pub(crate) mod algorithms;

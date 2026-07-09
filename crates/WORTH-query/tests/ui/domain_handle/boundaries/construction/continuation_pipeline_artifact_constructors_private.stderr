@@ -1,0 +1,49 @@
+error: cannot construct `WorthQueryPreparedContinuation<GeometryDomainEntry, GeometryInput>` with struct literal syntax due to private fields
+  --> tests/ui/domain_handle/boundaries/construction/continuation_pipeline_artifact_constructors_private.rs:76:20
+   |
+76 |     let prepared = WorthQueryPreparedContinuation::<GeometryDomainEntry, GeometryInput> {
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+77 |         family: unsafe { std::mem::zeroed() },
+   |         ------------------------------------- private field
+78 |         truth_context: unsafe { std::mem::zeroed() },
+   |         -------------------------------------------- private field
+79 |         basis_posture: unsafe { std::mem::zeroed() },
+   |         -------------------------------------------- private field
+80 |         workspace_contract: unsafe { std::mem::zeroed() },
+   |         ------------------------------------------------- private field
+81 |         runtime_contract: unsafe { std::mem::zeroed() },
+   |         ----------------------------------------------- private field
+82 |         execution_mode: unsafe { std::mem::zeroed() },
+   |         --------------------------------------------- private field
+83 |         required_basis_families: vec![],
+   |         ------------------------------- private field
+84 |         bridge_routing: unsafe { std::mem::zeroed() },
+   |         --------------------------------------------- private field
+85 |         signal_posture: unsafe { std::mem::zeroed() },
+   |         --------------------------------------------- private field
+86 |         signal_execution_family: None,
+   |         ----------------------------- private field
+87 |         signal_compatibility_digest: None,
+   |         --------------------------------- private field
+88 |         prepared_digest: String::new(),
+   |         ------------------------------ private field
+   |
+   = note: ...and other private field `execution_readmission` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+76 -     let prepared = WorthQueryPreparedContinuation::<GeometryDomainEntry, GeometryInput> {
+77 -         family: unsafe { std::mem::zeroed() },
+78 -         truth_context: unsafe { std::mem::zeroed() },
+79 -         basis_posture: unsafe { std::mem::zeroed() },
+80 -         workspace_contract: unsafe { std::mem::zeroed() },
+81 -         runtime_contract: unsafe { std::mem::zeroed() },
+82 -         execution_mode: unsafe { std::mem::zeroed() },
+83 -         required_basis_families: vec![],
+84 -         bridge_routing: unsafe { std::mem::zeroed() },
+85 -         signal_posture: unsafe { std::mem::zeroed() },
+86 -         signal_execution_family: None,
+87 -         signal_compatibility_digest: None,
+88 -         prepared_digest: String::new(),
+89 -     };
+76 +     let prepared = WorthQueryPreparedContinuation::<GeometryDomainEntry, GeometryInput>::new(_, _, _, _, _, _, _, _, _, _, _, _, _);
+   |

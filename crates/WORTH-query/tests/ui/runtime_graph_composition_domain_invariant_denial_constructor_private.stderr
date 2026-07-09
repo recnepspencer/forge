@@ -1,0 +1,46 @@
+error: cannot construct `WorthQueryGraphCompositionDomainInvariantDenial` with struct literal syntax due to private fields
+  --> tests/ui/runtime_graph_composition_domain_invariant_denial_constructor_private.rs:4:13
+   |
+ 4 |     let _ = WorthQueryGraphCompositionDomainInvariantDenial {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         hook_family: "domain_invariant_pack_hook".to_string(),
+   |         ----------------------------------------------------- private field
+ 6 |         invariant_family: "non_manifold_topology".to_string(),
+   |         ----------------------------------------------------- private field
+ 7 |         message: "should not compile".to_string(),
+   |         ----------------------------------------- private field
+ 8 |         admission_trace: unsafe { std::mem::zeroed() },
+   |         ---------------------------------------------- private field
+ 9 |         denial_digest: "fake".to_string(),
+   |         --------------------------------- private field
+   |
+   = note: ...and other private field `domain_invariant_summary` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 4 -     let _ = WorthQueryGraphCompositionDomainInvariantDenial {
+ 5 -         hook_family: "domain_invariant_pack_hook".to_string(),
+ 6 -         invariant_family: "non_manifold_topology".to_string(),
+ 7 -         message: "should not compile".to_string(),
+ 8 -         admission_trace: unsafe { std::mem::zeroed() },
+ 9 -         denial_digest: "fake".to_string(),
+10 -     };
+ 4 +     let _ = WorthQueryGraphCompositionDomainInvariantDenial::from_violation(_, _);
+   |
+ 4 -     let _ = WorthQueryGraphCompositionDomainInvariantDenial {
+ 5 -         hook_family: "domain_invariant_pack_hook".to_string(),
+ 6 -         invariant_family: "non_manifold_topology".to_string(),
+ 7 -         message: "should not compile".to_string(),
+ 8 -         admission_trace: unsafe { std::mem::zeroed() },
+ 9 -         denial_digest: "fake".to_string(),
+10 -     };
+ 4 +     let _ = WorthQueryGraphCompositionDomainInvariantDenial::from_contributed(_, _, _);
+   |
+ 4 -     let _ = WorthQueryGraphCompositionDomainInvariantDenial {
+ 5 -         hook_family: "domain_invariant_pack_hook".to_string(),
+ 6 -         invariant_family: "non_manifold_topology".to_string(),
+ 7 -         message: "should not compile".to_string(),
+ 8 -         admission_trace: unsafe { std::mem::zeroed() },
+ 9 -         denial_digest: "fake".to_string(),
+10 -     };
+ 4 +     let _ = WorthQueryGraphCompositionDomainInvariantDenial::build(_, _, _, _);
+   |

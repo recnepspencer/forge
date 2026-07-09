@@ -1,0 +1,27 @@
+error[E0599]: no function or associated item named `new` found for struct `WorthQueryAspectTouch` in the current scope
+ --> tests/ui/aspect_native_query/aspect_touch_raw_string_constructor_removed.rs:4:36
+  |
+4 |     let _ = WorthQueryAspectTouch::new("title.value");
+  |                                    ^^^ function or associated item not found in `WorthQueryAspectTouch`
+  |
+note: if you're trying to build a new `WorthQueryAspectTouch` consider using one of the following associated functions:
+      WorthQueryAspectTouch::from_authoring_ingress_text
+      WorthQueryAspectTouch::whole_aspect
+      WorthQueryAspectTouch::aspect_field_path
+ --> src/runtime/mutation/touch.rs
+  |
+  | /     pub fn from_authoring_ingress_text(
+  | |         authored_touch_text: impl Into<String>,
+  | |     ) -> Result<Self, WorthQueryWorkspaceError> {
+  | |_______________________________________________^
+...
+  |       pub fn whole_aspect(aspect_key: AspectKey) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  |       pub fn aspect_field_path(aspect_key: AspectKey, field_path: CanonicalFieldPath) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: there is a method `ne` with a similar name
+  |
+4 -     let _ = WorthQueryAspectTouch::new("title.value");
+4 +     let _ = WorthQueryAspectTouch::ne("title.value");
+  |

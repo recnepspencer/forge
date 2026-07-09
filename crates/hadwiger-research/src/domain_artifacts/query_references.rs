@@ -1,6 +1,6 @@
-use forge_query::facade::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationEnvelope,
-    ForgeQueryDeclarationInput,
+use worth_query::facade::{
+    WORTHQueryCanonicalDeclarationArtifact, WORTHQueryDeclarationEnvelope,
+    WORTHQueryDeclarationInput,
 };
 
 use crate::query_entry::HadwigerResearchDomainEntry;
@@ -49,16 +49,16 @@ impl HadwigerQueryDeclarationReference {
     }
 }
 
-impl<I> From<ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>
+impl<I> From<WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>
     for HadwigerQueryDeclarationReference
 where
-    I: ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>,
+    I: WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>,
 {
     fn from(
-        declaration: ForgeQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>,
+        declaration: WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>,
     ) -> Self {
         Self {
-            domain_key: "forge.hadwiger.research",
+            domain_key: "WORTH.hadwiger.research",
             handle_identity_digest: declaration.handle_identity_digest().to_string(),
             declaration_family_key: declaration.declaration_family_key(),
             declaration_digest: canonical_digest_token(declaration.declaration_digest()),
@@ -137,14 +137,14 @@ impl HadwigerQueryEnvelopeReference {
     }
 }
 
-impl<I> From<ForgeQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
+impl<I> From<WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
     for HadwigerQueryEnvelopeReference
 where
-    I: ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>,
+    I: WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>,
 {
-    fn from(envelope: ForgeQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>) -> Self {
+    fn from(envelope: WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>) -> Self {
         Self {
-            domain_key: "forge.hadwiger.research",
+            domain_key: "WORTH.hadwiger.research",
             declaration_family_key: envelope.declaration_family_key(),
             handle_identity_digest: envelope.handle_identity_digest().to_string(),
             operating_context_identity_digest: envelope

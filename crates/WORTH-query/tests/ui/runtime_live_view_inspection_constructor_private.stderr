@@ -1,0 +1,167 @@
+error[E0560]: struct `WorthQueryLiveSubscriptionInspectionCounters` has no field named `declaration_counter_digest`
+ --> tests/ui/runtime_live_view_inspection_constructor_private.rs:8:9
+  |
+8 |         declaration_counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveSubscriptionInspectionCounters` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveSubscriptionInspectionCounters` has no field named `active_lane_counter_digest`
+ --> tests/ui/runtime_live_view_inspection_constructor_private.rs:9:9
+  |
+9 |         active_lane_counter_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveSubscriptionInspectionCounters` does not have this field
+  |
+  = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveSubscriptionInspectionCounters` has no field named `consumer_attachment_counter_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:10:9
+   |
+10 |         consumer_attachment_counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveSubscriptionInspectionCounters` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveSubscriptionInspectionCounters` has no field named `counter_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:22:9
+   |
+22 |         counter_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ `WorthQueryLiveSubscriptionInspectionCounters` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `query_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:28:9
+   |
+28 |         query_digest: String::new(),
+   |         ^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `view_shape_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:29:9
+   |
+29 |         view_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `subscription_family_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:31:9
+   |
+31 |         subscription_family_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `subscription_declaration_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:32:9
+   |
+32 |         subscription_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `bridge_declaration_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:33:9
+   |
+33 |         bridge_declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `admission_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:34:9
+   |
+34 |         admission_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `activation_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:35:9
+   |
+35 |         activation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `basis_binding_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:36:9
+   |
+36 |         basis_binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `signal_strategy_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:37:9
+   |
+37 |         signal_strategy_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `active_lane_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:38:9
+   |
+38 |         active_lane_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `consumer_attachment_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:39:9
+   |
+39 |         consumer_attachment_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `consumer_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:40:9
+   |
+40 |         consumer_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `delivery_cursor_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:41:9
+   |
+41 |         delivery_cursor_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `runtime_budget_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:45:9
+   |
+45 |         runtime_budget_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `support_evidence`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:46:9
+   |
+46 |         support_evidence: String::new(),
+   |         ^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `installation_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:47:9
+   |
+47 |         installation_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
+
+error[E0560]: struct `WorthQueryLiveViewInspection` has no field named `inspection_digest`
+  --> tests/ui/runtime_live_view_inspection_constructor_private.rs:49:9
+   |
+49 |         inspection_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ `WorthQueryLiveViewInspection` does not have this field
+   |
+   = note: all struct fields are already assigned
