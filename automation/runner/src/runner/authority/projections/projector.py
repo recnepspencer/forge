@@ -87,6 +87,7 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
                     "current": event["payload"]["current"],
                     "injection_mode": event["payload"].get("injection_mode"),
                     "post_injection_route": event["payload"].get("post_injection_route"),
+                    "model_policy": event["payload"].get("model_policy"),
                 }
         if event["event_type"] in {"plan_adopted", "plan_revised"}:
             projection["plan"] = {

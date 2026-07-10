@@ -35,7 +35,7 @@ from runner.graph_runtime.state import (
 )
 from runner.phase_programs import lower_phase_program
 from runner.phase_programs.lowered_program import PHASE_ASSET_PROMPT_BINDING
-from runner.roles import apply_model_override, resolve_role_policy
+from runner.roles import apply_model_override, apply_operator_model, resolve_role_policy
 
 
 def load_run_authority(state: GraphState) -> GraphState:
@@ -104,12 +104,13 @@ def resolved_role_policy_with_override(run_authority, phase_id: int, turn: str):
     override that covers it. This is the single execution-path chokepoint, so a
     scoped model escalation (e.g. repair turns -> stronger model) takes effect
     without touching the static role bindings."""
-    return apply_model_override(
+    role_policy = apply_model_override(
         resolve_role_policy(run_authority.config, phase_id, turn),
         run_authority.projection,
         phase_id,
         turn,
     )
+    return apply_operator_model(role_policy, run_authority.projection, phase_id, turn)
 
 
 def select_role_session(state: GraphState) -> GraphState:

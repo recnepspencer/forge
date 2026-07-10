@@ -9,6 +9,7 @@ from runner.graph_runtime.continuation.requests import (
 from runner.phase_programs.policy_bindings import (
     INVALID_OUTCOME_ESCALATION_FAMILY,
     escalation_policy_for_failure_family,
+    operator_custom_turn_config,
     outcome_repair_policy_for_failure_family,
 )
 
@@ -97,21 +98,17 @@ def plan_recovery_attempt(
     policy = escalation_policy_for_failure_family(config, failure_family)
     if policy is None:
         raise ValueError(f"missing escalation_policy entry for failure family {failure_family!r}")
-    prior_attempts = count_recovery_requests(
-        events,
-        phase_id=phase_id,
-        turn=turn,
-        turn_instance_id=turn_instance_id,
-        recovery_kind="escalation_recovery",
-    )
+    prior_attempts = escalation_prior_attempts(events, config, phase_id, turn, turn_instance_id)
     # The stage ladder governs which action fires; a loop trigger no longer
     # forces a single action, so distinct stages actually progress.
     stage = policy.stage_for_attempt(prior_attempts)
     if stage is None:
         return RecoveryTurnRequest(
             reason=(
-                f"recovery attempts exhausted for failure family {failure_family!r}; "
-                f"configured on_exhausted={policy.on_exhausted.action!r}"
+                f"Escalation ladder exhausted for {failure_family} at phase {phase_id} turn {turn!r}. "
+                f"The run is paused (on_exhausted={policy.on_exhausted.action}). Reply to this alert with a "
+                f"model and instructions to run a custom turn (e.g. 'codex <what to do>' or 'grok <what to do>'), "
+                f"then the standard runner resumes."
             ),
             failure_family=failure_family,
             turn_instance_id=turn_instance_id,
@@ -147,6 +144,59 @@ def broader_recovery_family(failure_family: str | None) -> str | None:
     if failure_family in {"missing_runner_event", "malformed_runner_event"}:
         return INVALID_OUTCOME_ESCALATION_FAMILY
     return failure_family
+
+
+def escalation_prior_attempts(
+    events: list[dict[str, Any]],
+    config: dict[str, Any],
+    phase_id: int,
+    turn: str,
+    turn_instance_id: str | None,
+) -> int:
+    """Escalation attempts consumed so far, honouring the operator-custom-turn
+    reset with a hard per-phase cap. Each custom turn resets the ladder window
+    so the phase gets a clean run, but once the phase has consumed
+    max_ladders_per_phase custom turns the count stays cumulative, so the ladder
+    re-exhausts immediately and the run stays paged and paused."""
+    custom = operator_custom_turn_config(config)
+    max_ladders = custom.get("max_ladders_per_phase") if isinstance(custom, dict) else None
+    ladders_used = count_operator_custom_turns(events, phase_id)
+    if not isinstance(max_ladders, int) or ladders_used == 0 or ladders_used >= max_ladders:
+        return count_recovery_requests(
+            events,
+            phase_id=phase_id,
+            turn=turn,
+            turn_instance_id=turn_instance_id,
+            recovery_kind="escalation_recovery",
+        )
+    return count_escalation_since_last_custom_turn(events, phase_id, turn)
+
+
+def count_operator_custom_turns(events: list[dict[str, Any]], phase_id: int) -> int:
+    return sum(
+        1
+        for event in events
+        if event.get("event_type") == "operator_override"
+        and event.get("phase_id") == phase_id
+        and event.get("payload", {}).get("model_policy")
+    )
+
+
+def count_escalation_since_last_custom_turn(events: list[dict[str, Any]], phase_id: int, turn: str) -> int:
+    count = 0
+    for event in reversed(events):
+        if event.get("phase_id") != phase_id:
+            continue
+        event_type = event.get("event_type")
+        if event_type == "operator_override" and event.get("payload", {}).get("model_policy"):
+            break
+        if (
+            event_type == "recovery_requested"
+            and event.get("turn") == turn
+            and event.get("payload", {}).get("recovery_kind") == "escalation_recovery"
+        ):
+            count += 1
+    return count
 
 
 def count_recovery_requests(

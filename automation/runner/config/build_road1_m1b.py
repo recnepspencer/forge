@@ -257,6 +257,15 @@ def main() -> None:
         "invalid_outcome": {"stages": [{"action": "start_fresh_session"}], "on_exhausted": "notify"},
         "no_edit_stall": {"stages": [{"action": "start_fresh_session"}], "on_exhausted": "notify"},
     }
+    # Operator custom turn: reply to a blocker on Telegram with "<codex|grok>
+    # <instructions>". The named (or default) model runs one turn with those
+    # instructions, then the standard runner resumes. The per-phase cap bounds
+    # how many times the ladder resets before it stays paged and paused.
+    config["operator_custom_turn"] = {
+        "aliases": {"codex": dict(OVERSIGHT), "grok": dict(BUILD)},
+        "default_alias": "grok",
+        "max_ladders_per_phase": 2,
+    }
 
     CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {CONFIG_PATH}")

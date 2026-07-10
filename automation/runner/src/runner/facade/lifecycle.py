@@ -20,7 +20,7 @@ from runner.facade.runtime_state import (
 )
 from runner.facade.plan_revision import adopt_plan_payload
 from runner.generation.legacy_importer import import_legacy_run as import_legacy_run_impl
-from runner.phase_programs.policy_bindings import operator_intervention_policy
+from runner.phase_programs.policy_bindings import operator_custom_turn_config, operator_intervention_policy
 
 
 def start_run(
@@ -89,6 +89,7 @@ def inject_operator_override(
     projection = refresh_projection_for_run(run_id)
     if source_id is not None and operator_override_source_exists(RuntimePaths(run_id), source_id):
         return
+    model_policy, instructions = parse_operator_custom_turn(config, message)
     target = operator_override_target(projection, phase_id, turn)
     append_runtime_event(
         RuntimePaths(run_id),
@@ -97,14 +98,39 @@ def inject_operator_override(
         turn=target["turn"],
         payload={
             "current": target,
-            "reason": message,
+            "reason": instructions,
             "injection_mode": policy.default_injection_mode,
             "post_injection_route": policy.default_post_injection_route,
             "source_id": source_id,
+            "model_policy": model_policy,
         },
         thread_id=projection["session"]["thread_id"],
     )
     refresh_projection_for_run(run_id)
+
+
+def parse_operator_custom_turn(config: dict, message: str) -> tuple[dict | None, str]:
+    """A custom-turn reply is `<model alias> <instructions>`. The first token,
+    if it names a configured alias, picks the model; the remainder is the turn
+    instructions. Absent an alias prefix, the configured default_alias is used
+    and the whole reply is instructions. Without an operator_custom_turn config,
+    the reply is a plain injection at the current model."""
+    custom = operator_custom_turn_config(config)
+    text = message.strip()
+    if custom is None:
+        return None, text
+    aliases = custom.get("aliases", {})
+    token, _, rest = text.partition(" ")
+    alias = token.rstrip(":").lower()
+    if alias in aliases:
+        instructions = rest.strip()
+        if not instructions:
+            raise ValueError("operator custom turn requires instructions after the model name")
+        return aliases[alias], instructions
+    default_alias = custom.get("default_alias")
+    if default_alias in aliases:
+        return aliases[default_alias], text
+    return None, text
 
 
 def operator_override_source_exists(paths: RuntimePaths, source_id: str) -> bool:

@@ -14,6 +14,7 @@ STATIC_TOP_LEVEL_KEYS = {
     "escalation_policy",
     "outcome_repair_policy",
     "operator_intervention_policy",
+    "operator_custom_turn",
     "notification_policy",
     "phases",
 }

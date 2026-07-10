@@ -80,6 +80,11 @@ def active_model_override(
     return match
 
 
+def override_role_model(role_policy: ResolvedRolePolicy, model_policy_mapping: dict[str, Any]) -> ResolvedRolePolicy:
+    seed = RoleModelPolicySeed.from_mapping(model_policy_mapping, "model_override.model_policy")
+    return replace(role_policy, model_policy=role_model_policy_from_seed(seed))
+
+
 def apply_model_override(
     role_policy: ResolvedRolePolicy,
     projection: dict[str, Any],
@@ -89,8 +94,25 @@ def apply_model_override(
     override = active_model_override(projection, phase_id, turn)
     if override is None:
         return role_policy
-    seed = RoleModelPolicySeed.from_mapping(override["model_policy"], "model_override.model_policy")
-    return replace(role_policy, model_policy=role_model_policy_from_seed(seed))
+    return override_role_model(role_policy, override["model_policy"])
+
+
+def apply_operator_model(
+    role_policy: ResolvedRolePolicy,
+    projection: dict[str, Any],
+    phase_id: int,
+    turn: str,
+) -> ResolvedRolePolicy:
+    """An operator custom turn carries its own model for this one cursor."""
+    intervention = projection.get("operator_intervention")
+    if not isinstance(intervention, dict):
+        return role_policy
+    if intervention.get("current") != {"phase": phase_id, "turn": turn}:
+        return role_policy
+    model_policy = intervention.get("model_policy")
+    if not isinstance(model_policy, dict):
+        return role_policy
+    return override_role_model(role_policy, model_policy)
 
 
 def project_current_session(config: dict[str, Any], current: dict[str, Any] | None, session: dict[str, Any]) -> dict[str, Any]:

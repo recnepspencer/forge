@@ -2,6 +2,7 @@ from runner.roles.registry import RoleDefinition, TurnRoleBinding, resolve_turn_
 from runner.roles.role_policy import (
     ResolvedRolePolicy,
     apply_model_override,
+    apply_operator_model,
     project_current_session,
     resolve_role_policy,
 )
@@ -15,6 +16,7 @@ __all__ = [
     "SUPPORTED_ROLE_IDS",
     "TurnRoleBinding",
     "apply_model_override",
+    "apply_operator_model",
     "project_current_session",
     "resolve_role_policy",
     "resolve_turn_role_binding",

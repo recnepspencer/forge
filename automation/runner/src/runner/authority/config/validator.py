@@ -15,6 +15,7 @@ from runner.authority.config.template_validation import validate_contract_templa
 from runner.phase_programs.policy_bindings import (
     validate_escalation_policy,
     validate_loop_escalation,
+    validate_operator_custom_turn,
     validate_operator_intervention_policy,
     validate_outcome_repair_policy,
 )
@@ -82,6 +83,12 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
     operator_intervention_policy = config.get("operator_intervention_policy", {})
     if isinstance(operator_intervention_policy, dict):
         validate_operator_intervention_policy(operator_intervention_policy, errors)
+    operator_custom_turn = config.get("operator_custom_turn")
+    if operator_custom_turn is not None:
+        if not isinstance(operator_custom_turn, dict):
+            errors.append("operator_custom_turn must be an object when present")
+        else:
+            validate_operator_custom_turn(operator_custom_turn, errors)
     notification_policy = config.get("notification_policy")
     if notification_policy is not None:
         if not isinstance(notification_policy, dict):

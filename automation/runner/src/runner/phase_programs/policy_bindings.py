@@ -227,6 +227,29 @@ def validate_operator_intervention_policy(operator_intervention_policy: dict[str
         )
 
 
+def validate_operator_custom_turn(operator_custom_turn: dict[str, Any], errors: list[str]) -> None:
+    aliases = operator_custom_turn.get("aliases")
+    if not isinstance(aliases, dict) or not aliases:
+        errors.append("operator_custom_turn.aliases must be a non-empty object")
+        aliases = {}
+    for alias_name, model_policy in aliases.items():
+        if not isinstance(model_policy, dict):
+            errors.append(f"operator_custom_turn.aliases.{alias_name} must be a model policy object")
+            continue
+        validate_role_model_policy_binding(model_policy, errors, f"operator_custom_turn.aliases.{alias_name}")
+    default_alias = operator_custom_turn.get("default_alias")
+    if default_alias is not None and default_alias not in aliases:
+        errors.append("operator_custom_turn.default_alias must name a declared alias")
+    max_ladders = operator_custom_turn.get("max_ladders_per_phase")
+    if max_ladders is not None and (not isinstance(max_ladders, int) or max_ladders <= 0):
+        errors.append("operator_custom_turn.max_ladders_per_phase must be a positive integer when present")
+
+
+def operator_custom_turn_config(config: dict[str, Any]) -> dict[str, Any] | None:
+    custom = config.get("operator_custom_turn")
+    return custom if isinstance(custom, dict) else None
+
+
 def admit_phase_program_policy_bindings(config: dict[str, Any]) -> PhaseProgramPolicyBindings:
     loop_escalation = {
         family_name: LoopEscalationFamilyPolicy(
