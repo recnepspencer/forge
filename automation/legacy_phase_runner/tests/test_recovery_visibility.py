@@ -53,6 +53,15 @@ class RecoveryVisibilityTests(unittest.TestCase):
         )
         self.assertTrue(status["recovery_required"])
 
+    def test_completed_run_never_requires_recovery(self) -> None:
+        status = status_view(
+            {"run_id": "completed", "current": None, "completed_at": "2026-07-10T00:00:00Z",
+             "stopped": False, "stop_reason": None, "session": {"thread_id": None},
+             "latest_summary": None, "last_event": None, "phases": []},
+            "not_running",
+        )
+        self.assertFalse(status["recovery_required"])
+
 
 if __name__ == "__main__":
     unittest.main()

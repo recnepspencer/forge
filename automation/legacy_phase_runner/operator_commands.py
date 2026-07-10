@@ -105,7 +105,11 @@ def status_view(projection: dict, process_liveness: str) -> dict:
         "stopped": projection["stopped"],
         "stop_reason": projection["stop_reason"],
         "process_liveness": process_liveness,
-        "recovery_required": not projection["stopped"] and process_liveness != "running",
+        "recovery_required": (
+            projection["completed_at"] is None
+            and not projection["stopped"]
+            and process_liveness != "running"
+        ),
         "thread_id": projection["session"]["thread_id"],
         "latest_summary": projection["latest_summary"],
         "last_event": projection["last_event"],
