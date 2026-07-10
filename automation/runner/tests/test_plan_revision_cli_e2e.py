@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+
+LANGGRAPH_INSTALLED = importlib.util.find_spec("langgraph") is not None
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
@@ -87,6 +90,7 @@ class PlanRevisionCliEndToEndTests(unittest.TestCase):
             self.assertIn("config changed since plan_version=1", completed.stderr)
             self.assertNotIn("No module named 'langgraph'", completed.stderr)
 
+    @unittest.skipIf(LANGGRAPH_INSTALLED, "asserts graceful failure when the langgraph runtime is absent")
     def test_cli_start_missing_graph_runtime_does_not_leave_phantom_plan(self) -> None:
         with cli_plan_world() as world:
             completed = world.run_cli("start", str(world.scaffold.config_path), "--run-id", "start-failed", check=False)

@@ -157,7 +157,7 @@ class e2e_world:
                     "review_family": {"turns": ["single_prompt"], "threshold": 4, "action": "start_fresh_session"}
                 }
             },
-            "escalation_policy": {"provider_crash": {"attempts": [], "on_exhausted": "notify"}},
+            "escalation_policy": {"provider_crash": {"stages": [], "on_exhausted": "notify"}},
             "outcome_repair_policy": {
                 "missing_runner_event": {"max_attempts": 1, "first_attempt": "same_agent_event_repair_prompt", "on_exhausted": "route_to_recovery"},
                 "malformed_runner_event": {"max_attempts": 1, "first_attempt": "same_agent_event_repair_prompt", "on_exhausted": "route_to_recovery"},

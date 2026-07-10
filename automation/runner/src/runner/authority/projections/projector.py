@@ -12,6 +12,7 @@ from runner.phase_programs.transition_rules import (
     validate_projected_transition,
 )
 from runner.roles import project_current_session
+from runner.roles.registry import resolve_turn_role_binding
 
 
 def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: str) -> dict[str, Any]:
@@ -21,7 +22,9 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
         projection["current"] = {"phase": first_phase["id"], "turn": first_turn_for_event_history(config, first_phase, events)}
     for event in events:
         if event.get("thread_id"):
-            projection["session"]["thread_id"] = event["thread_id"]
+            family = family_for_turn(config, event.get("phase_id"), event.get("turn"))
+            if family:
+                projection["session"]["threads"][family] = event["thread_id"]
         if event["event_type"] == "prompt_selected":
             turn_instance_id = event["payload"].get("turn_instance_id")
             if turn_instance_id:
@@ -39,6 +42,16 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
                 and intervention.get("current") == {"phase": event.get("phase_id"), "turn": event.get("turn")}
             ):
                 projection["operator_intervention"] = None
+        if event["event_type"] == "model_escalation_activated":
+            payload = event["payload"]
+            projection["model_overrides"].append(
+                {
+                    "phase_id": event.get("phase_id"),
+                    "turns": list(payload.get("turns", [])),
+                    "model_policy": dict(payload.get("model_policy", {})),
+                    "scope": payload.get("scope", "phase"),
+                }
+            )
         if event["event_type"] == "run_started":
             projection["started_at"] = event["at"]
         if event["event_type"] == "run_resumed":
@@ -48,7 +61,9 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
             projection["stopped"] = True
             projection["stop_reason"] = event["payload"].get("reason")
         if event["event_type"] == "session_reset":
-            projection["session"]["thread_id"] = None
+            reset_family = family_for_turn(config, event.get("phase_id"), event.get("turn"))
+            if reset_family:
+                projection["session"]["threads"].pop(reset_family, None)
             projection["session"]["fresh_recovery"] = {
                 "phase": event["phase_id"],
                 "turn": event["turn"],
@@ -124,10 +139,12 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
             "env": {},
             "reuse_session": True,
             "thread_id": None,
+            "threads": {},
             "fresh_recovery": None,
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
         "operator_intervention": None,
+        "model_overrides": [],
         "prompt_overrides": [],
         "external_completions": [],
         "plan": None,
@@ -205,6 +222,23 @@ def prompt_cursor_match_current(projection: dict[str, Any], prompt_phase_id: int
     if current_phase["status"] == "complete" and current_phase["qa_status"] == "passed":
         return False
     return current["phase"] == prompt_phase_id and current["turn"] == prompt_turn
+
+
+def family_for_turn(config: dict[str, Any], phase_id: Any, turn: Any) -> str | None:
+    """Resolve the continuity family that owns a turn's provider session.
+
+    Session identity is keyed by continuity family, not by a single global
+    slot. The family is a pure function of the turn's role binding, so it is
+    derived here from (phase_id, turn) rather than duplicated onto each event.
+    Run-level events and turns without a role binding own no family thread.
+    """
+    if not isinstance(phase_id, int) or not isinstance(turn, str) or not turn:
+        return None
+    try:
+        binding = resolve_turn_role_binding(config, phase_id, turn)
+    except ValueError:
+        return None
+    return binding.session_policy_seed.continuity_family or None
 
 
 def phase_by_id(projection: dict[str, Any], phase_id: Any) -> dict[str, Any] | None:

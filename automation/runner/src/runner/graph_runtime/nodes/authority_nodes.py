@@ -35,7 +35,7 @@ from runner.graph_runtime.state import (
 )
 from runner.phase_programs import lower_phase_program
 from runner.phase_programs.lowered_program import PHASE_ASSET_PROMPT_BINDING
-from runner.roles import resolve_role_policy
+from runner.roles import apply_model_override, resolve_role_policy
 
 
 def load_run_authority(state: GraphState) -> GraphState:
@@ -66,7 +66,6 @@ def load_run_authority(state: GraphState) -> GraphState:
             turn_instance_id=projection_current_turn_instance_id(
                 LoadedRunAuthority(config=config, projection=projection)
             ),
-            required_attempt_action=recovery.required_attempt_action,
             session_reset_threshold=recovery.session_reset_threshold,
             session_reset_cycle_count=recovery.session_reset_cycle_count,
         )
@@ -100,6 +99,19 @@ def lower_phase_program_node(state: GraphState) -> GraphState:
     }
 
 
+def resolved_role_policy_with_override(run_authority, phase_id: int, turn: str):
+    """Resolve a turn's role policy, then apply any escalation-activated model
+    override that covers it. This is the single execution-path chokepoint, so a
+    scoped model escalation (e.g. repair turns -> stronger model) takes effect
+    without touching the static role bindings."""
+    return apply_model_override(
+        resolve_role_policy(run_authority.config, phase_id, turn),
+        run_authority.projection,
+        phase_id,
+        turn,
+    )
+
+
 def select_role_session(state: GraphState) -> GraphState:
     run_authority = state[RUN_AUTHORITY_KEY]
     current_turn = current_turn_authority_from_state(state)
@@ -110,10 +122,8 @@ def select_role_session(state: GraphState) -> GraphState:
         if is_outcome_repair_continuation(continuation):
             return {
                 ROLE_SESSION_KEY: RoleSessionSelection(
-                    role_policy=resolve_role_policy(
-                        run_authority.config,
-                        current_turn.phase_id,
-                        current_turn.turn,
+                    role_policy=resolved_role_policy_with_override(
+                        run_authority, current_turn.phase_id, current_turn.turn
                     )
                 )
             }
@@ -124,8 +134,8 @@ def select_role_session(state: GraphState) -> GraphState:
             if recovery.role_route == "reviewer":
                 return {
                     ROLE_SESSION_KEY: RoleSessionSelection(
-                        role_policy=resolve_role_policy(
-                            run_authority.config,
+                        role_policy=resolved_role_policy_with_override(
+                            run_authority,
                             current_turn.phase_id,
                             recovery_turn_for_phase(run_authority.config, current_turn.phase_id),
                         )
@@ -133,19 +143,15 @@ def select_role_session(state: GraphState) -> GraphState:
                 }
             return {
                 ROLE_SESSION_KEY: RoleSessionSelection(
-                    role_policy=resolve_role_policy(
-                        run_authority.config,
-                        current_turn.phase_id,
-                        current_turn.turn,
+                    role_policy=resolved_role_policy_with_override(
+                        run_authority, current_turn.phase_id, current_turn.turn
                     )
                 )
             }
     return {
         ROLE_SESSION_KEY: RoleSessionSelection(
-            role_policy=resolve_role_policy(
-                run_authority.config,
-                current_turn.phase_id,
-                current_turn.turn,
+            role_policy=resolved_role_policy_with_override(
+                run_authority, current_turn.phase_id, current_turn.turn
             )
         )
     }

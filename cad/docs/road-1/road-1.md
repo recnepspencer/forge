@@ -478,6 +478,39 @@ This milestone is also where `tools/boundary-check` and `tools/agent-context`
 must become real enough that the next milestone cannot proceed on convention
 alone.
 
+### Milestone 1B: Query Constitution Enforcement
+
+**Amendment (2026-07-10).** Inserted between Milestones 1 and 2 rather than
+renumbering the road. Spec: `road-1_milestone-1b.md`.
+
+This milestone hardens the Milestone 1 enforcement mandate until Query
+consumption has exactly one legal spelling per audience:
+
+- audience facade crates (`worth-query-decl`, `worth-query-host`,
+  `worth-query-replay`) so the crate DAG carries the Query law
+- authority sealing over the `worth-proof` substrate: governed surfaces
+  demand concrete platform authorities; forged authorities open no doors
+- a `band_guard!` expansion fence for macro-carried surfaces
+- source-level (AST) law: import shape, type laundering, re-export fence,
+  rename ratchet
+- exact-set snapshots for the crate DAG and facade manifests, so every
+  widening is a reviewable diff
+- one enforcement entrypoint shared by edit-time hooks, CI, and the terminal,
+  with a required legal-home pointer on every diagnostic
+- birth of `worth-cert-adoption` (amended forward from Milestone 5) to own
+  the hostile compile-fail corpus
+
+It must not try to:
+
+- implement bridge semantics, obligation adoption, or entry lanes (Milestone
+  3 and 4 property)
+- split the Query engine's internals
+- widen into the broad certification suite (Milestone 5 property)
+
+Why it comes here:
+Milestones 2-4 are built primarily by agents that treat any compiling
+continuation as approval. The fence must exist before the code it fences.
+
 ### Milestone 2: Graph Constitution
 
 This milestone freezes the first pure-meaning specimen of the platform:

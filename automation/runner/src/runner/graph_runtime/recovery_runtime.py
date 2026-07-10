@@ -175,7 +175,6 @@ def maybe_handle_same_phase_loop(
         events,
         reason,
         SAME_PHASE_LOOP_EXCEEDED_FAMILY,
-        required_attempt_action=loop_family.action,
         session_reset_threshold=loop_family.threshold,
         session_reset_cycle_count=same_phase_family_progress_count(
             events, current["phase"], set(loop_family.turns)
@@ -190,7 +189,6 @@ def admit_preflight_failure(
     events: list[dict[str, Any]],
     reason: str,
     failure_family: str,
-    required_attempt_action: str | None = None,
     session_reset_threshold: int | None = None,
     session_reset_cycle_count: int | None = None,
 ) -> bool:
@@ -205,7 +203,6 @@ def admit_preflight_failure(
         payload={
             "reason": reason,
             "failure_family": failure_family,
-            "required_attempt_action": required_attempt_action,
             "session_reset_threshold": session_reset_threshold,
             "session_reset_cycle_count": session_reset_cycle_count,
         },
@@ -219,7 +216,6 @@ def admit_preflight_failure(
         reason=reason,
         failure_family=failure_family,
         turn_instance_id=None,
-        required_attempt_action=required_attempt_action,
         session_reset_threshold=session_reset_threshold,
         session_reset_cycle_count=session_reset_cycle_count,
     )

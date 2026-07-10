@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from runner.recovery.failure_families import (
     MALFORMED_RUNNER_EVENT_FAMILY,
     MISSING_RUNNER_EVENT_FAMILY,
 )
+from runner.roles.model_policy import validate_role_model_policy_binding
 
 SUPPORTED_LOOP_ESCALATION_ACTIONS = {"start_fresh_session"}
-SUPPORTED_ESCALATION_ATTEMPTS = {"same_session_recovery", "deep_reviewer_pass", "start_fresh_session"}
+# Stage actions that drive a recovery turn or a scoped side effect.
+SUPPORTED_ESCALATION_ATTEMPTS = {
+    "same_session_recovery",
+    "deep_reviewer_pass",
+    "start_fresh_session",
+    "override_model",
+}
 SUPPORTED_ESCALATION_EXHAUSTED_ACTIONS = {"notify", "notify_and_pause"}
+SUPPORTED_MODEL_OVERRIDE_SCOPES = {"phase", "run"}
 SUPPORTED_OUTCOME_REPAIR_FIRST_ATTEMPTS = {"same_agent_event_repair_prompt"}
 SUPPORTED_OUTCOME_REPAIR_EXHAUSTED_ACTIONS = {"route_to_recovery"}
 SUPPORTED_OPERATOR_INJECTION_MODES = {"next_turn_preface"}
@@ -35,10 +43,29 @@ class LoopEscalationFamilyPolicy:
 
 
 @dataclass(frozen=True)
+class EscalationStage:
+    action: str
+    params: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class EscalationFamilyPolicy:
     family_name: str
-    attempts: tuple[str, ...]
-    on_exhausted: str
+    stages: tuple[EscalationStage, ...]
+    on_exhausted: EscalationStage
+
+    def stage_for_attempt(self, attempt_index: int) -> EscalationStage | None:
+        if 0 <= attempt_index < len(self.stages):
+            return self.stages[attempt_index]
+        return None
+
+
+def parse_escalation_stage(raw: Any) -> EscalationStage:
+    if isinstance(raw, str):
+        return EscalationStage(action=raw, params={})
+    action = raw.get("action")
+    params = {key: value for key, value in raw.items() if key != "action"}
+    return EscalationStage(action=action, params=params)
 
 
 @dataclass(frozen=True)
@@ -111,14 +138,54 @@ def validate_escalation_policy(escalation_policy: dict[str, Any], errors: list[s
         if not isinstance(family, dict):
             errors.append(f"{prefix} must be an object")
             continue
-        attempts = family.get("attempts")
-        if not isinstance(attempts, list) or any(attempt not in SUPPORTED_ESCALATION_ATTEMPTS for attempt in attempts):
-            errors.append(f"{prefix}.attempts must be a list drawn from {sorted(SUPPORTED_ESCALATION_ATTEMPTS)}")
-        on_exhausted = family.get("on_exhausted")
-        if on_exhausted not in SUPPORTED_ESCALATION_EXHAUSTED_ACTIONS:
-            errors.append(
-                f"{prefix}.on_exhausted must be one of {sorted(SUPPORTED_ESCALATION_EXHAUSTED_ACTIONS)}"
-            )
+        stages = family.get("stages")
+        if not isinstance(stages, list):
+            errors.append(f"{prefix}.stages must be a list")
+        else:
+            for index, stage in enumerate(stages):
+                validate_escalation_stage(stage, errors, f"{prefix}.stages[{index}]")
+        validate_exhausted_stage(family.get("on_exhausted"), errors, f"{prefix}.on_exhausted")
+
+
+def validate_escalation_stage(stage: Any, errors: list[str], prefix: str) -> None:
+    if isinstance(stage, str):
+        action, params = stage, {}
+    elif isinstance(stage, dict):
+        action, params = stage.get("action"), stage
+    else:
+        errors.append(f"{prefix} must be a string or object")
+        return
+    if action not in SUPPORTED_ESCALATION_ATTEMPTS:
+        errors.append(f"{prefix}.action must be one of {sorted(SUPPORTED_ESCALATION_ATTEMPTS)}")
+        return
+    if action == "override_model":
+        validate_override_model_params(params, errors, prefix)
+
+
+def validate_override_model_params(params: dict[str, Any], errors: list[str], prefix: str) -> None:
+    turns = params.get("turns")
+    if not isinstance(turns, list) or not turns or any(not isinstance(turn, str) or not turn for turn in turns):
+        errors.append(f"{prefix}.turns must be a non-empty list of strings")
+    model_policy = params.get("model_policy")
+    if not isinstance(model_policy, dict):
+        errors.append(f"{prefix}.model_policy must be an object")
+    else:
+        validate_role_model_policy_binding(model_policy, errors, f"{prefix}.model_policy")
+    scope = params.get("scope", "phase")
+    if scope not in SUPPORTED_MODEL_OVERRIDE_SCOPES:
+        errors.append(f"{prefix}.scope must be one of {sorted(SUPPORTED_MODEL_OVERRIDE_SCOPES)}")
+
+
+def validate_exhausted_stage(stage: Any, errors: list[str], prefix: str) -> None:
+    if isinstance(stage, str):
+        action = stage
+    elif isinstance(stage, dict):
+        action = stage.get("action")
+    else:
+        errors.append(f"{prefix} must be a string or object")
+        return
+    if action not in SUPPORTED_ESCALATION_EXHAUSTED_ACTIONS:
+        errors.append(f"{prefix}.action must be one of {sorted(SUPPORTED_ESCALATION_EXHAUSTED_ACTIONS)}")
 
 
 def validate_outcome_repair_policy(outcome_repair_policy: dict[str, Any], errors: list[str]) -> None:
@@ -173,8 +240,8 @@ def admit_phase_program_policy_bindings(config: dict[str, Any]) -> PhaseProgramP
     escalation = {
         family_name: EscalationFamilyPolicy(
             family_name=family_name,
-            attempts=tuple(family["attempts"]),
-            on_exhausted=family["on_exhausted"],
+            stages=tuple(parse_escalation_stage(stage) for stage in family["stages"]),
+            on_exhausted=parse_escalation_stage(family["on_exhausted"]),
         )
         for family_name, family in config["escalation_policy"].items()
     }

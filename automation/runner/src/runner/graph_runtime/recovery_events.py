@@ -44,3 +44,18 @@ def record_recovery_attempt(
         },
         thread_id=thread_id,
     )
+    if isinstance(request, RecoveryTurnRequest) and request.attempt_action == "override_model":
+        params = request.attempt_params or {}
+        append_runtime_event(
+            paths,
+            "model_escalation_activated",
+            phase_id=current["phase"],
+            turn=current["turn"],
+            payload={
+                "turns": list(params.get("turns", [])),
+                "model_policy": dict(params.get("model_policy", {})),
+                "scope": params.get("scope", "phase"),
+                "turn_instance_id": turn_instance_id,
+            },
+            thread_id=thread_id,
+        )

@@ -38,3 +38,6 @@ compile_errors.txt
 
 # Scratch / one-off files
 mb_n4_log.txt
+
+# Cross-provider runner handoff artifacts (plan/findings passed between provider sessions)
+.runner-handoff/

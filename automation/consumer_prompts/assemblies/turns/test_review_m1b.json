@@ -1,0 +1,7 @@
+{
+  "kind": "assembly",
+  "parts": [
+    { "asset_id": "turns/test_review" },
+    { "asset_id": "handoff/write_findings" }
+  ]
+}

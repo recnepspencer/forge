@@ -2,6 +2,62 @@
 
 This folder is home. Treat it that way.
 
+## Engineering Constitution (read before any code work)
+
+This repo builds the WORTH platform under a strict, mechanically-enforced
+constitution. If you are writing or reviewing code here, these laws bind you
+and are not optional. Read the ones relevant to your task before editing; they
+are short and load-bearing.
+
+**Governing laws** (`_docs/coding_guidelines/`, `_docs/more_guidelines/`):
+
+- `MENTALITY.md` — foundation-first build order under adversarial pressure.
+- `arch_laws.md` — typed phase progression, contractual facades, compiler-visible
+  authority boundaries.
+- `composition_laws.md` — one named semantic responsibility per file; no
+  catch-all bags (`helpers.rs`, `common.rs`, `util.rs`, `shared.rs`).
+- `domain_structure_laws.md` — physical boundaries preserve meaning, authority,
+  and truth source.
+- `perf_laws.md` — hot-path honesty, carried proof, ordinary vs reconstructive
+  cost kept distinct.
+- `more_guidelines/dx_laws.md` — DX targets; plan the DX as a real code block.
+
+**Platform constitution** (`cad/docs/worthy-foundations/`, `cad/docs/road-1/`):
+
+- `ROAD.md`, `road-1/road-1.md` — the road and its milestone sequence.
+- `ARCHITECTURE.md`, `GLOSSARY.md` — the thesis and vocabulary.
+- `NAMING.md` — the `{tier}-{band}-{domain}` grammar and reserved-name list. A
+  crate whose name is not legal here is a CI failure. Names are added only by a
+  visible reviewed amendment in the same change.
+- `BOUNDARIES.md` — exemplar routing per band; imitate the named exemplar.
+
+**Hard invariants (mechanically enforced — do not try to route around them):**
+
+- Pure meaning stays Query-agnostic: `worth-schema-*` crates must never import
+  `worth-query`. Query is consumed only through audience facades
+  (`worth-query-decl`, `worth-query-host`) from `entry`-band crates, and
+  `worth-query-replay` only from `cert`-band crates.
+- Replay/reconstruction is cert-only. Ordinary lanes must not import replay
+  surfaces.
+- Tier direction is one-way: `worth-*` must never depend on `worthy-*`.
+- Authority is proof-carrying: governed public surfaces demand concrete
+  platform authority types (`worth-proof` witnesses/proofs), never generic
+  `AuthorityMarker` bounds. A forged authority must open no doors.
+- The enforcement engine is real: run
+  `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .` and
+  `cargo run --manifest-path tools/agent-context/Cargo.toml -- check` before
+  claiming a boundary-relevant change is done. A red constitution blocks the
+  work. `tools/boundary-check/config/road1.toml` is the canonical machine
+  contract; per-crate `AGENT_CONTEXT.md` files are generated from it — never
+  hand-edit them.
+
+**File size discipline** applies to all code and test files — see the
+dedicated section below (400-line cap, allowlist-gated).
+
+When a rule blocks the cheapest local move, the rule is right and the move is
+wrong. Take the honest path; if you truly cannot, stop and surface it rather
+than inventing a wrapper, alias, or parallel lane.
+
 ## First Run
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.

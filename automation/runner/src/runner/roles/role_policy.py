@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from runner.prompt_library.bindings.binding_references import AssemblyBindingReference
 from runner.roles.handoff_policy import RoleHandoffPolicy, handoff_policy_for_role
-from runner.roles.model_policy import RoleModelPolicy, role_model_policy_from_seed
+from runner.roles.model_policy import RoleModelPolicy, RoleModelPolicySeed, role_model_policy_from_seed
 from runner.roles.registry import RoleDefinition, resolve_turn_role_binding
 from runner.roles.session_policy import (
     RoleSessionPolicy,
@@ -58,6 +58,39 @@ def resolve_role_policy(
         handoff_policy=handoff_policy,
         prompt_template_override=binding.prompt_template_override,
     )
+
+
+def active_model_override(
+    projection: dict[str, Any],
+    phase_id: int,
+    turn: str,
+) -> dict[str, Any] | None:
+    """The most recent escalation-activated model override that covers this turn.
+
+    Phase-scoped overrides apply only to their phase; run-scoped overrides apply
+    everywhere from the point they were activated. The override is authority
+    derived from `model_escalation_activated` events, not from static config.
+    """
+    match = None
+    for override in projection.get("model_overrides", []) or []:
+        if turn not in override.get("turns", []):
+            continue
+        if override.get("scope") == "run" or override.get("phase_id") == phase_id:
+            match = override
+    return match
+
+
+def apply_model_override(
+    role_policy: ResolvedRolePolicy,
+    projection: dict[str, Any],
+    phase_id: int,
+    turn: str,
+) -> ResolvedRolePolicy:
+    override = active_model_override(projection, phase_id, turn)
+    if override is None:
+        return role_policy
+    seed = RoleModelPolicySeed.from_mapping(override["model_policy"], "model_override.model_policy")
+    return replace(role_policy, model_policy=role_model_policy_from_seed(seed))
 
 
 def project_current_session(config: dict[str, Any], current: dict[str, Any] | None, session: dict[str, Any]) -> dict[str, Any]:

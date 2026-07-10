@@ -68,7 +68,9 @@ def session_state_for_execution(
     force_fresh_session: bool,
 ) -> dict[str, Any]:
     execution_session = dict(projection_session)
-    execution_session["reuse_session"] = session_policy.reuse_session and not force_fresh_session
-    if not execution_session["reuse_session"]:
-        execution_session["thread_id"] = None
+    reuse_session = session_policy.reuse_session and not force_fresh_session
+    execution_session["reuse_session"] = reuse_session
+    threads = projection_session.get("threads")
+    family_thread = threads.get(session_policy.continuity_family) if isinstance(threads, dict) else None
+    execution_session["thread_id"] = family_thread if reuse_session else None
     return execution_session

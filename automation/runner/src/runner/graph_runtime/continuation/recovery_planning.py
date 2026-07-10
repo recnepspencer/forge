@@ -22,7 +22,6 @@ def admit_pending_turn_recovery(
     pending_reason: str,
     pending_failure_family: str | None,
     turn_instance_id: str | None,
-    required_attempt_action: str | None = None,
     session_reset_threshold: int | None = None,
     session_reset_cycle_count: int | None = None,
 ) -> OutcomeRepairTurnRequest | RecoveryTurnRequest:
@@ -45,7 +44,6 @@ def admit_pending_turn_recovery(
         reason=pending_reason,
         failure_family=broader_recovery_family(pending_failure_family),
         turn_instance_id=turn_instance_id,
-        required_attempt_action=required_attempt_action,
         session_reset_threshold=session_reset_threshold,
         session_reset_cycle_count=session_reset_cycle_count,
     )
@@ -91,7 +89,6 @@ def plan_recovery_attempt(
     reason: str,
     failure_family: str | None,
     turn_instance_id: str | None,
-    required_attempt_action: str | None = None,
     session_reset_threshold: int | None = None,
     session_reset_cycle_count: int | None = None,
 ) -> RecoveryTurnRequest:
@@ -107,31 +104,29 @@ def plan_recovery_attempt(
         turn_instance_id=turn_instance_id,
         recovery_kind="escalation_recovery",
     )
-    if required_attempt_action is not None and required_attempt_action not in policy.attempts:
-        raise ValueError(
-            f"recovery action {required_attempt_action!r} is not admitted for failure family {failure_family!r}"
-        )
-    if prior_attempts >= len(policy.attempts):
+    # The stage ladder governs which action fires; a loop trigger no longer
+    # forces a single action, so distinct stages actually progress.
+    stage = policy.stage_for_attempt(prior_attempts)
+    if stage is None:
         return RecoveryTurnRequest(
             reason=(
                 f"recovery attempts exhausted for failure family {failure_family!r}; "
-                f"configured on_exhausted={policy.on_exhausted!r}"
+                f"configured on_exhausted={policy.on_exhausted.action!r}"
             ),
             failure_family=failure_family,
             turn_instance_id=turn_instance_id,
             attempt_index=prior_attempts + 1,
-            attempt_action=policy.on_exhausted,
-            exhausted_disposition=policy.on_exhausted,
+            attempt_action=policy.on_exhausted.action,
+            exhausted_disposition=policy.on_exhausted.action,
             session_reset_threshold=session_reset_threshold,
             session_reset_cycle_count=session_reset_cycle_count,
         )
-    attempt_action = required_attempt_action or policy.attempts[prior_attempts]
     role_route = "projection"
     force_fresh_session = False
-    if attempt_action == "start_fresh_session":
+    if stage.action in ("start_fresh_session", "override_model"):
         role_route = "current_turn"
         force_fresh_session = True
-    elif attempt_action == "deep_reviewer_pass":
+    elif stage.action == "deep_reviewer_pass":
         role_route = "reviewer"
         force_fresh_session = True
     return RecoveryTurnRequest(
@@ -139,11 +134,12 @@ def plan_recovery_attempt(
         failure_family=failure_family,
         turn_instance_id=turn_instance_id,
         attempt_index=prior_attempts + 1,
-        attempt_action=attempt_action,
+        attempt_action=stage.action,
         role_route=role_route,
         force_fresh_session=force_fresh_session,
         session_reset_threshold=session_reset_threshold,
         session_reset_cycle_count=session_reset_cycle_count,
+        attempt_params=dict(stage.params) if stage.params else None,
     )
 
 

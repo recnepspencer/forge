@@ -26,6 +26,7 @@ class RecoveryTurnRequest:
     exhausted_disposition: str | None = None
     session_reset_threshold: int | None = None
     session_reset_cycle_count: int | None = None
+    attempt_params: dict | None = None
 
 
 @dataclass(frozen=True)

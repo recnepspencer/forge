@@ -31,6 +31,7 @@ EVENT_TYPES = {
     "recovery_requested",
     "recovery_completed",
     "session_reset",
+    "model_escalation_activated",
     "operator_override",
     "operator_prompt_override",
     "external_phase_completed",

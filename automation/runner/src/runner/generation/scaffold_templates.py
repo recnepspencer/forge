@@ -20,7 +20,7 @@ def scaffold_config(request: ScaffoldRequest) -> dict:
         "contract_template": {"asset_id": "contracts/default"},
         "session_defaults": {"provider": "codex", "model": "gpt-5", "reasoning_effort": "medium", "config": {}},
         "runner_control": {}, "loop_escalation": {"families": {"review_family": {"turns": ["review"], "threshold": 4, "action": "start_fresh_session"}}},
-        "escalation_policy": {family: {"attempts": [], "on_exhausted": "notify"} for family in ("provider_crash", "invalid_outcome", "same_phase_loop_exceeded", "no_edit_stall")},
+        "escalation_policy": {family: {"stages": [], "on_exhausted": "notify"} for family in ("provider_crash", "invalid_outcome", "same_phase_loop_exceeded", "no_edit_stall")},
         "outcome_repair_policy": {family: {"max_attempts": 1, "first_attempt": "same_agent_event_repair_prompt", "on_exhausted": "route_to_recovery"} for family in ("missing_runner_event", "malformed_runner_event")},
         "operator_intervention_policy": {"allow_live_injection": True, "allow_immediate_interrupt": False, "record_as_authority_event": True, "default_injection_mode": "next_turn_preface", "default_post_injection_route": "continue_current_phase"},
         "phases": [{"id": 1, "title": request.name, "owner": "consumer", "scope": ["."], "acceptance": ["consumer scaffold"], "instructions": "implement the declared milestone", "qa_focus": "preserve runner authority", "program_id": program, "contract_template": {"asset_id": "contracts/default"}, "role_bindings": {turn: role_binding(turn) for turn in standard_turns()}}],

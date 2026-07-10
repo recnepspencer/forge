@@ -17,7 +17,7 @@ from runner.graph_runtime.recovery_events import record_recovery_attempt
 from runner.graph_runtime.qualifying_edits import qualifying_git_diff_exists
 from runner.graph_runtime.recovery_runtime import maybe_handle_no_edit_stall, open_preflight_fault_exists
 from runner.graph_runtime.orchestrator import drive_graph_run
-from runner.phase_programs.policy_bindings import EscalationFamilyPolicy, QualifyingEditPolicy, StallSignalPolicy
+from runner.phase_programs.policy_bindings import EscalationFamilyPolicy, EscalationStage, QualifyingEditPolicy, StallSignalPolicy
 from runner.graph_runtime.state import (
     PROMPT_TURN_KEY,
     RUN_AUTHORITY_KEY,
@@ -34,11 +34,11 @@ from runner.graph_runtime.state import (
 
 
 class RecoveryAuthorityLaneTests(unittest.TestCase):
-    def test_loop_required_action_is_admitted_and_forces_fresh_session(self) -> None:
+    def test_loop_ladder_walks_stages_and_forces_fresh_session(self) -> None:
         policy = EscalationFamilyPolicy(
             family_name="same_phase_loop_exceeded",
-            attempts=("start_fresh_session", "deep_reviewer_pass"),
-            on_exhausted="notify_and_pause",
+            stages=(EscalationStage("start_fresh_session"), EscalationStage("deep_reviewer_pass")),
+            on_exhausted=EscalationStage("notify_and_pause"),
         )
         with patch(
             "runner.graph_runtime.continuation.recovery_planning.escalation_policy_for_failure_family",
@@ -52,8 +52,8 @@ class RecoveryAuthorityLaneTests(unittest.TestCase):
                 reason="review loop exceeded",
                 failure_family="same_phase_loop_exceeded",
                 turn_instance_id=None,
-                required_attempt_action="start_fresh_session",
             )
+        # First attempt walks stage[0]; the loop no longer forces a single action.
         self.assertEqual(request.attempt_action, "start_fresh_session")
         self.assertTrue(request.force_fresh_session)
 
