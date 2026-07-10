@@ -91,7 +91,7 @@ kernel-check:
 test: kernel-test ui-test
 
 .PHONY: check
-check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards line-caps
+check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards line-caps boundary-check agent-context-check
 
 # â”€â”€ Trace tooling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -122,6 +122,14 @@ signal-runtime-guards:
 .PHONY: line-caps
 line-caps:
 	bash scripts/ci/check_workspace_rust_line_caps.sh
+
+.PHONY: boundary-check
+boundary-check:
+	cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root . --config tools/boundary-check/config/road1.toml
+
+.PHONY: agent-context-check
+agent-context-check:
+	cargo run --manifest-path tools/agent-context/Cargo.toml -- check --root . --config tools/boundary-check/config/road1.toml
 
 # â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

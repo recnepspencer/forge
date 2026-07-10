@@ -34,7 +34,7 @@ pub(crate) fn check_freshness(
                 continue;
             }
         };
-        if actual != expected {
+        if normalize_newlines(&actual) != normalize_newlines(&expected) {
             stale.push(format!(
                 "{} is stale or hand-edited; rerun agent-context generate",
                 path.display()
@@ -45,5 +45,19 @@ pub(crate) fn check_freshness(
         Ok(())
     } else {
         Err(stale)
+    }
+}
+
+fn normalize_newlines(text: &str) -> String {
+    text.replace("\r\n", "\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_newlines;
+
+    #[test]
+    fn normalizes_windows_newlines_for_generated_context_comparison() {
+        assert_eq!(normalize_newlines("first\r\nsecond\r\n"), "first\nsecond\n");
     }
 }

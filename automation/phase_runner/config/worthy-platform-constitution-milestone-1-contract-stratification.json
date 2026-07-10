@@ -3,20 +3,20 @@
   "project": {
     "name": "Worthy Platform Constitution Milestone 1 Contract Stratification",
     "cwd": "C:/Users/Esther/Documents/Programming/WORTH_workspace/worktree_2",
-    "spec_file": "_docs/worthy/platform-constitution-milestone-1-contract-stratification.md",
+    "spec_file": "cad/docs/road-1/road-1_milestone-1.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
       "_docs/coding_guidelines/arch_laws.md",
       "_docs/coding_guidelines/composition_laws.md",
       "_docs/coding_guidelines/domain_structure_laws.md",
       "_docs/coding_guidelines/perf_laws.md",
-      "_docs/worthy/ROAD.md",
-      "_docs/worthy/ARCHITECTURE.md",
-      "_docs/worthy/GLOSSARY.md",
-      "_docs/worthy/BOUNDARIES.md",
-      "_docs/worthy/NAMING.md",
-      "_docs/worthy/platform-constitution-roadmap.md",
-      "_docs/worthy/platform-constitution-milestone-1-contract-stratification.md",
+      "cad/docs/worthy-foundations/ROAD.md",
+      "cad/docs/worthy-foundations/ARCHITECTURE.md",
+      "cad/docs/worthy-foundations/GLOSSARY.md",
+      "cad/docs/worthy-foundations/BOUNDARIES.md",
+      "cad/docs/worthy-foundations/NAMING.md",
+      "cad/docs/road-1/road-1.md",
+      "cad/docs/road-1/road-1_milestone-1.md",
       "crates/worth-query/docs/AI_README.md"
     ]
   },
@@ -54,9 +54,9 @@
       "title": "Naming And Contract-Class Inventory",
       "owner": "worthy docs, Road 1 constitutional substrate",
       "scope": [
-        "_docs/worthy/NAMING.md",
-        "_docs/worthy/platform-constitution-roadmap.md",
-        "_docs/worthy/platform-constitution-milestone-1-contract-stratification.md",
+        "cad/docs/worthy-foundations/NAMING.md",
+        "cad/docs/road-1/road-1.md",
+        "cad/docs/road-1/road-1_milestone-1.md",
         "cad/workspaces"
       ],
       "acceptance": [
@@ -158,8 +158,8 @@
       "title": "Exemplar Routing And Deferred Public Proof",
       "owner": "worthy docs, worth-contracts, worth-packs",
       "scope": [
-        "_docs/worthy/BOUNDARIES.md",
-        "_docs/worthy/NAMING.md",
+        "cad/docs/worthy-foundations/BOUNDARIES.md",
+        "cad/docs/worthy-foundations/NAMING.md",
         "cad/workspaces/worth-contracts/crates/worth-schema-core",
         "cad/workspaces/worth-packs/crates/worth-pack-registry"
       ],
