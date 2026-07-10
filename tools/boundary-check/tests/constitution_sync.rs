@@ -13,7 +13,8 @@ fn workspace_root() -> PathBuf {
 #[test]
 fn naming_doc_declares_canonical_machine_constitution() {
     let root = workspace_root();
-    let naming = fs::read_to_string(root.join("_docs/worthy/NAMING.md")).expect("read naming doc");
+    let naming = fs::read_to_string(root.join("cad/docs/worthy-foundations/NAMING.md"))
+        .expect("read naming doc");
     assert!(
         naming.contains("Canonical machine constitution: `tools/boundary-check/config/road1.toml`")
     );
@@ -24,8 +25,8 @@ fn naming_doc_declares_canonical_machine_constitution() {
 #[test]
 fn boundaries_doc_routes_match_machine_contract_nouns() {
     let root = workspace_root();
-    let boundaries =
-        fs::read_to_string(root.join("_docs/worthy/BOUNDARIES.md")).expect("read boundaries doc");
+    let boundaries = fs::read_to_string(root.join("cad/docs/worthy-foundations/BOUNDARIES.md"))
+        .expect("read boundaries doc");
     assert!(boundaries.contains("worth-entry-adoption"));
     assert!(boundaries.contains("worth-derived-publication"));
     assert!(boundaries.contains("worthy-derived-brep"));

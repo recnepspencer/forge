@@ -4,9 +4,9 @@ forbidden_root_prefixes = ["cad/workspaces/"]
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"
 mirrored_docs = [
-  "_docs/worthy/NAMING.md",
-  "_docs/worthy/BOUNDARIES.md",
-  "_docs/worthy/ARCHITECTURE.md",
+  "cad/docs/worthy-foundations/NAMING.md",
+  "cad/docs/worthy-foundations/BOUNDARIES.md",
+  "cad/docs/worthy-foundations/ARCHITECTURE.md",
 ]
 
 [naming]
@@ -259,8 +259,6 @@ allowed_entries = [
   "src/naming.rs",
   "src/tolerance.rs",
   "src/units.rs",
-  "tests",
-  "tests/facade_boundary.rs",
 ]
 
 [[seed_skeletons]]

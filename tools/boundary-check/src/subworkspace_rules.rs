@@ -245,6 +245,9 @@ fn validate_subworkspace(
     {
         let entry = entry.map_err(|e| format!("read crates lane entry: {e}"))?;
         let path = entry.path();
+        if entry.file_name() == ".gitkeep" && path.is_file() {
+            continue;
+        }
         if !path.is_dir() {
             diagnostics.push(Diagnostic::new(
                 DiagnosticCode::Bc5002SubworkspaceContractViolation,

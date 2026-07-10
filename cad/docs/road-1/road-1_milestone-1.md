@@ -78,7 +78,7 @@ mechanical enforcement.
     separation between ordinary and reconstructive cost.
   - Strongest implication here: replay fence and generated context belong in
     Milestone 1, not after ordinary lanes already exist.
-- `platform-constitution-roadmap.md`
+- `cad/docs/road-1/road-1.md`
   - Protects: Road 1 as a short sequence of real constitutional closures.
   - Strongest implication here: this milestone closes stratification and
     enforcement only; it must not sprawl into graph constitution or real Query
@@ -161,9 +161,9 @@ It answers:
 - constitutional class inventory
 
 **Relevant APIs**
-- `_docs/worthy/NAMING.md`
-- `_docs/worthy/ROAD.md`
-- `_docs/worthy/platform-constitution-roadmap.md`
+- `cad/docs/worthy-foundations/NAMING.md`
+- `cad/docs/worthy-foundations/ROAD.md`
+- `cad/docs/worthy-foundations/ARCHITECTURE.md`
 - Road 1 naming amendment entries for any new legal births
 
 **Directory skeleton**
