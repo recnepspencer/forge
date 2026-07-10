@@ -8,6 +8,31 @@ from phase_execution import contract_template_path_for_phase, prompt_template_pa
 
 TOKEN = re.compile(r"{([A-Za-z0-9_.]+)}")
 
+SUPPORTED_TEMPLATE_TOKENS = {
+    "config_file",
+    "contract",
+    "current.phase",
+    "current.turn",
+    "event_log_file",
+    "phase.acceptance",
+    "phase.id",
+    "phase.instructions",
+    "phase.notes.findings",
+    "phase.notes.plan",
+    "phase.qa_focus",
+    "phase.scope",
+    "phase.success_event_type",
+    "phase.title",
+    "project.context_files",
+    "projection_file",
+    "qa_status_values",
+    "run_id",
+    "spec_file",
+    "state_file",
+    "status_values",
+    "turns",
+}
+
 
 def render_prompt(
     config: dict[str, Any],
@@ -85,6 +110,14 @@ def render_template(template: str, context: dict[str, Any]) -> str:
         return stringify(resolve_token(context, match.group(1)))
 
     return TOKEN.sub(replace, template)
+
+
+def unsupported_template_tokens(template: str) -> set[str]:
+    return {
+        token
+        for token in TOKEN.findall(template)
+        if token not in SUPPORTED_TEMPLATE_TOKENS
+    }
 
 
 def resolve_token(context: dict[str, Any], token: str) -> Any:

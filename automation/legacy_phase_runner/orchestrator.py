@@ -162,14 +162,25 @@ def run_single_turn(config_path: Path, run_id: str, log_path: Path | None) -> in
         thread_id=projection["session"]["thread_id"],
     )
     projection = refresh_projection(config_path, run_id)
-    prompt = render_prompt(
-        config,
-        projection,
-        config_path,
-        paths.projection,
-        paths.events,
-        expected_turn_instance_id=turn_instance_id,
-    )
+    try:
+        prompt = render_prompt(
+            config,
+            projection,
+            config_path,
+            paths.projection,
+            paths.events,
+            expected_turn_instance_id=turn_instance_id,
+        )
+    except Exception as error:
+        append_runtime_event(
+            paths,
+            "runner_fault",
+            phase_id=current["phase"],
+            turn=current["turn"],
+            payload={"reason": f"prompt preparation failed: {error}", "turn_instance_id": turn_instance_id},
+            thread_id=projection["session"]["thread_id"],
+        )
+        return run_recovery_turn(config_path, run_id, log_path, f"prompt preparation failed: {error}")
 
     exit_code, capture = run_agent(
         projection,

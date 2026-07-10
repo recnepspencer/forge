@@ -13,6 +13,7 @@ from phase_execution import (
     STANDARD_REQUIRED_TURNS,
     SUPPORTED_EXECUTION_MODES,
 )
+from prompts import unsupported_template_tokens
 
 STATIC_TOP_LEVEL_KEYS = {
     "schema_version",
@@ -98,6 +99,8 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
             template_path = resolve_config_path(config_path, template_name)
             if not template_path.exists():
                 errors.append(f"template not found for {turn}: {template_path}")
+            else:
+                validate_template_tokens(template_path, f"turn_templates.{turn}", errors)
         for turn in STANDARD_OPTIONAL_TURNS:
             template_name = templates.get(turn)
             if template_name is None:
@@ -108,6 +111,8 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
             template_path = resolve_config_path(config_path, template_name)
             if not template_path.exists():
                 errors.append(f"template not found for {turn}: {template_path}")
+            else:
+                validate_template_tokens(template_path, f"turn_templates.{turn}", errors)
 
     contract_template = config.get("contract_template")
     if not isinstance(contract_template, str) or not contract_template:
@@ -116,6 +121,8 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
         contract_path = resolve_config_path(config_path, contract_template)
         if not contract_path.exists():
             errors.append(f"contract template not found: {contract_path}")
+        else:
+            validate_template_tokens(contract_path, "contract_template", errors)
 
     session_defaults = config.get("session_defaults", {})
     if isinstance(session_defaults, dict):
@@ -208,6 +215,8 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
                     template_path = resolve_config_path(config_path, phase_contract)
                     if not template_path.exists():
                         errors.append(f"template not found for {prefix}.contract_template: {template_path}")
+                    else:
+                        validate_template_tokens(template_path, f"{prefix}.contract_template", errors)
             if mode == SINGLE_PROMPT_MODE:
                 prompt_template = phase.get("prompt_template")
                 if not isinstance(prompt_template, str) or not prompt_template:
@@ -216,6 +225,8 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
                     template_path = resolve_config_path(config_path, prompt_template)
                     if not template_path.exists():
                         errors.append(f"template not found for {prefix}.prompt_template: {template_path}")
+                    else:
+                        validate_template_tokens(template_path, f"{prefix}.prompt_template", errors)
                 success_event_type = phase.get("success_event_type")
                 if not isinstance(success_event_type, str) or not success_event_type:
                     errors.append(f"{prefix}.success_event_type is required for single_prompt phases")
@@ -239,6 +250,12 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
 def require_mapping(config: dict[str, Any], key: str, errors: list[str]) -> None:
     if not isinstance(config.get(key), dict):
         errors.append(f"{key} must be an object")
+
+
+def validate_template_tokens(template_path: Path, field_name: str, errors: list[str]) -> None:
+    template = template_path.read_text(encoding="utf-8")
+    for token in sorted(unsupported_template_tokens(template)):
+        errors.append(f"{field_name} uses unsupported template variable {{{token}}}")
 
 
 def validate_optional_positive_int(config: dict[str, Any], key: str, errors: list[str]) -> None:
