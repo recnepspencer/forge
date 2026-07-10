@@ -1,0 +1,1672 @@
+{
+  "schema_version": 1,
+  "state_revision": 620,
+  "current": null,
+  "project": {
+    "name": "Forge Store Roadmap 2 S.4 WAL, Checkpoint, LSN, And Recovery Physics",
+    "cwd": "C:/Users/Esther/Documents/Programming/forge_workspace/forge",
+    "spec_file": "_docs/forge-store/storage-foundation-s4.md",
+    "context_files": [
+      "_docs/coding_guidelines/MENTALITY.md",
+      "_docs/coding_guidelines/arch_laws.md",
+      "_docs/coding_guidelines/composition_laws.md",
+      "_docs/coding_guidelines/domain_structure_laws.md",
+      "_docs/coding_guidelines/perf_laws.md",
+      "_docs/more_guidelines/dx_laws.md",
+      "_docs/forge-store/forge_store_roadmap_2.md",
+      "_docs/forge-store/forge_store_roadmap.md",
+      "_docs/forge-store/test-requirements.md",
+      "_docs/forge-store/test-requirements-2.md",
+      "_docs/forge-foundational/forge_foundational_roadmap.md",
+      "_docs/forge-proof/forge_proof_roadmap.md",
+      "_docs/forge-store/storage-foundation-s1.md",
+      "_docs/forge-store/storage-foundation-s2.md",
+      "_docs/forge-store/storage-foundation-s3.md",
+      "_docs/forge-store/storage-foundation-s4.md",
+      "workspaces/forge-store/README.md",
+      "workspaces/forge-store/Cargo.toml"
+    ]
+  },
+  "turn_templates": {
+    "plan": "templates/plan.md",
+    "implement": "templates/implement.md",
+    "review": "templates/review.md",
+    "repair": "templates/repair.md",
+    "close": "templates/close.md",
+    "close_qa": "templates/close_qa.md",
+    "close_plan": "templates/close_plan.md",
+    "close_fix": "templates/close_fix.md",
+    "close_quality_qa": "templates/close_quality_qa.md",
+    "close_quality_plan": "templates/close_quality_plan.md",
+    "close_quality_fix": "templates/close_quality_fix.md"
+  },
+  "contract_template": "templates/_contract.md",
+  "session": {
+    "command": "C:/nvm4w/nodejs/codex.cmd",
+    "model": "gpt-5.5",
+    "reasoning_effort": "medium",
+    "config": {
+      "approval_policy": "never",
+      "sandbox_mode": "danger-full-access"
+    },
+    "thread_id": "019f075e-3b94-7e10-bc18-452c89a261eb",
+    "thread_started_at": "2026-06-27T04:37:24.455748+00:00"
+  },
+  "phases": [
+    {
+      "id": 1,
+      "title": "Consume Integrity Handoff And Recovery Envelopes",
+      "owner": "`forge-store-recovery-physics`, `forge-store-physical-integrity`, `forge-store-buffer-pool`, `forge-store-readiness`, `forge-store-certification`, `forge-proof`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "crates/forge-proof",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: independent S.3 handoff runs over the same intact physical records produce the same S.4 entry identity and recovery basis.",
+        "Adversarial denial: raw bytes, copied integrity reports, expired protected views, and unbounded recovery envelopes cannot enter S.4 recovery admission.",
+        "Boundary proof: recovery-blocking S.3 damage prevents replay planning before any WAL source precedence is chosen."
+      ],
+      "instructions": "Implement Phase 1 from the S.4 spec: Phase 1 closes the S.3-to-S.4 entry boundary. S.4 may consume only integrity- vetted recovery records, typed recovery-blocking damage, S.2 recovery memory envelopes, and S.1 physical authority recaps. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `S4RecoveryPhysicsIntegrityReadiness`, `S4IntegrityHandoffPayload`, `RecoveryMemoryEnvelope`, `IntegrityVettedWalFrame`, `IntegrityVettedCheckpointRecord`, `IntegrityVettedRootManifestRecord`, `IntegrityVettedPageFrameRecord`, `IntegrityDamageMap`, `RecoveryEntryAdmission`, `RecoveryBlockedByIntegrityDamage`. Engineering decisions to preserve: Recovery starts from typed physical evidence, not from files. S.4 may classify integrity damage as recovery-blocking, but not repair it. Proof progression is used for recovery entry state, not for media semantics.",
+      "qa_focus": "Do not accept raw WAL/page/checkpoint bytes when S.3 can supply vetted records or typed damage maps. Do not reinterpret S.3 quarantine as recoverability. Do not let recovery planning reopen S.2 memory-budget or S.3 integrity law.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "close-hardening test-quality fix plan posted",
+          "close quality structural fix plan posted"
+        ],
+        "done": [
+          "Implemented RecoveryEntryAdmission boundary.",
+          "close test-quality repairs implemented",
+          "close quality structural repairs implemented"
+        ],
+        "remaining": [
+          "later S4/S12 own broader aerospace-grade certification residue"
+        ],
+        "findings": [
+          "S3 readiness handoff not exercised",
+          "expired protected view denial missing",
+          "blocking damage proof synthetic",
+          "replay planner boundary local-only",
+          "structural QA: S4 test fixture authority split needed",
+          "structural QA: recovery entry admission topology split needed",
+          "structural QA: S3 handoff admission checks need named proof shape"
+        ],
+        "verification": [
+          "focused phase 1 proofs passed",
+          "close_fix focused checks passed",
+          "close quality focused checks passed"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Define WAL Segment, LSN, And Replay Cursor Topology",
+      "owner": "`forge-store-recovery-physics`, `forge-store-physical-format`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same WAL topology discovered through independent segment scans produces the same ordered replay cursor.",
+        "Adversarial denial: gaps, duplicates, stale segments, overlapping ranges, and wrong-generation segments deny or enter explicit recovery classification.",
+        "Ordering proof: insertion order, directory listing order, and map iteration cannot affect replay cursor order."
+      ],
+      "instructions": "Implement Phase 2 from the S.4 spec: Phase 2 defines the physical ordering vocabulary recovery will consume before any append, ack, checkpoint, or redo path exists. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `WalSegmentId`, `WalSegmentGeneration`, `LogSequenceNumber`, `WalLsnRange`, `ReplayCursor`, `WalFrameOrderingProof`, `WalTopologyDenial`. Engineering decisions to preserve: LSN is the physical recovery order currency. WAL segment lifecycle is distinct from semantic commit lifecycle. Replay cursor construction precedes replay execution.",
+      "qa_focus": "Do not derive LSN order from file listing order or backend residue. Do not let semantic commit ids substitute for physical LSNs. Do not permit gap, duplicate, or overlapping LSN ranges to become ordinary replay candidates.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 2 wal topology implementation plan posted",
+          "close plan: topology scan boundary and stronger s4_wal_topology proof",
+          "close quality plan: collapse duplicate wal topology authority and split test topology"
+        ],
+        "done": [
+          "wal topology cursor implemented",
+          "repaired range-backed replay cursor topology",
+          "removed dishonest public LSN contiguity method",
+          "review removed premature LSN successor helper",
+          "close fix: wal topology scan boundary added",
+          "close fix: s4_wal_topology proof strengthened",
+          "close quality fix: wal topology module boundary",
+          "close quality fix: public topology candidate removed",
+          "close quality fix: s4_wal_topology test modules split"
+        ],
+        "remaining": [
+          "aerospace residue: byte-backed scanner and full S4 harness remain later-phase work",
+          "residue: full recovery-physics reorg and byte-backed scanner remain later-phase work"
+        ],
+        "findings": [
+          "ReplayCursor expands ranges and uses dishonest ordering counter",
+          "public LSN contiguity method has dishonest equality semantics",
+          "close QA: synthetic topology scans",
+          "close QA: denial payload assertions shallow",
+          "close QA: ordering proof basis underasserted",
+          "close QA: map/wide-range pressure narrow",
+          "close quality QA: duplicate public topology authority",
+          "close quality QA: s4_wal_topology near-cap helper concentration",
+          "close quality QA: recovery-physics flat module sprawl"
+        ],
+        "verification": [
+          "phase 2 focused checks passed",
+          "phase 2 focused repair checks passed",
+          "phase 2 repair checks passed after LSN API fix",
+          "phase 2 done-check passed focused proof",
+          "cargo check -p forge-store-recovery-physics passed",
+          "cargo test -p forge-store-certification --test s4_wal_topology passed",
+          "cargo test -p forge-store-recovery-physics --doc passed",
+          "line-cap guard unavailable: bash missing; touched files counted under cap"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "Enforce WAL Durability Barriers And Acknowledgment Preconditions",
+      "owner": "`forge-store-recovery-physics`, `forge-store-physical-backend`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-backend",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: equivalent durable append paths under the same backend profile produce the same acknowledgment eligibility.",
+        "Adversarial denial: lost flush, short write, delayed flush, directory sync failure, and unsupported durability capability block acknowledgment.",
+        "Profile proof: `SimulatedStrictDurableProfile`, `PosixFileFsyncDirFsyncProfile`, `WindowsFlushFileBuffersProfile`, `MmapFlushNotDurabilityCertifiedProfile`, `AdversarialLostFlushProfile`, and `AdversarialReorderedFlushProfile` either certify their exact required barriers or deny explicitly; receipts cannot cross profile boundaries.",
+        "Crash proof: crash after WAL durability but before acknowledgment recovers through typed unacknowledged-completed or replayable posture without losing persisted data."
+      ],
+      "instructions": "Implement Phase 3 from the S.4 spec: Phase 3 makes acknowledgment illegal until WAL append and durability barriers have completed under the declared backend profile. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `WalAppendPlan`, `WalAppendReceipt`, `WalDurabilityBarrier`, `BackendDurabilityProfile`, `SimulatedStrictDurableProfile`, `PosixFileFsyncDirFsyncProfile`, `WindowsFlushFileBuffersProfile`, `MmapFlushNotDurabilityCertifiedProfile`, `AdversarialLostFlushProfile`, `AdversarialReorderedFlushProfile`, `AcknowledgmentPrecondition`, `DurableAckReceipt`, `IllegalAcknowledgmentDenial`. Engineering decisions to preserve: Acknowledgment is a derived permission from durable WAL evidence. Backend profiles scope durability claims. S.6 will later expand I/O QoS, but S.4 owns correctness barriers required for recovery.",
+      "qa_focus": "Do not acknowledge on buffered write success where the backend profile requires flush or directory sync. Do not let one backend capability profile certify all profiles. Do not hide durability barriers behind a generic append helper. Do not leave the backend durability matrix as an implementation detail; every ack receipt and crash verdict must name the profile it was certified under.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 3 wal durability ack plan posted",
+          "close_plan: add durability observation and crash-record proof surfaces; strengthen exact tests",
+          "close_quality_plan: rename observation surface, tighten crash API, split phase3 fixtures"
+        ],
+        "done": [
+          "sealed backend durability profile authority",
+          "added crash runtime profile/barrier basis",
+          "strengthened phase 3 compile-fail and certification proof",
+          "sealed barrier success behind profile-scoped receipts",
+          "append progress rejects raw barrier completion",
+          "compile-fail proof covers forged barrier receipts",
+          "append-scoped durability barrier receipts",
+          "mismatched barrier receipt scope denies append completion",
+          "scope-bearing receipt compile-fail proof",
+          "gated barrier authority to certification",
+          "moved test authority to dev dep",
+          "close_fix: durability observation and crash-record test surfaces added",
+          "close_fix: phase3 ack tests strengthened for exact barrier basis",
+          "close quality fix: observation surface renamed",
+          "close quality fix: crash posture requires reopened record",
+          "close quality fix: phase3 fixture topology split"
+        ],
+        "remaining": [
+          "aerospace residue: persisted-byte crash harness and S6/S12 certification remain later work"
+        ],
+        "findings": [
+          "public append progress can forge completed durability barriers",
+          "barrier receipts are not append-bound durability evidence",
+          "public authority can mint barrier receipts",
+          "test authority enabled as normal dep",
+          "close_qa: durability tests fixture-certified, not backend-boundary driven",
+          "close_qa: crash proof lacks persisted-byte reopen lane",
+          "close_qa: barrier assertions allow over-certified barrier sets",
+          "close_quality_qa: observation script naming leaks test shape",
+          "close_quality_qa: crash posture retains live-precondition constructor",
+          "close_quality_qa: phase3 profile fixtures remain broad"
+        ],
+        "verification": [
+          "cargo check physical-backend/recovery-physics passed",
+          "phase 3 certification test passed",
+          "recovery-physics doctests passed",
+          "phase3 repair focused checks passed",
+          "phase3 append-scoped barrier repair checks passed",
+          "focused phase3 checks pass",
+          "normal graph excludes test authority",
+          "phase3 focused done-check passed",
+          "close_fix: focused phase3 checks passed",
+          "close quality focused checks passed"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Define PageLSN And WAL-Before-Data Publication Law",
+      "owner": "`forge-store-recovery-physics`, `forge-store-buffer-pool`, `forge-store-physical-format`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same dirty publication sequence produces the same pageLSN frontier and redo eligibility after restart.",
+        "Adversarial denial: page flush before WAL durability, stale pageLSN, missing pageLSN, and mismatched page generation deny or require redo.",
+        "No-undo proof: unacknowledged or unadmitted dirty page bytes cannot reach durable media under redo-only S.4 unless the page is protected by a declared rollback image posture; otherwise publication denies before flush.",
+        "Idempotence proof: applying redo to a stale page and reapplying the same redo after restart converges to the same page state."
+      ],
+      "instructions": "Implement Phase 4 from the S.4 spec: Phase 4 connects dirty page publication from S.2 to WAL durability through pageLSN ordering. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `PageLsn`, `PageRedoEligibility`, `DirtyPublicationEvidence`, `WalBeforeDataOrderingProof`, `NoUndoPublicationEligibility`, `UnadmittedDirtyPagePublicationDenial`, `RollbackImagePublicationPosture`, `StalePageRecoveryClassification`, `PageFlushRecoveryReceipt`. Engineering decisions to preserve: PageLSN is physical replay metadata, not semantic truth. WAL-before-data is enforced before page publication becomes durable. S.4 is redo-only; it prevents unrecoverable unadmitted data-page publication instead of promising undo. Dirty publication and recovery replay share counters but not authority.",
+      "qa_focus": "Do not treat a clean page as current without comparing pageLSN to the replay frontier. Do not publish dirty pages before required WAL durability evidence exists. Do not let S.2 dirty publication evidence become a recovery claim by itself. Do not flush a data page containing unadmitted physical mutations under S.4's redo-only recovery law unless a rollback image or explicit undo-capable future posture protects it.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase 4 pageLSN publication plan posted",
+          "phase4 close test-quality repair plan posted",
+          "phase4 close structural repair plan posted"
+        ],
+        "done": [
+          "phase4 repair: page-bound no-undo publication progression added",
+          "phase4 close test-quality repairs implemented",
+          "phase4 close structural repairs implemented"
+        ],
+        "remaining": [
+          "phase4 aerospace residue: byte-level redo execution remains later phase"
+        ],
+        "findings": [
+          "phase4 gap: no-undo admission public authority/test constructor mismatch",
+          "phase4 test QA: rollback image proof lacks witness pressure",
+          "phase4 test QA: restart equivalence remains receipt-local",
+          "phase4 test QA: redo idempotence remains digest-state abstract",
+          "phase4 code QA: recovery classification owns redo eligibility",
+          "phase4 code QA: no-undo file owns rollback declaration"
+        ],
+        "verification": [
+          "phase4 done-check passed",
+          "phase4 close focused verification passed",
+          "phase4 close structural verification passed"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Define Checkpoint Manifest And Durable Cutover Law",
+      "owner": "`forge-store-recovery-physics`, `forge-store-physical-format`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-format",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: two independently constructed checkpoint manifests over the same physical basis validate to the same checkpoint identity.",
+        "Adversarial denial: torn manifest, lost directory entry, missing root, stale pageLSN frontier, and S.3 recovery-blocking damage reject checkpoint validity.",
+        "Locator proof: candidate checkpoints discovered by directory listing, backend residue, or orphaned manifests cannot become selected checkpoint basis without a durable root selector, superblock ring pointer, manifest pointer, or equivalent Store-owned locator.",
+        "Cutover proof: crash before, during, and after checkpoint cutover yields one deterministic selected checkpoint or typed no-valid-checkpoint posture.",
+        "Capture-mode proof: S.4 certifies `SharpCheckpointCertificationMode`; fuzzy checkpoint attempts deny unless they carry begin/end records, redo boundary, dirty-page table evidence, and S.5-compatible interleaving assumptions.",
+        "WAL-retention proof: attempts to delete, recycle, or exclude a WAL segment before covering checkpoint admission and contiguous-tail proof deny."
+      ],
+      "instructions": "Implement Phase 5 from the S.4 spec: Phase 5 makes checkpoints real bounded-recovery anchors rather than snapshots of whatever files happen to exist. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `CheckpointManifest`, `CheckpointId`, `CheckpointLocator`, `DurableRootSelector`, `SuperblockRingCheckpointPointer`, `CheckpointCoveredLsnRange`, `CheckpointPageLsnFrontier`, `CheckpointRootPosture`, `SharpCheckpointCertificationMode`, `FuzzyCheckpointCertificationModeDenial`, `CheckpointRedoBoundary`, `CheckpointPublicationPlan`, `CheckpointCutoverReceipt`, `WalRetentionEligibility`, `CheckpointValidationDenial`. Engineering decisions to preserve: Checkpoints bound recovery; they are not semantic authority. Checkpoint cutover is a publication boundary with durability preconditions. Checkpoint discovery and checkpoint admission are separate phases. S.4 starts with sharp checkpoint certification; S.5 may later broaden stable interleavings rather than S.4 pretending to own them early. WAL retention is correctness law, not cleanup optimization. Checkpoint validation precedes WAL tail replay planning.",
+      "qa_focus": "Do not publish checkpoint validity before manifest, root, pageLSN frontier, and durability evidence are admitted together. Do not treat a checkpoint manifest as authority over corrupted or S.3-blocked records. Do not rely on directory listing residue to decide latest valid checkpoint; directory listing may discover candidates only. Do not imply fuzzy checkpointing unless begin/end checkpoint records, redo frontier, dirty-page table evidence, and interleaving constraints are explicitly present. Do not truncate or recycle WAL before a covering checkpoint and contiguous tail basis are durably admitted.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase5 checkpoint cutover plan posted",
+          "close_plan: test-quality repair planned",
+          "close_quality_plan: structural repair planned"
+        ],
+        "done": [
+          "phase5 checkpoint cutover implementation ready",
+          "repaired phase5 durability roles, locator authority, tail proof, recovered cutover state",
+          "repaired phase5 artifact-bound durability and evidence-derived locator/cutover selection",
+          "repaired phase5 cutover root/media recovery evidence admission",
+          "repaired phase5 recovered root reference binding",
+          "close_fix: test-quality repairs implemented",
+          "close_quality_fix: structural phase5 repairs implemented"
+        ],
+        "remaining": [
+          "close_quality_qa: checkpoint_cutover topology flat",
+          "close_quality_qa: cutover selection file mixed",
+          "close_quality_qa: retention facade overlaps",
+          "close_quality_qa: test support bucket name",
+          "residue: broader S4 checkpoint topology"
+        ],
+        "findings": [
+          "phase5 gaps persist: durability proof roles, locator authority, tail proof use, media-state selection",
+          "phase5 gaps persist: public locator/cutover authority minting and artifact-bound durability proof missing",
+          "phase5 gap persists: cutover root/media recovery evidence minted from receipt only",
+          "phase5 gap persists: recovered root reference not bound to root durability evidence",
+          "close_qa: locator discovery matrix weak",
+          "close_qa: cutover recovery path synthetic",
+          "close_qa: retention action surface missing",
+          "close_qa: durability negatives incomplete"
+        ],
+        "verification": [
+          "phase5 focused verification passed",
+          "focused phase5 repair proofs passed",
+          "focused phase5 artifact-bound repair proofs passed",
+          "focused phase5 root/media evidence repair proofs passed",
+          "focused phase5 root-reference binding proof passed",
+          "phase5 done-check passed",
+          "close_fix: focused verification passed",
+          "close_quality_fix: focused verification passed"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Define Recovery Source Precedence",
+      "owner": "`forge-store-recovery-physics`, `forge-store-physical-integrity`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same persisted bytes always select the same recovery sources under the same profile.",
+        "Adversarial denial: stale residue, orphaned checkpoint manifests, invalid compaction products, and S.3-blocked records cannot become admitted sources.",
+        "Precedence proof: checkpoint-plus-WAL-tail, WAL-only, no-valid-checkpoint, and recovery-blocked classifications remain distinct.",
+        "Role proof: valid checkpoint locator beats orphaned manifests; valid checkpoint plus contiguous WAL tail beats stale data pages; WAL tail supplies redo while pageLSN decides skip/apply; backend residue discovers candidates but certifies none.",
+        "Compaction proof: visible compaction products require generation identity, admitted cutover record, and old-generation recoverability until cutover durability is admitted; otherwise they reject as residue."
+      ],
+      "instructions": "Implement Phase 6 from the S.4 spec: Phase 6 fixes the recovery decision graph before redo execution can choose what to trust. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoverySourcePrecedenceGraph`, `RecoverySourceCandidate`, `RecoveryCandidateDiscoveryTrace`, `AdmittedRecoverySource`, `RecoverySourceApplicationRole`, `BackendResidueRejection`, `CheckpointBaseAdmission`, `WalTailRedoSource`, `PageLsnSkipApplyDecision`, `CompactionCutoverRecoveryPosture`, `CompactionGenerationVisibility`, `CompactionArtifactResidueRejection`, `RecoverySourceDecisionTrace`. Engineering decisions to preserve: Source precedence is a typed graph, not `if exists then use it`. Source precedence has three layers: candidate discovery, source admission, and application role. Residue is evidence only when admitted by the source graph. S.4 owns only minimum compaction visibility needed for crash recovery; later sequences own compaction strategy and movement depth. Recovery planning consumes source decisions rather than rediscovering them.",
+      "qa_focus": "Do not let pages, manifests, WAL, checkpoint records, compaction products, or snapshots race by whichever is easiest to parse. Do not let backend residue outrank admitted checkpoint/WAL evidence. Do not treat checkpoint locators, checkpoint manifests, WAL frames, page images, pageLSNs, compaction products, and residue as interchangeable \"sources\"; they have different recovery roles. Do not implement compaction cutover authority here beyond S.4 recovery classification; S.5/S.8/S.10 own later movement and repair depth.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase6 source precedence planned",
+          "close_plan: test-quality repair planned",
+          "close_quality_plan: phase6 structural hardening plan"
+        ],
+        "done": [
+          "phase6 source precedence implemented",
+          "phase6 wal-only and compaction authority repaired",
+          "phase6 proof-bound wal-only and compaction repair implemented",
+          "phase6 compaction proof self-mint sealed",
+          "phase6 compaction evidence artifact-bound",
+          "close_fix: phase6 source-precedence test hardening",
+          "close_quality_fix: phase6 structure hardened"
+        ],
+        "verification": [
+          "phase6 focused verification passed",
+          "phase6 repair focused checks passed",
+          "phase6 focused repair checks passed",
+          "phase6 compaction binding checks passed",
+          "phase6 done-check passed",
+          "close_fix: focused phase6 checks passed",
+          "close_quality_fix: focused checks passed"
+        ],
+        "findings": [
+          "phase6 gaps: wal-only proof and compaction visibility authority bypass",
+          "phase6 gaps: compaction proof booleans and wal-only range binding",
+          "phase6 gap: compaction proof tokens self-mint authority",
+          "phase6 gap: compaction constructors ignore proof evidence binding",
+          "close_qa: source discovery proof still too manually assembled",
+          "close_qa: selected-source identity and denial rows need stronger assertions",
+          "close_qa: page role and compaction negative lanes need less helper-hidden proof",
+          "close_quality_qa: source graph orchestration decomposition",
+          "close_quality_qa: compaction visibility module split",
+          "close_quality_qa: WAL damage quarantine seam naming/radius"
+        ],
+        "remaining": []
+      }
+    },
+    {
+      "id": 7,
+      "title": "Plan And Execute Idempotent Redo Replay",
+      "owner": "`forge-store-recovery-physics`, `forge-store-buffer-pool`, `forge-store-certification`, `forge-proof`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "crates/forge-proof",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: checkpoint-plus-tail replay and canonical control rebuild converge to the same recovered physical root for acknowledged work.",
+        "Adversarial denial: frames outside admitted source range, wrong pageLSN basis, or recovery-blocking damage cannot enter the redo plan.",
+        "Valid-prefix proof: recovery admits the maximal contiguous integrity-vetted WAL prefix from the selected basis; torn tail suffix, middle corruption, stale generation, and missing acknowledged range produce distinct outcomes.",
+        "Grammar proof: redo records without target generation, operation form, integrity binding, idempotence basis, or pageLSN basis deny before execution.",
+        "Idempotence proof: replaying the same admitted tail twice produces identical recovered state and exact skipped-frame counters."
+      ],
+      "instructions": "Implement Phase 7 from the S.4 spec: Phase 7 lowers admitted recovery sources into a redo plan and applies it without executor-side rediscovery. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoveryRedoPlan`, `WalValidPrefix`, `TornWalTailClassification`, `MiddleWalCorruptionDenial`, `MissingAcknowledgedWalRangeDenial`, `AdmittedRedoFrame`, `RedoRecordGrammar`, `RedoRecordTargetGeneration`, `RedoRecordOperationForm`, `RedoRecordIdempotenceBasis`, `RedoApplicationCursor`, `RedoExecutionReceipt`, `SkippedRedoFrameReport`, `RecoveredPhysicalState`. Engineering decisions to preserve: Planning and execution are separate proof-bearing phases. Redo consumes only admitted frames and pageLSN facts. Redo effects are exactly-once in recovered state; redo records may be scanned, planned, skipped, or reapplied repeatedly according to pageLSN/idempotence law. Skipped frames are evidence, not silent optimization.",
+      "qa_focus": "Do not let the redo executor choose recovery strategy. Do not revalidate integrity in redo execution except at explicit trust boundary shifts; S.3 already supplied integrity proof. Do not update pages whose pageLSN proves the redo already landed. Do not treat a torn WAL tail, middle corruption, missing acknowledged range, stale segment, or wrong generation as the same recovery condition. Do not admit a redo record whose target page/generation, operation form, integrity binding, idempotence basis, or pageLSN comparison basis is missing.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase7 idempotent redo replay plan posted",
+          "phase7 close_plan: strengthen redo grammar, prefix, control rebuild, and second replay proof surfaces",
+          "phase7 close_quality_plan: split redo prefix/execution/projection/facade structure"
+        ],
+        "done": [
+          "phase7 redo replay implementation ready",
+          "phase7 done-check repair implemented",
+          "phase7 repair: WAL prefix observations require proof-bearing inputs",
+          "phase7 repair: WAL prefix observations require range-bound or WAL-specific damage authority",
+          "phase7 repair: recovery-blocking WAL torn damage remains blocked; quarantine handoff owns torn suffix",
+          "phase7 repair: recovery-blocking WAL torn damage remains blocked after line-cap cleanup",
+          "phase7 legacy close routed to segmented close_qa",
+          "phase7 close_fix: tests now use production redo materialization, prefix scan, control rebuild, and recovered cursor",
+          "phase7 close_quality_fix: split redo prefix observations, execution steps, state projection, and materialized grammar input"
+        ],
+        "remaining": [
+          "phase7 aerospace-grade remainder: facade and module topology hardening before claim",
+          "phase7 residue: broader S4 facade minimization and full recovery materialization topology remain later closeout work"
+        ],
+        "findings": [
+          "phase7 gaps: redo plan source-prefix binding and page/generation coherence",
+          "phase7 gap: valid WAL prefix observations self-mint integrity authority",
+          "phase7 gaps: prefix observation constructors allow unbound WAL frame authority and non-WAL damage as middle corruption",
+          "phase7 gap: recovery-blocking WAL torn-tail damage can downgrade into admissible torn suffix observation",
+          "phase7 close_qa: redo grammar and prefix proofs remain fixture-authored",
+          "phase7 close_qa: recovered-root equivalence and second replay need stronger production surfaces",
+          "phase7 structural QA: split WAL prefix authority/reduction pressure",
+          "phase7 structural QA: name redo execution and recovered-state projection steps",
+          "phase7 structural QA: tighten public redo materialization facade shape"
+        ],
+        "verification": [
+          "phase7 focused checks passed",
+          "phase7 repair focused checks passed",
+          "phase7 focused replay, docs, and test compile passed",
+          "phase7 focused replay tests, recovery-physics doctests, and checks passed",
+          "phase7 focused replay tests, recovery-physics doctests, and checks passed after torn-damage repair",
+          "phase7 focused replay tests, recovery-physics doctests, checks, diff check, and line caps passed",
+          "phase7 done-check passed after focused replay, doctest, check, diff, and line-cap review",
+          "phase7 close_fix focused replay test, doctests, checks, diff-check, line caps, and state validate passed",
+          "phase7 close_quality_fix focused replay test, doctests, checks, diff-check, line caps, and state validate passed"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Classify Partial Publication And Unacknowledged Work",
+      "owner": "`forge-store-recovery-physics`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: repeated recovery over identical partial publication bytes produces identical classification.",
+        "Adversarial denial: backend residue, live acknowledgment memory, and logs cannot promote unacknowledged work into acknowledged truth.",
+        "No-undo denial: unacknowledged dirty bytes already present in durable page images require typed denial, rollback-image posture, or explicit undo-capable deferral; redo-only replay cannot silently accept them.",
+        "Edge proof: crash before WAL append, after WAL append before durability, after durability before ack, after ack before page flush, and during checkpoint cutover all classify distinctly."
+      ],
+      "instructions": "Implement Phase 8 from the S.4 spec: Phase 8 makes crash-edge ambiguity explicit instead of allowing recovery to guess based on residue. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `PartialPublicationClassification`, `UnacknowledgedPublicationOutcome`, `TornPublicationDenial`, `AmbiguousPublicationReport`, `RecoveredOrRejectedPartialPublication`, `UnadmittedDurablePageMutationDenial`, `NoUndoPartialPublicationClassification`, `RollbackImageRequiredPosture`. Engineering decisions to preserve: Acknowledgment memory is not recovery authority after crash. Unacknowledged durable WAL may be replayable, rejected, or classified by typed rules, but never guessed from residue. Durable page images containing unadmitted physical mutations are a recovery hazard under redo-only S.4, not an ordinary ambiguous case. Ambiguity is a first-class recovery output when evidence is insufficient.",
+      "qa_focus": "Do not silently treat unacknowledged residue as acknowledged truth. Do not discard durable WAL records merely because acknowledgment was not observed in live memory. Do not classify a flushed page containing unadmitted physical mutations as harmless under redo-only recovery. Do not collapse completed-through-replay, rejected, ambiguous, and blocked outcomes into success/failure.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase8 plan: typed partial-publication crash-edge classification module and focused certification",
+          "phase8 close_plan: test-quality observation-surface repair planned",
+          "phase8 close_quality_plan: split observation and fixture topology"
+        ],
+        "done": [
+          "phase8 implemented: typed partial-publication crash-edge classification and certification lane",
+          "phase8 repair: durable WAL authority and distinct publication outcomes",
+          "phase8 repair: no-undo posture bound to page-flush receipt authority",
+          "phase8 repair: torn publication distinct from ambiguous outcome",
+          "phase8 close_fix: partial-publication observation surface added",
+          "phase8 close_fix: certification tests use byte/mixed-source observations",
+          "phase8 close_quality_fix: observation topology split",
+          "phase8 close_quality_fix: fixture topology split"
+        ],
+        "remaining": [
+          "phase8 aerospace residue: full crash harness/offline verifier remain later-phase work"
+        ],
+        "findings": [
+          "phase8 gaps: replayable WAL authority and distinct partial-publication outcomes",
+          "phase8 gap: no-undo posture still self-mints accepted outcome",
+          "phase8 gap: torn publication collapses into ambiguous outcome",
+          "phase8 close_qa: persisted-byte recovery test gap",
+          "phase8 close_qa: mixed-source denial test gap",
+          "phase8 close_qa: durable-page observation test gap",
+          "phase8 close_quality_qa: observation module responsibility split needed",
+          "phase8 close_quality_qa: observation wrapper facade shape weak",
+          "phase8 close_quality_qa: phase fixture topology should split by evidence family"
+        ],
+        "verification": [
+          "phase8 focused test, doctests, cargo checks, diff-check, line caps, and state validate passed",
+          "phase8 focused tests/checks passed",
+          "phase8 focused tests/checks passed after no-undo repair",
+          "phase8 focused tests/checks passed after torn outcome repair",
+          "phase8 done-check passed with focused proof",
+          "phase8 close_fix: focused test and cargo checks passed",
+          "phase8 close_fix: diff-check and touched-file line caps passed",
+          "phase8 close_quality_fix: focused tests and cargo checks passed",
+          "phase8 close_quality_fix: diff-check and focused line caps passed"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Bound Recovery Work By Checkpoint Interval And WAL Tail",
+      "owner": "`forge-store-recovery-physics`, `forge-store-buffer-pool`, `forge-store-budgets`, `forge-store-certification`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "forge-store-budgets",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: recovery over equivalent checkpoint/tail envelopes produces the same recovered state regardless of total store size.",
+        "Adversarial denial: recovery plans exceeding WAL-tail, memory, allocation, or checkpoint-discovery budgets deny or degrade explicitly before execution.",
+        "Counter proof: replayed frames, skipped frames, validated checkpoints, scanned segments, page redos, and memory envelope use match exact expected counters."
+      ],
+      "instructions": "Implement Phase 9 from the S.4 spec: Phase 9 makes recovery cost a declared contract. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoveryBudget`, `CheckpointIntervalContract`, `WalTailReplayBudget`, `RecoveryMemoryEnvelope`, `RecoveryCounterSnapshot`, `RecoveryBudgetDenial`. Engineering decisions to preserve: Recovery time is a structural counter claim before it is a wall-clock claim. Checkpoint cadence is part of the recovery contract. Diagnostic richness cannot make ordinary recovery unbounded.",
+      "qa_focus": "Do not hide full-store scans inside checkpoint discovery, source precedence, or offline verifier lanes. Do not accept elapsed time as recovery-boundedness proof. Do not let profile-rich diagnostics widen the operational recovery path.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase9 plan: bounded checkpoint/tail recovery budget contract",
+          "phase9 close_plan: test-quality repair planned",
+          "phase9 close_quality_plan: structural repair planned"
+        ],
+        "done": [
+          "phase9 implemented: recovery budget admission, bounded plan, counters",
+          "phase9 tests: bounded recovery budget certification added",
+          "phase9 repair: bound declared tail to redo source",
+          "phase9 repair: budgeted source discovery before admission",
+          "phase9 repair: production-owned recovery work evidence counters",
+          "phase9 repair: recovery evidence non-mintable and source-bound",
+          "phase9 repair: source-bound budget evidence admission",
+          "phase9 close_fix: test-quality repair implemented",
+          "phase9 close_quality_fix: recovery budget structure hardened"
+        ],
+        "remaining": [
+          "phase9 close_quality_qa: structural hardening before aerospace-grade claim",
+          "phase9 residue: public API compile-fail hardening"
+        ],
+        "findings": [
+          "phase9 gap: budget does not bind declared tail to redo plan source",
+          "phase9 gap: discovery budget enforced after unbounded source graph admission",
+          "phase9 gap: recovery counters still caller-supplied",
+          "phase9 gap: recovery work evidence forgeable/cross-wireable",
+          "phase9 gap: work evidence still cross-wireable from separate source admission",
+          "phase9 close_qa: total-store equivalence fixture-only",
+          "phase9 close_qa: bounded counters need multi-segment/page pressure",
+          "phase9 close_qa: denial-before-execution lacks execution sentinel",
+          "phase9 close_quality_qa: raw source escape remains public",
+          "phase9 close_quality_qa: store footprint mixes footprint/counter roles",
+          "phase9 close_quality_qa: replay budget axes collapsed"
+        ],
+        "verification": [
+          "phase9 verify: focused recovery-physics/certification/budgets checks passed",
+          "phase9 repair verify: focused checks passed",
+          "phase9 counter provenance repair verify: focused checks passed",
+          "phase9 evidence binding repair verify: focused checks passed",
+          "phase9 focused repair checks passed",
+          "phase9 done-check passed with focused proof",
+          "phase9 close_fix: focused tests/checks passed",
+          "phase9 close_quality_fix: focused tests/checks passed"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Certify Crash Matrix Through The Roadmap 2 Harness",
+      "owner": "`forge-store-certification`, `forge-store-test-support`, `forge-store-recovery-physics`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial crash matrix: crashes around WAL append, page flush, checkpoint write, checkpoint cutover, compaction cutover, acknowledgment, directory sync, and rename durability all pass through lowered scenario plans.",
+        "Adversarial denial: live-state reuse, logs, backend residue guessing, direct private mutation, and same-run self-comparison fail certification.",
+        "Harness proof: each crash lane names driver, observer, oracle, transcript, evidence bundle, seed, backend profile, and exact counter expectations.",
+        "Mutation proof: each required S.4 mutant fails the intended suite lane with named oracle evidence, counter evidence, or compile-fail evidence."
+      ],
+      "instructions": "Implement Phase 10 from the S.4 spec: Phase 10 proves the crash/fault machinery itself is real enough for S.4 closeout. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoveryPhysicsScenarioDefinition`, `RecoveryPhysicsScenarioPlan`, `FaultSchedulerDriver`, `StorageBoundaryInterposerDriver`, `FreshRuntimeRecoveryDriver`, `RecoveryPhysicsCrashMatrix`, `RecoveryPhysicsCertificationMatrix`, `RecoveryPhysicsMutationValidationMatrix`. Engineering decisions to preserve: The crash harness is part of the product architecture for Roadmap 2. Faults are delivered through production-like storage boundaries. S.4 closeout depends on CI Certification mode for required S.4 harness subsystems.",
+      "qa_focus": "Do not simulate crashes by keeping the same runtime objects alive. Do not mutate private structs after the fact to create crash conditions. Do not let test support own oracle meaning.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase10 plan: S4 crash matrix harness certification",
+          "phase10 close plan: strengthen harness proof tests",
+          "phase10 close quality plan: split harness topology"
+        ],
+        "findings": [
+          "phase10 close QA: tests still self-generate crash evidence",
+          "phase10 close QA: shortcut denial lacks boundary-specific proof",
+          "phase10 close QA: mutation evidence helper is circular",
+          "phase10 structural QA: s4 harness topology too flat",
+          "phase10 structural QA: certification/mutation files mix responsibilities"
+        ],
+        "done": [
+          "phase10 close quality: split harness topology by responsibility"
+        ],
+        "remaining": [
+          "residue: byte-backed crash depth and release-scale mutation campaigns"
+        ],
+        "verification": [
+          "phase10 close quality focused checks passed"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "title": "Add Offline Verifier And Recovery Determinism Proof",
+      "owner": "`forge-store-recovery-physics`, `forge-store-certification`, `forge-store-test-support`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-test-support",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: identical persisted bytes, format version, backend profile, and recovery profile produce identical recovery classifications across repeated fresh-runtime recovery runs.",
+        "Adversarial disagreement: verifier/runtime disagreement is surfaced as typed evidence, not hidden by the test harness.",
+        "Independence proof: offline verification inspects persisted physical records without constructing the live Store runtime or reusing runtime caches."
+      ],
+      "instructions": "Implement Phase 11 from the S.4 spec: Phase 11 proves recovery conclusions are independently checkable from persisted bytes. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoveryOfflineVerifier`, `OfflineRecoveryVerificationReport`, `RuntimeRecoveryComparisonReport`, `RecoveryDeterminismReport`, `PersistedRecoveryArtifactDigest`. Engineering decisions to preserve: Offline verifier evidence can disagree with live recovery. Determinism compares classifications, recovered physical state, counters, verifier conclusions, and explicitly allowed nondeterministic metadata. Verifier independence is a certification boundary, not a packaging detail.",
+      "qa_focus": "Do not call the live recovery authority path from the offline verifier. Do not compare only broad success/failure. Do not allow map iteration, wall-clock metadata, thread timing, or environment state to change recovery classification.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase11 offline verifier and determinism plan posted",
+          "close_plan: strengthen phase11 test-quality proof surfaces",
+          "close_quality_plan: decompose phase11 verifier topology"
+        ],
+        "done": [
+          "phase11 offline verifier and determinism APIs implemented",
+          "phase11 repair: typed offline records, runtime binding, comparison axes",
+          "close_fix: phase11 offline verifier tests bound to production surfaces",
+          "close_quality_fix: phase11 verifier topology decomposed"
+        ],
+        "remaining": [
+          "phase11 structural residue: parser/materializer/projection boundaries",
+          "phase11 residue: release-grade verifier byte grammar remains later"
+        ],
+        "findings": [
+          "phase11 gaps: runtime artifact binding, offline physical parsing, verifier/runtime comparison axes",
+          "close_qa: strengthen fresh-runtime lane, persisted artifact materialization, nondeterministic metadata tests",
+          "close_quality_qa: phase11 offline-verifier topology needs decomposition"
+        ],
+        "verification": [
+          "phase11 focused checks passed",
+          "focused phase11 test/check commands passed",
+          "phase11 done-check passed",
+          "close_fix: phase11 focused certification/offline checks passed",
+          "close_quality_fix: phase11 focused checks passed"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Materialize Foundational And Proof Evidence",
+      "owner": "`forge-store-recovery-physics`, `forge-store-certification`, `forge-foundational`, `forge-proof`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "crates/forge-foundational",
+        "crates/forge-proof",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial equivalence: the same executed recovery findings materialize the same Foundational report, receipt, performance, and profile basis through independent constructors.",
+        "Adversarial denial: planned recovery, copied receipt fields, log excerpts, and same-run self-comparison cannot satisfy recovery evidence APIs.",
+        "Aspec boundary proof: recovery evidence payloads, diagnostics, mismatch loci, counters, and S.5 handoff fields lower through Foundational values, identities, handles, epochs, digest ids, and locators; JSON-shaped payloads, raw bytes, debug strings, display names, and producer-private names deny.",
+        "Profile proof: reduced-richness profiles remove optional forensic detail while preserving recovered state, source decisions, denials, and counters.",
+        "Authority proof: Foundational reports and Proof-compatible traces cannot be fed back into Store APIs that require `RecoveredPhysicalState`, `RecoveryRedoPlan`, or `DurableAckReceipt`.",
+        "Canonical basis proof: materialized recovery reports, receipts, performance rows, diagnostic rows, and evidence bundles lower through Foundational canonical basis APIs and produce stable digests across independent construction paths.",
+        "Current-basis proof: current-basis boundary artifacts and evidence attachments require Store recovery authority plus Foundational admission or readmission; raw digests, raw reports, and boundary-bridged stale forms deny.",
+        "Diagnostics proof: recovery source decisions, partial publication outcomes, verifier disagreements, missing evidence, redaction, unsupported evidence, named gaps, partial coverage, and budget denials materialize as typed Foundational diagnostic rows, reports, explanation bundles, certified bundles, and readmitted bundles with locator/subject meaning, not prose.",
+        "Performance proof: recovery budget, replay breadth, checkpoint validation, skipped-frame, page-redo, verifier-read, and residue-rejection counters materialize as Foundational performance claims that distinguish recovery-only, cold replay, verifier, materialization, support-only, policy-admission, counter-backed, freshness/retention, fallback/debt, and certified/readmitted surfaces with exact counter assertions.",
+        "Lineage/provenance proof: replay-derived, restored/readmitted, reconstructed equivalence, direct continuity, runtime assumption, and runtime non-assumption postures remain distinct in recovery evidence.",
+        "Non-applicable-surface proof: branch, merge, commit, scoped-merge, selected-node, selected-aspect, skipped-scope, and cherry-pick surfaces fail when used as WAL replay, source-precedence, checkpoint-cutover, or recovered state admission mechanisms.",
+        "Proof progression proof: recovery entry, lowered redo plan, execution-ready replay, executed replay, stale/rebind-required restart, and boundary readmission use Proof checked outcomes and assumptions rather than local typestate lookalikes.",
+        "Proof collection proof: WAL replay order uses canonical-order proof where required, source candidates use uniqueness/non-empty proofs where required, and disjoint recovery source families cannot be represented as overlapping inputs."
+      ],
+      "instructions": "Implement Phase 12 from the S.4 spec: Phase 12 exports executed recovery evidence through shared vocabulary without moving recovery authority out of Store. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `RecoveryPhysicsReceipt`, `RecoveryPhysicsReport`, `RecoveryCounterPerformanceReceipt`, `RecoverySourceDecisionReport`, `ProofProgressionRecoveryTrace`, `FoundationalRecoveryEvidenceBundle`, `AspectValue`, `CanonicalAspectStateMap`, `ContractValidatedAspectValue`, `AspectKey`, `AspectLocator`, `AspectValueLocator`, `BoundaryArtifactLocator`, `BoundarySourceLocator`, `BoundaryMismatchLocator`, `BoundaryArtifactId`, `BoundaryHandle`, `BoundaryEpoch`, `CanonicalDigestId`, `EquivalenceBasisId`, `FoundationalBoundaryMaterializationPlan`, `FoundationalBoundaryMaterializationDecisionRow`, `FoundationalBoundaryMaterializationBundle`, `CurrentBasisBoundaryArtifact`, `BoundaryBridgedCurrentBasisBoundaryArtifact`, `FoundationalBoundaryEvidenceCompletedReceiptArtifact`, `FoundationalBoundaryEvidenceProvenanceArtifact`, `FoundationalBoundaryEvidenceSupportRecoveryPosture`, `FoundationalBoundaryEvidenceReconstructedEquivalenceArtifact`, `FoundationalBoundaryEvidenceReplayDerivedLineageArtifact`, `FoundationalBoundaryEvidenceRestoredLineageArtifact`, `FoundationalBoundaryEvidenceRuntimeAssumption`, `FoundationalBoundaryEvidenceRuntimeNonAssumption`, `FoundationalDiagnosticDecisionRow`, `FoundationalDiagnosticFailureRow`, `FoundationalDiagnosticComparisonRow`, `FoundationalDiagnosticSupportRow`, `FoundationalDiagnosticNamedGap`, `FoundationalDiagnosticAbsenceCause`, `FoundationalDiagnosticOutcomeKind`, `FoundationalDiagnosticSupportReport`, `FoundationalDiagnosticExplanationBundle`, `FoundationalCertifiedDiagnosticBundle`, `BoundaryBridgedCertifiedDiagnosticBundle`, `FoundationalCounterBackedPerformanceReceipt`, `FoundationalPolicyAdmissionReceipt`, `FoundationalPerformanceLayoutIntent`, `FoundationalPerformanceEvidenceStrength`, `FoundationalPerformanceExecutionTemperature`, `FoundationalPerformanceFreshnessRetentionPosture`, `FoundationalPerformanceFallbackDebtPosture`, `FoundationalPerformanceBreadthLocalityPosture`, `FoundationalCertifiedPerformanceBundle`, `CanonicalBasisBundle`, `CanonicalDerivedDigest`, `FoundationalProfileSet`, `FoundationalProfileMaterializationPlan`, `Artifact`, `Recipe<Lowered>`, `ExecutionReadyRecipe`, `ExecutedRecipe`, `TransitionReadiness`, `TransitionOutcome`, `AuthorityWitness`, `CapabilityWitness`, `AssumptionBasis`, `FreshnessScopedBasis`, `BoundaryBridged`, `CanonicalVec`, `UniqueVec`, `NonEmpty`. Engineering decisions to preserve: Store counters and executed recovery findings are the evidence source. Foundational standardizes exported boundary meaning. Proof standardizes progression shape where S.4 states need sealed movement. Foundational readiness requirements are prerequisites for exporting the corresponding S.4 evidence family. Proof assumptions carry recovery basis freshness and trust-boundary readmission; Store still owns the recovery basis meaning.",
+      "qa_focus": "Do not build receipts from plans alone. Do not let Foundational reports become Store recovery witnesses. Do not let Proof progression wrappers own WAL, checkpoint, or pageLSN meaning. Do not let reduced-richness profiles change recovered state. Do not use raw canonical digests or raw basis rows as current-basis recovery authority. Do not use Proof recipes as dynamic recovery engines; they encode the already-planned Store recovery progression. Do not skip Foundational production-readiness requirements for the specific surface families S.4 consumes. Do not let JSON-shaped payloads, raw bytes, debug strings, or display names become the canonical boundary meaning of recovery evidence. Do not collapse missing evidence, redacted evidence, partial diagnostic coverage, verifier disagreement, and domain denial into one failure bucket. Do not let policy-admission performance receipts, support-derived replay claims, or stale/readmitted performance claims satisfy counter-backed current-basis execution-cost truth. Do not model WAL replay or checkpoint recovery as branch merge, committed authority transition, scoped merge, selected-node, selected-aspect, or cherry-pick vocabulary.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase12 foundational/proof evidence materialization plan posted",
+          "phase12 close_plan: test-quality fix plan posted",
+          "phase12 close_quality_plan: structural repair plan posted"
+        ],
+        "done": [
+          "phase12 foundational/proof evidence APIs implemented",
+          "phase12 repair: executed authority and foundational/proof surfaces wired",
+          "phase12 repair: foundational diagnostics/perf/lineage/proof attached",
+          "phase12 repair: source-bound foundational/proof materialization",
+          "phase12 repair: diagnostic/performance certification and canonical basis wired",
+          "phase12 repair: full canonical basis uses complete evidence surfaces",
+          "phase12 repair: performance counters fully materialized",
+          "phase12 repair: residue counter source path proven",
+          "phase12 repair: public evidence constructors authority-bound",
+          "phase12 repair: raw counter/materialized paths internalized",
+          "phase12 repair: canonical mixer internalized",
+          "phase12 repair: lineage bound to executed source",
+          "phase12 close_fix: production-backed evidence tests split",
+          "phase12 close_fix: authority compile-fail fixtures added",
+          "phase12 close_fix: performance surface inventory line-cap split",
+          "phase12 close_quality_fix: evidence topology split by family",
+          "phase12 close_quality_fix: diagnostics/performance/proof internals narrowed"
+        ],
+        "remaining": [
+          "phase12 close_quality: structural subdivision before aerospace-grade claim",
+          "phase12 residue: crate root facade hardening belongs to S4 close"
+        ],
+        "findings": [
+          "phase12 close_qa: independent/e2e test proof weak",
+          "phase12 close_qa: authority/aspec denial matrices incomplete",
+          "phase12 close_qa: diagnostics/perf/lineage/proof matrices weak",
+          "phase12 close_qa: test surface needs focused split",
+          "phase12 close_quality_qa: recovery_evidence topology too flat",
+          "phase12 close_quality_qa: diagnostics/perf/bundle files mix subresponsibilities",
+          "phase12 close_quality_qa: proof progression internals need narrower module boundary"
+        ],
+        "verification": [
+          "phase12 focused evidence test/checks passed",
+          "phase12 repair focused test/checks passed",
+          "phase12 repair verification rerun passed",
+          "phase12 focused commands pass but QA found proof gaps",
+          "phase12 focused repair checks passed",
+          "phase12 repair focused evidence test/checks passed",
+          "phase12 focused evidence test passed; QA found done-check gaps",
+          "phase12 repair focused tests/checks passed",
+          "phase12 review focused tests pass; authority-boundary gaps remain",
+          "phase12 authority-bound repair tests/checks passed",
+          "phase12 focused tests pass; QA found source-binding gaps",
+          "phase12 source-binding repair tests/checks passed",
+          "phase12 hostile review passed",
+          "phase12 close_fix focused tests/checks passed",
+          "phase12 close_quality_fix focused checks passed"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "title": "Close WAL, Checkpoint, LSN, And Recovery Physics",
+      "owner": "`forge-store-recovery-physics`, `forge-store-certification`, `forge-store-readiness`, `forge-store-buffer-pool`, `forge-store-physical-integrity`, `forge-foundational`, `forge-proof`",
+      "scope": [
+        "workspaces/forge-store/crates/forge-store-recovery-physics",
+        "workspaces/forge-store/crates/forge-store-certification",
+        "workspaces/forge-store/crates/forge-store-readiness",
+        "workspaces/forge-store/crates/forge-store-buffer-pool",
+        "workspaces/forge-store/crates/forge-store-physical-integrity",
+        "crates/forge-foundational",
+        "crates/forge-proof",
+        "workspaces/forge-store/Cargo.toml"
+      ],
+      "acceptance": [
+        "Adversarial closeout: crash points around WAL append, page flush, checkpoint manifest write, checkpoint cutover, compaction cutover, acknowledgment, directory sync, and rename durability recover deterministically.",
+        "Adversarial denial: raw bytes, live-state reuse, backend residue guessing, unsupported durability claims, invalid pageLSNs, torn checkpoints, and unbounded recovery plans deny or classify at named S.4 boundaries.",
+        "Boundedness proof: recovery counters prove work is bounded by checkpoint interval and WAL tail.",
+        "Handoff proof: S.5 receives a recovered physical root, admitted pageLSN frontier, replay receipts, source-precedence trace, and stability assumptions explicit enough to begin physical isolation work.",
+        "Line-cap and composition proof: recovery modules and tests stay under the workspace line cap unless explicitly exempted and keep WAL, checkpoint, pageLSN, source precedence, replay, verifier, and evidence responsibilities separate."
+      ],
+      "instructions": "Implement Phase 13 from the S.4 spec: Phase 13 runs the named S.4 suites, rejects synthetic shortcuts, verifies bounded recovery, and publishes S.5 physical-isolation readiness. Keep Store recovery physics authority local. Use Foundational and Proof vocabulary only at explicit evidence, diagnostics, materialization, certification, and proof-progression boundaries. Do not claim S.5 physical isolation, S.6 I/O QoS, S.7 blob lifecycle, S.10 repair/forensics, S.11 authenticity/security, or S.12 certification behavior unless this phase explicitly owns it. Relevant APIs: `WalCheckpointLsnRecoveryPhysicsSuite`, `RecoveryPhysicsCertificationBundle`, `RecoveryPhysicsCloseoutReport`, `SyntheticRecoveryShortcutRejectionReport`, `S5PhysicalIsolationRecoveryReadiness`. Engineering decisions to preserve: S.4 closeout proves physical recovery only. S.4 explicitly reserves physical read stability, I/O QoS, blobs, repair, security, and full physical database certification for later sequences. The closeout handoff must be concrete enough for S.5 to start without reopening recovery physics.",
+      "qa_focus": "Do not close S.4 on \"restart worked once.\" Do not close S.4 on same-process recovery. Do not claim S.5 isolation, S.6 I/O QoS, S.10 PITR/repair, S.11 security, or S.12 aerospace-grade certification from S.4. Do not leave S.5 with ambiguous recovered roots or untyped page stability assumptions.",
+      "status": "complete",
+      "qa_status": "passed",
+      "attempts": 0,
+      "notes": {
+        "plan": [
+          "phase13 implementation plan posted",
+          "phase13 close_plan: repair test QA by adding real crash, artifact-bound, boundedness, handoff, and shortcut proof surfaces",
+          "phase13 close_quality_plan: structural split plan for runtime report, crash seam, s4 test support, scan evidence, fixtures"
+        ],
+        "done": [
+          "repair: seam-specific receipts and receipt-bound boundedness authority",
+          "repair: exact shortcut denial constructors",
+          "repair: fresh-runtime crash evidence requires runtime report proof",
+          "repair: s4 closeout fixture split under line cap",
+          "repair: fresh-runtime witness sealed; public origin removed",
+          "repair: fresh-runtime witness bound to executed receipt",
+          "repair: fresh-runtime proof sealed behind reopened execution",
+          "repair: reopened artifact admission owns fresh-runtime cursor authority",
+          "repair: reopened runtime requires boundary evidence",
+          "repair: crash closeout consumes typed lowered harness evidence",
+          "repair: runtime and harness proof wrappers sealed",
+          "repair: reopened execution uses session authority",
+          "repair: runtime session sealed behind fresh-runtime driver",
+          "repair: crash harness no longer accepts raw lane parameters",
+          "phase13 repair: sealed fresh-runtime driver behind persisted artifacts",
+          "phase13 repair: sealed crash harness behind S4 suite lowering",
+          "phase13 repair: split bounded recovery test under line cap",
+          "phase13 repair: fresh-runtime execution owns reopened boundary transcript",
+          "phase13 repair: closeout crash rows consume harness transcript evidence",
+          "phase13 repair: sealed fresh-runtime harness evidence authority",
+          "phase13 repair: gated crash transcript source to certification authority",
+          "phase13 repair: certification facade split under line cap",
+          "phase13 repair: moved recovery-physics test authority to dev-only dependency",
+          "phase13 close_fix: test-quality proof surfaces tightened for crash, artifact binding, boundedness, s5 handoff, shortcuts",
+          "phase13 close_quality_fix: split runtime/crash/test-support structure and carried scan evidence"
+        ],
+        "remaining": [
+          "phase13 close_quality_qa: aerospace-grade requires structural split and carried evidence cleanup",
+          "phase13 residue: aerospace-grade formal/platform certification remains later-owned"
+        ],
+        "findings": [
+          "phase13 gaps: crash seams are label-only observations",
+          "phase13 gaps: shortcut report is self-certified",
+          "phase13 gaps: boundedness basis lacks checkpoint interval authority",
+          "phase13 gaps: closeout evidence accepts caller-mixed authority",
+          "phase13 review: crash seam evidence still synthesized from base receipt",
+          "phase13 review: boundedness and shortcut evidence still accepts caller-mixed authority",
+          "phase13 review: fresh-runtime crash authority remains caller-asserted",
+          "phase13 review: s4 closeout fixture exceeds line cap",
+          "phase13 review: fresh-runtime runtime report origin is publicly self-mintable",
+          "phase13 review: fresh-runtime witness minted from offline report only",
+          "phase13 review: reopened runtime execution constructor remains public self-certifying",
+          "phase13 review: reopened execution still same-process self-certifies",
+          "phase13 review: reopened admission still artifact-only authority",
+          "phase13 review: runtime and harness proof wrappers remain public self-mintable",
+          "phase13 review: runtime session still publicly minted from admission",
+          "phase13 review: lowered crash harness still caller-asserts lane authority",
+          "phase13 review: fresh-runtime driver remains label-only self-certifying",
+          "phase13 review: crash harness evidence remains seam-only self-mintable",
+          "phase13 review: fresh-runtime boundary counters still synthesized",
+          "phase13 review: crash closeout still uses synthetic harness rows",
+          "phase13 review: fresh-runtime execution still same-process self-certifies",
+          "phase13 review: crash harness transcript constructor still public string authority",
+          "phase13 review: certification feature exposes raw crash transcript constructor",
+          "phase13 close_qa: crash harness tests still oracle-label driven",
+          "phase13 close_qa: fresh-runtime tests do not bind execution plan to artifacts",
+          "phase13 close_qa: boundedness tests lack real discovery scan pressure",
+          "phase13 close_qa: s5 handoff tests self-reference copied fields",
+          "phase13 close_qa: shortcut tests map denials more than public attempts",
+          "phase13 close_quality_qa: runtime_report exceeds line cap and mixes runtime boundary roles",
+          "phase13 close_quality_qa: crash_seam file bundles seam, harness, evidence, observation roles",
+          "phase13 close_quality_qa: s4 test-support helpers remain flat top-level s4_* files",
+          "phase13 close_quality_qa: full-store-scan discovery counter is observed then discarded",
+          "phase13 close_quality_qa: closeout fixture barrel hides cross-suite helper topology"
+        ],
+        "verification": [
+          "touched files under line cap; bash unavailable",
+          "repair: cargo check recovery-physics; focused s4_closeout tests passed; PS line cap under 400",
+          "review: focused closeout checks pass but QA found authority gaps",
+          "repair: cargo check recovery-physics; four s4_closeout tests passed; line cap under 400",
+          "repair: cargo check recovery-physics; four s4_closeout tests passed; touched line counts under 400",
+          "repair: recovery-physics check, closeout tests, doc compile-fail passed",
+          "repair: focused phase13 tests and doc compile-fail passed",
+          "repair: focused phase13 checks passed",
+          "repair: offline verifier, closeout shortcuts, doc compile-fail passed; touched files under cap",
+          "repair: focused phase13 checks passed; touched files under cap",
+          "review: focused checks pass but public authority gaps remain",
+          "repair: focused phase13 checks passed; public constructor scan clean; touched files under cap",
+          "phase13 review: focused checks pass; authority gaps remain",
+          "phase13 repair: focused checks pass; broad lib suite has unrelated legacy failures",
+          "phase13 review: focused checks pass; runtime/crash authority gaps remain",
+          "phase13 repair: focused checks passed; touched files under cap",
+          "phase13 repair: focused proofs and scoped line cap passed",
+          "phase13 repair: production feature graph clean and focused proofs passed",
+          "phase13 review: focused qa passed",
+          "phase13 close: moved to segmented close_qa",
+          "phase13 close_fix: focused certification tests and touched-crate cargo check passed",
+          "phase13 close_quality_fix: focused cargo check/test targets and line-cap check passed"
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "phase": 13,
+      "turn": "implement",
+      "action": "advance",
+      "status": "complete",
+      "qa_status": "needed",
+      "next": {
+        "phase": 13,
+        "turn": "review"
+      },
+      "note": "phase13 implementation ready for review",
+      "at": "2026-06-27T21:42:22.031Z"
+    },
+    {
+      "at": "2026-06-27T21:42:43.797009+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 implement",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T21:43:13.801096+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "action": "regress",
+      "status": "regressed",
+      "qa_status": "failed",
+      "next": {
+        "phase": 13,
+        "turn": "repair"
+      },
+      "note": "phase13 done-check found real closeout proof gaps",
+      "at": "2026-06-27T21:44:21.587Z"
+    },
+    {
+      "at": "2026-06-27T21:44:40.870178+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T21:45:10.875285+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase13 repair ready for review"
+    },
+    {
+      "at": "2026-06-27T21:56:41.432089+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T21:57:11.436161+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase13 review found closeout authority gaps"
+    },
+    {
+      "at": "2026-06-27T21:59:07.006018+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T21:59:37.010111+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase13 authority repair ready for review"
+    },
+    {
+      "at": "2026-06-27T22:04:21.260328+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:04:51.264507+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "done-check found crash authority and line-cap gaps",
+      "at": "2026-06-27T22:07:32.456Z"
+    },
+    {
+      "at": "2026-06-27T22:07:46.728310+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:08:16.732269+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "fresh-runtime proof and line-cap repair complete",
+      "at": "2026-06-27T22:16:40.308Z"
+    },
+    {
+      "at": "2026-06-27T22:16:52.416156+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:17:22.420833+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "done-check found self-mintable fresh-runtime origin",
+      "at": "2026-06-27T22:18:29.857Z"
+    },
+    {
+      "at": "2026-06-27T22:18:43.309312+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:19:13.314868+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "fresh-runtime origin authority repaired",
+      "at": "2026-06-27T22:24:50.577Z"
+    },
+    {
+      "at": "2026-06-27T22:25:12.446350+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:25:42.450648+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "fresh-runtime witness lacks runtime-bound authority",
+      "at": "2026-06-27T22:27:43.657Z"
+    },
+    {
+      "at": "2026-06-27T22:28:00.250516+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:28:30.254984+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "fresh-runtime witness bound to executed receipt",
+      "at": "2026-06-27T22:32:18.496Z"
+    },
+    {
+      "at": "2026-06-27T22:32:39.805971+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:33:09.810092+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "fresh-runtime execution remains caller-mintable",
+      "at": "2026-06-27T22:34:27.019Z"
+    },
+    {
+      "at": "2026-06-27T22:34:41.774386+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:35:11.780322+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "note": "sealed fresh-runtime execution authority",
+      "at": "2026-06-27T16:44:25.9129400-06:00"
+    },
+    {
+      "at": "2026-06-27T22:44:41.473281+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:45:11.477294+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "note": "reopened execution still same-process self-certifies",
+      "at": "2026-06-27T16:46:48.0909855-06:00"
+    },
+    {
+      "at": "2026-06-27T22:47:08.938393+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:47:38.942488+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "reopened artifact admission repair implemented",
+      "at": "2026-06-27T16:59:10.8764501-06:00"
+    },
+    {
+      "at": "2026-06-27T22:59:29.165914+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T22:59:59.170115+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase13 review: reopened admission still artifact-only authority",
+      "at": "2026-06-27T17:02:34.9231015-06:00"
+    },
+    {
+      "at": "2026-06-27T23:02:50.493691+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:03:20.496769+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase13 repair ready for review",
+      "at": "2026-06-27T17:13:11.8392489-06:00"
+    },
+    {
+      "at": "2026-06-27T23:13:22.510028+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:13:52.514011+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase13 review: runtime and harness proof wrappers remain public self-mintable",
+      "at": "2026-06-27T17:14:56.3975688-06:00"
+    },
+    {
+      "at": "2026-06-27T23:15:10.161133+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:15:40.164798+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "sealed phase13 proof wrappers; ready for review"
+    },
+    {
+      "at": "2026-06-27T23:24:53.709027+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:25:23.712510+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "runtime session and crash harness authority still self-mintable"
+    },
+    {
+      "at": "2026-06-27T23:27:40.103580+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:28:10.108781+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "sealed runtime session and crash harness authority"
+    },
+    {
+      "at": "2026-06-27T23:36:39.714927+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:37:09.720762+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "fresh-runtime and crash-harness authority remain self-mintable",
+      "at": "2026-06-27T23:40:48.587Z"
+    },
+    {
+      "at": "2026-06-27T23:41:14.253207+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:41:44.268885+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "sealed runtime and crash harness shortcut authority",
+      "at": "2026-06-27T23:54:24.792Z"
+    },
+    {
+      "at": "2026-06-27T23:54:51.294001+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-27T23:55:21.303492+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "authority gaps remain"
+    },
+    {
+      "at": "2026-06-28T00:00:02.527781+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:00:32.531649+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "fresh-runtime and crash harness authority repaired"
+    },
+    {
+      "at": "2026-06-28T00:08:39.299377+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:09:09.303099+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "fresh-runtime and harness authority still self-mintable"
+    },
+    {
+      "at": "2026-06-28T00:11:10.857835+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:11:40.860984+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase13 repair ready for review",
+      "at": "2026-06-28T00:28:28.6759415Z"
+    },
+    {
+      "at": "2026-06-28T00:28:44.724327+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:29:14.728835+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "regressed",
+      "qa_status": "failed",
+      "note": "phase13 review: certification feature exposes raw crash transcript constructor",
+      "at": "2026-06-28T00:30:50.8836127Z"
+    },
+    {
+      "at": "2026-06-28T00:31:30.441180+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:32:00.444857+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 repair",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "repair",
+      "status": "complete",
+      "qa_status": "needed",
+      "note": "phase13 repair ready for review",
+      "at": "2026-06-28T00:34:08.9371326Z"
+    },
+    {
+      "at": "2026-06-28T00:34:29.504208+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 repair",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:34:59.508795+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 review",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "review",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "phase13 review passed",
+      "at": "2026-06-28T00:38:32.2998723Z"
+    },
+    {
+      "at": "2026-06-28T00:38:45.066230+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 review",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:39:15.087432+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "moved to close_qa",
+      "at": "2026-06-28T00:39:51.1005771Z"
+    },
+    {
+      "at": "2026-06-28T00:39:57.754676+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:40:27.765765+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_qa",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close_qa",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "test-quality QA discovery markers recorded; cursor advanced to close_plan",
+      "at": "2026-06-27T18:44:17.2308456-06:00"
+    },
+    {
+      "at": "2026-06-28T00:44:34.099186+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_qa",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:45:04.108989+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_plan",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close_plan",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "test-quality repair plan recorded; cursor advanced to close_fix",
+      "at": "2026-06-27T18:45:25.7975867-06:00"
+    },
+    {
+      "at": "2026-06-28T00:45:49.507620+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:46:19.517722+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_fix",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close_fix",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "test-quality fixes implemented and focused verification passed; cursor advanced to close_quality_qa",
+      "at": "2026-06-27T18:55:11.4833710-06:00"
+    },
+    {
+      "at": "2026-06-28T00:55:28.757207+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_fix",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:55:58.766017+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_quality_qa",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close_quality_qa",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "structural QA findings recorded; cursor advanced to close_quality_plan",
+      "at": "2026-06-27T18:57:24.1768297-06:00"
+    },
+    {
+      "at": "2026-06-28T00:57:46.465540+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_quality_qa",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:58:16.479595+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_quality_plan",
+      "exit_code": null
+    },
+    {
+      "phase": 13,
+      "turn": "close_quality_plan",
+      "status": "complete",
+      "qa_status": "passed",
+      "note": "structural quality repair plan recorded; cursor advanced to close_quality_fix",
+      "at": "2026-06-27T18:58:42.1495619-06:00"
+    },
+    {
+      "at": "2026-06-28T00:59:03.908017+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_quality_plan",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T00:59:33.919532+00:00",
+      "event": "runner_prompt_selected",
+      "detail": "phase 13 close_quality_fix",
+      "exit_code": null
+    },
+    {
+      "at": "2026-06-27T19:09:05.4715153-06:00",
+      "phase": 13,
+      "turn": "close_quality_fix",
+      "status": "complete",
+      "note": "closed phase 13 structural hardening"
+    },
+    {
+      "at": "2026-06-28T01:09:13.939028+00:00",
+      "event": "codex_turn_completed",
+      "detail": "phase 13 close_quality_fix",
+      "exit_code": 0
+    },
+    {
+      "at": "2026-06-28T01:09:43.943657+00:00",
+      "event": "runner_stop",
+      "detail": "all phases are complete",
+      "exit_code": null
+    }
+  ],
+  "completed_at": "2026-06-27T19:09:05.4670066-06:00"
+}

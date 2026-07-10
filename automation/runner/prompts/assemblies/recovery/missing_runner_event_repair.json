@@ -1,0 +1,8 @@
+{
+  "kind": "assembly",
+  "parts": [
+    {
+      "asset_id": "recovery/missing_runner_event_repair"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+from runner.phase_programs.standard_loop.definition import PROGRAM_DEFINITION
