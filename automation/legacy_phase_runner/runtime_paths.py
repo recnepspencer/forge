@@ -111,6 +111,19 @@ def pid_is_running(pid: int) -> bool:
     return True
 
 
+def active_run_liveness(paths: RuntimePaths) -> str:
+    try:
+        payload = json.loads(paths.active_lock.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return "not_running"
+    except json.JSONDecodeError:
+        return "unknown"
+    pid = payload.get("pid")
+    if not isinstance(pid, int) or pid <= 0:
+        return "unknown"
+    return "running" if pid_is_running(pid) else "not_running"
+
+
 def mark_stop_requested(paths: RuntimePaths) -> None:
     ensure_runtime_dirs()
     paths.stop_request.write_text("stop\n", encoding="utf-8")

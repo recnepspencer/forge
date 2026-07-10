@@ -14,6 +14,7 @@ from orchestrator import (
     start_run,
     stop_run,
 )
+from runtime_paths import RuntimePaths, active_run_liveness
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,7 +71,7 @@ def dispatch(args: argparse.Namespace) -> int:
 
     if args.command == "status":
         projection = refresh_projection(config_path_for_run(args.run_id), args.run_id)
-        print(json.dumps(status_view(projection), indent=2))
+        print(json.dumps(status_view(projection, active_run_liveness(RuntimePaths(args.run_id))), indent=2))
         return 0
 
     if args.command == "stop":
@@ -96,13 +97,15 @@ def report_validation_errors(errors: list[str]) -> bool:
     return True
 
 
-def status_view(projection: dict) -> dict:
+def status_view(projection: dict, process_liveness: str) -> dict:
     return {
         "run_id": projection["run_id"],
         "current": projection["current"],
         "completed_at": projection["completed_at"],
         "stopped": projection["stopped"],
         "stop_reason": projection["stop_reason"],
+        "process_liveness": process_liveness,
+        "recovery_required": not projection["stopped"] and process_liveness != "running",
         "thread_id": projection["session"]["thread_id"],
         "latest_summary": projection["latest_summary"],
         "last_event": projection["last_event"],
