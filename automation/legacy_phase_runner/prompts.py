@@ -66,6 +66,7 @@ def build_context(
         "session": projection.get("session", {}),
         "config_file": str(config_path.resolve()),
         "projection_file": str(projection_path.resolve()),
+        "state_file": str(projection_path.resolve()),
         "event_log_file": str(event_log_path.resolve()),
         "spec_file": str(spec_path.resolve()),
         "turn": turn_kind,
