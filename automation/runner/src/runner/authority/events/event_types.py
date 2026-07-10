@@ -32,6 +32,12 @@ EVENT_TYPES = {
     "recovery_completed",
     "session_reset",
     "operator_override",
+    "operator_prompt_override",
+    "external_phase_completed",
+    "plan_adopted",
+    "plan_revised",
+    "run_forked",
+    "completion_handoff_failed",
     "legacy_imported",
 }
 
@@ -97,7 +103,7 @@ def validate_payload(event_type: str | None, payload: dict[str, Any]) -> list[st
         reason = payload.get("reason")
         if not isinstance(reason, str) or not reason:
             errors.append("operator_override payload.reason is required")
-        for optional_key in ("injection_mode", "post_injection_route"):
+        for optional_key in ("injection_mode", "post_injection_route", "source_id"):
             optional_value = payload.get(optional_key)
             if optional_value is not None and (not isinstance(optional_value, str) or not optional_value):
                 errors.append(f"operator_override payload.{optional_key} must be a non-empty string when present")
@@ -132,6 +138,29 @@ def validate_payload(event_type: str | None, payload: dict[str, Any]) -> list[st
             errors.append("turn_outcome_recorded payload.outcome_event_type is required")
     if event_type == "prompt_selected":
         errors.extend(validate_prompt_selected_binding(payload))
+    if event_type in {"plan_adopted", "plan_revised"}:
+        errors.extend(validate_plan_payload(event_type, payload))
+    if event_type == "run_forked":
+        errors.extend(validate_required_strings(payload, ("parent_run_id", "fork_reason")))
+    if event_type == "external_phase_completed":
+        errors.extend(validate_required_strings(payload, ("phase_key", "agent", "summary")))
+        evidence = payload.get("evidence")
+        invalid_evidence = (
+            not isinstance(evidence, list)
+            or not evidence
+            or any(not isinstance(item, str) or not item for item in evidence)
+        )
+        if invalid_evidence:
+            errors.append("external_phase_completed payload.evidence must be a non-empty list of non-empty strings")
+    if event_type == "operator_prompt_override":
+        errors.extend(validate_required_strings(payload, ("phase_key", "reason")))
+        binding = payload.get("binding")
+        if not isinstance(binding, dict):
+            errors.append("operator_prompt_override payload.binding must be an object")
+        elif set(binding.keys()) not in ({"asset_id"}, {"assembly_id"}):
+            errors.append("operator_prompt_override payload.binding must have exactly asset_id or assembly_id")
+        elif not isinstance(next(iter(binding.values())), str) or not next(iter(binding.values())):
+            errors.append("operator_prompt_override payload.binding value must be a non-empty string")
     return errors
 
 
@@ -214,3 +243,30 @@ def validate_prompt_selected_source_field(payload: dict[str, Any], key: str) -> 
     if not isinstance(value, str) or not value:
         return [f"prompt_selected payload.{key} must be a non-empty string when witness is present"]
     return []
+
+
+def validate_plan_payload(event_type: str, payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for key in ("plan_version", "config_path", "config_hash"):
+        if key == "plan_version":
+            if not isinstance(payload.get(key), int) or payload.get(key) <= 0:
+                errors.append(f"{event_type} payload.{key} must be a positive integer")
+        elif not isinstance(payload.get(key), str) or not payload.get(key):
+            errors.append(f"{event_type} payload.{key} must be a non-empty string")
+    phases = payload.get("phase_fingerprints")
+    if not isinstance(phases, list):
+        errors.append(f"{event_type} payload.phase_fingerprints must be a list")
+    if event_type == "plan_revised":
+        if not isinstance(payload.get("from_plan_version"), int) or payload.get("from_plan_version") <= 0:
+            errors.append("plan_revised payload.from_plan_version must be a positive integer")
+        if not isinstance(payload.get("revision_class"), str) or not payload.get("revision_class"):
+            errors.append("plan_revised payload.revision_class must be a non-empty string")
+    return errors
+
+
+def validate_required_strings(payload: dict[str, Any], keys: tuple[str, ...]) -> list[str]:
+    errors: list[str] = []
+    for key in keys:
+        if not isinstance(payload.get(key), str) or not payload.get(key):
+            errors.append(f"payload.{key} must be a non-empty string")
+    return errors

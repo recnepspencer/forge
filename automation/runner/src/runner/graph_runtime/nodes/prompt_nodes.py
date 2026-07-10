@@ -16,6 +16,7 @@ from runner.graph_runtime.continuation import (
     continuation_recovery,
 )
 from runner.graph_runtime.prompt_turns import build_recovery_prompt, prepare_execution_prompt_turn
+from runner.graph_runtime.recovery_events import record_recovery_attempt
 from runner.graph_runtime.runtime_lane import append_runtime_event
 from runner.graph_runtime.state import (
     LOWERED_PHASE_PROGRAM_KEY,
@@ -117,34 +118,12 @@ def materialize_recovery_prompt(state: GraphState) -> GraphState:
     # A preflight signal has no displaced in-flight turn to reuse.  The runtime
     # therefore mints its execution identity here, at the prompt boundary.
     turn_instance_id = request.turn_instance_id or new_run_id()
-    if recovery is not None and recovery.force_fresh_session:
-        append_runtime_event(
-            RuntimePaths(run_context.run_id),
-            "session_reset",
-            phase_id=current_turn.phase_id,
-            turn=current_turn.turn,
-            payload={
-                "reason": f"fresh session for {recovery.attempt_action} recovery attempt {recovery.attempt_index}",
-                "cycle_count": recovery.attempt_index,
-                "threshold": recovery.attempt_index,
-                "turn_instance_id": turn_instance_id,
-            },
-            thread_id=projection_session_thread_id(run_authority),
-        )
-    append_runtime_event(
+    record_recovery_attempt(
         RuntimePaths(run_context.run_id),
-        "recovery_requested",
-        phase_id=current_turn.phase_id,
-        turn=current_turn.turn,
-        payload={
-            "reason": request.reason,
-            "turn_instance_id": turn_instance_id,
-            "failure_family": request.failure_family,
-            "recovery_kind": "outcome_repair" if outcome_repair is not None else "escalation_recovery",
-            "attempt_index": request.attempt_index,
-            "attempt_action": request.attempt_action,
-        },
-        thread_id=projection_session_thread_id(run_authority),
+        current_turn_payload(current_turn),
+        request,
+        projection_session_thread_id(run_authority),
+        turn_instance_id,
     )
     prompt_state = {
         PROMPT_TURN_KEY: PromptTurnDelivery(

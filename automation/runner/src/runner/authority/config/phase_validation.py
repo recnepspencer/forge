@@ -23,6 +23,7 @@ def validate_phases(
     errors: list[str],
 ) -> None:
     phase_ids: set[int] = set()
+    phase_keys: set[str] = set()
     for index, phase in enumerate(phases):
         prefix = f"phases[{index}]"
         if not isinstance(phase, dict):
@@ -38,6 +39,13 @@ def validate_phases(
             continue
 
         phase_ids.add(phase_id)
+        phase_key = phase.get("phase_key")
+        if phase_key is not None and (not isinstance(phase_key, str) or not phase_key):
+            errors.append(f"{prefix}.phase_key must be a non-empty string when present")
+        admitted_phase_key = phase_key if isinstance(phase_key, str) and phase_key else f"phase_{phase_id}"
+        if admitted_phase_key in phase_keys:
+            errors.append(f"{prefix}.phase_key duplicates phase key {admitted_phase_key!r}")
+        phase_keys.add(admitted_phase_key)
         validate_phase_body(prefix, config, phase, errors)
 
     configured_start = runner_control.get("phase_id_start") if isinstance(runner_control, dict) else None

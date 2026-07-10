@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from runner.authority.run_identity import RuntimePaths
+from runner.authority.run_identity import RuntimePaths, stop_requested
 from runner.graph_runtime.authority import (
     CURRENT_TURN_AUTHORITY_KEY,
     current_turn_authority_from_state,
@@ -49,6 +49,23 @@ def append_runner_event(state: GraphState) -> GraphState:
         run_context.config_path,
         run_context.run_id,
     )["session"]["thread_id"]
+    if stop_requested(paths):
+        # The stop event is already authoritative.  An in-flight process may
+        # exit non-zero only because we terminated it, so it must not be
+        # reclassified as a provider fault and launch an unwanted recovery.
+        append_runtime_event(
+            paths,
+            "codex_turn_failed",
+            phase_id=current_turn.phase_id,
+            turn=current_turn.turn,
+            payload=terminal_payload(
+                turn_continuation.mode,
+                prompt_turn.turn_instance_id,
+                turn_execution.exit_code,
+            ),
+            thread_id=thread_id,
+        )
+        return {TURN_TRANSITION_KEY: FinishTurnTransition()}
     if not turn_is_current(
         run_context.config_path,
         run_context.run_id,
@@ -66,13 +83,7 @@ def append_runner_event(state: GraphState) -> GraphState:
             thread_id=thread_id,
         )
         append_runner_fault(paths, current_turn_payload(current_turn), outcome, prompt_turn.turn_instance_id, thread_id)
-        exhausted_recovery = continuation_recovery(turn_continuation)
-        if exhausted_recovery is not None and exhausted_recovery.exhausted_disposition is not None:
-            execute_exhausted_recovery_disposition(
-                paths, current_turn_payload(current_turn), exhausted_recovery, thread_id
-            )
-            return {TURN_TRANSITION_KEY: FinishTurnTransition()}
-        return {}
+        return finish_exhausted_recovery(paths, current_turn_payload(current_turn), turn_continuation, thread_id)
     append_runtime_event(
         paths,
         "codex_turn_completed",
@@ -107,7 +118,20 @@ def append_runner_event(state: GraphState) -> GraphState:
         prompt_turn.turn_instance_id,
         thread_id,
     )
-    return {}
+    return finish_exhausted_recovery(paths, current_turn_payload(current_turn), turn_continuation, thread_id)
+
+
+def finish_exhausted_recovery(
+    paths: RuntimePaths,
+    current: dict[str, object],
+    turn_continuation,
+    thread_id: str | None,
+) -> GraphState:
+    recovery = continuation_recovery(turn_continuation)
+    if recovery is None or recovery.exhausted_disposition is None:
+        return {}
+    execute_exhausted_recovery_disposition(paths, current, recovery, thread_id)
+    return {TURN_TRANSITION_KEY: FinishTurnTransition()}
 
 
 def append_valid_outcome(state: GraphState, thread_id: str | None, outcome: dict) -> None:

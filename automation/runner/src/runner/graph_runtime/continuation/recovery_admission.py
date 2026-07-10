@@ -12,6 +12,9 @@ from runner.recovery.failure_families import INVALID_OUTCOME_FAMILY, PROVIDER_CR
 class PendingRecovery:
     reason: str
     failure_family: str | None = None
+    required_attempt_action: str | None = None
+    session_reset_threshold: int | None = None
+    session_reset_cycle_count: int | None = None
 
 
 def pending_recovery_reason(
@@ -69,10 +72,24 @@ def pending_recovery_reason(
 def pending_recovery_from_payload(payload: dict[str, Any], fallback_reason: str) -> PendingRecovery:
     reason = payload.get("reason")
     failure_family = payload.get("failure_family")
+    required_attempt_action = payload.get("required_attempt_action")
+    reset_threshold = positive_int_or_none(payload.get("session_reset_threshold"))
+    reset_cycle_count = positive_int_or_none(payload.get("session_reset_cycle_count"))
     return PendingRecovery(
         reason=reason if isinstance(reason, str) and reason else fallback_reason,
         failure_family=failure_family if isinstance(failure_family, str) and failure_family else None,
+        required_attempt_action=(
+            required_attempt_action
+            if isinstance(required_attempt_action, str) and required_attempt_action
+            else None
+        ),
+        session_reset_threshold=reset_threshold,
+        session_reset_cycle_count=reset_cycle_count,
     )
+
+
+def positive_int_or_none(value: object) -> int | None:
+    return value if isinstance(value, int) and value > 0 else None
 
 
 def turn_is_current(

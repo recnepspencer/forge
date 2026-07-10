@@ -12,10 +12,11 @@ def resume_run_with_reason(
     log_path: Path | None,
     reason: str,
 ) -> int:
-    from runner.graph_runtime.orchestrator import drive_graph_run
     from runner.graph_runtime.runtime_lane import append_runtime_event, config_path_for_run
 
     config_path = config_path_for_run(run_id)
+    from runner.graph_runtime.orchestrator import drive_graph_run
+
     paths = RuntimePaths(run_id)
     with acquire_active_run_lock(paths):
         clear_stop_requested(paths)

@@ -66,6 +66,9 @@ def load_run_authority(state: GraphState) -> GraphState:
             turn_instance_id=projection_current_turn_instance_id(
                 LoadedRunAuthority(config=config, projection=projection)
             ),
+            required_attempt_action=recovery.required_attempt_action,
+            session_reset_threshold=recovery.session_reset_threshold,
+            session_reset_cycle_count=recovery.session_reset_cycle_count,
         )
         if isinstance(admitted, OutcomeRepairTurnRequest):
             turn_continuation = outcome_repair_turn_continuation(admitted)

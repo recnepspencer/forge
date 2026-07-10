@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from runner.authority.config import load_config
+from runner.authority.events import load_events
 from runner.authority.run_identity import (
     RuntimePaths,
     acquire_active_run_lock,
@@ -15,8 +16,9 @@ from runner.facade.runtime_state import (
     config_path_for_run,
     refresh_projection,
     refresh_projection_for_run,
+    initialize_runtime_events,
 )
-from runner.facade.turn_runtime.run_loop import drive_run
+from runner.facade.plan_revision import adopt_plan_payload
 from runner.generation.legacy_importer import import_legacy_run as import_legacy_run_impl
 from runner.phase_programs.policy_bindings import operator_intervention_policy
 
@@ -28,8 +30,9 @@ def start_run(
     sleep_seconds: int,
     log_path: Path | None,
 ) -> int:
-    load_config(config_path)
+    config = load_config(config_path)
     from runner.authority.run_identity import new_run_id
+    from runner.facade.turn_runtime.run_loop import drive_run
 
     active_run_id = run_id or new_run_id()
     paths = RuntimePaths(active_run_id)
@@ -37,7 +40,13 @@ def start_run(
         clear_stop_requested(paths)
         if paths.events.exists():
             raise ValueError(f"run {active_run_id!r} already exists")
-        append_runtime_event(paths, "run_started", payload={"config_path": str(config_path.resolve())})
+        initialize_runtime_events(
+            paths,
+            [
+                ("run_started", {"config_path": str(config_path.resolve())}),
+                ("plan_adopted", adopt_plan_payload(config_path, config)),
+            ],
+        )
         return drive_run(config_path, active_run_id, loop, sleep_seconds, log_path)
 
 
@@ -68,6 +77,7 @@ def inject_operator_override(
     *,
     phase_id: int | None = None,
     turn: str | None = None,
+    source_id: str | None = None,
 ) -> None:
     config_path = config_path_for_run(run_id)
     config = load_config(config_path)
@@ -77,6 +87,8 @@ def inject_operator_override(
     if not policy.record_as_authority_event:
         raise ValueError(f"run {run_id!r} does not record operator injection as an authority event")
     projection = refresh_projection_for_run(run_id)
+    if source_id is not None and operator_override_source_exists(RuntimePaths(run_id), source_id):
+        return
     target = operator_override_target(projection, phase_id, turn)
     append_runtime_event(
         RuntimePaths(run_id),
@@ -88,10 +100,20 @@ def inject_operator_override(
             "reason": message,
             "injection_mode": policy.default_injection_mode,
             "post_injection_route": policy.default_post_injection_route,
+            "source_id": source_id,
         },
         thread_id=projection["session"]["thread_id"],
     )
     refresh_projection_for_run(run_id)
+
+
+def operator_override_source_exists(paths: RuntimePaths, source_id: str) -> bool:
+    return any(
+        event.get("event_type") == "operator_override"
+        and isinstance(event.get("payload"), dict)
+        and event["payload"].get("source_id") == source_id
+        for event in load_events(paths.events)
+    )
 
 
 def import_legacy_run(old_state_path: Path, config_path: Path, run_id: str | None) -> str:

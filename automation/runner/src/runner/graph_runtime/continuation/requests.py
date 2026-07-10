@@ -24,6 +24,8 @@ class RecoveryTurnRequest:
     role_route: str = "projection"
     force_fresh_session: bool = False
     exhausted_disposition: str | None = None
+    session_reset_threshold: int | None = None
+    session_reset_cycle_count: int | None = None
 
 
 @dataclass(frozen=True)

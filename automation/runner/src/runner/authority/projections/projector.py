@@ -73,6 +73,19 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
                     "injection_mode": event["payload"].get("injection_mode"),
                     "post_injection_route": event["payload"].get("post_injection_route"),
                 }
+        if event["event_type"] in {"plan_adopted", "plan_revised"}:
+            projection["plan"] = {
+                "plan_version": event["payload"].get("plan_version"),
+                "config_path": event["payload"].get("config_path"),
+                "config_hash": event["payload"].get("config_hash"),
+                "revision_class": event["payload"].get("revision_class"),
+            }
+        if event["event_type"] == "operator_prompt_override":
+            projection["prompt_overrides"].append(event["payload"])
+            projection["latest_summary"] = event["payload"]["reason"]
+        if event["event_type"] == "external_phase_completed":
+            apply_external_phase_completion(projection, event["payload"])
+            projection["latest_summary"] = event["payload"]["summary"]
         if event["event_type"] in {"runner_fault", "recovery_requested", "recovery_completed"}:
             reason = event["payload"].get("reason")
             if isinstance(reason, str):
@@ -115,6 +128,9 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
         "operator_intervention": None,
+        "prompt_overrides": [],
+        "external_completions": [],
+        "plan": None,
         "current": None,
         "current_turn_instance_id": None,
         "started_at": None,
@@ -129,6 +145,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
 def project_phase(phase: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": phase["id"],
+        "phase_key": phase.get("phase_key") or f"phase_{phase['id']}",
         "title": phase["title"],
         "owner": phase["owner"],
         "scope": phase["scope"],
@@ -193,5 +210,24 @@ def prompt_cursor_match_current(projection: dict[str, Any], prompt_phase_id: int
 def phase_by_id(projection: dict[str, Any], phase_id: Any) -> dict[str, Any] | None:
     for phase in projection["phases"]:
         if phase["id"] == phase_id:
+            return phase
+    return None
+
+
+def apply_external_phase_completion(projection: dict[str, Any], payload: dict[str, Any]) -> None:
+    phase = phase_by_key(projection, payload.get("phase_key"))
+    if phase is None:
+        raise ValueError(f"external completion references unknown phase_key {payload.get('phase_key')!r}")
+    phase["status"] = "complete"
+    phase["qa_status"] = "passed"
+    phase["notes"]["done"].append(payload["summary"])
+    for evidence in payload.get("evidence", []):
+        phase["notes"]["verification"].append(evidence)
+    projection["external_completions"].append(payload)
+
+
+def phase_by_key(projection: dict[str, Any], phase_key: Any) -> dict[str, Any] | None:
+    for phase in projection["phases"]:
+        if phase.get("phase_key") == phase_key:
             return phase
     return None

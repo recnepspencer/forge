@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from fnmatch import fnmatch
 from pathlib import Path
 import time
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
 from runner.authority.config import load_config
 from runner.authority.events import PHASE_PROGRESS_EVENTS, load_events
@@ -12,7 +11,12 @@ from runner.authority.run_identity import RuntimePaths
 from runner.graph_runtime.runtime_lane import append_runtime_event, refresh_projection
 from runner.graph_runtime.continuation import plan_recovery_attempt
 from runner.graph_runtime.recovery_disposition import execute_exhausted_recovery_disposition
+from runner.graph_runtime.qualifying_edits import (
+    latest_qualifying_edit_timestamp,
+    qualifying_git_diff_exists,
+)
 from runner.phase_programs.policy_bindings import (
+    admit_phase_program_policy_bindings,
     qualifying_edit_policy,
     stall_signal_policy,
 )
@@ -39,6 +43,8 @@ def apply_preflight_runtime_guards(
     if maybe_handle_no_edit_stall(config, paths, projection, events):
         refresh_projection(config_path, run_id)
         return True
+    if open_preflight_fault_exists(events, current["phase"], current["turn"]):
+        return False
     if maybe_handle_same_phase_loop(config, paths, projection, events):
         refresh_projection(config_path, run_id)
         return True
@@ -82,9 +88,19 @@ def maybe_handle_no_edit_stall(
         return False
     if guard_fault_is_open(events, current["phase"], current["turn"], NO_EDIT_STALL_FAMILY):
         return False
-    last_edit_at = latest_qualifying_edit_timestamp(config)
-    if last_edit_at is not None and (time.time() - last_edit_at) < (threshold_minutes * 60):
-        return False
+    edit_policy = qualifying_edit_policy(config)
+    last_edit_at = None
+    if edit_policy is not None:
+        last_edit_at = latest_qualifying_edit_timestamp(
+            Path(config["project"]["cwd"]).resolve(), edit_policy.include, edit_policy.exclude
+        )
+        if last_edit_at is not None and (time.time() - last_edit_at) < (threshold_minutes * 60):
+            return False
+        git_diff_exists = qualifying_git_diff_exists(
+            Path(config["project"]["cwd"]), edit_policy.include, edit_policy.exclude
+        )
+        if git_diff_exists is None or git_diff_exists:
+            return False
     reason = no_edit_stall_reason(last_edit_at, threshold_minutes)
     return admit_preflight_failure(config, paths, projection, events, reason, NO_EDIT_STALL_FAMILY)
 
@@ -119,7 +135,12 @@ def inflight_no_progress_fault(
     prompt_selected_at = prompt_selected_timestamp(paths, current["phase"], current["turn"], turn_instance_id)
     if prompt_selected_at is None:
         return None
-    last_edit_at = latest_qualifying_edit_timestamp(config)
+    edit_policy = qualifying_edit_policy(config)
+    last_edit_at = None
+    if edit_policy is not None:
+        last_edit_at = latest_qualifying_edit_timestamp(
+            Path(config["project"]["cwd"]).resolve(), edit_policy.include, edit_policy.exclude
+        )
     progress_witness_at = prompt_selected_at
     if last_edit_at is not None and last_edit_at > progress_witness_at:
         progress_witness_at = last_edit_at
@@ -147,7 +168,19 @@ def maybe_handle_same_phase_loop(
         f"same-phase loop exceeded for family {loop_family.family_name} "
         f"at threshold {loop_family.threshold}"
     )
-    return admit_preflight_failure(config, paths, projection, events, reason, SAME_PHASE_LOOP_EXCEEDED_FAMILY)
+    return admit_preflight_failure(
+        config,
+        paths,
+        projection,
+        events,
+        reason,
+        SAME_PHASE_LOOP_EXCEEDED_FAMILY,
+        required_attempt_action=loop_family.action,
+        session_reset_threshold=loop_family.threshold,
+        session_reset_cycle_count=same_phase_family_progress_count(
+            events, current["phase"], set(loop_family.turns)
+        ),
+    )
 
 
 def admit_preflight_failure(
@@ -157,6 +190,9 @@ def admit_preflight_failure(
     events: list[dict[str, Any]],
     reason: str,
     failure_family: str,
+    required_attempt_action: str | None = None,
+    session_reset_threshold: int | None = None,
+    session_reset_cycle_count: int | None = None,
 ) -> bool:
     """Use the ordinary recovery planner for failures detected before a turn starts."""
     current = projection["current"]
@@ -169,6 +205,9 @@ def admit_preflight_failure(
         payload={
             "reason": reason,
             "failure_family": failure_family,
+            "required_attempt_action": required_attempt_action,
+            "session_reset_threshold": session_reset_threshold,
+            "session_reset_cycle_count": session_reset_cycle_count,
         },
         thread_id=thread_id,
     )
@@ -180,6 +219,9 @@ def admit_preflight_failure(
         reason=reason,
         failure_family=failure_family,
         turn_instance_id=None,
+        required_attempt_action=required_attempt_action,
+        session_reset_threshold=session_reset_threshold,
+        session_reset_cycle_count=session_reset_cycle_count,
     )
     if recovery.exhausted_disposition is None:
         return False
@@ -188,19 +230,12 @@ def admit_preflight_failure(
 
 
 def same_phase_loop_family(config: dict[str, Any], events: list[dict[str, Any]], phase_id: int):
-    policies = config.get("loop_escalation", {}).get("families", {})
-    for family_name, family_policy in policies.items():
-        threshold = family_policy["threshold"]
-        turns = set(family_policy["turns"])
+    policies = admit_phase_program_policy_bindings(config).loop_escalation
+    for family_policy in policies.values():
+        threshold = family_policy.threshold
+        turns = set(family_policy.turns)
         if same_phase_family_progress_count(events, phase_id, turns) >= threshold:
-            from runner.phase_programs.policy_bindings import LoopEscalationFamilyPolicy
-
-            return LoopEscalationFamilyPolicy(
-                family_name=family_name,
-                turns=tuple(family_policy["turns"]),
-                threshold=threshold,
-                action=family_policy["action"],
-            )
+            return family_policy
     return None
 
 
@@ -255,20 +290,22 @@ def guard_fault_is_open(
     return False
 
 
-def latest_qualifying_edit_timestamp(config: dict[str, Any]) -> float | None:
-    edit_policy = qualifying_edit_policy(config)
-    if edit_policy is None or not edit_policy.include:
-        return None
-    cwd = Path(config["project"]["cwd"]).resolve()
-    latest_mtime: float | None = None
-    for path in qualifying_paths(cwd, edit_policy.include, edit_policy.exclude):
-        try:
-            mtime = path.stat().st_mtime
-        except OSError:
+def open_preflight_fault_exists(events: list[dict[str, Any]], phase_id: int, turn: str) -> bool:
+    """A single unconsumed preflight fault owns recovery for one cursor."""
+    for event in reversed(events):
+        event_type = event.get("event_type")
+        if event_type in PHASE_PROGRESS_EVENTS:
+            return False
+        if event_type == "prompt_selected" and event.get("phase_id") == phase_id and event.get("turn") == turn:
+            return False
+        if event_type != "runner_fault":
             continue
-        if latest_mtime is None or mtime > latest_mtime:
-            latest_mtime = mtime
-    return latest_mtime
+        if event.get("phase_id") != phase_id or event.get("turn") != turn:
+            continue
+        payload = event.get("payload", {})
+        if not payload.get("turn_instance_id"):
+            return True
+    return False
 
 
 def prompt_selected_timestamp(
@@ -290,19 +327,6 @@ def prompt_selected_timestamp(
             return None
         return datetime.fromisoformat(recorded_at).timestamp()
     return None
-
-
-def qualifying_paths(cwd: Path, includes: Iterable[str], excludes: Iterable[str]) -> Iterable[Path]:
-    seen: set[Path] = set()
-    for pattern in includes:
-        for path in cwd.glob(pattern):
-            if path in seen or not path.is_file():
-                continue
-            relative_path = path.resolve().relative_to(cwd).as_posix()
-            if any(fnmatch(relative_path, exclude) for exclude in excludes):
-                continue
-            seen.add(path)
-            yield path
 
 
 def no_edit_stall_reason(last_edit_at: float | None, threshold_minutes: int) -> str:

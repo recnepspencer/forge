@@ -22,6 +22,9 @@ def admit_pending_turn_recovery(
     pending_reason: str,
     pending_failure_family: str | None,
     turn_instance_id: str | None,
+    required_attempt_action: str | None = None,
+    session_reset_threshold: int | None = None,
+    session_reset_cycle_count: int | None = None,
 ) -> OutcomeRepairTurnRequest | RecoveryTurnRequest:
     outcome_repair = plan_outcome_repair_attempt(
         config=config,
@@ -42,6 +45,9 @@ def admit_pending_turn_recovery(
         reason=pending_reason,
         failure_family=broader_recovery_family(pending_failure_family),
         turn_instance_id=turn_instance_id,
+        required_attempt_action=required_attempt_action,
+        session_reset_threshold=session_reset_threshold,
+        session_reset_cycle_count=session_reset_cycle_count,
     )
 
 
@@ -85,6 +91,9 @@ def plan_recovery_attempt(
     reason: str,
     failure_family: str | None,
     turn_instance_id: str | None,
+    required_attempt_action: str | None = None,
+    session_reset_threshold: int | None = None,
+    session_reset_cycle_count: int | None = None,
 ) -> RecoveryTurnRequest:
     if failure_family is None:
         failure_family = "provider_crash"
@@ -98,6 +107,10 @@ def plan_recovery_attempt(
         turn_instance_id=turn_instance_id,
         recovery_kind="escalation_recovery",
     )
+    if required_attempt_action is not None and required_attempt_action not in policy.attempts:
+        raise ValueError(
+            f"recovery action {required_attempt_action!r} is not admitted for failure family {failure_family!r}"
+        )
     if prior_attempts >= len(policy.attempts):
         return RecoveryTurnRequest(
             reason=(
@@ -109,8 +122,10 @@ def plan_recovery_attempt(
             attempt_index=prior_attempts + 1,
             attempt_action=policy.on_exhausted,
             exhausted_disposition=policy.on_exhausted,
+            session_reset_threshold=session_reset_threshold,
+            session_reset_cycle_count=session_reset_cycle_count,
         )
-    attempt_action = policy.attempts[prior_attempts]
+    attempt_action = required_attempt_action or policy.attempts[prior_attempts]
     role_route = "projection"
     force_fresh_session = False
     if attempt_action == "start_fresh_session":
@@ -127,6 +142,8 @@ def plan_recovery_attempt(
         attempt_action=attempt_action,
         role_route=role_route,
         force_fresh_session=force_fresh_session,
+        session_reset_threshold=session_reset_threshold,
+        session_reset_cycle_count=session_reset_cycle_count,
     )
 
 

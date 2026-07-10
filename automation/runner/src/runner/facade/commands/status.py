@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from runner.authority.run_identity import RuntimePaths
 
 from runner.facade.runtime_state import refresh_projection_for_run, runtime_artifact_surface
 
@@ -33,6 +34,8 @@ def status_view(projection: dict) -> dict:
         "thread_id": projection["session"]["thread_id"],
         "latest_summary": projection["latest_summary"],
         "last_event": projection["last_event"],
+        "notification_delivery_failure": latest_notification_delivery_failure(projection["run_id"]),
+        "telegram": telegram_status(projection["run_id"]),
         "phases": [
             {
                 "id": phase["id"],
@@ -44,3 +47,30 @@ def status_view(projection: dict) -> dict:
             for phase in projection["phases"]
         ],
     }
+
+
+def latest_notification_delivery_failure(run_id: str) -> dict | None:
+    path = RuntimePaths(run_id).notification_delivery
+    if not path.exists():
+        return None
+    try:
+        lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line]
+        return json.loads(lines[-1]) if lines else None
+    except (OSError, json.JSONDecodeError):
+        return {"unreadable": True, "path": str(path)}
+
+
+def telegram_status(run_id: str) -> dict:
+    paths = RuntimePaths(run_id)
+    health_path = paths.runtime_root / "telegram" / "poller-health.json"
+    receipt_path = paths.telegram_receipts
+    result = {"poller_health": None, "latest_inbound_receipt": None}
+    for key, path in (("poller_health", health_path), ("latest_inbound_receipt", receipt_path)):
+        if not path.exists():
+            continue
+        try:
+            lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line]
+            result[key] = json.loads(lines[-1]) if lines else None
+        except (OSError, json.JSONDecodeError):
+            result[key] = {"unreadable": True, "path": str(path)}
+    return result

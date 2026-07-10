@@ -14,6 +14,7 @@ from collections.abc import Callable
 
 DEFAULT_TURN_TIMEOUT_SECONDS = 7200
 DEFAULT_IDLE_TIMEOUT_SECONDS = 900
+TERMINATION_GRACE_SECONDS = 10
 PROGRESS_WATCHDOG_POLL_SECONDS = 5
 TIMEOUT_EXIT_CODE = 124
 WALL_TIMEOUT_FAMILY = "wall_timeout"
@@ -95,8 +96,8 @@ def collect_process_output(
     with open_log_handle(log_path) as log:
         while True:
             if stop_requested_fn and stop_requested_fn():
-                process.terminate()
                 capture["failure_reason"] = "operator stop requested"
+                request_termination(process, capture, time.monotonic())
             try:
                 line = line_queue.get(timeout=1)
             except queue.Empty:
@@ -114,7 +115,9 @@ def collect_process_output(
             if progress_watchdog_fn is not None and now >= next_progress_watch_at:
                 maybe_abort_for_missing_progress(process, capture, progress_watchdog_fn)
                 next_progress_watch_at = now + PROGRESS_WATCHDOG_POLL_SECONDS
+            force_kill_after_grace(process, capture, now)
         exit_code = process.wait()
+    close_process_stdout(process)
     capture.setdefault("thread_id", capture.get("session_id"))
     return exit_code, capture
 
@@ -125,6 +128,15 @@ def stream_stdout(stdout, line_queue: queue.Queue[str | None]) -> None:
             line_queue.put(line)
     finally:
         line_queue.put(None)
+
+
+def close_process_stdout(process: subprocess.Popen[str]) -> None:
+    if process.stdout is None:
+        return
+    try:
+        process.stdout.close()
+    except OSError:
+        pass
 
 
 def runner_timeouts(state: dict[str, Any]) -> dict[str, int]:
@@ -154,13 +166,13 @@ def maybe_timeout_process(
     turn_timeout = timeouts["turn_timeout_seconds"]
     idle_timeout = timeouts["idle_timeout_seconds"]
     if turn_timeout > 0 and now - started_at > turn_timeout:
-        process.terminate()
         capture["failure_reason"] = f"turn timeout after {turn_timeout} seconds"
         capture["failure_family"] = WALL_TIMEOUT_FAMILY
+        request_termination(process, capture, now)
     elif idle_timeout > 0 and now - last_output_at > idle_timeout:
-        process.terminate()
         capture["failure_reason"] = f"idle timeout after {idle_timeout} seconds"
         capture["failure_family"] = IDLE_TIMEOUT_FAMILY
+        request_termination(process, capture, now)
 
 
 def maybe_abort_for_missing_progress(
@@ -173,9 +185,32 @@ def maybe_abort_for_missing_progress(
     progress_fault = progress_watchdog_fn()
     if progress_fault is None:
         return
-    process.terminate()
     capture["failure_reason"] = progress_fault["reason"]
     capture["failure_family"] = progress_fault["failure_family"]
+    request_termination(process, capture, time.monotonic())
+
+
+def request_termination(process, capture: dict[str, Any], now: float) -> None:
+    if "termination_requested_at" in capture:
+        return
+    capture["termination_requested_at"] = now
+    try:
+        process.terminate()
+    except OSError:
+        pass
+
+
+def force_kill_after_grace(process, capture: dict[str, Any], now: float) -> None:
+    requested_at = capture.get("termination_requested_at")
+    if not isinstance(requested_at, float) or now - requested_at < TERMINATION_GRACE_SECONDS:
+        return
+    if process.poll() is not None or capture.get("forced_kill"):
+        return
+    try:
+        process.kill()
+        capture["forced_kill"] = True
+    except OSError:
+        pass
 
 
 def build_process_env(state: dict[str, Any]) -> dict[str, str]:

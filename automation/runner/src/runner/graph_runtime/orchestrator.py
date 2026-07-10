@@ -58,7 +58,19 @@ def drive_graph_run(
             return 0
         if apply_preflight_runtime_guards(config_path, run_id, projection):
             continue
-        status = execute_graph_turn(config_path, run_id, log_path)
+        try:
+            status = execute_graph_turn(config_path, run_id, log_path)
+        except Exception as error:
+            append_runtime_event(
+                RuntimePaths(run_id), "runner_fault", phase_id=current["phase"], turn=current["turn"],
+                payload={"reason": f"unhandled graph runtime failure: {type(error).__name__}: {error}", "failure_family": "provider_crash"},
+                thread_id=projection["session"]["thread_id"],
+            )
+            refresh_projection(config_path, run_id)
+            if not loop:
+                return 1
+            time.sleep(sleep_seconds)
+            continue
         if status != 0 or not loop:
             return status
         time.sleep(sleep_seconds)

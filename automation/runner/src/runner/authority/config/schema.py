@@ -14,6 +14,7 @@ STATIC_TOP_LEVEL_KEYS = {
     "escalation_policy",
     "outcome_repair_policy",
     "operator_intervention_policy",
+    "notification_policy",
     "phases",
 }
 
@@ -21,6 +22,7 @@ SUPPORTED_PROVIDERS = {"codex", "cursor", "grok"}
 
 SHARED_PHASE_KEYS = {
     "id",
+    "phase_key",
     "title",
     "owner",
     "instructions",

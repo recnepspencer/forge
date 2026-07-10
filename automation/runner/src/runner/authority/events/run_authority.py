@@ -19,7 +19,14 @@ def load_admitted_run_projection_inputs(run_id: str) -> tuple[Path, dict[str, An
     if errors:
         raise ValueError("; ".join(errors))
 
-    config_path = events[0].get("payload", {}).get("config_path")
+    from runner.facade.plan_revision import assert_config_matches_adopted_plan, latest_plan_payload
+
+    plan_payload = latest_plan_payload(events)
+    config_path = (
+        plan_payload.get("config_path")
+        if isinstance(plan_payload, dict)
+        else events[0].get("payload", {}).get("config_path")
+    )
     if not isinstance(config_path, str) or not config_path:
         raise ValueError(f"run {run_id!r} does not record a config_path")
     resolved_config_path = Path(config_path).resolve()
@@ -30,4 +37,5 @@ def load_admitted_run_projection_inputs(run_id: str) -> tuple[Path, dict[str, An
     config_errors = validate_config(config, resolved_config_path)
     if config_errors:
         raise ValueError("; ".join(config_errors))
+    assert_config_matches_adopted_plan(config, events, run_id)
     return resolved_config_path, config, tuple(events)

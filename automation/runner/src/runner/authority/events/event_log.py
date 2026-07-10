@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -37,15 +38,87 @@ def load_events(path: Path) -> list[dict[str, Any]]:
 def append_event(paths: RuntimePaths, event: dict[str, Any]) -> dict[str, Any]:
     ensure_runtime_dirs()
     with acquire_event_append_lock(paths):
+        repair_truncated_tail(paths.events)
         events = load_events(paths.events)
-        next_sequence = len(events) + 1
-        event["sequence"] = next_sequence
-        errors = validate_event_shape(event)
-        if errors:
-            raise ValueError("; ".join(errors))
-        with paths.events.open("a", encoding="utf-8") as output:
-            output.write(json.dumps(event, separators=(",", ":")) + "\n")
+        append_validated_event(paths, events, event)
     return event
+
+
+def append_event_if_plan_version(
+    paths: RuntimePaths,
+    event: dict[str, Any],
+    expected_plan_version: int,
+) -> dict[str, Any]:
+    ensure_runtime_dirs()
+    with acquire_event_append_lock(paths):
+        repair_truncated_tail(paths.events)
+        events = load_events(paths.events)
+        actual_plan_version = latest_plan_version(events)
+        if actual_plan_version != expected_plan_version:
+            raise ValueError(
+                f"stale plan revision: expected plan_version={expected_plan_version}, "
+                f"current plan_version={actual_plan_version}"
+            )
+        append_validated_event(paths, events, event)
+    return event
+
+
+def initialize_event_log(paths: RuntimePaths, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ensure_runtime_dirs()
+    with acquire_event_append_lock(paths):
+        if paths.events.exists():
+            raise ValueError(f"run {paths.run_id!r} already exists")
+        for sequence, event in enumerate(events, start=1):
+            event["sequence"] = sequence
+            errors = validate_event_shape(event)
+            if errors:
+                raise ValueError("; ".join(errors))
+        encoded = "".join(json.dumps(event, separators=(",", ":")) + "\n" for event in events)
+        temporary = paths.events.with_name(f"{paths.events.name}.{os.getpid()}.tmp")
+        try:
+            temporary.write_text(encoded, encoding="utf-8")
+            os.replace(temporary, paths.events)
+        finally:
+            try:
+                temporary.unlink()
+            except FileNotFoundError:
+                pass
+    return events
+
+
+def append_validated_event(paths: RuntimePaths, events: list[dict[str, Any]], event: dict[str, Any]) -> None:
+    event["sequence"] = len(events) + 1
+    errors = validate_event_shape(event)
+    if errors:
+        raise ValueError("; ".join(errors))
+    with paths.events.open("a", encoding="utf-8") as output:
+        output.write(json.dumps(event, separators=(",", ":")) + "\n")
+
+
+def latest_plan_version(events: list[dict[str, Any]]) -> int | None:
+    for event in reversed(events):
+        if event.get("event_type") not in {"plan_adopted", "plan_revised"}:
+            continue
+        version = event.get("payload", {}).get("plan_version")
+        if isinstance(version, int):
+            return version
+    return None
+
+
+def repair_truncated_tail(path: Path) -> None:
+    if not path.exists():
+        return
+    raw = path.read_text(encoding="utf-8")
+    if not raw or raw.endswith(("\n", "\r")):
+        return
+    line_start = max(raw.rfind("\n"), raw.rfind("\r")) + 1
+    try:
+        json.loads(raw[line_start:])
+    except json.JSONDecodeError:
+        path.write_text(raw[:line_start], encoding="utf-8")
+        return
+    with path.open("a", encoding="utf-8") as output:
+        output.write("\n")
 
 
 def validate_event_log(events: list[dict[str, Any]], run_id: str) -> list[str]:

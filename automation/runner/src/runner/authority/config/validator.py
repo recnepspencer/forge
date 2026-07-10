@@ -18,6 +18,7 @@ from runner.phase_programs.policy_bindings import (
     validate_operator_intervention_policy,
     validate_outcome_repair_policy,
 )
+from runner.operator_signals.policies.validation import validate_notification_policy
 
 
 def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
@@ -81,6 +82,12 @@ def validate_config(config: dict[str, Any], config_path: Path) -> list[str]:
     operator_intervention_policy = config.get("operator_intervention_policy", {})
     if isinstance(operator_intervention_policy, dict):
         validate_operator_intervention_policy(operator_intervention_policy, errors)
+    notification_policy = config.get("notification_policy")
+    if notification_policy is not None:
+        if not isinstance(notification_policy, dict):
+            errors.append("notification_policy must be an object when present")
+        else:
+            validate_notification_policy(notification_policy, errors)
 
     runner_control = config.get("runner_control", {})
     if runner_control is not None and not isinstance(runner_control, dict):

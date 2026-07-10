@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from runner.authority.events import append_event
+from runner.authority.events import append_event, append_event_if_plan_version, initialize_event_log
 from runner.authority.events.run_authority import load_admitted_run_projection_inputs
 from runner.authority.projections import project_run, write_projection
 from runner.authority.run_identity import RuntimePaths, ensure_runtime_dirs, now_iso
@@ -32,7 +32,7 @@ def append_runtime_event(
     turn: str | None = None,
     thread_id: str | None = None,
 ) -> dict[str, Any]:
-    return append_event(
+    event = append_event(
         paths,
         {
             "run_id": paths.run_id,
@@ -45,6 +45,68 @@ def append_runtime_event(
             "payload": payload,
         },
     )
+    dispatch_appended_event(paths, event)
+    return event
+
+
+def append_runtime_event_if_plan_version(
+    paths: RuntimePaths,
+    event_type: str,
+    payload: dict[str, Any],
+    expected_plan_version: int,
+) -> dict[str, Any]:
+    event = append_event_if_plan_version(
+        paths,
+        runtime_event(paths, event_type, payload),
+        expected_plan_version,
+    )
+    dispatch_appended_event(paths, event)
+    return event
+
+
+def initialize_runtime_events(
+    paths: RuntimePaths,
+    event_specs: list[tuple[str, dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    events = [runtime_event(paths, event_type, payload) for event_type, payload in event_specs]
+    initialize_event_log(paths, events)
+    for event in events:
+        dispatch_appended_event(paths, event)
+    return events
+
+
+def runtime_event(paths: RuntimePaths, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "run_id": paths.run_id,
+        "sequence": 0,
+        "at": now_iso(),
+        "event_type": event_type,
+        "phase_id": None,
+        "turn": None,
+        "thread_id": None,
+        "payload": payload,
+    }
+
+
+def dispatch_appended_event(paths: RuntimePaths, event: dict[str, Any]) -> None:
+    from runner.operator_signals.detectors import signals_for_event
+    if not signals_for_event(event):
+        return
+    if event["event_type"] == "run_started":
+        config_path = event["payload"].get("config_path")
+        if not isinstance(config_path, str):
+            return
+        from runner.authority.config import load_config
+        config = load_config(Path(config_path))
+    else:
+        try:
+            _, config, _ = load_admitted_projection_inputs(paths.run_id)
+        except ValueError:
+            return
+    if "notification_policy" not in config:
+        return
+    from runner.operator_signals import dispatch_authority_event
+    dispatch_authority_event(paths, config, event)
 
 
 def config_path_for_run(run_id: str) -> Path:

@@ -16,9 +16,9 @@ def runtime_root_from_env(env_var: str, default: str) -> Path:
 
 
 CANONICAL_RUNTIME_ROOT = runtime_root_from_env("AUTOMATION_RUNNER_RUNTIME_ROOT", "automation/runner/runtime")
-RUNTIME_SUBDIRECTORIES = ("events", "projections", "checkpoints", "instantiations", "notifications", "logs", "locks")
+RUNTIME_SUBDIRECTORIES = ("events", "projections", "checkpoints", "instantiations", "notifications", "telegram", "logs", "locks", "archives")
 AUTHORITY_RUNTIME_SUBDIRECTORIES = ("events",)
-DERIVED_RUNTIME_SUBDIRECTORIES = ("projections", "instantiations", "notifications", "logs")
+DERIVED_RUNTIME_SUBDIRECTORIES = ("projections", "instantiations", "notifications", "telegram", "logs")
 CONTINUITY_RUNTIME_SUBDIRECTORIES = ("checkpoints",)
 PROCESS_CONTROL_RUNTIME_SUBDIRECTORIES = ("locks",)
 
@@ -52,8 +52,24 @@ class RuntimePaths:
         return self.runtime_root / "notifications" / f"{self.run_id}.jsonl"
 
     @property
+    def notification_delivery(self) -> Path:
+        return self.runtime_root / "notifications" / f"{self.run_id}.delivery.jsonl"
+
+    @property
+    def telegram_alerts(self) -> Path:
+        return self.runtime_root / "telegram" / f"{self.run_id}.jsonl"
+
+    @property
+    def telegram_receipts(self) -> Path:
+        return self.runtime_root / "telegram" / "inbound-receipts.jsonl"
+
+    @property
     def log(self) -> Path:
         return self.runtime_root / "logs" / f"{self.run_id}.jsonl"
+
+    @property
+    def archive(self) -> Path:
+        return self.runtime_root / "archives" / self.run_id
 
     @property
     def locks_dir(self) -> Path:
@@ -89,8 +105,10 @@ def runtime_lane_descriptions(run_id: str) -> tuple[dict[str, str], ...]:
         runtime_lane_description("checkpoints", "execution_continuity_only", paths.checkpoints),
         runtime_lane_description("instantiations", "derived_prompt_instantiation", paths.instantiations),
         runtime_lane_description("notifications", "derived_operator_signal_log", paths.notifications),
+        runtime_lane_description("telegram", "derived_operator_reply_routing", paths.telegram_alerts),
         runtime_lane_description("logs", "observational_provider_capture", paths.log),
         runtime_lane_description("locks", "process_control_only", paths.locks_dir),
+        runtime_lane_description("archives", "retained_run_archive_bundle", paths.archive),
     )
 
 

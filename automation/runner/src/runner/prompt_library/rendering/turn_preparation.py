@@ -79,7 +79,7 @@ def _prepare_prompt_turn_internal(
         turn,
         prompt_template_override=prompt_template_override,
         contract_template_override=contract_template_override,
-        prompt_binding_override=prompt_binding_override,
+        prompt_binding_override=prompt_binding_override or active_prompt_override(projection, phase, turn),
     )
     contract_text = render_contract_text(registry, contract_asset_id, context)
     context["contract"] = contract_text
@@ -184,3 +184,28 @@ def current_turn_required(projection: dict[str, Any]) -> str:
     if isinstance(current, dict) and isinstance(current.get("turn"), str):
         return current["turn"]
     raise ValueError("current turn is not set")
+
+
+def active_prompt_override(
+    projection: dict[str, Any],
+    phase: dict[str, Any],
+    turn: str,
+) -> AssetBindingReference | AssemblyBindingReference | None:
+    phase_key = phase.get("phase_key") or f"phase_{phase['id']}"
+    overrides = projection.get("prompt_overrides")
+    if not isinstance(overrides, list):
+        return None
+    for override in reversed(overrides):
+        if not isinstance(override, dict) or override.get("phase_key") != phase_key:
+            continue
+        override_turn = override.get("turn")
+        if override_turn is not None and override_turn != turn:
+            continue
+        binding = override.get("binding")
+        if not isinstance(binding, dict):
+            continue
+        if isinstance(binding.get("asset_id"), str):
+            return AssetBindingReference(binding["asset_id"])
+        if isinstance(binding.get("assembly_id"), str):
+            return AssemblyBindingReference(binding["assembly_id"])
+    return None

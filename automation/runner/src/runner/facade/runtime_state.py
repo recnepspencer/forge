@@ -9,6 +9,8 @@ from runner.graph_runtime.completion_runtime import resume_completion_handoff_ta
 from runner.graph_runtime.resume_runtime import resume_run_with_reason
 from runner.graph_runtime.runtime_lane import (
     append_runtime_event,
+    append_runtime_event_if_plan_version,
+    initialize_runtime_events,
     config_path_for_run,
     load_admitted_projection_inputs as _load_admitted_projection_inputs,
     refresh_projection,
@@ -30,7 +32,7 @@ def current_phase_for_projection(projection: dict[str, Any]) -> dict[str, Any]:
 def runtime_artifact_surface(run_id: str) -> dict[str, object]:
     lanes = runtime_lane_descriptions(run_id)
     authority = [lane for lane in lanes if lane["lane"] == "events"]
-    derived = [lane for lane in lanes if lane["lane"] in {"projections", "instantiations", "notifications", "logs"}]
+    derived = [lane for lane in lanes if lane["lane"] in {"projections", "instantiations", "notifications", "telegram", "logs"}]
     continuity = [lane for lane in lanes if lane["lane"] == "checkpoints"]
     process_control = [lane for lane in lanes if lane["lane"] == "locks"]
     return {
