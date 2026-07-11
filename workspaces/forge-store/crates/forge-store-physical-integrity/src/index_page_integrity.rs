@@ -1,4 +1,4 @@
-use crate::index_page_integrity_request::DerivedIndexAuthorityEvidence;
+use crate::index_pages::index_page_integrity_request::DerivedIndexAuthorityEvidence;
 use crate::{
     AuthorityDamageBoundary, DerivedDamageClassification, DerivedIndexIntegrityInspectionRequest,
     DerivedRebuildInput, IndeterminatePhysicalDamage, IndexPageIntegrityCounters,

@@ -1,4 +1,4 @@
-use crate::container_integrity_slot_directory::inspect_record_slot_directory;
+use crate::containers::container_integrity_slot_directory::inspect_record_slot_directory;
 use crate::{
     ContainerIntegrityCounters, ExtentIntegrityReport, FrameIntegrityReport, IntegrityCheckedFrame,
     IntegrityCheckedPage, PageIntegrityReport, PhysicalBoundaryLocalization,

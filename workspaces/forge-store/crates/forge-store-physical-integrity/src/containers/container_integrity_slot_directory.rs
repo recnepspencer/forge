@@ -1,4 +1,4 @@
-use crate::container_integrity_frame_header::reject_page_local_frame_header_mismatch;
+use super::container_integrity_frame_header::reject_page_local_frame_header_mismatch;
 use crate::{
     AmbiguousBoundaryDamage, ContainerIntegrityCounters, PhysicalBoundaryLocalization,
     PhysicalContainerIntegrityDenial, PhysicalContainerIntegrityDenialKind,

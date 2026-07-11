@@ -1,5 +1,5 @@
 use crate::{
-    integrity_authority_basis_entries::push_u32, ContainerIntegrityCounters,
+    authority::integrity_authority_basis_entries::push_u32, ContainerIntegrityCounters,
     ManifestIntegrityCounters, WalFrameIntegrityCounters,
 };
 use forge_foundational::canonicalization_api::lower_lane::basis::CanonicalBasisEntry;

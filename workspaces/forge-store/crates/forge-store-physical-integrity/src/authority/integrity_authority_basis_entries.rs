@@ -1,5 +1,5 @@
 use crate::{
-    integrity_authority_basis_tokens::{
+    authority::integrity_authority_basis_tokens::{
         allocation_class_token, checkpoint_adjacency_token, generation_report_token,
         owner_domain_token, reference_kind_token, root_posture_token, scope_family_token,
     },

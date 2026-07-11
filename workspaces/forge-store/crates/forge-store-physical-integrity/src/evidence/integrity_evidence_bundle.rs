@@ -1,9 +1,9 @@
-use crate::integrity_authority_claim_basis::{
+use super::integrity_evidence_quarantine::{
+    quarantine_evidence_denial_count, quarantine_evidence_outcome, quarantine_receipt_claim_basis,
+};
+use crate::authority::integrity_authority_claim_basis::{
     checkpoint_authority_digest, manifest_authority_digest, page_authority_digest,
     wal_frame_authority_digest,
-};
-use crate::integrity_evidence_quarantine::{
-    quarantine_evidence_denial_count, quarantine_evidence_outcome, quarantine_receipt_claim_basis,
 };
 use crate::{
     ContainerIntegrityCounters, IndexPageIntegrityCounters, IntegrityEvidenceMaterializationPath,

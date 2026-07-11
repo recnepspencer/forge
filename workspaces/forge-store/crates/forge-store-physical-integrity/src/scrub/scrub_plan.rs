@@ -190,7 +190,7 @@ impl<'lease> ScrubPlan<'lease> {
 
         Ok(Self {
             mode: request.mode,
-            plan_identity: crate::scrub_plan_identity::scrub_plan_identity(
+            plan_identity: super::scrub_plan_identity::scrub_plan_identity(
                 request.mode,
                 request.budget,
                 request.yield_after_windows,

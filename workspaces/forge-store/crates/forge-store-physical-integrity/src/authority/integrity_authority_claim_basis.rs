@@ -1,12 +1,12 @@
 use crate::{
-    integrity_authority_basis_entries::{
+    authority::integrity_authority_basis_entries::{
         authority_domain, physical_scope_entries, push_manifest_reference_basis,
         push_owner_entries, push_text, push_u16, push_u32,
     },
-    integrity_authority_basis_tokens::{
+    authority::integrity_authority_basis_tokens::{
         boundary_localization_token, root_posture_token, wal_tail_posture_token,
     },
-    integrity_authority_counter_entries::{
+    authority::integrity_authority_counter_entries::{
         push_container_counters, push_manifest_counters, push_wal_counters,
     },
     CheckpointRecordIntegrityReport, FrameIntegrityReport, ManifestIntegrityReport,
