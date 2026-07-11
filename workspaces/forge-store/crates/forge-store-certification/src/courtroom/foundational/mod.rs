@@ -20,6 +20,8 @@ pub(crate) mod digest_authority_denial_tests;
 #[cfg(test)]
 pub(crate) mod digest_authority_equivalence_tests;
 pub(crate) mod foundational_boundary_performance;
+#[cfg(test)]
+pub(crate) mod handoff_contract_tests;
 pub(crate) mod store_json_residue_certification;
 pub(crate) mod store_json_residue_denial;
 pub(crate) mod store_json_residue_entry;

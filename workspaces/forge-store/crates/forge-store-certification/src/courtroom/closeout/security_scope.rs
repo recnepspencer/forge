@@ -1,4 +1,4 @@
-pub use crate::s5_1_closeout::{
+pub use crate::courtroom::security::closeout::{
     certify_security_scope_closeout, S51CertificationCloseoutDenial,
     S51CertificationCloseoutEvidence, S51CertificationCloseoutInput,
     S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,

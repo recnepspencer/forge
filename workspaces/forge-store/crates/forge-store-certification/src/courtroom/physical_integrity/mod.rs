@@ -20,6 +20,11 @@ pub(crate) mod physical_integrity_closeout_report;
 pub(crate) mod physical_integrity_closeout_suite;
 pub(crate) mod physical_integrity_closeout_suite_kind;
 #[cfg(test)]
+pub(crate) mod integrity_damage_map_tests;
+#[cfg(test)]
+pub(crate) mod integrity_handoff_tests;
+pub(crate) mod readiness_handoff;
+#[cfg(test)]
 pub(crate) mod physical_integrity_closeout_tests;
 #[cfg(test)]
 pub(crate) mod physical_integrity_entry_authority_tests;

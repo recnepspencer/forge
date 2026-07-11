@@ -1,4 +1,4 @@
-use crate::s2_acceptance_suite_transcript::transcript_supports_acceptance_suite;
+use crate::courtroom::physical_substrate::transcript_supports_acceptance_suite;
 use crate::{
     BoundedMemoryResidencySuiteDenial, PhysicalProofOracleKind, PhysicalScenarioDriverKind,
     PhysicalScenarioObserverKind, PhysicalScenarioPlan, PhysicalStoryTranscript, RoadmapLaneFamily,

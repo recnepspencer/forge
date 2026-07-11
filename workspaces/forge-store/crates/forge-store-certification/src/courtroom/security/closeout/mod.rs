@@ -1,21 +1,16 @@
 mod api_adoption;
-mod boundary_evidence;
-mod counter_matrix;
 mod denial;
-mod evidence_bundle;
 mod input;
-mod performance_receipts;
 
 pub use api_adoption::S51CloseoutApiAdoptionEvidence;
-pub use boundary_evidence::{
+pub use crate::evidence::security::{
+    S51CertificationCloseoutEvidence, S51CloseoutCounterMatrix, S51CloseoutPerformanceReceipts,
+    S51CloseoutPerformanceRows,
     S51CloseoutBoundaryEvidencePublication, S51CloseoutFoundationalBoundaryPackage,
     S51CloseoutFoundationalLane,
 };
-pub use counter_matrix::S51CloseoutCounterMatrix;
 pub use denial::S51CertificationCloseoutDenial;
-pub use evidence_bundle::S51CertificationCloseoutEvidence;
 pub use input::{S51CertificationCloseoutInput, S51CertificationEvidencePolicy};
-pub use performance_receipts::{S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows};
 
 pub fn certify_security_scope_closeout(
     input: S51CertificationCloseoutInput,

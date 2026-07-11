@@ -206,4 +206,4 @@ pub use crate::courtroom::scenario::{
 pub use crate::courtroom::cross_cutting::lanes::{
     LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily,
 };
-pub use crate::s2_acceptance_suite_transcript::S2AcceptanceSuiteKind;
+pub use crate::courtroom::physical_substrate::S2AcceptanceSuiteKind;
