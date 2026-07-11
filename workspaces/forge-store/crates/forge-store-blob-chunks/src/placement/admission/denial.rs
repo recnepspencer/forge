@@ -1,4 +1,3 @@
-use forge_store_io_scheduler::S6LaterReadinessReadmissionState;
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionDenial, BlobBackendResidueObservation,
 };
@@ -10,10 +9,6 @@ use super::BlobPlacementCounterSnapshot;
 pub enum BlobPlacementAdmissionDenial {
     BackendCapability {
         source: BackendCapabilityAdmissionDenial,
-        counters: BlobPlacementCounterSnapshot,
-    },
-    StaleS6Readiness {
-        readmission: S6LaterReadinessReadmissionState,
         counters: BlobPlacementCounterSnapshot,
     },
     PlacementReadinessBasisMismatch {

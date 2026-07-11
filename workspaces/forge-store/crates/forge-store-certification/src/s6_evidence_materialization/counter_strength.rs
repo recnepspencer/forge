@@ -19,7 +19,6 @@ pub enum S6CounterStrengthFamily {
     QueueExecution,
     FlushDurability,
     LatencyInterference,
-    LaterReadinessHandoff,
     SecureIoPreservation,
     AccessPolicy,
     PostAdmissionViolation,

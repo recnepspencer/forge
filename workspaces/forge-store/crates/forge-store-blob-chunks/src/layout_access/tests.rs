@@ -144,10 +144,6 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
 
     assert_eq!(dedupe.family_id(), DurableArtifactFamilyId::DedupeIndex);
     assert_eq!(
-        dedupe.access_shape(),
-        forge_store_layout_indexes::S8AccessShape::PointLookup
-    );
-    assert_eq!(
         reachability_layout.family_id(),
         DurableArtifactFamilyId::ReachabilityEdge
     );
@@ -173,10 +169,6 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
         permit.s6_posture().security_scope()
     );
     assert_eq!(
-        quarantine_layout.access_shape(),
-        forge_store_layout_indexes::S8AccessShape::QuarantineRead
-    );
-    assert_eq!(
         quarantine_layout.repair_capability(),
         BlobQuarantineRepairCapability::ClassifyGenerationPosture
     );
@@ -197,10 +189,6 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
     assert_eq!(
         absence_scope_denial.kind(),
         BlobLayoutAccessDenialKind::ScopeSafeAbsenceRequiresReclaimReleaseMatch
-    );
-    assert_eq!(
-        compaction.access_shape(),
-        forge_store_layout_indexes::S8AccessShape::CompactionRead
     );
     assert_eq!(
         compaction.security_metadata(),

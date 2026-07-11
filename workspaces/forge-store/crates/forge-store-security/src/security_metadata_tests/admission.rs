@@ -87,7 +87,7 @@ fn candidate_metadata(
     let authority = current_authority("s51.phase3.metadata_admission", "candidate");
     let witnesses = admitted_scope(&authority);
     StoreSecurityMetadata::from_current_security_scope(
-        &witnesses,
+        witnesses.witnesses(),
         key_version_posture,
         legacy_posture,
     )

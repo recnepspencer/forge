@@ -162,9 +162,9 @@ fn metadata_with(
         TransitionOutcome::Success(admitted) => admitted,
         outcome => panic!("custom metadata scope should admit: {outcome:?}"),
     };
-    let witnesses = admitted.into_witnesses_for_readiness_handoff();
+    let witnesses = admitted.witnesses();
     StoreSecurityMetadata::from_current_security_scope(
-        &witnesses,
+        witnesses,
         key_version_posture,
         legacy_posture,
     )

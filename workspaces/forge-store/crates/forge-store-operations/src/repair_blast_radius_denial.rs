@@ -1,6 +1,6 @@
 use forge_store_security::{
-    S51SecurityScopeReadinessFamily, StoreAuthenticityRequirement, StoreCustodyPosture,
-    StoreKeyScope, StoreSecurityScopeAdmissionDeferred, StoreSecurityScopeAdmissionDenial,
+    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
+    StoreSecurityScopeAdmissionDeferred, StoreSecurityScopeAdmissionDenial,
     StoreSecurityScopeAdmissionFailure, StoreSecurityScopeAdmissionRebindRequired,
     StoreSecurityScopeAdmissionStale, StoreTenantScope,
 };
@@ -27,10 +27,6 @@ pub enum RepairBlastRadiusDenial {
     },
     SecurityScopeAdmissionFailed {
         source: StoreSecurityScopeAdmissionFailure,
-        counters: RepairBlastRadiusCounterSnapshot,
-    },
-    WrongReadinessFamily {
-        actual: S51SecurityScopeReadinessFamily,
         counters: RepairBlastRadiusCounterSnapshot,
     },
     WrongKeyScope {

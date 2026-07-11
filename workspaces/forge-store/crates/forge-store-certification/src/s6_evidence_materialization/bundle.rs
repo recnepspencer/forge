@@ -177,14 +177,6 @@ fn counter_strengths(
             latency_rows,
         ),
         S6CounterStrengthDeclaration::new(
-            S6CounterStrengthFamily::LaterReadinessHandoff,
-            sources
-                .binding()
-                .counter_strengths()
-                .later_readiness_handoff(),
-            sources.later_handoffs().destination_count(),
-        ),
-        S6CounterStrengthDeclaration::new(
             S6CounterStrengthFamily::SecureIoPreservation,
             sources
                 .secure_io_preservation()

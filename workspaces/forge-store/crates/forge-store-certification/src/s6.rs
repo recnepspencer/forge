@@ -20,8 +20,6 @@ mod foreground_reservation;
 mod foreground_reservation_tests;
 #[path = "s6_io_qos_readiness_handoff.rs"]
 mod io_qos_readiness_handoff;
-#[path = "s6_later_readiness_handoffs.rs"]
-mod later_readiness_handoffs;
 #[path = "s6_reclaim_policy.rs"]
 mod reclaim_policy;
 #[cfg(test)]
@@ -46,9 +44,4 @@ pub use foreground_reservation::{
 };
 pub(crate) use io_qos_readiness_handoff::verify_executed_closeout_handoff_admissible;
 pub use io_qos_readiness_handoff::S6IoQosReadinessHandoffMaterializationDenial;
-pub use later_readiness_handoffs::{
-    certify_s6_later_readiness_handoffs, S6BackupExportHandoffEvidence,
-    S6CompactionHandoffEvidence, S6LaterReadinessHandoffCertification, S6OperatorHandoffEvidence,
-    S6PlacementHandoffEvidence, S6RepairScanHandoffEvidence,
-};
 pub use reclaim_policy::{S6ReclaimPolicyEvidenceOutcomeKind, S6ReclaimPolicyEvidenceRow};

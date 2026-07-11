@@ -1,7 +1,7 @@
 use forge_store_physical_certification::{
     S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessReplayTranscript,
 };
-use forge_store_readiness::S51SecurityFoundationHandoff;
+use forge_store_security::StoreAdmittedSecurityScope;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S51CertificationEvidencePolicy {
@@ -12,7 +12,7 @@ pub struct S51CertificationEvidencePolicy {
 pub struct S51CertificationCloseoutInput {
     scenario_evidence: Vec<S51SecurityScopeHarnessEvidence>,
     replay_transcripts: Vec<S51SecurityScopeHarnessReplayTranscript>,
-    security_foundation_handoff: S51SecurityFoundationHandoff,
+    security_scope: StoreAdmittedSecurityScope,
     policy: S51CertificationEvidencePolicy,
 }
 
@@ -29,16 +29,16 @@ impl S51CertificationEvidencePolicy {
 }
 
 impl S51CertificationCloseoutInput {
-    pub fn from_phase10_replay_and_handoffs(
+    pub fn from_replay_and_security_scope(
         scenario_evidence: impl IntoIterator<Item = S51SecurityScopeHarnessEvidence>,
         replay_transcripts: impl IntoIterator<Item = S51SecurityScopeHarnessReplayTranscript>,
-        security_foundation_handoff: S51SecurityFoundationHandoff,
+        security_scope: StoreAdmittedSecurityScope,
         policy: S51CertificationEvidencePolicy,
     ) -> Self {
         Self {
             scenario_evidence: scenario_evidence.into_iter().collect(),
             replay_transcripts: replay_transcripts.into_iter().collect(),
-            security_foundation_handoff,
+            security_scope,
             policy,
         }
     }
@@ -51,8 +51,8 @@ impl S51CertificationCloseoutInput {
         &self.replay_transcripts
     }
 
-    pub const fn security_foundation_handoff(&self) -> &S51SecurityFoundationHandoff {
-        &self.security_foundation_handoff
+    pub const fn security_scope(&self) -> &StoreAdmittedSecurityScope {
+        &self.security_scope
     }
 
     pub const fn policy(&self) -> S51CertificationEvidencePolicy {

@@ -1,6 +1,5 @@
 use forge_store_security::{
-    S51AdmittedSecurityScopeReadiness, StoreSecurityScopeAdmissionReceipt,
-    StoreSecurityScopeIdentity,
+    StoreAdmittedSecurityScope, StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity,
 };
 
 use crate::{
@@ -29,10 +28,11 @@ pub struct S7BlobChunkSecurityHandoff {
 }
 
 impl S7BlobChunkSecurityHandoff {
-    pub fn from_s5_1_readiness(
-        readiness: S51AdmittedSecurityScopeReadiness,
+    pub fn from_admitted_security_scope(
+        security_scope: StoreAdmittedSecurityScope,
     ) -> Result<Self, BlobChunkSecurityScopeDenial> {
-        BlobChunkSecurityScope::from_s5_1_readiness(readiness).map(Self::from_blob_security_scope)
+        BlobChunkSecurityScope::from_admitted_security_scope(security_scope)
+            .map(Self::from_blob_security_scope)
     }
 
     pub(crate) fn from_blob_security_scope(scope: BlobChunkSecurityScope) -> Self {

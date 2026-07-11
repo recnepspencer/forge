@@ -1,8 +1,7 @@
 use forge_store_security::{
-    S51AdmittedSecurityScopeReadiness, S51SecurityScopeReadinessFamily,
-    StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionReceipt,
-    StoreSecurityScopeIdentity, StoreTenantScope,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 use crate::{BlobChunkScopeCounterSnapshot, BlobChunkSecurityScopeDenial};
@@ -20,14 +19,12 @@ pub struct BlobChunkSecurityMetadataWitness {
 }
 
 impl BlobChunkSecurityMetadataWitness {
-    pub(crate) fn from_s5_1_readiness(
-        readiness: S51AdmittedSecurityScopeReadiness,
+    pub(crate) fn from_admitted_security_scope(
+        security_scope: StoreAdmittedSecurityScope,
     ) -> Result<Self, BlobChunkSecurityScopeDenial> {
         let counters = BlobChunkScopeCounterSnapshot::start();
-        reject_non_blob_readiness_family(&readiness, counters)?;
-
-        let witnesses = readiness.witnesses();
-        let identity = readiness.receipt().identity();
+        let witnesses = security_scope.witnesses();
+        let identity = security_scope.identity();
         reject_non_blob_key_scope(witnesses.key_scope().key_scope(), counters)?;
         reject_non_current_key_version(
             witnesses.key_version_scope().key_version_posture(),
@@ -47,7 +44,7 @@ impl BlobChunkSecurityMetadataWitness {
             tenant_scope: witnesses.tenant_scope().tenant_scope(),
             authenticity_requirement: witnesses.authenticity_scope().requirement(),
             custody_posture: witnesses.custody_scope().custody_posture(),
-            receipt: readiness.receipt(),
+            receipt: security_scope.receipt(),
             counters: counters
                 .preserve_key_scope()
                 .preserve_key_version()
@@ -89,21 +86,6 @@ impl BlobChunkSecurityMetadataWitness {
 
     pub const fn counters(&self) -> BlobChunkScopeCounterSnapshot {
         self.counters
-    }
-}
-
-fn reject_non_blob_readiness_family(
-    readiness: &S51AdmittedSecurityScopeReadiness,
-    counters: BlobChunkScopeCounterSnapshot,
-) -> Result<(), BlobChunkSecurityScopeDenial> {
-    let family = readiness.reservation().family();
-    if family == S51SecurityScopeReadinessFamily::BlobChunk {
-        Ok(())
-    } else {
-        Err(BlobChunkSecurityScopeDenial::WrongReadinessFamily {
-            actual: family,
-            counters: counters.denied(),
-        })
     }
 }
 

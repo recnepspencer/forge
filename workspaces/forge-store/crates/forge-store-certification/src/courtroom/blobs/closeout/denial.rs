@@ -7,7 +7,6 @@ pub enum BlobCloseoutShortcutAttempt {
     CopiedReceipt,
     CopiedChunkRows,
     CopiedProofId,
-    S6PlacementReadinessOnly,
     S5FutureChunkPlaceholderOnly,
     TerminalProjectionOnly,
     RawCountersOnly,
@@ -67,12 +66,6 @@ pub(crate) fn shortcut_rejection(
             BlobCloseoutShortcutAttempt::CopiedProofId,
             "copied proof ids cannot mint blob closeout",
         ),
-        BlobCloseoutShortcutInput::S6PlacementReadinessOnly { .. } => {
-            BlobCloseoutShortcutRejectionReport::new(
-                BlobCloseoutShortcutAttempt::S6PlacementReadinessOnly,
-                "placement readiness alone cannot mint blob closeout",
-            )
-        }
         BlobCloseoutShortcutInput::S5FutureChunkPlaceholderOnly { .. } => {
             BlobCloseoutShortcutRejectionReport::new(
                 BlobCloseoutShortcutAttempt::S5FutureChunkPlaceholderOnly,

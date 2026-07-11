@@ -4,14 +4,11 @@ use forge_store_physical_backend::{
     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness,
-    admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
-};
+use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
     admit_security_scope_for_scheduler, IoSchedulerBackendCapabilityDenial,
-    IoSchedulerBackendCapabilityRequirement, SchedulerSecurityScopeEvidence,
+    IoSchedulerBackendCapabilityRequirement,
 };
 
 pub(super) fn externally_guaranteed_witness(
@@ -51,13 +48,9 @@ pub(super) fn witness_from_basis_and_posture(
 }
 
 pub(super) fn valid_security_scope() -> crate::IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("S.6 IoQos handoff should admit from S.5.1 readiness");
-    admit_security_scope_for_scheduler(handoff)
+    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("test security scope should admit for scheduler use")
 }
 
 pub(super) fn assert_evidence_denial(denial: IoSchedulerBackendCapabilityDenial) {

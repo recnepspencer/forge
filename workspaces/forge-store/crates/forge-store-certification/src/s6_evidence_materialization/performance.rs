@@ -14,7 +14,6 @@ pub struct S6FoundationalPerformanceReceipts {
     runtime_execution: Receipt,
     access_policy: Receipt,
     security_scope: Receipt,
-    later_handoffs: Receipt,
     qualification: Receipt,
 }
 
@@ -35,10 +34,6 @@ impl S6FoundationalPerformanceReceipts {
                 "store.s6.certification.security-scope-preservation",
                 &security_scope_rows(sources),
             )?,
-            later_handoffs: counter_receipt(
-                "store.s6.certification.later-readiness-handoffs",
-                &later_handoff_rows(sources),
-            )?,
             qualification: counter_receipt(
                 "store.s6.certification.backend-qualification",
                 &qualification_rows(sources),
@@ -48,10 +43,6 @@ impl S6FoundationalPerformanceReceipts {
 
     pub const fn runtime_execution_receipt(&self) -> &Receipt {
         &self.runtime_execution
-    }
-
-    pub const fn later_handoff_receipt(&self) -> &Receipt {
-        &self.later_handoffs
     }
 
     pub const fn access_policy_receipt(&self) -> &Receipt {
@@ -70,10 +61,6 @@ impl S6FoundationalPerformanceReceipts {
         [
             (&self.runtime_execution, "store.s6.queue.submitted"),
             (&self.runtime_execution, "store.s6.flush.rows"),
-            (
-                &self.later_handoffs,
-                "store.s6.handoff.operator.scope_checks",
-            ),
             (
                 &self.access_policy,
                 "store.s6.access_policy.security_scope_preservations",
@@ -183,40 +170,6 @@ fn security_scope_rows(sources: &S6CertificationEvidenceSources) -> [(&'static s
                 .iter()
                 .map(|row| row.observed_violations())
                 .sum(),
-        ),
-    ]
-}
-
-fn later_handoff_rows(sources: &S6CertificationEvidenceSources) -> [(&'static str, u64); 7] {
-    let later = sources.later_handoffs();
-    [
-        (
-            "store.s6.handoff.placement.wait",
-            later.placement().wait_count(),
-        ),
-        (
-            "store.s6.handoff.placement.protected_bytes",
-            later.placement().protected_byte_footprint(),
-        ),
-        (
-            "store.s6.handoff.compaction.pressure",
-            later.compaction().compaction_pressure_units(),
-        ),
-        (
-            "store.s6.handoff.backup_export.pressure",
-            later.backup_export().backup_pressure_units(),
-        ),
-        (
-            "store.s6.handoff.repair_scan.pressure",
-            later.repair_scan().repair_pressure_units(),
-        ),
-        (
-            "store.s6.handoff.operator.scope_checks",
-            later.operator().scope_checks(),
-        ),
-        (
-            "store.s6.handoff.operator.backend_posture_checks",
-            later.operator().backend_posture_checks(),
         ),
     ]
 }

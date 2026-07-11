@@ -4,9 +4,6 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use super::policy_receipts::{background_policy_receipt, foreground_policy_receipt};
@@ -27,7 +24,7 @@ use crate::{
     BackgroundResourceBudget, BandwidthToken, CacheResidencyHint, FlushPermit,
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
     IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission, QueueSlot,
-    ReadAheadWindow, SchedulerSecurityScopeEvidence, SecureIoOperation, SecureIoPostureRequirement,
+    ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement,
     SecureIoPreservationRequest, WorkerPermit, WriteBackWindow,
 };
 
@@ -340,13 +337,9 @@ fn s6_readiness() -> IoSchedulerIsolationAdmission {
 }
 
 fn security_scope() -> IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("S.5.1 handoff should admit");
-    admit_security_scope_for_scheduler(handoff)
+    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("test security scope should admit for scheduler use")
 }
 
 fn secure_io_for(

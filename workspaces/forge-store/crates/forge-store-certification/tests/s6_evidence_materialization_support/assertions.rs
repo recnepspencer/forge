@@ -55,11 +55,6 @@ pub fn assert_fixture_counter_strength_matrix(bundle: &S6MaterializedCertificati
             (Family::QueueExecution, Strength::CertificationOnly, 13),
             (Family::FlushDurability, Strength::Exact, 1),
             (Family::LatencyInterference, Strength::Unavailable, 0),
-            (
-                Family::LaterReadinessHandoff,
-                Strength::CertificationOnly,
-                5,
-            ),
             (Family::SecureIoPreservation, Strength::Exact, 2),
             (Family::AccessPolicy, Strength::Exact, 2),
             (Family::PostAdmissionViolation, Strength::Derived, 2),
@@ -85,11 +80,6 @@ pub fn assert_readiness_fixture_counter_strength_matrix(
             (Family::QueueExecution, Strength::CertificationOnly, 13),
             (Family::FlushDurability, Strength::Exact, 1),
             (Family::LatencyInterference, Strength::Unavailable, 0),
-            (
-                Family::LaterReadinessHandoff,
-                Strength::CertificationOnly,
-                5,
-            ),
             (Family::SecureIoPreservation, Strength::Exact, 2),
             (Family::AccessPolicy, Strength::Exact, 2),
             (Family::PostAdmissionViolation, Strength::Derived, 2),

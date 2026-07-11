@@ -1,6 +1,6 @@
 use forge_store_security::{
-    S51SecurityScopeReadinessFamily, StoreApplicationOrgIdClaim, StoreAuthenticityRequirement,
-    StoreCustodyPosture, StoreIamRoleClaim, StoreJwtSubjectClaim, StoreKeyScope,
+    StoreApplicationOrgIdClaim, StoreAuthenticityRequirement, StoreCustodyPosture,
+    StoreIamRoleClaim, StoreJwtSubjectClaim, StoreKeyScope,
     StoreKeyVersionPosture, StoreKmsKeyIdentifier, StoreOperatorIdentityClaim,
     StoreRawSecurityScopeDeclaration, StoreTenantScope,
 };
@@ -9,10 +9,6 @@ use crate::BlobChunkScopeCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobChunkSecurityScopeDenial {
-    WrongReadinessFamily {
-        actual: S51SecurityScopeReadinessFamily,
-        counters: BlobChunkScopeCounterSnapshot,
-    },
     WrongKeyScope {
         actual: StoreKeyScope,
         counters: BlobChunkScopeCounterSnapshot,

@@ -8,7 +8,6 @@ use crate::placement::admission::{
     types::AdmittedBlobPlacement,
     verification::{
         verify_class_backend_capability, verify_readiness_basis_match,
-        verify_s6_readiness_readmitted,
     },
     BlobPlacementAdmissionDenial, BlobPlacementIntent,
 };
@@ -28,7 +27,6 @@ impl BlobPlacementAdmissionAuthority {
         reachability: &BlobChunkReachabilityProofSet,
         intent: BlobPlacementIntent,
     ) -> Result<AdmittedBlobPlacement, BlobPlacementAdmissionDenial> {
-        verify_s6_readiness_readmitted(&intent)?;
         let basis = BlobPlacementReachabilityBasis::from_reachability(reachability);
         verify_readiness_basis_match(&basis, &intent)?;
         let counters = verify_class_backend_capability(&self.backend, &intent, &basis)?;

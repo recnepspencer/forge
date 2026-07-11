@@ -1,7 +1,7 @@
 use forge_store_physical_backend::{
     BlobBackendResidueObservation, StoreExternalPlacementRecoverabilityEvidence,
 };
-use forge_store_tiering::{S7ColdPlacementState, S7PlacementIoReadinessSeed};
+use forge_store_tiering::{S7ColdPlacementState, TierPlacementIoAdmission};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobPlacementClass {
@@ -13,14 +13,14 @@ pub enum BlobPlacementClass {
 #[derive(Debug, Clone)]
 pub struct BlobPlacementIntent {
     class: BlobPlacementClass,
-    readiness: S7PlacementIoReadinessSeed,
+    readiness: TierPlacementIoAdmission,
     cold_state: Option<S7ColdPlacementState>,
     external_recoverability: Option<StoreExternalPlacementRecoverabilityEvidence>,
     external_sidecar_denial: Option<BlobBackendResidueObservation>,
 }
 
 impl BlobPlacementIntent {
-    pub fn inline(readiness: S7PlacementIoReadinessSeed) -> Self {
+    pub fn inline(readiness: TierPlacementIoAdmission) -> Self {
         Self {
             class: BlobPlacementClass::Inline,
             readiness,
@@ -31,7 +31,7 @@ impl BlobPlacementIntent {
     }
 
     pub fn external(
-        readiness: S7PlacementIoReadinessSeed,
+        readiness: TierPlacementIoAdmission,
         recoverability: StoreExternalPlacementRecoverabilityEvidence,
     ) -> Self {
         Self {
@@ -44,7 +44,7 @@ impl BlobPlacementIntent {
     }
 
     pub fn external_sidecar_without_store_authority(
-        readiness: S7PlacementIoReadinessSeed,
+        readiness: TierPlacementIoAdmission,
         denial: BlobBackendResidueObservation,
     ) -> Self {
         Self {
@@ -56,7 +56,7 @@ impl BlobPlacementIntent {
         }
     }
 
-    pub fn cold(readiness: S7PlacementIoReadinessSeed, state: S7ColdPlacementState) -> Self {
+    pub fn cold(readiness: TierPlacementIoAdmission, state: S7ColdPlacementState) -> Self {
         Self {
             class: BlobPlacementClass::Cold,
             readiness,
@@ -70,7 +70,7 @@ impl BlobPlacementIntent {
         self.class
     }
 
-    pub const fn readiness(&self) -> &S7PlacementIoReadinessSeed {
+    pub const fn readiness(&self) -> &TierPlacementIoAdmission {
         &self.readiness
     }
 

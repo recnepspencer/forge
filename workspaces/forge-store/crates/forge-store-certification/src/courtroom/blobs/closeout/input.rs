@@ -1,5 +1,4 @@
 use super::{materialize_blob_closeout_evidence, BlobCloseoutEvidenceBundle, BlobCloseoutSources};
-use forge_store_readiness::S6ClosedS7PlacementAdmissionSeed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlobCloseoutEvidencePolicy {
@@ -20,9 +19,6 @@ pub enum BlobCloseoutShortcutInput {
     },
     CopiedProofId {
         proof_id: String,
-    },
-    S6PlacementReadinessOnly {
-        seed: S6ClosedS7PlacementAdmissionSeed,
     },
     S5FutureChunkPlaceholderOnly {
         label: String,

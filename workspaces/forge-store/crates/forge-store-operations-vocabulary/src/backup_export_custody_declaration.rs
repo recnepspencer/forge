@@ -1,8 +1,7 @@
 use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
-    S51SecurityScopeReadinessReservation, StoreAuthenticityRequirement,
+    admit_store_security_scope, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionDenial,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
@@ -72,13 +71,9 @@ impl BackupExportCustodyDeclaration {
 
         match admit_store_security_scope(request) {
             TransitionOutcome::Success(admitted) => {
-                let readiness = accept_s5_1_admitted_security_scope_readiness(
-                    S51SecurityScopeReadinessReservation::backup_export_custody(),
-                    admitted,
-                );
                 Ok(BackupExportCustodyAdmission::from_outbound_declaration(
                     self.mode,
-                    readiness,
+                    admitted,
                     self.counters.record_custody_admitted(),
                 ))
             }

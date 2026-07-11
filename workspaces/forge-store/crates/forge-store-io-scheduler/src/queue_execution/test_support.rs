@@ -23,11 +23,8 @@ use crate::{
     CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
     QueueExecutionReadyPlan, QueueGroupingBasis, QueueRecoveryOrdering, QueueSlot,
     QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow, S6QueueDurabilityClass,
-    SchedulerSecurityScopeEvidence, SecureIoOperation, SecureIoPostureRequirement,
+    SecureIoOperation, SecureIoPostureRequirement,
     SecureIoPreservationRequest, WorkerPermit,
-};
-use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
 };
 
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
@@ -103,13 +100,10 @@ fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperati
 }
 
 fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        forge_store_security::admitted_store_internal_security_scope_for_s6_test(),
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("test S.5.1 readiness should hand off to S.6");
-    admit_security_scope_for_scheduler(handoff)
+    let security_scope =
+        forge_store_security::admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("test security scope should admit for scheduler use")
 }
 
 pub(crate) fn grouping_for(

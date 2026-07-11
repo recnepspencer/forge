@@ -1,7 +1,4 @@
-use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-    StoreSecurityScopeIdentity,
-};
+use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
     RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDeclaration, RepairBlastRadiusDenial,
@@ -22,11 +19,11 @@ impl RepairBlastRadiusPlan {
         self,
     ) -> Result<RepairBlastRadiusReadiness, RepairBlastRadiusDenial> {
         let (physical_region, admitted_scope, counters) = self.declaration.into_parts();
-        let readiness = accept_s5_1_admitted_security_scope_readiness(
-            S51SecurityScopeReadinessReservation::repair_blast_radius(),
+        RepairBlastRadiusReadiness::from_admitted_scope(
+            physical_region,
             admitted_scope,
-        );
-        RepairBlastRadiusReadiness::from_admitted_readiness(physical_region, readiness, counters)
+            counters,
+        )
     }
 }
 

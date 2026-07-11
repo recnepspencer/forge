@@ -1,6 +1,5 @@
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
-    S51SecurityScopeReadinessReservation, StoreAuthenticityRequirement,
+    admit_store_security_scope, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
@@ -44,10 +43,7 @@ pub(super) fn blob_scope(
         expectation,
     ))
     .success("security scope");
-    BlobChunkSecurityScope::from_s5_1_readiness(accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted,
-    ))
+    BlobChunkSecurityScope::from_admitted_security_scope(admitted)
     .expect("blob scope")
 }
 

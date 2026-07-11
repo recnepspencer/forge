@@ -19,29 +19,25 @@ use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 pub use source_variants::{
     sources_with_access_policy_backend_mismatch, sources_with_backend_evidence_class_mismatch,
     sources_with_backend_profile_mismatch, sources_with_empty_qualification_matrix,
-    sources_with_later_handoff_backend_mismatch,
 };
 
 use forge_store_certification::{
-    certify_s6_backend_qualification_matrix, certify_s6_later_readiness_handoffs,
-    S6AccessPolicyEvidenceRow, S6FlushDurabilityEvidenceRow, S6IoPressureHarnessCloseoutEvidence,
+    certify_s6_backend_qualification_matrix, S6AccessPolicyEvidenceRow,
+    S6FlushDurabilityEvidenceRow, S6IoPressureHarnessCloseoutEvidence,
     StoreOwnedS6CertificationMaterializationSources,
 };
 use forge_store_contracts::S6QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
-    admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_security_scope_for_scheduler,
+    admit_backend_capability_for_scheduler_claim, admit_background_capacity,
+    admit_background_pacing, admit_queue_execution_plan,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_store_published_isolation_capability,
-    background_pacing_outcome_for_later_readiness_certification_test, execute_ready_queue_plan,
-    lower_buffer_pool_queue_declaration, publish_s10_backup_export_io_readiness_handoff,
-    publish_s10_compaction_io_readiness_handoff, publish_s10_repair_scan_io_readiness_handoff,
-    publish_s11_operator_io_readiness_handoff, publish_s7_placement_io_readiness_handoff,
-    BackgroundIoPressureClass, BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
-    IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
-    QueueSlot, ReadAheadWindow, S10BackupExportPacingEvidence, S10CompactionPacingEvidence,
-    S10RepairScanPacingEvidence, SchedulerSecurityScopeEvidence, SecureIoOperation,
+    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
+    execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
+    BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
+    BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, BandwidthToken,
+    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
+    QueueExecutionOutcome, QueueSlot, ReadAheadWindow, SecureIoOperation,
     SecureIoPostureRequirement, SecureIoPreservationReceipt, SecureIoPreservationRequest,
     WorkerPermit,
 };
@@ -56,9 +52,6 @@ use forge_store_physical_certification::{
     S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 pub fn sources() -> StoreOwnedS6CertificationMaterializationSources {
@@ -90,9 +83,7 @@ fn sources_with_options(
 ) -> StoreOwnedS6CertificationMaterializationSources {
     let witness = backend_witness();
     let foreground = admitted_point_read_reservation_for_certification_test();
-    let background = background_pacing_outcome_for_later_readiness_certification_test(
-        BackgroundIoPressureClass::RepairScan,
-    );
+    let background = background_pacing_outcome();
     let queue_outcome = queue_outcome();
     let security = security_scope();
     let secure_io_preservation = secure_io_preservation(&security);
@@ -102,7 +93,6 @@ fn sources_with_options(
         qualification_residual_debt::matrix_with_required_residual_debt(&witness, &harness),
     )
     .unwrap();
-    let later = later_handoffs();
     StoreOwnedS6CertificationMaterializationSources::from_bound_store_execution(
         witness,
         foreground,
@@ -113,7 +103,6 @@ fn sources_with_options(
         flush_rows,
         closeout,
         qualification,
-        later,
         None,
     )
     .unwrap()
@@ -175,53 +164,42 @@ fn secure_io_preservation(
     .unwrap()
 }
 
-fn later_handoffs() -> forge_store_certification::S6LaterReadinessHandoffCertification {
+fn background_pacing_outcome() -> BackgroundPacingOutcome {
+    let requested = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap());
+    let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
+    let pressure = BackgroundIoPressureShape::repair_scan().requesting(requested);
+    let foreground = admitted_point_read_reservation_for_certification_test();
     let readiness = scheduler_readiness();
     let security = security_scope();
-    let backend = secure_frame_backend(&security);
-    let placement = publish_s7_placement_io_readiness_handoff(&readiness);
-    let compaction = publish_s10_compaction_io_readiness_handoff(
-        &readiness,
-        S10CompactionPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::CompactionRewrite,
-            ),
-        )
-        .unwrap(),
-    );
-    let backup = publish_s10_backup_export_io_readiness_handoff(
-        &readiness,
-        S10BackupExportPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::BackupPrepRead,
-            ),
-        )
-        .unwrap(),
-    );
-    let repair = publish_s10_repair_scan_io_readiness_handoff(
-        &readiness,
-        S10RepairScanPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::RepairScan,
-            ),
-        )
-        .unwrap(),
-    );
-    let operator = publish_s11_operator_io_readiness_handoff(
-        &readiness,
-        &security,
-        admit_secure_io_scope_for_scheduler(
-            SecureIoPreservationRequest::new(
-                SecureIoOperation::VerificationPressure,
-                &security,
-                &backend,
-            )
-            .require_posture(SecureIoPostureRequirement::SecureFrameCompatible),
-        )
-        .unwrap(),
+    let backend = admit_backend_capability_for_scheduler_claim(
+        &backend_witness(),
+        pressure.backend_requirement(),
     )
     .unwrap();
-    certify_s6_later_readiness_handoffs(&placement, &compaction, &backup, &repair, &operator)
+    let secure_io = admit_secure_io_scope_for_scheduler(
+        SecureIoPreservationRequest::new(SecureIoOperation::RepairScan, &security, &backend)
+            .require_posture(SecureIoPostureRequirement::ScopePreserving),
+    )
+    .unwrap();
+    let capacity = admit_background_capacity(
+        BackgroundCapacityAdmissionRequest::new(
+            pressure,
+            &foreground,
+            &backend,
+            &readiness,
+            policy_receipt(requested),
+        )
+        .with_idle_available(admitted)
+        .with_policy_admitted(requested)
+        .with_debt_limit(admitted)
+        .with_secure_io_scope(secure_io),
+    )
+    .unwrap();
+    admit_background_pacing(
+        BackgroundIdleCapacityLeaseRequest::new(capacity)
+            .with_foreground_pressure_events(1)
+            .with_late_yield(),
+    )
 }
 
 fn harness_evidence() -> S6IoPressureHarnessEvidence {
@@ -275,19 +253,13 @@ fn queue_backend_witness() -> AdmittedBackendCapabilityWitness {
 }
 
 fn scheduler_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
-    let readiness =
-        publish_scheduler_isolation_capability_for_certification_test(2, 1).unwrap();
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1).unwrap();
     admit_store_published_isolation_capability(&readiness).unwrap()
 }
 
 fn security_scope() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-    admit_security_scope_for_scheduler(
-        SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness).unwrap(),
-    )
+    admit_security_scope_for_scheduler(&admitted_store_internal_security_scope_for_s6_test())
+        .unwrap()
 }
 
 fn secure_frame_backend(
@@ -322,23 +294,28 @@ fn policy_receipt(
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .unwrap();
-    performance()
+    let receipt = performance()
         .policy_admission_receipt(claim)
         .budget_decision(
             FoundationalPerformanceBudgetKind::Breadth,
             (budget.queue_slots() + budget.worker_permits()) as u32,
             (budget.queue_slots() + budget.worker_permits()) as u32,
-        )
-        .budget_decision(
-            FoundationalPerformanceBudgetKind::Density,
-            (budget.bandwidth_tokens() + budget.cache_residency_hints()) as u32,
-            (budget.bandwidth_tokens() + budget.cache_residency_hints()) as u32,
-        )
-        .budget_decision(
+        );
+    let density = (budget.bandwidth_tokens() + budget.cache_residency_hints()) as u32;
+    let receipt = if density == 0 {
+        receipt
+    } else {
+        receipt.budget_decision(FoundationalPerformanceBudgetKind::Density, density, density)
+    };
+    let locality = budget.read_ahead_window() as u32;
+    let receipt = if locality == 0 {
+        receipt
+    } else {
+        receipt.budget_decision(
             FoundationalPerformanceBudgetKind::Locality,
-            budget.read_ahead_window() as u32,
-            budget.read_ahead_window() as u32,
+            locality,
+            locality,
         )
-        .finish()
-        .unwrap()
+    };
+    receipt.finish().unwrap()
 }

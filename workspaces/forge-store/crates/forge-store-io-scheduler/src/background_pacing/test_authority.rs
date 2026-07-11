@@ -11,10 +11,7 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness,
-    admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
-};
+use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::foreground_reservation::{
     admit_foreground_reservation, admit_foreground_reservation_capacity,
@@ -29,7 +26,6 @@ use crate::{
     BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
     BackgroundResourceBudget, IoSchedulerBackendCapabilityAdmission, IoSchedulerIsolationCounterSnapshot,
     IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission,
-    SchedulerSecurityScopeEvidence,
 };
 
 mod blob_ingest_outcomes;
@@ -215,13 +211,9 @@ fn readiness_admission() -> IoSchedulerIsolationAdmission {
         .expect("scheduler should admit S.6 readiness")
 }
 fn security_scope_admission() -> IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("S.5.1 handoff should admit");
-    admit_security_scope_for_scheduler(handoff)
+    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("test security scope should admit for scheduler use")
 }
 fn backend_admission(
     requirement: crate::IoSchedulerBackendCapabilityRequirement,

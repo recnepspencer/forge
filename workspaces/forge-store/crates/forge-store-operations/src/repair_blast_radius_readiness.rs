@@ -1,7 +1,7 @@
 use forge_store_security::{
-    repair_blast_radius_authenticity, S51AdmittedSecurityScopeReadiness,
-    S51SecurityScopeReadinessFamily, StoreCustodyPosture, StoreKeyScope,
-    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
+    repair_blast_radius_authenticity, StoreAdmittedSecurityScope, StoreCustodyPosture,
+    StoreKeyScope, StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity,
+    StoreTenantScope,
 };
 
 use crate::{
@@ -18,13 +18,12 @@ pub struct RepairBlastRadiusReadiness {
 }
 
 impl RepairBlastRadiusReadiness {
-    pub(crate) fn from_admitted_readiness(
+    pub(crate) fn from_admitted_scope(
         physical_region: RepairPhysicalRegion,
-        readiness: S51AdmittedSecurityScopeReadiness,
+        security_scope: StoreAdmittedSecurityScope,
         counters: RepairBlastRadiusCounterSnapshot,
     ) -> Result<Self, RepairBlastRadiusDenial> {
-        reject_wrong_family(&readiness, counters)?;
-        let identity = readiness.receipt().identity();
+        let identity = security_scope.identity();
         reject_wrong_key_scope(identity, counters)?;
         reject_wrong_tenant_scope(identity, counters)?;
         reject_wrong_authenticity(identity, counters)?;
@@ -33,7 +32,7 @@ impl RepairBlastRadiusReadiness {
         Ok(Self {
             physical_region,
             identity,
-            receipt: readiness.receipt(),
+            receipt: security_scope.receipt(),
             counters,
         })
     }
@@ -75,21 +74,6 @@ impl RepairBlastRadiusReadiness {
 
     pub const fn counters(&self) -> RepairBlastRadiusCounterSnapshot {
         self.counters
-    }
-}
-
-fn reject_wrong_family(
-    readiness: &S51AdmittedSecurityScopeReadiness,
-    counters: RepairBlastRadiusCounterSnapshot,
-) -> Result<(), RepairBlastRadiusDenial> {
-    let actual = readiness.reservation().family();
-    if actual == S51SecurityScopeReadinessFamily::RepairBlastRadius {
-        Ok(())
-    } else {
-        Err(RepairBlastRadiusDenial::WrongReadinessFamily {
-            actual,
-            counters: counters.denied(),
-        })
     }
 }
 

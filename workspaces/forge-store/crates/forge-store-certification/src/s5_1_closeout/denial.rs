@@ -8,7 +8,6 @@ use forge_store_physical_certification::{
 };
 use forge_store_readiness::{
     FoundationalAdoptionDenial, FoundationalAdoptionFamily, PhysicalFoundationEvidenceField,
-    S51SecurityFoundationNonClaim,
 };
 
 use crate::FoundationalBoundaryEvidenceDenial;
@@ -27,7 +26,6 @@ pub enum S51CertificationCloseoutDenial {
         expected: u64,
         observed: u64,
     },
-    MissingSecurityFoundationNonClaim(S51SecurityFoundationNonClaim),
     FoundationalAdoptionDenied(FoundationalAdoptionDenial),
     MissingFoundationalAdoptionFamily(FoundationalAdoptionFamily),
     MissingFoundationalEvidenceField(PhysicalFoundationEvidenceField),

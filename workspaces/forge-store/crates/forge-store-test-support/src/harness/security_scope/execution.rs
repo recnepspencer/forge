@@ -6,13 +6,9 @@ use forge_store_physical_certification::{
     S51SecurityScopePhysicalReplayDenial, S51SecurityScopePhysicalReplayEvidence,
     S51SecurityScopeReplayMutationKind,
 };
-use forge_store_readiness::{
-    S51AdmittedSecurityScopeReadiness, S51SecurityScopeReadinessReservation,
-    accept_s5_1_admitted_security_scope_readiness,
-};
 use forge_store_security::{
-    StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
     StoreSecurityScopeAdmissionCounterSnapshot, StoreSecurityScopeAdmissionExpectation,
     StoreSecurityScopeAdmissionRequest, StoreTenantScope,
     evaluate_deserialized_security_scope_readmission, evaluate_store_security_scope_admission,
@@ -23,7 +19,7 @@ use super::inputs::S51SecurityScopeNativeHarnessFixture;
 #[derive(Debug, PartialEq, Eq)]
 pub struct S51SecurityScopeHarnessExecution {
     evidence: S51SecurityScopeHarnessEvidence,
-    readiness: Option<S51AdmittedSecurityScopeReadiness>,
+    security_scope: Option<StoreAdmittedSecurityScope>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,8 +62,8 @@ impl S51SecurityScopeHarnessExecution {
         self.evidence
     }
 
-    pub const fn accepted_readiness(&self) -> Option<&S51AdmittedSecurityScopeReadiness> {
-        self.readiness.as_ref()
+    pub const fn accepted_security_scope(&self) -> Option<&StoreAdmittedSecurityScope> {
+        self.security_scope.as_ref()
     }
 }
 
@@ -94,7 +90,7 @@ fn execute_scenario_with_fixture(
         let observation = S51SecurityScopeHarnessObservation::denied(scenario, denial);
         return S51SecurityScopeHarnessExecution {
             evidence: evidence_from_observation(observation, lower_store_counters),
-            readiness: None,
+            security_scope: None,
         };
     }
 
@@ -103,14 +99,10 @@ fn execute_scenario_with_fixture(
     let lower_store_counters = admission.counters();
     match admission.into_outcome() {
         TransitionOutcome::Success(admitted) => {
-            let readiness = accept_s5_1_admitted_security_scope_readiness(
-                S51SecurityScopeReadinessReservation::security_foundation(),
-                admitted,
-            );
             let observation = S51SecurityScopeHarnessObservation::admitted(scenario);
             S51SecurityScopeHarnessExecution {
                 evidence: evidence_from_observation(observation, lower_store_counters),
-                readiness: Some(readiness),
+                security_scope: Some(admitted),
             }
         }
         TransitionOutcome::Denied(denial) => denial_execution(
@@ -145,7 +137,7 @@ fn denial_execution(
 ) -> S51SecurityScopeHarnessExecution {
     S51SecurityScopeHarnessExecution {
         evidence: evidence_from_observation(observation, lower_store_counters),
-        readiness: None,
+        security_scope: None,
     }
 }
 

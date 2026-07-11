@@ -111,78 +111,6 @@
 //! };
 //! ```
 //!
-//! S.6/S.7 placement admission authority cannot be forged from raw fields:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::S6S7PlacementAdmissionAuthority;
-//!
-//! let _forged = S6S7PlacementAdmissionAuthority {
-//!     current_authority: todo!(),
-//! };
-//! ```
-//!
-//! S.7 capsule readiness handoff cannot be synthesized from raw fields:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::S7CapsuleReadinessHandoff;
-//!
-//! let _forged = S7CapsuleReadinessHandoff {
-//!     readiness_digest: String::new(),
-//!     declared_chunk_count: 0,
-//!     declared_bytes: 0,
-//!     planned_chunks: 0,
-//!     materialized_chunks: 0,
-//!     skipped_chunks: 0,
-//!     denied_chunks: 0,
-//!     readiness_publications: 0,
-//!     non_claims: todo!(),
-//! };
-//! ```
-//!
-//! S.7 capsule readiness handoff cannot be minted through a public constructor:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::S7CapsuleReadinessHandoff;
-//!
-//! let _forged = S7CapsuleReadinessHandoff::from_lower_capsule_readiness(
-//!     String::new(),
-//!     0,
-//!     0,
-//!     0,
-//!     0,
-//!     0,
-//!     0,
-//!     0,
-//! );
-//! ```
-//!
-//! S.7 capsule readiness handoff cannot be admitted from a forged lower witness:
-//!
-//! ```compile_fail
-//! use forge_store_blob_chunks::BlobCapsuleReadinessWitness;
-//! use forge_store_readiness::admit_s7_capsule_readiness_handoff;
-//!
-//! let forged = BlobCapsuleReadinessWitness {
-//!     object_id: todo!(),
-//!     generation: todo!(),
-//!     chunk_tree_root: todo!(),
-//!     logical_content_digest: todo!(),
-//!     selected_chunks: vec![],
-//!     readiness_digest: String::new(),
-//!     declared_bytes: 0,
-//!     counters: todo!(),
-//! };
-//! let _handoff = admit_s7_capsule_readiness_handoff(&forged);
-//! ```
-//!
-//! S.7 closeout downstream non-claim vocabulary is typed and fixed-shape:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::S8LayoutReadinessNonClaim;
-//!
-//! let _ = S8LayoutReadinessNonClaim::ImaginaryShortcut;
-//! ```
-//!
 mod adoption_denial;
 mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
@@ -197,21 +125,9 @@ mod s2_physical_substrate_readiness;
 mod s2_readiness_denial;
 mod s2_readiness_facts;
 mod s3_physical_integrity_readiness;
-mod s3_readiness_denial;
-mod s3_readiness_payload;
-mod s3_readiness_recap;
-mod s5_1_later_milestone_handoffs;
-mod s5_1_security_scope_admission;
-mod s5_1_security_scope_vocabulary;
 mod s5_simulation_harness_denial;
 mod s5_simulation_harness_readiness;
-mod s6_later_milestone_non_claims;
 mod s6_materialized_certification_closeout;
-mod s6_production_readiness_closeout;
-mod s6_s7_placement_admission;
-mod s7_capsule_readiness_handoff;
-mod s7_closeout_handoffs;
-mod s8_layout_handoff_readiness;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -240,36 +156,11 @@ pub use s2_readiness_facts::{
     S2PhysicalReadinessFact, S2PhysicalReadinessFacts, S2ReadinessFactPosture,
 };
 pub use s3_physical_integrity_readiness::S3PhysicalIntegrityReadiness;
-pub use s3_readiness_denial::{S3ReadinessDenial, S3ReadinessDenialKind};
-pub use s3_readiness_payload::{
-    IntegrityInspectionLifetimeLaw, ProtectedIntegrityViewCapability, S2NoMaterializationWitness,
-    S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
-};
-pub use s3_readiness_recap::{
-    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S2DeniedBoundaryKind,
-};
-pub use s5_1_later_milestone_handoffs::{
-    S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
-    S51SecurityFoundationHandoff, S51SecurityFoundationLifecyclePermission,
-    S51SecurityFoundationNonClaim,
-};
-pub use s5_1_security_scope_admission::{
-    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
-};
-pub use s5_1_security_scope_vocabulary::{
-    S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
-};
 pub use s5_simulation_harness_denial::{
     reject_copied_s5_simulation_harness_readiness_fields, reject_missing_s5_correctness_non_claim,
     S5HarnessMaturityDependency, S5SimulationHarnessReadinessDenial,
 };
 pub use s5_simulation_harness_readiness::S5CorrectnessNonClaimEvidence;
-pub use s6_later_milestone_non_claims::{
-    S10BackupExportReadinessNonClaim, S10CompactionReadinessNonClaim,
-    S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S6LaterMilestoneDestination,
-    S6LaterMilestoneHandoffDenial, S7CapsuleReadinessNonClaim, S7PlacementReadinessNonClaim,
-};
 pub use s6_materialized_certification_closeout::{
     reject_materialized_s6_certification_as_runtime_authority,
     S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
@@ -277,25 +168,4 @@ pub use s6_materialized_certification_closeout::{
     S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
     S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
     S6ReadinessResidualDebtEvidenceRow,
-};
-pub use s6_production_readiness_closeout::{
-    close_s6_production_readiness, S6ClosedS10BackupExportAdmissionSeed,
-    S6ClosedS10RepairAdmissionSeed, S6ClosedS11SecureIoFoundationAdmissionSeed,
-    S6ClosedS7PlacementAdmissionSeed, S6ProductionReadinessClosure,
-    S6ProductionReadinessClosureDenial, S6ProductionReadinessClosureInput,
-    S6ProductionReadinessPosture, S6ProductionReadinessProof, S6ResidualDebtKind,
-    S6ResidualDebtLedger, S6ResidualDebtRow,
-};
-pub use s6_s7_placement_admission::{
-    admit_s6_s7_placement_handoff, S6S7PlacementAdmissionAuthority,
-};
-pub use s7_capsule_readiness_handoff::{
-    admit_s7_capsule_readiness_handoff, S7CapsuleReadinessHandoff,
-};
-pub use s7_closeout_handoffs::{
-    S10BackupRepairReadinessNonClaim, S11KeyLifecycleReadinessNonClaim,
-    S12FullCertificationNonClaim, S8LayoutReadinessNonClaim,
-};
-pub use s8_layout_handoff_readiness::{
-    admit_s8_layout_handoff_readiness, S8LayoutHandoffReadiness, S8LayoutHandoffReadinessDenial,
 };

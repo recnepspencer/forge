@@ -13,7 +13,7 @@ use crate::{
     S6CertificationMaterializationDenial, S6CertifiedQueueExecutionEvidence,
     S6FlushDurabilityEvidenceRow, S6ForegroundReservationCertificationEvidence,
     S6IoPressureHarnessCloseoutEvidence, S6LatencyInterferenceEvidence,
-    S6LaterReadinessHandoffCertification, S6MaterializedCounterStrength,
+    S6MaterializedCounterStrength,
 };
 
 use super::binding::S6StoreExecutionEvidenceBinding;
@@ -24,7 +24,6 @@ pub enum S6PostAdmissionViolationFamily {
     BackgroundPacing,
     AccessPolicy,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum S6PostAdmissionViolationCause {
     QueueExecution(QueueExecutionViolationCause),
@@ -52,7 +51,6 @@ pub struct StoreOwnedS6CertificationMaterializationSources {
     flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
     harness_closeout: S6IoPressureHarnessCloseoutEvidence,
     qualification_matrix: S6BackendQualificationMatrixCertification,
-    later_handoffs: S6LaterReadinessHandoffCertification,
     latency_interference: Option<S6LatencyInterferenceEvidence>,
 }
 
@@ -69,7 +67,6 @@ pub(crate) struct S6CertificationEvidenceSources {
     flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
     harness_closeout: S6IoPressureHarnessCloseoutEvidence,
     qualification_matrix: S6BackendQualificationMatrixCertification,
-    later_handoffs: S6LaterReadinessHandoffCertification,
     latency_interference: Option<S6LatencyInterferenceEvidence>,
 }
 
@@ -139,12 +136,10 @@ impl StoreOwnedS6CertificationMaterializationSources {
         flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
         harness_closeout: S6IoPressureHarnessCloseoutEvidence,
         qualification_matrix: S6BackendQualificationMatrixCertification,
-        later_handoffs: S6LaterReadinessHandoffCertification,
         latency_interference: Option<S6LatencyInterferenceEvidence>,
     ) -> Result<Self, S6CertificationMaterializationDenial> {
         reject_backend_mismatch(&backend_witness, foreground_receipt, secure_io_preservation)?;
         reject_access_policy_mismatch(&backend_witness, foreground_receipt, &access_policy_rows)?;
-        reject_later_handoff_mismatch(&backend_witness, &later_handoffs)?;
         let post_admission_violations = derive_post_admission_violations(
             &queue_outcome,
             background_outcome,
@@ -161,7 +156,6 @@ impl StoreOwnedS6CertificationMaterializationSources {
             flush_durability,
             harness_closeout,
             qualification_matrix,
-            later_handoffs,
             latency_interference,
         })
     }
@@ -262,7 +256,6 @@ impl S6CertificationEvidenceSources {
                 &sources.flush_durability,
                 &sources.harness_closeout,
                 &sources.qualification_matrix,
-                &sources.later_handoffs,
             )?,
             backend_admission,
             foreground_reservation,
@@ -274,7 +267,6 @@ impl S6CertificationEvidenceSources {
             flush_durability: sources.flush_durability,
             harness_closeout: sources.harness_closeout,
             qualification_matrix: sources.qualification_matrix,
-            later_handoffs: sources.later_handoffs,
             latency_interference: sources.latency_interference,
         })
     }
@@ -321,10 +313,6 @@ impl S6CertificationEvidenceSources {
 
     pub const fn qualification_matrix(&self) -> &S6BackendQualificationMatrixCertification {
         &self.qualification_matrix
-    }
-
-    pub const fn later_handoffs(&self) -> &S6LaterReadinessHandoffCertification {
-        &self.later_handoffs
     }
 
     pub const fn latency_interference(&self) -> Option<&S6LatencyInterferenceEvidence> {
@@ -379,19 +367,6 @@ fn reject_access_policy_mismatch(
                 );
             }
         }
-    }
-    Ok(())
-}
-
-fn reject_later_handoff_mismatch(
-    backend_witness: &AdmittedBackendCapabilityWitness,
-    handoffs: &S6LaterReadinessHandoffCertification,
-) -> Result<(), S6CertificationMaterializationDenial> {
-    let operator = handoffs.operator();
-    if operator.backend_profile() != backend_witness.profile()
-        || operator.backend_evidence_class() != backend_witness.evidence_class()
-    {
-        return Err(S6CertificationMaterializationDenial::StoreEvidenceBackendBindingMismatch);
     }
     Ok(())
 }

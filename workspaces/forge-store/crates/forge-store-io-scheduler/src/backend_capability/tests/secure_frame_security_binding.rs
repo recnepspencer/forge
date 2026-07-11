@@ -1,9 +1,6 @@
 use forge_store_physical_backend::{BackendCapabilityKind, BackendCapabilitySupportPosture};
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness,
-    admitted_store_internal_security_scope_for_s6_test,
-    admitted_wrong_s6_io_qos_security_scope_for_test, S51LaterMilestoneHandoffDenial,
-    S51SecurityScopeReadinessReservation,
+    admitted_wrong_s6_io_qos_security_scope_for_test,
 };
 
 use super::support::{
@@ -13,7 +10,7 @@ use super::support::{
 use crate::{
     admit_backend_capability_for_scheduler_claim,
     admit_secure_frame_backend_capability_for_scheduler_claim, IoSchedulerBackendCapabilityDenial,
-    IoSchedulerBackendCapabilityRequirement, SchedulerSecurityScopeEvidence,
+    IoSchedulerBackendCapabilityRequirement, IoSchedulerSecurityScopeAdmissionDenial,
 };
 
 #[test]
@@ -55,34 +52,14 @@ fn secure_frame_claim_admits_through_s5_1_security_scope_handoff() {
 }
 
 #[test]
-fn secure_frame_claim_rejects_wrong_s5_1_handoff_family() {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-
-    let denial = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect_err("wrong S.5.1 readiness family must not hand off to S.6 IoQos");
-
-    assert!(matches!(
-        denial,
-        S51LaterMilestoneHandoffDenial::WrongReadinessFamily { .. }
-    ));
-}
-
-#[test]
 fn secure_frame_claim_rejects_wrong_s5_1_scope_identity() {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_wrong_s6_io_qos_security_scope_for_test(),
-    );
-
-    let denial = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect_err("wrong admitted security identity must not hand off to S.6 IoQos");
+    let security_scope = admitted_wrong_s6_io_qos_security_scope_for_test();
+    let denial = crate::admit_security_scope_for_scheduler(&security_scope)
+        .expect_err("wrong admitted security identity must not enter scheduler use");
 
     assert!(matches!(
         denial,
-        S51LaterMilestoneHandoffDenial::WrongKeyScope { .. }
+        IoSchedulerSecurityScopeAdmissionDenial::WrongKeyScope { .. }
     ));
 }
 

@@ -12,15 +12,13 @@ use forge_store_physical_backend::{
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness,
-    admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
-    StoreSecurityScopeIdentity,
+    admitted_store_internal_security_scope_for_s6_test, StoreSecurityScopeIdentity,
 };
 
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_security_scope_for_scheduler,
     admit_secure_frame_backend_capability_for_scheduler_claim,
-    admit_store_published_isolation_capability, SchedulerSecurityScopeEvidence,
+    admit_store_published_isolation_capability,
 };
 
 use super::{
@@ -318,13 +316,9 @@ fn backend_evidence_basis(
 }
 
 fn security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted_store_internal_security_scope_for_s6_test(),
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("test S.5.1 security handoff should admit");
-    admit_security_scope_for_scheduler(handoff)
+    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("test security scope should admit for scheduler use")
 }
 
 fn point_read_budget() -> ForegroundResourceBudget {

@@ -20,26 +20,6 @@
 //! let _readiness: BackupExportCustodyReadiness = observed;
 //! ```
 //!
-//! Generic S.5.1 readiness cannot construct backup/export custody readiness:
-//!
-//! ```compile_fail
-//! use forge_store_operations::BackupExportCustodyReadiness;
-//! use forge_store_readiness::S51AdmittedSecurityScopeReadiness;
-//!
-//! let readiness: S51AdmittedSecurityScopeReadiness = todo!();
-//! let _custody = BackupExportCustodyReadiness::from_admitted_readiness(readiness, None, todo!());
-//! ```
-//!
-//! S.5.1 security-scope readiness still cannot bypass custody preparation:
-//!
-//! ```compile_fail
-//! use forge_store_operations::BackupExportTerminalProjectionPreparation;
-//! use forge_store_readiness::S51AdmittedSecurityScopeReadiness;
-//!
-//! let readiness: S51AdmittedSecurityScopeReadiness = todo!();
-//! let _projection: BackupExportTerminalProjectionPreparation = readiness;
-//! ```
-//!
 //! Counters are evidence, not authority:
 //!
 //! ```compile_fail
@@ -114,7 +94,6 @@ mod repair_quarantine_readiness;
 #[cfg(test)]
 mod repair_quarantine_readiness_tests;
 mod replication_prep_scheduler_demand;
-mod s10_later_io_readiness;
 mod s8_runtime_receipt;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
@@ -145,7 +124,6 @@ pub use layout_access::backup_family::BackupLayoutEvidenceReport;
 pub use layout_access::capsule_operation_family::CapsuleOperationLayoutReport;
 pub use layout_access::export_family::ExportLayoutEvidenceReport;
 pub use layout_access::import_family::ImportLayoutEvidenceReport;
-pub use layout_access::operations_layout_closeout::OperationsLayoutCloseout;
 pub use layout_access::restore_family::RestoreLayoutEvidenceReport;
 pub use recovery_posture::OperationalRecoveryPosture;
 pub use repair_blast_radius_counters::RepairBlastRadiusCounterSnapshot;
@@ -159,11 +137,6 @@ pub use repair_blast_radius_readiness::RepairBlastRadiusReadiness;
 pub use repair_blast_radius_scheduler_demand::repair_background_pressure_shape;
 pub use repair_quarantine_readiness::RepairQuarantineScopePreservation;
 pub use replication_prep_scheduler_demand::replication_prep_background_pressure_shape;
-pub use s10_later_io_readiness::{
-    admit_s10_backup_export_io_readiness_seed, admit_s10_compaction_io_readiness_seed,
-    admit_s10_repair_scan_io_readiness_seed, S10BackupExportIoReadinessSeed,
-    S10CompactionIoReadinessSeed, S10RepairScanIoReadinessSeed,
-};
 #[cfg(feature = "certification-test-authority")]
 pub use s8_runtime_receipt::s8_security_custody_export_runtime_receipt_for_certification_test;
 pub use s8_runtime_receipt::S8SecurityCustodyExportRuntimeReceipt;

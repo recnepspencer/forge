@@ -90,23 +90,23 @@ impl S51CloseoutCounterMatrix {
                 transcript.counters().replay_denials_before_logical_decode();
         }
 
-        let handoff_counters = input.security_foundation_handoff().counters();
-        matrix.handoff_attempts = handoff_counters.handoff_attempts();
-        matrix.handoff_admitted = handoff_counters.admitted_count();
+        let scope_counters = input.security_scope().receipt().counters();
+        matrix.handoff_attempts = scope_counters.requests();
+        matrix.handoff_admitted = scope_counters.witnesses_issued();
         expect(
             "s5_1.closeout.handoff.denied",
             0,
-            handoff_counters.denied_count(),
+            scope_counters.denials(),
         )?;
         expect(
             "s5_1.closeout.handoff.unsupported",
             0,
-            handoff_counters.unsupported_count(),
+            scope_counters.unsupported_postures(),
         )?;
         expect(
             "s5_1.closeout.handoff.unavailable",
             0,
-            handoff_counters.unavailable_count(),
+            scope_counters.unavailable_postures(),
         )?;
         Ok(matrix)
     }

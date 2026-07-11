@@ -6,7 +6,7 @@
 //! - **Stable-read evidence** enters through released [`BlobCompactionReadHold`] matched to
 //!   [`CompactionReadInterlockPlan`].
 //! - **I/O admission evidence** enters through [`BlobCompactionS6Pacing`] — prefer
-//!   [`BlobCompactionS6Pacing::from_s10_handoff`] from [`S10CompactionIoReadinessHandoff`] with
+//!   [`BlobCompactionS6Pacing::from_scheduler_capability`] from scheduler pacing capability with
 //!   readmission verification; certification paths may use [`BlobCompactionS6Pacing::admitted_compaction`].
 //! - **Cold-tier posture** enters through [`BlobCompactionColdReadiness`] classified via tiering
 //!   [`cold_posture_permits_compaction`].

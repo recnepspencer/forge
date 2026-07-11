@@ -10,7 +10,7 @@ use forge_foundational::{
     FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
 };
 use forge_proof::TransitionOutcome;
-use forge_store_readiness::{PhysicalFoundationEvidenceField, S51SecurityFoundationNonClaim};
+use forge_store_readiness::PhysicalFoundationEvidenceField;
 
 use super::{
     S51CertificationCloseoutDenial, S51CertificationCloseoutInput, S51CloseoutCounterMatrix,
@@ -50,7 +50,6 @@ impl S51CloseoutBoundaryEvidencePublication {
         counter_matrix: &S51CloseoutCounterMatrix,
         performance_receipts: &S51CloseoutPerformanceReceipts,
     ) -> Result<Self, S51CertificationCloseoutDenial> {
-        require_security_foundation_non_claims(input)?;
         let package = S51CloseoutFoundationalBoundaryPackage::from_counter_matrix_and_receipts(
             counter_matrix,
             performance_receipts,
@@ -222,25 +221,6 @@ impl S51CloseoutFoundationalBoundaryPackage {
             && self.native_aspect_evidence_rows == self.consumed_lower_store_evidence_rows
             && self.receipt_counter_family_count > 0
     }
-}
-
-fn require_security_foundation_non_claims(
-    input: &S51CertificationCloseoutInput,
-) -> Result<(), S51CertificationCloseoutDenial> {
-    let non_claims = input.security_foundation_handoff().non_claims();
-    for required in [
-        S51SecurityFoundationNonClaim::Encryption,
-        S51SecurityFoundationNonClaim::KeyRotation,
-        S51SecurityFoundationNonClaim::Audit,
-        S51SecurityFoundationNonClaim::OperatorAuthorization,
-    ] {
-        if !non_claims.contains(&required) {
-            return Err(
-                S51CertificationCloseoutDenial::MissingSecurityFoundationNonClaim(required),
-            );
-        }
-    }
-    Ok(())
 }
 
 fn required_s5_1_foundational_fields() -> [PhysicalFoundationEvidenceField; 6] {

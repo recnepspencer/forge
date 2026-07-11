@@ -10,13 +10,12 @@ pub mod authority;
 mod capsule_readiness_provenance;
 pub mod courtroom;
 pub mod evidence;
-pub mod s8_layout_closeout;
 pub mod s8_runtime_matrix;
 
 include!("internal_modules.rs");
 mod public_api;
 
 pub use capsule_readiness_provenance::{
-    certify_s7_capsule_readiness, S7CapsuleReadinessCertificationReport,
+    certify_blob_capsule_readiness, BlobCapsuleReadinessCertificationReport,
 };
 pub use public_api::*;

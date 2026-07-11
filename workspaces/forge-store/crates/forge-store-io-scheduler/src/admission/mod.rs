@@ -11,5 +11,5 @@ pub use isolation::{
 pub use isolation_denial::IoSchedulerIsolationAdmissionDenial;
 pub use security_scope::{
     admit_security_scope_for_scheduler, IoSchedulerSecurityScopeAdmission,
-    SchedulerSecurityScopeCapability, SchedulerSecurityScopeEvidence,
+    IoSchedulerSecurityScopeAdmissionDenial, SchedulerSecurityScopeCapability,
 };

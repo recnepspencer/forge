@@ -1,18 +1,8 @@
 use forge_store_certification::{
-    certify_s6_backend_qualification_matrix, certify_s6_later_readiness_handoffs,
-    S6CertificationMaterializationDenial, S6IoPressureHarnessCloseoutEvidence,
-    StoreOwnedS6CertificationMaterializationSources,
+    certify_s6_backend_qualification_matrix, S6CertificationMaterializationDenial,
+    S6IoPressureHarnessCloseoutEvidence, StoreOwnedS6CertificationMaterializationSources,
 };
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
-use forge_store_io_scheduler::{
-    admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    background_pacing_outcome_for_later_readiness_certification_test,
-    publish_s10_backup_export_io_readiness_handoff, publish_s10_compaction_io_readiness_handoff,
-    publish_s10_repair_scan_io_readiness_handoff, publish_s11_operator_io_readiness_handoff,
-    publish_s7_placement_io_readiness_handoff, BackgroundIoPressureClass,
-    S10BackupExportPacingEvidence, S10CompactionPacingEvidence, S10RepairScanPacingEvidence,
-    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest,
-};
 use forge_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
     BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
@@ -45,17 +35,6 @@ pub fn sources_with_access_policy_backend_mismatch(
     from_parts_with_access_policy(
         super::backend_witness(),
         super::access_policy_evidence::access_policy_rows_for_backend(&access_backend),
-    )
-}
-
-pub fn sources_with_later_handoff_backend_mismatch(
-) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
-    from_parts_with_later_handoffs(
-        super::backend_witness(),
-        later_handoffs_for_operator_backend(&mismatched_backend_witness(
-            BackendTargetProfile::WindowsFlushFileBuffers,
-            BackendCapabilityEvidenceBasis::certified_backend_profile(),
-        )),
     )
 }
 
@@ -106,18 +85,9 @@ fn from_parts_with_access_policy(
     witness: AdmittedBackendCapabilityWitness,
     access_rows: Vec<forge_store_certification::S6AccessPolicyEvidenceRow>,
 ) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
-    from_parts_with_later_handoffs_and_access(witness, super::later_handoffs(), access_rows)
-}
-
-fn from_parts_with_later_handoffs(
-    witness: AdmittedBackendCapabilityWitness,
-    later: forge_store_certification::S6LaterReadinessHandoffCertification,
-) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
-    from_parts_with_later_handoffs_and_access(
-        witness,
-        later,
-        super::access_policy_evidence::access_policy_rows(),
-    )
+    let harness = super::harness_evidence();
+    let qualification = qualification_for_harness(&harness);
+    from_parts_full(witness, access_rows, qualification)
 }
 
 fn from_parts_with_qualification(
@@ -126,20 +96,9 @@ fn from_parts_with_qualification(
 ) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
     from_parts_full(
         witness,
-        super::later_handoffs(),
         super::access_policy_evidence::access_policy_rows(),
         qualification,
     )
-}
-
-fn from_parts_with_later_handoffs_and_access(
-    witness: AdmittedBackendCapabilityWitness,
-    later: forge_store_certification::S6LaterReadinessHandoffCertification,
-    access_rows: Vec<forge_store_certification::S6AccessPolicyEvidenceRow>,
-) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
-    let harness = super::harness_evidence();
-    let qualification = qualification_for_harness(&harness);
-    from_parts_full(witness, later, access_rows, qualification)
 }
 
 fn qualification_for_harness(
@@ -157,7 +116,6 @@ fn qualification_for_harness(
 
 fn from_parts_full(
     witness: AdmittedBackendCapabilityWitness,
-    later: forge_store_certification::S6LaterReadinessHandoffCertification,
     access_rows: Vec<forge_store_certification::S6AccessPolicyEvidenceRow>,
     qualification: forge_store_certification::S6BackendQualificationMatrixCertification,
 ) -> Result<StoreOwnedS6CertificationMaterializationSources, S6CertificationMaterializationDenial> {
@@ -166,70 +124,15 @@ fn from_parts_full(
     StoreOwnedS6CertificationMaterializationSources::from_bound_store_execution(
         witness,
         admitted_point_read_reservation_for_certification_test(),
-        background_pacing_outcome_for_later_readiness_certification_test(
-            BackgroundIoPressureClass::RepairScan,
-        ),
+        super::background_pacing_outcome(),
         super::queue_outcome(),
         super::secure_io_preservation(&security),
         access_rows,
         vec![super::durability_evidence::flush_row()],
         S6IoPressureHarnessCloseoutEvidence::from_harness_evidence(harness),
         qualification,
-        later,
         None,
     )
-}
-
-fn later_handoffs_for_operator_backend(
-    witness: &AdmittedBackendCapabilityWitness,
-) -> forge_store_certification::S6LaterReadinessHandoffCertification {
-    let readiness = super::scheduler_readiness();
-    let security = super::security_scope();
-    let backend =
-        admit_secure_frame_backend_capability_for_scheduler_claim(witness, &security).unwrap();
-    let placement = publish_s7_placement_io_readiness_handoff(&readiness);
-    let compaction = publish_s10_compaction_io_readiness_handoff(
-        &readiness,
-        S10CompactionPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::CompactionRewrite,
-            ),
-        )
-        .unwrap(),
-    );
-    let backup = publish_s10_backup_export_io_readiness_handoff(
-        &readiness,
-        S10BackupExportPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::BackupPrepRead,
-            ),
-        )
-        .unwrap(),
-    );
-    let repair = publish_s10_repair_scan_io_readiness_handoff(
-        &readiness,
-        S10RepairScanPacingEvidence::from_background_pacing(
-            background_pacing_outcome_for_later_readiness_certification_test(
-                BackgroundIoPressureClass::RepairScan,
-            ),
-        )
-        .unwrap(),
-    );
-    let operator = publish_s11_operator_io_readiness_handoff(
-        &readiness,
-        &security,
-        admit_secure_io_scope_for_scheduler(
-            SecureIoPreservationRequest::new(
-                SecureIoOperation::VerificationPressure,
-                &security,
-                &backend,
-            )
-            .require_posture(SecureIoPostureRequirement::SecureFrameCompatible),
-        )
-        .unwrap(),
-    )
-    .unwrap();
-    certify_s6_later_readiness_handoffs(&placement, &compaction, &backup, &repair, &operator)
 }
 
 fn mismatched_backend_witness(

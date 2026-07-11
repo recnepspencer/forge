@@ -5,7 +5,7 @@ use forge_store_layout_indexes::layout_strategy_admission::{
     phase26_tier_placement_rule, AdmittedTierPlacementLayoutRule,
 };
 
-use crate::S7PlacementIoReadinessSeed;
+use crate::TierPlacementIoAdmission;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct TierPlacementLayoutFamilyHome;
@@ -38,7 +38,7 @@ pub struct TierPlacementLayoutReport {
     access_shape: S8AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: TierPlacementInterferencePosture,
-    seed: S7PlacementIoReadinessSeed,
+    admission: TierPlacementIoAdmission,
 }
 
 impl TierPlacementLayoutFamilyHome {
@@ -61,14 +61,14 @@ fn tier_placement_layout() -> AdmittedTierPlacementLayoutFamily {
 }
 
 impl AdmittedTierPlacementLayoutFamily {
-    fn admit_tier_placement(&self, seed: &S7PlacementIoReadinessSeed) -> TierPlacementLayoutReport {
+    fn admit_tier_placement(&self, admission: &TierPlacementIoAdmission) -> TierPlacementLayoutReport {
         let _ = self;
         TierPlacementLayoutReport {
             family_id: DurableArtifactFamilyId::TierPlacementManifest,
             access_shape: S8AccessShape::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::RebuildFromAuthoritativeState,
             interference_posture: TierPlacementInterferencePosture::PublishedSchedulerCounters,
-            seed: seed.clone(),
+            admission: admission.clone(),
         }
     }
 }
@@ -92,30 +92,34 @@ impl TierPlacementLayoutReport {
 
     pub fn declared_budget(&self) -> TierPlacementAccessBudget {
         TierPlacementAccessBudget {
-            reclaim_permits: self.seed.cold_tier_posture().reclaim_permit().permits(),
+            reclaim_permits: self.admission.cold_tier_posture().reclaim_permit().permits(),
             blocked_maintenance_count: self
-                .seed
-                .handoff()
+                .admission
+                .scheduler()
                 .background_maintenance()
                 .blocked_maintenance_count(),
-            protected_byte_footprint: self.seed.handoff().counters().protected_byte_footprint(),
+            protected_byte_footprint: self
+                .admission
+                .scheduler()
+                .counters()
+                .protected_byte_footprint(),
         }
     }
 
     pub const fn exact_counters(&self) -> IoSchedulerIsolationCounterSnapshot {
-        self.seed.handoff().counters()
+        self.admission.scheduler().counters()
     }
 
     pub fn security_scope(&self) -> forge_store_security::StoreSecurityScopeIdentity {
-        self.seed.cold_tier_posture().security_scope()
+        self.admission.cold_tier_posture().security_scope()
     }
 
     pub fn interpretation(&self) -> forge_store_physical_format::ReclaimedByteInterpretation {
-        self.seed.cold_tier_posture().interpretation()
+        self.admission.cold_tier_posture().interpretation()
     }
 
     pub fn reclaim_region(&self) -> forge_store_physical_format::PhysicalReclaimRegion {
-        self.seed.cold_tier_posture().reclaim_region()
+        self.admission.cold_tier_posture().reclaim_region()
     }
 }
 
@@ -133,7 +137,7 @@ impl TierPlacementAccessBudget {
     }
 }
 
-impl S7PlacementIoReadinessSeed {
+impl TierPlacementIoAdmission {
     pub fn admit_tier_placement_layout(&self) -> TierPlacementLayoutReport {
         tier_placement_layout().admit_tier_placement(self)
     }

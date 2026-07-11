@@ -3,13 +3,13 @@ use crate::{
     S2BoundaryDenialKind,
 };
 use forge_store_buffer_pool::BackgroundWorkClass;
-use forge_store_readiness::{
+use forge_store_contracts::{
     BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
     ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S2DeniedBoundaryKind, S2NoMaterializationWitness, S2PhysicalSubstrateReadiness,
-    S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial,
-    ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    S2DeniedBoundaryKind, S2NoMaterializationWitness, S3PhysicalIntegrityReadinessPayload,
+    S3ReadinessDenial, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
+use forge_store_readiness::{S2PhysicalSubstrateReadiness, S3PhysicalIntegrityReadiness};
 
 impl BoundedMemoryCloseoutReport {
     pub fn publish_s3_physical_integrity_readiness(

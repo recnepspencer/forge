@@ -2,8 +2,7 @@ use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_offline_verifier::OfflineCustodyCapsuleObservation;
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
-    readmit_trust_boundary_security_scope_declaration, S51SecurityScopeReadinessReservation,
+    admit_store_security_scope, readmit_trust_boundary_security_scope_declaration,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
@@ -79,13 +78,9 @@ impl BackupImportCustodyReadmission {
                 })
             }
         };
-        let readiness = accept_s5_1_admitted_security_scope_readiness(
-            S51SecurityScopeReadinessReservation::backup_export_custody(),
-            admitted,
-        );
         Ok(
             BackupExportCustodyAdmission::from_trust_boundary_readmission(
-                readiness,
+                admitted,
                 counters.readmitted().record_custody_admitted(),
             ),
         )

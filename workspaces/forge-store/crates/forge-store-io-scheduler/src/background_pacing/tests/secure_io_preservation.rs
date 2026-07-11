@@ -43,16 +43,12 @@ fn secure_scope_pressure_rejects_wrong_operation_receipts() {
 
 #[test]
 fn secure_scope_pressure_rejects_wrong_security_scope_receipts() {
-    let readiness = forge_store_readiness::accept_s5_1_admitted_security_scope_readiness(
-        forge_store_readiness::S51SecurityScopeReadinessReservation::io_qos(),
-        forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test(),
-    );
-
-    let denial = crate::SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect_err("wrong S.5.1 scope must not mint an S.6 secure-I/O handoff");
+    let security_scope = forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test();
+    let denial = crate::admit_security_scope_for_scheduler(&security_scope)
+        .expect_err("wrong security scope must not enter scheduler use");
     assert!(matches!(
         denial,
-        forge_store_security::S51LaterMilestoneHandoffDenial::WrongKeyScope { .. }
+        crate::IoSchedulerSecurityScopeAdmissionDenial::WrongKeyScope { .. }
     ));
 }
 

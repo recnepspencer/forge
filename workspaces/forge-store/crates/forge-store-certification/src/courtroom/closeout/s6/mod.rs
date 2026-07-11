@@ -3,15 +3,14 @@
 pub use crate::s6::{
     certify_s6_backend_capability_admission, certify_s6_backend_qualification_matrix,
     certify_s6_background_pacing, certify_s6_foreground_reservation,
-    certify_s6_later_readiness_handoffs, publish_s6_backend_capability_readiness,
+    publish_s6_backend_capability_readiness,
     S6BackendCapabilityAdmissionCertificationEvidence, S6BackendCapabilityReadinessPublication,
     S6BackendQualificationMatrixCertification, S6BackendQualificationRowOutcome,
     S6BackgroundPacingCertificationDenial, S6BackgroundPacingCertificationEvidence,
-    S6BackgroundPacingOutcomeKind, S6BackupExportHandoffEvidence, S6CompactionHandoffEvidence,
+    S6BackgroundPacingOutcomeKind,
     S6ForegroundReservationCertificationDenial, S6ForegroundReservationCertificationEvidence,
-    S6IoQosReadinessHandoffMaterializationDenial, S6LaterReadinessHandoffCertification,
-    S6OperatorHandoffEvidence, S6PlacementHandoffEvidence, S6ReclaimPolicyEvidenceOutcomeKind,
-    S6ReclaimPolicyEvidenceRow, S6RepairScanHandoffEvidence,
+    S6IoQosReadinessHandoffMaterializationDenial, S6ReclaimPolicyEvidenceOutcomeKind,
+    S6ReclaimPolicyEvidenceRow,
 };
 pub use crate::s6_evidence_materialization::{
     adopt_materialized_s6_certification_evidence_for_closeout,
@@ -32,9 +31,8 @@ pub use crate::s6_io_pressure_harness_closeout::{
 pub use crate::s6_latency_interference::{
     S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
 };
-pub use crate::s6_phase::{
+pub use crate::{
     S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow,
     S6CertifiedQueueExecutionEvidence, S6FlushDurabilityEvidenceRow,
     S6QueueExecutionCertificationDenial,
 };
-pub use forge_store_readiness::{S6ResidualDebtKind, S6ResidualDebtLedger, S6ResidualDebtRow};

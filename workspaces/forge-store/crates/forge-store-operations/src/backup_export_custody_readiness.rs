@@ -1,6 +1,5 @@
 use forge_store_security::{
-    S51AdmittedSecurityScopeReadiness, S51SecurityScopeReadinessFamily,
-    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
     StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
@@ -23,8 +22,8 @@ impl BackupExportCustodyReadiness {
     ) -> Result<Self, BackupExportCustodyDenial> {
         let counters = admission.counters();
         let mode = admission.mode();
-        let readiness = admission.into_readiness();
-        Self::from_admitted_readiness(readiness, mode, counters)
+        let security_scope = admission.into_security_scope();
+        Self::from_admitted_scope(security_scope, mode, counters)
     }
 
     pub fn from_s10_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
@@ -37,13 +36,12 @@ impl BackupExportCustodyReadiness {
         }
     }
 
-    pub(crate) fn from_admitted_readiness(
-        readiness: S51AdmittedSecurityScopeReadiness,
+    pub(crate) fn from_admitted_scope(
+        security_scope: StoreAdmittedSecurityScope,
         mode: Option<crate::BackupExportCustodyMode>,
         counters: BackupExportCustodyCounterSnapshot,
     ) -> Result<Self, BackupExportCustodyDenial> {
-        reject_wrong_family(&readiness, counters)?;
-        let identity = readiness.receipt().identity();
+        let identity = security_scope.identity();
         reject_wrong_key_scope(identity, counters)?;
         reject_wrong_tenant_scope(identity, counters)?;
         reject_wrong_authenticity(identity, counters)?;
@@ -52,7 +50,7 @@ impl BackupExportCustodyReadiness {
         Ok(Self {
             mode,
             identity,
-            receipt: readiness.receipt(),
+            receipt: security_scope.receipt(),
             counters,
         })
     }
@@ -84,21 +82,6 @@ impl BackupExportCustodyReadiness {
 
     pub const fn receipt(&self) -> StoreSecurityScopeAdmissionReceipt {
         self.receipt
-    }
-}
-
-fn reject_wrong_family(
-    readiness: &S51AdmittedSecurityScopeReadiness,
-    counters: BackupExportCustodyCounterSnapshot,
-) -> Result<(), BackupExportCustodyDenial> {
-    let actual = readiness.reservation().family();
-    if actual == S51SecurityScopeReadinessFamily::BackupExportCustody {
-        Ok(())
-    } else {
-        Err(BackupExportCustodyDenial::WrongReadinessFamily {
-            actual,
-            counters: counters.denied(),
-        })
     }
 }
 

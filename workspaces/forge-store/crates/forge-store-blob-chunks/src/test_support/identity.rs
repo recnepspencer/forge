@@ -9,8 +9,7 @@ use forge_store_aspect_native::{
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
-    S51AdmittedSecurityScopeReadiness, S51SecurityScopeReadinessReservation,
+    admit_store_security_scope,
     StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
     StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionOutcome,
@@ -66,28 +65,7 @@ pub(crate) fn blob_scope_from_parts(
         authenticity,
         custody,
     );
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted,
-    );
-    BlobChunkSecurityScope::from_s5_1_readiness(readiness)
-}
-
-pub(crate) fn non_blob_family_readiness(identity_key: &str) -> S51AdmittedSecurityScopeReadiness {
-    let admitted = admitted_security_scope(
-        identity_key,
-        StoreKeyScope::BlobChunkEnvelope,
-        StoreKeyVersionPosture::Current,
-        StoreTenantScope::TenantPhysicalBoundary,
-        StoreAuthenticityRequirement::required(
-            forge_store_security::StoreAuthenticityRequirementClass::AuthenticatedBlobChunk,
-        ),
-        StoreCustodyPosture::InternalStoreCustody,
-    );
-    accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        admitted,
-    )
+    BlobChunkSecurityScope::from_admitted_security_scope(admitted)
 }
 
 pub(crate) fn security_scope_admission_outcome(

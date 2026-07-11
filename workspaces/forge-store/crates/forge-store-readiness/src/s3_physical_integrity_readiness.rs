@@ -1,6 +1,6 @@
-use crate::{
-    S2PhysicalSubstrateReadiness, S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial,
-    S3ReadinessDenialKind,
+use crate::S2PhysicalSubstrateReadiness;
+use forge_store_contracts::{
+    S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial, S3ReadinessDenialKind,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -57,14 +57,15 @@ fn require_physical_recap_matches_s2_facts(
 mod tests {
     use crate::{
         close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-        BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
-        ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-        S2DeniedBoundaryKind, S2NoMaterializationWitness, S2PhysicalSubstrateReadiness,
-        S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload, S3ReadinessDenialKind,
-        ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+        S2PhysicalSubstrateReadiness, S3PhysicalIntegrityReadiness,
     };
     use forge_store_contracts::{
-        AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+        AcceptedHandoffReadiness, BufferPoolAuthorityRecap, HandoffEvidenceDigestSet,
+        IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap, ProtectedIntegrityViewCapability,
+        S2BoundedCounterRecap, S2DenialBehaviorRecap, S2DeniedBoundaryKind,
+        S2NoMaterializationWitness, S3PhysicalIntegrityReadinessPayload, S3ReadinessDenialKind,
+        ScrubPlanningAllocationEnvelope, StableDigest, VerifierResidentEnvelope,
+        ROADMAP_2_S1_SCOPE,
     };
 
     #[test]

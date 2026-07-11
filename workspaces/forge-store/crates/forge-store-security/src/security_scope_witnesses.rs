@@ -184,8 +184,4 @@ impl StoreAdmittedSecurityScope {
     pub const fn identity(&self) -> StoreSecurityScopeIdentity {
         self.receipt.identity()
     }
-
-    pub fn into_witnesses_for_readiness_handoff(self) -> StoreCurrentSecurityScopeWitnessSet {
-        self.witnesses
-    }
 }

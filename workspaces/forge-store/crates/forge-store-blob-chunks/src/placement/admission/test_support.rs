@@ -1,4 +1,4 @@
-use forge_store_io_scheduler::s7_placement_io_readiness_handoff_for_certification_test;
+use forge_store_io_scheduler::IoSchedulerIsolationAdmission;
 use forge_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
     BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
@@ -17,9 +17,7 @@ use forge_store_physical_backend::{
     StoreOwnedBlobBackendResidueScan, StoreOwnedBlobPhysicalManifestTraversal,
     StoreOwnedExternalPlacementCleanup, StoreOwnedExternalPlacementRecoveryProbe,
 };
-use forge_store_tiering::{
-    admit_s7_placement_io_readiness_seed, S7ColdPlacementState, S7PlacementIoReadinessSeed,
-};
+use forge_store_tiering::{admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission};
 
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority,
@@ -101,14 +99,11 @@ pub(crate) fn external_recovery_for_digest_and_scope(
 
 pub(crate) fn readiness(
     reachability: &BlobChunkReachabilityProofSet,
-) -> S7PlacementIoReadinessSeed {
+) -> TierPlacementIoAdmission {
     let cold_posture = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
         reachability.security_metadata().identity(),
     );
-    admit_s7_placement_io_readiness_seed(
-        s7_placement_io_readiness_handoff_for_certification_test(),
-        cold_posture,
-    )
+    admit_tier_placement_io(IoSchedulerIsolationAdmission::for_certification_test(), cold_posture)
 }
 
 pub(crate) fn admitted_backend() -> AdmittedBackendCapabilityWitness {

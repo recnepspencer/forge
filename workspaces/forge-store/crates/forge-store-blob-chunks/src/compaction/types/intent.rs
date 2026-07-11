@@ -6,7 +6,7 @@ use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobChunkRegisteredDedupeReference,
     BlobChunkRootPublication, BlobCorruptionGuard, LifecycleReceipt,
 };
-use forge_store_io_scheduler::S10CompactionIoReadinessHandoff;
+use forge_store_io_scheduler::BackgroundPacingCapability;
 use forge_store_physical_isolation::{CompactionReadInterlockDenial, CompactionReadInterlockPlan};
 use forge_store_tiering::S7ColdPlacementState;
 
@@ -78,12 +78,13 @@ impl BlobCompactionIntent {
         self
     }
 
-    pub fn with_s10_io_pacing(
+    pub fn with_scheduler_pacing(
         mut self,
-        handoff: &S10CompactionIoReadinessHandoff,
+        capability: BackgroundPacingCapability,
         foreground_yields: u64,
     ) -> Self {
-        self.pacing = BlobCompactionS6Pacing::from_s10_handoff(handoff, foreground_yields);
+        self.pacing =
+            BlobCompactionS6Pacing::from_scheduler_capability(capability, foreground_yields);
         self
     }
 

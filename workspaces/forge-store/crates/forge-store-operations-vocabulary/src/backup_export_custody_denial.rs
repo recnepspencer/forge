@@ -1,16 +1,12 @@
 use forge_store_security::{
-    S51SecurityScopeReadinessFamily, StoreAuthenticityRequirement, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionDenial, StoreTenantScope,
+    StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionDenial, StoreTenantScope,
 };
 
 use crate::{BackupExportCustodyCounterSnapshot, BackupExportCustodyMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackupExportCustodyDenial {
-    WrongReadinessFamily {
-        actual: S51SecurityScopeReadinessFamily,
-        counters: BackupExportCustodyCounterSnapshot,
-    },
     WrongKeyScope {
         actual: StoreKeyScope,
         counters: BackupExportCustodyCounterSnapshot,

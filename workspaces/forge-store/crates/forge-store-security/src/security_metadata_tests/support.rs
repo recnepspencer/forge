@@ -1,5 +1,5 @@
 use crate::{
-    admit_store_security_scope, StoreCurrentSecurityScopeWitnessSet, StoreCustodyPosture,
+    admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
     StoreKeyVersionPosture, StoreSecurityScopeAdmissionRequest,
 };
 use forge_foundational::{
@@ -19,7 +19,7 @@ pub(super) fn current_authority(identity_key: &str, value: &str) -> StoreCurrent
 
 pub(super) fn admitted_scope(
     authority: &StoreCurrentAuthorityWitness,
-) -> StoreCurrentSecurityScopeWitnessSet {
+) -> StoreAdmittedSecurityScope {
     let request = StoreSecurityScopeAdmissionRequest::platform_page_envelope(
         authority,
         StoreKeyVersionPosture::Current,
@@ -29,7 +29,7 @@ pub(super) fn admitted_scope(
         TransitionOutcome::Success(admitted) => admitted,
         outcome => panic!("platform scope should admit: {outcome:?}"),
     };
-    admitted.into_witnesses_for_readiness_handoff()
+    admitted
 }
 
 pub(super) fn physical_witness() -> StorePhysicalBoundaryWitness {

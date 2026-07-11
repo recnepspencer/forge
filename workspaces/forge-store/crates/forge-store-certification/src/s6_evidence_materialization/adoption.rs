@@ -4,7 +4,7 @@ use forge_store_physical_certification::{
     QualificationResidualDebtReason,
 };
 use forge_store_readiness::{
-    S6LaterMilestoneDestination, S6MaterializedCertificationAdoptionDenial,
+    S6MaterializedCertificationAdoptionDenial,
     S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
     S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
     S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
@@ -37,7 +37,6 @@ pub struct S6CertificationEvidenceAdoptionReceipt {
 pub enum S6CertificationRuntimeAuthorityDenial {
     CertificationEvidenceCannotAdmitForeground,
     CertificationEvidenceCannotAdmitBackground,
-    CertificationEvidenceCannotPublishLaterReadiness(S6LaterMilestoneDestination),
     CertificationEvidenceCannotStrengthenBackendCapability,
     CertificationEvidenceCannotSatisfyCloseout,
 }
@@ -79,7 +78,7 @@ pub fn closeout_receipt_from_bundle(
         6,
         bundle.profiles().authority_boundary()
             == S6FoundationalAuthorityBoundary::CertificationEvidenceOnly,
-        5,
+        4,
         readiness_counter_strengths(bundle),
         bundle.canonical().access_policy_rows(),
         bundle.canonical().post_admission_violation_rows(),
@@ -193,16 +192,16 @@ fn reject_unbound_closeout_evidence(
         || identity == 0
         || identity != evidence.proof_execution_identity_tag()
         || lane_mask != evidence.proof_lane_binding_mask()
-        || lane_mask.count_ones() != 11
+        || lane_mask.count_ones() != 10
         || evidence.profile_count() != 6
         || !evidence.profile_boundary_certification_only()
-        || evidence.performance_receipt_count() != 5
+        || evidence.performance_receipt_count() != 4
         || evidence.canonical_access_policy_rows() == 0
         || evidence.canonical_post_admission_violation_rows() == 0
         || proof.access_policy_rows() != evidence.canonical_access_policy_rows()
         || proof.post_admission_violation_rows()
             != evidence.canonical_post_admission_violation_rows()
-        || proof.readmission_boundaries() != 5
+        || proof.readmission_boundaries() != 0
         || !proof.checked_execution()
         || !evidence.proof_topology().is_checked_for_closeout(proof)
         || !has_required_residual_debt(evidence.residual_debt_rows())
@@ -238,7 +237,6 @@ impl From<S6CounterStrengthFamily> for S6ReadinessCertificationCounterFamily {
             S6CounterStrengthFamily::QueueExecution => Self::QueueExecution,
             S6CounterStrengthFamily::FlushDurability => Self::FlushDurability,
             S6CounterStrengthFamily::LatencyInterference => Self::LatencyInterference,
-            S6CounterStrengthFamily::LaterReadinessHandoff => Self::LaterReadinessHandoff,
             S6CounterStrengthFamily::SecureIoPreservation => Self::SecureIoPreservation,
             S6CounterStrengthFamily::AccessPolicy => Self::AccessPolicy,
             S6CounterStrengthFamily::PostAdmissionViolation => Self::PostAdmissionViolation,

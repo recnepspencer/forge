@@ -9,11 +9,22 @@ mod authenticity_result;
 mod authenticity_vocabulary;
 mod authenticity_witness;
 mod authority_source;
-pub mod layout_access;
+#[path = "layout_access/authenticity_family.rs"]
+mod authenticity_family;
+#[path = "layout_access/custody_family.rs"]
+mod custody_family;
+#[path = "layout_access/key_scope_family.rs"]
+mod key_scope_family;
+#[path = "layout_access/phase27_lookup_rule.rs"]
+mod phase27_lookup_rule;
+#[path = "layout_access/repair_blast_radius_family.rs"]
+mod repair_blast_radius_family;
+#[path = "layout_access/scope_partition_basis.rs"]
+mod scope_partition_basis;
+#[path = "layout_access/tenant_scope_family.rs"]
+mod tenant_scope_family;
 mod raw_security_declarations;
 mod repair_blast_radius;
-mod s5_1_later_milestone_handoff;
-mod s5_1_security_scope_readiness;
 mod scope_vocabulary;
 #[cfg(test)]
 mod security_authority_source_tests;
@@ -78,23 +89,21 @@ pub use authority_source::{
     classify_store_current_authority_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source, StoreSecurityAuthoritySource,
 };
-pub use layout_access::scope_partition_basis::{
+pub use authenticity_family::AuthenticityLayoutReport;
+pub use custody_family::CustodyLayoutReport;
+pub use key_scope_family::KeyScopeLayoutReport;
+pub use phase27_lookup_rule::{
+    AdmittedAuthenticityLayoutRule, AdmittedCustodyLayoutRule, AdmittedKeyScopeLayoutRule,
+    AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
+    SecurityCustodyLookupAccessShape,
+};
+pub use repair_blast_radius_family::{
+    RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
+};
+pub use scope_partition_basis::{
     admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
 };
-pub use layout_access::{
-    authenticity_family::AuthenticityLayoutReport,
-    custody_family::CustodyLayoutReport,
-    key_scope_family::KeyScopeLayoutReport,
-    phase27_lookup_rule::{
-        AdmittedAuthenticityLayoutRule, AdmittedCustodyLayoutRule, AdmittedKeyScopeLayoutRule,
-        AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
-        SecurityCustodyLookupAccessShape,
-    },
-    repair_blast_radius_family::{
-        RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
-    },
-    tenant_scope_family::TenantScopeLayoutReport,
-};
+pub use tenant_scope_family::TenantScopeLayoutReport;
 pub use raw_security_declarations::{
     evaluate_deserialized_security_scope_readmission,
     readmit_deserialized_security_scope_declaration, StoreApplicationOrgIdClaim, StoreIamRoleClaim,
@@ -106,13 +115,6 @@ pub use repair_blast_radius::{
     reject_repair_authority_source, repair_blast_radius_authenticity,
     repair_blast_radius_expectation, StoreRepairPhysicalRegionAdmissionOutcome,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness,
-};
-pub use s5_1_later_milestone_handoff::{
-    S51LaterMilestoneHandoffCounterSnapshot, S51LaterMilestoneHandoffDenial,
-};
-pub use s5_1_security_scope_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51AdmittedSecurityScopeReadiness,
-    S51SecurityScopeReadinessFamily, S51SecurityScopeReadinessReservation,
 };
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,

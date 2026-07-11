@@ -26,6 +26,7 @@ fn assert_projection_lowers_only_to_raw_readmission_input(
 ) {
     let authority = current_authority("s51.phase3.projection", source_label(source));
     let witnesses = admitted_scope(&authority);
+    let witnesses = witnesses.witnesses();
     let declaration = StoreRawSecurityMetadataDeclaration::new(
         witnesses.key_scope().key_scope(),
         witnesses.tenant_scope().tenant_scope(),

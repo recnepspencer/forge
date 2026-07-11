@@ -1,34 +1,34 @@
-use forge_store_security::{S51AdmittedSecurityScopeReadiness, StoreSecurityScopeIdentity};
+use forge_store_security::{StoreAdmittedSecurityScope, StoreSecurityScopeIdentity};
 
 use crate::{BackupExportCustodyCounterSnapshot, BackupExportCustodyMode};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BackupExportCustodyAdmission {
     mode: Option<BackupExportCustodyMode>,
-    readiness: S51AdmittedSecurityScopeReadiness,
+    security_scope: StoreAdmittedSecurityScope,
     counters: BackupExportCustodyCounterSnapshot,
 }
 
 impl BackupExportCustodyAdmission {
     pub const fn from_outbound_declaration(
         mode: BackupExportCustodyMode,
-        readiness: S51AdmittedSecurityScopeReadiness,
+        security_scope: StoreAdmittedSecurityScope,
         counters: BackupExportCustodyCounterSnapshot,
     ) -> Self {
         Self {
             mode: Some(mode),
-            readiness,
+            security_scope,
             counters,
         }
     }
 
     pub const fn from_trust_boundary_readmission(
-        readiness: S51AdmittedSecurityScopeReadiness,
+        security_scope: StoreAdmittedSecurityScope,
         counters: BackupExportCustodyCounterSnapshot,
     ) -> Self {
         Self {
             mode: None,
-            readiness,
+            security_scope,
             counters,
         }
     }
@@ -38,18 +38,18 @@ impl BackupExportCustodyAdmission {
     }
 
     pub const fn identity(&self) -> StoreSecurityScopeIdentity {
-        self.readiness.receipt().identity()
+        self.security_scope.identity()
     }
 
-    pub const fn readiness(&self) -> &S51AdmittedSecurityScopeReadiness {
-        &self.readiness
+    pub const fn security_scope(&self) -> &StoreAdmittedSecurityScope {
+        &self.security_scope
     }
 
     pub const fn counters(&self) -> BackupExportCustodyCounterSnapshot {
         self.counters
     }
 
-    pub fn into_readiness(self) -> S51AdmittedSecurityScopeReadiness {
-        self.readiness
+    pub fn into_security_scope(self) -> StoreAdmittedSecurityScope {
+        self.security_scope
     }
 }

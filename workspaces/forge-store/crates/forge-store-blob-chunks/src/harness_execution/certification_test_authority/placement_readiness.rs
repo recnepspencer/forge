@@ -1,7 +1,4 @@
-use forge_store_io_scheduler::{
-    admit_store_published_isolation_capability, publish_s7_placement_io_readiness_handoff,
-    readmit_s7_placement_io_readiness_after_publication,
-};
+use forge_store_io_scheduler::admit_store_published_isolation_capability;
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReclaimRegion,
     PhysicalRecordSlot, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
@@ -21,22 +18,19 @@ use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreSecurityScopeAdmissionExpectation,
     StoreSecurityScopeAdmissionRequest, StoreSecurityScopeIdentity,
 };
-use forge_store_tiering::admit_s7_placement_io_readiness_seed;
+use forge_store_tiering::admit_tier_placement_io;
 
 use super::super::backend::{admitted_backend, current_authority};
 
 pub(in crate::harness_execution) fn placement_readiness(
     security_scope: StoreSecurityScopeIdentity,
-) -> forge_store_tiering::S7PlacementIoReadinessSeed {
+) -> forge_store_tiering::TierPlacementIoAdmission {
     let published_readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("published S6 readiness");
     let scheduler_readiness = admit_store_published_isolation_capability(&published_readiness)
         .expect("scheduler S6 readiness");
-    let handoff = readmit_s7_placement_io_readiness_after_publication(
-        publish_s7_placement_io_readiness_handoff(&scheduler_readiness),
-    );
-    admit_s7_placement_io_readiness_seed(
-        handoff,
+    admit_tier_placement_io(
+        scheduler_readiness,
         forge_store_tiering::ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
             security_scope,
         ))

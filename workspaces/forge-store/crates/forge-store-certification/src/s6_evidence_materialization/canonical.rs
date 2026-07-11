@@ -23,7 +23,6 @@ pub struct S6CanonicalEvidenceBasis {
     queue_submitted: u64,
     flush_rows: usize,
     qualification_rows: usize,
-    later_handoff_count: usize,
     access_policy_rows: usize,
     post_admission_violation_rows: usize,
 }
@@ -72,7 +71,6 @@ impl S6CanonicalEvidenceBasis {
             queue_submitted: sources.queue_execution().counters().submitted_units(),
             flush_rows: sources.flush_durability().len(),
             qualification_rows: sources.qualification_matrix().row_count(),
-            later_handoff_count: sources.later_handoffs().destination_count(),
             access_policy_rows: sources.access_policy_rows().len(),
             post_admission_violation_rows: sources.post_admission_violations().len(),
         })
@@ -110,10 +108,6 @@ impl S6CanonicalEvidenceBasis {
         self.qualification_rows
     }
 
-    pub const fn later_handoff_count(&self) -> usize {
-        self.later_handoff_count
-    }
-
     pub const fn access_policy_rows(&self) -> usize {
         self.access_policy_rows
     }
@@ -149,10 +143,6 @@ fn canonical_entries(sources: &S6CertificationEvidenceSources) -> Vec<CanonicalB
         unsigned(
             "qualification_rows",
             sources.qualification_matrix().row_count() as u64,
-        ),
-        unsigned(
-            "later_handoff_count",
-            sources.later_handoffs().destination_count() as u64,
         ),
         unsigned(
             "access_policy_rows",

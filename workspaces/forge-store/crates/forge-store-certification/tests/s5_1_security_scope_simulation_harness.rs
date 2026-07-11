@@ -48,7 +48,7 @@ fn security_scope_harness_preserves_metadata_across_all_schedules() {
             evidence.scenario().schedule().yieldpoint_name()
         );
         let readiness = execution
-            .accepted_readiness()
+            .accepted_security_scope()
             .expect("metadata preservation must produce Store readiness");
         assert_eq!(
             readiness.witnesses().key_scope().key_scope(),

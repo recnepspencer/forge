@@ -1,5 +1,5 @@
 use forge_store_physical_backend::StoreExternalPlacementRecoverabilityEvidence;
-use forge_store_tiering::S7PlacementIoReadinessSeed;
+use forge_store_tiering::TierPlacementIoAdmission;
 
 use crate::{BlobChunkReachabilityProofSet, BlobChunkSecurityMetadataWitness, StoredChunkDigest};
 
@@ -35,7 +35,7 @@ impl BlobPlacementReachabilityBasis {
         )
     }
 
-    pub(crate) fn admits_readiness(&self, readiness: &S7PlacementIoReadinessSeed) -> bool {
+    pub(crate) fn admits_readiness(&self, readiness: &TierPlacementIoAdmission) -> bool {
         readiness.cold_tier_posture().security_scope() == self.security_metadata.identity()
     }
 }

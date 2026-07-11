@@ -32,10 +32,9 @@ fn materialized_s6_evidence_binds_store_witnesses_to_foundational_and_proof_surf
         S6FoundationalAuthorityBoundary::CertificationEvidenceOnly
     );
     assert!(bundle.performance().has_required_counter_contracts());
-    assert_eq!(bundle.canonical().later_handoff_count(), 5);
     assert!(bundle.proof().is_checked_from_executed_store_law());
     assert_ne!(bundle.canonical().execution_identity_tag(), 0);
-    assert_eq!(bundle.canonical().lane_binding_mask().count_ones(), 11);
+    assert_eq!(bundle.canonical().lane_binding_mask().count_ones(), 10);
     assert_eq!(
         bundle
             .proof()
@@ -120,14 +119,14 @@ fn materialized_s6_evidence_is_adopted_by_closeout_without_runtime_authority() {
 
     assert_eq!(receipt.profile_count(), 6);
     assert!(receipt.profile_boundary_certification_only());
-    assert_eq!(receipt.performance_receipt_count(), 5);
+    assert_eq!(receipt.performance_receipt_count(), 4);
     s6_evidence_materialization_support::assert_readiness_fixture_counter_strength_matrix(&receipt);
     assert_ne!(receipt.canonical_execution_identity_tag(), 0);
     assert_eq!(
         receipt.canonical_execution_identity_tag(),
         receipt.proof_execution_identity_tag()
     );
-    assert_eq!(receipt.canonical_lane_binding_mask().count_ones(), 11);
+    assert_eq!(receipt.canonical_lane_binding_mask().count_ones(), 10);
     assert_eq!(
         receipt.canonical_lane_binding_mask(),
         receipt.proof_lane_binding_mask()
@@ -136,7 +135,6 @@ fn materialized_s6_evidence_is_adopted_by_closeout_without_runtime_authority() {
     assert_eq!(receipt.canonical_post_admission_violation_rows(), 2);
     assert_eq!(receipt.proof().post_admission_violation_rows(), 2);
     assert!(receipt.proof().checked_execution());
-    assert_eq!(receipt.proof().readmission_boundaries(), 5);
     assert_eq!(
         receipt.canonical_access_policy_rows(),
         receipt.proof().access_policy_rows()
@@ -282,10 +280,6 @@ fn materialization_rejects_near_miss_store_execution_bindings() {
     );
     s6_evidence_materialization_support::assert_source_denial(
         s6_evidence_materialization_support::sources_with_access_policy_backend_mismatch(),
-        S6CertificationMaterializationDenial::StoreEvidenceBackendBindingMismatch,
-    );
-    s6_evidence_materialization_support::assert_source_denial(
-        s6_evidence_materialization_support::sources_with_later_handoff_backend_mismatch(),
         S6CertificationMaterializationDenial::StoreEvidenceBackendBindingMismatch,
     );
     let empty_qualification =

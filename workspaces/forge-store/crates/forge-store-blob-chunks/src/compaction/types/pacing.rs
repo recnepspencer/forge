@@ -1,5 +1,5 @@
 use forge_store_contracts::{S6BackgroundPressureDeclaration, S6BackgroundPressureKind};
-use forge_store_io_scheduler::{S10CompactionIoReadinessHandoff, S6LaterReadinessReadmissionState};
+use forge_store_io_scheduler::{BackgroundIoPressureClass, BackgroundPacingCapability};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobCompactionS6Pacing {
@@ -20,13 +20,11 @@ impl BlobCompactionS6Pacing {
         }
     }
 
-    pub fn from_s10_handoff(
-        handoff: &S10CompactionIoReadinessHandoff,
+    pub fn from_scheduler_capability(
+        capability: BackgroundPacingCapability,
         foreground_yields: u64,
     ) -> Self {
-        if handoff.readmission_state()
-            != S6LaterReadinessReadmissionState::ReadmittedAfterPublication
-        {
+        if capability.class() != BackgroundIoPressureClass::CompactionRewrite {
             return Self::Unsupported;
         }
         Self::Admitted {

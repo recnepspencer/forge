@@ -1,7 +1,6 @@
 use forge_proof::TransitionOutcome;
 use forge_store_security::{
-    accept_s5_1_admitted_security_scope_readiness, admit_store_security_scope,
-    readmit_trust_boundary_security_scope_declaration, S51SecurityScopeReadinessReservation,
+    admit_store_security_scope, readmit_trust_boundary_security_scope_declaration,
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionDenial,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
@@ -54,11 +53,7 @@ pub(super) fn readmit_security_scope(
                 return Err(wrong_tenant_denial(counters));
             }
         };
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted,
-    );
-    BlobChunkSecurityMetadataWitness::from_s5_1_readiness(readiness)
+    BlobChunkSecurityMetadataWitness::from_admitted_security_scope(admitted)
         .map_err(|_| wrong_tenant_denial(counters))
 }
 

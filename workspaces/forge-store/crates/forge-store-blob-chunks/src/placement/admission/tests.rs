@@ -1,8 +1,5 @@
 use forge_store_budgets::CounterEvidenceStrength;
-use forge_store_io_scheduler::{
-    publish_s7_placement_io_readiness_handoff,
-    s7_placement_io_readiness_handoff_for_certification_test, IoSchedulerIsolationAdmission,
-};
+use forge_store_io_scheduler::IoSchedulerIsolationAdmission;
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
     BackendCapabilitySupportPosture, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
@@ -12,7 +9,7 @@ use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
-use forge_store_tiering::{admit_s7_placement_io_readiness_seed, S7ColdPlacementState};
+use forge_store_tiering::{admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission};
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, root_publication,
@@ -84,23 +81,6 @@ fn placement_classes_preserve_blob_facts_with_distinct_counters() {
         cold.counters().placement_class(),
         Some(BlobPlacementClass::Cold)
     );
-}
-
-#[test]
-fn stale_s6_readiness_denies_before_placement_admission() {
-    let receipt = receipt("phase16-stale-readiness");
-    let reachability = receipt.reachability();
-    let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
-
-    match authority.admit(
-        reachability,
-        BlobPlacementIntent::inline(stale_readiness(reachability)),
-    ) {
-        Err(BlobPlacementAdmissionDenial::StaleS6Readiness { counters, .. }) => {
-            assert_eq!(counters.inline_reads(), 0);
-        }
-        outcome => panic!("expected stale readiness denial, got {outcome:?}"),
-    }
 }
 
 #[test]
@@ -242,26 +222,11 @@ fn receipt(case: &str) -> crate::LifecycleReceipt {
     )
 }
 
-fn stale_readiness(
-    reachability: &crate::BlobChunkReachabilityProofSet,
-) -> forge_store_tiering::S7PlacementIoReadinessSeed {
-    let handoff = publish_s7_placement_io_readiness_handoff(
-        &IoSchedulerIsolationAdmission::for_certification_test(),
-    );
-    let cold = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
-        reachability.security_metadata().identity(),
-    );
-    admit_s7_placement_io_readiness_seed(handoff, cold)
-}
-
 fn readiness_for_security_scope(
     scope: StoreSecurityScopeIdentity,
-) -> forge_store_tiering::S7PlacementIoReadinessSeed {
+) -> TierPlacementIoAdmission {
     let cold = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(scope);
-    admit_s7_placement_io_readiness_seed(
-        s7_placement_io_readiness_handoff_for_certification_test(),
-        cold,
-    )
+    admit_tier_placement_io(IoSchedulerIsolationAdmission::for_certification_test(), cold)
 }
 
 fn mismatched_security_scope() -> StoreSecurityScopeIdentity {

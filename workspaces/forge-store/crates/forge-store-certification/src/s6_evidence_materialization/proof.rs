@@ -30,7 +30,6 @@ pub struct S6CertificationProofProgression {
     queue_replay_rows: usize,
     flush_rows: usize,
     qualification_rows: usize,
-    later_handoff_count: usize,
     access_policy_rows: usize,
     secure_io_scope_checks: u64,
     post_admission_violation_rows: usize,
@@ -77,15 +76,14 @@ impl S6CertificationProofTrace {
     pub fn is_checked_from_executed_store_law(&self) -> bool {
         let payload = self.projection.payload();
         payload.execution_identity_tag > 0
-            && payload.lane_binding_mask.count_ones() == 11
+            && payload.lane_binding_mask.count_ones() == 10
             && payload.queue_replay_rows > 0
             && payload.flush_rows > 0
             && payload.qualification_rows > 0
-            && payload.later_handoff_count == 5
             && payload.access_policy_rows > 0
             && payload.secure_io_scope_checks > 0
             && payload.post_admission_violation_rows > 0
-            && payload.readmission_boundaries == payload.later_handoff_count
+            && payload.readmission_boundaries == 0
             && payload.checked_store_progression.is_checked_for(payload)
     }
 }
@@ -177,11 +175,10 @@ fn checked_projection_payload_from_sources(
             .len(),
         flush_rows: sources.flush_durability().len(),
         qualification_rows: sources.qualification_matrix().row_count(),
-        later_handoff_count: sources.later_handoffs().destination_count(),
         access_policy_rows: sources.access_policy_rows().len(),
         secure_io_scope_checks: sources.secure_io_preservation().counters().scope_checks(),
         post_admission_violation_rows: sources.post_admission_violations().len(),
-        readmission_boundaries: sources.later_handoffs().destination_count(),
+        readmission_boundaries: 0,
         checked_store_progression: S6CheckedStoreProofProgression::unchecked(),
     };
     let basis = S6CertificationProjectionBasis {
@@ -332,7 +329,7 @@ impl S6CheckedStoreProofProgression {
             && self.readiness_readmission_boundaries == payload.readmission_boundaries
             && self.executed_readmission_boundaries == payload.readmission_boundaries
             && self.freshness_readmitted_boundaries == payload.readmission_boundaries
-            && self.freshness_readmitted_boundaries == payload.later_handoff_count
+            && self.freshness_readmitted_boundaries == payload.readmission_boundaries
     }
 
     fn readiness_proof_topology(

@@ -6,8 +6,7 @@ use crate::{
     S6BackendQualificationMatrixCertification, S6BackgroundPacingCertificationEvidence,
     S6CertificationMaterializationDenial, S6CertifiedQueueExecutionEvidence,
     S6FlushDurabilityEvidenceRow, S6ForegroundReservationCertificationEvidence,
-    S6IoPressureHarnessCloseoutEvidence, S6LaterReadinessHandoffCertification,
-    S6PostAdmissionViolationEvidenceRow,
+    S6IoPressureHarnessCloseoutEvidence, S6PostAdmissionViolationEvidenceRow,
 };
 
 use super::binding_identity::{evidence_class_tag, mix, post_admission_violation_tag, profile_tag};
@@ -25,7 +24,6 @@ pub(crate) enum S6StoreEvidenceLane {
     PostAdmissionViolation,
     HarnessReplay,
     QualificationMatrix,
-    LaterReadinessHandoff,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,7 +31,6 @@ pub(crate) struct S6StoreCounterStrengthWitness {
     foreground_reservation: S6MaterializedCounterStrength,
     background_pacing: S6MaterializedCounterStrength,
     queue_execution: S6MaterializedCounterStrength,
-    later_readiness_handoff: S6MaterializedCounterStrength,
     post_admission_violation: S6MaterializedCounterStrength,
 }
 
@@ -56,7 +53,6 @@ impl S6StoreCounterStrengthWitness {
             foreground_reservation: S6MaterializedCounterStrength::CertificationOnly,
             background_pacing: S6MaterializedCounterStrength::CertificationOnly,
             queue_execution: S6MaterializedCounterStrength::CertificationOnly,
-            later_readiness_handoff: S6MaterializedCounterStrength::CertificationOnly,
             post_admission_violation: weakest_post_admission_strength(post_admission_violations),
         }
     }
@@ -71,10 +67,6 @@ impl S6StoreCounterStrengthWitness {
 
     pub(crate) const fn queue_execution(self) -> S6MaterializedCounterStrength {
         self.queue_execution
-    }
-
-    pub(crate) const fn later_readiness_handoff(self) -> S6MaterializedCounterStrength {
-        self.later_readiness_handoff
     }
 
     pub(crate) const fn post_admission_violation(self) -> S6MaterializedCounterStrength {
@@ -95,7 +87,6 @@ impl S6StoreExecutionEvidenceBinding {
         flush_durability: &[S6FlushDurabilityEvidenceRow],
         harness_closeout: &S6IoPressureHarnessCloseoutEvidence,
         qualification_matrix: &S6BackendQualificationMatrixCertification,
-        later_handoffs: &S6LaterReadinessHandoffCertification,
     ) -> Result<Self, S6CertificationMaterializationDenial> {
         let required_lane_mask = observed_lane_mask(
             foreground_reservation,
@@ -107,7 +98,6 @@ impl S6StoreExecutionEvidenceBinding {
             flush_durability,
             harness_closeout,
             qualification_matrix,
-            later_handoffs,
         );
         if required_lane_mask != all_required_lane_mask() {
             return Err(
@@ -124,7 +114,6 @@ impl S6StoreExecutionEvidenceBinding {
                 post_admission_violations,
                 flush_durability,
                 qualification_matrix,
-                later_handoffs,
                 queue_execution,
                 required_lane_mask,
             ),
@@ -132,7 +121,7 @@ impl S6StoreExecutionEvidenceBinding {
             backend_evidence_class: backend_admission.evidence_class(),
             security_scope_identity: secure_io_preservation.identity(),
             required_lane_mask,
-            readmission_boundaries: later_handoffs.destination_count(),
+            readmission_boundaries: 0,
             counter_strengths: S6StoreCounterStrengthWitness::from_source_counters(
                 post_admission_violations,
             ),
@@ -170,7 +159,6 @@ fn observed_lane_mask(
     flush_durability: &[S6FlushDurabilityEvidenceRow],
     harness_closeout: &S6IoPressureHarnessCloseoutEvidence,
     qualification_matrix: &S6BackendQualificationMatrixCertification,
-    later_handoffs: &S6LaterReadinessHandoffCertification,
 ) -> u16 {
     lane_bit(S6StoreEvidenceLane::BackendAdmission)
         | present_lane(
@@ -213,10 +201,6 @@ fn observed_lane_mask(
             qualification_matrix.row_count() > 0,
             S6StoreEvidenceLane::QualificationMatrix,
         )
-        | present_lane(
-            later_handoffs.destination_count() == 5,
-            S6StoreEvidenceLane::LaterReadinessHandoff,
-        )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -229,7 +213,6 @@ fn execution_identity_tag(
     post_admission_violations: &[S6PostAdmissionViolationEvidenceRow],
     flush_durability: &[S6FlushDurabilityEvidenceRow],
     qualification_matrix: &S6BackendQualificationMatrixCertification,
-    later_handoffs: &S6LaterReadinessHandoffCertification,
     queue_execution: &S6CertifiedQueueExecutionEvidence,
     lane_mask: u16,
 ) -> u64 {
@@ -251,7 +234,6 @@ fn execution_identity_tag(
     tag = mix(tag, queue_execution.counters().violation_events());
     tag = mix(tag, flush_durability.len() as u64);
     tag = mix(tag, qualification_matrix.row_count() as u64);
-    tag = mix(tag, later_handoffs.destination_count() as u64);
     tag = mix(tag, access_policy_rows.len() as u64);
     for row in post_admission_violations {
         tag = mix(tag, post_admission_violation_tag(*row));
@@ -271,7 +253,6 @@ const fn all_required_lane_mask() -> u16 {
         | lane_bit(S6StoreEvidenceLane::PostAdmissionViolation)
         | lane_bit(S6StoreEvidenceLane::HarnessReplay)
         | lane_bit(S6StoreEvidenceLane::QualificationMatrix)
-        | lane_bit(S6StoreEvidenceLane::LaterReadinessHandoff)
 }
 
 fn foreground_counter_rows(evidence: &S6ForegroundReservationCertificationEvidence) -> usize {
@@ -350,6 +331,5 @@ const fn lane_bit(lane: S6StoreEvidenceLane) -> u16 {
         S6StoreEvidenceLane::PostAdmissionViolation => 1 << 7,
         S6StoreEvidenceLane::HarnessReplay => 1 << 8,
         S6StoreEvidenceLane::QualificationMatrix => 1 << 9,
-        S6StoreEvidenceLane::LaterReadinessHandoff => 1 << 10,
     }
 }

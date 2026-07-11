@@ -30,7 +30,6 @@ mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
 mod s6_background_pressure;
-mod s6_later_readiness_vocabulary;
 mod s6_queue_producer;
 mod s8_runtime_lifecycle;
 
@@ -73,11 +72,6 @@ pub use s3_readiness_recap::{
     S2DeniedBoundaryKind,
 };
 pub use s6_background_pressure::{S6BackgroundPressureDeclaration, S6BackgroundPressureKind};
-pub use s6_later_readiness_vocabulary::{
-    S10BackupExportReadinessNonClaim, S10CompactionReadinessNonClaim,
-    S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim, S6LaterMilestoneDestination,
-    S7PlacementReadinessNonClaim,
-};
 pub use s6_queue_producer::{S6QueueProducerKind, S6QueueProducerResourceShape};
 pub use s8_runtime_lifecycle::{
     S8RuntimeCase, S8RuntimeExactCounterEvidence, S8RuntimeExecutionIdentity, S8RuntimeOutcome,

@@ -6,11 +6,15 @@ pub mod background_pacing;
 mod execution;
 pub mod foreground_reservation;
 mod interference_accounting;
-pub mod layout_access;
+#[path = "layout_access/foreground_interference_family.rs"]
+mod foreground_interference_family;
+#[path = "layout_access/pacing_family.rs"]
+mod pacing_family;
 pub mod queue_execution;
 mod resource_envelope;
 mod resource_units;
-mod s6_later_readiness_handoff;
+#[path = "layout_access/scheduler_reservation_family.rs"]
+mod scheduler_reservation_family;
 mod s8_runtime_receipt;
 mod security_scope_io;
 
@@ -63,14 +67,12 @@ pub use interference_accounting::{
     InterferenceCounterRequirement, InterferenceCounterRow, InterferenceReplayScope,
     LatencyEnvelopeAssessment, LatencyEnvelopeAssessmentStatus, LatencyEnvelopeClaim,
 };
-pub use layout_access::foreground_interference_family::{
+pub use foreground_interference_family::{
     ForegroundInterferenceAccessBudget, ForegroundInterferenceLayoutReport,
     ForegroundInterferencePosture,
 };
-pub use layout_access::pacing_family::{
-    BackgroundPacingInterferencePosture, BackgroundPacingLayoutReport,
-};
-pub use layout_access::scheduler_reservation_family::{
+pub use pacing_family::{BackgroundPacingInterferencePosture, BackgroundPacingLayoutReport};
+pub use scheduler_reservation_family::{
     SchedulerReservationInterferencePosture, SchedulerReservationLayoutReport,
 };
 pub use queue_execution::{
@@ -92,33 +94,13 @@ pub use resource_units::{
     IoResourceUnitKind, QueueSlot, ReadAheadWindow, ReclaimPermit, SyncDebt, WorkerPermit,
     WriteBackWindow,
 };
-#[cfg(any(test, feature = "certification-test-authority"))]
-pub use s6_later_readiness_handoff::background_pacing_outcome_for_later_readiness_certification_test;
-#[cfg(any(test, feature = "certification-test-authority"))]
-pub use s6_later_readiness_handoff::s7_placement_io_readiness_handoff_for_certification_test;
-pub use s6_later_readiness_handoff::{
-    admit_s11_operator_io_readiness_seed, publish_s10_backup_export_io_readiness_handoff,
-    publish_s10_compaction_io_readiness_handoff, publish_s10_repair_scan_io_readiness_handoff,
-    publish_s11_operator_io_readiness_handoff, publish_s7_placement_io_readiness_handoff,
-    readmit_s10_backup_export_io_readiness_after_publication,
-    readmit_s10_compaction_io_readiness_after_publication,
-    readmit_s10_repair_scan_io_readiness_after_publication,
-    readmit_s11_operator_io_readiness_after_publication,
-    readmit_s7_placement_io_readiness_after_publication,
-    reject_certification_only_evidence_as_later_readiness_handoff,
-    reject_raw_s6_counters_as_later_readiness_handoff, S10BackupExportIoReadinessHandoff,
-    S10BackupExportPacingEvidence, S10CompactionIoReadinessHandoff, S10CompactionPacingEvidence,
-    S10RepairScanIoReadinessHandoff, S10RepairScanPacingEvidence, S11OperatorIoReadinessHandoff,
-    S11OperatorIoReadinessSeed, S6LaterReadinessHandoffDenial, S6LaterReadinessReadmissionState,
-    S7PlacementIoReadinessHandoff,
-};
 pub use admission::{
     admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
     IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial,
     IoSchedulerIsolationCounterSnapshot, IoSchedulerPhysicalStabilityAssumption,
-    IoSchedulerSecurityScopeAdmission, SchedulerSecurityScopeCapability,
-    SchedulerSecurityScopeEvidence,
+    IoSchedulerSecurityScopeAdmission, IoSchedulerSecurityScopeAdmissionDenial,
+    SchedulerSecurityScopeCapability,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use s8_runtime_receipt::s8_maintenance_io_runtime_receipt_for_certification_test;

@@ -6,7 +6,7 @@ use forge_store_security::{
 
 use crate::test_support::{
     blob_scope, blob_scope_from_parts, candidate_for_scope, candidate_for_scope_with_digest,
-    canonical_equivalence, non_blob_family_readiness, security_scope_admission_outcome,
+    canonical_equivalence, security_scope_admission_outcome,
     streaming_window,
 };
 use crate::{
@@ -41,17 +41,6 @@ fn blob_security_scope_consumes_admitted_key_tenant_authenticity_and_custody_sco
 
 #[test]
 fn blob_readiness_rejects_wrong_family_key_authenticity_tenant_and_custody() {
-    assert_scope_denial(
-        BlobChunkSecurityScope::from_s5_1_readiness(non_blob_family_readiness(
-            "store.s51.blob.non_blob_family",
-        )),
-        |denial| {
-            matches!(
-                denial,
-                BlobChunkSecurityScopeDenial::WrongReadinessFamily { .. }
-            )
-        },
-    );
     assert_scope_denial(
         blob_scope_from_parts(
             "store.s51.blob.wrong_key",
@@ -363,8 +352,7 @@ fn assert_scope_denial(
     let denial = outcome.expect_err("scope should deny");
     assert!(matches_expected(&denial));
     match denial {
-        BlobChunkSecurityScopeDenial::WrongReadinessFamily { counters, .. }
-        | BlobChunkSecurityScopeDenial::WrongKeyScope { counters, .. }
+        BlobChunkSecurityScopeDenial::WrongKeyScope { counters, .. }
         | BlobChunkSecurityScopeDenial::WrongTenantScope { counters, .. }
         | BlobChunkSecurityScopeDenial::WrongAuthenticityRequirement { counters, .. }
         | BlobChunkSecurityScopeDenial::UnsupportedCustodyPosture { counters, .. }

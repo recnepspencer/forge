@@ -11,15 +11,11 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
     admit_backend_capability_for_scheduler_claim,
     admit_store_published_isolation_capability, IoSchedulerBackendCapabilityRequirement,
-    SchedulerSecurityScopeEvidence,
 };
 
 use super::super::*;
@@ -255,11 +251,6 @@ pub(super) fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAd
 fn s6_security_scope_admission_from(
     scope: forge_store_security::StoreAdmittedSecurityScope,
 ) -> crate::IoSchedulerSecurityScopeAdmission {
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::io_qos(),
-        scope,
-    );
-    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
-        .expect("S.5.1 IoQos handoff should admit");
-    crate::admit_security_scope_for_scheduler(handoff)
+    crate::admit_security_scope_for_scheduler(&scope)
+        .expect("test security scope should admit for scheduler use")
 }

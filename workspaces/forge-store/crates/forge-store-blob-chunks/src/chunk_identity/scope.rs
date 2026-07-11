@@ -1,7 +1,7 @@
 use forge_store_security::{
-    S51AdmittedSecurityScopeReadiness, StoreAuthenticityRequirement, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionReceipt,
-    StoreSecurityScopeIdentity, StoreTenantScope,
+    StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
+    StoreKeyVersionPosture, StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity,
+    StoreTenantScope,
 };
 
 use crate::{
@@ -15,11 +15,13 @@ pub struct BlobChunkSecurityScope {
 }
 
 impl BlobChunkSecurityScope {
-    pub(crate) fn from_s5_1_readiness(
-        readiness: S51AdmittedSecurityScopeReadiness,
+    pub(crate) fn from_admitted_security_scope(
+        security_scope: StoreAdmittedSecurityScope,
     ) -> Result<Self, BlobChunkSecurityScopeDenial> {
         Ok(Self {
-            metadata: BlobChunkSecurityMetadataWitness::from_s5_1_readiness(readiness)?,
+            metadata: BlobChunkSecurityMetadataWitness::from_admitted_security_scope(
+                security_scope,
+            )?,
         })
     }
 
