@@ -77,6 +77,17 @@ impl AdmittedBoundedWalTailLayoutFamily {
     }
 }
 
+pub(crate) fn lookup_recovery_tail_range(
+    replay_index: &ReplayIndexLayoutReport,
+    requested_range: WalLsnRange,
+) -> Result<BoundedWalTailLayoutReport, RecoveryLayoutAccessDenial> {
+    AdmittedBoundedWalTailLayoutFamily::new(
+        BoundedWalTailLayoutFamilyHome::s8()
+            .admit(&AdmittedBoundedWalTailLayoutRule::internal_phase22())?,
+    )
+    .lookup_tail_range(replay_index, requested_range)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BoundedWalTailLayoutReport {
     requested_range: WalLsnRange,

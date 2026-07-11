@@ -24,7 +24,7 @@ use forge_store_physical_isolation::AdmittedPlacementLayoutRule;
 use forge_store_recovery_physics::AdmittedRecoveryManifestLayoutRule;
 use forge_store_recovery_physics::{
     AdmittedBoundedWalTailLayoutRule, AdmittedCrashBoundaryLayoutRule,
-    AdmittedReadmissionLayoutRule, AdmittedRecoverySourceLayoutRule, AdmittedReplayIndexLayoutRule,
+    AdmittedRecoverySourceLayoutRule, AdmittedReplayIndexLayoutRule,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,11 +59,6 @@ pub fn phase22_crash_boundary_rule(
 ) -> Result<AdmittedCrashBoundaryLayoutRule, Phase19LayoutRuleDenial> {
     validate_maintenance_bounded_scan_family(DurableArtifactFamilyId::WalRecoveryDecision)?;
     Ok(AdmittedCrashBoundaryLayoutRule::phase22())
-}
-pub fn phase22_readmission_rule() -> Result<AdmittedReadmissionLayoutRule, Phase19LayoutRuleDenial>
-{
-    validate_maintenance_bounded_scan_family(DurableArtifactFamilyId::WalRecoveryDecision)?;
-    Ok(AdmittedReadmissionLayoutRule::phase22())
 }
 pub fn phase22_bounded_wal_tail_rule(
 ) -> Result<AdmittedBoundedWalTailLayoutRule, Phase19LayoutRuleDenial> {

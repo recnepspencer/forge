@@ -11,6 +11,7 @@ mod integrity_damage_map;
 mod integrity_handoff;
 mod integrity_input;
 mod integrity_vetted_records;
+mod layout_readmission;
 mod memory_envelope;
 mod offline_verifier;
 mod page_lsn_publication;
@@ -80,6 +81,11 @@ pub use integrity_damage_map::{
     classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
 };
 pub use integrity_handoff::damage_map;
+pub use integrity_handoff::{
+    BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmScopeBasis, IntegrityHandoffAdmission,
+    IntegrityHandoffCounters, IntegrityHandoffDeclaration, IntegrityHandoffDenial,
+    IntegrityHandoffDenialKind, IntegrityHandoffPayload, RawBytesExcludedFromRecoveryHandoff,
+};
 pub use integrity_input::RecoveryPhysicsIntegrityInput;
 pub use integrity_vetted_records::{
     IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,
@@ -89,18 +95,20 @@ pub use integrity_vetted_records::{
 pub use layout_access::{
     AdmittedBoundedWalTailLayoutFamily, AdmittedBoundedWalTailLayoutRule,
     AdmittedCheckpointCutoverLayoutFamily, AdmittedCrashBoundaryLayoutFamily,
-    AdmittedCrashBoundaryLayoutRule, AdmittedReadmissionLayoutFamily,
-    AdmittedReadmissionLayoutRule, AdmittedRecoveryManifestLayoutRule,
+    AdmittedCrashBoundaryLayoutRule, AdmittedRecoveryManifestLayoutRule,
     AdmittedRecoverySourceLayoutFamily, AdmittedRecoverySourceLayoutRule,
     AdmittedReplayIndexLayoutFamily, AdmittedReplayIndexLayoutRule, BoundedWalTailLayoutFamilyHome,
     BoundedWalTailLayoutReport, CheckpointCutoverLayoutFamilyHome, CheckpointCutoverLayoutReport,
     CheckpointRecoveryManifestLayoutReport, CrashBoundaryLayoutFamilyHome,
-    CrashBoundaryLayoutReport, ReadmissionLayoutFamilyHome, RecoveryLayoutAccess,
-    RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind,
+    CrashBoundaryLayoutReport, RecoveryLayoutAccess, RecoveryLayoutAccessDenial,
+    RecoveryLayoutAccessDenialKind, RecoveryReadmissionLayoutReport,
+    RecoverySourceLayoutFamilyHome, RecoverySourceLayoutReport, ReplayIndexLayoutCounters,
+    ReplayIndexLayoutFamilyHome, ReplayIndexLayoutReport,
+};
+pub use layout_readmission::{
+    admit_offline_layout_readmission, admit_record_backed_layout_readmission,
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
-    RecoveryReadmissionLayoutReport, RecoverySourceLayoutFamilyHome, RecoverySourceLayoutReport,
-    ReplayIndexLayoutCounters, ReplayIndexLayoutFamilyHome, ReplayIndexLayoutReport,
 };
 pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
 pub use offline_verifier::{
@@ -202,11 +210,6 @@ pub use s4_closeout::{
     SyntheticRecoveryShortcutRejection, SyntheticRecoveryShortcutRejectionBoundary,
     SyntheticRecoveryShortcutRejectionReport, WalCheckpointLsnRecoveryPhysicsSuite,
 };
-pub use integrity_handoff::{
-    BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmScopeBasis, IntegrityHandoffAdmission,
-    IntegrityHandoffCounters, IntegrityHandoffDeclaration, IntegrityHandoffDenial,
-    IntegrityHandoffDenialKind, IntegrityHandoffPayload, RawBytesExcludedFromRecoveryHandoff,
-};
 pub use s4_recovery_physics_integrity_readiness::S4RecoveryPhysicsIntegrityReadiness;
 pub use s5_publication_recovery::{
     ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage,
@@ -232,10 +235,11 @@ pub use source_precedence::{
     CompactionArtifactResidueReason, CompactionArtifactResidueRejection,
     CompactionCutoverRecoveryPosture, CompactionGenerationIdentity, CompactionGenerationVisibility,
     CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
-    PageLsnSkipApplyDecision, RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
-    RecoverySourceApplicationRole, RecoverySourceCandidate, RecoverySourceDecisionKind,
-    RecoverySourceDecisionOutcome, RecoverySourceDecisionRow, RecoverySourceDecisionTrace,
-    WalOnlyTailProof, WalOnlyTailProofDenial, WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
+    PageLsnSkipApplyDecision, PhysicalRecoverySource, RecoverableOldCompactionGeneration,
+    RecoveryCandidateDiscoveryTrace, RecoverySourceApplicationRole, RecoverySourceCandidate,
+    RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,
+    RecoverySourceDecisionTrace, WalOnlyTailProof, WalOnlyTailProofDenial,
+    WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
 };
 pub use wal_durability::{
     AcknowledgmentPrecondition, DurableAckBasis, DurableAckReceipt, IllegalAcknowledgmentDenial,
@@ -244,11 +248,3 @@ pub use wal_durability::{
     WalDurabilityObservation, WalDurabilityObservationSequence, WalFrameDigest,
 };
 pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalRecoverySource {
-    Checkpoint,
-    WalTail,
-    Manifest,
-    Quarantine,
-}

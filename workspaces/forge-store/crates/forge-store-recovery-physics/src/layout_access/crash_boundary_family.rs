@@ -118,6 +118,16 @@ impl AdmittedCrashBoundaryLayoutFamily {
     }
 }
 
+pub(crate) fn admit_partial_publication_classification(
+    classification: &PartialPublicationClassification,
+) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
+    AdmittedCrashBoundaryLayoutFamily::new(
+        CrashBoundaryLayoutFamilyHome::s8()
+            .admit(&AdmittedCrashBoundaryLayoutRule::internal_phase22())?,
+    )
+    .admit_classification(classification)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CrashBoundaryLayoutReport {
     outcome: UnacknowledgedPublicationOutcome,

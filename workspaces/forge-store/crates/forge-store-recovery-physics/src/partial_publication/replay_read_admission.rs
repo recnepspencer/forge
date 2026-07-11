@@ -1,4 +1,4 @@
-use crate::{CrashBoundaryLayoutReport, RecoveryLayoutAccess};
+use crate::CrashBoundaryLayoutReport;
 use crate::{RecoveryEntryIdentity, RecoveryReplayEntryGate};
 
 use super::{
@@ -77,9 +77,7 @@ impl PartialPublicationReplayReadArtifact {
         let classification = PartialPublicationClassification::classify_observations(
             PartialPublicationObservationSet::new().with_persisted_bytes(bytes),
         );
-        let crash_report = RecoveryLayoutAccess::s8()
-            .phase22_crash_boundary_family()
-            .admit_classification(&classification)
+        let crash_report = crate::layout_access::admit_partial_publication_classification(&classification)
             .map_err(|_| PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                 actual_operation_digest: classification
                     .before_wal_append_operation_digest()

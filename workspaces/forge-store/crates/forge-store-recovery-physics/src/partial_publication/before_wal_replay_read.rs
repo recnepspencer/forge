@@ -5,7 +5,7 @@ use super::{
     PartialPublicationReplayReadDenial, UnacknowledgedPublicationOutcome,
 };
 use crate::PartialPublicationReplayReadArtifact;
-use crate::{CrashBoundaryLayoutReport, RecoveryEntryIdentity, RecoveryLayoutAccess};
+use crate::{CrashBoundaryLayoutReport, RecoveryEntryIdentity};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialPublicationBeforeWalReplayRead {
@@ -28,9 +28,7 @@ impl PartialPublicationBeforeWalReplayRead {
             super::PartialPublicationObservationSet::new()
                 .with_persisted_bytes(persisted_bytes.clone()),
         );
-        let Ok(crash_report) = RecoveryLayoutAccess::s8()
-            .phase22_crash_boundary_family()
-            .admit_classification(&classification)
+        let Ok(crash_report) = crate::layout_access::admit_partial_publication_classification(&classification)
         else {
             return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                 actual_operation_digest: classification

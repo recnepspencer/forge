@@ -69,6 +69,12 @@ impl AdmittedRecoverySourceLayoutFamily {
     }
 }
 
+pub(crate) fn project_recovery_source_layout(
+    source: &AdmittedRecoverySource,
+) -> RecoverySourceLayoutReport {
+    RecoverySourceLayoutReport::from_source(source)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoverySourceLayoutReport {
     decision_kind: RecoverySourceDecisionKind,

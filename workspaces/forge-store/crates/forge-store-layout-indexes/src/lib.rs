@@ -196,7 +196,7 @@ pub(crate) use phase28_rules::{
 };
 pub(crate) use physical_format_layout_access::{
     phase20_placement_rule, phase21_recovery_manifest_rule, phase22_bounded_wal_tail_rule,
-    phase22_crash_boundary_rule, phase22_readmission_rule, phase22_recovery_source_rule,
+    phase22_crash_boundary_rule, phase22_recovery_source_rule,
     phase22_replay_index_rule, phase23_branch_delta_rule, phase23_continuation_support_rule,
     phase23_snapshot_rule, phase23_stable_basis_rule, phase24_blob_object_rule,
     phase24_chunk_tree_rule, phase24_streaming_rule, phase25_compaction_rule, phase25_dedupe_rule,

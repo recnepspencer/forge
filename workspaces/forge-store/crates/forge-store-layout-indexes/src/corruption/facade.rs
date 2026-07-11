@@ -3,12 +3,12 @@ use forge_store_physical_integrity::layout_access::quarantine_family::{
     quarantine_layout_family, LayoutQuarantineAuthorityClass,
 };
 use forge_store_recovery_physics::{
-    RecoveryLayoutAccess, RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
+    RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
 };
 
 use crate::materialization::S8MaterializationStateClass;
-use crate::{phase22_readmission_rule, LayoutCorruptionClassification, S8LayoutCoverageWitness};
+use crate::{LayoutCorruptionClassification, S8LayoutCoverageWitness};
 
 use super::denial::S8CorruptionDenial;
 use super::input::S8LayoutCorruptionInput;
@@ -148,19 +148,12 @@ fn classify_offline_evidence(
     family: crate::PhysicalArtifactFamily,
     admission: &forge_store_recovery_physics::ReopenedRecoveryArtifactAdmission,
 ) -> S8LayoutCorruptionOutcome {
-    match phase22_readmission_family().admit_offline_witness(family.id(), admission) {
-        Ok(witness) => S8LayoutCorruptionOutcome::offline_readmission_required(
-            S8ReadmissionRequirement::new(family, witness.identity().clone()),
-        ),
-        Err(_) => {
-            S8LayoutCorruptionOutcome::offline_readmission_required(S8ReadmissionRequirement::new(
-                family,
-                RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
-                    admission.artifact_digest().clone(),
-                ),
-            ))
-        }
-    }
+    let witness =
+        forge_store_recovery_physics::admit_offline_layout_readmission(family.id(), admission);
+    S8LayoutCorruptionOutcome::offline_readmission_required(S8ReadmissionRequirement::new(
+        family,
+        witness.identity().clone(),
+    ))
 }
 
 fn classify_terminal_import(
@@ -186,7 +179,7 @@ fn require_quarantine_readmission(
             S8CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired { family },
         );
     };
-    match phase22_readmission_family().admit_record_backed_witness(
+    match forge_store_recovery_physics::admit_record_backed_layout_readmission(
         family.id(),
         record,
         current_store_authority,
@@ -364,12 +357,6 @@ fn matches_identity(
     witness: &RecoveryLayoutReadmissionWitness,
 ) -> bool {
     witness.family_id() == family.id() && witness.identity() == expected_identity
-}
-
-fn phase22_readmission_family() -> forge_store_recovery_physics::AdmittedReadmissionLayoutFamily {
-    RecoveryLayoutAccess::s8()
-        .readmission_layout(&phase22_readmission_rule().expect("phase-22 readmission rule"))
-        .expect("phase-22 readmission family")
 }
 
 pub const fn layout_corruption() -> LayoutCorruptionFacade {

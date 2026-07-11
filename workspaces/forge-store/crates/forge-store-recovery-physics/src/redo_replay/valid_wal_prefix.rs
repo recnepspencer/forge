@@ -1,5 +1,5 @@
 use crate::{
-    AdmittedRecoverySource, LogSequenceNumber, RecoveryLayoutAccess, WalLsnRange,
+    AdmittedRecoverySource, LogSequenceNumber, WalLsnRange,
     WalSegmentGeneration,
 };
 
@@ -39,14 +39,10 @@ impl WalValidPrefix {
         acknowledged_range: WalLsnRange,
         scan: WalPrefixObservationScan,
     ) -> Result<Self, RedoPlanningDenial> {
-        let replay_index = RecoveryLayoutAccess::s8()
-            .phase22_replay_index_family()
-            .admit_recovery_source_replay_index(source)
+        let replay_index = crate::layout_access::admit_recovery_source_replay_index(source)
             .map_err(|_| RedoPlanningDenial::new(RedoPlanningDenialKind::NoAdmittedWalTail))?;
         let source_range = replay_index.replay_frontier();
-        RecoveryLayoutAccess::s8()
-            .phase22_bounded_wal_tail_family()
-            .lookup_tail_range(&replay_index, acknowledged_range)
+        crate::layout_access::lookup_recovery_tail_range(&replay_index, acknowledged_range)
             .map_err(|_| missing_acknowledged_range(acknowledged_range, acknowledged_range))?;
         Self::from_observed_frames(
             source_range,

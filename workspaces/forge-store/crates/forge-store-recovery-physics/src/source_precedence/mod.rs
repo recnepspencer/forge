@@ -4,6 +4,7 @@ mod compaction_visibility;
 mod decision_trace;
 mod discovery_trace;
 mod page_lsn_skip_apply;
+mod physical_source;
 mod source_admission;
 mod source_admission_accumulator;
 mod source_application_role;
@@ -29,6 +30,7 @@ pub use decision_trace::{
 };
 pub use discovery_trace::RecoveryCandidateDiscoveryTrace;
 pub use page_lsn_skip_apply::PageLsnSkipApplyDecision;
+pub use physical_source::PhysicalRecoverySource;
 pub use source_admission::AdmittedRecoverySource;
 pub use source_application_role::RecoverySourceApplicationRole;
 pub use source_candidate::RecoverySourceCandidate;

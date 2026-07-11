@@ -118,6 +118,16 @@ impl AdmittedReplayIndexLayoutFamily {
     }
 }
 
+pub(crate) fn admit_recovery_source_replay_index(
+    source: &AdmittedRecoverySource,
+) -> Result<ReplayIndexLayoutReport, RecoveryLayoutAccessDenial> {
+    AdmittedReplayIndexLayoutFamily::new(
+        ReplayIndexLayoutFamilyHome::s8()
+            .admit(&AdmittedReplayIndexLayoutRule::internal_phase22())?,
+    )
+    .admit_recovery_source_replay_index(source)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ReplayIndexLayoutCounters {
     checkpoint_cutover_inputs: u64,

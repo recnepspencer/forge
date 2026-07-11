@@ -1,5 +1,5 @@
 use crate::{
-    source_precedence::RecoverySourcePrecedenceGraph, AdmittedRecoverySource, RecoveryLayoutAccess,
+    source_precedence::RecoverySourcePrecedenceGraph, AdmittedRecoverySource,
     RecoverySourceCandidate, RecoverySourceLayoutReport,
 };
 
@@ -47,9 +47,7 @@ impl BoundedRecoverySourcePrecedenceGraph {
 
     pub fn admit_sources(self) -> BoundedRecoverySourceAdmission {
         let source = self.graph.admit_sources();
-        let layout_report = RecoveryLayoutAccess::s8()
-            .phase22_recovery_source_family()
-            .source_report(&source);
+        let layout_report = crate::layout_access::project_recovery_source_layout(&source);
         BoundedRecoverySourceAdmission {
             source,
             layout_report,
