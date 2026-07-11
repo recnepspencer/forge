@@ -38,6 +38,3 @@ impl CapsuleOperationLayoutReport {
         true
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CapsuleOperationLayoutFamilyHome;

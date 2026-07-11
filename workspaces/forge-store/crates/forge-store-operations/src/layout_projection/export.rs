@@ -38,6 +38,3 @@ impl ExportLayoutEvidenceReport {
         true
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExportLayoutFamilyHome;
