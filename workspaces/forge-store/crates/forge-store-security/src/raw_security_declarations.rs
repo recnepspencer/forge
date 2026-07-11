@@ -188,12 +188,33 @@ pub fn evaluate_deserialized_security_scope_readmission(
         );
     }
     counters.check_key_version();
-    if declaration.key_version_posture() != StoreKeyVersionPosture::Current {
-        counters.record_denial();
-        return StoreSecurityScopeReadmissionEvaluation::new(
-            Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture),
-            counters.snapshot(),
-        );
+    match declaration.key_version_posture() {
+        StoreKeyVersionPosture::Current
+        | StoreKeyVersionPosture::Stale
+        | StoreKeyVersionPosture::RebindRequired => {}
+        StoreKeyVersionPosture::Unsupported => {
+            counters.record_denial();
+            counters.record_unsupported_posture();
+            return StoreSecurityScopeReadmissionEvaluation::new(
+                Err(StoreSecurityScopeAdmissionDenial::UnsupportedKeyVersionPosture),
+                counters.snapshot(),
+            );
+        }
+        StoreKeyVersionPosture::Unavailable => {
+            counters.record_denial();
+            counters.record_unavailable_posture();
+            return StoreSecurityScopeReadmissionEvaluation::new(
+                Err(StoreSecurityScopeAdmissionDenial::UnavailableKeyVersionPosture),
+                counters.snapshot(),
+            );
+        }
+        StoreKeyVersionPosture::Denied => {
+            counters.record_denial();
+            return StoreSecurityScopeReadmissionEvaluation::new(
+                Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture),
+                counters.snapshot(),
+            );
+        }
     }
     counters.check_tenant_scope();
     if declaration.tenant_scope() != expectation.tenant_scope() {

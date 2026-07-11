@@ -8,7 +8,8 @@ use crate::{
     admit_store_security_scope, readmit_deserialized_security_scope_declaration,
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
-    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
+    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeAdmissionStale, StoreTenantScope,
 };
 
 #[test]
@@ -91,7 +92,7 @@ fn readmission_denies_wrong_key_tenant_authenticity_and_custody_expectations() {
 }
 
 #[test]
-fn readmission_denies_stale_key_version_before_admission() {
+fn readmission_preserves_stale_key_version_for_typed_admission_outcome() {
     let authority = current_authority("store.s51.security.readmission.stale", "page-0011");
     let stale = StoreRawSecurityScopeDeclaration::deserialized_unadmitted(
         authority.physical_witness(),
@@ -102,9 +103,12 @@ fn readmission_denies_stale_key_version_before_admission() {
         Some(StoreCustodyPosture::InternalStoreCustody),
     );
 
+    let readmitted = readmit_platform(&authority, stale).unwrap();
     assert!(matches!(
-        readmit_platform(&authority, stale),
-        Err(StoreSecurityScopeAdmissionDenial::DeniedKeyVersionPosture)
+        admit_store_security_scope(raw_request(&authority, readmitted)),
+        TransitionOutcome::Stale(StoreSecurityScopeAdmissionStale::StaleKeyVersionPosture(
+            StoreKeyVersionPosture::Stale
+        ))
     ));
 }
 

@@ -5,7 +5,6 @@ pub use crate::handoffs::{
     BlobHarnessChunkTopology, BlobHarnessFailurePoint, BlobHarnessPlacementClass,
     BlobHarnessSecurityScopeClass, BlobHarnessSizeClass, BlobHarnessTopologyDenial,
 };
-pub use crate::harness_execution::Phase28OperationsWitnesses;
 pub use crate::harness_execution::{
     execute_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
     BlobHarnessObservedYieldpoint,
@@ -23,12 +22,4 @@ pub fn bridge_blob_export_trust_boundary(
     witness: &BlobHarnessExecutedWitness,
 ) -> BoundaryBridgedCanonicalExportArtifact {
     witness.bridged_export_artifact().clone()
-}
-
-pub fn phase28_operations_witnesses(
-    case: &str,
-    bytes: &'static [u8],
-    chunk_size: u64,
-) -> Phase28OperationsWitnesses {
-    crate::harness_execution::phase28_operations_witnesses(case, bytes, chunk_size)
 }
