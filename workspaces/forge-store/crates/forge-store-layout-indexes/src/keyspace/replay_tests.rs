@@ -1,4 +1,4 @@
-use super::tests_support::{admit_phase_four_scope, admitted_scope, page_id, segment_id};
+use super::tests_support::{admit_key_domain_scope, admitted_scope, page_id, segment_id};
 use crate::layout_families::layout_declarations;
 use crate::ArtifactFamilyDenial;
 use forge_store_contracts::DurableArtifactFamilyId;
@@ -8,7 +8,7 @@ use forge_store_security::{
 };
 
 #[test]
-fn phase_four_scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane() {
+fn scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane() {
     let page_declaration = layout_declarations()
         .declaration(DurableArtifactFamilyId::PhysicalPage)
         .unwrap();
@@ -85,7 +85,7 @@ fn phase_four_scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane
         Err(ArtifactFamilyDenial::CrossKeyScopePartitionDenied)
     );
 
-    let page_scope = admit_phase_four_scope(
+    let page_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::PhysicalPage,
         &admitted_scope(
             StoreKeyScope::PageEnvelope,
@@ -124,7 +124,7 @@ fn phase_four_scope_partitioning_denies_cross_scope_key_reuse_on_the_public_lane
         .range_end_bytes(page_range, page_key)
         .unwrap();
 
-    let blob_scope = admit_phase_four_scope(
+    let blob_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::DedupeIndex,
         &admitted_scope(
             StoreKeyScope::BlobChunkEnvelope,

@@ -16,7 +16,7 @@ use forge_store_physical_format::{
 use forge_store_physical_isolation::{
     physical_epoch_vector_for_current_root, reject_checkpoint_root_as_current_read_authority,
     reject_manifest_locator_root_as_current_read_authority,
-    reject_recovery_root_as_current_read_authority, required_s5_ordering_contracts,
+    reject_recovery_root_as_current_read_authority, required_physical_isolation_ordering_contracts,
     CheckpointPublicationIdentity, CheckpointPublicationRoot, CurrentPhysicalRoot,
     EpochComparisonScope, EpochRetryDecision, GenerationCountedPhysicalReference,
     ManifestLocatorRoot, PhysicalEpochDriftKind, PhysicalEpochVector, PhysicalOrderingContract,
@@ -223,8 +223,8 @@ fn root_kinds_are_distinct_authorities() {
 
 #[test]
 fn generation_counted_references_reject_aba_reuse() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(7).unwrap();
     let page = PhysicalPageId::from_raw(11).unwrap();
     let slot = PhysicalRecordSlot::from_raw(3).unwrap();
@@ -304,7 +304,7 @@ fn publication_epochs_are_issued_by_current_physical_root_not_generation_referen
 fn ordering_contract_rejects_relaxed_and_ambient_ordering() {
     assert!(PhysicalOrderingContract::reject_relaxed().is_err());
     assert!(PhysicalOrderingContract::reject_ambient().is_err());
-    let contracts = required_s5_ordering_contracts();
+    let contracts = required_physical_isolation_ordering_contracts();
     assert_eq!(contracts.len(), 6);
     for site in [
         PhysicalOrderingSite::RootSwap,
@@ -329,7 +329,7 @@ fn ordering_contract_rejects_relaxed_and_ambient_ordering() {
 #[test]
 fn wrong_ordering_site_cannot_admit_current_root() {
     let authority = physical_authority_from_complete_closeout();
-    let denial = CurrentPhysicalRoot::from_s5_entry(
+    let denial = CurrentPhysicalRoot::from_physical_isolation_entry(
         authority.root_epoch_basis().current_root_basis(),
         PhysicalOrderingContract::acquire_release_for(PhysicalOrderingSite::HazardPublication),
     )
@@ -343,7 +343,7 @@ fn wrong_ordering_site_cannot_admit_current_root() {
         }
     );
 
-    let stronger_root = CurrentPhysicalRoot::from_s5_entry(
+    let stronger_root = CurrentPhysicalRoot::from_physical_isolation_entry(
         authority.root_epoch_basis().current_root_basis(),
         PhysicalOrderingContract::sequentially_consistent_for(PhysicalOrderingSite::RootSwap),
     )

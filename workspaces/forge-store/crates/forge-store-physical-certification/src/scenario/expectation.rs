@@ -24,7 +24,7 @@ pub struct BlobHarnessScenarioMetadata {
 }
 
 impl PhysicalScenarioExpectation {
-    pub fn s4_recovery_dogfood() -> Self {
+    pub fn recovery_dogfood() -> Self {
         Self::new(
             PhysicalScenarioExpectationKind::S4RecoveryDogfood,
             Vec::new(),

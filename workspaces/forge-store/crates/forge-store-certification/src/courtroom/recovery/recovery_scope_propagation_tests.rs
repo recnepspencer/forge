@@ -254,7 +254,7 @@ fn admit_background() -> AdmittedBackgroundEnvelope {
 }
 
 fn physical_authority() -> PhysicalAuthorityRecap {
-    PhysicalAuthorityRecap::from_s1_authority(3, 2, 1).unwrap()
+    PhysicalAuthorityRecap::from_physical_format_authority(3, 2, 1).unwrap()
 }
 
 fn platform_recovery_scope(identity: &str) -> StoreAdmittedSecurityScope {

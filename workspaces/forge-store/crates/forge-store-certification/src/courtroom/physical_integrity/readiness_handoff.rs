@@ -12,18 +12,18 @@ use forge_store_contracts::{
 use forge_store_readiness::{PhysicalSubstrateReadiness, PhysicalIntegrityReadiness};
 
 impl BoundedMemoryCloseoutReport {
-    pub fn publish_s3_physical_integrity_readiness(
+    pub fn publish_physical_integrity_readiness(
         self,
-        s2_readiness: PhysicalSubstrateReadiness,
+        physical_substrate_readiness: PhysicalSubstrateReadiness,
     ) -> Result<PhysicalIntegrityReadiness, PhysicalIntegrityReadinessDenial> {
-        let payload = payload_from_closeout(self.bundle(), s2_readiness)?;
-        PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2_readiness, payload)
+        let payload = payload_from_closeout(self.bundle(), physical_substrate_readiness)?;
+        PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(physical_substrate_readiness, payload)
     }
 }
 
 fn payload_from_closeout(
     bundle: &BufferPoolCertificationBundle,
-    s2_readiness: PhysicalSubstrateReadiness,
+    physical_substrate_readiness: PhysicalSubstrateReadiness,
 ) -> Result<PhysicalIntegrityReadinessPayload, PhysicalIntegrityReadinessDenial> {
     let suite = bundle.suite();
     let aggregate = aggregate_operation_counters(suite.reports());
@@ -33,9 +33,9 @@ fn payload_from_closeout(
         .envelope_for(BackgroundWorkClass::ScrubPlanning)
         .map(|evidence| evidence.counters().allocation_bytes_admitted())
         .unwrap_or(0);
-    let facts = s2_readiness.facts();
+    let facts = physical_substrate_readiness.facts();
     Ok(
-        PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
+        PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
             protected_view_capability,
             VerifierResidentEnvelope::bounded(
                 aggregate.max_resident_bytes,
@@ -55,12 +55,12 @@ fn payload_from_closeout(
             DenialBehaviorRecap::from_named_boundaries(&readiness_denials(
                 bundle.suite().denials(),
             ))?,
-            PhysicalAuthorityRecap::from_s1_authority(
+            PhysicalAuthorityRecap::from_physical_format_authority(
                 facts.physical_reference_count(),
                 facts.header_decode_witness_count(),
                 facts.payload_admission_witness_count(),
             )?,
-            BufferPoolAuthorityRecap::s2_authority(
+            BufferPoolAuthorityRecap::physical_substrate_authority(
                 has_pinning_evidence(suite),
                 aggregate.max_resident_bytes > 0,
                 aggregate.allocation_bytes > 0,

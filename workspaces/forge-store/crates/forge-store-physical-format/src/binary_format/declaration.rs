@@ -58,10 +58,10 @@ impl PhysicalFormatDeclaration {
         PhysicalFormatDeclarationBuilder::new()
     }
 
-    pub fn s1_canonical() -> Result<Self, PhysicalBinaryFormatError> {
+    pub fn physical_format_canonical() -> Result<Self, PhysicalBinaryFormatError> {
         Self::builder()
-            .magic(PhysicalFormatMagic::s1_store())
-            .version(PhysicalFormatVersion::s1_initial())
+            .magic(PhysicalFormatMagic::store_format_magic())
+            .version(PhysicalFormatVersion::initial_format_version())
             .byte_order(PhysicalByteOrder::LittleEndian)
             .field_width(PhysicalFieldWidth::segment_id_u64())
             .field_width(PhysicalFieldWidth::page_id_u64())
@@ -210,13 +210,13 @@ impl PhysicalFormatDeclarationBuilder {
     pub fn define(self) -> Result<PhysicalFormatDeclaration, PhysicalBinaryFormatError> {
         reject_non_store_authority(self.authority_source)?;
         let magic = self.magic.ok_or(PhysicalBinaryFormatError::MissingMagic)?;
-        if magic != PhysicalFormatMagic::s1_store() {
+        if magic != PhysicalFormatMagic::store_format_magic() {
             return Err(PhysicalBinaryFormatError::MagicMismatch);
         }
         let version = self
             .version
             .ok_or(PhysicalBinaryFormatError::MissingVersion)?;
-        if version != PhysicalFormatVersion::s1_initial() {
+        if version != PhysicalFormatVersion::initial_format_version() {
             return Err(PhysicalBinaryFormatError::VersionMismatch);
         }
         let byte_order = required_byte_order(self.byte_order)?;
@@ -305,7 +305,7 @@ fn required_forward_policy(
 }
 
 fn required_field_widths(widths: &[PhysicalFieldWidth]) -> Result<(), PhysicalBinaryFormatError> {
-    for kind in PhysicalFieldWidthKind::required_for_s1() {
+    for kind in PhysicalFieldWidthKind::required_for_physical_format() {
         let width =
             find_width(kind, widths).ok_or(PhysicalBinaryFormatError::MissingFieldWidth(kind))?;
         if width != expected_width_for_kind(kind) {
@@ -325,7 +325,7 @@ pub(crate) fn find_width(
 fn required_alignments(
     alignments: &[PhysicalAlignmentClass],
 ) -> Result<(), PhysicalBinaryFormatError> {
-    for site in PhysicalAlignmentSite::required_for_s1() {
+    for site in PhysicalAlignmentSite::required_for_physical_format() {
         let alignment = find_alignment(site, alignments)
             .ok_or(PhysicalBinaryFormatError::MissingAlignment(site))?;
         if alignment != expected_alignment_for_site(site) {

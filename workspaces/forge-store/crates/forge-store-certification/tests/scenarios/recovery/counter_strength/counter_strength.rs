@@ -13,13 +13,13 @@ mod support;
 use support::{
     assert_counter, executed_counter_evidence, execution_sources_for_plan,
     execution_sources_with_schedule, hostile_resource_observation_within_envelope,
-    hostile_satisfied_rows, lower_s5_plan, lower_s5_shortcut_plan, lower_shortcut_plan,
+    hostile_satisfied_rows, lower_physical_isolation_plan, lower_physical_isolation_shortcut_plan, lower_shortcut_plan,
     observed_trace, replace_row, shortcut_trace,
 };
 
 #[test]
 fn lowered_plan_uses_weakest_sufficient_counter_strengths() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     assert_counter(
         &plan,
         CounterContractKind::ActorStepExact,
@@ -81,7 +81,7 @@ fn forbidden_behavior_and_structure_counters_are_exact_claims() {
         CounterStrengthPosture::ExactnessIsClaim,
         CounterStrengthJustification::ReplayIdentity,
     );
-    let plan = lower_s5_shortcut_plan();
+    let plan = lower_physical_isolation_shortcut_plan();
     assert_counter(
         &plan,
         CounterContractKind::BlockedReclaimAttempts,
@@ -105,7 +105,7 @@ fn forbidden_behavior_and_structure_counters_are_exact_claims() {
 
 #[test]
 fn admitted_counter_rows_package_foundational_counter_backed_receipt() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let evidence = executed_counter_evidence(&plan, observed_trace(&plan));
     let receipt = admit_physical_counter_evidence(&plan, evidence).unwrap();
     assert_eq!(
@@ -120,8 +120,8 @@ fn admitted_counter_rows_package_foundational_counter_backed_receipt() {
 
 #[test]
 fn executed_counter_sources_deny_mixed_plan_schedule_identity() {
-    let plan = lower_s5_plan();
-    let other_plan = lower_s5_shortcut_plan();
+    let plan = lower_physical_isolation_plan();
+    let other_plan = lower_physical_isolation_shortcut_plan();
     let other_schedule = PhysicalInterleavingSchedule::from_lowered_plan(
         &other_plan,
         ReplaySeed::required(Some(8)).unwrap(),
@@ -140,8 +140,8 @@ fn executed_counter_sources_deny_mixed_plan_schedule_identity() {
 
 #[test]
 fn executed_counter_evidence_denies_source_bundle_reused_for_another_plan() {
-    let source_plan = lower_s5_shortcut_plan();
-    let target_plan = lower_s5_plan();
+    let source_plan = lower_physical_isolation_shortcut_plan();
+    let target_plan = lower_physical_isolation_plan();
     let sources = execution_sources_for_plan(&source_plan, observed_trace(&source_plan)).unwrap();
 
     let denial = PhysicalExecutedCounterEvidence::from_execution_sources(&target_plan, sources)
@@ -155,7 +155,7 @@ fn executed_counter_evidence_denies_source_bundle_reused_for_another_plan() {
 
 #[test]
 fn counter_evidence_denies_missing_duplicate_unexpected_and_under_strength_rows() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let mut rows = hostile_satisfied_rows(&plan);
     rows.retain(|row| row.kind() != CounterContractKind::ReplayIdentityExact);
     let missing = reject_hostile_counter_evidence_for_readmission(
@@ -260,7 +260,7 @@ fn counter_evidence_denies_value_and_envelope_violations() {
         }
     );
 
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let mut rows = hostile_satisfied_rows(&plan);
     replace_row(
         &mut rows,

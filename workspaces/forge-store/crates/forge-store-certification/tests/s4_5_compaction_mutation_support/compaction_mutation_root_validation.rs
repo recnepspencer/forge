@@ -8,8 +8,8 @@ use forge_store_physical_isolation::GenerationCountedPhysicalReference;
 pub(super) fn generation_counted_page_reference(
     generation: u64,
 ) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(
             PhysicalSegmentId::from_raw(17).unwrap(),
@@ -24,8 +24,8 @@ pub(super) fn root_publication_validation(
     root: u64,
     generation: u64,
 ) -> RootPublicationValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .root_publication_cell(PhysicalRootReference::from_raw(root).unwrap())
         .with_root_publication_generation(PhysicalGeneration::from_raw(generation).unwrap());

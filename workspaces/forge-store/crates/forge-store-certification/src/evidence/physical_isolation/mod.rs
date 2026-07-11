@@ -5,7 +5,7 @@ mod performance;
 mod proof;
 
 pub use bundle::{
-    materialize_s5_executed_isolation_evidence, S5ExecutedIsolationEvidenceBundle,
+    materialize_physical_isolation_executed_isolation_evidence, S5ExecutedIsolationEvidenceBundle,
     S5ExecutedIsolationMaterializationDenial,
 };
 pub use canonical::S5FoundationalCanonicalBasis;

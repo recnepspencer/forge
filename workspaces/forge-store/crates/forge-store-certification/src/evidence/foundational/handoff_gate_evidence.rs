@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use forge_store_readiness::{FoundationalAdoptionDenial, FoundationalVocabularyAdoptionMap};
 use forge_store_s0_reclassification::{
-    certify_current_s0_handoff_gate_proof_evidence, S0HandoffGateProofEvidence,
+    certify_current_foundational_handoff_gate_proof_evidence, S0HandoffGateProofEvidence,
     S0HandoffGateProofEvidenceDenial,
 };
 use forge_store_test_support::NativeStoreAspectFixture;
@@ -13,9 +13,9 @@ use crate::{
     StoreJsonResidueZone,
 };
 
-pub fn certify_s0_handoff_gate_proof_evidence(
+pub fn certify_foundational_handoff_gate_proof_evidence(
 ) -> Result<S0HandoffGateProofEvidence, S0HandoffGateCertificationDenial> {
-    let certified_current_evidence = certify_current_s0_handoff_gate_proof_evidence()?;
+    let certified_current_evidence = certify_current_foundational_handoff_gate_proof_evidence()?;
     let residue_inventory = certify_store_json_residue_inventory()?;
     require_current_residue_scan(&residue_inventory)?;
     require_terminal_projection_boundary(&residue_inventory)?;
@@ -52,7 +52,7 @@ fn require_terminal_projection_boundary(
 }
 
 fn require_foundational_adoption() -> Result<(), S0HandoffGateCertificationDenial> {
-    let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()?;
+    let adoption = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()?;
     if adoption.rows().is_empty() {
         return Err(S0HandoffGateProofEvidenceDenial::MissingFoundationalAdoption.into());
     }

@@ -89,7 +89,7 @@ pub(crate) fn flush_receipt_for_page(redo_lsn: u64, page_value: u64) -> PageFlus
         )
         .unwrap(),
     );
-    let dirty = DirtyPublicationEvidence::from_s2_publication(
+    let dirty = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication_for_page(format!("redo-{redo_lsn}").as_bytes(), page_value),
         page_lsn(redo_lsn),
     );
@@ -272,9 +272,9 @@ pub(crate) fn wal_generation() -> WalSegmentGeneration {
 
 pub(crate) fn blocked_manifest_damage(
 ) -> forge_store_recovery_physics::RecoveryBlockedByIntegrityDamage {
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::damaged_root(
-            PhysicalGenerationAuthority::s1()
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(
                     PhysicalSegmentId::from_raw(7).unwrap(),
                     PhysicalPageId::from_raw(7).unwrap(),

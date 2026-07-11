@@ -29,7 +29,7 @@ pub(crate) fn verify_membership_posture(
 pub(crate) fn build_root_manifest(
     decoded: &DecodedOfflineManifestSections,
 ) -> PhysicalRootManifest {
-    let mut builder = PhysicalManifestUniverseBuilder::s1(decoded.root);
+    let mut builder = PhysicalManifestUniverseBuilder::for_canonical_physical_format(decoded.root);
     for segment in &decoded.segments {
         builder = builder.segment(segment.segment());
     }

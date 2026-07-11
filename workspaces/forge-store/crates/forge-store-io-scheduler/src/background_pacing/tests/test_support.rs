@@ -4,7 +4,7 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use super::policy_receipts::{background_policy_receipt, foreground_policy_receipt};
 
@@ -57,7 +57,7 @@ impl World {
         lane: ForegroundLaneDeclaration,
         lane_kind: ForegroundIoLaneKind,
     ) -> Self {
-        let readiness = s6_readiness();
+        let readiness = io_qos_readiness();
         let security = security_scope();
         let backend = backend_admission(requirement);
         let arbitration = ForegroundArbitrationDeclaration::for_lane(lane_kind);
@@ -329,7 +329,7 @@ fn foreground_capacity_budget() -> ForegroundResourceBudget {
         .with_cache_residency(CacheResidencyHint::frames(8).unwrap())
 }
 
-fn s6_readiness() -> IoSchedulerIsolationAdmission {
+fn io_qos_readiness() -> IoSchedulerIsolationAdmission {
     let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
     admit_store_published_isolation_capability(&readiness)
@@ -337,7 +337,7 @@ fn s6_readiness() -> IoSchedulerIsolationAdmission {
 }
 
 fn security_scope() -> IoSchedulerSecurityScopeAdmission {
-    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

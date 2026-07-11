@@ -18,7 +18,7 @@ impl PhysicalSubstrateReadinessFacts {
         evidence.facts
     }
 
-    fn from_s1_closeout_counts(
+    fn from_physical_format_closeout_counts(
         physical_reference_count: u32,
         header_decode_witness_count: u32,
         payload_admission_witness_count: u32,
@@ -126,13 +126,13 @@ pub struct PhysicalSubstrateHandoffEvidence {
 }
 
 impl PhysicalSubstrateHandoffEvidence {
-    pub(crate) fn from_s1_physical_witnesses(
+    pub(crate) fn from_physical_format_physical_witnesses(
         physical_references: &[PhysicalReference],
         header_decode_witnesses: &[PhysicalHeaderDecodeWitness],
         payload_admission_witnesses: &[PhysicalPayloadViewAdmission<'_>],
         evidence_counts: PhysicalSubstrateEvidenceCounts,
     ) -> Result<Self, PhysicalSubstrateReadinessDenial> {
-        let facts = PhysicalSubstrateReadinessFacts::from_s1_closeout_counts(
+        let facts = PhysicalSubstrateReadinessFacts::from_physical_format_closeout_counts(
             physical_references.len() as u32,
             header_decode_witnesses.len() as u32,
             payload_admission_witnesses.len() as u32,
@@ -152,7 +152,7 @@ pub struct PhysicalSubstrateEvidenceCounts {
 }
 
 impl PhysicalSubstrateEvidenceCounts {
-    pub(crate) const fn from_s1_closeout_evidence(
+    pub(crate) const fn from_physical_format_closeout_evidence(
         manifest_layout_evidence_count: u32,
         no_materialization_witness_count: u32,
         counter_evidence_count: u32,

@@ -20,7 +20,7 @@ pub(crate) fn bootstrap_exact_materialization(
         .expect("bootstrap fixture layout should discover a catalog");
     let (catalog, admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&open)
@@ -31,7 +31,7 @@ pub(crate) fn bootstrap_exact_materialization(
     assert_eq!(catalog.root_reference(), root_ref(1));
     assert_eq!(
         catalog.physical_format_version(),
-        forge_store_physical_format::PhysicalFormatVersion::s1_initial()
+        forge_store_physical_format::PhysicalFormatVersion::initial_format_version()
     );
     assert_eq!(catalog.layout_entry_count(), 5);
     assert_eq!(
@@ -44,9 +44,9 @@ pub(crate) fn bootstrap_exact_materialization(
 
 fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
     let mut facade =
-        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
             .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             generations
@@ -69,7 +69,7 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 

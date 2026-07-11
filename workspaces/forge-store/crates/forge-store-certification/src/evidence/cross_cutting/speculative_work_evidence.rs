@@ -46,7 +46,7 @@ impl SpeculativeWorkEvidenceReport {
                 })
             }
             SpeculativeWorkEvidenceRow::NoIoQosOrThroughputClaim
-                if read_ahead_admission_makes_no_s6_claim(admission) =>
+                if read_ahead_admission_makes_no_io_qos_claim(admission) =>
             {
                 Ok(Self {
                     row,
@@ -81,7 +81,7 @@ impl SpeculativeWorkEvidenceReport {
     ) -> Result<Self, SpeculativeWorkEvidenceDenial> {
         match row {
             SpeculativeWorkEvidenceRow::NoIoQosOrThroughputClaim
-                if prefetch_admission_makes_no_s6_claim(admission) =>
+                if prefetch_admission_makes_no_io_qos_claim(admission) =>
             {
                 Ok(Self {
                     row,
@@ -115,7 +115,7 @@ impl SpeculativeWorkEvidenceReport {
     ) -> Result<Self, SpeculativeWorkEvidenceDenial> {
         match row {
             SpeculativeWorkEvidenceRow::NoIoQosOrThroughputClaim
-                if write_behind_admission_makes_no_s6_claim(admission) =>
+                if write_behind_admission_makes_no_io_qos_claim(admission) =>
             {
                 Ok(Self {
                     row,
@@ -135,7 +135,7 @@ impl SpeculativeWorkEvidenceReport {
     ) -> Result<Self, SpeculativeWorkEvidenceDenial> {
         match row {
             SpeculativeWorkEvidenceRow::DenialBeforeScheduling
-                if denial_is_phase8_boundary(denial.kind())
+                if denial_is_boundary(denial.kind())
                     && total_denials(denial.counters()) > 0 =>
             {
                 Ok(Self {
@@ -179,7 +179,7 @@ const fn total_denials(counters: SpeculativeWorkCounterSnapshot) -> u64 {
         + counters.write_behind_denied_count()
 }
 
-const fn read_ahead_admission_makes_no_s6_claim(admission: ReadAheadAdmission) -> bool {
+const fn read_ahead_admission_makes_no_io_qos_claim(admission: ReadAheadAdmission) -> bool {
     !admission.proves_io_qos()
         && !admission.proves_queue_depth_correctness()
         && !admission.proves_backend_pacing()
@@ -188,7 +188,7 @@ const fn read_ahead_admission_makes_no_s6_claim(admission: ReadAheadAdmission) -
         && !admission.proves_throughput_improvement()
 }
 
-const fn prefetch_admission_makes_no_s6_claim(admission: PrefetchAdmission) -> bool {
+const fn prefetch_admission_makes_no_io_qos_claim(admission: PrefetchAdmission) -> bool {
     !admission.proves_io_qos()
         && !admission.proves_queue_depth_correctness()
         && !admission.proves_backend_pacing()
@@ -197,7 +197,7 @@ const fn prefetch_admission_makes_no_s6_claim(admission: PrefetchAdmission) -> b
         && !admission.proves_throughput_improvement()
 }
 
-const fn write_behind_admission_makes_no_s6_claim(admission: WriteBehindAdmission) -> bool {
+const fn write_behind_admission_makes_no_io_qos_claim(admission: WriteBehindAdmission) -> bool {
     !admission.proves_io_qos()
         && !admission.proves_queue_depth_correctness()
         && !admission.proves_backend_pacing()
@@ -206,7 +206,7 @@ const fn write_behind_admission_makes_no_s6_claim(admission: WriteBehindAdmissio
         && !admission.proves_throughput_improvement()
 }
 
-const fn denial_is_phase8_boundary(kind: SpeculativePhysicalWorkDenialKind) -> bool {
+const fn denial_is_boundary(kind: SpeculativePhysicalWorkDenialKind) -> bool {
     matches!(
         kind,
         SpeculativePhysicalWorkDenialKind::ResidentBudgetWouldBeExceeded { .. }

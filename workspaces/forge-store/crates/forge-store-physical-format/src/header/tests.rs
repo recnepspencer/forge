@@ -271,7 +271,7 @@ fn reserved_checksum_or_lsn_use_denies_without_integrity_claim() {
 #[test]
 fn page_header_uses_page_generation_owner() {
     let authority = header_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let cell = generations
         .page_cell(segment(1), page(2))
         .with_page_generation(generation(4));
@@ -296,12 +296,12 @@ fn page_header_uses_page_generation_owner() {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn validated_slot_reference(generation_value: u64) -> crate::PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(segment(1), page(2), slot(3))
         .with_slot_generation(generation(generation_value));

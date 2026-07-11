@@ -21,7 +21,7 @@ use forge_store_physical_backend::{
     BackendQueueExecutionPlanBinding, BackendQueueExecutionReplayBinding, BackendRebindTriggers,
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub(super) fn admitted_plan() -> forge_store_io_scheduler::QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
@@ -88,7 +88,7 @@ pub(super) fn backend_witness() -> forge_store_physical_backend::AdmittedBackend
 
 pub(super) fn scheduler_security_scope(
 ) -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
-    let scope = admitted_store_internal_security_scope_for_s6_test();
+    let scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&scope).expect("scheduler security scope should admit")
 }
 

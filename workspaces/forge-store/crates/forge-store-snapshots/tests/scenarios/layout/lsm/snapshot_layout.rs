@@ -5,7 +5,7 @@ use forge_store_snapshots::{
 };
 
 #[test]
-fn phase23_snapshot_family_binds_snapshot_reads_to_admitted_image_authority() {
+fn snapshot_family_binds_snapshot_reads_to_admitted_image_authority() {
     let snapshot_id = SnapshotId::from_artifact_id(StableArtifactId::new("phase23-snapshot").unwrap());
     let handle = snapshot_semantic_authority().publish_snapshot_image(snapshot_id.clone(), "sha256:image", 8);
     let request = SnapshotReadRequest::new(snapshot_id.clone(), 5);

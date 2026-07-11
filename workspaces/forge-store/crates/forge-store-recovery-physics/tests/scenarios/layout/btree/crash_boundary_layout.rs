@@ -7,7 +7,7 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn phase22_recovery_source_and_crash_boundary_families_deny_residue_and_rollback_shortcuts() {
+fn recovery_source_and_crash_boundary_families_deny_residue_and_rollback_shortcuts() {
     let source = phase22_fixture::admitted_source_with_residue();
     let report = RecoverySourceLayoutReport::from_source(&source);
     assert_eq!(report.candidate_count(), 3);

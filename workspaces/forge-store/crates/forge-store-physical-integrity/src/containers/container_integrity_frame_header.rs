@@ -17,7 +17,7 @@ pub(crate) fn reject_page_local_frame_header_mismatch(
         return Err(header_mismatch(entry, counters));
     }
     let version = byte_order.read_u16([frame[1], frame[2]]);
-    if version != PhysicalFormatVersion::s1_initial().value() {
+    if version != PhysicalFormatVersion::initial_format_version().value() {
         return Err(header_mismatch(entry, counters));
     }
     let header_len = byte_order.read_u16([frame[3], frame[4]]);

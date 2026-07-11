@@ -12,11 +12,11 @@ use forge_store_readiness::{
 };
 
 #[test]
-fn buffer_pool_entry_consumes_s1_readiness_and_budget() {
-    let s2_physical_substrate_readiness = s2_physical_substrate_readiness();
+fn buffer_pool_entry_consumes_physical_format_readiness_and_budget() {
+    let physical_substrate_readiness = physical_substrate_readiness();
     let buffer_pool_budget = buffer_pool_budget();
     let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        s2_physical_substrate_readiness.physical_substrate_snapshot(),
+        physical_substrate_readiness.physical_substrate_snapshot(),
     )
     .unwrap()
     .with_budget(buffer_pool_budget)
@@ -50,13 +50,13 @@ fn buffer_pool_entry_consumes_s1_readiness_and_budget() {
 }
 
 #[test]
-fn independent_s1_handoffs_lower_to_same_s2_entry_facts_and_vocabulary() {
+fn independent_physical_format_handoffs_lower_to_same_physical_substrate_entry_facts_and_vocabulary() {
     let first_independent_entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        s2_physical_substrate_readiness().physical_substrate_snapshot(),
+        physical_substrate_readiness().physical_substrate_snapshot(),
     )
     .unwrap();
     let second_independent_entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        s2_physical_substrate_readiness().physical_substrate_snapshot(),
+        physical_substrate_readiness().physical_substrate_snapshot(),
     )
     .unwrap();
 
@@ -65,15 +65,15 @@ fn independent_s1_handoffs_lower_to_same_s2_entry_facts_and_vocabulary() {
         second_independent_entry.facts()
     );
     assert_eq!(
-        ResidencyVocabulary::s2_phase_one(),
-        ResidencyVocabulary::s2_phase_one()
+        ResidencyVocabulary::physical_substrate_vocabulary(),
+        ResidencyVocabulary::physical_substrate_vocabulary()
     );
 }
 
 #[test]
-fn residency_vocabulary_freezes_phase_one_authority_terms() {
+fn residency_vocabulary_freezes_authority_terms() {
     assert_eq!(
-        ResidencyVocabulary::s2_phase_one(),
+        ResidencyVocabulary::physical_substrate_vocabulary(),
         &[
             ResidencyAuthorityTerm::ResidentMemory,
             ResidencyAuthorityTerm::PinnedPage,
@@ -110,8 +110,8 @@ fn budget_declaration_keeps_resident_pinned_and_dirty_distinct() {
     assert_eq!(buffer_pool_budget.dirty_pages().as_pages(), 2);
 }
 
-fn s2_physical_substrate_readiness() -> PhysicalSubstrateReadiness {
-    let closeout = close_physical_substrate_readiness(accepted_s1_readiness()).unwrap();
+fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
+    let closeout = close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap();
     prove_physical_substrate_readiness(closeout).unwrap()
 }
 
@@ -123,8 +123,8 @@ fn buffer_pool_budget() -> BufferPoolBudget {
     )
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),

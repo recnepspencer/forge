@@ -1,4 +1,4 @@
-use super::scenario::{all_s8_layout_scenarios, S8LayoutScenarioKind};
+use super::scenario::{all_layout_index_layout_scenarios, S8LayoutScenarioKind};
 use super::transcripts::S8LayoutTranscriptKind;
 
 const EXPECTED_S8_LAYOUT_SCENARIOS: usize = 8;
@@ -32,9 +32,9 @@ pub struct S8LayoutScenarioInventoryReceipt {
     shortcut_trace_scenarios: usize,
 }
 
-pub fn verify_canonical_s8_layout_scenario_inventory(
+pub fn verify_canonical_layout_index_layout_scenario_inventory(
 ) -> Result<S8LayoutScenarioInventoryReceipt, S8LayoutScenarioInventoryDenial> {
-    let scenarios = all_s8_layout_scenarios();
+    let scenarios = all_layout_index_layout_scenarios();
     if scenarios.len() != EXPECTED_S8_LAYOUT_SCENARIOS {
         return Err(S8LayoutScenarioInventoryDenial::MissingScenario);
     }

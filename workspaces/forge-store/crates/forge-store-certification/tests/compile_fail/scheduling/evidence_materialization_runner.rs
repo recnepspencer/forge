@@ -1,5 +1,5 @@
 #[test]
-fn phase_13_materialized_authority_boundaries_reject_public_forgery() {
+fn materialized_authority_boundaries_reject_public_forgery() {
     let repo_root = repo_root();
     build_compile_fail_dependencies(&repo_root);
     for case in compile_fail_cases() {

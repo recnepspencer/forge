@@ -6,7 +6,7 @@ use std::{
 
 #[test]
 fn serde_json_digest_basis_is_rejected() {
-    for source in phase_six_production_authority_sources() {
+    for source in production_authority_sources() {
         let contents = fs::read_to_string(&source).unwrap();
         for forbidden in [
             "serde_json::to_vec",
@@ -63,7 +63,7 @@ fn physical_authority_basis_rejects_debug_projection_text() {
     }
 }
 
-fn phase_six_production_authority_sources() -> Vec<PathBuf> {
+fn production_authority_sources() -> Vec<PathBuf> {
     let mut sources = Vec::new();
     for crate_name in [
         "forge-store-aspect-native",

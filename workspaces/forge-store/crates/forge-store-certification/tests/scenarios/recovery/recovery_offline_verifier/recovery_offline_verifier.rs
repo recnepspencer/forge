@@ -11,10 +11,10 @@ use forge_store_recovery_physics::{
     RuntimeRecoveryReport, RuntimeRecoveryReportDenial,
 };
 use forge_store_test_support::{
-    deterministic_s4_recovery_artifacts, duplicate_role_s4_recovery_artifacts,
-    incomplete_s4_recovery_artifacts, malformed_s4_recovery_record,
-    reordered_s4_recovery_artifacts, runtime_disagreement_s4_recovery_artifacts,
-    runtime_state_mismatch_s4_recovery_artifacts, FreshRuntimeRecoveryDriver,
+    deterministic_recovery_artifacts, duplicate_role_recovery_artifacts,
+    incomplete_recovery_artifacts, malformed_recovery_record,
+    reordered_recovery_artifacts, runtime_disagreement_recovery_artifacts,
+    runtime_state_mismatch_recovery_artifacts, FreshRuntimeRecoveryDriver,
 };
 
 use assertions::{
@@ -26,8 +26,8 @@ use runtime_recovery_fixture::execute_reopened_recovery_fixture;
 #[test]
 fn identical_persisted_bytes_recover_to_identical_classification_and_reports() {
     let verifier = verifier();
-    let artifacts = deterministic_s4_recovery_artifacts();
-    let reordered = reordered_s4_recovery_artifacts();
+    let artifacts = deterministic_recovery_artifacts();
+    let reordered = reordered_recovery_artifacts();
     let first_offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let second_offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let reordered_offline = verifier.verify_persisted_artifacts(&reordered).unwrap();
@@ -68,7 +68,7 @@ fn identical_persisted_bytes_recover_to_identical_classification_and_reports() {
 #[test]
 fn verifier_runtime_disagreement_is_typed_evidence() {
     let verifier = verifier();
-    let artifacts = runtime_disagreement_s4_recovery_artifacts();
+    let artifacts = runtime_disagreement_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let denial = runtime_report_result(&offline, &artifacts).unwrap_err();
 
@@ -81,7 +81,7 @@ fn verifier_runtime_disagreement_is_typed_evidence() {
 #[test]
 fn runtime_state_disagreement_is_typed_admission_evidence() {
     let verifier = verifier();
-    let artifacts = runtime_state_mismatch_s4_recovery_artifacts();
+    let artifacts = runtime_state_mismatch_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let denial = runtime_report_result(&offline, &artifacts).unwrap_err();
 
@@ -91,7 +91,7 @@ fn runtime_state_disagreement_is_typed_admission_evidence() {
 #[test]
 fn offline_verifier_inspects_persisted_records_without_live_runtime_or_cache_reuse() {
     let verifier = verifier();
-    let artifacts = deterministic_s4_recovery_artifacts();
+    let artifacts = deterministic_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
 
     assert_independent_offline_report(&offline);
@@ -100,7 +100,7 @@ fn offline_verifier_inspects_persisted_records_without_live_runtime_or_cache_reu
 #[test]
 fn same_process_live_state_reuse_is_denied_as_runtime_evidence() {
     let verifier = verifier();
-    let artifacts = deterministic_s4_recovery_artifacts();
+    let artifacts = deterministic_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let (_receipt, execution) = execute_reopened_recovery_fixture(&offline, &artifacts).unwrap();
     let denial = FreshRuntimeRecoveryDriver::same_process_live_state_reuse()
@@ -115,7 +115,7 @@ fn same_process_live_state_reuse_is_denied_as_runtime_evidence() {
 
 #[test]
 fn malformed_physical_record_is_admission_denial() {
-    let denial = malformed_s4_recovery_record().unwrap_err();
+    let denial = malformed_recovery_record().unwrap_err();
 
     assert!(matches!(
         denial,
@@ -126,7 +126,7 @@ fn malformed_physical_record_is_admission_denial() {
 #[test]
 fn incomplete_physical_record_set_is_typed_offline_evidence() {
     let verifier = verifier();
-    let artifacts = incomplete_s4_recovery_artifacts();
+    let artifacts = incomplete_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let denial = runtime_report_result(&offline, &artifacts).unwrap_err();
 
@@ -143,7 +143,7 @@ fn incomplete_physical_record_set_is_typed_offline_evidence() {
 #[test]
 fn duplicate_physical_record_roles_are_typed_offline_evidence() {
     let verifier = verifier();
-    let artifacts = duplicate_role_s4_recovery_artifacts();
+    let artifacts = duplicate_role_recovery_artifacts();
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
 
     assert_eq!(
@@ -155,7 +155,7 @@ fn duplicate_physical_record_roles_are_typed_offline_evidence() {
 #[test]
 fn allowed_nondeterministic_metadata_is_canonicalized_before_comparison() {
     let verifier = verifier();
-    let artifacts = deterministic_s4_recovery_artifacts();
+    let artifacts = deterministic_recovery_artifacts();
     let first_offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let second_offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let (first_receipt, first_execution) =
@@ -208,7 +208,7 @@ fn verifier() -> RecoveryOfflineVerifier {
     RecoveryOfflineVerifier::for_profile(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
     )
 }
 

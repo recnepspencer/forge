@@ -43,7 +43,7 @@ pub(crate) fn transcript_supports_acceptance_suite(
         S2AcceptanceSuiteKind::FoundationalBoundaryEvidence => {
             covers_foundational_boundary(plan, transcript)
         }
-        S2AcceptanceSuiteKind::S3ReadinessHandoff => covers_s3_readiness_handoff(plan, transcript),
+        S2AcceptanceSuiteKind::S3ReadinessHandoff => covers_physical_integrity_readiness_handoff(plan, transcript),
     }
 }
 
@@ -148,7 +148,7 @@ fn covers_foundational_boundary(
         )
 }
 
-fn covers_s3_readiness_handoff(
+fn covers_physical_integrity_readiness_handoff(
     plan: &PhysicalScenarioPlan,
     transcript: &PhysicalStoryTranscript,
 ) -> bool {

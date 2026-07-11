@@ -51,7 +51,7 @@ impl S6BackendCapabilityReadinessPublication {
     }
 }
 
-pub fn publish_s6_backend_capability_readiness(
+pub fn publish_io_qos_backend_capability_readiness(
     witness: &AdmittedBackendCapabilityWitness,
 ) -> S6BackendCapabilityReadinessPublication {
     S6BackendCapabilityReadinessPublication::from_admitted_backend_capability(witness)
@@ -117,7 +117,7 @@ impl S6BackendCapabilityAdmissionCertificationEvidence {
     }
 }
 
-pub fn certify_s6_backend_capability_admission(
+pub fn certify_io_qos_backend_capability_admission(
     witness: &AdmittedBackendCapabilityWitness,
     readiness: &S6BackendCapabilityReadinessPublication,
 ) -> Option<S6BackendCapabilityAdmissionCertificationEvidence> {

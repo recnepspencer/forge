@@ -197,7 +197,7 @@ impl PhysicalOracleVerdictTopology {
     }
 }
 
-pub const fn phase7_verdict_topology() -> [PhysicalOracleVerdictTopology; 6] {
+pub const fn oracle_verdict_topology() -> [PhysicalOracleVerdictTopology; 6] {
     [
         topology(
             PhysicalProofOracleVerdictKind::Satisfied,

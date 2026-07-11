@@ -2,7 +2,7 @@ use super::{
     S8DeterministicSelectionRule, S8PlanningCapabilityGrant, S8SelectionCandidateEligibility,
 };
 use crate::facade::{access_planning, deterministic_plan_selection};
-use crate::strategy::tests_support::admit_phase_five_scope;
+use crate::strategy::tests_support::admit_strategy_scope;
 use crate::{
     access_shapes, S8DegradedExactScanRequest, S8LayoutStrategyFamily, S8PlanSelectionDenied,
     S8SelectionCandidateOutcome,
@@ -18,7 +18,7 @@ use forge_store_security::{
 
 #[test]
 fn deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -76,7 +76,7 @@ fn deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads(
 
 #[test]
 fn deterministic_selection_selects_lsm_for_exact_wal_point_paths() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,
@@ -122,7 +122,7 @@ fn deterministic_selection_selects_lsm_for_exact_wal_point_paths() {
 
 #[test]
 fn deterministic_selection_denies_when_budget_is_exceeded_before_execution() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -160,7 +160,7 @@ fn deterministic_selection_denies_when_budget_is_exceeded_before_execution() {
 
 #[test]
 fn degraded_exact_scan_uses_explicit_rule_and_plan_bound_budget_receipt() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -213,7 +213,7 @@ fn degraded_exact_scan_uses_explicit_rule_and_plan_bound_budget_receipt() {
 
 #[test]
 fn fingerprint_changes_when_selected_plan_basis_changes_within_same_family() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -271,7 +271,7 @@ fn fingerprint_changes_when_selected_plan_basis_changes_within_same_family() {
 
 #[test]
 fn deterministic_selection_denies_when_no_strategy_is_eligible() {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalRootManifest,
         StoreKeyScope::StoreManagedRoot,
         StoreTenantScope::StoreInternal,
@@ -307,7 +307,7 @@ fn exact_multi_range_and_grouped_prefix_paths_fail_closed_without_btree_counter_
     use crate::strategy::tests_support::admit_btree_page_strategy;
     use crate::{S8GroupedPrefixBasis, S8MultiRangeBasis};
 
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,

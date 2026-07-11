@@ -23,7 +23,7 @@ use forge_store_test_support::harness::test_authority::{
     observed_torn_frame_boundary, page_generation_fault_locus, wal_frame_payload_fault_locus,
 };
 use forge_store_test_support::{
-    admitted_developer_smoke_driver_contracts, deterministic_s4_recovery_artifacts,
+    admitted_developer_smoke_driver_contracts, deterministic_recovery_artifacts,
     NativeStoreAspectFixture,
 };
 
@@ -190,7 +190,7 @@ pub fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysi
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }
@@ -209,11 +209,11 @@ pub fn complete_context() -> SimulationPlanningContext {
 }
 
 pub fn fresh_runtime_crash_evidence() -> FreshRuntimeCrashRecoveryEvidence {
-    let artifacts = deterministic_s4_recovery_artifacts();
+    let artifacts = deterministic_recovery_artifacts();
     let verifier = RecoveryOfflineVerifier::for_profile(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
     );
     let offline = verifier.verify_persisted_artifacts(&artifacts).unwrap();
     let (receipt, execution) =
@@ -348,7 +348,7 @@ fn production_driver_with_profile(
     profile: forge_store_physical_backend::BackendDurabilityProfileId,
 ) -> PhysicalSimulationDriver {
     let mut driver = ProductionStorageBoundaryDriver::for_backend_profile(profile);
-    for seam in ProductionStorageBoundarySeam::phase4_registered_seams() {
+    for seam in ProductionStorageBoundarySeam::registered_backend_operation_seams() {
         driver = driver.declare_yieldpoint(PhysicalBoundaryYieldpoint::production_storage(*seam));
     }
     driver.admit().unwrap()

@@ -15,7 +15,7 @@ pub struct PhysicalHeaderAuthority {
 }
 
 impl PhysicalHeaderAuthority {
-    pub const fn s1(binary: PhysicalBinaryEncodingWitness) -> Self {
+    pub const fn for_canonical_physical_format(binary: PhysicalBinaryEncodingWitness) -> Self {
         Self {
             scope: PhysicalHeaderAuthorityScope::StorageFoundationS1,
             binary,
@@ -214,7 +214,7 @@ fn reject_unsupported_version(
     counters: PhysicalHeaderDecodeCounterSnapshot,
 ) -> Result<(), PhysicalHeaderDecodeDenial> {
     let version = byte_order.read_u16([bytes[1], bytes[2]]);
-    if version != crate::PhysicalFormatVersion::s1_initial().value() {
+    if version != crate::PhysicalFormatVersion::initial_format_version().value() {
         return Err(PhysicalHeaderDecodeDenial::new(
             PhysicalHeaderDecodeDenialKind::UnsupportedVersion,
             counters.with_unsupported_version_denial(),

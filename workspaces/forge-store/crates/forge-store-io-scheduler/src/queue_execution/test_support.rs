@@ -76,7 +76,7 @@ pub(crate) fn secure_io_for_work(
 ) -> crate::SecureIoPreservationReceipt {
     let operation = secure_operation_for_test_work(work);
     admit_secure_io_scope_for_scheduler(
-        SecureIoPreservationRequest::new(operation, &s6_security_scope_admission(), backend)
+        SecureIoPreservationRequest::new(operation, &io_qos_security_scope_admission(), backend)
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .expect("test secure-I/O scope should admit")
@@ -97,8 +97,8 @@ fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperati
     }
 }
 
-fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let security_scope = forge_store_security::admitted_store_internal_security_scope_for_s6_test();
+fn io_qos_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
+    let security_scope = forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

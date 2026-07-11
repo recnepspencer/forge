@@ -56,7 +56,7 @@ impl RepairBlastRadiusReadiness {
         }
     }
 
-    pub fn from_s10_handoff(handoff: S10RepairBlastRadiusHandoff) -> Self {
+    pub fn from_backup_repair_handoff(handoff: S10RepairBlastRadiusHandoff) -> Self {
         handoff.into_readiness()
     }
 

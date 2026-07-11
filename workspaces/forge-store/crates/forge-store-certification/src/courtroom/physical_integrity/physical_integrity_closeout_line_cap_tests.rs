@@ -1,6 +1,6 @@
 use crate::{
     courtroom::harness::test_support::physical_integrity_closeout_line_cap_test_support::{
-        line_cap_module_evidence, s3_owned_closeout_file_evidence,
+        line_cap_module_evidence, physical_integrity_owned_closeout_file_evidence,
     },
     PhysicalIntegrityCloseoutDenial, S3CloseoutModuleKind, S3LineCapCompositionEvidence,
     S3LineCapModuleEvidence,
@@ -27,7 +27,7 @@ fn closeout_rejects_line_cap_labels_without_checked_composition() {
         )
     );
 
-    let mut owned_files = s3_owned_closeout_file_evidence();
+    let mut owned_files = physical_integrity_owned_closeout_file_evidence();
     owned_files.retain(|file| file.file_name() != "physical_integrity_closeout_suite.rs");
     let denial = S3LineCapCompositionEvidence::from_checked_modules_and_owned_files(
         line_cap_module_evidence(),

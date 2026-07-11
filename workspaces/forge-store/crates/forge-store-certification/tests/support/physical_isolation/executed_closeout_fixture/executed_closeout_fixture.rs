@@ -21,7 +21,7 @@ use forge_store_physical_isolation::{
 };
 use forge_store_recovery_physics::CompactionCutoverRecoveryPosture;
 
-pub(crate) fn honest_executed_s5_closeout() -> ExecutedIsolationEvidence {
+pub(crate) fn honest_executed_physical_isolation_closeout() -> ExecutedIsolationEvidence {
     let (stable_read, publication, compaction) = admitted_compaction_surfaces();
     let checkpoint = checkpoint_read::admitted_checkpoint_verdict();
     let reclaim_world = ReclaimFixture::new(981);
@@ -60,7 +60,7 @@ pub(crate) fn honest_executed_s5_closeout() -> ExecutedIsolationEvidence {
     .unwrap()
 }
 
-pub(crate) fn assert_expected_s6_closeout_counters(counters: PhysicalIsolationCounterSnapshot) {
+pub(crate) fn assert_expected_io_qos_closeout_counters(counters: PhysicalIsolationCounterSnapshot) {
     assert_eq!(counters.outcome_count(), 1);
     assert_eq!(counters.wait_count(), 0);
     assert_eq!(counters.retry_count(), 0);

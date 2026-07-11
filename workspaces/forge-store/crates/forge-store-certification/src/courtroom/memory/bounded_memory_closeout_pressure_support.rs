@@ -70,7 +70,7 @@ pub(crate) fn synthetic_rejections() -> Vec<SyntheticCloseoutShortcutRejectionRe
 fn pressure_plan_and_transcript(
     class: LargeStorePressureClass,
 ) -> (crate::PhysicalScenarioPlan, crate::PhysicalStoryTranscript) {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2()
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario()
         .with_buffer_pool_large_store_pressure_lanes()
         .unwrap();
     let plan = LargeStoreMemoryPressureScenario::for_class(class)

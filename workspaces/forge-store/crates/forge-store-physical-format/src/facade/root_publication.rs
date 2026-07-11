@@ -113,7 +113,7 @@ fn verify_manifest_discovery_on_encoded_root(
     encoded: &EncodedRootPublication,
     references: PhysicalReferenceAuthority,
 ) -> Result<(), PlatformPhysicalFacadeDenial> {
-    ManifestDiscoveryAuthority::s1()
+    ManifestDiscoveryAuthority::for_canonical_physical_format()
         .reopen_from_root(
             &encoded.root,
             references.admit_root_publication(encoded.root.root_publication()),
@@ -157,7 +157,7 @@ pub(crate) fn encode_root_publication(
 }
 
 fn root_publication_cell(generation: PhysicalGeneration) -> RootPublicationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(1).expect("nonzero root id"))
         .with_root_publication_generation(generation)
 }
@@ -166,7 +166,7 @@ fn build_root_manifest(
     storage: &PlatformPhysicalFacadeStorage,
     root_cell: RootPublicationCell,
 ) -> PhysicalRootManifest {
-    let mut builder = PhysicalManifestUniverseBuilder::s1(root_cell);
+    let mut builder = PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_cell);
     for segment in manifested_segments(storage) {
         builder = builder.segment(segment);
     }
@@ -184,7 +184,7 @@ fn manifested_segments(
 ) -> Vec<crate::SegmentGenerationCell> {
     let mut segments = Vec::new();
     for slot in storage.page_slots() {
-        let segment = PhysicalGenerationAuthority::s1()
+        let segment = PhysicalGenerationAuthority::for_canonical_physical_format()
             .segment_cell(slot.segment_id())
             .with_segment_generation(slot.generation());
         if !segments.contains(&segment) {
@@ -192,7 +192,7 @@ fn manifested_segments(
         }
     }
     for extent in storage.extent_cells() {
-        let segment = PhysicalGenerationAuthority::s1()
+        let segment = PhysicalGenerationAuthority::for_canonical_physical_format()
             .segment_cell(extent.segment_id())
             .with_segment_generation(extent.generation());
         if !segments

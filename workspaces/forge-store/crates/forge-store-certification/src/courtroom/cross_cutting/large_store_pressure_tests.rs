@@ -192,7 +192,7 @@ fn run_pressure_class(class: LargeStorePressureClass) -> PressureProof {
 }
 
 fn buffer_pool_pressure_harness() -> PhysicalScenarioQualityHarness {
-    PhysicalScenarioQualityHarness::roadmap_2()
+    PhysicalScenarioQualityHarness::cross_cutting_scenario()
         .with_buffer_pool_large_store_pressure_lanes()
         .expect("buffer pool pressure lanes are reserved roadmap lanes")
 }
@@ -201,7 +201,7 @@ fn pressure_harness_without_memory_observers() -> PhysicalScenarioQualityHarness
     required_pressure_oracles()
         .into_iter()
         .try_fold(
-            PhysicalScenarioQualityHarness::roadmap_2(),
+            PhysicalScenarioQualityHarness::cross_cutting_scenario(),
             |harness, oracle| {
                 harness.with_lane_family_extension(LaneFamilyExtension::new(
                     RoadmapLaneFamily::BufferPool,

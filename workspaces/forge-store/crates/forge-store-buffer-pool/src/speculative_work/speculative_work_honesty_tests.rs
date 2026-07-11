@@ -94,7 +94,7 @@ fn admitted_speculative_work_receipts_count_memory_and_do_not_claim_qos() {
 }
 
 #[test]
-fn unsupported_qos_claim_defers_without_phase8_scheduling_denial() {
+fn unsupported_qos_claim_defers_without_scheduling_denial() {
     let mut admission = SpeculativePhysicalWorkAdmission::new();
 
     let denial = admission.reject_unsupported_qos_claim();

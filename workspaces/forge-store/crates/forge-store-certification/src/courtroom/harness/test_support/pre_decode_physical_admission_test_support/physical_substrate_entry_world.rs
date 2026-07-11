@@ -1,7 +1,7 @@
 use super::super::{
     bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, pressure_bundles, s2_readiness, synthetic_rejections,
+        harness_evidence, pressure_bundles, physical_substrate_readiness, synthetic_rejections,
     },
     record_view_evidence_test_support::{admit_payload_frame, resident_frame_table},
 };
@@ -49,9 +49,9 @@ pub(crate) fn with_entry_seed(
     run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>),
 ) {
     let readiness = complete_closeout_report()
-        .publish_s3_physical_integrity_readiness(s2_readiness())
+        .publish_physical_integrity_readiness(physical_substrate_readiness())
         .unwrap();
-    let entry = IntegrityEntryAdmission::from_s3_payload(readiness.payload()).unwrap();
+    let entry = IntegrityEntryAdmission::from_physical_integrity_payload(readiness.payload()).unwrap();
     let mut table = resident_frame_table();
     let frame = admit_payload_frame(&mut table, 7, 2, payload);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
@@ -66,7 +66,7 @@ fn pre_decode_admission_from_seed(
     seed: PhysicalIntegrityAdmissionSeed<'_>,
 ) -> PhysicalIntegrityAdmission<'_> {
     let entry_witness = seed.entry_witness();
-    seed.with_checksum_declaration(checksum_declaration().admit_for_s3_entry(entry_witness))
+    seed.with_checksum_declaration(checksum_declaration().admit_for_physical_integrity_entry(entry_witness))
         .unwrap()
 }
 

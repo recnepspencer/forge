@@ -280,11 +280,11 @@ fn root_publication_validation_cannot_be_reused_for_mismatched_exact_coverage() 
 }
 
 fn validated_root_publication_authority(generation: u64) -> S8ExactPublicationAuthoritySource {
-    let root = PhysicalGenerationAuthority::s1()
+    let root = PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(1).unwrap())
         .with_root_publication_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    let admission = PhysicalReferenceAuthority::s1().admit_root_publication(root);
-    let validation = PhysicalReferenceAuthority::s1()
+    let admission = PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root);
+    let validation = PhysicalReferenceAuthority::for_canonical_physical_format()
         .validate_root_publication(admission, root)
         .expect("test root publication should validate");
     S8ExactPublicationAuthoritySource::current_root_publication(validation)

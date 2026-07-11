@@ -34,7 +34,7 @@ pub use crate::courtroom::memory::buffer_pool_certification_bundle::{
     BufferPoolCertificationBundle, BufferPoolCertificationBundleDenial,
 };
 pub use crate::evidence::by_substrate::{
-    certify_s0_handoff_gate_proof_evidence, offline_observer_requires_physical_references,
+    certify_foundational_handoff_gate_proof_evidence, offline_observer_requires_physical_references,
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
     AllocationEnvelopeEvidenceRow, AllocationEnvelopePerformanceReceipt,
     BackgroundClassEnvelopeEvidence, BackgroundEnvelopeEvidenceBundle,
@@ -83,8 +83,8 @@ pub use crate::scenario::memory::buffer_pool_transcripts::BufferPoolPressureTran
 // --- closeout: milestone certification bundles and handoff evidence ---
 pub use crate::courtroom::closeout::{
     assemble_physical_isolation_replay_bundle, certify_native_blob_store_closeout,
-    certify_security_scope_closeout, close_s3_physical_integrity_from_executed_evidence,
-    evaluate_blob_closeout_request, materialize_s5_executed_isolation_evidence,
+    certify_security_scope_closeout, close_physical_integrity_from_executed_evidence,
+    evaluate_blob_closeout_request, materialize_physical_isolation_executed_isolation_evidence,
     observe_physical_isolation_trace,
     physical_isolation_ci_certification_context_without_lane_registration,
     physical_isolation_ci_certification_planning_context,
@@ -139,11 +139,11 @@ pub use crate::courtroom::closeout::{
 };
 // --- closeout/s6: S.6 certification materialization ---
 pub use crate::courtroom::scheduling::{
-    adopt_materialized_s6_certification_evidence_for_closeout,
-    certify_io_pressure_backend_qualification_matrix, certify_s6_backend_capability_admission,
-    certify_s6_background_pacing, certify_s6_foreground_reservation,
-    materialize_s6_certification_evidence, publish_s6_backend_capability_readiness,
-    reject_materialized_s6_certification_as_runtime_authority, IoPressureHarnessCloseoutDenial,
+    adopt_materialized_io_qos_certification_evidence_for_closeout,
+    certify_io_pressure_backend_qualification_matrix, certify_io_qos_backend_capability_admission,
+    certify_io_qos_background_pacing, certify_io_qos_foreground_reservation,
+    materialize_io_qos_certification_evidence, publish_io_qos_backend_capability_readiness,
+    reject_materialized_io_qos_certification_as_runtime_authority, IoPressureHarnessCloseoutDenial,
     IoPressureHarnessCloseoutEvidence, S6AccessPolicyEvidenceOutcomeKind,
     S6AccessPolicyEvidenceRow, S6BackendCapabilityAdmissionCertificationEvidence,
     S6BackendCapabilityReadinessPublication, S6BackendQualificationMatrixCertification,
@@ -177,7 +177,7 @@ pub use crate::courtroom::harness::{
 };
 // --- replay: observed traces and verifier comparison ---
 pub use crate::courtroom::replay::{
-    assemble_s8_layout_replay_bundle, FixtureAdversaryPosture, FixtureAdversaryReport,
+    assemble_layout_index_layout_replay_bundle, FixtureAdversaryPosture, FixtureAdversaryReport,
     LargeStorePressureClass, ObservedPhysicalTrace, OfflineVerifierObserver,
     PhysicalCounterExpectationKind, PhysicalHostileScaleCondition,
     PhysicalHostileScaleFixtureDenial, PhysicalHostileScaleFixtureReport,
@@ -193,7 +193,7 @@ pub use crate::courtroom::replay::{
 };
 // --- scenario: definition, planning, and execution ---
 pub use crate::courtroom::scenario::{
-    certify_s8_layout_scenario, ArtifactPolicy, ExpectedPhysicalFootprint,
+    certify_layout_index_layout_scenario, ArtifactPolicy, ExpectedPhysicalFootprint,
     PhysicalScenarioCapabilityTier, PhysicalScenarioCostClass, PhysicalScenarioDefinition,
     PhysicalScenarioDefinitionBuilder, PhysicalScenarioDefinitionDenial, PhysicalScenarioExecution,
     PhysicalScenarioExecutionReport, PhysicalScenarioPlan, PhysicalScenarioPlanDenial,

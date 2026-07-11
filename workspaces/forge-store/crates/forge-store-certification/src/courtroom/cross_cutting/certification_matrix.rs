@@ -48,7 +48,7 @@ pub enum S1CertificationRow {
 }
 
 impl S1CertificationRow {
-    pub const fn required_for_s1() -> [Self; 43] {
+    pub const fn required_for_physical_format() -> [Self; 43] {
         [
             Self::PhysicalStoryTranscriptReplay,
             Self::PhysicalScenarioPlanLoweringReplay,

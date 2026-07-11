@@ -4,7 +4,7 @@ pub use crate::courtroom::physical_isolation::closeout::{
     S5CloseoutReservationSet, S5CloseoutReservedScope,
 };
 pub use crate::evidence::physical_isolation::{
-    materialize_s5_executed_isolation_evidence, S5ExecutedIsolationEvidenceBundle,
+    materialize_physical_isolation_executed_isolation_evidence, S5ExecutedIsolationEvidenceBundle,
     S5ExecutedIsolationMaterializationDenial, S5FoundationalCanonicalBasis,
     S5FoundationalDiagnostics, S5FoundationalPerformanceReceipts, S5PhysicalIsolationProofTrace,
     S5ProofProjectionArtifact,

@@ -18,7 +18,7 @@ const DERIVED_INDEX_SENTINEL: &[u8; 4] = b"DIDX";
 pub struct DerivedIndexIntegrityAuthority;
 
 impl DerivedIndexIntegrityAuthority {
-    pub const fn s3() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 

@@ -53,9 +53,9 @@ fn extent_and_reopen_follow_public_physical_evidence() {
     assert_eq!(extent.record_view().payload().as_bytes(), b"extent-backed");
 
     let published = facade.publish_physical_root().expect("public root publish");
-    let mut reopened = PlatformPhysicalFacade::reopen_s1(
+    let mut reopened = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("public replay reopen");
@@ -113,10 +113,10 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
             ))
             .expect("extent append");
     }
-    let page_reference = forge_store_physical_format::PhysicalReferenceAuthority::s1()
+    let page_reference = forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(slot_cell_for(page(8), slot(8)))
         .reference();
-    let extent_reference = forge_store_physical_format::PhysicalReferenceAuthority::s1()
+    let extent_reference = forge_store_physical_format::PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_extent(extent_cell_for(extent(8)))
         .reference();
 
@@ -146,12 +146,12 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
         .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 
@@ -179,7 +179,7 @@ fn slot_cell_for(
     page_id: PhysicalPageId,
     slot_id: PhysicalRecordSlot,
 ) -> forge_store_physical_format::SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page_id, slot_id)
         .with_slot_generation(generation(5))
 }
@@ -191,7 +191,7 @@ fn extent_cell(value: u64) -> forge_store_physical_format::ExtentGenerationCell 
 fn extent_cell_for(
     extent_id: PhysicalExtentId,
 ) -> forge_store_physical_format::ExtentGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(segment(1), extent_id)
         .with_extent_generation(generation(7))
 }

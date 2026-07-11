@@ -22,7 +22,7 @@
 //!     raw: RawReachabilityFields,
 //!     requested_region: PhysicalReclaimRegion,
 //! ) {
-//!     let _ = ReclaimPolicyReachabilityProof::from_s5_reclaim_reachability_removal(
+//!     let _ = ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(
 //!         raw,
 //!         requested_region,
 //!     );
@@ -49,7 +49,7 @@
 //! use forge_store_physical_isolation::S6ReclaimReachabilityRemovalEvidence;
 //!
 //! fn forge_reachability(region: PhysicalReclaimRegion) {
-//!     let _ = S6ReclaimReachabilityRemovalEvidence::from_s5_reclaim_reachability_removal(
+//!     let _ = S6ReclaimReachabilityRemovalEvidence::from_physical_isolation_reclaim_reachability_removal(
 //!         region,
 //!         7,
 //!         1,

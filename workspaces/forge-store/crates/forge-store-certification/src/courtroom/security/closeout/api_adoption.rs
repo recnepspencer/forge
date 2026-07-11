@@ -97,7 +97,7 @@ impl S51CloseoutApiAdoptionEvidence {
         self.performance_lane_used
     }
 
-    pub const fn uses_required_s5_1_foundational_lanes(self) -> bool {
+    pub const fn uses_required_security_scope_foundational_lanes(self) -> bool {
         self.native_aspect_values_used
             && self.canonicalization_used
             && self.boundary_artifact_used

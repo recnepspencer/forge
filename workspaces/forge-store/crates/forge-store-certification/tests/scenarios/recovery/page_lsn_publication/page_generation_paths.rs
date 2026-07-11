@@ -4,7 +4,7 @@ use forge_store_physical_format::{
 };
 
 pub fn page_generation(generation_value: u64, page_value: u64) -> PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(page_value))
         .with_page_generation(generation(generation_value))
 }

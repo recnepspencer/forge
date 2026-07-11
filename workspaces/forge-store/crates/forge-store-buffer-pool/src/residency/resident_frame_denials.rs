@@ -93,7 +93,7 @@ pub enum ResidentFrameShortcutAttempt {
 }
 
 impl ResidentFrameShortcutAttempt {
-    pub const fn s2_phase_two_forbidden_attempts() -> &'static [Self] {
+    pub const fn physical_substrate_forbidden_attempts() -> &'static [Self] {
         &[
             Self::BackendPrivateResidue,
             Self::OsPageCacheState,

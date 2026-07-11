@@ -63,7 +63,7 @@ pub fn admit_isolation_for_certification_test(
     request: IoSchedulerIsolationAdmissionRequest,
 ) -> Result<IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial> {
     require_counters(request.counters)?;
-    verify_s6_non_claims(&request.non_claims)?;
+    verify_io_qos_non_claims(&request.non_claims)?;
     Ok(IoSchedulerIsolationAdmission {
         assumptions: request.assumptions,
         foreground_interference: IoSchedulerForegroundInterferenceSurface::from_counters(
@@ -81,10 +81,10 @@ pub fn admit_store_published_isolation_capability(
 ) -> Result<IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial> {
     let request = collect_store_published_readiness_evidence(readiness);
     require_counters(request.counters)?;
-    verify_s6_non_claims(&request.non_claims)?;
+    verify_io_qos_non_claims(&request.non_claims)?;
     let foreground_interference = project_scheduler_foreground_interference(request.counters);
     let background_maintenance = project_scheduler_background_maintenance(request.counters);
-    Ok(assemble_s6_readiness_admission(
+    Ok(assemble_io_qos_readiness_admission(
         request.assumptions,
         foreground_interference,
         background_maintenance,
@@ -108,7 +108,7 @@ pub const fn reject_media_qos_claim_as_isolation_admission(
 }
 
 impl IoSchedulerPhysicalStabilityAssumption {
-    pub const fn required_from_s5() -> [Self; 4] {
+    pub const fn required_physical_stability_assumptions() -> [Self; 4] {
         [
             Self::StableReadPlansAreStorePublished,
             Self::LatchOrderingPreventsExecutionTimeRaceDiscovery,
@@ -119,7 +119,7 @@ impl IoSchedulerPhysicalStabilityAssumption {
 }
 
 impl IoSchedulerUnsupportedQosNonClaim {
-    pub const fn required_from_s5() -> [Self; 5] {
+    pub const fn required_unsupported_qos_non_claims() -> [Self; 5] {
         [
             Self::P99Latency,
             Self::P999Latency,
@@ -202,7 +202,7 @@ impl IoSchedulerIsolationAdmission {
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub const fn for_certification_test() -> Self {
         Self {
-            assumptions: IoSchedulerPhysicalStabilityAssumption::required_from_s5(),
+            assumptions: IoSchedulerPhysicalStabilityAssumption::required_physical_stability_assumptions(),
             foreground_interference:
                 IoSchedulerForegroundInterferenceSurface::for_certification_test(1, 1, 1),
             background_maintenance:
@@ -361,10 +361,10 @@ fn collect_store_published_readiness_evidence(
     IoSchedulerIsolationAdmissionRequest::from_store_published_readiness(readiness)
 }
 
-fn verify_s6_non_claims(
+fn verify_io_qos_non_claims(
     non_claims: &[IoSchedulerUnsupportedQosNonClaim; 5],
 ) -> Result<(), IoSchedulerIsolationAdmissionDenial> {
-    for required in IoSchedulerUnsupportedQosNonClaim::required_from_s5() {
+    for required in IoSchedulerUnsupportedQosNonClaim::required_unsupported_qos_non_claims() {
         if !non_claims.contains(&required) {
             return Err(IoSchedulerIsolationAdmissionDenial::MissingUnsupportedQosNonClaim);
         }
@@ -384,7 +384,7 @@ fn project_scheduler_background_maintenance(
     IoSchedulerBackgroundMaintenanceAssumption::from_counters(counters)
 }
 
-fn assemble_s6_readiness_admission(
+fn assemble_io_qos_readiness_admission(
     assumptions: [IoSchedulerPhysicalStabilityAssumption; 4],
     foreground_interference: IoSchedulerForegroundInterferenceSurface,
     background_maintenance: IoSchedulerBackgroundMaintenanceAssumption,

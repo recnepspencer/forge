@@ -62,7 +62,7 @@ impl S51CloseoutBoundaryEvidencePublication {
     }
 
     pub fn is_foundational_boundary_evidence(&self) -> bool {
-        self.package.proves_required_s5_1_lanes()
+        self.package.proves_required_security_scope_lanes()
     }
 }
 
@@ -127,7 +127,7 @@ impl S51CloseoutFoundationalBoundaryPackage {
                 TransitionOutcome::Denied(denial) => return Err(denial.into()),
             };
         Ok(Self {
-            required_fields: required_s5_1_foundational_fields(),
+            required_fields: required_security_scope_foundational_fields(),
             attachment_bundle,
             materialized_bundle,
             performance_canonical_basis,
@@ -211,11 +211,11 @@ impl S51CloseoutFoundationalBoundaryPackage {
         self.required_fields.contains(&field)
     }
 
-    pub fn proves_required_s5_1_lanes(&self) -> bool {
+    pub fn proves_required_security_scope_lanes(&self) -> bool {
         Self::REQUIRED_LANES
             .into_iter()
             .all(|lane| self.covers_lane(lane))
-            && required_s5_1_foundational_fields()
+            && required_security_scope_foundational_fields()
                 .into_iter()
                 .all(|field| self.carries_field(field))
             && self.native_aspect_evidence_rows == self.consumed_lower_store_evidence_rows
@@ -223,7 +223,7 @@ impl S51CloseoutFoundationalBoundaryPackage {
     }
 }
 
-fn required_s5_1_foundational_fields() -> [PhysicalFoundationEvidenceField; 6] {
+fn required_security_scope_foundational_fields() -> [PhysicalFoundationEvidenceField; 6] {
     [
         PhysicalFoundationEvidenceField::FoundationalCanonicalBasisBundle,
         PhysicalFoundationEvidenceField::FoundationalProfileMaterializationPlan,

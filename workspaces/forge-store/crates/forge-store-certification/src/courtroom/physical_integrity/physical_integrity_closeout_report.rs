@@ -12,8 +12,8 @@ pub struct PhysicalIntegrityCloseoutReport {
     evidence_family_count: usize,
     harness_lane: RoadmapLaneFamily,
     suite_harnesses: Vec<S3CloseoutSuiteHarnessSummary>,
-    s4_handoff_identity: StableDigest,
-    s4_counters: IntegrityHandoffCounters,
+    recovery_handoff_identity: StableDigest,
+    recovery_counters: IntegrityHandoffCounters,
     no_raw_bytes_crossed: bool,
     recovery_claimed: bool,
     later_sequence_semantic_claimed: bool,
@@ -63,8 +63,8 @@ impl S3CloseoutSuiteHarnessSummary {
 impl PhysicalIntegrityCloseoutReport {
     pub(crate) fn from_closeout(
         suite: &PhysicalIntegrityCloseoutSuite,
-        s4_handoff_identity: StableDigest,
-        s4_counters: IntegrityHandoffCounters,
+        recovery_handoff_identity: StableDigest,
+        recovery_counters: IntegrityHandoffCounters,
         no_raw_bytes_crossed: bool,
         recovery_claimed: bool,
         later_sequence_semantic_claimed: bool,
@@ -77,8 +77,8 @@ impl PhysicalIntegrityCloseoutReport {
                 .count(),
             harness_lane: RoadmapLaneFamily::Integrity,
             suite_harnesses: suite_harnesses(suite),
-            s4_handoff_identity,
-            s4_counters,
+            recovery_handoff_identity,
+            recovery_counters,
             no_raw_bytes_crossed,
             recovery_claimed,
             later_sequence_semantic_claimed,
@@ -101,12 +101,12 @@ impl PhysicalIntegrityCloseoutReport {
         &self.suite_harnesses
     }
 
-    pub const fn s4_handoff_identity(&self) -> &StableDigest {
-        &self.s4_handoff_identity
+    pub const fn recovery_handoff_identity(&self) -> &StableDigest {
+        &self.recovery_handoff_identity
     }
 
-    pub const fn s4_counters(&self) -> IntegrityHandoffCounters {
-        self.s4_counters
+    pub const fn recovery_counters(&self) -> IntegrityHandoffCounters {
+        self.recovery_counters
     }
 
     pub const fn proves_no_raw_bytes_crossed(&self) -> bool {

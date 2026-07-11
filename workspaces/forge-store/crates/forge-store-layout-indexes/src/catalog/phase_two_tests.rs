@@ -149,7 +149,7 @@ fn weaker_authority_and_lifecycle_paths_are_denied() {
 }
 
 #[test]
-fn certification_and_verifier_paths_cannot_bypass_phase_two_admission() {
+fn certification_and_verifier_paths_cannot_bypass_admission() {
     let certification = PhysicalArtifactFamilyDeclaration::declare(
         DurableArtifactFamilyId::CorruptionRecord,
         ArtifactFamilyAuthorityClass::CertificationEvidence,

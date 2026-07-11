@@ -43,7 +43,7 @@ pub(crate) fn recovery_blocking_damage_fixture() -> RecoveryBlockingDamageFixtur
         wal_payload("crc32c", 4, "checkpoint-damage", b"DATA"),
         CheckpointAdjacencyPosture::CheckpointAdjacent,
     );
-    let manifest_damage = ManifestIntegrityAuthority::s3()
+    let manifest_damage = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::damaged_root(
             root_with_slot(1, 2, 3, 7).root_publication().owner(),
         ))
@@ -114,7 +114,7 @@ fn inspect_wal_denial(
     with_wal_payload_input(payload, adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         denial = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );

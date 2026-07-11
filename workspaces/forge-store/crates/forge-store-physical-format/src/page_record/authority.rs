@@ -17,10 +17,10 @@ pub struct PhysicalPageRecordAuthority {
 }
 
 impl PhysicalPageRecordAuthority {
-    pub const fn s1(headers: PhysicalHeaderAuthority) -> Self {
+    pub const fn for_canonical_physical_format(headers: PhysicalHeaderAuthority) -> Self {
         Self {
             headers,
-            references: PhysicalReferenceAuthority::s1(),
+            references: PhysicalReferenceAuthority::for_canonical_physical_format(),
         }
     }
 
@@ -361,7 +361,7 @@ fn encode_record_frame(
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload.len());
     bytes.push(PhysicalFrameKind::RecordFrame.tag());
     bytes.extend_from_slice(
-        &byte_order.write_u16(crate::PhysicalFormatVersion::s1_initial().value()),
+        &byte_order.write_u16(crate::PhysicalFormatVersion::initial_format_version().value()),
     );
     bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
     bytes.extend_from_slice(&byte_order.write_u32(payload.len() as u32));

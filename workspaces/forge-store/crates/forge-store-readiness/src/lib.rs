@@ -27,7 +27,7 @@
 //! ```compile_fail
 //! use forge_store_readiness::PhysicalSubstrateReadinessFacts;
 //!
-//! let _forged = PhysicalSubstrateReadinessFacts::from_s1_closeout_counts(4, 2, 2, 3, 1, 9);
+//! let _forged = PhysicalSubstrateReadinessFacts::from_physical_format_closeout_counts(4, 2, 2, 3, 1, 9);
 //! ```
 //!
 //! S.2 handoff evidence cannot be synthesized by ordinary callers:
@@ -67,7 +67,7 @@
 //! use forge_store_readiness::PhysicalIntegrityReadiness;
 //!
 //! let _forged = PhysicalIntegrityReadiness {
-//!     s2_readiness: todo!(),
+//!     physical_substrate_readiness: todo!(),
 //!     payload: todo!(),
 //! };
 //! ```

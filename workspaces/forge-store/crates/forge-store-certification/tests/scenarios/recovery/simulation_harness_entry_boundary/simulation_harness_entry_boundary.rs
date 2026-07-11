@@ -141,7 +141,7 @@ fn simulation_harness_entry_rejects_shortcut_surrogates() {
 }
 
 #[test]
-fn s45_inventory_classifies_existing_surfaces() {
+fn simulation_harness_inventory_classifies_existing_surfaces() {
     let inventory = ExistingSimulationHarnessInventory::dedicated_workspace_baseline();
 
     assert!(
@@ -154,7 +154,7 @@ fn s45_inventory_classifies_existing_surfaces() {
 }
 
 #[test]
-fn s45_inventory_registered_test_support_surfaces_stay_mechanics() {
+fn simulation_harness_inventory_registered_test_support_surfaces_stay_mechanics() {
     let inventory = ExistingSimulationHarnessInventory::dedicated_workspace_baseline();
 
     assert!(inventory.contains_reusable_mechanics(
@@ -172,7 +172,7 @@ fn s45_inventory_registered_test_support_surfaces_stay_mechanics() {
 }
 
 #[test]
-fn s45_inventory_denies_missing_registered_baseline_surface() {
+fn simulation_harness_inventory_denies_missing_registered_baseline_surface() {
     let recovery = fixture::executed_recovery_receipt();
     let inventory = ExistingSimulationHarnessInventory::from_registered_surfaces(vec![
         RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,
@@ -196,7 +196,7 @@ fn s45_inventory_denies_missing_registered_baseline_surface() {
 }
 
 #[test]
-fn s45_inventory_denies_missing_milestone_local_surface() {
+fn simulation_harness_inventory_denies_missing_milestone_local_surface() {
     let recovery = fixture::executed_recovery_receipt();
     let inventory = ExistingSimulationHarnessInventory::from_registered_surfaces(vec![
         RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,
@@ -220,7 +220,7 @@ fn s45_inventory_denies_missing_milestone_local_surface() {
 }
 
 #[test]
-fn s45_inventory_denies_legacy_harness_as_authority() {
+fn simulation_harness_inventory_denies_legacy_harness_as_authority() {
     let recovery = fixture::executed_recovery_receipt();
     let inventory = ExistingSimulationHarnessInventory::from_registered_surfaces(vec![
         RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,

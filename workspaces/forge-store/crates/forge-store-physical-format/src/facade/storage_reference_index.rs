@@ -56,7 +56,7 @@ impl StoredReferenceIndex {
     pub(crate) fn record_page_slot(&mut self, slot_cell: SlotGenerationCell) {
         self.admitted_references
             .insert(StoredReferenceKey::from_reference(
-                PhysicalReferenceAuthority::s1()
+                PhysicalReferenceAuthority::for_canonical_physical_format()
                     .admit_page_slot(slot_cell)
                     .reference(),
             ));
@@ -65,7 +65,7 @@ impl StoredReferenceIndex {
     pub(crate) fn record_extent(&mut self, extent_cell: ExtentGenerationCell) {
         self.admitted_references
             .insert(StoredReferenceKey::from_reference(
-                PhysicalReferenceAuthority::s1()
+                PhysicalReferenceAuthority::for_canonical_physical_format()
                     .admit_extent(extent_cell)
                     .reference(),
             ));
@@ -101,7 +101,7 @@ pub(crate) fn build_reference_index(
         index
             .admitted_references
             .insert(StoredReferenceKey::from_reference(
-                PhysicalReferenceAuthority::s1()
+                PhysicalReferenceAuthority::for_canonical_physical_format()
                     .admit_root_publication(root_publication)
                     .reference(),
             ));

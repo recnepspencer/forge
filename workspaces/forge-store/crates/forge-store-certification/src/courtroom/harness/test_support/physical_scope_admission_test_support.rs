@@ -22,7 +22,7 @@ pub(crate) fn with_checked_frame(
     run: impl FnOnce(IntegrityCheckedFrame<'_>),
 ) {
     with_entry_seed(payload, |seed| {
-        let declaration = checksum_declaration().admit_for_s3_entry(seed.entry_witness());
+        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
@@ -42,7 +42,7 @@ pub(crate) fn with_checked_page(
     run: impl FnOnce(IntegrityCheckedPage<'_>),
 ) {
     with_entry_seed(payload, |seed| {
-        let declaration = checksum_declaration().admit_for_s3_entry(seed.entry_witness());
+        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_page(PhysicalIntegrityAdmissionRequest::page(
@@ -112,7 +112,7 @@ pub(crate) fn validation(
     slot: u64,
     generation: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = slot_cell(segment, page, slot, generation);
     references
         .validate_page_slot(references.admit_page_slot(cell), cell)
@@ -124,7 +124,7 @@ pub(crate) fn extent_validation(
     extent: u64,
     generation: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = extent_cell(segment, extent, generation);
     references
         .validate_extent(references.admit_extent(cell), cell)
@@ -132,7 +132,7 @@ pub(crate) fn extent_validation(
 }
 
 pub(crate) fn page_cell(segment: u64, page: u64, generation: u64) -> PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment_id(segment), page_id(page))
         .with_page_generation(physical_generation(generation))
 }
@@ -153,7 +153,7 @@ pub(crate) fn root_with_slot_under_root(
     slot: u64,
     generation: u64,
 ) -> PhysicalRootManifest {
-    PhysicalManifestUniverseBuilder::s1(root_publication(root_reference))
+    PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_publication(root_reference))
         .segment(segment_cell(segment))
         .ordinary_page(slot_cell(segment, page, slot, generation))
         .publish()
@@ -167,7 +167,7 @@ pub(crate) fn root_with_slot_root_generation(
     slot: u64,
     generation: u64,
 ) -> PhysicalRootManifest {
-    PhysicalManifestUniverseBuilder::s1(root_publication_generation(
+    PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_publication_generation(
         root_reference,
         root_generation,
     ))
@@ -177,14 +177,14 @@ pub(crate) fn root_with_slot_root_generation(
 }
 
 pub(crate) fn root_with_extent(segment: u64, extent: u64, generation: u64) -> PhysicalRootManifest {
-    PhysicalManifestUniverseBuilder::s1(root_publication(99))
+    PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_publication(99))
         .segment(segment_cell(segment))
         .extent(extent_cell(segment, extent, generation))
         .publish()
 }
 
 pub(crate) fn root_admission(root: &PhysicalRootManifest) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::s1().admit_root_publication(root.root_publication())
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication())
 }
 
 pub(crate) fn page_slot_admission(
@@ -193,7 +193,7 @@ pub(crate) fn page_slot_admission(
     slot: u64,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::s1().admit_page_slot(slot_cell(segment, page, slot, generation))
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(slot_cell(segment, page, slot, generation))
 }
 
 pub(crate) fn extent_admission(
@@ -201,7 +201,7 @@ pub(crate) fn extent_admission(
     extent: u64,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    PhysicalReferenceAuthority::s1().admit_extent(extent_cell(segment, extent, generation))
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_extent(extent_cell(segment, extent, generation))
 }
 
 pub(crate) fn free_space_slot_admission(
@@ -210,7 +210,7 @@ pub(crate) fn free_space_slot_admission(
     slot: u64,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .free_space_slot_cell(
             segment_id(segment),
             page_id(page),
@@ -219,7 +219,7 @@ pub(crate) fn free_space_slot_admission(
         )
         .unwrap()
         .with_free_space_generation(physical_generation(generation));
-    PhysicalReferenceAuthority::s1().admit_free_space_reuse(cell)
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_free_space_reuse(cell)
 }
 
 fn frame_witness(
@@ -248,7 +248,7 @@ fn page_witness(payload: &[u8], cell: PageGenerationCell) -> PhysicalHeaderDecod
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn frame_bytes(generation: u64, payload: &[u8]) -> Vec<u8> {
@@ -277,19 +277,19 @@ fn write_header_tail(bytes: &mut Vec<u8>, generation: u64, payload: &[u8]) {
 }
 
 fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id(segment), page_id(page), record_slot(slot))
         .with_slot_generation(physical_generation(generation))
 }
 
 fn extent_cell(segment: u64, extent: u64, generation: u64) -> ExtentGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(segment_id(segment), extent_id(extent))
         .with_extent_generation(physical_generation(generation))
 }
 
 fn segment_cell(segment: u64) -> forge_store_physical_format::SegmentGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .segment_cell(segment_id(segment))
         .with_segment_generation(physical_generation(1))
 }
@@ -302,7 +302,7 @@ fn root_publication_generation(
     root_reference: u64,
     generation: u64,
 ) -> forge_store_physical_format::RootPublicationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(root_reference).unwrap())
         .with_root_publication_generation(physical_generation(generation))
 }

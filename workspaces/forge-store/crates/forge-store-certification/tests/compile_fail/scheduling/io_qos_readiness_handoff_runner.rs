@@ -1,6 +1,6 @@
 #[test]
-fn s6_readiness_handoff_denies_public_raw_materialization_paths() {
-    for fixture in s6_readiness_handoff_fixtures() {
+fn io_qos_readiness_handoff_denies_public_raw_materialization_paths() {
+    for fixture in io_qos_readiness_handoff_fixtures() {
         assert_compile_fails(fixture);
     }
 }
@@ -11,7 +11,7 @@ struct S6ReadinessHandoffFixture {
     expected_stderr: &'static [&'static str],
 }
 
-fn s6_readiness_handoff_fixtures() -> Vec<S6ReadinessHandoffFixture> {
+fn io_qos_readiness_handoff_fixtures() -> Vec<S6ReadinessHandoffFixture> {
     vec![
         S6ReadinessHandoffFixture {
             name: "raw_counts_cannot_materialize_readiness.rs",
@@ -54,8 +54,8 @@ fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
         .ancestors()
         .nth(4)
         .expect("certification crate lives under workspaces/forge-store/crates");
-    let fixture_path = s6_readiness_handoff_fixture_path(&manifest_dir, fixture_name);
-    let case_dir = s6_readiness_handoff_compile_fail_case_dir(fixture_name);
+    let fixture_path = io_qos_readiness_handoff_fixture_path(&manifest_dir, fixture_name);
+    let case_dir = io_qos_readiness_handoff_compile_fail_case_dir(fixture_name);
     let source_dir = case_dir.join("src");
     std::fs::create_dir_all(&source_dir).unwrap();
     std::fs::copy(&fixture_path, source_dir.join("main.rs")).unwrap();
@@ -76,7 +76,7 @@ fn run_compile_fail_case(case_dir: &std::path::Path) -> std::process::Output {
         .unwrap()
 }
 
-fn s6_readiness_handoff_fixture_path(
+fn io_qos_readiness_handoff_fixture_path(
     manifest_dir: &std::path::Path,
     fixture_name: &str,
 ) -> std::path::PathBuf {
@@ -88,7 +88,7 @@ fn s6_readiness_handoff_fixture_path(
         .join(fixture_name)
 }
 
-fn s6_readiness_handoff_compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
+fn io_qos_readiness_handoff_compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
     std::env::temp_dir()
         .join("forge-store-s6-readiness-handoff-ui")
         .join(std::process::id().to_string())

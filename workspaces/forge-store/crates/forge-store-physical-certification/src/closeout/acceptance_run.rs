@@ -188,7 +188,7 @@ impl ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet {
     }
 
     fn require_all_required_suites(&self) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
-        for suite in SimulationHarnessAcceptanceSuiteName::required_s45() {
+        for suite in SimulationHarnessAcceptanceSuiteName::required_simulation_harness() {
             if !self
                 .executed
                 .iter()
@@ -259,7 +259,7 @@ fn lane_ordinal(lane: SimulationHarnessAcceptanceEvidenceLane) -> u8 {
 fn dogfood_slice_scenario_digests(dogfood: &SimulationHarnessDogfoodEvidence) -> [[u8; 32]; 3] {
     [
         *dogfood
-            .s4_recovery()
+            .recovery()
             .scenario()
             .scenario()
             .identity()
@@ -282,7 +282,7 @@ fn dogfood_slice_scenario_digests(dogfood: &SimulationHarnessDogfoodEvidence) ->
 fn dogfood_slice_transcript_digests(dogfood: &SimulationHarnessDogfoodEvidence) -> [[u8; 32]; 3] {
     [
         *dogfood
-            .s4_recovery()
+            .recovery()
             .evidence()
             .primary()
             .transcript_digest(),

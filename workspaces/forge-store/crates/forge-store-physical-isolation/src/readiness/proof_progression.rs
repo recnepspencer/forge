@@ -67,14 +67,14 @@ impl PhysicalIsolationEntryProofProgression {
                         identity: identity.clone(),
                         root_epoch_basis: identity.root_epoch_basis(),
                     },
-                    s5_entry_authority_witness(),
+                    physical_isolation_entry_authority_witness(),
                 ),
             )
             .into_value();
-        let lowered = LowerRecipeTransition::new(s5_entry_lowering_capability())
+        let lowered = LowerRecipeTransition::new(physical_isolation_entry_lowering_capability())
             .transition(resolved.clone())
             .into_value();
-        let admitted = AdmitRecipeTransition::new(s5_entry_authority_witness())
+        let admitted = AdmitRecipeTransition::new(physical_isolation_entry_authority_witness())
             .transition(lowered.clone())
             .into_value();
         Self {
@@ -124,10 +124,10 @@ impl S4RecoveryReadinessBasis {
     }
 }
 
-fn s5_entry_authority_witness() -> AuthorityWitness<S5EntryAuthority> {
+fn physical_isolation_entry_authority_witness() -> AuthorityWitness<S5EntryAuthority> {
     AuthorityWitness::from_authority_marker(S5EntryAuthority { _private: () })
 }
 
-fn s5_entry_lowering_capability() -> CapabilityWitness<S5EntryLoweringCapability> {
+fn physical_isolation_entry_lowering_capability() -> CapabilityWitness<S5EntryLoweringCapability> {
     CapabilityWitness::from_capability_marker(S5EntryLoweringCapability { _private: () })
 }

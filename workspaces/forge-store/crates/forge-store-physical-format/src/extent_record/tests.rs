@@ -9,8 +9,8 @@ use crate::{
 #[test]
 fn extent_backed_large_record_reopens_with_stable_reference() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -79,8 +79,8 @@ fn extent_backed_large_record_reopens_with_stable_reference() {
 
 #[test]
 fn stale_extent_generation_denies_before_extent_record_decode() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let old_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -103,8 +103,8 @@ fn stale_extent_generation_denies_before_extent_record_decode() {
 #[test]
 fn extent_length_mismatch_denies_before_payload_view() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -139,7 +139,7 @@ fn extent_length_mismatch_denies_before_payload_view() {
 #[test]
 fn append_missing_extent_membership_counts_only_membership_check() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -163,7 +163,7 @@ fn append_missing_extent_membership_counts_only_membership_check() {
 #[test]
 fn append_membership_mismatch_counts_no_length_check_or_write() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let membership_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -191,8 +191,8 @@ fn append_membership_mismatch_counts_no_length_check_or_write() {
 #[test]
 fn missing_extent_membership_denies_before_header_decode() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -228,8 +228,8 @@ fn missing_extent_membership_denies_before_header_decode() {
 #[test]
 fn moved_slot_misuse_denies_before_extent_membership_check() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let slot_cell = generations
         .slot_cell(segment(7), page(3), slot(1))
         .with_slot_generation(generation(5));
@@ -248,8 +248,8 @@ fn moved_slot_misuse_denies_before_extent_membership_check() {
 }
 
 fn extent_record_authority() -> PhysicalExtentRecordAuthority {
-    PhysicalExtentRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalExtentRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

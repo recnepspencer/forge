@@ -57,7 +57,7 @@ fn ambiguous_physical_evidence_quarantines_broader_honest_boundary() {
 }
 
 #[test]
-fn lifecycle_postures_are_representable_without_s3_performing_later_transitions() {
+fn lifecycle_postures_are_representable_without_physical_integrity_performing_later_transitions() {
     let later_postures = [
         QuarantineLifecyclePosture::SupersededByRecovery,
         QuarantineLifecyclePosture::ReleasedAfterRepair,
@@ -66,7 +66,7 @@ fn lifecycle_postures_are_representable_without_s3_performing_later_transitions(
     ];
 
     for posture in later_postures {
-        assert!(!posture.is_s3_mintable());
+        assert!(!posture.is_physical_integrity_mintable());
     }
 
     let finding = executed_ambiguous_page_finding("later-owner-required");

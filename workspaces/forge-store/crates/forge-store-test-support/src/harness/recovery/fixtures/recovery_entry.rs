@@ -4,23 +4,23 @@ use forge_store_recovery_physics::{
 
 use super::s4_recovery_handoff_fixture::intact_payload;
 use super::s4_recovery_readiness_fixture::{
-    physical_authority, recovery_memory_envelope, s3_readiness,
+    physical_authority, recovery_memory_envelope, physical_integrity_readiness,
 };
 
-pub fn admitted_s4_recovery_entry(label: &str) -> RecoveryEntryAdmission {
-    admit_recovery_entry_from_s4_handoff(label, false)
+pub fn admitted_recovery_entry(label: &str) -> RecoveryEntryAdmission {
+    admit_recovery_entry_from_recovery_handoff(label, false)
 }
 
-pub fn admitted_s4_partial_publication_recovery_entry(label: &str) -> RecoveryEntryAdmission {
-    admit_recovery_entry_from_s4_handoff(label, true)
+pub fn admitted_recovery_partial_publication_recovery_entry(label: &str) -> RecoveryEntryAdmission {
+    admit_recovery_entry_from_recovery_handoff(label, true)
 }
 
-fn admit_recovery_entry_from_s4_handoff(
+fn admit_recovery_entry_from_recovery_handoff(
     label: &str,
     include_partial_publication_replay_read: bool,
 ) -> RecoveryEntryAdmission {
     let readiness = IntegrityHandoffAdmission::admit(
-        s3_readiness().payload(),
+        physical_integrity_readiness().payload(),
         intact_payload(label, include_partial_publication_replay_read),
     )
     .expect("test support S4 handoff admits through public S4 admission");

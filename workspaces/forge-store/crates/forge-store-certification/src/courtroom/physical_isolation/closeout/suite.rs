@@ -45,7 +45,7 @@ pub struct PhysicalIsolationCloseoutLaneEvidence {
 
 #[derive(Debug, Clone)]
 pub struct PhysicalIsolationCloseoutSuite {
-    s45_readiness: PhysicalIsolationHarnessReadinessReceipt,
+    simulation_harness_readiness: PhysicalIsolationHarnessReadinessReceipt,
     lanes: Vec<PhysicalIsolationCloseoutLaneEvidence>,
     reservations: S5CloseoutReservationSet,
 }
@@ -257,14 +257,14 @@ impl PhysicalIsolationCloseoutLaneEvidence {
 }
 
 impl PhysicalIsolationCloseoutSuite {
-    pub fn from_s45_readiness(
-        s45_readiness: PhysicalIsolationHarnessReadinessReceipt,
+    pub fn from_simulation_harness_readiness(
+        simulation_harness_readiness: PhysicalIsolationHarnessReadinessReceipt,
         lanes: Vec<PhysicalIsolationCloseoutLaneEvidence>,
     ) -> Result<Self, PhysicalIsolationCloseoutDenial> {
         let suite = Self {
-            s45_readiness,
+            simulation_harness_readiness,
             lanes,
-            reservations: S5CloseoutReservationSet::s5_closeout_reservations(),
+            reservations: S5CloseoutReservationSet::physical_isolation_closeout_reservations(),
         };
         suite.require_complete()?;
         Ok(suite)
@@ -286,8 +286,8 @@ impl PhysicalIsolationCloseoutSuite {
         &self.lanes
     }
 
-    pub const fn s45_readiness(&self) -> &PhysicalIsolationHarnessReadinessReceipt {
-        &self.s45_readiness
+    pub const fn simulation_harness_readiness(&self) -> &PhysicalIsolationHarnessReadinessReceipt {
+        &self.simulation_harness_readiness
     }
 
     pub const fn reservations(&self) -> &S5CloseoutReservationSet {

@@ -87,7 +87,7 @@ fn checksummed_wrong_scope_denials_remain_typed_before_family_validation() {
 }
 
 #[test]
-fn s2_resident_generation_cannot_refresh_s1_durable_generation() {
+fn physical_substrate_resident_generation_cannot_refresh_physical_format_durable_generation() {
     with_checked_frame(
         b"resident-generation-is-not-durable",
         validation(1, 2, 3, 8),

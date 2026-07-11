@@ -3,7 +3,7 @@ use forge_store_physical_format::{
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
     ReclaimedByteInterpretation,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use super::*;
 use crate::{
@@ -97,7 +97,7 @@ fn execution_observes_success_and_typed_byte_contradiction() {
     )
     .unwrap();
     let security_scope = ReclaimPolicySecurityScope::from_admitted_scope(
-        &admitted_store_internal_security_scope_for_s6_test(),
+        &admitted_store_internal_security_scope_for_io_qos_test(),
     );
 
     let receipt = policy
@@ -146,7 +146,7 @@ fn admission_denies_posture_from_different_backend_authority() {
             ReclaimPolicyReachabilityProof::for_certification_test_authority(test_region()),
         )
         .with_security_scope(ReclaimPolicySecurityScope::from_admitted_scope(
-            &admitted_store_internal_security_scope_for_s6_test(),
+            &admitted_store_internal_security_scope_for_io_qos_test(),
         ))
         .with_reclaim_permit(ReclaimPermit::new(1).unwrap())
         .with_later_handoff_policy(unsupported_authority.non_claim_later_handoff());
@@ -170,7 +170,7 @@ fn execution_observes_region_and_security_scope_violations() {
     )
     .unwrap();
     let security_scope = ReclaimPolicySecurityScope::from_admitted_scope(
-        &admitted_store_internal_security_scope_for_s6_test(),
+        &admitted_store_internal_security_scope_for_io_qos_test(),
     );
 
     let wrong_region =
@@ -190,7 +190,7 @@ fn execution_observes_region_and_security_scope_violations() {
     );
 
     let wrong_scope = ReclaimPolicySecurityScope::from_admitted_scope(
-        &forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test(),
+        &forge_store_security::admitted_wrong_io_qos_security_scope_for_test(),
     );
     let violation = policy
         .complete_execution_with_store_authority(ReclaimPolicyExecutionObservation::new(
@@ -244,7 +244,7 @@ fn base_request(backend: &crate::AdmittedBackendCapabilityWitness) -> ReclaimPol
                 .unwrap(),
         )
         .with_security_scope(ReclaimPolicySecurityScope::from_admitted_scope(
-            &admitted_store_internal_security_scope_for_s6_test(),
+            &admitted_store_internal_security_scope_for_io_qos_test(),
         ))
         .with_reclaim_permit(ReclaimPermit::new(1).unwrap())
         .with_later_handoff_policy(authority.non_claim_later_handoff())
@@ -259,14 +259,14 @@ fn test_region() -> PhysicalReclaimRegion {
 }
 
 fn test_reference_with_generation(generation: u64) -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

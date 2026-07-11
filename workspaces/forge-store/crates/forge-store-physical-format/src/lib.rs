@@ -60,7 +60,7 @@ pub use canonical_basis::{
     prepare_physical_page_header_canonical_basis, PhysicalPageHeaderCanonicalBasisOutcome,
 };
 pub use checksum::{
-    s1_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
+    physical_format_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
     ChecksumCoverageAuthoritySource, ChecksumCoverageDisposition, ChecksumCoverageEncoding,
     ChecksumCoverageMap, ChecksumCoverageMapBuilder, ChecksumCoverageMapDenial,
     ChecksumCoverageRegion, ChecksumFieldHandling, ChecksumGenerationFieldPosture,

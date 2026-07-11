@@ -286,8 +286,8 @@ fn payload(bytes: &[u8]) -> forge_store_physical_format::PhysicalChunkPayloadInt
 
 fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -328,8 +328,8 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

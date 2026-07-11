@@ -6,8 +6,8 @@ use crate::{
 
 #[test]
 fn page_slot_reference_validates_against_slot_generation() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let cell = generations
         .slot_cell(segment(7), page(11), slot(3))
@@ -32,7 +32,7 @@ fn page_slot_reference_validates_against_slot_generation() {
 
 #[test]
 fn generation_owner_domains_are_distinct_for_each_physical_cell_family() {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
 
     let slot_owner = generations
         .slot_cell(segment(7), page(11), slot(3))
@@ -86,8 +86,8 @@ fn generation_owner_domains_are_distinct_for_each_physical_cell_family() {
 
 #[test]
 fn admitted_reference_carries_same_generation_owner_as_source_cell() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .free_space_slot_cell(
             segment(7),
@@ -113,8 +113,8 @@ fn admitted_reference_carries_same_generation_owner_as_source_cell() {
 
 #[test]
 fn stale_slot_generation_denies_before_decode() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let admitted = references.admit_page_slot(
         generations
@@ -141,8 +141,8 @@ fn stale_slot_generation_denies_before_decode() {
 
 #[test]
 fn stale_extent_generation_denies_before_decode() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let admitted = references.admit_extent(
         generations
@@ -170,8 +170,8 @@ fn stale_extent_generation_denies_before_decode() {
 
 #[test]
 fn stale_free_space_reuse_generation_denies_before_decode() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let admitted = references.admit_free_space_reuse(
         generations
@@ -211,8 +211,8 @@ fn stale_free_space_reuse_generation_denies_before_decode() {
 
 #[test]
 fn stale_root_publication_generation_denies_before_decode() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let admitted = references.admit_root_publication(
         generations
@@ -240,8 +240,8 @@ fn stale_root_publication_generation_denies_before_decode() {
 
 #[test]
 fn placement_mismatch_denies_separately_from_stale_generation() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let admitted = references.admit_page_slot(
         generations
@@ -268,8 +268,8 @@ fn placement_mismatch_denies_separately_from_stale_generation() {
 
 #[test]
 fn wrong_reference_kind_records_exact_rejection_counter() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 
     let extent_admission = references.admit_extent(
         generations
@@ -296,7 +296,7 @@ fn wrong_reference_kind_records_exact_rejection_counter() {
 
 #[test]
 fn free_space_slot_cell_rejects_extent_allocation_class_before_generation() {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
 
     let denial = generations
         .free_space_slot_cell(
@@ -315,7 +315,7 @@ fn free_space_slot_cell_rejects_extent_allocation_class_before_generation() {
 
 #[test]
 fn free_space_extent_cell_rejects_page_allocation_class_before_generation() {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
 
     let denial = generations
         .free_space_extent_cell(

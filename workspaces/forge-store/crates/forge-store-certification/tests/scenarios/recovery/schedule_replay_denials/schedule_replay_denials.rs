@@ -13,7 +13,7 @@ use forge_store_test_support::{
 
 #[test]
 fn missing_seed_denies_before_schedule_construction() {
-    let plan = lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap();
+    let plan = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
     let denial = PhysicalInterleavingSchedule::from_optional_seed(
         &plan,
         None,
@@ -38,7 +38,7 @@ fn unbounded_or_empty_budget_denies_before_schedule_construction() {
 
 #[test]
 fn budget_too_small_for_plan_actor_steps_denies() {
-    let plan = lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap();
+    let plan = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
     let denial = PhysicalInterleavingSchedule::from_lowered_plan(
         &plan,
         ReplaySeed::from_u64(7),
@@ -90,7 +90,7 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s5.schedule.denial")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

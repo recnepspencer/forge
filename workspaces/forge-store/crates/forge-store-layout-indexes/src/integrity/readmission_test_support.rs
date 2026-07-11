@@ -21,7 +21,7 @@ pub(super) fn import_witness(
     seed: &str,
 ) -> RecoveryLayoutReadmissionWitness {
     let record = unresolved_authority_record(seed);
-    let authority = current_authority("store.s8.import", seed);
+    let authority = current_authority("store.new.import", seed);
     forge_store_recovery_physics::admit_record_backed_layout_readmission(
         family.id(),
         &record,
@@ -43,7 +43,7 @@ pub(super) fn record_backed_witness(
     record: &QuarantineRecord,
     seed: &str,
 ) -> RecoveryLayoutReadmissionWitness {
-    let authority = current_authority("store.s8.corruption", seed);
+    let authority = current_authority("store.new.corruption", seed);
     forge_store_recovery_physics::admit_record_backed_layout_readmission(
         family.id(),
         record,
@@ -81,7 +81,7 @@ fn unresolved_authority_record(seed: &str) -> QuarantineRecord {
 
 fn test_scope(seed: &str) -> PhysicalReferenceScope {
     PhysicalReferenceScope::derived_index(
-        PhysicalGenerationAuthority::s1()
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .page_cell(segment(seed), page(seed))
             .with_page_generation(generation(seed)),
     )

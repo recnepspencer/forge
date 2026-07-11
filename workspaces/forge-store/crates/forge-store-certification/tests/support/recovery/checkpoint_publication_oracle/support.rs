@@ -387,7 +387,7 @@ fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalS
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

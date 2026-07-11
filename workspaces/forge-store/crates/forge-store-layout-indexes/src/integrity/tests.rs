@@ -24,7 +24,7 @@ fn absent_coverage() -> S8LayoutCoverageWitness {
 pub(super) fn offline_admission(
     seed: &str,
 ) -> forge_store_recovery_physics::ReopenedRecoveryArtifactAdmission {
-    let recovery_profile = RecoveryProfileId::strict_s4();
+    let recovery_profile = RecoveryProfileId::strict_offline_recovery_artifacts();
     let artifacts = PersistedRecoveryArtifactMaterialization::new(
         seed,
         "posix",

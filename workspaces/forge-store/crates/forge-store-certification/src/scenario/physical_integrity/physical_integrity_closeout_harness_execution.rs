@@ -58,7 +58,7 @@ impl S3CloseoutHarnessExecutionEvidence {
         )
     }
 
-    pub(crate) fn s4_handoff(evidence: &S3S4HandoffCloseoutEvidence) -> Self {
+    pub(crate) fn recovery_handoff(evidence: &S3S4HandoffCloseoutEvidence) -> Self {
         let output_count = usize::from(evidence.proves_no_raw_bytes_crossed());
         Self::new(
             S3AcceptanceSuiteKind::S4IntegrityHandoff,

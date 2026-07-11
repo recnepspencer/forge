@@ -68,7 +68,7 @@ fn torn_missing_stale_and_recovery_blocking_checkpoint_inputs_deny() {
     );
 
     let located = locate(manifest(10, 20, 19));
-    let manifest_damage = ManifestIntegrityAuthority::s3()
+    let manifest_damage = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::damaged_root(
             page_cell().owner(),
         ))

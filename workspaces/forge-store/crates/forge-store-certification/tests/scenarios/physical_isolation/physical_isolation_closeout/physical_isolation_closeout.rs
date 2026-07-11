@@ -17,7 +17,7 @@ mod support;
 
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    materialize_s5_executed_isolation_evidence, physical_isolation_lanes,
+    materialize_physical_isolation_executed_isolation_evidence, physical_isolation_lanes,
     physical_isolation_coverage_matrix, ExecutedPhysicalIsolationEvidenceSource,
     PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
     PhysicalIsolationMutationEvidence, S5CloseoutReservedScope,
@@ -32,11 +32,11 @@ use forge_store_physical_isolation::{
 };
 
 #[test]
-fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
+fn closeout_aggregates_all_physical_isolation_hostile_lanes_with_machine_evidence() {
     let suite = closeout_suite();
 
     assert_eq!(suite.lanes().len(), 6);
-    assert!(suite.s45_readiness().shortcut_denial_count() > 0);
+    assert!(suite.simulation_harness_readiness().shortcut_denial_count() > 0);
     assert!(suite
         .reservations()
         .contains(S5CloseoutReservedScope::S6IoQosIsolation));
@@ -87,7 +87,7 @@ fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
 }
 
 #[test]
-fn phase15_closeout_denies_smoke_profile_lane_evidence() {
+fn closeout_denies_smoke_profile_lane_evidence() {
     let mut lanes = physical_isolation_lanes();
     let lane = lanes.remove(0);
     let plan = forge_store_physical_certification::lower_physical_simulation_plan(
@@ -106,13 +106,13 @@ fn phase15_closeout_denies_smoke_profile_lane_evidence() {
     let certification =
         PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
     let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-        s5_source_authority(),
+        physical_isolation_source_authority(),
         replay,
         mutation.clone(),
         PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .unwrap();
-    let executed = materialize_s5_executed_isolation_evidence(source).unwrap();
+    let executed = materialize_physical_isolation_executed_isolation_evidence(source).unwrap();
     let denial = PhysicalIsolationCloseoutLaneEvidence::from_executed_lane(
         lane.scenario().clone(),
         plan,
@@ -130,10 +130,10 @@ fn phase15_closeout_denies_smoke_profile_lane_evidence() {
 }
 
 #[test]
-fn phase15_closeout_denies_missing_or_duplicate_hostile_lanes() {
+fn closeout_denies_missing_or_duplicate_hostile_lanes() {
     let mut rows = closeout_rows();
     rows.pop();
-    let denial = PhysicalIsolationCloseoutSuite::from_s45_readiness(s45_readiness(), rows)
+    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), rows)
         .expect_err("missing required hostile lane cannot close S5");
     assert!(matches!(
         denial,
@@ -142,7 +142,7 @@ fn phase15_closeout_denies_missing_or_duplicate_hostile_lanes() {
 
     let mut rows = closeout_rows();
     rows.push(rows[0].clone());
-    let denial = PhysicalIsolationCloseoutSuite::from_s45_readiness(s45_readiness(), rows)
+    let denial = PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), rows)
         .expect_err("duplicate hostile lane cannot close S5");
     assert!(matches!(
         denial,
@@ -151,7 +151,7 @@ fn phase15_closeout_denies_missing_or_duplicate_hostile_lanes() {
 }
 
 #[test]
-fn phase15_closeout_denies_mismatched_lane_evidence_fragments() {
+fn closeout_denies_mismatched_lane_evidence_fragments() {
     let rows = closeout_rows();
     let coverage_denial = PhysicalIsolationCloseoutLaneEvidence::from_executed_lane(
         rows[0].scenario().clone(),
@@ -197,8 +197,8 @@ fn phase15_closeout_denies_mismatched_lane_evidence_fragments() {
 }
 
 #[test]
-fn phase15_closeout_seals_handoff_evidence_without_minting_production_readiness() {
-    let closeout = executed_closeout_fixture::honest_executed_s5_closeout();
+fn closeout_seals_handoff_evidence_without_minting_production_readiness() {
+    let closeout = executed_closeout_fixture::honest_executed_physical_isolation_closeout();
     let handoff = closeout_suite()
         .seal_executed_closeout_handoff(closeout.clone())
         .expect("aggregate closeout seals executed handoff evidence");
@@ -222,16 +222,16 @@ fn phase15_closeout_seals_handoff_evidence_without_minting_production_readiness(
             UnsupportedQoSClaim::BackgroundWorkPacing,
         ]
     );
-    executed_closeout_fixture::assert_expected_s6_closeout_counters(readiness.counters());
+    executed_closeout_fixture::assert_expected_io_qos_closeout_counters(readiness.counters());
 }
 
 fn closeout_suite() -> PhysicalIsolationCloseoutSuite {
-    PhysicalIsolationCloseoutSuite::from_s45_readiness(s45_readiness(), closeout_rows())
+    PhysicalIsolationCloseoutSuite::from_simulation_harness_readiness(simulation_harness_readiness(), closeout_rows())
         .expect("complete S5 physical isolation closeout suite admits")
 }
 
-fn s45_readiness() -> forge_store_physical_certification::PhysicalIsolationHarnessReadinessReceipt {
-    harness_support::s45_harness_readiness_receipt()
+fn simulation_harness_readiness() -> forge_store_physical_certification::PhysicalIsolationHarnessReadinessReceipt {
+    harness_support::simulation_harness_readiness_receipt()
 }
 
 fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
@@ -251,13 +251,13 @@ fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
             let certification =
                 PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
             let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-                s5_source_authority(),
+                physical_isolation_source_authority(),
                 replay,
                 mutation.clone(),
                 PhysicalIsolationEvidenceProfile::minimal_required(),
             )
             .unwrap();
-            let executed = materialize_s5_executed_isolation_evidence(source).unwrap();
+            let executed = materialize_physical_isolation_executed_isolation_evidence(source).unwrap();
             PhysicalIsolationCloseoutLaneEvidence::from_executed_lane(
                 lane.scenario().clone(),
                 plan,
@@ -308,7 +308,7 @@ fn required_families() -> [PhysicalSimulationScenarioFamily; 6] {
     ]
 }
 
-fn s5_source_authority() -> StoreCurrentAuthorityWitness {
+fn physical_isolation_source_authority() -> StoreCurrentAuthorityWitness {
     require_current_store_authority(forge_store_test_support::physical_isolation_boundary_fact(
         "s5.phase15.closeout",
         15,

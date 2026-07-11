@@ -229,14 +229,14 @@ fn backend_witness(profile: BackendTargetProfile) -> AdmittedBackendCapabilityWi
 }
 
 fn physical_reference(slot: u16) -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(slot).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

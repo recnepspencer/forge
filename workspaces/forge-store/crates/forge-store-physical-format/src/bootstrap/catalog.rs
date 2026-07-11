@@ -81,9 +81,9 @@ pub struct PhysicalBootstrapCatalogAuthority {
 }
 
 impl PhysicalBootstrapCatalogAuthority {
-    pub const fn s8_minimal() -> Self {
+    pub const fn minimal_layout_bootstrap_catalog() -> Self {
         Self {
-            manifests: ManifestDiscoveryAuthority::s1(),
+            manifests: ManifestDiscoveryAuthority::for_canonical_physical_format(),
             checksums: PhysicalChunkChecksumAuthority::canonical_blob_checksum(),
         }
     }
@@ -110,7 +110,7 @@ impl PhysicalBootstrapCatalogAuthority {
                 }
             };
             let root = build_root_manifest(&decoded);
-            let admission = crate::PhysicalReferenceAuthority::s1()
+            let admission = crate::PhysicalReferenceAuthority::for_canonical_physical_format()
                 .admit_root_publication(root.root_publication());
             let report = match self.manifests.reopen_from_root(&root, admission) {
                 Ok(report) => report,
@@ -154,7 +154,7 @@ impl PhysicalBootstrapCatalogAuthority {
 }
 
 pub const fn physical_bootstrap_catalog() -> PhysicalBootstrapCatalogAuthority {
-    PhysicalBootstrapCatalogAuthority::s8_minimal()
+    PhysicalBootstrapCatalogAuthority::minimal_layout_bootstrap_catalog()
 }
 
 fn bootstrap_payload_bytes(

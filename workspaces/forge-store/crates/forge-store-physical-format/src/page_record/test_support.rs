@@ -34,8 +34,8 @@ pub(crate) fn admitted_page<'a>(
 }
 
 pub(crate) fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

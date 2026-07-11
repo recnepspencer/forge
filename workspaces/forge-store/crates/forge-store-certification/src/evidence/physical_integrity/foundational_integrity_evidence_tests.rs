@@ -202,7 +202,7 @@ fn planned_work_role_is_derived_from_a_real_pre_execution_scrub_plan() {
 
 #[test]
 fn planned_work_role_is_derived_from_a_real_pre_execution_scenario_plan() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(planned_work_scenario_definition()).unwrap();
     let report = PhysicalScenarioPlannedWorkBoundaryReport::from_scenario_plan(&plan);
 

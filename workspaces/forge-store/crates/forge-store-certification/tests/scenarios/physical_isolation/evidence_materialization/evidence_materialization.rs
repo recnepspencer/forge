@@ -5,7 +5,7 @@ mod support;
 
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    materialize_s5_executed_isolation_evidence, physical_isolation_lanes,
+    materialize_physical_isolation_executed_isolation_evidence, physical_isolation_lanes,
     ExecutedPhysicalIsolationEvidenceSource, ExecutedPhysicalIsolationOutcome,
     ExecutedPhysicalIsolationRequiredCounters, ExecutedPhysicalIsolationSourceDenial,
     PhysicalIsolationMutationEvidence, S5ExecutedIsolationEvidenceBundle,
@@ -18,7 +18,7 @@ use forge_store_physical_isolation::{
 };
 
 #[test]
-fn executed_s5_replay_materializes_foundational_and_proof_projections() {
+fn executed_physical_isolation_replay_materializes_foundational_and_proof_projections() {
     let lane = physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
@@ -33,14 +33,14 @@ fn executed_s5_replay_materializes_foundational_and_proof_projections() {
     let replay_counter_rows = replay.counter_receipt().rows().len() as u64;
     let expected_epoch_retries = counter_count(&replay, CounterContractKind::EpochRetries);
     let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-        s5_source_authority(),
+        physical_isolation_source_authority(),
         replay,
         mutation,
         PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .expect("executed S5 replay admits materialization source");
 
-    let bundle = materialize_s5_executed_isolation_evidence(source)
+    let bundle = materialize_physical_isolation_executed_isolation_evidence(source)
         .expect("executed S5 source materializes projections");
 
     assert_eq!(
@@ -76,14 +76,14 @@ fn forensic_profile_keeps_required_counters_while_adding_rich_rows() {
     let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
     assert_mutation_evidence_is_bound_to_replay(&mutation, &replay);
     let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-        s5_source_authority(),
+        physical_isolation_source_authority(),
         replay,
         mutation,
         PhysicalIsolationEvidenceProfile::forensic(),
     )
     .expect("future chunk replay admits materialization source");
 
-    let bundle = materialize_s5_executed_isolation_evidence(source)
+    let bundle = materialize_physical_isolation_executed_isolation_evidence(source)
         .expect("forensic profile materializes projections");
 
     assert_eq!(
@@ -125,7 +125,7 @@ fn mutation_evidence_must_belong_to_the_replay_being_materialized() {
     );
 
     let denial = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-        s5_source_authority(),
+        physical_isolation_source_authority(),
         compaction_replay,
         future_mutation,
         PhysicalIsolationEvidenceProfile::minimal_required(),
@@ -144,13 +144,13 @@ fn executed_compaction_bundle() -> S5ExecutedIsolationEvidenceBundle {
     let replay = support::replay_bundle(&plan, lane.expected_fault());
     let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
     let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
-        s5_source_authority(),
+        physical_isolation_source_authority(),
         replay,
         mutation,
         PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .expect("executed S5 replay admits materialization source");
-    materialize_s5_executed_isolation_evidence(source)
+    materialize_physical_isolation_executed_isolation_evidence(source)
         .expect("executed S5 source materializes projections")
 }
 
@@ -280,7 +280,7 @@ fn lane_for(
         .expect("requested S5 lane exists")
 }
 
-fn s5_source_authority() -> StoreCurrentAuthorityWitness {
+fn physical_isolation_source_authority() -> StoreCurrentAuthorityWitness {
     require_current_store_authority(forge_store_test_support::physical_isolation_boundary_fact(
         "s5.executed.isolation",
         11,

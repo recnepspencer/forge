@@ -61,7 +61,7 @@ impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
         let declaration = algorithm
             .declare_for_scope(scope)
             .map_err(|denial| unsupported_checksum(self.lease, denial))?
-            .admit_for_s3_entry(self.lease.entry_witness());
+            .admit_for_physical_integrity_entry(self.lease.entry_witness());
         self.with_checksum_declaration(declaration)
     }
 }

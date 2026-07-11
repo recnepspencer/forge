@@ -278,8 +278,8 @@ fn reclaim_evidence_for_barrier(abandoned: &BlobResumeSessionAbandoned) -> Recla
 }
 
 fn physical_reference(slot: u16) -> CurrentGenerationPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
     let cell = generations
         .slot_cell(

@@ -1,6 +1,6 @@
 #[test]
-fn s4_recovery_harness_public_facade_rejects_shortcut_authority() {
-    for fixture in s4_recovery_harness_public_facade_compile_fail_fixtures() {
+fn recovery_harness_public_facade_rejects_shortcut_authority() {
+    for fixture in recovery_harness_public_facade_compile_fail_fixtures() {
         assert_public_facade_compile_fails(fixture);
     }
 }
@@ -11,7 +11,7 @@ struct S4RecoveryHarnessCompileFailFixture {
     expected_stderr: &'static [&'static str],
 }
 
-fn s4_recovery_harness_public_facade_compile_fail_fixtures(
+fn recovery_harness_public_facade_compile_fail_fixtures(
 ) -> Vec<S4RecoveryHarnessCompileFailFixture> {
     vec![
         S4RecoveryHarnessCompileFailFixture {
@@ -66,8 +66,8 @@ fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
         .ancestors()
         .nth(4)
         .expect("certification crate lives under workspaces/forge-store/crates");
-    let fixture_path = s4_recovery_harness_fixture_path(&manifest_dir, fixture_name);
-    let case_dir = s4_recovery_harness_compile_fail_case_dir(fixture_name);
+    let fixture_path = recovery_harness_fixture_path(&manifest_dir, fixture_name);
+    let case_dir = recovery_harness_compile_fail_case_dir(fixture_name);
     let source_dir = case_dir.join("src");
     std::fs::create_dir_all(&source_dir).unwrap();
     std::fs::copy(&fixture_path, source_dir.join("main.rs")).unwrap();
@@ -88,7 +88,7 @@ fn run_compile_fail_case(case_dir: &std::path::Path) -> std::process::Output {
         .unwrap()
 }
 
-fn s4_recovery_harness_fixture_path(
+fn recovery_harness_fixture_path(
     manifest_dir: &std::path::Path,
     fixture_name: &str,
 ) -> std::path::PathBuf {
@@ -100,7 +100,7 @@ fn s4_recovery_harness_fixture_path(
         .join(fixture_name)
 }
 
-fn s4_recovery_harness_compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
+fn recovery_harness_compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
     std::env::temp_dir()
         .join("forge-store-s4-recovery-harness-ui")
         .join(std::process::id().to_string())

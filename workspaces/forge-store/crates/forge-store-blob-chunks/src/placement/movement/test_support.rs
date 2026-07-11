@@ -172,7 +172,7 @@ pub(crate) fn cold_target(case: &MovementCase) -> AdmittedBlobPlacement {
 
 pub(crate) fn movement_read_hold() -> BlobPlacementMovementReadHold {
     let stable_read = stable_read();
-    BlobPlacementMovementReadHold::from_s5_stable_read_and_movement_interlock(
+    BlobPlacementMovementReadHold::from_physical_isolation_stable_read_and_movement_interlock(
         stable_read,
         movement_interlock_with_id(17),
     )
@@ -180,7 +180,7 @@ pub(crate) fn movement_read_hold() -> BlobPlacementMovementReadHold {
 
 pub(crate) fn alternate_movement_read_hold() -> BlobPlacementMovementReadHold {
     let stable_read = stable_read();
-    BlobPlacementMovementReadHold::from_s5_stable_read_and_movement_interlock(
+    BlobPlacementMovementReadHold::from_physical_isolation_stable_read_and_movement_interlock(
         stable_read,
         movement_interlock_with_id(18),
     )

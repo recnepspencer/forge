@@ -29,7 +29,7 @@ impl LayoutCustomizationBoundaryFacade {
             );
         }
 
-        let phase_eight_capability = match request.capability_request().phase_eight_capability() {
+        let requested_capability = match request.capability_request().requested_capability() {
             Some(capability) => capability,
             None => {
                 return TransitionOutcome::denied(
@@ -68,7 +68,7 @@ impl LayoutCustomizationBoundaryFacade {
             request.authority_source(),
             request.capability_request().key_domain(),
             admitted_family,
-            phase_eight_capability,
+            requested_capability,
             request.workload_envelope().admitted_lane(),
         );
 

@@ -17,7 +17,7 @@ pub struct S6MaterializedCertificationEvidenceBundle {
     counter_strengths: Vec<S6CounterStrengthDeclaration>,
 }
 
-pub fn materialize_s6_certification_evidence(
+pub fn materialize_io_qos_certification_evidence(
     sources: StoreOwnedS6CertificationMaterializationSources,
 ) -> Result<S6MaterializedCertificationEvidenceBundle, S6CertificationMaterializationDenial> {
     S6MaterializedCertificationEvidenceBundle::from_store_owned_sources(sources)

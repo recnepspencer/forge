@@ -38,7 +38,7 @@ pub struct ResidentFrameLoadRequest {
 }
 
 impl ResidentFrameLoadRequest {
-    pub fn from_s1_physical_frame(
+    pub fn from_physical_format_physical_frame(
         reference: PhysicalReferenceValidationWitness,
         header: PhysicalHeaderDecodeWitness,
     ) -> Result<Self, ResidentFrameDenial> {
@@ -46,7 +46,7 @@ impl ResidentFrameLoadRequest {
         reject_non_frame_header(header)?;
         reject_header_reference_mismatch(reference, header)?;
         let frame_size = ResidentFrameSize::from_header(header)?;
-        let source_key = ResidentFrameSourceKey::from_s1_frame_witnesses(reference, header);
+        let source_key = ResidentFrameSourceKey::from_physical_format_frame_witnesses(reference, header);
         Ok(Self {
             reference,
             header,

@@ -99,7 +99,7 @@ impl ChecksumAlgorithmDeclaration {
         }
     }
 
-    pub fn admit_for_s3_entry(
+    pub fn admit_for_physical_integrity_entry(
         self,
         entry_witness: IntegrityEntryWitness,
     ) -> S3ChecksumDeclarationAdmission {

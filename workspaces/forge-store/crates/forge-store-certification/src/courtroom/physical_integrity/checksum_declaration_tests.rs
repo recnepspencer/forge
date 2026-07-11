@@ -1,6 +1,6 @@
 use forge_store_contracts::StableDigest;
 use forge_store_physical_format::{
-    s1_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
+    physical_format_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
     ChecksumCoverageAuthoritySource, ChecksumCoverageEncoding, ChecksumCoverageMap,
     ChecksumCoverageMapDenial, ChecksumCoverageRegion, ChecksumFieldHandling,
     ChecksumGenerationFieldPosture, ChecksumHeaderField, ChecksumLengthFieldPosture,
@@ -15,8 +15,8 @@ use forge_store_physical_integrity::{
 
 #[test]
 fn equivalent_checksum_declarations_share_basis_and_foundational_identity() {
-    let first = declared_crc32c_with(ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap());
-    let second = declared_crc32c_with(explicit_s1_coverage().unwrap());
+    let first = declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
+    let second = declared_crc32c_with(explicit_physical_format_coverage().unwrap());
 
     assert_eq!(first.coverage_basis(), second.coverage_basis());
     assert_eq!(
@@ -50,10 +50,10 @@ fn unsupported_and_substitute_algorithm_claims_deny_before_inspection() {
 
 #[test]
 fn missing_coverage_and_private_layout_coverage_deny() {
-    let covered_without_generation = s1_required_covered_header_fields()
+    let covered_without_generation = physical_format_required_covered_header_fields()
         .into_iter()
         .filter(|field| *field != ChecksumHeaderField::Generation);
-    let missing_generation = explicit_s1_builder()
+    let missing_generation = explicit_physical_format_builder()
         .covered_header_fields(covered_without_generation)
         .excluded_header_fields([ChecksumHeaderField::ChecksumField])
         .define();
@@ -66,13 +66,13 @@ fn missing_coverage_and_private_layout_coverage_deny() {
     );
 
     assert_eq!(
-        explicit_s1_builder()
+        explicit_physical_format_builder()
             .authority_source(ChecksumCoverageAuthoritySource::SerdeMapOrder)
             .define(),
         Err(ChecksumCoverageMapDenial::SerializerOrderRejected)
     );
     assert_eq!(
-        explicit_s1_builder()
+        explicit_physical_format_builder()
             .authority_source(ChecksumCoverageAuthoritySource::RustStructLayout)
             .define(),
         Err(ChecksumCoverageMapDenial::RustLayoutRejected)
@@ -82,7 +82,7 @@ fn missing_coverage_and_private_layout_coverage_deny() {
 #[test]
 fn detection_model_names_required_checksum_scope_categories() {
     let declaration =
-        declared_crc32c_with(ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap());
+        declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
     let basis = declaration.coverage_basis();
     let map = basis.coverage_map();
     let model = basis.detection_model();
@@ -157,7 +157,7 @@ fn detection_model_names_required_checksum_scope_categories() {
 
 #[test]
 fn coverage_map_answers_all_region_dispositions() {
-    let map = ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap();
+    let map = ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap();
 
     assert_eq!(
         map.disposition_for_region(ChecksumCoverageRegion::HeaderField(
@@ -197,7 +197,7 @@ fn coverage_map_answers_all_region_dispositions() {
 
 #[test]
 fn stronger_declared_algorithm_uses_its_own_detection_model_path() {
-    let coverage = ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap();
+    let coverage = ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap();
     let declaration = declared_algorithm_with(ChecksumAlgorithmId::crc64_nvme(), coverage);
 
     assert_eq!(
@@ -213,9 +213,9 @@ fn stronger_declared_algorithm_uses_its_own_detection_model_path() {
 #[test]
 fn coverage_changes_require_explicit_readmission_instead_of_silent_reuse() {
     let declaration =
-        declared_crc32c_with(ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap());
+        declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
     let future_coverage = explicit_future_coverage().unwrap();
-    let same_version_changed_encoding = explicit_s1_builder()
+    let same_version_changed_encoding = explicit_physical_format_builder()
         .coverage_encoding(ChecksumCoverageEncoding::CanonicalizedFields)
         .define()
         .unwrap();
@@ -240,12 +240,12 @@ fn coverage_changes_require_explicit_readmission_instead_of_silent_reuse() {
 
 #[test]
 fn foundational_identity_changes_with_algorithm_or_coverage_basis() {
-    let crc32c = declared_crc32c_with(ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap());
+    let crc32c = declared_crc32c_with(ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap());
     let crc64 = declared_algorithm_with(
         ChecksumAlgorithmId::crc64_nvme(),
-        ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap(),
+        ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),
     );
-    let canonicalized_s1_coverage = explicit_s1_builder()
+    let canonicalized_s1_coverage = explicit_physical_format_builder()
         .coverage_encoding(ChecksumCoverageEncoding::CanonicalizedFields)
         .define()
         .unwrap();
@@ -271,20 +271,20 @@ fn declared_algorithm_with(
     algorithm: ChecksumAlgorithmId,
     coverage: ChecksumCoverageMap,
 ) -> forge_store_physical_integrity::ChecksumAlgorithmDeclaration {
-    let format = PhysicalFormatDeclaration::s1_canonical().unwrap();
+    let format = PhysicalFormatDeclaration::physical_format_canonical().unwrap();
     let scope = ChecksumScopeDeclaration::for_physical_format(format.identity(), coverage).unwrap();
     algorithm
         .declare_for_scope(scope)
-        .expect("s1 crc32c declaration admits")
+        .expect("for_canonical_physical_format crc32c declaration admits")
 }
 
-fn explicit_s1_coverage() -> Result<ChecksumCoverageMap, ChecksumCoverageMapDenial> {
-    explicit_s1_builder().define()
+fn explicit_physical_format_coverage() -> Result<ChecksumCoverageMap, ChecksumCoverageMapDenial> {
+    explicit_physical_format_builder().define()
 }
 
 fn explicit_future_coverage() -> Result<ChecksumCoverageMap, ChecksumCoverageMapDenial> {
     ChecksumCoverageMap::builder(PhysicalFormatVersion::reserved_future(2).unwrap())
-        .covered_header_fields(s1_required_covered_header_fields())
+        .covered_header_fields(physical_format_required_covered_header_fields())
         .excluded_header_fields([ChecksumHeaderField::ChecksumField])
         .checksum_field_handling(ChecksumFieldHandling::ExcludedDuringComputation)
         .mutable_publication_fields([ChecksumHeaderField::PublicationState])
@@ -299,9 +299,9 @@ fn explicit_future_coverage() -> Result<ChecksumCoverageMap, ChecksumCoverageMap
         .define()
 }
 
-fn explicit_s1_builder() -> forge_store_physical_format::ChecksumCoverageMapBuilder {
-    ChecksumCoverageMap::builder(PhysicalFormatVersion::s1_initial())
-        .covered_header_fields(s1_required_covered_header_fields())
+fn explicit_physical_format_builder() -> forge_store_physical_format::ChecksumCoverageMapBuilder {
+    ChecksumCoverageMap::builder(PhysicalFormatVersion::initial_format_version())
+        .covered_header_fields(physical_format_required_covered_header_fields())
         .excluded_header_fields([ChecksumHeaderField::ChecksumField])
         .checksum_field_handling(ChecksumFieldHandling::ExcludedDuringComputation)
         .mutable_publication_fields([ChecksumHeaderField::PublicationState])

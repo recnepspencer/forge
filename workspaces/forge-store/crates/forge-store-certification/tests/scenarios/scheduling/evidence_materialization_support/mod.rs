@@ -52,7 +52,7 @@ use forge_store_physical_certification::{
     PhysicalFaultEvidenceClass, PhysicalSimulationProfile,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub fn sources() -> StoreOwnedS6CertificationMaterializationSources {
     sources_with_options(
@@ -257,7 +257,7 @@ fn scheduler_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmiss
 }
 
 fn security_scope() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
-    admit_security_scope_for_scheduler(&admitted_store_internal_security_scope_for_s6_test())
+    admit_security_scope_for_scheduler(&admitted_store_internal_security_scope_for_io_qos_test())
         .unwrap()
 }
 

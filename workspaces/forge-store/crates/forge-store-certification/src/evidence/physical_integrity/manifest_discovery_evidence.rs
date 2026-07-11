@@ -13,7 +13,7 @@ pub enum PhysicalManifestDiscoveryEvidenceRow {
 }
 
 impl PhysicalManifestDiscoveryEvidenceRow {
-    pub const fn s1_required() -> [Self; 4] {
+    pub const fn physical_format_required() -> [Self; 4] {
         [
             Self::RootManifestDiscovery,
             Self::RootPublicationGenerationChanged,

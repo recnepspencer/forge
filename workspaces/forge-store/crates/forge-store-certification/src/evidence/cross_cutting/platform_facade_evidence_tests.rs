@@ -66,12 +66,12 @@ fn facade_shortcut_rejections_materialize_certification_trace() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
         .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 
@@ -92,7 +92,7 @@ fn digest(name: &str) -> StableDigest {
 }
 
 fn slot_cell() -> forge_store_physical_format::SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(1), slot(1))
         .with_slot_generation(generation(5))
 }

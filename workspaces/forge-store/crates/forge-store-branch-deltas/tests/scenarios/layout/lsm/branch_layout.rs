@@ -5,7 +5,7 @@ use forge_store_branch_deltas::{
 };
 
 #[test]
-fn phase23_branch_delta_family_binds_layers_to_admitted_lineage_support() {
+fn branch_delta_family_binds_layers_to_admitted_lineage_support() {
     let request = BranchDeltaReadRequest::new(BranchDeltaLayerId(7), "main/feature-a");
     let plan = BranchDeltaReadPlan::new(request, 24);
     let witness = branch_semantic_authority().admit_same_branch_descendant("main/feature-a");

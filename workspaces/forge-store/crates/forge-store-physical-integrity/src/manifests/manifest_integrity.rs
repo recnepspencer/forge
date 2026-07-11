@@ -14,7 +14,7 @@ use forge_store_physical_format::{
 pub struct ManifestIntegrityAuthority;
 
 impl ManifestIntegrityAuthority {
-    pub const fn s3() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 
@@ -25,7 +25,7 @@ impl ManifestIntegrityAuthority {
         let mut counters = ManifestIntegrityCounters::start().with_manifest_sections();
         let admitted_root = admit_root_posture(&request, counters)?;
         if let Some(admission) = request.backend_residue_fallback() {
-            let discovery_denial = ManifestDiscoveryAuthority::s1()
+            let discovery_denial = ManifestDiscoveryAuthority::for_canonical_physical_format()
                 .reject_backend_residue(admitted_root.discovery(), admission);
             return Err(backend_residue_denial(discovery_denial, counters));
         }
@@ -66,7 +66,7 @@ fn validate_expected_manifest_reference(
     posture: forge_store_physical_format::RootManifestIntegrityPosture,
     counters: ManifestIntegrityCounters,
 ) -> Result<PhysicalReferenceValidationWitness, ManifestIntegrityDenial> {
-    let authority = ManifestDiscoveryAuthority::s1();
+    let authority = ManifestDiscoveryAuthority::for_canonical_physical_format();
     match reference {
         ManifestExpectedReference::PageSlot(admission) => authority
             .locate_page_slot(discovery, admission)
@@ -228,12 +228,12 @@ fn canonical_manifest_owners(root: &PhysicalRootManifest) -> Vec<PhysicalGenerat
 fn scope_for_expected_reference(
     reference: ManifestExpectedReference,
 ) -> Option<PhysicalReferenceScope> {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let admission = reference.admission();
     match reference {
         ManifestExpectedReference::PageSlot(_) => {
             let physical_reference = admission.reference();
-            let cell = PhysicalGenerationAuthority::s1()
+            let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(
                     physical_reference.segment_id()?,
                     physical_reference.page_id()?,
@@ -243,7 +243,7 @@ fn scope_for_expected_reference(
         }
         ManifestExpectedReference::Extent(_) => {
             let physical_reference = admission.reference();
-            let cell = PhysicalGenerationAuthority::s1()
+            let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
                 .extent_cell(
                     physical_reference.segment_id()?,
                     physical_reference.extent_id()?,

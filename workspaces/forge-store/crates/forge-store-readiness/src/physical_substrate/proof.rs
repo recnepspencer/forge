@@ -37,7 +37,7 @@ pub fn close_physical_substrate_readiness(
         ));
     }
     let scope = readiness.scope();
-    let evidence = prove_s1_physical_handoff_evidence(readiness)?;
+    let evidence = prove_physical_format_physical_handoff_evidence(readiness)?;
     Ok(PhysicalSubstrateCloseoutReceipt { scope, evidence })
 }
 
@@ -50,10 +50,10 @@ pub fn prove_physical_substrate_readiness(
         ));
     }
     let scope = closeout.scope();
-    PhysicalSubstrateReadiness::from_s1_handoff_evidence(scope, closeout.into_handoff_evidence())
+    PhysicalSubstrateReadiness::from_physical_format_handoff_evidence(scope, closeout.into_handoff_evidence())
 }
 
-fn prove_s1_physical_handoff_evidence(
+fn prove_physical_format_physical_handoff_evidence(
     readiness: AcceptedHandoffReadiness,
 ) -> Result<PhysicalSubstrateHandoffEvidence, PhysicalSubstrateReadinessDenial> {
     let reopen_readiness = readiness.clone();
@@ -84,9 +84,9 @@ fn prove_s1_physical_handoff_evidence(
     let scan = facade
         .scan_physical_layout()
         .map_err(|_| proof_rejected())?;
-    let mut reopened = PlatformPhysicalFacade::reopen_s1(
+    let mut reopened = PlatformPhysicalFacade::reopen(
         reopen_readiness,
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .map_err(|_| proof_rejected())?;
@@ -97,11 +97,11 @@ fn prove_s1_physical_handoff_evidence(
     let shortcut_counters = rejected_shortcut_counters(&mut facade)?;
     let physical_references = [page_append.reference(), extent_append.reference()];
     let witnessed = witnessed_payload(11, b"s2-handoff")?;
-    PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
+    PhysicalSubstrateHandoffEvidence::from_physical_format_physical_witnesses(
         &physical_references,
         &[witnessed.0],
         &[witnessed.1],
-        PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(
+        PhysicalSubstrateEvidenceCounts::from_physical_format_closeout_evidence(
             scan.runtime_report().discovered_references().len() as u32,
             no_materialization_evidence_count(shortcut_counters),
             counter_evidence_count(facade.counters(), reopened.counters()),
@@ -112,7 +112,7 @@ fn prove_s1_physical_handoff_evidence(
 fn open_facade(
     readiness: AcceptedHandoffReadiness,
 ) -> Result<PlatformPhysicalFacade, PhysicalSubstrateReadinessDenial> {
-    PlatformPhysicalFacade::open_s1(readiness, PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness, PlatformPhysicalOpenRequest::physical_format_canonical())
         .map_err(|_| proof_rejected())
 }
 
@@ -160,8 +160,8 @@ fn witnessed_payload(
     PhysicalSubstrateReadinessDenial,
 > {
     let bytes = Box::leak(header_bytes(generation_value, payload).into_boxed_slice());
-    let authority = PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().map_err(|_| proof_rejected())?,
+    let authority = PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().map_err(|_| proof_rejected())?,
     );
     let report = authority
         .decode_frame_header(
@@ -182,8 +182,8 @@ fn validated_slot_reference(
     forge_store_physical_format::PhysicalReferenceValidationWitness,
     PhysicalSubstrateReadinessDenial,
 > {
-    let references = PhysicalReferenceAuthority::s1();
-    let cell = PhysicalGenerationAuthority::s1()
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1)?, page(1)?, slot(11)?)
         .with_slot_generation(generation(generation_value)?);
     references
@@ -194,7 +194,7 @@ fn validated_slot_reference(
 fn slot_cell(
     value: u16,
 ) -> Result<forge_store_physical_format::SlotGenerationCell, PhysicalSubstrateReadinessDenial> {
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1)?, page(1)?, slot(value)?)
         .with_slot_generation(generation(5)?))
 }
@@ -202,7 +202,7 @@ fn slot_cell(
 fn extent_cell(
     value: u64,
 ) -> Result<forge_store_physical_format::ExtentGenerationCell, PhysicalSubstrateReadinessDenial> {
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(
             segment(1)?,
             forge_store_physical_format::PhysicalExtentId::from_raw(value)

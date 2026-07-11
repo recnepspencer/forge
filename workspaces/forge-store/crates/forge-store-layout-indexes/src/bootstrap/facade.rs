@@ -11,7 +11,7 @@ use super::{
 pub struct BootstrapCatalogFacade;
 
 impl BootstrapCatalogFacade {
-    pub const fn s8() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 
@@ -67,5 +67,5 @@ impl BootstrapCatalogFacade {
 }
 
 pub const fn bootstrap_catalog() -> BootstrapCatalogFacade {
-    BootstrapCatalogFacade::s8()
+    BootstrapCatalogFacade::new()
 }

@@ -11,8 +11,8 @@ use forge_store_physical_format::{
 pub(crate) fn manifest_reports(
 ) -> Result<Vec<PhysicalManifestDiscoveryEvidenceReport>, PhysicalSubstrateCertificationDenial> {
     let (root, cells) = manifest_fixture()?;
-    let discovery = ManifestDiscoveryAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let report = discovery
         .reopen_from_root(&root, references.admit_root_publication(cells.root))
         .map_err(|_| PhysicalSubstrateCertificationDenial::ManifestEvidenceRejected)?;
@@ -60,7 +60,7 @@ fn manifest_fixture() -> Result<
     ),
     PhysicalSubstrateCertificationDenial,
 > {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let root = generations
         .root_publication_cell(root_ref(1)?)
         .with_root_publication_generation(generation(5)?);
@@ -88,7 +88,7 @@ fn manifest_fixture() -> Result<
     let residue_slot = generations
         .slot_cell(segment(7)?, page(4)?, slot(1)?)
         .with_slot_generation(generation(3)?);
-    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(
             generations
                 .segment_cell(segment(7)?)

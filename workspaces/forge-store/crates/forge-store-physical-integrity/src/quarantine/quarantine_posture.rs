@@ -9,11 +9,11 @@ pub enum QuarantineLifecyclePosture {
 }
 
 impl QuarantineLifecyclePosture {
-    pub const fn is_s3_mintable(self) -> bool {
+    pub const fn is_physical_integrity_mintable(self) -> bool {
         matches!(self, Self::Proposed | Self::Sealed)
     }
 
-    pub const fn sealed_after_s3_mint(self) -> Self {
+    pub const fn sealed_after_physical_integrity_mint(self) -> Self {
         match self {
             Self::Proposed | Self::Sealed => Self::Sealed,
             Self::SupersededByRecovery

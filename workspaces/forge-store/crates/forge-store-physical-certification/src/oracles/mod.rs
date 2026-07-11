@@ -28,7 +28,7 @@ pub use physical_isolation::{
     PhysicalIsolationInterleavingOracle, PostSwapReaderSeesNewRootOracle,
 };
 pub use verdict::{
-    phase7_verdict_topology, OracleDenial, PhysicalOracleNonClaim, PhysicalOracleVerdictTopology,
+    oracle_verdict_topology, OracleDenial, PhysicalOracleNonClaim, PhysicalOracleVerdictTopology,
     PhysicalOracleVerdictTopologyPosture, PhysicalProofOracleKind, PhysicalProofOracleVerdict,
     PhysicalProofOracleVerdictKind,
 };

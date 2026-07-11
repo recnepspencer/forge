@@ -10,7 +10,7 @@ pub struct IntegrityEntryAdmission {
 }
 
 impl IntegrityEntryAdmission {
-    pub fn from_s3_payload(
+    pub fn from_physical_integrity_payload(
         payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityEntryDenial> {
         payload.require_complete()?;

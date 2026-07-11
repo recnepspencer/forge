@@ -14,7 +14,7 @@ pub struct S5CloseoutReservationSet {
 }
 
 impl S5CloseoutReservationSet {
-    pub const fn s5_closeout_reservations() -> Self {
+    pub const fn physical_isolation_closeout_reservations() -> Self {
         Self {
             scopes: [
                 S5CloseoutReservedScope::S6IoQosIsolation,

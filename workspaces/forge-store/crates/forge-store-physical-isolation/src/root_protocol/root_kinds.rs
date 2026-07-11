@@ -64,7 +64,7 @@ pub enum RootKindMismatchDenial {
 }
 
 impl CurrentPhysicalRoot {
-    pub fn from_s5_entry(
+    pub fn from_physical_isolation_entry(
         basis: CurrentPhysicalRootBasis,
         ordering: PhysicalOrderingContract,
     ) -> Result<Self, PhysicalOrderingContractDenial> {
@@ -116,7 +116,7 @@ impl CurrentPhysicalRoot {
     pub const fn future_chunk_publication_epoch_placeholder(
         self,
     ) -> FutureChunkPublicationEpochBasis {
-        FutureChunkPublicationEpochBasis::s7_placeholder(self.scope())
+        FutureChunkPublicationEpochBasis::blob_placement_placeholder(self.scope())
     }
 }
 

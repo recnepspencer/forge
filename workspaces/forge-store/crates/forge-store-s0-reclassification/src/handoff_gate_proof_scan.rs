@@ -13,7 +13,7 @@ pub(crate) struct S0HandoffGateProofSurfaceCounts {
     pub(crate) native_harness: usize,
 }
 
-pub(crate) fn scan_current_s0_handoff_gate_proof_surfaces(
+pub(crate) fn scan_current_foundational_handoff_gate_proof_surfaces(
 ) -> Result<S0HandoffGateProofSurfaceCounts, S0HandoffGateProofEvidenceDenial> {
     let root = repository_root()?;
     let source_files = collect_current_source_files(&root)?;
@@ -69,7 +69,7 @@ fn foundational_adoption_family_count(
         "workspaces/forge-store/crates/forge-store-readiness/src/foundational_adoption.rs",
     )?;
     let required_block = source
-        .split("pub const fn required_for_s1() -> [Self; 6]")
+        .split("pub const fn required_for_physical_format() -> [Self; 6]")
         .nth(1)
         .ok_or(S0HandoffGateProofEvidenceDenial::MissingFoundationalAdoption)?;
 

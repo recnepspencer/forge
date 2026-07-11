@@ -22,15 +22,15 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{
-    certify_s6_background_pacing, S6BackgroundPacingCertificationDenial,
+    certify_io_qos_background_pacing, S6BackgroundPacingCertificationDenial,
     S6BackgroundPacingOutcomeKind,
 };
 
 #[test]
-fn s6_background_pacing_certification_preserves_all_phase3_outcomes() {
+fn io_qos_background_pacing_certification_preserves_all_outcomes() {
     let cases = [
         (
             producer_yield_outcome(),
@@ -78,7 +78,7 @@ fn s6_background_pacing_certification_preserves_all_phase3_outcomes() {
 
     for (actual, expected, expected_kind, expected_debt) in cases {
         let expected_counters = counters_for(expected);
-        let evidence = certify_s6_background_pacing(actual, expected)
+        let evidence = certify_io_qos_background_pacing(actual, expected)
             .expect("independently built equivalent background pacing should certify");
         assert_eq!(evidence.outcome(), expected_kind);
         assert_eq!(evidence.counters(), expected_counters);
@@ -87,9 +87,9 @@ fn s6_background_pacing_certification_preserves_all_phase3_outcomes() {
 }
 
 #[test]
-fn s6_background_pacing_certification_denies_mismatched_outcomes() {
+fn io_qos_background_pacing_certification_denies_mismatched_outcomes() {
     assert_eq!(
-        certify_s6_background_pacing(producer_yield_outcome(), direct_throttle_outcome()),
+        certify_io_qos_background_pacing(producer_yield_outcome(), direct_throttle_outcome()),
         Err(S6BackgroundPacingCertificationDenial::OutcomeMismatch)
     );
 }
@@ -145,7 +145,7 @@ fn deferred_outcome(pressure: BackgroundIoPressureShape) -> BackgroundPacingOutc
         requested,
         BackgroundResourceBudget::new(),
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&s6_readiness()),
+        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
@@ -170,7 +170,7 @@ fn producer_throttle_outcome() -> BackgroundPacingOutcome {
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&s6_readiness()),
+        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
@@ -181,7 +181,7 @@ fn direct_throttle_outcome() -> BackgroundPacingOutcome {
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&s6_readiness()),
+        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
@@ -212,7 +212,7 @@ fn admitted_or_violation(
         admitted,
         admitted,
         requested,
-        BackgroundPacingProgressionEvidence::current(&s6_readiness()),
+        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     );
     if late_yield {
         request = request.with_foreground_pressure_events(1).with_late_yield();
@@ -227,7 +227,7 @@ fn request(pressure: BackgroundIoPressureShape) -> BackgroundIdleCapacityLeaseRe
         requested,
         requested,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&s6_readiness()),
+        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     )
 }
 
@@ -238,14 +238,14 @@ fn request_with(
     debt_limit: BackgroundResourceBudget,
     progression: BackgroundPacingProgressionEvidence,
 ) -> BackgroundIdleCapacityLeaseRequest {
-    let security = Box::leak(Box::new(s6_security_scope_admission()));
+    let security = Box::leak(Box::new(io_qos_security_scope_admission()));
     let foreground = Box::leak(Box::new(
         admitted_point_read_reservation_for_security_scope_for_certification_test(
             security.permission().identity(),
         ),
     ));
     let backend = Box::leak(Box::new(backend_admission()));
-    let readiness = Box::leak(Box::new(s6_readiness()));
+    let readiness = Box::leak(Box::new(io_qos_readiness()));
     let secure_io = admit_secure_io_scope_for_scheduler(SecureIoPreservationRequest::new(
         SecureIoOperation::RepairScan,
         security,
@@ -298,7 +298,7 @@ fn counters_for(
 fn progression_drift(
     drift: BackgroundPacingProgressionDrift,
 ) -> BackgroundPacingProgressionEvidence {
-    let readiness = s6_readiness();
+    let readiness = io_qos_readiness();
     BackgroundPacingProgressionEvidence::from_readiness_counter_drift(
         &readiness,
         mismatched_counters(readiness.counters()),
@@ -346,15 +346,15 @@ fn backend_admission() -> forge_store_io_scheduler::IoSchedulerBackendCapability
     .expect("scheduler should admit backend")
 }
 
-fn s6_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
+fn io_qos_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
     let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
     admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit readiness")
 }
 
-fn s6_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
-    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
+    let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("Store security scope should admit for scheduler use")
 }

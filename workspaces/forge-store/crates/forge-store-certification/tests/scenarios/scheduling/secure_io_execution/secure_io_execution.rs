@@ -62,7 +62,7 @@ fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
     );
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("secure-frame producer work should lower through scheduler");
-    let security = s6_security_scope_admission();
+    let security = io_qos_security_scope_admission();
     let (backend, _) = secure_frame_backend(&security);
     let secure_io = admit_secure_io_scope_for_scheduler(
         SecureIoPreservationRequest::new(SecureIoOperation::ReadAhead, &security, &backend)
@@ -130,8 +130,8 @@ fn backend_witness() -> AdmittedBackendCapabilityWitness {
         .expect("secure-frame backend witness should admit")
 }
 
-fn s6_security_scope_admission() -> IoSchedulerSecurityScopeAdmission {
-    let scope = forge_store_security::admitted_store_internal_security_scope_for_s6_test();
+fn io_qos_security_scope_admission() -> IoSchedulerSecurityScopeAdmission {
+    let scope = forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&scope).expect("scheduler security scope should admit")
 }
 

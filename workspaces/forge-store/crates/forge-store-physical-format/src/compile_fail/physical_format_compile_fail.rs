@@ -45,7 +45,7 @@
 //! use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_S1_SCOPE};
 //! use forge_store_physical_format::PhysicalChunkChecksumAuthority;
 //!
-//! let authority = StorePhysicalAuthorityWitness::for_s1_vocabulary(ROADMAP_2_S1_SCOPE).unwrap();
+//! let authority = StorePhysicalAuthorityWitness::for_physical_format_vocabulary(ROADMAP_2_S1_SCOPE).unwrap();
 //! let _forged = PhysicalChunkChecksumAuthority::canonical_blob_checksum()
 //!     .admit_store_payload((authority, b"raw"));
 //! ```
@@ -70,7 +70,7 @@
 //!
 //! let layout = PersistedPhysicalLayout::builder().build();
 //! let _forged = PhysicalBootstrapCatalogOpenWitness::admit_persisted_layout(
-//!     PlatformPhysicalOpenRequest::s1_canonical().headers(),
+//!     PlatformPhysicalOpenRequest::physical_format_canonical().headers(),
 //!     &layout,
 //! );
 //! ```
@@ -84,8 +84,8 @@
 //! };
 //!
 //! let layout = PersistedPhysicalLayout::builder().build();
-//! let _reopened = PlatformPhysicalFacade::reopen_s1(
-//!     AcceptedHandoffReadiness::from_s0_artifacts(
+//! let _reopened = PlatformPhysicalFacade::reopen(
+//!     AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
 //!         ROADMAP_2_S1_SCOPE,
 //!         HandoffEvidenceDigestSet::new(
 //!             StableDigest::new("sha256:backend".to_string()).unwrap(),
@@ -98,7 +98,7 @@
 //!         ),
 //!     )
 //!     .unwrap(),
-//!     PlatformPhysicalOpenRequest::s1_canonical(),
+//!     PlatformPhysicalOpenRequest::physical_format_canonical(),
 //!     layout,
 //! );
 //! ```

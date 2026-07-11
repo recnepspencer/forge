@@ -17,7 +17,7 @@ impl ChecksumScopeDeclaration {
         if physical_format_identity.version() != coverage_map.physical_format_version() {
             return Err(ChecksumAlgorithmMismatchDenial::ScopeFormatVersionMismatch);
         }
-        if coverage_map.physical_format_version() != PhysicalFormatVersion::s1_initial() {
+        if coverage_map.physical_format_version() != PhysicalFormatVersion::initial_format_version() {
             return Err(ChecksumAlgorithmMismatchDenial::ScopeFormatVersionMismatch);
         }
         Ok(Self {

@@ -6,10 +6,10 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn phase22_readmission_binds_record_backed_readmission_to_an_admitted_lane() {
+fn readmission_binds_record_backed_readmission_to_an_admitted_lane() {
     let record = phase22_fixture::authoritative_quarantine_record("phase22-readmission");
     let authority =
-        phase22_fixture::current_authority("store.s8.phase22.readmission", "phase22-readmission");
+        phase22_fixture::current_authority("store.new.phase22.readmission", "phase22-readmission");
     let witness = admit_record_backed_layout_readmission(
         phase22_fixture::recovery_family_id(),
         &record,

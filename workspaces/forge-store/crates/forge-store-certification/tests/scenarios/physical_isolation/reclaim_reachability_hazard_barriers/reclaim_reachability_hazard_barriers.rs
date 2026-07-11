@@ -196,7 +196,7 @@ fn executed_reachability_denies_copied_candidate_sets() {
 }
 
 #[test]
-fn every_phase_ten_hazard_kind_blocks_reclaim_with_exact_overlap() {
+fn every_hazard_kind_blocks_reclaim_with_exact_overlap() {
     for kind in [
         HazardLeaseKind::ForegroundRead,
         HazardLeaseKind::ScrubWindow,

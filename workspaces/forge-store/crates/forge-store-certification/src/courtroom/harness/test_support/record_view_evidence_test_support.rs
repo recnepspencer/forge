@@ -25,7 +25,7 @@ pub(crate) fn record_view_table_without_conflicts() -> ResidentFrameTable {
 pub(crate) fn resident_frame_table() -> ResidentFrameTable {
     let readiness = prove_physical_substrate_readiness(
         close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_s0_artifacts(
+            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(
                     StableDigest::new("sha256:backend").unwrap(),
@@ -92,7 +92,7 @@ fn load_request_from_frame(
     page_value: u64,
     frame: &[u8],
 ) -> ResidentFrameLoadRequest {
-    ResidentFrameLoadRequest::from_s1_physical_frame(
+    ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validated_slot_reference(generation_value, page_value),
         frame_header_witness(generation_value, page_value, frame),
     )
@@ -105,8 +105,8 @@ pub(crate) fn framed_record(
     payload: &[u8],
 ) -> FramedRecordView<'static> {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = page_cell(&generations, 5, page_value);
     let slot_cell = slot_cell(&generations, generation_value, page_value);
     let empty_page = page_bytes(generation(5), &[]);
@@ -151,8 +151,8 @@ fn validated_slot_reference(
     generation_value: u64,
     page_value: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = slot_cell(&generations, generation_value, page_value);
     references
         .validate_page_slot(references.admit_page_slot(cell), cell)
@@ -175,11 +175,11 @@ fn frame_header_witness(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(header_authority())
+    PhysicalPageRecordAuthority::for_canonical_physical_format(header_authority())
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn page_cell(

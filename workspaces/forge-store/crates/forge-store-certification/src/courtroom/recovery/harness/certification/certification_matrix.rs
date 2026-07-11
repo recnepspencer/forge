@@ -29,8 +29,8 @@ impl RecoveryPhysicsCertificationMatrix {
         }
 
         let mut shortcut_rejections =
-            Vec::with_capacity(RecoveryPhysicsShortcutAttempt::required_s4_denials().len());
-        for attempt in RecoveryPhysicsShortcutAttempt::required_s4_denials() {
+            Vec::with_capacity(RecoveryPhysicsShortcutAttempt::required_recovery_denials().len());
+        for attempt in RecoveryPhysicsShortcutAttempt::required_recovery_denials() {
             match Self::certify_shortcut_attempt(attempt) {
                 Err(rejection) => shortcut_rejections.push(rejection),
                 Ok(accepted) => match accepted {},

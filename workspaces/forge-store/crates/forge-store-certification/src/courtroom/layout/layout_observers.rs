@@ -117,7 +117,7 @@ impl PhysicalLayoutParityDenial {
 }
 
 fn references_from_manifest_report(report: ManifestDiscoveryReport<'_>) -> Vec<PhysicalReference> {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let root = report.root();
     let mut discovered = Vec::new();
     discovered.push(

@@ -76,7 +76,7 @@ impl TierMovementReadInterlockPlan {
     }
 
     pub const fn non_claims(self) -> FutureBlobMigrationNonClaimReport {
-        FutureBlobMigrationNonClaimReport::s5_stability_only()
+        FutureBlobMigrationNonClaimReport::physical_isolation_stability_only()
     }
 
     pub const fn require_blob_lifecycle_authority(self) -> Result<(), TierMovementStabilityDenial> {

@@ -20,8 +20,8 @@ impl PhysicalBinaryEncodingWitness {
         Ok(Self { declaration })
     }
 
-    pub fn s1_canonical() -> Result<Self, PhysicalBinaryFormatError> {
-        Self::admit(PhysicalFormatDeclaration::s1_canonical()?)
+    pub fn physical_format_canonical() -> Result<Self, PhysicalBinaryFormatError> {
+        Self::admit(PhysicalFormatDeclaration::physical_format_canonical()?)
     }
 
     pub const fn declaration(&self) -> &PhysicalFormatDeclaration {
@@ -133,7 +133,7 @@ fn encode_field_widths(
     byte_order: PhysicalByteOrder,
     bytes: &mut Vec<u8>,
 ) {
-    for kind in PhysicalFieldWidthKind::required_for_s1() {
+    for kind in PhysicalFieldWidthKind::required_for_physical_format() {
         let width = find_width(kind, declaration.field_widths())
             .expect("admitted format declaration has every required field width");
         bytes.extend_from_slice(&byte_order.write_u16(width.bits()));
@@ -145,7 +145,7 @@ fn encode_alignments(
     byte_order: PhysicalByteOrder,
     bytes: &mut Vec<u8>,
 ) {
-    for site in PhysicalAlignmentSite::required_for_s1() {
+    for site in PhysicalAlignmentSite::required_for_physical_format() {
         let alignment = find_alignment(site, declaration.alignments())
             .expect("admitted format declaration has every required alignment");
         bytes.extend_from_slice(&byte_order.write_u16(alignment.bytes()));
@@ -153,8 +153,8 @@ fn encode_alignments(
 }
 
 fn read_magic(bytes: &[u8]) -> Result<PhysicalFormatMagic, PhysicalBinaryFormatError> {
-    if bytes[0..8] == PhysicalFormatMagic::s1_store().bytes() {
-        Ok(PhysicalFormatMagic::s1_store())
+    if bytes[0..8] == PhysicalFormatMagic::store_format_magic().bytes() {
+        Ok(PhysicalFormatMagic::store_format_magic())
     } else {
         Err(PhysicalBinaryFormatError::MagicMismatch)
     }
@@ -165,8 +165,8 @@ fn read_version(
     bytes: &[u8],
 ) -> Result<PhysicalFormatVersion, PhysicalBinaryFormatError> {
     let version = byte_order.read_u16([bytes[8], bytes[9]]);
-    if version == PhysicalFormatVersion::s1_initial().value() {
-        Ok(PhysicalFormatVersion::s1_initial())
+    if version == PhysicalFormatVersion::initial_format_version().value() {
+        Ok(PhysicalFormatVersion::initial_format_version())
     } else {
         Err(PhysicalBinaryFormatError::VersionMismatch)
     }

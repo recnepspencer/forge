@@ -127,7 +127,7 @@ fn copied_lower_physical_execution_receipt_is_denied_before_publish() {
 }
 
 #[test]
-fn lower_physical_execution_receipt_must_match_s5_interlock() {
+fn lower_physical_execution_receipt_must_match_physical_isolation_interlock() {
     let plan = plan_current(movement_case("phase17-copied-interlock"))
         .expect("movement plan should admit");
 

@@ -190,7 +190,7 @@ pub(crate) fn inspect_with_damaged_authority() -> IndexPageIntegrityDenial {
             DerivedIndexIntegrityInspectionRequest::with_damaged_authority(input, authority_denial)
                 .unwrap();
         denial = Some(
-            DerivedIndexIntegrityAuthority::s3()
+            DerivedIndexIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );
@@ -204,7 +204,7 @@ pub(crate) fn inspect_without_authority_basis() -> IndexPageIntegrityDenial {
         let request =
             DerivedIndexIntegrityInspectionRequest::without_authority_basis(input).unwrap();
         denial = Some(
-            DerivedIndexIntegrityAuthority::s3()
+            DerivedIndexIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );
@@ -222,7 +222,7 @@ fn inspect_damaged_derived_index(
         let request =
             DerivedIndexIntegrityInspectionRequest::from_admitted_scope(input, authority_basis)
                 .unwrap();
-        result = Some(DerivedIndexIntegrityAuthority::s3().inspect(request));
+        result = Some(DerivedIndexIntegrityAuthority::new().inspect(request));
     });
     result.unwrap()
 }
@@ -245,7 +245,7 @@ fn with_derived_index_input(
 
 fn manifest_basis_for_page_generation(generation: u64) -> ManifestReferenceBasis {
     let root = root_with_slot(1, 2, 3, generation);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -262,7 +262,7 @@ fn manifest_basis_for_page_generation(generation: u64) -> ManifestReferenceBasis
 
 fn manifest_basis_for_unrelated_page() -> ManifestReferenceBasis {
     let root = root_with_slot(1, 9, 3, 7);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -279,7 +279,7 @@ fn manifest_basis_for_unrelated_page() -> ManifestReferenceBasis {
 
 fn manifest_basis_for_same_owner_different_root() -> ManifestReferenceBasis {
     let root = root_with_slot_under_root(100, 1, 2, 3, 7);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -297,7 +297,7 @@ fn manifest_basis_for_same_owner_different_root() -> ManifestReferenceBasis {
 pub(crate) fn damaged_authority_denial() -> forge_store_physical_integrity::ManifestIntegrityDenial
 {
     let root = root_with_slot(1, 2, 3, 7);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),

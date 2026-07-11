@@ -41,7 +41,7 @@ fn frontier(redo: u64) -> CheckpointPageLsnFrontier {
 }
 
 fn page_cell() -> forge_store_physical_format::PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),

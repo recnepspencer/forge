@@ -101,7 +101,7 @@ fn inspect_wal_frame(
     let mut report = None;
     with_wal_input(b"WALF|crc32c|4|ok|DATA".to_vec(), 2, adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
-        report = Some(WalFrameIntegrityAuthority::s3().inspect(request).unwrap());
+        report = Some(WalFrameIntegrityAuthority::new().inspect(request).unwrap());
     });
     report.unwrap()
 }
@@ -115,7 +115,7 @@ fn inspect_wal_damage(
     with_wal_input(payload, page_id, adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         denial = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );

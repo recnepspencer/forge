@@ -9,12 +9,12 @@ use crate::{
 
 #[test]
 fn canonical_format_header_replays_identically() {
-    let witness = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+    let witness = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
     let bytes = witness.encode_golden_format_header();
 
     assert_eq!(
         bytes.as_slice(),
-        PhysicalGoldenFormatHeaderFixture::s1_canonical().bytes()
+        PhysicalGoldenFormatHeaderFixture::physical_format_canonical().bytes()
     );
 
     let decoded = PhysicalBinaryEncodingWitness::decode_golden_format_header(&bytes).unwrap();
@@ -23,7 +23,7 @@ fn canonical_format_header_replays_identically() {
 
 #[test]
 fn malformed_golden_header_bytes_deny_before_admission() {
-    let bytes = PhysicalBinaryEncodingWitness::s1_canonical()
+    let bytes = PhysicalBinaryEncodingWitness::physical_format_canonical()
         .unwrap()
         .encode_golden_format_header();
 
@@ -86,8 +86,8 @@ fn serializer_layout_and_host_order_are_rejected_as_format_authority() {
     assert_eq!(layout, Err(PhysicalBinaryFormatError::RustLayoutRejected));
 
     let host_order = PhysicalFormatDeclaration::builder()
-        .magic(PhysicalFormatMagic::s1_store())
-        .version(PhysicalFormatVersion::s1_initial())
+        .magic(PhysicalFormatMagic::store_format_magic())
+        .version(PhysicalFormatVersion::initial_format_version())
         .byte_order_declaration(PhysicalByteOrderDeclaration::HostEndian)
         .define();
     assert_eq!(
@@ -137,10 +137,10 @@ fn unsupported_page_and_reserved_declarations_are_rejected() {
 }
 
 #[test]
-fn incomplete_format_declarations_do_not_imply_s1_law() {
+fn incomplete_format_declarations_do_not_imply_physical_format_law() {
     let missing_width = PhysicalFormatDeclaration::builder()
-        .magic(PhysicalFormatMagic::s1_store())
-        .version(PhysicalFormatVersion::s1_initial())
+        .magic(PhysicalFormatMagic::store_format_magic())
+        .version(PhysicalFormatVersion::initial_format_version())
         .byte_order(PhysicalByteOrder::LittleEndian)
         .page_size(PhysicalPageSizeClass::KiB16)
         .define();
@@ -155,8 +155,8 @@ fn incomplete_format_declarations_do_not_imply_s1_law() {
 
 fn complete_builder() -> PhysicalFormatDeclarationBuilder {
     PhysicalFormatDeclaration::builder()
-        .magic(PhysicalFormatMagic::s1_store())
-        .version(PhysicalFormatVersion::s1_initial())
+        .magic(PhysicalFormatMagic::store_format_magic())
+        .version(PhysicalFormatVersion::initial_format_version())
         .byte_order(PhysicalByteOrder::LittleEndian)
         .field_width(PhysicalFieldWidth::segment_id_u64())
         .field_width(PhysicalFieldWidth::page_id_u64())

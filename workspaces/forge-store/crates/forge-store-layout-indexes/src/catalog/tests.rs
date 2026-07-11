@@ -103,7 +103,7 @@ fn every_expected_family_is_declared() {
 }
 
 #[test]
-fn every_declaration_carries_complete_phase_one_classification() {
+fn every_declaration_carries_complete_classification() {
     for row in S8ArtifactFamilyInventory::current().rows() {
         let declaration = row.declaration();
         assert_ne!(

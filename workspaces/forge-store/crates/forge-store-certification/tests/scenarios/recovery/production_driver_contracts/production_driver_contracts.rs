@@ -18,7 +18,7 @@ use forge_store_test_support::{
 
 #[test]
 fn admitted_production_driver_contract_binds_scenario_yieldpoint_before_execution() {
-    let plan = lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap();
+    let plan = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
 
     assert!(plan
         .driver_contracts()
@@ -153,15 +153,15 @@ fn pressure_and_verifier_drivers_declare_first_class_contract_profiles() {
 
 #[test]
 fn equivalent_driver_contracts_preserve_plan_identity() {
-    let first = lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap();
-    let second = lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap();
+    let first = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
+    let second = lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
 
     assert_eq!(first.identity(), second.identity());
     assert_eq!(first.yieldpoint_binding(), second.yieldpoint_binding());
 }
 
 #[test]
-fn phase_four_actor_contracts_admit_concrete_production_facing_roles() {
+fn actor_contracts_admit_concrete_production_facing_roles() {
     let actors = [
         ForegroundReadActor::admit("reader").unwrap().actor().role(),
         ForegroundWriteActor::admit("writer")
@@ -211,7 +211,7 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s5.driver.contract")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

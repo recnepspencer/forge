@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[test]
-fn publisher_materializes_all_phase_11_capability_rows_from_executed_evidence() {
+fn publisher_materializes_all_capability_rows_from_executed_evidence() {
     let evidence = io_pressure_evidence(BackendTargetProfile::PosixFileFsyncDirSync);
     let witness = admitted_backend(
         BackendTargetProfile::PosixFileFsyncDirSync,
@@ -42,7 +42,7 @@ fn publisher_materializes_all_phase_11_capability_rows_from_executed_evidence() 
         .publish()
         .unwrap();
 
-    for (capability, proof_claim) in phase_11_capabilities() {
+    for (capability, proof_claim) in backend_qualification_capabilities() {
         let row = matrix
             .rows_for_claim(BackendTargetProfile::PosixFileFsyncDirSync, capability)
             .next()
@@ -139,7 +139,7 @@ fn publisher_rejects_non_flush_unsupported_rows_without_debt() {
     );
 }
 
-fn phase_11_capabilities() -> [(BackendCapabilityKind, QualificationHarnessProofClaim); 8] {
+fn backend_qualification_capabilities() -> [(BackendCapabilityKind, QualificationHarnessProofClaim); 8] {
     [
         (
             BackendCapabilityKind::BufferedFile,

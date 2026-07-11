@@ -30,7 +30,7 @@ use forge_store_reclaim_policy::{
     StoreOwnedReclaimPolicyExecution,
 };
 use forge_store_security::{
-    admit_store_security_scope, admitted_store_internal_security_scope_for_s6_test,
+    admit_store_security_scope, admitted_store_internal_security_scope_for_io_qos_test,
     StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
@@ -160,7 +160,7 @@ fn request(
     request_with_security_scope(
         backend,
         ReclaimPolicySecurityScope::from_admitted_scope(
-            &admitted_store_internal_security_scope_for_s6_test(),
+            &admitted_store_internal_security_scope_for_io_qos_test(),
         ),
     )
 }
@@ -300,14 +300,14 @@ fn admitted_backend() -> forge_store_physical_backend::AdmittedBackendCapability
 }
 
 fn reference() -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(2).unwrap(),
             PhysicalPageId::from_raw(7).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

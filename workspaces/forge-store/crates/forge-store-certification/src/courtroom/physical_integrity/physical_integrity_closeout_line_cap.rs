@@ -89,7 +89,7 @@ impl S3LineCapCompositionEvidence {
             require_module(&modules, required)?;
         }
         require_distinct_responsibilities(&modules)?;
-        require_s3_owned_closeout_files(&owned_files)?;
+        require_physical_integrity_owned_closeout_files(&owned_files)?;
         Ok(Self {
             modules,
             owned_files,
@@ -143,7 +143,7 @@ fn require_distinct_responsibilities(
     Ok(())
 }
 
-fn require_s3_owned_closeout_files(
+fn require_physical_integrity_owned_closeout_files(
     owned_files: &[S3OwnedCloseoutFileEvidence],
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     if owned_files.is_empty() {

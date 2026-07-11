@@ -12,9 +12,9 @@ pub struct ManifestDiscoveryAuthority {
 }
 
 impl ManifestDiscoveryAuthority {
-    pub const fn s1() -> Self {
+    pub const fn for_canonical_physical_format() -> Self {
         Self {
-            references: PhysicalReferenceAuthority::s1(),
+            references: PhysicalReferenceAuthority::for_canonical_physical_format(),
         }
     }
 

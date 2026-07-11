@@ -1,5 +1,5 @@
 use super::tests_support::{
-    admit_phase_four_scope, admitted_scope, page_id, root_reference, segment_id,
+    admit_key_domain_scope, admitted_scope, page_id, root_reference, segment_id,
 };
 use crate::{
     layout_declarations, ArtifactFamilyDenial, CompositeKeyField, HashCollisionBehavior,
@@ -13,8 +13,8 @@ use forge_store_security::{
 use std::cmp::Ordering;
 
 #[test]
-fn phase_four_pages_admit_concrete_bytes_order_prefix_and_range() {
-    let scope = admit_phase_four_scope(
+fn pages_admit_concrete_bytes_order_prefix_and_range() {
+    let scope = admit_key_domain_scope(
         DurableArtifactFamilyId::PhysicalPage,
         &admitted_scope(
             StoreKeyScope::PageEnvelope,
@@ -87,8 +87,8 @@ fn phase_four_pages_admit_concrete_bytes_order_prefix_and_range() {
 }
 
 #[test]
-fn phase_four_root_manifest_denies_prefix_and_range_but_keeps_exact_identity() {
-    let scope = admit_phase_four_scope(
+fn root_manifest_denies_prefix_and_range_but_keeps_exact_identity() {
+    let scope = admit_key_domain_scope(
         DurableArtifactFamilyId::PhysicalRootManifest,
         &admitted_scope(
             StoreKeyScope::StoreManagedRoot,
@@ -136,8 +136,8 @@ fn phase_four_root_manifest_denies_prefix_and_range_but_keeps_exact_identity() {
 }
 
 #[test]
-fn phase_four_denies_cross_domain_concrete_key_shortcuts() {
-    let page_scope = admit_phase_four_scope(
+fn denies_cross_domain_concrete_key_shortcuts() {
+    let page_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::PhysicalPage,
         &admitted_scope(
             StoreKeyScope::PageEnvelope,
@@ -159,8 +159,8 @@ fn phase_four_denies_cross_domain_concrete_key_shortcuts() {
 }
 
 #[test]
-fn phase_four_denies_families_without_explicit_concrete_key_law() {
-    let repair_scope = admit_phase_four_scope(
+fn denies_families_without_explicit_concrete_key_law() {
+    let repair_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::RepairRecord,
         &admitted_scope(
             StoreKeyScope::RepairScopeEnvelope,
@@ -171,7 +171,7 @@ fn phase_four_denies_families_without_explicit_concrete_key_law() {
             StoreCustodyPosture::InternalStoreCustody,
         ),
     );
-    let transfer_scope = admit_phase_four_scope(
+    let transfer_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::ExportBundle,
         &admitted_scope(
             StoreKeyScope::BackupExportEnvelope,

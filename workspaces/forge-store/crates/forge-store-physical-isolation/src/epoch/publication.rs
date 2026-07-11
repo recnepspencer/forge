@@ -106,7 +106,7 @@ impl PagePublicationEpochBasis {
 }
 
 impl FutureChunkPublicationEpochBasis {
-    pub(crate) const fn s7_placeholder(root_scope_id: u64) -> Self {
+    pub(crate) const fn blob_placement_placeholder(root_scope_id: u64) -> Self {
         Self { root_scope_id }
     }
 

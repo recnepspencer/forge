@@ -209,7 +209,7 @@ fn page_header_basis(
 
 fn decoded_page_header() -> PhysicalHeaderDecodeWitness {
     let generation = generation(7);
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(11), page(13))
         .with_page_generation(generation);
     let bytes = page_bytes(generation, b"digest-authority");
@@ -220,8 +220,8 @@ fn decoded_page_header() -> PhysicalHeaderDecodeWitness {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical()
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical()
             .expect("static S.1 fixture encoding witness is valid"),
     )
 }

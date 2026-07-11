@@ -12,7 +12,7 @@ use forge_store_physical_backend::{
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_security::{
-    admitted_store_internal_security_scope_for_s6_test, StoreSecurityScopeIdentity,
+    admitted_store_internal_security_scope_for_io_qos_test, StoreSecurityScopeIdentity,
 };
 
 use crate::{
@@ -105,7 +105,7 @@ fn admitted_reservation_for_certification_test(
     lane: ForegroundLaneDeclaration,
 ) -> ForegroundReservationReceipt {
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
-    let readiness = s6_readiness_admission();
+    let readiness = io_qos_readiness_admission();
     let security = security_scope_admission();
     let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
@@ -137,7 +137,7 @@ fn admitted_secure_frame_reservation_for_certification_test(
     lane: ForegroundLaneDeclaration,
 ) -> ForegroundReservationReceipt {
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
-    let readiness = s6_readiness_admission();
+    let readiness = io_qos_readiness_admission();
     let security = security_scope_admission();
     let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
@@ -165,7 +165,7 @@ fn admitted_secure_frame_reservation_for_certification_test(
     .expect("secure-frame reservation should admit through production path")
 }
 
-fn s6_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
+fn io_qos_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
     let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness through production path");
     admit_store_published_isolation_capability(&readiness)
@@ -316,7 +316,7 @@ fn backend_evidence_basis(
 }
 
 fn security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

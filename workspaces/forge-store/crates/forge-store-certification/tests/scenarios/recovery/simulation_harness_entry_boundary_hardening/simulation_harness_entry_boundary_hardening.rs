@@ -42,7 +42,7 @@ fn simulation_harness_entry_identity_is_stable_across_independent_recovery_execu
 }
 
 #[test]
-fn simulation_harness_entry_identity_changes_when_s4_recovered_outcome_changes() {
+fn simulation_harness_entry_identity_changes_when_recovery_recovered_outcome_changes() {
     let first_recovery = fixture::executed_recovery_receipt();
     let second_recovery =
         fixture::executed_recovery_receipt_with_operation_digest("alternate-operation");
@@ -100,7 +100,7 @@ fn simulation_harness_entry_rejects_each_missing_roadmap_requirement() {
 }
 
 #[test]
-fn s45_inventory_classifies_every_registered_surface_exactly() {
+fn simulation_harness_inventory_classifies_every_registered_surface_exactly() {
     let inventory = ExistingSimulationHarnessInventory::dedicated_workspace_baseline();
 
     for (surface, classification) in registered_surface_classifications_from_spec() {
@@ -113,7 +113,7 @@ fn s45_inventory_classifies_every_registered_surface_exactly() {
 }
 
 #[test]
-fn s45_inventory_denies_missing_reusable_mechanics_surface() {
+fn simulation_harness_inventory_denies_missing_reusable_mechanics_surface() {
     let recovery = fixture::executed_recovery_receipt();
     let inventory = ExistingSimulationHarnessInventory::from_registered_surfaces(vec![
         RegisteredSimulationHarnessSurface::TestSupportTerminalProjectionJsonFixtures,

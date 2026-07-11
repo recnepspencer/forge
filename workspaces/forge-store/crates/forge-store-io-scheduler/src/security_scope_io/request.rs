@@ -79,7 +79,7 @@ pub fn admit_secure_io_scope_for_scheduler(
     };
     Ok(SecureIoPreservationReceipt::new(
         request.operation,
-        SecureIoScopeBasis::from_s5_1_admission(request.security_scope.receipt()),
+        SecureIoScopeBasis::from_security_scope_admission(request.security_scope.receipt()),
         request.backend.requirement(),
         request.backend.profile(),
         request.backend.evidence_class(),

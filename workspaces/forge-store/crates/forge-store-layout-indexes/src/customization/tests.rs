@@ -4,7 +4,7 @@ use super::{
     S8FutureLayoutWorkloadEnvelope,
 };
 use crate::strategy::registry::{S8LayoutAdmissionDenial, S8LayoutRequestedCapability};
-use crate::strategy::tests_support::{admit_phase_five_scope, root_manifest_scope};
+use crate::strategy::tests_support::{admit_strategy_scope, root_manifest_scope};
 use crate::strategy::S8LayoutStrategyFamily;
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::DurableArtifactFamilyId;
@@ -14,8 +14,8 @@ use forge_store_security::{
 };
 
 #[test]
-fn phase_nine_customization_admits_supported_foreground_requests_as_registry_snapshots() {
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+fn customization_admits_supported_foreground_requests_as_registry_snapshots() {
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -47,8 +47,8 @@ fn phase_nine_customization_admits_supported_foreground_requests_as_registry_sna
 }
 
 #[test]
-fn phase_nine_customization_denies_envelope_masquerade_and_unready_projection_requests() {
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+fn customization_denies_envelope_masquerade_and_unready_projection_requests() {
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -88,8 +88,8 @@ fn phase_nine_customization_denies_envelope_masquerade_and_unready_projection_re
 }
 
 #[test]
-fn phase_nine_customization_propagates_store_missing_layout_facts_honestly() {
-    let (wal_lifecycle, wal_domain) = admit_phase_five_scope(
+fn customization_propagates_store_missing_layout_facts_honestly() {
+    let (wal_lifecycle, wal_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,
@@ -135,7 +135,7 @@ fn phase_nine_customization_propagates_store_missing_layout_facts_honestly() {
 }
 
 #[test]
-fn phase_nine_customization_denies_key_domains_without_supported_store_strategy() {
+fn customization_denies_key_domains_without_supported_store_strategy() {
     let (root_manifest_lifecycle, root_manifest_domain) = root_manifest_scope();
     let unsupported = S8FutureLayoutCustomizationRequest::new(
         root_manifest_lifecycle,

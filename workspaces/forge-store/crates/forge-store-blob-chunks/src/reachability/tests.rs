@@ -178,7 +178,7 @@ fn unbound_read_plan_holds_cannot_seed_reachability_authority() {
 }
 
 #[test]
-fn backup_requires_s10_handoff_and_export_uses_s7_readiness() {
+fn backup_requires_backup_repair_handoff_and_export_uses_blob_lifecycle_readiness() {
     let (published, _) = published_with_sequence("phase14-backup-export-holds");
     let backup = backup_export_readiness("phase14-backup-hold", BackupExportCustodyMode::Backup);
     let export = backup_export_readiness("phase14-export-hold", BackupExportCustodyMode::Export);

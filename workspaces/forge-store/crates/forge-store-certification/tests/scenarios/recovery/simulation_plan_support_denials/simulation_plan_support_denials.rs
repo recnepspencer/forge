@@ -34,14 +34,14 @@ fn scenario_support_cases() -> [ScenarioSupportCase; 3] {
     [
         ScenarioSupportCase {
             name: "s5 readiness shape",
-            scenario: s5_scenario,
+            scenario: physical_isolation_scenario,
             required_driver: PhysicalDriverKind::ProductionBoundaryYieldpoint,
             required_observer: ObserverKind::IndependentPhysicalTrace,
             required_oracle: OracleFamilyKind::PhysicalIsolationReadinessShape,
         },
         ScenarioSupportCase {
             name: "s4 recovery dogfood",
-            scenario: s4_scenario,
+            scenario: recovery_scenario,
             required_driver: PhysicalDriverKind::FreshRuntimeRecovery,
             required_observer: ObserverKind::RecoveryOutcomeObserver,
             required_oracle: OracleFamilyKind::S4RecoveryDogfood,
@@ -142,7 +142,7 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario() -> CertifiedPhysicalScenario {
+fn physical_isolation_scenario() -> CertifiedPhysicalScenario {
     physical_scenario("store.physical.s5.readiness.support-denial")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
@@ -161,7 +161,7 @@ fn s5_scenario() -> CertifiedPhysicalScenario {
         .unwrap()
 }
 
-fn s4_scenario() -> CertifiedPhysicalScenario {
+fn recovery_scenario() -> CertifiedPhysicalScenario {
     physical_scenario("store.physical.s4.recovery.support-denial")
         .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
@@ -175,7 +175,7 @@ fn s4_scenario() -> CertifiedPhysicalScenario {
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

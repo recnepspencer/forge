@@ -12,7 +12,7 @@ pub struct PhysicalSubstrateReadiness {
 }
 
 impl PhysicalSubstrateReadiness {
-    pub(crate) fn from_s1_handoff_evidence(
+    pub(crate) fn from_physical_format_handoff_evidence(
         scope: RoadmapScope,
         evidence: PhysicalSubstrateHandoffEvidence,
     ) -> Result<Self, PhysicalSubstrateReadinessDenial> {
@@ -68,9 +68,9 @@ mod tests {
     };
 
     #[test]
-    fn readiness_requires_s1_scope() {
+    fn readiness_requires_physical_format_scope() {
         let evidence = complete_evidence();
-        let denial = PhysicalSubstrateReadiness::from_s1_handoff_evidence(
+        let denial = PhysicalSubstrateReadiness::from_physical_format_handoff_evidence(
             RoadmapScope::new("Roadmap 2", "S.0"),
             evidence,
         )
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn readiness_exposes_handoff_fact_counts() {
-        let readiness = PhysicalSubstrateReadiness::from_s1_handoff_evidence(
+        let readiness = PhysicalSubstrateReadiness::from_physical_format_handoff_evidence(
             ROADMAP_2_S1_SCOPE,
             complete_evidence(),
         )
@@ -107,11 +107,11 @@ mod tests {
         ];
         let header_decode_witnesses = [first.0, second.0];
         let payload_admission_witnesses = [first.1, second.1];
-        PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
+        PhysicalSubstrateHandoffEvidence::from_physical_format_physical_witnesses(
             &physical_references,
             &header_decode_witnesses,
             &payload_admission_witnesses,
-            PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(3, 1, 9),
+            PhysicalSubstrateEvidenceCounts::from_physical_format_closeout_evidence(3, 1, 9),
         )
         .unwrap()
     }
@@ -125,7 +125,7 @@ mod tests {
     ) {
         let bytes = Box::leak(header_bytes(generation_value, payload).into_boxed_slice());
         let authority =
-            PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap());
+            PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap());
         let report = authority
             .decode_frame_header(
                 validated_slot_reference(generation_value),
@@ -140,8 +140,8 @@ mod tests {
     fn validated_slot_reference(
         generation_value: u64,
     ) -> forge_store_physical_format::PhysicalReferenceValidationWitness {
-        let generations = PhysicalGenerationAuthority::s1();
-        let references = PhysicalReferenceAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
         let cell = generations
             .slot_cell(segment(1), page(1), slot(generation_value as u16))
             .with_slot_generation(generation(generation_value));
@@ -156,10 +156,10 @@ mod tests {
         slot_value: u16,
         generation_value: u64,
     ) -> PhysicalReference {
-        let cell = PhysicalGenerationAuthority::s1()
+        let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
             .slot_cell(segment(segment_value), page(page_value), slot(slot_value))
             .with_slot_generation(generation(generation_value));
-        PhysicalReferenceAuthority::s1()
+        PhysicalReferenceAuthority::for_canonical_physical_format()
             .admit_page_slot(cell)
             .reference()
     }

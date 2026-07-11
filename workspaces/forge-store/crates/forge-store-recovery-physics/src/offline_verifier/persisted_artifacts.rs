@@ -4,7 +4,7 @@ use super::RecoveryPersistedRecord;
 pub struct RecoveryProfileId(String);
 
 impl RecoveryProfileId {
-    pub fn strict_s4() -> Self {
+    pub fn strict_offline_recovery_artifacts() -> Self {
         Self("strict-s4-recovery".to_string())
     }
 

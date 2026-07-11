@@ -4,7 +4,7 @@ pub struct PhysicalFormatMagic {
 }
 
 impl PhysicalFormatMagic {
-    pub const fn s1_store() -> Self {
+    pub const fn store_format_magic() -> Self {
         Self {
             bytes: *b"FGS1FMT\0",
         }
@@ -21,7 +21,7 @@ pub struct PhysicalFormatVersion {
 }
 
 impl PhysicalFormatVersion {
-    pub const fn s1_initial() -> Self {
+    pub const fn initial_format_version() -> Self {
         Self { value: 1 }
     }
 

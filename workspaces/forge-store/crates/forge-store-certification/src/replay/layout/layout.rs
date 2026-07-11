@@ -10,7 +10,7 @@ pub struct S8LayoutReplayBundle {
     scenario: S8LayoutExecutedScenarioWitness,
 }
 
-pub fn assemble_s8_layout_replay_bundle(
+pub fn assemble_layout_index_layout_replay_bundle(
     scenario: S8LayoutExecutedScenarioWitness,
 ) -> S8LayoutReplayBundle {
     S8LayoutReplayBundle { scenario }

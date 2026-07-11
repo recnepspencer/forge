@@ -47,7 +47,7 @@ impl ProjectionAuthorityDenial {
     }
 }
 
-pub fn reject_foundational_projection_as_s5_store_authority(
+pub fn reject_foundational_projection_as_physical_isolation_store_authority(
     projection: ProjectionArtifactKind,
     requested_surface: StorePhysicalAuthoritySurface,
 ) -> Result<(), ProjectionAuthorityDenial> {
@@ -57,7 +57,7 @@ pub fn reject_foundational_projection_as_s5_store_authority(
     ))
 }
 
-pub fn reject_proof_projection_as_s5_store_authority(
+pub fn reject_proof_projection_as_physical_isolation_store_authority(
     requested_surface: StorePhysicalAuthoritySurface,
 ) -> Result<(), ProjectionAuthorityDenial> {
     Err(ProjectionAuthorityDenial::new(
@@ -66,7 +66,7 @@ pub fn reject_proof_projection_as_s5_store_authority(
     ))
 }
 
-pub fn reject_log_or_json_projection_as_s5_store_authority(
+pub fn reject_log_or_json_projection_as_physical_isolation_store_authority(
     requested_surface: StorePhysicalAuthoritySurface,
 ) -> Result<(), ProjectionAuthorityDenial> {
     Err(ProjectionAuthorityDenial::new(
@@ -75,7 +75,7 @@ pub fn reject_log_or_json_projection_as_s5_store_authority(
     ))
 }
 
-pub fn reject_planned_or_support_projection_as_s5_store_authority(
+pub fn reject_planned_or_support_projection_as_physical_isolation_store_authority(
     requested_surface: StorePhysicalAuthoritySurface,
 ) -> Result<(), ProjectionAuthorityDenial> {
     Err(ProjectionAuthorityDenial::new(
@@ -87,7 +87,7 @@ pub fn reject_planned_or_support_projection_as_s5_store_authority(
 pub fn reject_projection_as_stable_physical_read_plan_authority(
     projection: ProjectionArtifactKind,
 ) -> Result<(), ProjectionAuthorityDenial> {
-    reject_foundational_projection_as_s5_store_authority(
+    reject_foundational_projection_as_physical_isolation_store_authority(
         projection,
         StorePhysicalAuthoritySurface::StablePhysicalReadPlan,
     )
@@ -96,7 +96,7 @@ pub fn reject_projection_as_stable_physical_read_plan_authority(
 pub fn reject_projection_as_latch_order_proof_authority(
     projection: ProjectionArtifactKind,
 ) -> Result<(), ProjectionAuthorityDenial> {
-    reject_foundational_projection_as_s5_store_authority(
+    reject_foundational_projection_as_physical_isolation_store_authority(
         projection,
         StorePhysicalAuthoritySurface::LatchOrderProof,
     )
@@ -105,7 +105,7 @@ pub fn reject_projection_as_latch_order_proof_authority(
 pub fn reject_projection_as_physical_epoch_basis_authority(
     projection: ProjectionArtifactKind,
 ) -> Result<(), ProjectionAuthorityDenial> {
-    reject_foundational_projection_as_s5_store_authority(
+    reject_foundational_projection_as_physical_isolation_store_authority(
         projection,
         StorePhysicalAuthoritySurface::PhysicalEpochBasis,
     )
@@ -114,7 +114,7 @@ pub fn reject_projection_as_physical_epoch_basis_authority(
 pub fn reject_projection_as_reclaim_eligibility_proof_authority(
     projection: ProjectionArtifactKind,
 ) -> Result<(), ProjectionAuthorityDenial> {
-    reject_foundational_projection_as_s5_store_authority(
+    reject_foundational_projection_as_physical_isolation_store_authority(
         projection,
         StorePhysicalAuthoritySurface::ReclaimEligibilityProof,
     )

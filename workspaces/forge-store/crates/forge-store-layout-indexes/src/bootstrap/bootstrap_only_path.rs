@@ -7,10 +7,10 @@ pub struct S8BootstrapOnlyAccessPath {
 }
 
 impl S8BootstrapOnlyAccessPath {
-    pub const fn s8_fixed() -> Self {
+    pub const fn fixed_bootstrap_access_path() -> Self {
         Self {
-            magic: PhysicalFormatMagic::s1_store(),
-            version: PhysicalFormatVersion::s1_initial(),
+            magic: PhysicalFormatMagic::store_format_magic(),
+            version: PhysicalFormatVersion::initial_format_version(),
         }
     }
 

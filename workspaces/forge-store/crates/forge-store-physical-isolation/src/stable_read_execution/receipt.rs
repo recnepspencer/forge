@@ -168,7 +168,7 @@ fn current_root_for_certification_seed(seed: u64) -> CurrentPhysicalRoot {
         root_epoch_from_entry_seed(seed),
         manifest_epoch_from_entry_seed(seed),
     );
-    CurrentPhysicalRoot::from_s5_entry(basis, PhysicalOrderingContract::root_swap_acquire_release())
+    CurrentPhysicalRoot::from_physical_isolation_entry(basis, PhysicalOrderingContract::root_swap_acquire_release())
         .expect("certification root ordering should admit")
 }
 
@@ -176,7 +176,7 @@ fn current_root_for_certification_seed(seed: u64) -> CurrentPhysicalRoot {
 fn current_page_slot_reference_for_certification_test() -> crate::CurrentGenerationPhysicalReference
 {
     let generation = PhysicalGeneration::from_raw(9).expect("generation");
-    let slot_cell = PhysicalGenerationAuthority::s1()
+    let slot_cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(7).expect("segment"),
             PhysicalPageId::from_raw(11).expect("page"),
@@ -184,7 +184,7 @@ fn current_page_slot_reference_for_certification_test() -> crate::CurrentGenerat
         )
         .with_slot_generation(generation);
     GenerationCountedPhysicalReference::from_admitted_reference(
-        PhysicalReferenceAuthority::s1().admit_page_slot(slot_cell),
+        PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(slot_cell),
     )
     .require_current_generation(generation)
     .expect("certification physical reference should be current")

@@ -39,14 +39,14 @@ impl QuarantineSealRequest {
         ),
         QuarantineSealDenial,
     > {
-        if !self.initial_posture.is_s3_mintable() {
+        if !self.initial_posture.is_physical_integrity_mintable() {
             return Err(QuarantineSealDenial::new(
                 QuarantineSealDenialKind::LaterLifecycleOwnerRequired,
             ));
         }
         Ok((
             self.finding,
-            self.initial_posture.sealed_after_s3_mint(),
+            self.initial_posture.sealed_after_physical_integrity_mint(),
             self.handoff_posture,
         ))
     }

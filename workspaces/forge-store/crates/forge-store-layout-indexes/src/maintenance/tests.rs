@@ -325,7 +325,7 @@ fn wal_rebuilt_parity_basis(
 }
 
 fn root_manifest_source_witness(segment: u64, page: u64) -> PhysicalRootManifestRebuildWitness {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let segment_id = PhysicalSegmentId::from_raw(segment).unwrap();
     let root = generations
         .root_publication_cell(PhysicalRootReference::from_raw(1).unwrap())
@@ -342,7 +342,7 @@ fn root_manifest_source_witness(segment: u64, page: u64) -> PhysicalRootManifest
         .with_slot_generation(PhysicalGeneration::from_raw(7).unwrap());
 
     PhysicalRootManifestRebuildWitness::admit(
-        PhysicalManifestUniverseBuilder::s1(root)
+        PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
             .segment(segment)
             .ordinary_page(slot)
             .publish(),

@@ -26,7 +26,7 @@ impl BackupExportCustodyReadiness {
         Self::from_admitted_scope(security_scope, mode, counters)
     }
 
-    pub fn from_s10_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
+    pub fn from_backup_repair_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
         let readiness = handoff.into_readiness();
         Self {
             mode: readiness.mode(),

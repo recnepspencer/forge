@@ -21,7 +21,7 @@ use forge_store_test_support::{
 
 #[test]
 fn observer_collects_facts_and_certification_oracle_judges_verdict() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
         .unwrap()
@@ -56,7 +56,7 @@ fn observer_collects_facts_and_certification_oracle_judges_verdict() {
 
 #[test]
 fn independent_verifier_oracle_requires_independent_observation() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
         .unwrap()
@@ -108,7 +108,7 @@ fn independent_verifier_oracle_requires_independent_observation() {
 
 #[test]
 fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let disputed_trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
         .unwrap()
@@ -145,7 +145,7 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
 
 #[test]
 fn oracle_family_admission_is_plan_bound_not_fixture_label_bound() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
         .unwrap()
@@ -156,7 +156,7 @@ fn oracle_family_admission_is_plan_bound_not_fixture_label_bound() {
         .complete()
         .unwrap();
 
-    let denial = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let denial = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .expect_err("wrong reusable family cannot judge an S5 readiness oracle");
@@ -194,8 +194,8 @@ fn fake_verdict_sources_are_explicitly_denied() {
 }
 
 #[test]
-fn physical_isolation_readiness_family_is_reusable_without_claiming_s5_correctness() {
-    let plan = lower_s5_plan();
+fn physical_isolation_readiness_family_is_reusable_without_claiming_physical_isolation_correctness() {
+    let plan = lower_physical_isolation_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
         .unwrap()
@@ -228,7 +228,7 @@ fn physical_isolation_readiness_family_is_reusable_without_claiming_s5_correctne
 #[test]
 fn observer_cannot_collect_for_unrequired_plan_observer() {
     let denial = PhysicalSimulationObserver::recovery_outcome()
-        .observe_plan(&lower_s5_plan())
+        .observe_plan(&lower_physical_isolation_plan())
         .expect_err("S5 readiness plan does not authorize recovery observer");
 
     assert_eq!(
@@ -239,8 +239,8 @@ fn observer_cannot_collect_for_unrequired_plan_observer() {
     );
 }
 
-fn lower_s5_plan() -> PhysicalSimulationPlan {
-    lower_physical_simulation_plan(s5_scenario(), complete_context()).unwrap()
+fn lower_physical_isolation_plan() -> PhysicalSimulationPlan {
+    lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap()
 }
 
 fn complete_context() -> SimulationPlanningContext {
@@ -256,7 +256,7 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase7.observer.oracle")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

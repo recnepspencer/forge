@@ -22,7 +22,7 @@ pub(crate) use kinds::{
 };
 pub use kinds::{ChunkEpoch, ExtentEpoch, ManifestEpoch, PageEpoch, RootEpoch, SegmentEpoch};
 pub use ordering::{
-    required_s5_ordering_contracts, PhysicalOrderingContract, PhysicalOrderingContractDenial,
+    required_physical_isolation_ordering_contracts, PhysicalOrderingContract, PhysicalOrderingContractDenial,
     PhysicalOrderingSite, PhysicalOrderingStrength,
 };
 pub use publication::{

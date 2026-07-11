@@ -29,7 +29,7 @@ impl PhysicalSimulationCapabilitySet {
         Self::from_capabilities(BASELINE_CAPABILITIES)
     }
 
-    pub fn s4_recovery_dogfood() -> Self {
+    pub fn recovery_dogfood() -> Self {
         Self::all_for_developer_smoke()
     }
 

@@ -12,7 +12,7 @@ use forge_store_physical_format::{
 
 pub(crate) fn complexity_reports(
 ) -> Result<Vec<PhysicalComplexityEvidenceReport>, PhysicalSubstrateCertificationDenial> {
-    PhysicalOperationKind::s1_required()
+    PhysicalOperationKind::required_physical_operations()
         .into_iter()
         .map(complexity_report)
         .collect()
@@ -25,7 +25,7 @@ fn complexity_report(
     let fixture = hostile_fixture(operation, counters.clone())?;
     let scale_property = scale_property(operation, fixture.clone());
     PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(operation),
+        PhysicalOperationComplexityContract::required_complexity_contract(operation),
         PhysicalComplexityProofBundle::new(
             counters,
             algorithm_review(operation),

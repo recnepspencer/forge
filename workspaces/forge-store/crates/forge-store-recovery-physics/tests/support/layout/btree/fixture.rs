@@ -192,7 +192,7 @@ fn checkpoint_manifest() -> CheckpointManifest {
     CheckpointManifest::sharp(
         CheckpointRootPosture::root_present(PhysicalRootReference::from_raw(7).unwrap()),
         CheckpointPageLsnFrontier::from_pages([(
-            PhysicalGenerationAuthority::s1()
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(segment(1), page(1))
                 .with_page_generation(generation(3)),
             redo_lsn,
@@ -255,7 +255,7 @@ fn trace(label: &str, order: u64) -> RecoveryCandidateDiscoveryTrace {
 
 fn test_scope(seed: &str) -> PhysicalReferenceScope {
     PhysicalReferenceScope::derived_index(
-        PhysicalGenerationAuthority::s1()
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .page_cell(segment(seed_basis(seed) + 1), page(seed_basis(seed) + 11))
             .with_page_generation(generation(seed_basis(seed) + 5)),
     )

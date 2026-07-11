@@ -1,5 +1,5 @@
 use super::tests_support::{
-    admit_phase_four_scope, admitted_scope, alternate_blob_evidence_bundle,
+    admit_key_domain_scope, admitted_scope, alternate_blob_evidence_bundle,
     alternate_blob_identity, alternate_blob_import_declaration, page_slot_reference_admission,
     published_blob_evidence_bundle, published_blob_identity, published_blob_import_declaration,
 };
@@ -13,8 +13,8 @@ use forge_store_security::{
 use forge_store_wal::StoreWalRecordIdentity;
 
 #[test]
-fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior() {
-    let wal_scope = admit_phase_four_scope(
+fn wal_blob_and_physical_reference_domains_prove_real_hash_and_replay_behavior() {
+    let wal_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::WalRecoveryDecision,
         &admitted_scope(
             StoreKeyScope::WalCheckpointEnvelope,
@@ -76,7 +76,7 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
             .unwrap()
     );
 
-    let blob_scope = admit_phase_four_scope(
+    let blob_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::DedupeIndex,
         &admitted_scope(
             StoreKeyScope::BlobChunkEnvelope,
@@ -336,7 +336,7 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
     assert_eq!(replay_lifecycle_order, replay_import_order);
     assert_eq!(replay_lifecycle_order, replay_export_order);
 
-    let reference_scope = admit_phase_four_scope(
+    let reference_scope = admit_key_domain_scope(
         DurableArtifactFamilyId::ReachabilityEdge,
         &admitted_scope(
             StoreKeyScope::ArtifactEnvelope,

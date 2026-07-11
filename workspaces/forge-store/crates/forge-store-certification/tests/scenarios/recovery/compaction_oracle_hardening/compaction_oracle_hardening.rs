@@ -10,7 +10,7 @@ use forge_store_physical_certification::{
 
 #[test]
 fn publication_only_compaction_observation_cannot_satisfy_reader_oracles() {
-    let plan = support::lower_s5_plan();
+    let plan = support::lower_physical_isolation_plan();
     let trace = support::publication_only_trace(&plan);
     let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
 
@@ -36,7 +36,7 @@ fn publication_only_compaction_observation_cannot_satisfy_reader_oracles() {
 
 #[test]
 fn publication_only_compaction_observation_cannot_satisfy_counter_contracts() {
-    let plan = support::lower_s5_shortcut_plan();
+    let plan = support::lower_physical_isolation_shortcut_plan();
     let evidence =
         support::executed_counter_evidence(&plan, support::publication_only_trace(&plan));
     let denial = admit_physical_counter_evidence(&plan, evidence)

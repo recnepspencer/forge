@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub(super) fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(2))
         .with_page_generation(generation(generation_value));
     let report = header_authority()
@@ -24,8 +24,8 @@ pub(super) fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
 }
 
 pub(super) fn decoded_frame_header(generation_value: u64) -> PhysicalFrameHeader {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(segment(1), page(2), slot(3))
         .with_slot_generation(generation(generation_value));
@@ -51,7 +51,7 @@ pub(super) fn decoded_frame_header(generation_value: u64) -> PhysicalFrameHeader
 }
 
 pub(super) fn root_manifest_with_all_entry_kinds() -> PhysicalRootManifest {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let root_cell = generations
         .root_publication_cell(PhysicalRootReference::from_raw(9).expect("non-zero root"))
         .with_root_publication_generation(generation(1));
@@ -74,7 +74,7 @@ pub(super) fn root_manifest_with_all_entry_kinds() -> PhysicalRootManifest {
         .expect("valid free-space cell")
         .with_free_space_generation(generation(5));
 
-    crate::PhysicalManifestUniverseBuilder::s1(root_cell)
+    crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_cell)
         .segment(segment_cell)
         .ordinary_page(slot_cell)
         .extent(extent_cell)
@@ -83,8 +83,8 @@ pub(super) fn root_manifest_with_all_entry_kinds() -> PhysicalRootManifest {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().expect("canonical encoding witness"),
+    PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().expect("canonical encoding witness"),
     )
 }
 

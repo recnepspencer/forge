@@ -1,4 +1,4 @@
-use crate::{certify_s6_backend_capability_admission, publish_s6_backend_capability_readiness};
+use crate::{certify_io_qos_backend_capability_admission, publish_io_qos_backend_capability_readiness};
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
@@ -6,12 +6,12 @@ use forge_store_physical_backend::{
 };
 
 #[test]
-fn s6_backend_capability_certification_preserves_exact_witness_and_readiness_fields() {
+fn io_qos_backend_capability_certification_preserves_exact_witness_and_readiness_fields() {
     let witness =
         admitted_backend_witness(BackendCapabilityEvidenceBasis::certified_backend_profile());
-    let readiness = publish_s6_backend_capability_readiness(&witness);
+    let readiness = publish_io_qos_backend_capability_readiness(&witness);
 
-    let evidence = certify_s6_backend_capability_admission(&witness, &readiness)
+    let evidence = certify_io_qos_backend_capability_admission(&witness, &readiness)
         .expect("matching readiness should certify admitted backend capability");
 
     assert_eq!(evidence.profile(), witness.profile());
@@ -23,15 +23,15 @@ fn s6_backend_capability_certification_preserves_exact_witness_and_readiness_fie
 }
 
 #[test]
-fn s6_backend_capability_certification_denies_mismatched_readiness() {
+fn io_qos_backend_capability_certification_denies_mismatched_readiness() {
     let witness =
         admitted_backend_witness(BackendCapabilityEvidenceBasis::certified_backend_profile());
     let different_witness =
         admitted_backend_witness(BackendCapabilityEvidenceBasis::declared_by_config(11));
-    let mismatched_readiness = publish_s6_backend_capability_readiness(&different_witness);
+    let mismatched_readiness = publish_io_qos_backend_capability_readiness(&different_witness);
 
     assert_eq!(
-        certify_s6_backend_capability_admission(&witness, &mismatched_readiness),
+        certify_io_qos_backend_capability_admission(&witness, &mismatched_readiness),
         None
     );
 }

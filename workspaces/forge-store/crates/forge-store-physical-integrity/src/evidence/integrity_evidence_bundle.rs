@@ -366,7 +366,7 @@ fn physical_authority_claim(
 
 fn evidence_digest(parts: &EvidenceParts) -> StableDigest {
     digest(format!(
-        "s3-evidence:{:?}:{:?}:{:?}:{:?}:{:?}:{}",
+        "new-evidence:{:?}:{:?}:{:?}:{:?}:{:?}:{}",
         parts.category,
         parts.role,
         parts.outcome,
@@ -377,19 +377,19 @@ fn evidence_digest(parts: &EvidenceParts) -> StableDigest {
 }
 
 fn diagnostic_digest(basis: &StableDigest) -> StableDigest {
-    digest(format!("s3-diagnostic:{}", basis.as_str()))
+    digest(format!("new-diagnostic:{}", basis.as_str()))
 }
 
 fn provenance_digest(basis: &StableDigest) -> StableDigest {
-    digest(format!("s3-provenance:{}", basis.as_str()))
+    digest(format!("new-provenance:{}", basis.as_str()))
 }
 
 fn performance_digest(basis: &StableDigest) -> StableDigest {
-    digest(format!("s3-performance:{}", basis.as_str()))
+    digest(format!("new-performance:{}", basis.as_str()))
 }
 
 fn receipt_digest(basis: &StableDigest) -> StableDigest {
-    digest(format!("s3-receipt:{}", basis.as_str()))
+    digest(format!("new-receipt:{}", basis.as_str()))
 }
 
 fn digest(value: impl Into<String>) -> StableDigest {

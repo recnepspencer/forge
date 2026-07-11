@@ -1,5 +1,5 @@
 #[test]
-fn scenario_metadata_alone_cannot_form_s8_layout_replay_bundle() {
+fn scenario_metadata_alone_cannot_form_layout_index_layout_replay_bundle() {
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -22,7 +22,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 2] {
         },
         CompileFailFixture {
             name: "direct_executed_witness_construction_is_not_public.rs",
-            expected_stderr: &["admit_s8_layout_executed_scenario", "private"],
+            expected_stderr: &["admit_layout_index_layout_executed_scenario", "private"],
         },
     ]
 }
@@ -86,7 +86,7 @@ fn fixture_path(manifest_dir: &std::path::Path, fixture_name: &str) -> std::path
 
 fn compile_fail_case_dir(fixture_name: &str) -> std::path::PathBuf {
     std::env::temp_dir()
-        .join("forge-store-certification-s8-layout-access-path")
+        .join("forge-store-certification-new-layout-access-path")
         .join(std::process::id().to_string())
         .join("cases")
         .join(fixture_name.trim_end_matches(".rs"))

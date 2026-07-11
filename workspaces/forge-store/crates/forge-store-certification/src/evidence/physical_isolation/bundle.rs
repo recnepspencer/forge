@@ -6,14 +6,14 @@ use super::{
 };
 use forge_foundational::FoundationalDiagnosticMaterializationDenial;
 use forge_store_physical_isolation::{
-    reject_foundational_projection_as_s5_store_authority,
-    reject_log_or_json_projection_as_s5_store_authority,
-    reject_planned_or_support_projection_as_s5_store_authority,
+    reject_foundational_projection_as_physical_isolation_store_authority,
+    reject_log_or_json_projection_as_physical_isolation_store_authority,
+    reject_planned_or_support_projection_as_physical_isolation_store_authority,
     reject_projection_as_latch_order_proof_authority,
     reject_projection_as_physical_epoch_basis_authority,
     reject_projection_as_reclaim_eligibility_proof_authority,
     reject_projection_as_stable_physical_read_plan_authority,
-    reject_proof_projection_as_s5_store_authority, ProjectionArtifactKind,
+    reject_proof_projection_as_physical_isolation_store_authority, ProjectionArtifactKind,
     ProjectionAuthorityDenial, StorePhysicalAuthoritySurface,
 };
 
@@ -52,28 +52,28 @@ impl S5ExecutedIsolationEvidenceBundle {
         projection: ProjectionArtifactKind,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_foundational_projection_as_s5_store_authority(projection, requested_surface)
+        reject_foundational_projection_as_physical_isolation_store_authority(projection, requested_surface)
     }
 
     pub fn reject_proof_as_store_authority(
         &self,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_proof_projection_as_s5_store_authority(requested_surface)
+        reject_proof_projection_as_physical_isolation_store_authority(requested_surface)
     }
 
     pub fn reject_log_or_json_as_store_authority(
         &self,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_log_or_json_projection_as_s5_store_authority(requested_surface)
+        reject_log_or_json_projection_as_physical_isolation_store_authority(requested_surface)
     }
 
     pub fn reject_planned_or_support_as_store_authority(
         &self,
         requested_surface: StorePhysicalAuthoritySurface,
     ) -> Result<(), ProjectionAuthorityDenial> {
-        reject_planned_or_support_projection_as_s5_store_authority(requested_surface)
+        reject_planned_or_support_projection_as_physical_isolation_store_authority(requested_surface)
     }
 
     pub fn reject_projection_as_store_authority(
@@ -98,7 +98,7 @@ impl S5ExecutedIsolationEvidenceBundle {
     }
 }
 
-pub fn materialize_s5_executed_isolation_evidence(
+pub fn materialize_physical_isolation_executed_isolation_evidence(
     source: ExecutedPhysicalIsolationEvidenceSource,
 ) -> Result<S5ExecutedIsolationEvidenceBundle, S5ExecutedIsolationMaterializationDenial> {
     let finding = source.finding().clone();

@@ -7,7 +7,7 @@ pub struct ResidentFrameBytes {
 }
 
 impl ResidentFrameBytes {
-    pub fn from_s1_payload_admission(
+    pub fn from_physical_format_payload_admission(
         request: ResidentFrameLoadRequest,
         admission: PhysicalPayloadViewAdmission<'_>,
     ) -> Result<Self, ResidentFrameDenial> {

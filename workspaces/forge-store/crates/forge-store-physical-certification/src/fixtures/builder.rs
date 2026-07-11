@@ -113,7 +113,7 @@ impl FixtureReadyBuilder {
 }
 
 fn canonical_offline_verifier() -> OfflinePhysicalVerifier {
-    let encoding = PhysicalBinaryEncodingWitness::s1_canonical()
+    let encoding = PhysicalBinaryEncodingWitness::physical_format_canonical()
         .expect("physical certification requires canonical S.1 binary encoding");
-    OfflinePhysicalVerifier::s1(PhysicalHeaderAuthority::s1(encoding))
+    OfflinePhysicalVerifier::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(encoding))
 }

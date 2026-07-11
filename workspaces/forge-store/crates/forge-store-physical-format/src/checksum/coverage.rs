@@ -35,9 +35,9 @@ impl ChecksumCoverageMap {
         ChecksumCoverageMapBuilder::new(version)
     }
 
-    pub fn s1_page_and_frame_crc32c() -> Result<Self, ChecksumCoverageMapDenial> {
-        Self::builder(PhysicalFormatVersion::s1_initial())
-            .covered_header_fields(s1_required_covered_header_fields())
+    pub fn physical_format_page_and_frame_crc32c() -> Result<Self, ChecksumCoverageMapDenial> {
+        Self::builder(PhysicalFormatVersion::initial_format_version())
+            .covered_header_fields(physical_format_required_covered_header_fields())
             .excluded_header_fields([ChecksumHeaderField::ChecksumField])
             .checksum_field_handling(ChecksumFieldHandling::ExcludedDuringComputation)
             .mutable_publication_fields([ChecksumHeaderField::PublicationState])
@@ -251,7 +251,7 @@ impl ChecksumCoverageMapBuilder {
 
     pub fn define(self) -> Result<ChecksumCoverageMap, ChecksumCoverageMapDenial> {
         reject_non_store_authority(self.authority_source)?;
-        if self.physical_format_version != PhysicalFormatVersion::s1_initial()
+        if self.physical_format_version != PhysicalFormatVersion::initial_format_version()
             && !self.physical_format_version.is_reserved_future()
         {
             return Err(ChecksumCoverageMapDenial::UnsupportedFormatVersion);
@@ -259,7 +259,7 @@ impl ChecksumCoverageMapBuilder {
         let covered_header_fields = self
             .covered_header_fields
             .ok_or(ChecksumCoverageMapDenial::MissingCoveredHeaderFields)?;
-        require_s1_header_fields(&covered_header_fields)?;
+        require_physical_format_header_fields(&covered_header_fields)?;
 
         Ok(ChecksumCoverageMap {
             physical_format_version: self.physical_format_version,
@@ -315,7 +315,7 @@ fn reject_non_store_authority(
     }
 }
 
-pub fn s1_required_covered_header_fields() -> [ChecksumHeaderField; 8] {
+pub fn physical_format_required_covered_header_fields() -> [ChecksumHeaderField; 8] {
     [
         ChecksumHeaderField::Magic,
         ChecksumHeaderField::FormatVersion,
@@ -328,10 +328,10 @@ pub fn s1_required_covered_header_fields() -> [ChecksumHeaderField; 8] {
     ]
 }
 
-fn require_s1_header_fields(
+fn require_physical_format_header_fields(
     fields: &[ChecksumHeaderField],
 ) -> Result<(), ChecksumCoverageMapDenial> {
-    for required in s1_required_covered_header_fields() {
+    for required in physical_format_required_covered_header_fields() {
         if !fields.contains(&required) {
             return Err(ChecksumCoverageMapDenial::MissingRequiredHeaderField(
                 required,

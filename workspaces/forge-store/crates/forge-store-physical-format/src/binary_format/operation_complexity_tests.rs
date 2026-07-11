@@ -7,36 +7,36 @@ use crate::{
 };
 
 #[test]
-fn every_required_s1_operation_has_verified_complexity_contract() {
-    let operations = PhysicalOperationKind::s1_required();
+fn every_required_physical_format_operation_has_verified_complexity_contract() {
+    let operations = PhysicalOperationKind::required_physical_operations();
 
     assert_eq!(operations.len(), 8);
     for operation in operations {
-        let contract = PhysicalOperationComplexityContract::s1_required(operation);
+        let contract = PhysicalOperationComplexityContract::required_complexity_contract(operation);
         assert_eq!(contract.operation(), operation);
         assert_eq!(contract.status(), PhysicalComplexityStatus::Declared);
         assert_eq!(contract.requirements().len(), 4);
         assert!(!contract.asymptotic_bound().is_empty());
-        assert!(contract.is_s1_declared());
+        assert!(contract.is_physical_format_declared());
     }
 }
 
 #[test]
 fn complexity_contracts_name_the_declared_locality_classes() {
     assert_eq!(
-        PhysicalOperationComplexityContract::s1_required(PhysicalOperationKind::LocateByReference)
+        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::LocateByReference)
             .locality(),
         PhysicalLocalityClass::PageLocal
     );
     assert_eq!(
-        PhysicalOperationComplexityContract::s1_required(
+        PhysicalOperationComplexityContract::required_complexity_contract(
             PhysicalOperationKind::AppendRecordPlacement
         )
         .locality(),
         PhysicalLocalityClass::FreeSpaceClass
     );
     assert_eq!(
-        PhysicalOperationComplexityContract::s1_required(
+        PhysicalOperationComplexityContract::required_complexity_contract(
             PhysicalOperationKind::OfflineVerifierWalk
         )
         .locality(),

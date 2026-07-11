@@ -72,8 +72,8 @@ pub(crate) fn wal_only_tail_denial_from_torn_frame(start: u64, end: u64) -> WalO
     wal_only_tail_fixture::wal_only_tail_denial_from_torn_frame(wal_range(start, end))
 }
 
-pub(crate) fn s3_integrity_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
-    wal_only_tail_fixture::s3_readiness()
+pub(crate) fn physical_integrity_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
+    wal_only_tail_fixture::physical_integrity_readiness()
 }
 
 pub(crate) fn intact_wal_integrity_evidence(
@@ -323,7 +323,7 @@ fn frontier(redo: u64) -> CheckpointPageLsnFrontier {
 }
 
 fn page_cell() -> forge_store_physical_format::PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),

@@ -15,7 +15,7 @@ impl FoundationalQuarantineReceiptBasis {
         posture: QuarantineLifecyclePosture,
     ) -> Self {
         let digest = StableDigest::new(format!(
-            "s3-quarantine:{:?}:{:?}:{:?}",
+            "new-quarantine:{:?}:{:?}:{:?}",
             locality, damage_classification, posture
         ))
         .expect("quarantine receipt basis is non-empty");

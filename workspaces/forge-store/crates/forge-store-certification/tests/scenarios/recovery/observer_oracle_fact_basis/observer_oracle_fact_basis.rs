@@ -28,14 +28,14 @@ fn recovery_oracle_requires_recovery_outcome_and_preserves_mixed_root_failure() 
         ObservationDenial::MissingRecoveryOutcomeObservation
     );
 
-    let recovered = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let recovered = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(
             &plan,
             &recovery_trace(&plan, RecoveryOutcomeObservation::recovered_old_root()),
         )
         .unwrap();
-    let mixed = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let mixed = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(
             &plan,
@@ -158,7 +158,7 @@ fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalS
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

@@ -31,7 +31,7 @@ pub(crate) fn foundational_identity_for_checksum_basis(
     basis: &ChecksumCoverageBasis,
 ) -> Result<FoundationalChecksumEvidenceIdentity, ChecksumAlgorithmMismatchDenial> {
     let version = checksum_basis_rule_version()?;
-    let domain = CanonicalBasisDomain::Future("store.s3.checksum.declaration");
+    let domain = CanonicalBasisDomain::Future("store.new.checksum.declaration");
     let ready =
         match prepare_canonical_basis_sequence(version.clone(), domain, basis_entries(basis)) {
             TransitionOutcome::Success(ready) => ready,
@@ -53,7 +53,7 @@ pub(crate) fn foundational_identity_for_checksum_basis(
 
 fn checksum_basis_rule_version(
 ) -> Result<CanonicalizationRuleVersion, ChecksumAlgorithmMismatchDenial> {
-    CanonicalizationRuleVersion::new("store.s3.checksum.declaration.v1")
+    CanonicalizationRuleVersion::new("store.new.checksum.declaration.v1")
         .ok_or(ChecksumAlgorithmMismatchDenial::FoundationalEvidenceDenied)
 }
 
@@ -110,7 +110,7 @@ fn basis_entries(basis: &ChecksumCoverageBasis) -> Vec<CanonicalBasisEntry> {
 
 fn text_entry(locus: &'static str, value: &str) -> CanonicalBasisEntry {
     CanonicalBasisEntry::new(
-        CanonicalBasisDomain::Future("store.s3.checksum.declaration"),
+        CanonicalBasisDomain::Future("store.new.checksum.declaration"),
         CanonicalBasisLocus::Named(locus.into()),
         CanonicalBasisEntryKind::Future("checksum-declaration-field"),
         CanonicalBasisValue::ExactText(value.to_string().into()),
@@ -119,7 +119,7 @@ fn text_entry(locus: &'static str, value: &str) -> CanonicalBasisEntry {
 
 fn u16_entry(locus: &'static str, value: u16) -> CanonicalBasisEntry {
     CanonicalBasisEntry::new(
-        CanonicalBasisDomain::Future("store.s3.checksum.declaration"),
+        CanonicalBasisDomain::Future("store.new.checksum.declaration"),
         CanonicalBasisLocus::Named(locus.into()),
         CanonicalBasisEntryKind::Future("checksum-declaration-field"),
         CanonicalBasisValue::UnsignedInteger {

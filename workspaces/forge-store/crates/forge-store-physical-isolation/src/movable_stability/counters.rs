@@ -2,8 +2,8 @@
 pub struct TierMovementStabilityCounterSnapshot {
     stability_admissions: u64,
     chunk_placeholders: u64,
-    denied_s7_promotions: u64,
-    denied_s6_qos_promotions: u64,
+    denied_blob_lifecycle_promotions: u64,
+    denied_io_qos_promotions: u64,
     missing_epoch_denials: u64,
     stale_generation_denials: u64,
     copied_label_denials: u64,
@@ -20,13 +20,13 @@ impl TierMovementStabilityCounterSnapshot {
         self
     }
 
-    pub const fn with_s7_promotion_denial(mut self) -> Self {
-        self.denied_s7_promotions += 1;
+    pub const fn with_blob_lifecycle_promotion_denial(mut self) -> Self {
+        self.denied_blob_lifecycle_promotions += 1;
         self
     }
 
-    pub const fn with_s6_qos_denial(mut self) -> Self {
-        self.denied_s6_qos_promotions += 1;
+    pub const fn with_io_qos_denial(mut self) -> Self {
+        self.denied_io_qos_promotions += 1;
         self
     }
 
@@ -53,12 +53,12 @@ impl TierMovementStabilityCounterSnapshot {
         self.chunk_placeholders
     }
 
-    pub const fn denied_s7_promotions(self) -> u64 {
-        self.denied_s7_promotions
+    pub const fn denied_blob_lifecycle_promotions(self) -> u64 {
+        self.denied_blob_lifecycle_promotions
     }
 
-    pub const fn denied_s6_qos_promotions(self) -> u64 {
-        self.denied_s6_qos_promotions
+    pub const fn denied_io_qos_promotions(self) -> u64 {
+        self.denied_io_qos_promotions
     }
 
     pub const fn missing_epoch_denials(self) -> u64 {

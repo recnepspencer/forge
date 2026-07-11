@@ -2,7 +2,7 @@ use crate::strategy::registry::{
     layout_admission_registry, S8LayoutAdmissionDenial, S8LayoutAdmissionRequest,
     S8LayoutAdmissionView, S8LayoutRequestedCapability, S8LayoutStrategyCapability,
 };
-use crate::strategy::tests_support::{admit_phase_five_scope, root_manifest_scope};
+use crate::strategy::tests_support::{admit_strategy_scope, root_manifest_scope};
 use crate::strategy::S8LayoutStrategyFamily;
 use crate::{ArtifactFamilyAccessLane, S8IndexMaintenanceMode, S8PhysicalMutationShape};
 use forge_store_contracts::DurableArtifactFamilyId;
@@ -109,7 +109,7 @@ fn page_scope() -> (
     crate::ArtifactFamilyLifecycleAdmission,
     crate::PhysicalKeyDomainWitness,
 ) {
-    admit_phase_five_scope(
+    admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -124,7 +124,7 @@ fn wal_scope() -> (
     crate::ArtifactFamilyLifecycleAdmission,
     crate::PhysicalKeyDomainWitness,
 ) {
-    admit_phase_five_scope(
+    admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,

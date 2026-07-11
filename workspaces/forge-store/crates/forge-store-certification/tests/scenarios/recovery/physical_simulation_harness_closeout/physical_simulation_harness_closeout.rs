@@ -8,10 +8,10 @@ mod coverage_support;
 use std::collections::BTreeSet;
 
 use closeout_support::{
-    acceptance_suite_receipts, alternate_s4_recovery_slice_evidence,
+    acceptance_suite_receipts, alternate_recovery_slice_evidence,
     complete_acceptance_suite_receipts, complete_executed_acceptance_suites,
     complete_shortcut_report, executed_acceptance_suites,
-    physical_isolation_readiness_slice_evidence, s4_recovery_slice_evidence,
+    physical_isolation_readiness_slice_evidence, recovery_slice_evidence,
     shortcut_slice_evidence,
 };
 
@@ -25,11 +25,11 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn s45_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness() {
-    let s4_recovery = s4_recovery_slice_evidence();
+fn simulation_harness_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness() {
+    let recovery = recovery_slice_evidence();
     let shortcut = shortcut_slice_evidence();
     let s5_probe = physical_isolation_readiness_slice_evidence();
-    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(s4_recovery, shortcut, s5_probe);
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(recovery, shortcut, s5_probe);
     let coverage =
         SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
     let suite_receipts = complete_acceptance_suite_receipts(&dogfood_evidence, &coverage);
@@ -47,7 +47,7 @@ fn s45_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readi
 
     assert!(report
         .dogfood()
-        .s4_recovery_slice()
+        .recovery_slice()
         .used_public_authoring_api());
     assert!(report
         .dogfood()
@@ -95,7 +95,7 @@ fn assert_acceptance_suite_sources_and_basis(
     }
     assert_eq!(
         suites,
-        SimulationHarnessAcceptanceSuiteName::required_s45()
+        SimulationHarnessAcceptanceSuiteName::required_simulation_harness()
             .into_iter()
             .collect::<BTreeSet<_>>()
     );
@@ -123,7 +123,7 @@ fn required_acceptance_lanes() -> [SimulationHarnessAcceptanceEvidenceLane; 14] 
 #[test]
 fn closeout_rejects_missing_named_acceptance_suite_receipt() {
     let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
-        s4_recovery_slice_evidence(),
+        recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );
@@ -147,7 +147,7 @@ fn closeout_rejects_missing_named_acceptance_suite_receipt() {
 #[test]
 fn acceptance_receipts_are_issued_by_closeout_suite_authority() {
     let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
-        s4_recovery_slice_evidence(),
+        recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );
@@ -167,7 +167,7 @@ fn acceptance_receipts_are_issued_by_closeout_suite_authority() {
 #[test]
 fn closeout_suite_requires_each_named_executed_suite_proof() {
     let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
-        s4_recovery_slice_evidence(),
+        recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );
@@ -192,7 +192,7 @@ fn closeout_suite_requires_each_named_executed_suite_proof() {
 #[test]
 fn closeout_suite_rejects_replayed_executed_suite_proof() {
     let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
-        s4_recovery_slice_evidence(),
+        recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );
@@ -216,7 +216,7 @@ fn closeout_suite_rejects_replayed_executed_suite_proof() {
 #[test]
 fn closeout_rejects_acceptance_receipts_from_different_dogfood_evidence() {
     let original_dogfood = SimulationHarnessDogfoodEvidence::new(
-        s4_recovery_slice_evidence(),
+        recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );
@@ -224,7 +224,7 @@ fn closeout_rejects_acceptance_receipts_from_different_dogfood_evidence() {
         SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&original_dogfood);
     let stale_receipts = complete_acceptance_suite_receipts(&original_dogfood, &original_coverage);
     let current_dogfood = SimulationHarnessDogfoodEvidence::new(
-        alternate_s4_recovery_slice_evidence(),
+        alternate_recovery_slice_evidence(),
         shortcut_slice_evidence(),
         physical_isolation_readiness_slice_evidence(),
     );

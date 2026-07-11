@@ -26,7 +26,7 @@ mod handoff_claims;
 mod handoff_gate_proof_scan;
 
 pub use handoff_claims::{
-    certify_current_s0_handoff_gate_proof_evidence, S0CurrentResidueScanEvidence,
+    certify_current_foundational_handoff_gate_proof_evidence, S0CurrentResidueScanEvidence,
     S0FoundationalAdoptionEvidence, S0HandoffDeniedInputKind, S0HandoffGateProofEvidence,
     S0HandoffGateProofEvidenceDenial, S0NativeHarnessEvidence, S0PublicFacadeEvidence,
     S0TerminalProjectionBoundaryEvidence,

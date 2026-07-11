@@ -12,8 +12,8 @@ use forge_store_physical_isolation::{
 pub(crate) fn generation_counted_page_reference(
     generation: u64,
 ) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(17).unwrap();
     let page = PhysicalPageId::from_raw(23).unwrap();
     let slot = PhysicalRecordSlot::from_raw(1).unwrap();
@@ -50,7 +50,7 @@ pub(crate) fn current_generation_segment_reference(
 pub(crate) fn current_root_from_authority(
     authority: &forge_store_physical_isolation::PhysicalReadStabilityAuthority,
 ) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_s5_entry(
+    CurrentPhysicalRoot::from_physical_isolation_entry(
         authority.root_epoch_basis().current_root_basis(),
         PhysicalOrderingContract::root_swap_acquire_release(),
     )
@@ -72,8 +72,8 @@ pub(crate) fn physical_authority_from_operation_digest_closeout(
 }
 
 fn generation_counted_extent_reference(generation: u64) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(29).unwrap();
     let extent = PhysicalExtentId::from_raw(31).unwrap();
     let cell = generations
@@ -83,7 +83,7 @@ fn generation_counted_extent_reference(generation: u64) -> GenerationCountedPhys
 }
 
 fn generation_counted_segment_reference(generation: u64) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(37).unwrap();
     let cell = generations
         .segment_cell(segment)

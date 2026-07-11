@@ -123,11 +123,11 @@ fn platform_page_metadata(identity: &str) -> StoreSecurityMetadata {
 }
 
 fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(2))
         .with_page_generation(generation(generation_value));
     let report =
-        PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+        PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
             .decode_page_header(
                 cell,
                 &header_bytes(
@@ -146,7 +146,7 @@ fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {
 }
 
 fn segment_page_entry(generation_value: u64) -> SegmentPageManifestEntry {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(2), slot(3))
         .with_slot_generation(generation(generation_value));
     SegmentPageManifestEntry::new(cell)

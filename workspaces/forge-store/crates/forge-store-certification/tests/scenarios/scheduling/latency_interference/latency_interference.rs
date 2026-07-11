@@ -107,7 +107,7 @@ fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
         work.backend_requirement(),
     )
     .expect("backend should admit test queue work");
-    let security = s6_security_scope_admission();
+    let security = io_qos_security_scope_admission();
     let secure_io = admit_secure_io_scope_for_scheduler(
         SecureIoPreservationRequest::new(SecureIoOperation::ReadAhead, &security, &backend)
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
@@ -188,8 +188,8 @@ fn backend_witness() -> AdmittedBackendCapabilityWitness {
         .expect("backend witness should admit")
 }
 
-fn s6_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
-    let scope = forge_store_security::admitted_store_internal_security_scope_for_s6_test();
+fn io_qos_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
+    let scope = forge_store_security::admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&scope).expect("scheduler security scope should admit")
 }
 

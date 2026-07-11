@@ -46,7 +46,7 @@ impl BlobRetentionReclaimAdmissionAuthority {
         deny_retention_hold(hold)
     }
 
-    pub fn deny_missing_s6_reclaim_posture(self) -> BlobRetentionReclaimDenial {
+    pub fn deny_missing_io_qos_reclaim_posture(self) -> BlobRetentionReclaimDenial {
         BlobRetentionReclaimDenial::MissingS6ReclaimPosture {
             counters: BlobRetentionReclaimCounterSnapshot::start()
                 .with_orphan_candidate()

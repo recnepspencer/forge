@@ -1,5 +1,5 @@
 pub(super) use crate::courtroom::harness::test_support::integrity_handoff_test_support::{
-    admit_s4_handoff_payload, intact_readiness, recovery_blocking_quarantine_binding,
+    admit_recovery_handoff_payload, intact_readiness, recovery_blocking_quarantine_binding,
     unresolved_authority_record,
 };
 pub(super) use crate::courtroom::harness::test_support::recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
@@ -63,7 +63,7 @@ pub(super) fn damaged_readiness() -> AdmittedRecoveryIntegrityInput {
         .inspection_envelope(intact.payload().inspection_envelope().clone())
         .seal()
         .unwrap();
-    admit_s4_handoff_payload(payload)
+    admit_recovery_handoff_payload(payload)
 }
 
 pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
@@ -100,7 +100,7 @@ pub(super) fn class_request(work_class: BackgroundWorkClass) -> BackgroundEnvelo
 }
 
 pub(super) fn physical_authority() -> PhysicalAuthorityRecap {
-    PhysicalAuthorityRecap::from_s1_authority(3, 2, 1).unwrap()
+    PhysicalAuthorityRecap::from_physical_format_authority(3, 2, 1).unwrap()
 }
 
 pub(super) fn permissive_budget() -> BackgroundWorkBudgetSnapshot {

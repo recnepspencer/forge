@@ -16,10 +16,10 @@ use forge_store_readiness::{
 };
 use forge_store_recovery_physics::RecoveryMemoryEnvelope;
 
-pub(super) fn s3_readiness() -> PhysicalIntegrityReadiness {
-    let s2 = s2_readiness();
+pub(super) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
+    let s2 = physical_substrate_readiness();
     let facts = s2.facts();
-    let payload = PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
+    let payload = PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
         VerifierResidentEnvelope::bounded(128, 1).unwrap(),
         ScrubPlanningAllocationEnvelope::bounded(64).unwrap(),
@@ -27,21 +27,21 @@ pub(super) fn s3_readiness() -> PhysicalIntegrityReadiness {
         NoMaterializationWitness::observed_zero(0, 0).unwrap(),
         BoundedCounterRecap::exact(128, 1, 0, 64, 0, 0).unwrap(),
         DenialBehaviorRecap::from_named_boundaries(&DeniedBoundaryKind::ALL).unwrap(),
-        PhysicalAuthorityRecap::from_s1_authority(
+        PhysicalAuthorityRecap::from_physical_format_authority(
             facts.physical_reference_count(),
             facts.header_decode_witness_count(),
             facts.payload_admission_witness_count(),
         )
         .unwrap(),
-        BufferPoolAuthorityRecap::s2_authority(true, true, true, true).unwrap(),
+        BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     );
-    PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2, payload).unwrap()
+    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload).unwrap()
 }
 
-pub(super) fn s2_readiness() -> PhysicalSubstrateReadiness {
+pub(super) fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
     prove_physical_substrate_readiness(
         close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_s0_artifacts(
+            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(
                     digest("sha256:s7-replay-backend"),
@@ -65,7 +65,7 @@ pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
 }
 
 pub(super) fn physical_authority() -> PhysicalAuthorityRecap {
-    PhysicalAuthorityRecap::from_s1_authority(3, 2, 1).unwrap()
+    PhysicalAuthorityRecap::from_physical_format_authority(3, 2, 1).unwrap()
 }
 
 fn admit_background() -> AdmittedBackgroundEnvelope {

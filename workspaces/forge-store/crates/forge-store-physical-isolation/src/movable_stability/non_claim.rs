@@ -37,7 +37,7 @@ pub enum TierMovementStabilityDenial {
 }
 
 impl FutureBlobMigrationNonClaimReport {
-    pub const fn s5_stability_only() -> Self {
+    pub const fn physical_isolation_stability_only() -> Self {
         Self {
             blob_lifecycle: FutureBlobMigrationNonClaim::S7OwnsBlobLifecycle,
             blob_retention: FutureBlobMigrationNonClaim::S7OwnsBlobRetention,

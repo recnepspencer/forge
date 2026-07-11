@@ -30,7 +30,7 @@ pub const PHASE4_PRODUCTION_STORAGE_BOUNDARY_SEAMS: &[ProductionStorageBoundaryS
 ];
 
 impl ProductionStorageBoundarySeam {
-    pub const fn phase4_registered_seams() -> &'static [Self] {
+    pub const fn registered_backend_operation_seams() -> &'static [Self] {
         PHASE4_PRODUCTION_STORAGE_BOUNDARY_SEAMS
     }
 

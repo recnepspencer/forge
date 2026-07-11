@@ -379,7 +379,7 @@ fn physical_authority_from_completion(
 }
 
 fn current_root_from_authority(authority: &PhysicalReadStabilityAuthority) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_s5_entry(
+    CurrentPhysicalRoot::from_physical_isolation_entry(
         authority.root_epoch_basis().current_root_basis(),
         PhysicalOrderingContract::root_swap_acquire_release(),
     )

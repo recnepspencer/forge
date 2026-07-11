@@ -28,8 +28,8 @@ use forge_store_security::{
 };
 
 #[test]
-fn phase_nine_extensions_registered_targets_preserve_store_customization_admission() {
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+fn extensions_registered_targets_preserve_store_customization_admission() {
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -55,8 +55,8 @@ fn phase_nine_extensions_registered_targets_preserve_store_customization_admissi
 }
 
 #[test]
-fn phase_nine_extensions_rebuild_and_rejected_targets_do_not_mint_store_authority() {
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+fn extensions_rebuild_and_rejected_targets_do_not_mint_store_authority() {
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -91,8 +91,8 @@ fn phase_nine_extensions_rebuild_and_rejected_targets_do_not_mint_store_authorit
 }
 
 #[test]
-fn phase_nine_extensions_targets_own_capability_and_workload_semantics() {
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+fn extensions_targets_own_capability_and_workload_semantics() {
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -131,7 +131,7 @@ fn phase_nine_extensions_targets_own_capability_and_workload_semantics() {
     );
 }
 
-fn admit_phase_five_scope(
+fn admit_strategy_scope(
     family_id: DurableArtifactFamilyId,
     key_scope: StoreKeyScope,
     tenant_scope: StoreTenantScope,
@@ -167,7 +167,7 @@ fn admitted_scope(
     authenticity_requirement: StoreAuthenticityRequirement,
     custody_posture: StoreCustodyPosture,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = current_authority("store.s8.extension", "test-current");
+    let current_authority = current_authority("store.new.extension", "test-current");
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
         tenant_scope,

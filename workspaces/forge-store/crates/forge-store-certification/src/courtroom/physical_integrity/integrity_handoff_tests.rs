@@ -12,7 +12,7 @@ use forge_store_physical_integrity::{ChecksumAlgorithmId, WalFrameDamageDenialKi
 use forge_store_recovery_physics::IntegrityHandoffDenialKind;
 
 #[test]
-fn intact_inputs_publish_stable_s4_handoff_identity_across_independent_runs() {
+fn intact_inputs_publish_stable_recovery_handoff_identity_across_independent_runs() {
     let first = intact_readiness("stable-handoff");
     let second = intact_readiness("stable-handoff");
 
@@ -53,7 +53,7 @@ fn damaged_inputs_publish_typed_recovery_blockers_instead_of_replay_inputs() {
 }
 
 #[test]
-fn s4_handoff_payload_exposes_required_integrity_surfaces_and_exact_counters() {
+fn recovery_handoff_payload_exposes_required_integrity_surfaces_and_exact_counters() {
     let readiness = intact_readiness("payload-proof");
     let payload = readiness.payload();
     let counters = payload.counters();

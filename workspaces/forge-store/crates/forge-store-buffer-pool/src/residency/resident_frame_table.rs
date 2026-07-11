@@ -90,7 +90,7 @@ impl ResidentFrameTable {
         payload_admission: PhysicalPayloadViewAdmission<'_>,
     ) -> Result<ResidentFrameAdmission, ResidentFrameDenial> {
         let resident_bytes =
-            ResidentFrameBytes::from_s1_payload_admission(request, payload_admission)?;
+            ResidentFrameBytes::from_physical_format_payload_admission(request, payload_admission)?;
         if let Some(slot) = self.find_resident_slot(request) {
             self.counters = self.counters.with_hit();
             let identity = {

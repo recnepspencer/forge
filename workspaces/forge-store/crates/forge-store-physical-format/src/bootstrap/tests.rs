@@ -22,7 +22,7 @@ fn bootstrap_catalog_discovery_is_tiny_fixed_versioned_and_checksummed() {
     assert_eq!(catalog.root_reference(), root_ref(1));
     assert_eq!(
         catalog.physical_format_version(),
-        crate::PhysicalFormatVersion::s1_initial()
+        crate::PhysicalFormatVersion::initial_format_version()
     );
     assert_eq!(catalog.root_entry_count(), 4);
     assert_eq!(catalog.segment_count(), 1);
@@ -54,7 +54,7 @@ fn corrupted_bootstrap_bytes_are_denied_before_catalog_admission() {
         builder = builder.extent(extent.clone());
     }
     let open = PhysicalBootstrapCatalogOpenWitness::admit_persisted_layout(
-        PlatformPhysicalOpenRequest::s1_canonical().headers(),
+        PlatformPhysicalOpenRequest::physical_format_canonical().headers(),
         &builder.build(),
     )
     .expect("corrupted persisted layout still admits open witness before decode");
@@ -74,9 +74,9 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
     let first = physical_bootstrap_catalog()
         .discover_catalog(&open)
         .expect("first bootstrap replay should derive");
-    let mut reopened = PlatformPhysicalFacade::reopen_s1(
+    let mut reopened = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("reopen through verifier");
@@ -101,9 +101,9 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
 #[test]
 fn bootstrap_identity_replays_stably_across_crash_recovery() {
     let mut facade =
-        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
             .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             generations
@@ -142,9 +142,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
         facade.publish_interrupted_physical_root().is_err(),
         "interrupted publish should simulate crash lane"
     );
-    let recovered = PlatformPhysicalFacade::reopen_s1(
+    let recovered = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         durable.replay_artifact(),
     )
     .expect("crash recovery should reopen last durable layout");
@@ -162,9 +162,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
 
 fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
     let mut facade =
-        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
             .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             generations
@@ -187,7 +187,7 @@ fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 

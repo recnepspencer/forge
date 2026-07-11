@@ -40,7 +40,7 @@ pub enum S2EntryBoundaryEvidenceRow {
 }
 
 impl S2EntryBoundaryEvidenceRow {
-    pub const fn s2_phase_one_readiness_rows() -> &'static [Self] {
+    pub const fn physical_substrate_readiness_rows() -> &'static [Self] {
         &[
             Self::ReadinessConsumed,
             Self::HandoffFactsAvailable,
@@ -67,7 +67,7 @@ pub enum S2ForbiddenEntryAttempt {
 }
 
 impl S2ForbiddenEntryAttempt {
-    pub const fn s2_phase_one_forbidden_attempts() -> &'static [Self] {
+    pub const fn physical_substrate_forbidden_attempts() -> &'static [Self] {
         &[
             Self::RawPageId,
             Self::RawPayloadView,
@@ -98,16 +98,16 @@ pub enum S2EntryBoundaryEvidenceDenial {
 
 #[cfg(test)]
 mod tests {
-    use crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::s2_readiness;
+    use crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::physical_substrate_readiness;
     use crate::{
         S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt,
     };
     use forge_store_buffer_pool::BufferPoolEntryDenialKind;
 
     #[test]
-    fn s2_entry_boundary_reports_every_readiness_consumption_row() {
-        let readiness = s2_readiness();
-        for row in S2EntryBoundaryEvidenceRow::s2_phase_one_readiness_rows() {
+    fn physical_substrate_entry_boundary_reports_every_readiness_consumption_row() {
+        let readiness = physical_substrate_readiness();
+        for row in S2EntryBoundaryEvidenceRow::physical_substrate_readiness_rows() {
             let report = S2EntryBoundaryEvidenceReport::from_readiness(*row, &readiness).unwrap();
 
             assert_eq!(report.row(), *row);
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn s2_entry_boundary_reports_every_forbidden_shortcut_with_buffer_pool_denial() {
+    fn physical_substrate_entry_boundary_reports_every_forbidden_shortcut_with_buffer_pool_denial() {
         let expected_denials = [
             BufferPoolEntryDenialKind::RawPageIdRejected,
             BufferPoolEntryDenialKind::RawPayloadViewRejected,
@@ -123,7 +123,7 @@ mod tests {
             BufferPoolEntryDenialKind::FoundationalEvidenceAsAuthorityRejected,
         ];
 
-        for (attempt, denial) in S2ForbiddenEntryAttempt::s2_phase_one_forbidden_attempts()
+        for (attempt, denial) in S2ForbiddenEntryAttempt::physical_substrate_forbidden_attempts()
             .iter()
             .zip(expected_denials)
         {
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn forbidden_shortcut_row_cannot_be_reported_as_readiness_consumption() {
-        let readiness = s2_readiness();
+        let readiness = physical_substrate_readiness();
         let denial = S2EntryBoundaryEvidenceReport::from_readiness(
             S2EntryBoundaryEvidenceRow::ForbiddenEntryAttemptRejected(
                 S2ForbiddenEntryAttempt::RawPageId,

@@ -26,7 +26,7 @@ fn physical_story_transcript_replay_is_stable_across_independent_observers() {
 
 #[test]
 fn scenario_definition_lowers_into_stable_plan() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let left = harness.lower(happy_authority_definition()).unwrap();
     let right = harness.lower(happy_authority_definition()).unwrap();
 
@@ -60,7 +60,7 @@ fn scenario_definition_lowers_into_stable_plan() {
 
 #[test]
 fn execution_preserves_plan_strategy_without_redecision() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(happy_authority_definition()).unwrap();
     let execution = harness.execute(plan.clone());
 
@@ -85,8 +85,8 @@ fn execution_preserves_plan_strategy_without_redecision() {
 }
 
 #[test]
-fn all_s1_certification_rows_map_to_physical_substrate_lanes() {
-    for row in S1CertificationRow::required_for_s1() {
+fn all_physical_format_certification_rows_map_to_physical_substrate_lanes() {
+    for row in S1CertificationRow::required_for_physical_format() {
         assert!(!row.physical_substrate_lanes().is_empty(), "{row:?}");
         for lane in row.physical_substrate_lanes() {
             assert_eq!(lane.family(), RoadmapLaneFamily::PhysicalSubstrate);
@@ -104,7 +104,7 @@ fn roadmap_follow_on_lanes_extend_without_forking_harness() {
     assert_follow_on_lane_lowers(&harness, RoadmapLaneFamily::BlobChunks);
     assert_follow_on_lane_lowers(&harness, RoadmapLaneFamily::PhysicalCertification);
     assert_eq!(
-        PhysicalScenarioQualityHarness::roadmap_2()
+        PhysicalScenarioQualityHarness::cross_cutting_scenario()
             .with_lane_family_extension(LaneFamilyExtension::new(
                 RoadmapLaneFamily::PhysicalSubstrate,
                 PhysicalScenarioDriverKind::PlatformBackendCandidate,
@@ -117,7 +117,7 @@ fn roadmap_follow_on_lanes_extend_without_forking_harness() {
 
 #[test]
 fn unregistered_follow_on_lane_is_denied_before_execution() {
-    let denial = PhysicalScenarioQualityHarness::roadmap_2()
+    let denial = PhysicalScenarioQualityHarness::cross_cutting_scenario()
         .lower(roadmap_family_definition(RoadmapLaneFamily::BufferPool))
         .unwrap_err();
 
@@ -126,7 +126,7 @@ fn unregistered_follow_on_lane_is_denied_before_execution() {
 
 #[test]
 fn legacy_overclaim_story_records_typed_denial_trace() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(legacy_overclaim_definition()).unwrap();
     let observed = harness.observe(harness.execute(plan));
 
@@ -148,7 +148,7 @@ fn legacy_overclaim_story_records_typed_denial_trace() {
 
 #[test]
 fn oracle_denies_required_parity_when_plan_does_not_support_it() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(unsupported_parity_definition()).unwrap();
     let transcript = harness.transcribe(harness.judge(harness.observe(harness.execute(plan))));
 
@@ -163,7 +163,7 @@ fn oracle_denies_required_parity_when_plan_does_not_support_it() {
 
 #[test]
 fn offline_verifier_lane_keeps_observer_and_oracle_responsibilities_separate() {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(offline_verifier_definition()).unwrap();
 
     assert!(plan
@@ -184,7 +184,7 @@ fn offline_verifier_lane_keeps_observer_and_oracle_responsibilities_separate() {
 fn run_story_to_transcript(
     definition: PhysicalScenarioDefinition,
 ) -> crate::PhysicalStoryTranscript {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness.lower(definition).unwrap();
     let execution = harness.execute(plan);
     let observed = harness.observe(execution);
@@ -223,7 +223,7 @@ fn assert_follow_on_lane_lowers(
 }
 
 fn roadmap_extension_harness() -> PhysicalScenarioQualityHarness {
-    PhysicalScenarioQualityHarness::roadmap_2()
+    PhysicalScenarioQualityHarness::cross_cutting_scenario()
         .with_lane_family_extension(LaneFamilyExtension::new(
             RoadmapLaneFamily::BufferPool,
             PhysicalScenarioDriverKind::CrashInterposer,

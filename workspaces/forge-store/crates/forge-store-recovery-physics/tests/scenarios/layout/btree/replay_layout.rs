@@ -6,7 +6,7 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn phase22_replay_index_and_bounded_tail_families_consume_phase21_authority() {
+fn replay_index_and_bounded_tail_families_consume_authority() {
     let fixture = phase22_fixture::fixture();
     let source = phase22_fixture::admitted_source_with_residue();
     let replay = ReplayIndexLayoutReport::admit_checkpoint_replay_index(
@@ -50,7 +50,7 @@ fn phase22_replay_index_and_bounded_tail_families_consume_phase21_authority() {
 }
 
 #[test]
-fn phase22_bounded_source_and_valid_prefix_production_paths_consume_family_authority() {
+fn bounded_source_and_valid_prefix_production_paths_consume_family_authority() {
     let admission = phase22_fixture::bounded_source_admission();
     let report = admission.layout_report();
     assert_eq!(report.candidate_count(), 3);

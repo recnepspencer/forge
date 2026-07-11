@@ -32,7 +32,7 @@ fn background_envelope_honesty_suite_certifies_all_classes_and_interference() {
     .expect("import/export wrapper consumes import/export envelope");
     let streaming = LargeRecordStreamingEnvelope::from_admitted(admit(streaming_request(128, 512)))
         .expect("streaming wrapper consumes streaming envelope");
-    let reports = complete_phase10_interference_reports();
+    let reports = complete_interference_reports();
 
     let bundle = BackgroundEnvelopeEvidenceBundle::from_envelopes(
         recovery,
@@ -86,7 +86,7 @@ fn evidence_rejects_missing_required_interference_reports() {
 }
 
 #[test]
-fn evidence_rejects_each_missing_phase10_interference_report() {
+fn evidence_rejects_each_missing_interference_report() {
     for required in [
         RequiredInterferenceKind::ForegroundResidency,
         RequiredInterferenceKind::IndefinitePin,
@@ -95,10 +95,10 @@ fn evidence_rejects_each_missing_phase10_interference_report() {
         RequiredInterferenceKind::StreamingWindowExceedsEnvelope,
         RequiredInterferenceKind::StreamingEnvelopeExceedsWindow,
     ] {
-        let reports = complete_phase10_interference_reports();
+        let reports = complete_interference_reports();
         let incomplete_reports: Vec<_> = reports
             .into_iter()
-            .filter(|report| !phase10_report_matches_required_kind(*report, required))
+            .filter(|report| !report_matches_required_kind(*report, required))
             .collect();
 
         let denial = BackgroundEnvelopeEvidenceBundle::from_envelopes(
@@ -146,7 +146,7 @@ fn later_sequence_wrappers_reject_wrong_envelope_classes() {
     );
 }
 
-fn complete_phase10_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
+fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
     [
         deny(
             BackgroundEnvelopeRequest::recovery_planning()
@@ -292,7 +292,7 @@ fn budget_for_expected_interference(
     }
 }
 
-fn phase10_report_matches_required_kind(
+fn report_matches_required_kind(
     report: BackgroundMemoryInterferenceReport,
     required: RequiredInterferenceKind,
 ) -> bool {

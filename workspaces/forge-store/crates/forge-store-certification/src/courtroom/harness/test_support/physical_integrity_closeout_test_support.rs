@@ -1,16 +1,16 @@
 pub(crate) use super::physical_integrity_closeout_harness_test_support::{
-    lane_plan_and_transcript, s3_harness,
+    lane_plan_and_transcript, physical_integrity_harness,
 };
 use super::{
     bounded_memory_closeout_test_support::{
         background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, operation_reports, pressure_bundles, s2_readiness,
+        harness_evidence, operation_reports, pressure_bundles, physical_substrate_readiness,
         synthetic_rejections as bounded_memory_synthetic_rejections,
     },
     physical_container_integrity_test_support::{
         frame_start, inspect_page_denial, page_payload_with_record,
     },
-    physical_integrity_closeout_harness_test_support::s3_synthetic_transcript,
+    physical_integrity_closeout_harness_test_support::physical_integrity_synthetic_transcript,
     physical_integrity_closeout_line_cap_test_support::line_cap_composition_evidence,
     pre_decode_physical_admission_test_support::{
         crc32c, deny_checked_frame, stale_validation, with_pre_decode_admission,
@@ -39,41 +39,41 @@ use forge_store_physical_integrity::{
     PreDecodePhysicalDenialKind, QuarantineLifecyclePosture, QuarantineSealRequest,
 };
 
-pub(crate) fn complete_s3_closeout_suite(
+pub(crate) fn complete_physical_integrity_closeout_suite(
     s4_readiness: &forge_store_recovery_physics::AdmittedRecoveryIntegrityInput,
 ) -> PhysicalIntegrityCloseoutSuite {
-    PhysicalIntegrityCloseoutSuite::admit(complete_s3_closeout_evidence(s4_readiness)).unwrap()
+    PhysicalIntegrityCloseoutSuite::admit(complete_physical_integrity_closeout_evidence(s4_readiness)).unwrap()
 }
 
-pub(crate) fn complete_s3_closeout_evidence(
+pub(crate) fn complete_physical_integrity_closeout_evidence(
     s4_readiness: &forge_store_recovery_physics::AdmittedRecoveryIntegrityInput,
 ) -> Vec<PhysicalIntegrityCloseoutSuiteEvidence> {
     let localization = executed_localization_evidence();
     let denials = executed_boundary_denial_evidence();
-    let synthetic_transcript = s3_synthetic_transcript();
-    let synthetic_rejections = s3_synthetic_rejections(&synthetic_transcript);
-    let synthetic_harness = s3_harness(
+    let synthetic_transcript = physical_integrity_synthetic_transcript();
+    let synthetic_rejections = physical_integrity_synthetic_rejections(&synthetic_transcript);
+    let synthetic_harness = physical_integrity_harness(
         S3AcceptanceSuiteKind::SyntheticShortcutRejection,
         S3CloseoutHarnessExecutionEvidence::synthetic_rejection(&synthetic_rejections),
     );
-    let s4_handoff = S3S4HandoffCloseoutEvidence::from_readiness(s4_readiness);
+    let recovery_handoff = S3S4HandoffCloseoutEvidence::from_readiness(s4_readiness);
     let line_cap = line_cap_composition_evidence();
     vec![
         PhysicalIntegrityCloseoutSuiteEvidence::corruption_localization(
-            s3_harness(
+            physical_integrity_harness(
                 S3AcceptanceSuiteKind::CorruptionLocalization,
                 S3CloseoutHarnessExecutionEvidence::corruption_localization(&localization),
             ),
             localization,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::boundary_denial(
-            s3_harness(
+            physical_integrity_harness(
                 S3AcceptanceSuiteKind::BoundaryDenial,
                 S3CloseoutHarnessExecutionEvidence::boundary_denial(&denials),
             ),
             denials,
         ),
-        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(s3_harness(
+        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(physical_integrity_harness(
             S3AcceptanceSuiteKind::HarnessTranscript,
             S3CloseoutHarnessExecutionEvidence::harness_transcript(1),
         )),
@@ -81,15 +81,15 @@ pub(crate) fn complete_s3_closeout_evidence(
             synthetic_harness,
             synthetic_rejections,
         ),
-        PhysicalIntegrityCloseoutSuiteEvidence::s4_handoff(
-            s3_harness(
+        PhysicalIntegrityCloseoutSuiteEvidence::recovery_handoff(
+            physical_integrity_harness(
                 S3AcceptanceSuiteKind::S4IntegrityHandoff,
-                S3CloseoutHarnessExecutionEvidence::s4_handoff(&s4_handoff),
+                S3CloseoutHarnessExecutionEvidence::recovery_handoff(&recovery_handoff),
             ),
-            s4_handoff,
+            recovery_handoff,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::line_cap_composition(
-            s3_harness(
+            physical_integrity_harness(
                 S3AcceptanceSuiteKind::LineCapComposition,
                 S3CloseoutHarnessExecutionEvidence::line_cap_composition(&line_cap),
             ),
@@ -125,13 +125,13 @@ pub(crate) fn executed_boundary_denial_evidence() -> Vec<S3ExecutedBoundaryDenia
     ]
 }
 
-pub(crate) fn s3_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
+pub(crate) fn physical_integrity_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
     complete_bounded_memory_closeout()
-        .publish_s3_physical_integrity_readiness(s2_readiness())
+        .publish_physical_integrity_readiness(physical_substrate_readiness())
         .unwrap()
 }
 
-pub(crate) fn copied_s2_synthetic_rejections() -> Vec<SyntheticCloseoutShortcutRejectionReport> {
+pub(crate) fn copied_physical_substrate_synthetic_rejections() -> Vec<SyntheticCloseoutShortcutRejectionReport> {
     bounded_memory_synthetic_rejections()
 }
 
@@ -227,7 +227,7 @@ fn bounded_memory_suite() -> BoundedMemoryResidencySuite {
     .unwrap()
 }
 
-fn s3_synthetic_rejections(
+fn physical_integrity_synthetic_rejections(
     transcript: &crate::PhysicalStoryTranscript,
 ) -> Vec<SyntheticCloseoutShortcutRejectionReport> {
     [

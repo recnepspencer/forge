@@ -28,12 +28,12 @@ use forge_store_physical_isolation::{
 };
 
 #[test]
-fn executed_s5_closeout_publishes_typed_s6_io_qos_readiness() {
-    let closeout = executed_closeout_fixture::honest_executed_s5_closeout();
-    let readiness = readiness_from_executed_s5_closeout(closeout);
+fn executed_physical_isolation_closeout_publishes_typed_io_qos_readiness() {
+    let closeout = executed_closeout_fixture::honest_executed_physical_isolation_closeout();
+    let readiness = readiness_from_executed_physical_isolation_closeout(closeout);
     let counters = readiness.counters();
 
-    executed_closeout_fixture::assert_expected_s6_closeout_counters(counters);
+    executed_closeout_fixture::assert_expected_io_qos_closeout_counters(counters);
     assert!(readiness
         .basis()
         .projection_evidence()
@@ -78,12 +78,12 @@ fn executed_s5_closeout_publishes_typed_s6_io_qos_readiness() {
 }
 
 #[test]
-fn identical_executed_s5_evidence_produces_equivalent_s6_handoff() {
-    let left = readiness_from_executed_s5_closeout(
-        executed_closeout_fixture::honest_executed_s5_closeout(),
+fn identical_executed_physical_isolation_evidence_produces_equivalent_io_qos_handoff() {
+    let left = readiness_from_executed_physical_isolation_closeout(
+        executed_closeout_fixture::honest_executed_physical_isolation_closeout(),
     );
-    let right = readiness_from_executed_s5_closeout(
-        executed_closeout_fixture::honest_executed_s5_closeout(),
+    let right = readiness_from_executed_physical_isolation_closeout(
+        executed_closeout_fixture::honest_executed_physical_isolation_closeout(),
     );
 
     assert_eq!(left.counters(), right.counters());
@@ -103,7 +103,7 @@ fn identical_executed_s5_evidence_produces_equivalent_s6_handoff() {
 }
 
 #[test]
-fn shortcuts_cannot_satisfy_s6_readiness() {
+fn shortcuts_cannot_satisfy_io_qos_readiness() {
     assert_eq!(
         reject_copied_closeout_report_as_isolation_readiness().unwrap_err(),
         IsolationReadinessDenial::CopiedCloseoutReport
@@ -119,7 +119,7 @@ fn shortcuts_cannot_satisfy_s6_readiness() {
 }
 
 #[test]
-fn missing_latch_reclaim_or_footprint_counters_deny_s6_readiness() {
+fn missing_latch_reclaim_or_footprint_counters_deny_io_qos_readiness() {
     assert_eq!(
         reject_missing_latch_counters_as_isolation_readiness().unwrap_err(),
         IsolationReadinessDenial::MissingLatchCounters
@@ -135,7 +135,7 @@ fn missing_latch_reclaim_or_footprint_counters_deny_s6_readiness() {
 }
 
 #[test]
-fn s5_names_every_qos_claim_it_does_not_make() {
+fn physical_isolation_names_every_qos_claim_it_does_not_make() {
     for claim in expected_unsupported_qos_claims() {
         assert_eq!(
             reject_unsupported_qos_claim_as_isolation_readiness(claim).unwrap_err(),
@@ -145,9 +145,9 @@ fn s5_names_every_qos_claim_it_does_not_make() {
 }
 
 #[test]
-fn s6_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
-    let readiness = readiness_from_executed_s5_closeout(
-        executed_closeout_fixture::honest_executed_s5_closeout(),
+fn io_qos_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
+    let readiness = readiness_from_executed_physical_isolation_closeout(
+        executed_closeout_fixture::honest_executed_physical_isolation_closeout(),
     );
     let counters = readiness.counters();
     let scheduler_admission = admit_store_published_isolation_capability(&readiness)
@@ -213,7 +213,7 @@ const fn expected_unsupported_qos_claims() -> [UnsupportedQoSClaim; 5] {
     ]
 }
 
-fn readiness_from_executed_s5_closeout(
+fn readiness_from_executed_physical_isolation_closeout(
     closeout: ExecutedIsolationEvidence,
 ) -> SchedulerIsolationCapability {
     publish_scheduler_isolation_capability_from_executed_evidence(closeout)

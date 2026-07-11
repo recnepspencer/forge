@@ -201,8 +201,8 @@ fn publish_copy_on_write(
 }
 
 fn root_publication_validation(root: u64, generation: u64) -> RootPublicationValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .root_publication_cell(PhysicalRootReference::from_raw(root).unwrap())
         .with_root_publication_generation(PhysicalGeneration::from_raw(generation).unwrap());
@@ -257,8 +257,8 @@ fn current_generation_page_reference(generation: u64) -> CurrentGenerationPhysic
 }
 
 fn generation_counted_page_reference(generation: u64) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(17).unwrap();
     let page = PhysicalPageId::from_raw(23).unwrap();
     let slot = PhysicalRecordSlot::from_raw(1).unwrap();
@@ -271,7 +271,7 @@ fn generation_counted_page_reference(generation: u64) -> GenerationCountedPhysic
 fn current_root_from_authority(
     authority: &forge_store_physical_isolation::PhysicalReadStabilityAuthority,
 ) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_s5_entry(
+    CurrentPhysicalRoot::from_physical_isolation_entry(
         authority.root_epoch_basis().current_root_basis(),
         PhysicalOrderingContract::root_swap_acquire_release(),
     )

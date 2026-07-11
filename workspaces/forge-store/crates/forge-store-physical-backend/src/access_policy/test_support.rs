@@ -13,7 +13,7 @@ use forge_store_physical_format::{
     PhysicalAlignmentClass, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub fn backend_with_all_access_modes() -> AdmittedBackendCapabilityWitness {
     backend_with_assumptions(
@@ -134,11 +134,11 @@ pub fn admitted_mixed_basis(
 }
 
 pub const fn pinned_lifecycle() -> AccessPolicyBufferLifecycle {
-    AccessPolicyBufferLifecycle::for_certification_pinned_s2_lease()
+    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease()
 }
 
 pub fn test_security_scope() -> AccessPolicySecurityScope {
-    let admitted = admitted_store_internal_security_scope_for_s6_test();
+    let admitted = admitted_store_internal_security_scope_for_io_qos_test();
     AccessPolicySecurityScope::from_current_store_scope(admitted.witnesses())
 }
 
@@ -147,14 +147,14 @@ pub fn test_reference() -> PhysicalReference {
 }
 
 fn reference_for_page(page_value: u64) -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(page_value).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

@@ -1,5 +1,5 @@
 use forge_store_physical_certification::{
-    lower_physical_simulation_plan, phase7_verdict_topology, physical_scenario,
+    lower_physical_simulation_plan, oracle_verdict_topology, physical_scenario,
     BlockedReclaimUntilReleaseOracle, ExecutedPhysicalSimulationObservation, ForbiddenShortcutSet,
     IndependentVerifierObservation, NoJsonAuthorityOracle, NoMixedRootOracle,
     NoPrivateMutationOracle, ObservationDenial, OfflineVerifierBoundarySeam, OracleDenial,
@@ -20,7 +20,7 @@ mod compaction_interlock_trace;
 
 #[test]
 fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(&plan).unwrap();
     let runtime_trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_executed_plan(&plan, &execution)
@@ -70,7 +70,7 @@ fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
 
 #[test]
 fn executed_observation_denies_plan_receipt_mismatch() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let other_plan = lower_multifamily_plan();
     let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(&other_plan).unwrap();
 
@@ -120,7 +120,7 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
         .oracle(NoJsonAuthorityOracle)
         .judge(&plan, &trace)
         .unwrap();
-    let not_required = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let not_required = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(forge_store_physical_certification::CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &trace)
         .expect_err("unrequired family cannot judge multi-family plan");
@@ -141,7 +141,7 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
 
 #[test]
 fn verdict_topology_preserves_reserved_non_success_categories_as_explicit_debt() {
-    let topology = phase7_verdict_topology();
+    let topology = oracle_verdict_topology();
     let proof_backed = topology
         .iter()
         .filter(|entry| entry.posture() == PhysicalOracleVerdictTopologyPosture::ProofBacked)
@@ -173,12 +173,12 @@ fn verdict_topology_preserves_reserved_non_success_categories_as_explicit_debt()
     );
 }
 
-fn lower_s5_plan() -> PhysicalSimulationPlan {
-    lower_named_s5_plan("store.physical.s45.phase7.executed-observation")
+fn lower_physical_isolation_plan() -> PhysicalSimulationPlan {
+    lower_named_physical_isolation_plan("store.physical.s45.phase7.executed-observation")
 }
 
-fn lower_named_s5_plan(name: &str) -> PhysicalSimulationPlan {
-    lower_physical_simulation_plan(s5_scenario(name), complete_context()).unwrap()
+fn lower_named_physical_isolation_plan(name: &str) -> PhysicalSimulationPlan {
+    lower_physical_simulation_plan(physical_isolation_scenario(name), complete_context()).unwrap()
 }
 
 fn lower_multifamily_plan() -> PhysicalSimulationPlan {
@@ -198,7 +198,7 @@ fn complete_context() -> SimulationPlanningContext {
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

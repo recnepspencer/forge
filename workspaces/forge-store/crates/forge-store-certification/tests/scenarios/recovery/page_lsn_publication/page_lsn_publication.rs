@@ -29,7 +29,7 @@ fn public_wal_before_data_denies_page_lsn_not_covered_by_durable_wal_range() {
         )
         .unwrap(),
     );
-    let too_new = DirtyPublicationEvidence::from_s2_publication(
+    let too_new = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(b"too-new"),
         PageLsn::from_lsn(forge_store_recovery_physics::LogSequenceNumber::new(999)),
     );
@@ -43,7 +43,7 @@ fn public_wal_before_data_denies_page_lsn_not_covered_by_durable_wal_range() {
         )
         .unwrap(),
     );
-    let old_page_lsn = DirtyPublicationEvidence::from_s2_publication(
+    let old_page_lsn = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(b"old-lsn-not-in-ack-range"),
         PageLsn::from_lsn(forge_store_recovery_physics::LogSequenceNumber::new(100)),
     );
@@ -63,7 +63,7 @@ fn public_no_undo_surface_denies_missing_required_rollback_image() {
         )
         .unwrap(),
     );
-    let dirty = DirtyPublicationEvidence::from_s2_publication(
+    let dirty = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(b"needs-rollback-image"),
         PageLsn::from_lsn(ack.ack_basis().lsn_range().start()),
     );
@@ -83,7 +83,7 @@ fn public_rollback_protected_publication_requires_matching_declaration() {
         )
         .unwrap(),
     );
-    let dirty = DirtyPublicationEvidence::from_s2_publication(
+    let dirty = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(b"rollback-declaration"),
         PageLsn::from_lsn(ack.ack_basis().lsn_range().start()),
     );
@@ -129,7 +129,7 @@ fn public_page_flush_publication_requires_wal_before_data_ordering_proof() {
         )
         .unwrap(),
     );
-    let dirty = DirtyPublicationEvidence::from_s2_publication(
+    let dirty = DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(b"public-page-flush-proof"),
         PageLsn::from_lsn(ack.ack_basis().lsn_range().start()),
     );

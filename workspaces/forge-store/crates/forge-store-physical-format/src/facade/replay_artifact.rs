@@ -22,12 +22,12 @@ impl PlatformPhysicalReplayArtifact {
         Self { headers, layout }
     }
 
-    pub fn reopen_s1(
+    pub fn reopen_physical_format(
         &self,
         readiness: AcceptedHandoffReadiness,
         request: PlatformPhysicalOpenRequest,
     ) -> Result<PlatformPhysicalFacade, PlatformPhysicalFacadeDenial> {
-        reopen::reopen_s1(
+        reopen::reopen_from_verified_layout(
             readiness,
             request,
             self.headers.clone(),

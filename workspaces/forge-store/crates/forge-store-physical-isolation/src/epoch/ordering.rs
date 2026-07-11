@@ -80,7 +80,7 @@ impl PhysicalOrderingContract {
     }
 }
 
-pub const fn required_s5_ordering_contracts() -> [PhysicalOrderingContract; 6] {
+pub const fn required_physical_isolation_ordering_contracts() -> [PhysicalOrderingContract; 6] {
     [
         PhysicalOrderingContract::acquire_release_for(PhysicalOrderingSite::RootSwap),
         PhysicalOrderingContract::acquire_release_for(PhysicalOrderingSite::HazardPublication),

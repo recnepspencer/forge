@@ -125,7 +125,7 @@ fn reopened_page_fact(
 ) -> Result<RedoApplicationPageFact, ReopenedRecoveryArtifactAdmissionDenial> {
     let page_id = PhysicalPageId::from_raw(page.page_id)
         .map_err(|_| ReopenedRecoveryArtifactAdmissionDenial::InvalidPhysicalPageIdentity)?;
-    let page_generation = PhysicalGenerationAuthority::s1()
+    let page_generation = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(reopened_artifact_segment_id()?, page_id)
         .with_page_generation(reopened_artifact_generation(page.page_generation)?);
     let classified_page_lsn = PageLsn::from_lsn(LogSequenceNumber::new(page.page_lsn));

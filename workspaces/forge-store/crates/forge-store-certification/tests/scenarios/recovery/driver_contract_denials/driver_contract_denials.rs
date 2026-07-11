@@ -304,7 +304,7 @@ fn production_driver_without_registered_seam(
     let mut driver = ProductionStorageBoundaryDriver::for_backend_profile(
         BackendDurabilityProfileId::PosixFileFsyncDirFsync,
     );
-    for seam in ProductionStorageBoundarySeam::phase4_registered_seams() {
+    for seam in ProductionStorageBoundarySeam::registered_backend_operation_seams() {
         if *seam != missing {
             driver =
                 driver.declare_yieldpoint(PhysicalBoundaryYieldpoint::production_storage(*seam));

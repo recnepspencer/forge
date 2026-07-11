@@ -5,11 +5,11 @@ use forge_store_physical_certification::{
 #[path = "../../../support/recovery/counter_strength/support.rs"]
 mod support;
 
-use support::{counter_receipt, lower_s5_plan, observed_trace};
+use support::{counter_receipt, lower_physical_isolation_plan, observed_trace};
 
 #[test]
 fn repeated_executed_counter_admission_converges_to_same_rows() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let first = counter_receipt(&plan, observed_trace(&plan));
     let second = counter_receipt(&plan, observed_trace(&plan));
 

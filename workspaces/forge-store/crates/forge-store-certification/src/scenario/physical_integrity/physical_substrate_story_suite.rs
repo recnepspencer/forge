@@ -23,7 +23,7 @@ pub(crate) fn story_reports(
 fn story_transcript(
     definition: PhysicalScenarioDefinition,
 ) -> Result<crate::PhysicalStoryTranscript, PhysicalSubstrateCertificationDenial> {
-    let harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     let plan = harness
         .lower(definition)
         .map_err(|_| PhysicalSubstrateCertificationDenial::StoryPlanRejected)?;

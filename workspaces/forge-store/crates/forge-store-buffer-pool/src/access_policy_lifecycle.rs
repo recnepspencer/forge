@@ -16,7 +16,7 @@ pub struct AccessPolicyBufferLifecycle {
 struct AccessPolicyBufferLifecycleSeal;
 
 impl AccessPolicyBufferLifecycle {
-    pub(crate) const fn pinned_s2_lease() -> Self {
+    pub(crate) const fn pinned_physical_substrate_lease() -> Self {
         Self::new(AccessPolicyBufferLifecycleKind::PinnedS2Lease)
     }
 
@@ -31,8 +31,8 @@ impl AccessPolicyBufferLifecycle {
     }
 
     #[cfg(any(test, feature = "certification-test-authority"))]
-    pub const fn for_certification_pinned_s2_lease() -> Self {
-        Self::pinned_s2_lease()
+    pub const fn for_certification_pinned_physical_substrate_lease() -> Self {
+        Self::pinned_physical_substrate_lease()
     }
 
     #[cfg(any(test, feature = "certification-test-authority"))]

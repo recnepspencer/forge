@@ -143,7 +143,7 @@ fn invalid_migration_inputs_deny_before_stability_admission() {
 }
 
 #[test]
-fn s7_and_s6_authority_requests_remain_explicit_non_claims() {
+fn blob_lifecycle_and_io_qos_authority_requests_remain_explicit_non_claims() {
     let chunk_plan = ChunkMigrationReadInterlockPlan::admit(future_chunk_placeholder(
         ordinary_plan().reachability_barrier(),
     ))
@@ -343,8 +343,8 @@ fn future_chunk_epoch() -> forge_store_physical_isolation::ChunkEpoch {
 }
 
 fn generation_counted_extent_reference(generation: u64) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(29).unwrap();
     let extent = PhysicalExtentId::from_raw(31).unwrap();
     let cell = generations

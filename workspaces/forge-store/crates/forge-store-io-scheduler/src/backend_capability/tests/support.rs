@@ -4,7 +4,7 @@ use forge_store_physical_backend::{
     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{
     admit_security_scope_for_scheduler, IoSchedulerBackendCapabilityDenial,
@@ -48,7 +48,7 @@ pub(super) fn witness_from_basis_and_posture(
 }
 
 pub(super) fn valid_security_scope() -> crate::IoSchedulerSecurityScopeAdmission {
-    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

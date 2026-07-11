@@ -27,7 +27,7 @@ fn resident_frame_authority_evidence_uses_executed_table_counters() {
         .admit_frame(load_request(7, 2, payload_len_for_frame_size(4096)))
         .unwrap();
 
-    for row in ResidentFrameAuthorityEvidenceRow::s2_phase_two_table_rows() {
+    for row in ResidentFrameAuthorityEvidenceRow::physical_substrate_table_rows() {
         let report = ResidentFrameAuthorityEvidenceReport::from_table(*row, &table).unwrap();
 
         assert_eq!(report.row(), *row);
@@ -67,7 +67,7 @@ fn resident_generation_separation_evidence_observes_slot_reuse() {
 
 #[test]
 fn forbidden_residency_proofs_are_certified_as_denials() {
-    for attempt in ResidentFrameShortcutAttempt::s2_phase_two_forbidden_attempts() {
+    for attempt in ResidentFrameShortcutAttempt::physical_substrate_forbidden_attempts() {
         let denial = ResidentFrameDenial::from_shortcut_attempt(*attempt);
         let report =
             ResidentFrameAuthorityEvidenceReport::from_forbidden_denial(*attempt, denial).unwrap();
@@ -130,7 +130,7 @@ fn generation_separation_row_requires_executed_table_proof() {
 
 fn resident_frame_table() -> ResidentFrameTable {
     let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(
@@ -153,7 +153,7 @@ fn load_request(
     page_value: u64,
     payload_len: usize,
 ) -> ResidentFrameLoadRequest {
-    ResidentFrameLoadRequest::from_s1_physical_frame(
+    ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validated_slot_reference(generation_value, page_value),
         frame_header_witness(generation_value, page_value, payload_len),
     )
@@ -164,8 +164,8 @@ fn validated_slot_reference(
     generation_value: u64,
     page_value: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(segment(1), page(page_value), slot(3))
         .with_slot_generation(generation(generation_value));
@@ -189,7 +189,7 @@ fn frame_header_witness(
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn header_bytes(generation_value: u64, payload_len: usize) -> Vec<u8> {
@@ -210,8 +210,8 @@ fn payload_len_for_frame_size(frame_size: u64) -> usize {
     (frame_size - PHYSICAL_HEADER_LENGTH as u64) as usize
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),

@@ -25,8 +25,8 @@ use crate::{
 };
 
 #[test]
-fn non_blob_s6_background_capacity_cannot_enter_blob_ingest_pressure() {
-    let denial = BlobStreamingPressureAdmission::from_s6_background_capacity(
+fn non_blob_io_qos_background_capacity_cannot_enter_blob_ingest_pressure() {
+    let denial = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         checkpoint_flush_wal_background_capacity_for_certification_test(background_budget()),
         1,
         false,
@@ -45,7 +45,7 @@ fn non_blob_s6_background_capacity_cannot_enter_blob_ingest_pressure() {
 fn throttled_blob_pressure_paces_ingest_with_exact_scheduler_counters() {
     let requested = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap());
     let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_throttled_background_capacity_for_certification_test(requested, admitted),
         0,
         false,
@@ -97,7 +97,7 @@ fn assert_pressure_denial(
     capacity: forge_store_io_scheduler::BackgroundCapacityAdmission,
     expected: BlobStreamingIngestDenial,
 ) {
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(capacity, 0, false)
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(capacity, 0, false)
         .expect("S.6 blob pressure admission should build");
     let denial = run_ingest(pressure).expect_err("non-current blob pressure must deny ingest");
     assert_eq!(denial, expected);

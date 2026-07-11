@@ -20,9 +20,9 @@ pub fn certify_physical_page_segment_extent_substrate(
         .map_err(PhysicalSubstrateCertificationDenial::CloseoutDenied)
 }
 
-pub(crate) fn certify_s2_physical_substrate_readiness(
+pub(crate) fn certify_physical_substrate_readiness(
 ) -> Result<PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
-    Ok(certify_physical_page_segment_extent_substrate()?.into_s2_readiness())
+    Ok(certify_physical_page_segment_extent_substrate()?.into_physical_substrate_readiness())
 }
 
 pub(crate) fn closeout_run(
@@ -128,7 +128,7 @@ fn construct_closeout_run(
             complexity,
             foundation,
             scan.platform_grade_witness(),
-            scan.s2_readiness(),
+            scan.physical_substrate_readiness(),
         ),
     )
 }

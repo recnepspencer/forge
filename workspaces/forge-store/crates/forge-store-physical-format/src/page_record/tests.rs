@@ -11,8 +11,8 @@ use crate::{
 #[test]
 fn append_and_reopen_locate_by_slot_yields_stable_framed_record() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -51,7 +51,7 @@ fn append_and_reopen_locate_by_slot_yields_stable_framed_record() {
 #[test]
 fn manifest_page_payload_cannot_enter_record_page_authority() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -73,7 +73,7 @@ fn manifest_page_payload_cannot_enter_record_page_authority() {
 #[test]
 fn append_rejects_slot_cell_for_different_page_before_write() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -97,8 +97,8 @@ fn append_rejects_slot_cell_for_different_page_before_write() {
 #[test]
 fn out_of_range_slot_denies_before_frame_payload_view() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -137,8 +137,8 @@ fn out_of_range_slot_denies_before_frame_payload_view() {
 #[test]
 fn locate_rejects_reference_for_different_page_before_slot_lookup() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -171,8 +171,8 @@ fn locate_rejects_reference_for_different_page_before_slot_lookup() {
 #[test]
 fn locate_rejects_reference_for_different_segment_before_slot_lookup() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -205,8 +205,8 @@ fn locate_rejects_reference_for_different_segment_before_slot_lookup() {
 #[test]
 fn appending_second_slot_rebases_existing_frame_offsets() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -259,8 +259,8 @@ fn appending_second_slot_rebases_existing_frame_offsets() {
 #[test]
 fn moved_slot_without_admitted_reference_denies_before_payload_view() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -293,8 +293,8 @@ fn moved_slot_without_admitted_reference_denies_before_payload_view() {
 #[test]
 fn malformed_slot_entry_preserves_locate_counters_before_payload_view() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -324,8 +324,8 @@ fn malformed_slot_entry_preserves_locate_counters_before_payload_view() {
 #[test]
 fn frame_length_mismatch_denies_before_record_payload_view() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));

@@ -19,10 +19,10 @@ use forge_foundational::{
 use crate::readiness::isolation_evidence::basis::FoundationalIsolationCounterReceipt;
 use crate::{IsolationReadinessDenial, PhysicalIsolationCounterSnapshot};
 
-pub(crate) fn construct_s6_foundational_counter_receipt(
+pub(crate) fn construct_io_qos_foundational_counter_receipt(
     counters: PhysicalIsolationCounterSnapshot,
 ) -> Result<FoundationalIsolationCounterReceipt, IsolationReadinessDenial> {
-    let bundle = construct_s6_executed_performance_bundle(counters)?;
+    let bundle = construct_io_qos_executed_performance_bundle(counters)?;
     counter_backed_performance_receipt(bundle)
         .attach_counter_row(counter_row(
             "s5.closeout.outcomes",
@@ -58,7 +58,7 @@ pub(crate) fn construct_s6_foundational_counter_receipt(
         .map_err(map_receipt_denial)
 }
 
-fn construct_s6_executed_performance_bundle(
+fn construct_io_qos_executed_performance_bundle(
     counters: PhysicalIsolationCounterSnapshot,
 ) -> Result<
     FoundationalPerformanceBundle<FoundationalAuthoritativePerformanceClaim>,

@@ -48,7 +48,7 @@ pub(super) fn inspect_wal_payload_for_owner(
     let lease = table.lease_page(admission.resident_frame_token()).unwrap();
     let pinned = lease.pin().unwrap();
     let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
-    let entry = IntegrityEntryAdmission::from_s3_payload(s3_readiness().payload()).unwrap();
+    let entry = IntegrityEntryAdmission::from_physical_integrity_payload(physical_integrity_readiness().payload()).unwrap();
     let inspection_lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
     let checksum_scope = checksum_scope();
     let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
@@ -79,7 +79,7 @@ pub(super) fn inspect_wal_payload_for_owner(
         ),
     )
     .unwrap();
-    WalFrameIntegrityAuthority::s3().inspect(
+    WalFrameIntegrityAuthority::new().inspect(
         WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(
             ScopedPhysicalValidatorInput::wal_frame(scoped).unwrap(),
         )
@@ -111,7 +111,7 @@ fn admit_wal_payload_frame(
     reference: PhysicalReferenceValidationWitness,
 ) -> forge_store_buffer_pool::ResidentFrameAdmission {
     let frame = frame_bytes(reference.owner().generation().get(), payload);
-    let request = ResidentFrameLoadRequest::from_s1_physical_frame(
+    let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
         reference,
         wal_header_witness(&frame, reference),
     )
@@ -129,7 +129,7 @@ fn resident_frame_table() -> ResidentFrameTable {
         DirtyPageBudget::pages(1).unwrap(),
     );
     let entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        s2_readiness().physical_substrate_snapshot(),
+        physical_substrate_readiness().physical_substrate_snapshot(),
     )
     .unwrap()
     .with_budget(budget)
@@ -138,10 +138,10 @@ fn resident_frame_table() -> ResidentFrameTable {
     ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 
-pub(crate) fn s3_readiness() -> PhysicalIntegrityReadiness {
-    let s2 = s2_readiness();
+pub(crate) fn physical_integrity_readiness() -> PhysicalIntegrityReadiness {
+    let s2 = physical_substrate_readiness();
     let facts = s2.facts();
-    let payload = PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
+    let payload = PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
         VerifierResidentEnvelope::bounded(8192, 2).unwrap(),
         ScrubPlanningAllocationEnvelope::bounded(1024).unwrap(),
@@ -149,26 +149,26 @@ pub(crate) fn s3_readiness() -> PhysicalIntegrityReadiness {
         NoMaterializationWitness::observed_zero(0, 0).unwrap(),
         BoundedCounterRecap::exact(8192, 1, 0, 1024, 0, 0).unwrap(),
         DenialBehaviorRecap::from_named_boundaries(&DeniedBoundaryKind::ALL).unwrap(),
-        PhysicalAuthorityRecap::from_s1_authority(
+        PhysicalAuthorityRecap::from_physical_format_authority(
             facts.physical_reference_count(),
             facts.header_decode_witness_count(),
             facts.payload_admission_witness_count(),
         )
         .unwrap(),
-        BufferPoolAuthorityRecap::s2_authority(true, true, true, true).unwrap(),
+        BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     );
-    PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2, payload).unwrap()
+    PhysicalIntegrityReadiness::from_physical_substrate_bounded_residency_closeout(s2, payload).unwrap()
 }
 
-fn s2_readiness() -> forge_store_readiness::PhysicalSubstrateReadiness {
+fn physical_substrate_readiness() -> forge_store_readiness::PhysicalSubstrateReadiness {
     prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
     )
     .unwrap()
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),
@@ -187,12 +187,12 @@ fn manifest_membership_for_scope(
     scope: PhysicalReferenceScope,
     cell: SlotGenerationCell,
 ) -> ManifestMembershipProof {
-    let root_cell = PhysicalGenerationAuthority::s1()
+    let root_cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(9).unwrap())
         .with_root_publication_generation(generation(1));
-    let root = PhysicalManifestUniverseBuilder::s1(root_cell)
+    let root = PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_cell)
         .segment(
-            PhysicalGenerationAuthority::s1()
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .segment_cell(cell.segment_id())
                 .with_segment_generation(cell.generation()),
         )
@@ -203,10 +203,10 @@ fn manifest_membership_for_scope(
 
 fn checksum_scope() -> ChecksumScopeDeclaration {
     ChecksumScopeDeclaration::for_physical_format(
-        PhysicalFormatDeclaration::s1_canonical()
+        PhysicalFormatDeclaration::physical_format_canonical()
             .unwrap()
             .identity(),
-        ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap(),
+        ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),
     )
     .unwrap()
 }
@@ -230,18 +230,18 @@ fn wal_header_witness(
 }
 
 fn physical_header() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn wal_reference_for_cell(cell: SlotGenerationCell) -> PhysicalReferenceValidationWitness {
-    PhysicalReferenceAuthority::s1()
-        .validate_page_slot(PhysicalReferenceAuthority::s1().admit_page_slot(cell), cell)
+    PhysicalReferenceAuthority::for_canonical_physical_format()
+        .validate_page_slot(PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(cell), cell)
         .unwrap()
 }
 
 fn wal_slot_cell() -> SlotGenerationCell {
     wal_slot_cell_for_owner(
-        PhysicalGenerationAuthority::s1()
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .slot_cell(segment(1), page(2), slot(3))
             .with_slot_generation(generation(1))
             .owner(),
@@ -249,7 +249,7 @@ fn wal_slot_cell() -> SlotGenerationCell {
 }
 
 fn wal_slot_cell_for_owner(owner: PhysicalGenerationOwner) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             owner.segment_id().unwrap(),
             owner.page_id().unwrap(),

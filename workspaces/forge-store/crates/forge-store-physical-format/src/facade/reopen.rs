@@ -9,7 +9,7 @@ use super::storage::PlatformPhysicalFacadeStorage;
 use super::PlatformPhysicalFacade;
 
 impl PlatformPhysicalFacade {
-    pub fn open_s1(
+    pub fn open_physical_format(
         readiness: AcceptedHandoffReadiness,
         request: PlatformPhysicalOpenRequest,
     ) -> Result<Self, PlatformPhysicalFacadeDenial> {
@@ -22,12 +22,12 @@ impl PlatformPhysicalFacade {
         ))
     }
 
-    pub fn reopen_s1(
+    pub fn reopen(
         readiness: AcceptedHandoffReadiness,
         request: PlatformPhysicalOpenRequest,
         replay_artifact: crate::PlatformPhysicalReplayArtifact,
     ) -> Result<Self, PlatformPhysicalFacadeDenial> {
-        replay_artifact.reopen_s1(readiness, request)
+        replay_artifact.reopen_physical_format(readiness, request)
     }
 }
 
@@ -62,7 +62,7 @@ pub(crate) struct ReopenLayoutEvidence<'a> {
 pub(crate) fn verify_persisted_layout_for_reopen(
     evidence: &ReopenLayoutEvidence<'_>,
 ) -> Result<MinimalManifestVerifierReport, PlatformPhysicalFacadeDenial> {
-    OfflinePhysicalVerifier::s1(evidence.headers.clone())
+    OfflinePhysicalVerifier::for_canonical_physical_format(evidence.headers.clone())
         .verify(evidence.layout)
         .map_err(map_verifier_denial_for_reopen)
 }
@@ -77,7 +77,7 @@ pub(crate) fn construct_storage_from_verified_layout(
     )
 }
 
-pub(crate) fn reopen_s1(
+pub(crate) fn reopen_from_verified_layout(
     readiness: AcceptedHandoffReadiness,
     _request: PlatformPhysicalOpenRequest,
     headers: PhysicalHeaderAuthority,

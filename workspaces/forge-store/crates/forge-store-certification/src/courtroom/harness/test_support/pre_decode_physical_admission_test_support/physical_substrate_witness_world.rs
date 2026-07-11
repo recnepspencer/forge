@@ -7,7 +7,7 @@ use forge_store_physical_format::{
 };
 
 pub(crate) fn current_validation() -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = slot_cell(7);
     references
         .validate_page_slot(references.admit_page_slot(cell), cell)
@@ -15,13 +15,13 @@ pub(crate) fn current_validation() -> PhysicalReferenceValidationWitness {
 }
 
 pub(crate) fn current_page_cell() -> PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), PhysicalPageId::from_raw(2).unwrap())
         .with_page_generation(PhysicalGeneration::from_raw(5).unwrap())
 }
 
 pub(crate) fn stale_validation() -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let admitted = references.admit_page_slot(slot_cell(8));
     references
         .validate_page_slot(admitted, slot_cell(8))
@@ -51,11 +51,11 @@ pub(crate) fn page_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn slot_cell(generation: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             segment(1),
             PhysicalPageId::from_raw(2).unwrap(),

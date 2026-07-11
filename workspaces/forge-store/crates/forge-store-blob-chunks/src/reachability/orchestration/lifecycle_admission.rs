@@ -95,12 +95,12 @@ impl BlobChunkReachabilityRegistry {
         self.admit_hold(hold)
     }
 
-    pub fn admit_s10_backup_hold(
+    pub fn admit_backup_repair_backup_hold(
         &mut self,
         handoff: &S10BackupExportCustodyHandoff,
     ) -> Result<(), BlobReachabilityDenial> {
         let authority = require_registry_bound_hold_authority(self)?;
-        let hold = BlobReachabilityProtectedHold::from_s10_backup_handoff(handoff, authority)?;
+        let hold = BlobReachabilityProtectedHold::from_backup_repair_backup_handoff(handoff, authority)?;
         self.admit_hold(hold)
     }
 

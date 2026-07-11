@@ -23,7 +23,7 @@ pub enum PhysicalPageRecordFramingEvidenceRow {
 }
 
 impl PhysicalPageRecordFramingEvidenceRow {
-    pub const fn s1_required() -> [Self; 4] {
+    pub const fn physical_format_required() -> [Self; 4] {
         [
             Self::SlotDirectoryLocateBounded,
             Self::MovedSlotBoundedOrDenied,

@@ -5,8 +5,8 @@ use forge_store_physical_format::{
 use forge_store_physical_isolation::GenerationCountedPhysicalReference;
 
 fn main() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let segment = PhysicalSegmentId::from_raw(1).unwrap();
     let page = PhysicalPageId::from_raw(2).unwrap();
     let slot = PhysicalRecordSlot::from_raw(3).unwrap();

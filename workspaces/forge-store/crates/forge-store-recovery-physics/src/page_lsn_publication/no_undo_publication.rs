@@ -21,7 +21,7 @@ struct NoUndoPublicationAuthority {
 }
 
 impl NoUndoPublicationAuthority {
-    const fn s4_redo_only() -> Self {
+    const fn recovery_redo_only() -> Self {
         Self { _sealed: () }
     }
 
@@ -133,7 +133,7 @@ impl NoUndoPublicationEligibility {
         ordering: WalBeforeDataOrderingProof<P>,
     ) -> Self {
         Self::redo_only(
-            NoUndoPublicationAuthority::s4_redo_only().admit_redo_only_mutation(ordering),
+            NoUndoPublicationAuthority::recovery_redo_only().admit_redo_only_mutation(ordering),
         )
     }
 
@@ -141,7 +141,7 @@ impl NoUndoPublicationEligibility {
         ordering: WalBeforeDataOrderingProof<P>,
         declaration: RollbackImagePublicationDeclaration,
     ) -> Result<Self, UnadmittedDirtyPagePublicationDenial> {
-        let proof = NoUndoPublicationAuthority::s4_redo_only()
+        let proof = NoUndoPublicationAuthority::recovery_redo_only()
             .admit_rollback_image_protected(ordering, declaration)?;
         Ok(Self::redo_only(proof))
     }

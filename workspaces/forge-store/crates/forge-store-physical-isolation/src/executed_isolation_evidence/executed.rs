@@ -34,7 +34,7 @@ impl ExecutedIsolationEvidence {
     pub fn from_physical_isolation_receipts(
         receipts: ExecutedIsolationReceipts<'_>,
     ) -> Result<Self, IsolationReadinessDenial> {
-        assemble_executed_s5_closeout(receipts)
+        assemble_executed_physical_isolation_closeout(receipts)
     }
 
     #[cfg(any(test, feature = "certification-authority"))]
@@ -54,7 +54,7 @@ impl ExecutedIsolationEvidence {
             4096,
         )?;
         let foundational_counter_receipt =
-            super::performance_receipt::construct_s6_foundational_counter_receipt(counters)?;
+            super::performance_receipt::construct_io_qos_foundational_counter_receipt(counters)?;
         let proof_progression_identity =
             super::project_counters::foreground_reservation_test_progression_identity(counters);
         let basis =
@@ -86,13 +86,13 @@ impl ExecutedIsolationEvidence {
     }
 }
 
-fn assemble_executed_s5_closeout(
+fn assemble_executed_physical_isolation_closeout(
     receipts: ExecutedIsolationReceipts<'_>,
 ) -> Result<ExecutedIsolationEvidence, IsolationReadinessDenial> {
     let _latch_order_proof = receipts.latch_order_proof;
     let counters = super::project_counters::project_closeout_counters(receipts)?;
     let foundational_counter_receipt =
-        super::performance_receipt::construct_s6_foundational_counter_receipt(counters)?;
+        super::performance_receipt::construct_io_qos_foundational_counter_receipt(counters)?;
     let identity = super::project_counters::proof_progression_identity(receipts, counters);
     let basis = ExecutedIsolationBasis::from_executed_isolation(identity, counters);
     Ok(ExecutedIsolationEvidence {

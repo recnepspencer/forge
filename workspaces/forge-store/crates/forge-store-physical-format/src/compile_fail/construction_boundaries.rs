@@ -39,8 +39,8 @@
 //!     PhysicalReferenceAuthority, PhysicalSegmentId,
 //! };
 //!
-//! let generations = PhysicalGenerationAuthority::s1();
-//! let references = PhysicalReferenceAuthority::s1();
+//! let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+//! let references = PhysicalReferenceAuthority::for_canonical_physical_format();
 //! let page_cell = generations
 //!     .page_cell(
 //!         PhysicalSegmentId::from_raw(1).unwrap(),
@@ -57,7 +57,7 @@
 //! use forge_store_physical_format::PhysicalReferenceAuthority;
 //!
 //! let digest = StableDigest::new("sha256:not-physical-identity").unwrap();
-//! let _ = PhysicalReferenceAuthority::s1().admit_root_publication(digest);
+//! let _ = PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(digest);
 //! ```
 //! Header decode witnesses are sealed proof values:
 //!

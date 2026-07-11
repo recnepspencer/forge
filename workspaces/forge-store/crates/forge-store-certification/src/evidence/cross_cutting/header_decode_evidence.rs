@@ -26,7 +26,7 @@ pub enum PhysicalHeaderDecodeEvidenceRow {
 }
 
 impl PhysicalHeaderDecodeEvidenceRow {
-    pub const fn s1_required() -> [Self; 6] {
+    pub const fn physical_format_required() -> [Self; 6] {
         [
             Self::HeaderDecodeWitnessSealed,
             Self::PayloadViewRequiresWitness,
@@ -71,7 +71,7 @@ impl PhysicalHeaderDecodeEvidenceReport {
         Ok(Self {
             row,
             lane: row.physical_substrate_lane(),
-            artifact_id: StableArtifactId::new("forge_store.header_decode.s1")
+            artifact_id: StableArtifactId::new("forge_store.header_decode.for_canonical_physical_format")
                 .expect("static artifact id"),
             foundational_basis: StableArtifactId::new("forge_foundational.canonical_bytes")
                 .expect("static artifact id"),
@@ -186,12 +186,12 @@ fn basis_entry(ordinal: u32, value: u128, width: CanonicalIntegerWidth) -> Canon
 }
 
 fn header_decode_rule_version() -> CanonicalizationRuleVersion {
-    CanonicalizationRuleVersion::new("forge-store.header-decode.s1.v1")
+    CanonicalizationRuleVersion::new("forge-store.header-decode.for_canonical_physical_format.v1")
         .expect("static header decode canonicalization rule version")
 }
 
 const fn header_decode_domain() -> CanonicalBasisDomain {
-    CanonicalBasisDomain::Future("forge-store.header-decode.s1")
+    CanonicalBasisDomain::Future("forge-store.header-decode.for_canonical_physical_format")
 }
 
 #[cfg(test)]
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn every_header_decode_evidence_row_maps_to_physical_substrate() {
-        for row in PhysicalHeaderDecodeEvidenceRow::s1_required() {
+        for row in PhysicalHeaderDecodeEvidenceRow::physical_format_required() {
             assert_eq!(
                 row.physical_substrate_lane().family().as_str(),
                 "physical_substrate"
@@ -225,7 +225,7 @@ mod tests {
 
         assert_eq!(
             evidence.artifact_id(),
-            &StableArtifactId::new("forge_store.header_decode.s1").unwrap()
+            &StableArtifactId::new("forge_store.header_decode.for_canonical_physical_format").unwrap()
         );
         assert_eq!(
             evidence.foundational_basis(),
@@ -237,7 +237,7 @@ mod tests {
 
     fn decoded_frame_header_report() -> forge_store_physical_format::PhysicalHeaderDecodeReport {
         let authority =
-            PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap());
+            PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap());
         authority
             .decode_frame_header(
                 validated_slot_reference(),
@@ -249,8 +249,8 @@ mod tests {
 
     fn validated_slot_reference() -> forge_store_physical_format::PhysicalReferenceValidationWitness
     {
-        let generations = PhysicalGenerationAuthority::s1();
-        let references = PhysicalReferenceAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
         let cell = generations
             .slot_cell(segment(1), page(2), slot(3))
             .with_slot_generation(generation(3));

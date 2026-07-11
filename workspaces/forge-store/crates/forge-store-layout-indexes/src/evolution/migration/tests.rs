@@ -47,7 +47,7 @@ fn same_format_with_undeclared_semantic_version_does_not_count_as_compatible_rea
 
 #[test]
 fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
-    let current = current_authority("store.s8.migration", "current");
+    let current = current_authority("store.new.migration", "current");
     let plan = match layout_migration()
         .plan_migration(
             super::LayoutMigrationRequest::new(
@@ -113,7 +113,7 @@ fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
 
 #[test]
 fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
-    let current = current_authority("store.s8.migration.drift", "current");
+    let current = current_authority("store.new.migration.drift", "current");
     let base_plan = match layout_migration()
         .plan_migration(
             super::LayoutMigrationRequest::new(
@@ -163,7 +163,7 @@ fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
 
 #[test]
 fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
-    let current = current_authority("store.s8.rollback", "current");
+    let current = current_authority("store.new.rollback", "current");
     let request = LayoutRollbackRequest::new(
         declaration(),
         binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
@@ -192,7 +192,7 @@ fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
 
 #[test]
 fn rollback_rejects_binding_from_wrong_family_even_when_versions_match() {
-    let current = current_authority("store.s8.rollback.family", "current");
+    let current = current_authority("store.new.rollback.family", "current");
     let request = LayoutRollbackRequest::new(
         declaration(),
         other_family_binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
@@ -209,8 +209,8 @@ fn rollback_rejects_binding_from_wrong_family_even_when_versions_match() {
 
 #[test]
 fn migration_requires_rebind_when_current_authority_changes() {
-    let bound = current_authority("store.s8.rebind", "bound");
-    let current = current_authority("store.s8.rebind.current", "current");
+    let bound = current_authority("store.new.rebind", "bound");
+    let current = current_authority("store.new.rebind.current", "current");
 
     let outcome = layout_migration()
         .plan_migration(

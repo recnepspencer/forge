@@ -36,10 +36,10 @@ use forge_store_readiness::{
 use forge_store_s0_reclassification::S0HandoffDeniedInputKind;
 use forge_store_test_support::NativeStoreAspectFixture;
 
-use crate::certify_s0_handoff_gate_proof_evidence;
+use crate::certify_foundational_handoff_gate_proof_evidence;
 
 #[test]
-fn s0_handoff_is_native_boundary_artifact() {
+fn foundational_handoff_is_native_boundary_artifact() {
     let artifact = native_handoff_artifact();
 
     assert_eq!(
@@ -52,7 +52,7 @@ fn s0_handoff_is_native_boundary_artifact() {
 }
 
 #[test]
-fn s0_handoff_artifact_denies_symbolic_readiness_without_boundary_receipts() {
+fn foundational_handoff_artifact_denies_symbolic_readiness_without_boundary_receipts() {
     assert_handoff_artifact_denial(
         readiness_basis(),
         Vec::new(),
@@ -63,7 +63,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_boundary_receipts() {
 }
 
 #[test]
-fn s0_handoff_artifact_denies_symbolic_readiness_without_diagnostics() {
+fn foundational_handoff_artifact_denies_symbolic_readiness_without_diagnostics() {
     assert_handoff_artifact_denial(
         readiness_basis(),
         vec![completed_receipt_evidence()],
@@ -74,7 +74,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_diagnostics() {
 }
 
 #[test]
-fn s0_handoff_artifact_denies_symbolic_readiness_without_performance_evidence() {
+fn foundational_handoff_artifact_denies_symbolic_readiness_without_performance_evidence() {
     assert_handoff_artifact_denial(
         readiness_basis(),
         vec![completed_receipt_evidence()],
@@ -85,7 +85,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_performance_evidence() 
 }
 
 #[test]
-fn s0_rejects_terminal_projection_as_handoff() {
+fn foundational_handoff_rejects_terminal_projection_as_handoff() {
     let fixture = NativeStoreAspectFixture::scalar_string("s0-terminal-denial");
     let projection = project_store_boundary_fact_to_terminal_json(fixture.boundary_fact()).unwrap();
 
@@ -98,10 +98,10 @@ fn s0_rejects_terminal_projection_as_handoff() {
 }
 
 #[test]
-fn s0_handoff_replays_from_native_evidence() {
+fn foundational_handoff_replays_from_native_evidence() {
     let handoff = AspectNativeGateHandoff::new(
         native_handoff_artifact(),
-        certify_s0_handoff_gate_proof_evidence().unwrap(),
+        certify_foundational_handoff_gate_proof_evidence().unwrap(),
     )
     .unwrap();
 
@@ -119,8 +119,8 @@ fn s0_handoff_replays_from_native_evidence() {
 }
 
 #[test]
-fn s0_handoff_uses_current_gate_proof_evidence_not_symbolic_labels() {
-    let evidence = certify_s0_handoff_gate_proof_evidence().unwrap();
+fn foundational_handoff_uses_current_gate_proof_evidence_not_symbolic_labels() {
+    let evidence = certify_foundational_handoff_gate_proof_evidence().unwrap();
 
     assert!(
         evidence
@@ -144,7 +144,7 @@ fn s0_handoff_uses_current_gate_proof_evidence_not_symbolic_labels() {
 }
 
 #[test]
-fn s0_handoff_tests_do_not_use_symbolic_required_negative_proof_shortcut() {
+fn foundational_handoff_tests_do_not_use_symbolic_required_negative_proof_shortcut() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")

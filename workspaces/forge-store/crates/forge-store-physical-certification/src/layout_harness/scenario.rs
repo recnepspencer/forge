@@ -9,9 +9,9 @@ use super::transcripts::S8LayoutTranscriptKind;
 mod queries;
 
 pub use queries::{
-    all_s8_layout_scenarios, canonical_s8_layout_production_apis,
-    canonical_s8_layout_required_transitions, canonical_s8_layout_shortcut_denials,
-    canonical_s8_layout_supported_scenarios,
+    all_layout_index_layout_scenarios, canonical_layout_index_layout_production_apis,
+    canonical_layout_index_layout_required_transitions, canonical_layout_index_layout_shortcut_denials,
+    canonical_layout_index_layout_supported_scenarios,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

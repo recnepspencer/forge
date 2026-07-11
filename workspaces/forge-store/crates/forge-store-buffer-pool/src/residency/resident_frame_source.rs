@@ -13,7 +13,7 @@ pub(crate) struct ResidentFrameSourceKey {
 }
 
 impl ResidentFrameSourceKey {
-    pub(crate) fn from_s1_frame_witnesses(
+    pub(crate) fn from_physical_format_frame_witnesses(
         reference: PhysicalReferenceValidationWitness,
         header: PhysicalHeaderDecodeWitness,
     ) -> Self {

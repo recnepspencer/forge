@@ -249,8 +249,8 @@ fn framed_record(
     payload: &[u8],
 ) -> FramedRecordView<'static> {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = page_cell(&generations, 5, page_value);
     let slot_cell = slot_cell(&generations, generation_value, page_value);
     let empty_page = page_bytes(generation(5), &[]);
@@ -292,8 +292,8 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

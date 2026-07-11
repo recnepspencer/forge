@@ -5,7 +5,7 @@ use super::{
     RequiredOracleFamilySet, RequiredPhysicalDriverSet, RequiredSimulationPlanShape,
 };
 
-pub(super) fn s4_recovery_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
+pub(super) fn recovery_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
     RequiredSimulationPlanShape {
         capabilities: baseline_capabilities(),
         actors: super::RequiredActorSet::from_actors([]),

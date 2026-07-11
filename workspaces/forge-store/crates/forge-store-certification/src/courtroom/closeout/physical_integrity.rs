@@ -1,5 +1,5 @@
 pub use crate::courtroom::physical_integrity::physical_integrity_closeout_bundle::{
-    close_s3_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
+    close_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
 };
 pub use crate::courtroom::physical_integrity::physical_integrity_closeout_denial::{
     PhysicalIntegrityCloseoutDenial, S3CloseoutDenialBoundary,

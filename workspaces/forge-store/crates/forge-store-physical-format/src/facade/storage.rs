@@ -85,7 +85,7 @@ impl PlatformPhysicalFacadeStorage {
     }
 
     pub(crate) fn page_bytes_for_append(&mut self, slot_cell: SlotGenerationCell) -> &[u8] {
-        let page_cell = PhysicalGenerationAuthority::s1()
+        let page_cell = PhysicalGenerationAuthority::for_canonical_physical_format()
             .page_cell(slot_cell.segment_id(), slot_cell.page_id())
             .with_page_generation(slot_cell.generation());
         if self.find_page_index(slot_cell).is_none() {
@@ -197,7 +197,7 @@ impl PlatformPhysicalFacadeStorage {
     }
 
     pub(crate) fn runtime_discovered_references(&self) -> Vec<PhysicalReference> {
-        let references = PhysicalReferenceAuthority::s1();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
         let mut discovered = Vec::new();
         if let Some(root_publication) = self.root_publication {
             discovered.push(

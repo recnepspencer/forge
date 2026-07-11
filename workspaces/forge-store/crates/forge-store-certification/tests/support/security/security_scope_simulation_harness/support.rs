@@ -81,7 +81,7 @@ pub(crate) fn assert_security_scope_harness_evidence(
     assert_eq!(evidence.observation().outcome(), expected_outcome);
     assert_eq!(evidence.oracle().outcome(), expected_outcome);
     assert!(evidence.oracle().satisfied());
-    assert!(evidence.oracle().no_s11_claim());
+    assert!(evidence.oracle().no_operator_authorization_claim());
     assert_eq!(evidence.counters().scenarios_executed(), 1);
     assert_eq!(evidence.counters().scope_admission_attempts(), 1);
     assert_eq!(

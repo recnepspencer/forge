@@ -18,7 +18,7 @@ pub(crate) struct PhysicalSubstrateCertificationScan {
     scan: PlatformPhysicalScanReport,
     shortcut_counters: PlatformPhysicalFacadeCounterSnapshot,
     platform_grade_witness: PlatformGradeClaimWitness,
-    s2_readiness: PhysicalSubstrateReadiness,
+    physical_substrate_readiness: PhysicalSubstrateReadiness,
 }
 
 impl PhysicalSubstrateCertificationScan {
@@ -50,9 +50,9 @@ impl PhysicalSubstrateCertificationScan {
         let scan = facade
             .scan_physical_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
-        let mut reopened = PlatformPhysicalFacade::reopen_s1(
+        let mut reopened = PlatformPhysicalFacade::reopen(
             readiness()?,
-            PlatformPhysicalOpenRequest::s1_canonical(),
+            PlatformPhysicalOpenRequest::physical_format_canonical(),
             published.replay_artifact(),
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
@@ -70,13 +70,13 @@ impl PhysicalSubstrateCertificationScan {
                 .map_err(|_| PhysicalSubstrateCertificationDenial::PlatformWitnessRejected)?;
         let s1_closeout = close_physical_substrate_readiness(readiness()?)
             .map_err(|_| PhysicalSubstrateCertificationDenial::S2HandoffEvidenceRejected)?;
-        let s2_readiness = prove_physical_substrate_readiness(s1_closeout)
+        let physical_substrate_readiness = prove_physical_substrate_readiness(s1_closeout)
             .map_err(|_| PhysicalSubstrateCertificationDenial::S2HandoffEvidenceRejected)?;
         Ok(Self {
             scan,
             shortcut_counters: facade.counters(),
             platform_grade_witness,
-            s2_readiness,
+            physical_substrate_readiness,
         })
     }
 
@@ -92,7 +92,7 @@ impl PhysicalSubstrateCertificationScan {
         facade
             .page_access()
             .locate_record(
-                PhysicalReferenceAuthority::s1()
+                PhysicalReferenceAuthority::for_canonical_physical_format()
                     .admit_page_slot(slot_cell(9)?)
                     .reference(),
             )
@@ -117,18 +117,18 @@ impl PhysicalSubstrateCertificationScan {
         self.platform_grade_witness
     }
 
-    pub(crate) const fn s2_readiness(&self) -> PhysicalSubstrateReadiness {
-        self.s2_readiness
+    pub(crate) const fn physical_substrate_readiness(&self) -> PhysicalSubstrateReadiness {
+        self.physical_substrate_readiness
     }
 }
 
 fn open_facade() -> Result<PlatformPhysicalFacade, PhysicalSubstrateCertificationDenial> {
-    PlatformPhysicalFacade::open_s1(readiness()?, PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness()?, PlatformPhysicalOpenRequest::physical_format_canonical())
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)
 }
 
 fn readiness() -> Result<AcceptedHandoffReadiness, PhysicalSubstrateCertificationDenial> {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set()?)
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set()?)
         .map_err(|_| PhysicalSubstrateCertificationDenial::ReadinessRejected)
 }
 
@@ -152,7 +152,7 @@ fn digest(name: &str) -> Result<StableDigest, PhysicalSubstrateCertificationDeni
 fn slot_cell(
     value: u16,
 ) -> Result<forge_store_physical_format::SlotGenerationCell, PhysicalSubstrateCertificationDenial> {
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1)?, page(1)?, slot(value)?)
         .with_slot_generation(generation(5)?))
 }
@@ -161,7 +161,7 @@ fn extent_cell(
     value: u64,
 ) -> Result<forge_store_physical_format::ExtentGenerationCell, PhysicalSubstrateCertificationDenial>
 {
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(segment(1)?, extent(value)?)
         .with_extent_generation(generation(7)?))
 }

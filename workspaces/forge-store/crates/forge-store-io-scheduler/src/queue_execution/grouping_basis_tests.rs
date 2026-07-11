@@ -1,5 +1,5 @@
 use forge_store_security::{
-    admitted_wrong_s6_io_qos_security_scope_for_test, StoreAuthenticityRequirement,
+    admitted_wrong_io_qos_security_scope_for_test, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreKeyScope, StoreTenantScope,
 };
 
@@ -148,7 +148,7 @@ fn base_grouping_basis() -> QueueGroupingBasis {
 }
 
 fn basis_with_security_scope(base: QueueGroupingBasis) -> QueueGroupingBasis {
-    let identity = admitted_wrong_s6_io_qos_security_scope_for_test().identity();
+    let identity = admitted_wrong_io_qos_security_scope_for_test().identity();
     QueueGroupingBasis::new(
         identity,
         identity.tenant_scope(),

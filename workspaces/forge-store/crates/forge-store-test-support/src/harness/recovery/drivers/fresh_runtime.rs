@@ -1,15 +1,15 @@
 use forge_store_recovery_physics::{RecoveryOfflineVerifier, RecoveryProfileId};
 
-use crate::deterministic_s4_recovery_artifacts;
+use crate::deterministic_recovery_artifacts;
 
 pub use forge_store_recovery_physics::{FreshRuntimeRecoveryDriver, RecoveryRuntimePosture};
 
-pub fn deterministic_s4_fresh_runtime_driver() -> FreshRuntimeRecoveryDriver {
-    let artifacts = deterministic_s4_recovery_artifacts();
+pub fn deterministic_recovery_fresh_runtime_driver() -> FreshRuntimeRecoveryDriver {
+    let artifacts = deterministic_recovery_artifacts();
     let evidence = RecoveryOfflineVerifier::for_profile(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
     )
     .verify_fresh_runtime_reopen(&artifacts)
     .expect("deterministic S.4 artifacts must reopen");

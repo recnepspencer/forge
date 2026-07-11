@@ -20,11 +20,11 @@ pub struct OfflinePhysicalVerifier {
 }
 
 impl OfflinePhysicalVerifier {
-    pub const fn s1(headers: PhysicalHeaderAuthority) -> Self {
+    pub const fn for_canonical_physical_format(headers: PhysicalHeaderAuthority) -> Self {
         Self {
             headers,
-            references: PhysicalReferenceAuthority::s1(),
-            manifests: ManifestDiscoveryAuthority::s1(),
+            references: PhysicalReferenceAuthority::for_canonical_physical_format(),
+            manifests: ManifestDiscoveryAuthority::for_canonical_physical_format(),
         }
     }
 

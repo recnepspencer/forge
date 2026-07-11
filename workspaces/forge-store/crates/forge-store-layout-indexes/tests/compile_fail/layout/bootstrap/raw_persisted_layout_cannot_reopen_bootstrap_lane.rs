@@ -7,15 +7,15 @@ use forge_store_physical_format::{
 
 fn main() {
     let layout = PersistedPhysicalLayout::builder().build();
-    let _reopened = PlatformPhysicalFacade::reopen_s1(
+    let _reopened = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         layout,
     );
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set()).unwrap()
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set()).unwrap()
 }
 
 fn digest_set() -> HandoffEvidenceDigestSet {

@@ -98,5 +98,5 @@
 //! use forge_store_operations::S10BackupExportCustodyHandoff;
 //! let handoff: S10BackupExportCustodyHandoff = todo!();
 //! let published: BlobGenerationPublished = todo!();
-//! let _hold = BlobReachabilityProtectedHold::from_s10_backup_handoff(&handoff, &published);
+//! let _hold = BlobReachabilityProtectedHold::from_backup_repair_backup_handoff(&handoff, &published);
 //! ```

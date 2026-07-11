@@ -40,7 +40,7 @@ pub(crate) fn admitted_scope(
     authenticity_requirement: StoreAuthenticityRequirement,
     custody_posture: StoreCustodyPosture,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = current_authority("store.s8.key_domain", "test-current");
+    let current_authority = current_authority("store.new.key_domain", "test-current");
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
         tenant_scope,
@@ -63,7 +63,7 @@ pub(crate) fn admitted_scope(
     }
 }
 
-pub(crate) fn admit_phase_four_scope(
+pub(crate) fn admit_key_domain_scope(
     family_id: DurableArtifactFamilyId,
     security_scope: &StoreAdmittedSecurityScope,
 ) -> ArtifactScopePartitionWitness {
@@ -152,10 +152,10 @@ pub(crate) fn page_slot_reference_admission(
     slot: u16,
     generation: u64,
 ) -> PhysicalReferenceAdmissionWitness {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id(segment), page_id(page), slot_id(slot))
         .with_slot_generation(physical_generation(generation));
-    PhysicalReferenceAuthority::s1().admit_page_slot(cell)
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(cell)
 }
 
 pub(crate) fn root_reference(value: u64) -> PhysicalRootReference {

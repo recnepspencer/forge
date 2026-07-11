@@ -23,7 +23,7 @@ use crate::{
     BlobStreamingReadWindow, BlobStreamingVerifiedRead, BlobVisibleGeneration,
 };
 
-pub(crate) fn phase24_layout_runtime_case(
+pub(crate) fn layout_runtime_case(
     case: &str,
     bytes: &[u8],
     chunk_size: u64,

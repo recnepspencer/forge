@@ -24,7 +24,7 @@ pub mod unsupported_qos_claims;
 
 pub use access_policy::{S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow};
 pub use backend_capability_admission::{
-    certify_s6_backend_capability_admission, publish_s6_backend_capability_readiness,
+    certify_io_qos_backend_capability_admission, publish_io_qos_backend_capability_readiness,
     S6BackendCapabilityAdmissionCertificationEvidence, S6BackendCapabilityReadinessPublication,
 };
 pub use backend_qualification::{
@@ -32,13 +32,13 @@ pub use backend_qualification::{
     S6BackendQualificationRowOutcome,
 };
 pub use background_pacing::{
-    certify_s6_background_pacing, S6BackgroundPacingCertificationDenial,
+    certify_io_qos_background_pacing, S6BackgroundPacingCertificationDenial,
     S6BackgroundPacingCertificationEvidence, S6BackgroundPacingOutcomeKind,
 };
 pub use closeout::*;
 pub use flush_durability::S6FlushDurabilityEvidenceRow;
 pub use foreground_reservation::{
-    certify_s6_foreground_reservation, S6ForegroundReservationCertificationDenial,
+    certify_io_qos_foreground_reservation, S6ForegroundReservationCertificationDenial,
     S6ForegroundReservationCertificationEvidence,
 };
 pub(crate) use io_qos_readiness_handoff::verify_executed_closeout_handoff_admissible;

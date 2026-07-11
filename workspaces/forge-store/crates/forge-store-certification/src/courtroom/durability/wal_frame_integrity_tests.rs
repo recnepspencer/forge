@@ -15,7 +15,7 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn intact_wal_frame_independent_reads_produce_same_report_and_s4_input_identity() {
+fn intact_wal_frame_independent_reads_produce_same_report_and_recovery_input_identity() {
     let first = inspect_intact_wal_frame();
     let second = inspect_intact_wal_frame();
     let first_record = vetted_wal_frame(&first);
@@ -137,7 +137,7 @@ fn checkpoint_adjacent_intact_input_has_distinct_checkpoint_report_without_repla
             let request =
                 WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
             report = Some(
-                WalFrameIntegrityAuthority::s3()
+                WalFrameIntegrityAuthority::new()
                     .inspect_checkpoint_adjacent(request)
                     .unwrap(),
             );
@@ -163,7 +163,7 @@ fn non_checkpoint_adjacent_wal_frame_cannot_mint_checkpoint_record_report() {
             let request =
                 WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
             denial = Some(
-                WalFrameIntegrityAuthority::s3()
+                WalFrameIntegrityAuthority::new()
                     .inspect_checkpoint_adjacent(request)
                     .unwrap_err(),
             );
@@ -187,7 +187,7 @@ fn inspect_intact_wal_frame() -> forge_store_physical_integrity::WalFrameIntegri
         |input| {
             let request =
                 WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
-            report = Some(WalFrameIntegrityAuthority::s3().inspect(request).unwrap());
+            report = Some(WalFrameIntegrityAuthority::new().inspect(request).unwrap());
         },
     );
     report.unwrap()
@@ -224,7 +224,7 @@ fn inspect_denial_with_adjacency(
     with_wal_frame_input(payload, adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         denial = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );

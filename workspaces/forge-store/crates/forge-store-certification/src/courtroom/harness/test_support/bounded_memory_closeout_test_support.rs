@@ -124,10 +124,10 @@ pub(crate) fn operation_reports(
     ]
 }
 
-pub(crate) fn s2_readiness() -> PhysicalSubstrateReadiness {
+pub(crate) fn physical_substrate_readiness() -> PhysicalSubstrateReadiness {
     prove_physical_substrate_readiness(
         close_physical_substrate_readiness(
-            AcceptedHandoffReadiness::from_s0_artifacts(
+            AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(
                     StableDigest::new("sha256:bounded-memory-backend").unwrap(),

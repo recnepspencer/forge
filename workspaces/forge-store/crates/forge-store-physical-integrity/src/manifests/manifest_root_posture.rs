@@ -42,10 +42,10 @@ pub(crate) fn admit_root_posture<'a>(
             root,
             root_admission,
         } => {
-            let discovery = ManifestDiscoveryAuthority::s1()
+            let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format()
                 .reopen_from_root(root, *root_admission)
                 .map_err(|denial| root_discovery_denial(denial, counters))?;
-            let validation = PhysicalReferenceAuthority::s1()
+            let validation = PhysicalReferenceAuthority::for_canonical_physical_format()
                 .validate_root_publication(*root_admission, root.root_publication())
                 .map_err(|denial| {
                     ManifestIntegrityDenial::new(
@@ -113,7 +113,7 @@ fn posture_from_first_page_membership(
     root: &PhysicalRootManifest,
 ) -> Option<RootManifestIntegrityPosture> {
     let slot = root.page_slots().first()?.page_slot();
-    let owner = PhysicalGenerationAuthority::s1()
+    let owner = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(slot.segment_id(), slot.page_id())
         .with_page_generation(slot.generation());
     let scope = PhysicalReferenceScope::manifest_page(owner);
@@ -126,7 +126,7 @@ fn posture_from_first_extent_membership(
     root: &PhysicalRootManifest,
 ) -> Option<RootManifestIntegrityPosture> {
     let extent = root.extents().first()?.extent();
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let validation = references
         .validate_extent(references.admit_extent(extent), extent)
         .ok()?;

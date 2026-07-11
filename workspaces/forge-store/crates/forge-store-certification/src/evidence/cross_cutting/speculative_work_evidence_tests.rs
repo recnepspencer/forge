@@ -123,7 +123,7 @@ fn speculative_work_evidence_accepts_denial_before_scheduling() {
 }
 
 #[test]
-fn speculative_work_evidence_rejects_unsupported_qos_as_s2_denial_proof() {
+fn speculative_work_evidence_rejects_unsupported_qos_as_physical_substrate_denial_proof() {
     let mut admission = SpeculativePhysicalWorkAdmission::new();
     let denial = admission.reject_unsupported_qos_claim();
 
@@ -175,7 +175,7 @@ mod speculative_work_evidence_tests_support {
 
     pub fn resident_frame_table() -> ResidentFrameTable {
         let readiness = prove_physical_substrate_readiness(
-            close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+            close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
         )
         .unwrap();
         let budget = BufferPoolBudget::declare(
@@ -212,7 +212,7 @@ mod speculative_work_evidence_tests_support {
         page_value: u64,
         frame_bytes: &[u8],
     ) -> ResidentFrameLoadRequest {
-        ResidentFrameLoadRequest::from_s1_physical_frame(
+        ResidentFrameLoadRequest::from_physical_format_physical_frame(
             validated_slot_reference(generation_value, page_value),
             frame_header_witness(generation_value, page_value, frame_bytes),
         )
@@ -223,8 +223,8 @@ mod speculative_work_evidence_tests_support {
         generation_value: u64,
         page_value: u64,
     ) -> PhysicalReferenceValidationWitness {
-        let generations = PhysicalGenerationAuthority::s1();
-        let references = PhysicalReferenceAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
         let cell = generations
             .slot_cell(segment(1), page(page_value), slot(3))
             .with_slot_generation(generation(generation_value));
@@ -248,7 +248,7 @@ mod speculative_work_evidence_tests_support {
     }
 
     fn header_authority() -> PhysicalHeaderAuthority {
-        PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+        PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
     }
 
     fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
@@ -265,8 +265,8 @@ mod speculative_work_evidence_tests_support {
         bytes
     }
 
-    fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-        AcceptedHandoffReadiness::from_s0_artifacts(
+    fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+        AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
             ROADMAP_2_S1_SCOPE,
             HandoffEvidenceDigestSet::new(
                 digest("backend"),

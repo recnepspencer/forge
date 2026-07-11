@@ -49,9 +49,9 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
     assert_eq!(facade.counters().root_publications(), 1);
     assert_eq!(facade.counters().scans(), 1);
 
-    let mut reopened = PlatformPhysicalFacade::reopen_s1(
+    let mut reopened = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         published.replay_artifact(),
     )
     .expect("reopen through verifier");
@@ -106,11 +106,11 @@ fn reopen_rejects_ambiguous_root_candidates_without_guessing() {
         builder = builder.extent(extent.clone());
     }
 
-    let denial = PlatformPhysicalFacade::reopen_s1(
+    let denial = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
-            PlatformPhysicalOpenRequest::s1_canonical()
+            PlatformPhysicalOpenRequest::physical_format_canonical()
                 .headers()
                 .clone(),
             builder.build(),
@@ -214,12 +214,12 @@ fn forbidden_shortcuts_are_typed_and_counted() {
 }
 
 fn open_facade() -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
         .expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 
@@ -240,13 +240,13 @@ fn digest(name: &str) -> StableDigest {
 }
 
 fn slot_cell() -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(1), slot(1))
         .with_slot_generation(generation(5))
 }
 
 fn extent_cell() -> ExtentGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(segment(1), PhysicalExtentId::from_raw(1).unwrap())
         .with_extent_generation(generation(7))
 }

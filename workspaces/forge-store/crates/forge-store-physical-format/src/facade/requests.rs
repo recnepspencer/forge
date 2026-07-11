@@ -13,9 +13,9 @@ impl PlatformPhysicalOpenRequest {
         Self { headers }
     }
 
-    pub fn s1_canonical() -> Self {
-        Self::new(PhysicalHeaderAuthority::s1(
-            PhysicalBinaryEncodingWitness::s1_canonical()
+    pub fn physical_format_canonical() -> Self {
+        Self::new(PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical()
                 .expect("canonical S.1 binary format is admitted"),
         ))
     }

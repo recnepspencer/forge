@@ -91,7 +91,7 @@ impl BaselineBTreeExecutionWitness {
         } else {
             (BaselineBTreeLookupBranch::Right, node.right_child())
         };
-        let selected_reference = PhysicalReferenceAuthority::s1()
+        let selected_reference = PhysicalReferenceAuthority::for_canonical_physical_format()
             .admit_page_slot(selected_cell)
             .reference();
         facade.page_access().locate_record(selected_reference)?;
@@ -229,7 +229,7 @@ fn read_leaf(
     facade: &mut PlatformPhysicalFacade,
     cell: SlotGenerationCell,
 ) -> Result<super::BaselineBTreeLeafRecord, BaselineBTreeExecutionDenial> {
-    let reference = PhysicalReferenceAuthority::s1()
+    let reference = PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference();
     let mut page_access = facade.page_access();
@@ -242,6 +242,6 @@ fn reopen_facade(
     readiness: AcceptedHandoffReadiness,
     replay_artifact: &PlatformPhysicalReplayArtifact,
 ) -> Result<PlatformPhysicalFacade, BaselineBTreeExecutionDenial> {
-    let request = PlatformPhysicalOpenRequest::s1_canonical();
-    Ok(replay_artifact.reopen_s1(readiness, request)?)
+    let request = PlatformPhysicalOpenRequest::physical_format_canonical();
+    Ok(replay_artifact.reopen_physical_format(readiness, request)?)
 }

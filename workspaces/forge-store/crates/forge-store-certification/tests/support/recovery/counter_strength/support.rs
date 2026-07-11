@@ -211,29 +211,29 @@ pub(crate) fn compaction_observation() -> CompactionInterlockObservation {
     compaction_interlock_trace::store_compaction_observation()
 }
 
-pub(crate) fn lower_s5_plan() -> PhysicalSimulationPlan {
-    lower_s5_plan_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
+pub(crate) fn lower_physical_isolation_plan() -> PhysicalSimulationPlan {
+    lower_physical_isolation_plan_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
 }
 
-pub(crate) fn lower_s5_plan_for_profile(
+pub(crate) fn lower_physical_isolation_plan_for_profile(
     profile: PhysicalSimulationProfile,
 ) -> PhysicalSimulationPlan {
-    lower_physical_simulation_plan(s5_scenario(), complete_context_for_profile(profile)).unwrap()
+    lower_physical_simulation_plan(physical_isolation_scenario(), complete_context_for_profile(profile)).unwrap()
 }
 
 pub(crate) fn lower_shortcut_plan() -> PhysicalSimulationPlan {
     lower_physical_simulation_plan(shortcut_scenario(), complete_context()).unwrap()
 }
 
-pub(crate) fn lower_s5_shortcut_plan() -> PhysicalSimulationPlan {
-    lower_physical_simulation_plan(s5_shortcut_scenario(), complete_context()).unwrap()
+pub(crate) fn lower_physical_isolation_shortcut_plan() -> PhysicalSimulationPlan {
+    lower_physical_simulation_plan(physical_isolation_shortcut_scenario(), complete_context()).unwrap()
 }
 
-pub(crate) fn lower_s5_shortcut_plan_for_profile(
+pub(crate) fn lower_physical_isolation_shortcut_plan_for_profile(
     profile: PhysicalSimulationProfile,
 ) -> PhysicalSimulationPlan {
     lower_physical_simulation_plan(
-        s5_shortcut_scenario(),
+        physical_isolation_shortcut_scenario(),
         complete_context_for_profile(profile),
     )
     .unwrap()
@@ -274,11 +274,11 @@ fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> Simulatio
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-pub(crate) fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
-    named_s5_scenario("store.physical.s45.phase8.counter-strength")
+pub(crate) fn physical_isolation_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
+    named_physical_isolation_scenario("store.physical.s45.phase8.counter-strength")
 }
 
-fn named_s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn named_physical_isolation_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
@@ -315,7 +315,7 @@ pub(crate) fn shortcut_scenario() -> forge_store_physical_certification::Certifi
         .unwrap()
 }
 
-pub(crate) fn s5_shortcut_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario
+pub(crate) fn physical_isolation_shortcut_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario
 {
     physical_scenario("store.physical.s45.phase8.executed-shortcut-counter")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)

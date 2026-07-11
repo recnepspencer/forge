@@ -16,7 +16,7 @@ use forge_store_test_support::{
 
 #[test]
 fn transcript_and_evidence_deny_missing_or_wrong_verdicts() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let trace = counter_support::observed_trace(&plan);
     let counter_receipt = counter_support::counter_receipt(&plan, trace.clone());
     let parts = ExecutedTranscriptParts::new(
@@ -53,7 +53,7 @@ fn transcript_and_evidence_deny_missing_or_wrong_verdicts() {
 
 #[test]
 fn transcript_denies_replay_only_verdict_when_plan_requires_another_oracle_family() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let trace = counter_support::observed_trace(&plan);
     let counter_receipt = counter_support::counter_receipt(&plan, trace.clone());
     let replay_only_parts = ExecutedTranscriptParts::new(
@@ -83,9 +83,9 @@ fn transcript_denies_replay_only_verdict_when_plan_requires_another_oracle_famil
 
 #[test]
 fn transcript_denies_oracle_verdicts_from_a_different_plan() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let alternate_plan =
-        counter_support::lower_s5_plan_for_profile(PhysicalSimulationProfile::CiCertification);
+        counter_support::lower_physical_isolation_plan_for_profile(PhysicalSimulationProfile::CiCertification);
     let alternate_trace = counter_support::observed_trace(&alternate_plan);
     let copied_verdict = ReusablePhysicalOracleFamily::transcript_replay_evidence()
         .oracle(TranscriptReplayOracle)
@@ -103,7 +103,7 @@ fn transcript_denies_oracle_verdicts_from_a_different_plan() {
 
 #[test]
 fn proof_light_transcript_replay_verdict_denies_without_replay_basis() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let trace = counter_support::observed_trace(&plan);
     let copied_shape_only_verdict = ReusablePhysicalOracleFamily::transcript_replay_evidence()
         .oracle(TranscriptReplayOracle)
@@ -124,10 +124,10 @@ fn proof_light_transcript_replay_verdict_denies_without_replay_basis() {
 
 #[test]
 fn transcript_denies_counter_receipts_admitted_for_a_different_plan() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let trace = counter_support::observed_trace(&plan);
     let alternate_plan =
-        counter_support::lower_s5_plan_for_profile(PhysicalSimulationProfile::CiCertification);
+        counter_support::lower_physical_isolation_plan_for_profile(PhysicalSimulationProfile::CiCertification);
     let alternate_receipt = counter_support::counter_receipt(
         &alternate_plan,
         counter_support::observed_trace(&alternate_plan),
@@ -147,7 +147,7 @@ fn transcript_denies_counter_receipts_admitted_for_a_different_plan() {
 
 #[test]
 fn transcript_denies_missing_seed_before_replay_bundle_exists() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let trace = counter_support::observed_trace(&plan);
     let fixture = production_fixture();
     let counter_receipt = counter_support::counter_receipt(&plan, trace.clone());

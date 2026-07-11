@@ -15,12 +15,12 @@ pub(crate) mod scenario_planned_work_evidence;
 mod sources;
 
 pub use adoption::{
-    adopt_materialized_s6_certification_evidence_for_closeout,
-    reject_materialized_s6_certification_as_runtime_authority,
+    adopt_materialized_io_qos_certification_evidence_for_closeout,
+    reject_materialized_io_qos_certification_as_runtime_authority,
     S6CertificationEvidenceAdoptionReceipt, S6CertificationRuntimeAuthorityDenial,
 };
 pub use bundle::{
-    materialize_s6_certification_evidence, S6MaterializedCertificationEvidenceBundle,
+    materialize_io_qos_certification_evidence, S6MaterializedCertificationEvidenceBundle,
 };
 pub use canonical::{S6CanonicalEvidenceBasis, S6CanonicalMaterializationDenial};
 pub use counter_strength::{

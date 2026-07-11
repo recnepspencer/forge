@@ -28,7 +28,7 @@ use physical_isolation::{
     physical_isolation_tier_movement_stability_shape,
 };
 use replay_requirements::{
-    physical_isolation_checkpoint_publication_crash_replay_shape, s4_recovery_shape,
+    physical_isolation_checkpoint_publication_crash_replay_shape, recovery_shape,
 };
 use shortcut_rejection::shortcut_rejection_shape;
 
@@ -117,7 +117,7 @@ impl RequiredSimulationPlanShape {
             (
                 PhysicalSimulationScenarioFamily::S4RecoveryDogfood,
                 PhysicalScenarioExpectationKind::S4RecoveryDogfood,
-            ) => s4_recovery_shape(actor_step_count),
+            ) => recovery_shape(actor_step_count),
             (
                 PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe,
                 PhysicalScenarioExpectationKind::PhysicalIsolationReadinessShapeProbe,

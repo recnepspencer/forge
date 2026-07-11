@@ -84,7 +84,7 @@ fn every_mismatched_resource_envelope_profile_denies_before_plan_identity() {
                 continue;
             }
             let denial = lower_physical_simulation_plan(
-                s5_scenario("store.physical.s45.phase8.profile-mismatch-matrix"),
+                physical_isolation_scenario("store.physical.s45.phase8.profile-mismatch-matrix"),
                 complete_context_for_profile(profile).with_resource_envelope(
                     PhysicalResourceEnvelope::for_profile(mismatched_profile),
                 ),
@@ -131,7 +131,7 @@ fn evidence_profile_mismatch_denies_after_plan_lowering_for_every_profile_pair()
 #[test]
 fn mismatched_resource_envelope_profile_denies_before_plan_identity() {
     let denial = lower_physical_simulation_plan(
-        s5_scenario("store.physical.s45.phase8.profile-mismatch"),
+        physical_isolation_scenario("store.physical.s45.phase8.profile-mismatch"),
         complete_context_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
             .with_resource_envelope(PhysicalResourceEnvelope::for_profile(
                 PhysicalSimulationProfile::CiCertification,
@@ -169,7 +169,7 @@ fn evidence_profile_mismatch_denies_after_plan_lowering() {
 
 fn lower_for_profile(profile: PhysicalSimulationProfile) -> PhysicalSimulationPlan {
     lower_physical_simulation_plan(
-        s5_scenario("store.physical.s45.phase8.profile-envelope"),
+        physical_isolation_scenario("store.physical.s45.phase8.profile-envelope"),
         complete_context_for_profile(profile),
     )
     .unwrap()
@@ -228,7 +228,7 @@ fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> Simulatio
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn physical_isolation_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)

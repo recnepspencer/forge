@@ -69,7 +69,7 @@ pub use compaction_interlock::{
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
 };
 pub use epoch::{
-    compare_physical_epoch_vectors_with_evidence, required_s5_ordering_contracts, ChunkEpoch,
+    compare_physical_epoch_vectors_with_evidence, required_physical_isolation_ordering_contracts, ChunkEpoch,
     EpochComparisonScope, EpochComparisonScopeMismatch, EpochRetryDecision,
     EpochStabilityScopeKind, ExtentEpoch, ExtentPublicationEpochBasis,
     FutureChunkPublicationEpochBasis, ManifestEpoch, PageEpoch, PagePublicationEpochBasis,
@@ -81,14 +81,14 @@ pub use epoch::{
     SegmentEpoch, SegmentPublicationEpochBasis, StalePhysicalReadPlanDenial,
 };
 pub use executed_isolation_evidence::{
-    reject_foundational_projection_as_s5_store_authority,
-    reject_log_or_json_projection_as_s5_store_authority,
-    reject_planned_or_support_projection_as_s5_store_authority,
+    reject_foundational_projection_as_physical_isolation_store_authority,
+    reject_log_or_json_projection_as_physical_isolation_store_authority,
+    reject_planned_or_support_projection_as_physical_isolation_store_authority,
     reject_projection_as_latch_order_proof_authority,
     reject_projection_as_physical_epoch_basis_authority,
     reject_projection_as_reclaim_eligibility_proof_authority,
     reject_projection_as_stable_physical_read_plan_authority,
-    reject_proof_projection_as_s5_store_authority, PhysicalIsolationEvidenceProfile,
+    reject_proof_projection_as_physical_isolation_store_authority, PhysicalIsolationEvidenceProfile,
     ProjectionArtifactKind, ProjectionAuthorityDenial, S5IsolationEvidenceRichness,
     StorePhysicalAuthoritySurface,
 };
@@ -186,7 +186,7 @@ pub use readiness::{
     reject_semantic_snapshot_as_physical_isolation_entry,
     reject_stale_recovery_readiness_as_physical_isolation_entry,
     reject_terminal_projection_as_physical_isolation_entry,
-    require_rebound_s4_recovery_readiness_for_physical_isolation_entry,
+    require_rebound_recovery_readiness_for_physical_isolation_entry,
     PhysicalIsolationAdmittedEntryRecipe, PhysicalIsolationEntryAdmission,
     PhysicalIsolationEntryCheckedOutcome, PhysicalIsolationEntryDenial,
     PhysicalIsolationEntryEvidence, PhysicalIsolationEntryFoundationalEvidence,

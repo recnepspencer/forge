@@ -172,7 +172,7 @@ pub fn execute_policy_with_observation(
 
 pub fn internal_security_scope() -> ReclaimPolicySecurityScope {
     ReclaimPolicySecurityScope::from_admitted_scope(
-        &forge_store_security::admitted_store_internal_security_scope_for_s6_test(),
+        &forge_store_security::admitted_store_internal_security_scope_for_io_qos_test(),
     )
 }
 
@@ -188,15 +188,15 @@ pub fn real_reachability_for_region(
     )
     .unwrap();
     let removal = proof.admit_reachability_removal().unwrap();
-    reachability_from_s5_removal(removal.lower_for_s6_reclaim_policy(region).unwrap(), region)
+    reachability_from_physical_isolation_removal(removal.lower_for_io_qos_reclaim_policy(region).unwrap(), region)
         .unwrap()
 }
 
-pub fn reachability_from_s5_removal(
+pub fn reachability_from_physical_isolation_removal(
     evidence: S6ReclaimReachabilityRemovalEvidence,
     requested_region: PhysicalReclaimRegion,
 ) -> Result<ReclaimPolicyReachabilityProof, ReclaimPolicyReachabilityDenial> {
-    ReclaimPolicyReachabilityProof::from_s5_reclaim_reachability_removal(evidence, requested_region)
+    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(evidence, requested_region)
 }
 
 pub fn admitted_backend() -> forge_store_physical_backend::AdmittedBackendCapabilityWitness {
@@ -233,14 +233,14 @@ pub fn region_for_generation(generation: u64) -> PhysicalReclaimRegion {
 }
 
 pub fn reference_for_generation(generation: u64) -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(17).unwrap(),
             PhysicalPageId::from_raw(23).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

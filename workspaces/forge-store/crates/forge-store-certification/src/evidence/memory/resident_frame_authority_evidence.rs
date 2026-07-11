@@ -62,7 +62,7 @@ pub enum ResidentFrameAuthorityEvidenceRow {
 }
 
 impl ResidentFrameAuthorityEvidenceRow {
-    pub const fn s2_phase_two_table_rows() -> &'static [Self] {
+    pub const fn physical_substrate_table_rows() -> &'static [Self] {
         &[
             Self::ResidentFrameTableAuthorityObserved,
             Self::ExactResidentByteAccounting,

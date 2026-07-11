@@ -111,7 +111,7 @@ pub(super) fn rewritten_root_for_certification_plan(
     plan: &CompactionReadInterlockPlan,
     rewritten_manifest_epoch: u64,
 ) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_s5_entry(
+    CurrentPhysicalRoot::from_physical_isolation_entry(
         CurrentPhysicalRootBasis::new(
             plan.target_epoch(),
             ManifestEpoch::from_admitted_physical_basis(rewritten_manifest_epoch),
@@ -127,11 +127,11 @@ fn root_validation_for_certification_root(
     let root_reference =
         PhysicalRootReference::from_raw(root.scope()).expect("nonzero root reference");
     let generation = PhysicalGeneration::from_raw(root.scope()).expect("nonzero generation");
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(root_reference)
         .with_root_publication_generation(generation);
-    let admission = PhysicalReferenceAuthority::s1().admit_root_publication(cell);
-    PhysicalReferenceAuthority::s1()
+    let admission = PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(cell);
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .validate_root_publication(admission, cell)
         .expect("root publication validation should admit")
 }

@@ -1,18 +1,18 @@
 use super::closeout::S8LayoutCloseoutEvidenceLane;
 use super::scenario::{
-    all_s8_layout_scenarios, canonical_s8_layout_production_apis,
-    canonical_s8_layout_required_transitions, canonical_s8_layout_shortcut_denials,
-    canonical_s8_layout_supported_scenarios, layout_scenario, S8LayoutProductionApi,
+    all_layout_index_layout_scenarios, canonical_layout_index_layout_production_apis,
+    canonical_layout_index_layout_required_transitions, canonical_layout_index_layout_shortcut_denials,
+    canonical_layout_index_layout_supported_scenarios, layout_scenario, S8LayoutProductionApi,
     S8LayoutScenarioKind, S8LayoutTransitionState,
 };
-use super::scenario_inventory::verify_canonical_s8_layout_scenario_inventory;
+use super::scenario_inventory::verify_canonical_layout_index_layout_scenario_inventory;
 use super::shortcut_denials::S8LayoutShortcutDenialKind;
 use super::transcripts::S8LayoutTranscriptKind;
 
 #[test]
-fn canonical_s8_layout_aggregate_vocabulary_matches_scenario_inventory() {
+fn canonical_layout_index_layout_aggregate_vocabulary_matches_scenario_inventory() {
     assert_eq!(
-        canonical_s8_layout_supported_scenarios(),
+        canonical_layout_index_layout_supported_scenarios(),
         &[
             S8LayoutScenarioKind::LayoutDeclarationInventory,
             S8LayoutScenarioKind::AccessShapeDenial,
@@ -25,7 +25,7 @@ fn canonical_s8_layout_aggregate_vocabulary_matches_scenario_inventory() {
         ]
     );
     assert_eq!(
-        canonical_s8_layout_production_apis(),
+        canonical_layout_index_layout_production_apis(),
         &[
             S8LayoutProductionApi::LayoutFamilies,
             S8LayoutProductionApi::LayoutStrategyAdmission,
@@ -38,7 +38,7 @@ fn canonical_s8_layout_aggregate_vocabulary_matches_scenario_inventory() {
         ]
     );
     assert_eq!(
-        canonical_s8_layout_required_transitions(),
+        canonical_layout_index_layout_required_transitions(),
         &[
             S8LayoutTransitionState::Declared,
             S8LayoutTransitionState::Admitted,
@@ -52,7 +52,7 @@ fn canonical_s8_layout_aggregate_vocabulary_matches_scenario_inventory() {
         ]
     );
     assert_eq!(
-        canonical_s8_layout_shortcut_denials(),
+        canonical_layout_index_layout_shortcut_denials(),
         &[
             S8LayoutShortcutDenialKind::SyntheticFixtureAuthority,
             S8LayoutShortcutDenialKind::BroadScanMasqueradingAsPointLookup,
@@ -65,8 +65,8 @@ fn canonical_s8_layout_aggregate_vocabulary_matches_scenario_inventory() {
 }
 
 #[test]
-fn every_s8_layout_scenario_binds_a_complete_canonical_contract() {
-    for scenario in all_s8_layout_scenarios() {
+fn every_layout_index_layout_scenario_binds_a_complete_canonical_contract() {
+    for scenario in all_layout_index_layout_scenarios() {
         assert!(!scenario.production_apis().is_empty());
         assert!(!scenario.actors().is_empty());
         assert!(!scenario.faults().is_empty());
@@ -79,8 +79,8 @@ fn every_s8_layout_scenario_binds_a_complete_canonical_contract() {
 }
 
 #[test]
-fn canonical_s8_layout_inventory_receipt_covers_the_whole_phase_contract() {
-    let receipt = verify_canonical_s8_layout_scenario_inventory()
+fn canonical_layout_index_layout_inventory_receipt_covers_the_whole_phase_contract() {
+    let receipt = verify_canonical_layout_index_layout_scenario_inventory()
         .expect("canonical S.8 layout inventory should verify");
     assert_eq!(receipt.scenario_count(), 8);
     assert_eq!(receipt.coverage_rows(), 8);
@@ -96,7 +96,7 @@ fn canonical_s8_layout_inventory_receipt_covers_the_whole_phase_contract() {
 }
 
 #[test]
-fn s8_layout_scenarios_bind_expected_transcripts_and_closeout_lanes() {
+fn layout_index_layout_scenarios_bind_expected_transcripts_and_closeout_lanes() {
     assert_scenario_contract(
         S8LayoutScenarioKind::LayoutDeclarationInventory,
         S8LayoutTranscriptKind::ScenarioTranscript,

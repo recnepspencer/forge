@@ -28,7 +28,7 @@ pub struct SecurityScopeOracleVerdict {
     scenario: SecurityScopeHarnessScenario,
     outcome: SecurityScopeHarnessOutcomeKind,
     satisfied: bool,
-    no_s11_claim: bool,
+    no_operator_authorization_claim: bool,
 }
 
 impl SecurityScopeHarnessObservation {
@@ -96,7 +96,7 @@ impl SecurityScopeOracleVerdict {
             scenario,
             outcome,
             satisfied: expected_outcome_for(scenario.failure_kind()) == outcome,
-            no_s11_claim: true,
+            no_operator_authorization_claim: true,
         }
     }
 
@@ -112,8 +112,8 @@ impl SecurityScopeOracleVerdict {
         self.satisfied
     }
 
-    pub const fn no_s11_claim(self) -> bool {
-        self.no_s11_claim
+    pub const fn no_operator_authorization_claim(self) -> bool {
+        self.no_operator_authorization_claim
     }
 }
 

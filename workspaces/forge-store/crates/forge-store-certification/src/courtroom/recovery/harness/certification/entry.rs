@@ -11,8 +11,8 @@ pub struct RecoveryPhysicsRoadmap2HarnessCertification {
 }
 
 impl RecoveryPhysicsRoadmap2HarnessCertification {
-    pub fn certify_s4_ci() -> Result<Self, RecoveryPhysicsRoadmap2HarnessDenial> {
-        let crash_matrix = RecoveryPhysicsCrashMatrix::roadmap_2_s4().lower()?;
+    pub fn certify_recovery_ci() -> Result<Self, RecoveryPhysicsRoadmap2HarnessDenial> {
+        let crash_matrix = RecoveryPhysicsCrashMatrix::recovery_crash_matrix().lower()?;
         let certification_matrix = RecoveryPhysicsCertificationMatrix::certify(crash_matrix)?;
         let mutation_evidence =
             RecoveryPhysicsMutationSuiteEvidence::from_certification(&certification_matrix)?;

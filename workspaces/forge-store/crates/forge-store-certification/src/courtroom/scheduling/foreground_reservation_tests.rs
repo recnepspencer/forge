@@ -3,14 +3,14 @@ use forge_store_io_scheduler::foreground_reservation::{
     admitted_range_read_reservation_for_certification_test, ForegroundReservationState,
 };
 
-use crate::{certify_s6_foreground_reservation, S6ForegroundReservationCertificationDenial};
+use crate::{certify_io_qos_foreground_reservation, S6ForegroundReservationCertificationDenial};
 
 #[test]
-fn s6_foreground_reservation_certification_preserves_exact_receipt_fields() {
+fn io_qos_foreground_reservation_certification_preserves_exact_receipt_fields() {
     let receipt = admitted_point_read_reservation_for_certification_test();
     let expected = admitted_point_read_reservation_for_certification_test();
 
-    let evidence = certify_s6_foreground_reservation(receipt, expected)
+    let evidence = certify_io_qos_foreground_reservation(receipt, expected)
         .expect("matching Store reservation receipt should certify");
 
     assert_eq!(
@@ -36,12 +36,12 @@ fn s6_foreground_reservation_certification_preserves_exact_receipt_fields() {
 }
 
 #[test]
-fn s6_foreground_reservation_certification_denies_mismatched_receipts() {
+fn io_qos_foreground_reservation_certification_denies_mismatched_receipts() {
     let receipt = admitted_point_read_reservation_for_certification_test();
     let mismatched = admitted_range_read_reservation_for_certification_test();
 
     assert_eq!(
-        certify_s6_foreground_reservation(receipt, mismatched),
+        certify_io_qos_foreground_reservation(receipt, mismatched),
         Err(S6ForegroundReservationCertificationDenial::ReceiptMismatch)
     );
 }

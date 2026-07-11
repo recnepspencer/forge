@@ -34,10 +34,10 @@ pub struct S8LayoutExecutedScenarioWitness {
     executed_access: S8ExecutedAccessReceipt,
 }
 
-pub fn admit_s8_layout_exact_counter_execution(
+pub fn admit_layout_index_layout_exact_counter_execution(
     executed_access: S8ExecutedAccessReceipt,
 ) -> Result<S8LayoutExecutedScenarioWitness, S8LayoutExecutionAdmissionDenial> {
-    admit_s8_layout_executed_scenario(
+    admit_layout_index_layout_executed_scenario(
         layout_scenario(S8LayoutScenarioKind::ExactCounter),
         executed_access,
     )
@@ -64,7 +64,7 @@ impl S8LayoutExecutedScenarioWitness {
     }
 }
 
-fn admit_s8_layout_executed_scenario(
+fn admit_layout_index_layout_executed_scenario(
     definition: S8LayoutScenarioDefinition,
     executed_access: S8ExecutedAccessReceipt,
 ) -> Result<S8LayoutExecutedScenarioWitness, S8LayoutExecutionAdmissionDenial> {

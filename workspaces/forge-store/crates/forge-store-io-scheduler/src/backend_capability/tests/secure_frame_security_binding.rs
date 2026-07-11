@@ -1,5 +1,5 @@
 use forge_store_physical_backend::{BackendCapabilityKind, BackendCapabilitySupportPosture};
-use forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test;
+use forge_store_security::admitted_wrong_io_qos_security_scope_for_test;
 
 use super::support::{
     assert_evidence_denial, externally_guaranteed_witness, valid_security_scope,
@@ -50,8 +50,8 @@ fn secure_frame_claim_admits_through_security_scope_handoff() {
 }
 
 #[test]
-fn secure_frame_claim_rejects_wrong_s5_1_scope_identity() {
-    let security_scope = admitted_wrong_s6_io_qos_security_scope_for_test();
+fn secure_frame_claim_rejects_wrong_security_scope_identity() {
+    let security_scope = admitted_wrong_io_qos_security_scope_for_test();
     let denial = crate::admit_security_scope_for_scheduler(&security_scope)
         .expect_err("wrong admitted security identity must not enter scheduler use");
 

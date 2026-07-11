@@ -15,7 +15,7 @@ use crate::{
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
-pub fn admitted_store_internal_security_scope_for_s6_test() -> StoreAdmittedSecurityScope {
+pub fn admitted_store_internal_security_scope_for_io_qos_test() -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::StoreManagedRoot,
         StoreTenantScope::StoreInternal,
@@ -40,7 +40,7 @@ pub fn admitted_security_scope_for_identity_for_test(
     )
 }
 
-pub fn admitted_wrong_s6_io_qos_security_scope_for_test() -> StoreAdmittedSecurityScope {
+pub fn admitted_wrong_io_qos_security_scope_for_test() -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -53,12 +53,12 @@ pub fn admitted_wrong_s6_io_qos_security_scope_for_test() -> StoreAdmittedSecuri
 
 pub fn admitted_store_managed_root_security_scope_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
-    admitted_store_internal_security_scope_for_s6_test()
+    admitted_store_internal_security_scope_for_io_qos_test()
 }
 
 pub fn admitted_tenant_page_security_scope_for_layout_partition_test() -> StoreAdmittedSecurityScope
 {
-    admitted_wrong_s6_io_qos_security_scope_for_test()
+    admitted_wrong_io_qos_security_scope_for_test()
 }
 
 pub fn admitted_tenant_artifact_security_scope_for_layout_partition_test(

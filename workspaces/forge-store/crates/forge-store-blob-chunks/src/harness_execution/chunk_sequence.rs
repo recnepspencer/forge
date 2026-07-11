@@ -111,7 +111,7 @@ pub(super) fn chunk_window_for_ordinal(
     )
 }
 
-fn phase22_execution_topology(
+fn blob_harness_execution_topology(
     declared_topology: BlobHarnessChunkTopology,
 ) -> BlobHarnessChunkTopology {
     const HEAVY_DECLARED_EXECUTION_THRESHOLD: u64 = 1024 * 1024 * 1024;
@@ -136,7 +136,7 @@ fn execution_topology(
 ) -> BlobHarnessChunkTopology {
     heavy_fixture_plan
         .map(HeavyBlobFixturePlan::topology)
-        .unwrap_or_else(|| phase22_execution_topology(declared_topology))
+        .unwrap_or_else(|| blob_harness_execution_topology(declared_topology))
 }
 
 fn begin_temp_materialization(
@@ -204,8 +204,8 @@ fn deterministic_chunk_bytes(
     match pattern {
         DeterministicBytePatternProfile::CanonicalMixed => (0..len)
             .map(|index| {
-                let pattern = DeterministicBytePatternProfile::canonical_phase23_patterns()
-                    [index % DeterministicBytePatternProfile::canonical_phase23_patterns().len()];
+                let pattern = DeterministicBytePatternProfile::canonical_heavy_blob_patterns()
+                    [index % DeterministicBytePatternProfile::canonical_heavy_blob_patterns().len()];
                 patterned_byte(pattern, seed, index, len)
             })
             .collect(),

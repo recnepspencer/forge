@@ -21,12 +21,12 @@ use forge_store_tiering::ColdTierIoPosture;
 use reclaim_support::{
     admitted_backend, admitted_policy_for_region, backend_without_reclaim_posture,
     base_real_chain_request, execute_policy_with_observation, internal_security_scope,
-    reachability_from_s5_removal, real_reachability_for_region, region_for_generation,
+    reachability_from_physical_isolation_removal, real_reachability_for_region, region_for_generation,
     S6ReclaimFixture,
 };
 
 #[test]
-fn reclaim_policy_consumes_real_s5_reachability_removal() {
+fn reclaim_policy_consumes_real_physical_isolation_reachability_removal() {
     let generation = 333;
     let region = region_for_generation(generation);
     let reachability = real_reachability_for_region(generation, region);
@@ -77,7 +77,7 @@ fn reclaim_policy_consumes_real_s5_reachability_removal() {
 }
 
 #[test]
-fn reclaim_policy_executes_distinct_byte_interpretations_through_real_s5_removal() {
+fn reclaim_policy_executes_distinct_byte_interpretations_through_real_physical_isolation_removal() {
     let cases = [
         ReclaimedByteInterpretation::PhysicalZeros,
         ReclaimedByteInterpretation::LogicalHole,
@@ -107,7 +107,7 @@ fn reclaim_policy_executes_distinct_byte_interpretations_through_real_s5_removal
 }
 
 #[test]
-fn reclaim_policy_denies_region_not_covered_by_s5_reachability_removal() {
+fn reclaim_policy_denies_region_not_covered_by_physical_isolation_reachability_removal() {
     let world = S6ReclaimFixture::new(337);
     let proof = ReclaimEligibilityProof::admit(
         world.executed_reachability(),
@@ -119,9 +119,9 @@ fn reclaim_policy_denies_region_not_covered_by_s5_reachability_removal() {
     let wrong_region = region_for_generation(338);
 
     assert_eq!(
-        reachability_from_s5_removal(
+        reachability_from_physical_isolation_removal(
             removal
-                .lower_for_s6_reclaim_policy(region_for_generation(337))
+                .lower_for_io_qos_reclaim_policy(region_for_generation(337))
                 .unwrap(),
             wrong_region,
         )
@@ -144,8 +144,8 @@ fn reclaim_policy_denies_same_owner_region_reuse() {
     let removal = proof.admit_reachability_removal().unwrap();
 
     assert_eq!(
-        reachability_from_s5_removal(
-            removal.lower_for_s6_reclaim_policy(region).unwrap(),
+        reachability_from_physical_isolation_removal(
+            removal.lower_for_io_qos_reclaim_policy(region).unwrap(),
             different_region,
         )
         .unwrap_err(),
@@ -154,7 +154,7 @@ fn reclaim_policy_denies_same_owner_region_reuse() {
 }
 
 #[test]
-fn reclaim_policy_denies_live_hazard_before_s6_admission_exists() {
+fn reclaim_policy_denies_live_hazard_before_io_qos_admission_exists() {
     let world = S6ReclaimFixture::new(441);
     let proof =
         ReclaimEligibilityProof::admit(world.executed_reachability(), world.live_hazard_snapshot())
@@ -215,7 +215,7 @@ fn reclaim_policy_reports_real_chain_execution_scope_and_handoff_violations() {
     let region = region_for_generation(443);
     let wrong_region = region_for_generation(444);
     let wrong_scope = ReclaimPolicySecurityScope::from_admitted_scope(
-        &forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test(),
+        &forge_store_security::admitted_wrong_io_qos_security_scope_for_test(),
     );
 
     let wrong_region_violation = execute_policy_with_observation(

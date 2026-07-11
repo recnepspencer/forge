@@ -111,7 +111,7 @@ fn whole_object_scalar_missing_counter_and_envelope_shortcuts_are_denied() {
 
 #[test]
 fn pressure_violation_denies_before_blob_ingest_consumes_source_frames() {
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
         true,
@@ -206,7 +206,7 @@ fn backend_writer_payload_must_match_pending_source_bytes() {
 
 #[test]
 fn blob_ingest_pressure_admits_against_wal_foreground_reservation() {
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_wal_write_background_capacity_for_certification_test(background_budget()),
         1,
         false,
@@ -329,7 +329,7 @@ fn allocation_receipt_and_envelope(
 }
 
 fn pressure_admission() -> BlobStreamingPressureAdmission {
-    BlobStreamingPressureAdmission::from_s6_background_capacity(
+    BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
         false,

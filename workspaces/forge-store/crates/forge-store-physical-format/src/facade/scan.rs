@@ -78,7 +78,7 @@ pub(crate) fn verify_persisted_layout_for_scan(
     storage: &PlatformPhysicalFacadeStorage,
     headers: &PhysicalHeaderAuthority,
 ) -> Result<MinimalManifestVerifierReport, PlatformPhysicalFacadeDenial> {
-    OfflinePhysicalVerifier::s1(headers.clone())
+    OfflinePhysicalVerifier::for_canonical_physical_format(headers.clone())
         .verify(&storage.persisted_layout())
         .map_err(map_verifier_denial_for_reopen)
 }

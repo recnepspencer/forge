@@ -10,17 +10,17 @@ pub struct DirtyPublicationEvidence {
     dirty_identity: DirtyPageIdentity,
     page_generation: PageGenerationCell,
     page_lsn: PageLsn,
-    s2_dirty_counters: DirtyPageCounterSnapshot,
+    physical_substrate_dirty_counters: DirtyPageCounterSnapshot,
     counters: PageLsnPublicationCounterSnapshot,
 }
 
 impl DirtyPublicationEvidence {
-    pub fn from_s2_publication(receipt: DirtyPublicationReceipt, page_lsn: PageLsn) -> Self {
+    pub fn from_physical_substrate_publication(receipt: DirtyPublicationReceipt, page_lsn: PageLsn) -> Self {
         Self {
             dirty_identity: receipt.dirty_identity(),
             page_generation: receipt.page_generation(),
             page_lsn,
-            s2_dirty_counters: receipt.counters(),
+            physical_substrate_dirty_counters: receipt.counters(),
             counters: PageLsnPublicationCounterSnapshot::empty().with_dirty_publication_evidence(),
         }
     }
@@ -37,8 +37,8 @@ impl DirtyPublicationEvidence {
         self.page_lsn
     }
 
-    pub const fn s2_dirty_counters(&self) -> DirtyPageCounterSnapshot {
-        self.s2_dirty_counters
+    pub const fn physical_substrate_dirty_counters(&self) -> DirtyPageCounterSnapshot {
+        self.physical_substrate_dirty_counters
     }
 
     pub const fn counters(&self) -> PageLsnPublicationCounterSnapshot {

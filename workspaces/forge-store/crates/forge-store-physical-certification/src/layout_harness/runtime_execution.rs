@@ -31,7 +31,7 @@ pub fn execute_layout_runtime_observations(
 pub fn execute_core_physical_append() -> Result<LayoutRuntimeEvidence, LayoutRuntimeExecutionDenial>
 {
     let mut facade = open_core_physical_facade()?;
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1)
                 .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)?,
@@ -70,7 +70,7 @@ pub fn execute_core_physical_hidden_scan_denial(
 fn open_core_physical_facade() -> Result<PlatformPhysicalFacade, LayoutRuntimeExecutionDenial> {
     let digest = StableDigest::new("sha256:layout-runtime")
         .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)?;
-    let readiness = AcceptedHandoffReadiness::from_s0_artifacts(
+    let readiness = AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest.clone(),
@@ -83,7 +83,7 @@ fn open_core_physical_facade() -> Result<PlatformPhysicalFacade, LayoutRuntimeEx
         ),
     )
     .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)?;
-    PlatformPhysicalFacade::open_s1(readiness, PlatformPhysicalOpenRequest::s1_canonical())
+    PlatformPhysicalFacade::open_physical_format(readiness, PlatformPhysicalOpenRequest::physical_format_canonical())
         .map_err(|_| LayoutRuntimeExecutionDenial::PhysicalFacade)
 }
 

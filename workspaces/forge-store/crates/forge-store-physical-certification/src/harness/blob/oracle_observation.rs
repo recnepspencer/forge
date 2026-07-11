@@ -79,7 +79,7 @@ impl BlobHarnessOracleObservation {
                 evidence
                     .expected_digest_basis()
                     .byte_pattern_profile()
-                    .is_canonical_phase23_pattern()
+                    .is_canonical_pattern()
             })
             .unwrap_or(true);
         Some(Self {

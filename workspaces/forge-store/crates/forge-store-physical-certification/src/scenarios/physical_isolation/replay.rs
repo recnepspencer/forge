@@ -27,7 +27,7 @@ pub fn assemble_physical_isolation_replay_bundle(
     let parts =
         ExecutedTranscriptParts::new(plan, schedule, fixture, trace.clone(), counter_receipt)
             .unwrap()
-            .with_faults(s5_fault_events(expected_fault))
+            .with_faults(physical_isolation_fault_events(expected_fault))
             .with_oracle_verdict(physical_isolation_verdict(plan, &trace))
             .with_transcript_replay_verdict()
             .unwrap();
@@ -76,7 +76,7 @@ fn physical_isolation_verdict(
         .unwrap()
 }
 
-fn s5_fault_events(expected_fault: crate::PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
+fn physical_isolation_fault_events(expected_fault: crate::PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
     crate::physical_isolation_stable_read_plan_fault_event(expected_fault)
         .unwrap()
         .into_iter()

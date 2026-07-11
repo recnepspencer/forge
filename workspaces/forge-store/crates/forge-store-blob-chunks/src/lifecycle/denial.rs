@@ -34,7 +34,7 @@ pub const fn reject_copied_counters_as_lifecycle_receipt(
     BlobLifecycleDenial::CopiedCounterSnapshotRejected { counters }
 }
 
-pub const fn reject_s3_integrity_report_as_lifecycle_receipt<T>(_: &T) -> BlobLifecycleDenial {
+pub const fn reject_physical_integrity_report_as_lifecycle_receipt<T>(_: &T) -> BlobLifecycleDenial {
     BlobLifecycleDenial::S3IntegrityReportRejected
 }
 
@@ -46,6 +46,6 @@ pub const fn reject_imported_manifest_text_as_lifecycle_receipt(_: &str) -> Blob
     BlobLifecycleDenial::ImportedManifestTextRejected
 }
 
-pub fn reject_s6_placement_seed_as_lifecycle_receipt(_: impl Sized) -> BlobLifecycleDenial {
+pub fn reject_io_qos_placement_seed_as_lifecycle_receipt(_: impl Sized) -> BlobLifecycleDenial {
     BlobLifecycleDenial::S6PlacementSeedCarriesNoLifecycleAuthority
 }

@@ -5,38 +5,38 @@ use forge_store_recovery_physics::{
     WalRedoFrameMaterialization,
 };
 
-pub fn deterministic_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
+pub fn deterministic_recovery_artifacts() -> PersistedRecoveryArtifacts {
     materialized_artifacts("op-20")
 }
 
-pub fn s4_recovery_artifacts_with_operation_digest(
+pub fn recovery_artifacts_with_operation_digest(
     operation_digest: &str,
 ) -> PersistedRecoveryArtifacts {
     materialized_artifacts(operation_digest)
 }
 
-pub fn reordered_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
-    let artifacts = deterministic_s4_recovery_artifacts();
+pub fn reordered_recovery_artifacts() -> PersistedRecoveryArtifacts {
+    let artifacts = deterministic_recovery_artifacts();
     let mut records = artifacts.records().to_vec();
     records.reverse();
     artifacts_from_records(records)
 }
 
-pub fn runtime_disagreement_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
+pub fn runtime_disagreement_recovery_artifacts() -> PersistedRecoveryArtifacts {
     materialized_artifacts("corrupt-op-20")
 }
 
-pub fn runtime_state_mismatch_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
+pub fn runtime_state_mismatch_recovery_artifacts() -> PersistedRecoveryArtifacts {
     materialized_artifacts("op-21")
 }
 
-pub fn incomplete_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
-    let records = deterministic_s4_recovery_artifacts().records().to_vec();
+pub fn incomplete_recovery_artifacts() -> PersistedRecoveryArtifacts {
+    let records = deterministic_recovery_artifacts().records().to_vec();
     artifacts_from_records(vec![records[0].clone(), records[1].clone()])
 }
 
-pub fn duplicate_role_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
-    let records = deterministic_s4_recovery_artifacts().records().to_vec();
+pub fn duplicate_role_recovery_artifacts() -> PersistedRecoveryArtifacts {
+    let records = deterministic_recovery_artifacts().records().to_vec();
     artifacts_from_records(vec![
         records[0].clone(),
         record("wal-tail-20-a", b"wal:lsn=20;page=2;op=op-20;idem=idem-20"),
@@ -45,7 +45,7 @@ pub fn duplicate_role_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
     ])
 }
 
-pub fn malformed_s4_recovery_record(
+pub fn malformed_recovery_record(
 ) -> Result<RecoveryPersistedRecord, PersistedRecoveryArtifactDenial> {
     RecoveryPersistedRecord::from_persisted_bytes(
         "malformed-wal-tail",
@@ -63,7 +63,7 @@ fn materialization(operation_digest: &str) -> PersistedRecoveryArtifactMateriali
     PersistedRecoveryArtifactMaterialization::new(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
         CheckpointManifestMaterialization::new(
             "checkpoint-manifest",
             "alpha",
@@ -84,7 +84,7 @@ fn artifacts_from_records(records: Vec<RecoveryPersistedRecord>) -> PersistedRec
     PersistedRecoveryArtifacts::admit(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
         records,
     )
     .expect("test support emits valid persisted recovery artifacts")

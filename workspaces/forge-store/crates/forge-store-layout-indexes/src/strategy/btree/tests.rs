@@ -1,5 +1,5 @@
 #[test]
-fn phase_five_btree_invariants_cover_lookup_mutation_integrity_and_recovery() {
+fn btree_invariants_cover_lookup_mutation_integrity_and_recovery() {
     use crate::strategy::tests_support::admit_btree_page_strategy;
     use crate::{S8BTreeCorruptionRegion, S8BTreeLookupBranch};
 
@@ -42,6 +42,6 @@ fn btree_separator_corruption_is_denied() {
 }
 
 pub(crate) fn exercise_owner_outcome_cases() {
-    phase_five_btree_invariants_cover_lookup_mutation_integrity_and_recovery();
+    btree_invariants_cover_lookup_mutation_integrity_and_recovery();
     btree_separator_corruption_is_denied();
 }

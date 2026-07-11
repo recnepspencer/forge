@@ -21,7 +21,7 @@ pub struct PhysicalIsolationReadinessShapeProbeScenario {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulationHarnessDogfoodReport {
-    s4_recovery: S4RecoveryDogfoodScenario,
+    recovery: S4RecoveryDogfoodScenario,
     shortcut_rejection: ShortcutRejectionDogfoodScenario,
     physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
 }
@@ -102,19 +102,19 @@ impl PhysicalIsolationReadinessShapeProbeScenario {
 
 impl SimulationHarnessDogfoodReport {
     pub const fn new(
-        s4_recovery: S4RecoveryDogfoodScenario,
+        recovery: S4RecoveryDogfoodScenario,
         shortcut_rejection: ShortcutRejectionDogfoodScenario,
         physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
     ) -> Self {
         Self {
-            s4_recovery,
+            recovery,
             shortcut_rejection,
             physical_isolation_readiness_shape_probe,
         }
     }
 
-    pub const fn s4_recovery_slice(&self) -> &S4RecoveryDogfoodScenario {
-        &self.s4_recovery
+    pub const fn recovery_slice(&self) -> &S4RecoveryDogfoodScenario {
+        &self.recovery
     }
 
     pub const fn shortcut_rejection_slice(&self) -> &ShortcutRejectionDogfoodScenario {

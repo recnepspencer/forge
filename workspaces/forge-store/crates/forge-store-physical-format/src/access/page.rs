@@ -25,7 +25,7 @@ impl<'a> PageAccess<'a> {
         locate_page_record(
             self.facade.storage_ref(),
             self.facade.page_records_ref(),
-            PhysicalReferenceAuthority::s1(),
+            PhysicalReferenceAuthority::for_canonical_physical_format(),
             reference,
         )
     }
@@ -39,7 +39,7 @@ impl<'a> PageAccess<'a> {
         locate_page_record(
             self.facade.storage_ref(),
             self.facade.page_records_ref(),
-            PhysicalReferenceAuthority::s1(),
+            PhysicalReferenceAuthority::for_canonical_physical_format(),
             reference,
         )
     }

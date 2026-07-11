@@ -20,7 +20,7 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn phase21_recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
+fn recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
     let manifest = checkpoint_manifest();
     let locator_commitment = CheckpointLocatorArtifactCommitment::manifest_pointer(&manifest);
     let locator = StoreOwnedCheckpointLocator::admit(
@@ -95,7 +95,7 @@ fn checkpoint_manifest() -> CheckpointManifest {
     CheckpointManifest::sharp(
         CheckpointRootPosture::root_present(PhysicalRootReference::from_raw(7).unwrap()),
         CheckpointPageLsnFrontier::from_pages([(
-            PhysicalGenerationAuthority::s1()
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(segment(1), page(1))
                 .with_page_generation(generation(3)),
             redo_lsn,

@@ -129,7 +129,7 @@ fn decode_slot_cell(bytes: &[u8]) -> Option<SlotGenerationCell> {
         return None;
     }
     Some(
-        PhysicalGenerationAuthority::s1()
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .slot_cell(
                 PhysicalSegmentId::from_raw(u64::from_le_bytes(bytes[0..8].try_into().ok()?))
                     .ok()?,

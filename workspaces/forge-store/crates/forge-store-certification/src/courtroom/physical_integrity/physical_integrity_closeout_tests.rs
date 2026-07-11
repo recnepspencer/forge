@@ -1,11 +1,11 @@
 use crate::{
-    close_s3_physical_integrity_from_executed_evidence,
+    close_physical_integrity_from_executed_evidence,
     courtroom::blobs::chunk_integrity_without_blob_lifecycle_tests::inspect_chunk_denial,
     courtroom::harness::test_support::physical_integrity_closeout_line_cap_test_support::line_cap_composition_evidence,
     courtroom::harness::test_support::physical_integrity_closeout_test_support::{
-        assert_synthetic_rejection, complete_s3_closeout_evidence, complete_s3_closeout_suite,
-        copied_s2_synthetic_rejections, executed_boundary_denial_evidence,
-        executed_localization_evidence, lane_plan_and_transcript, s3_harness, s3_readiness,
+        assert_synthetic_rejection, complete_physical_integrity_closeout_evidence, complete_physical_integrity_closeout_suite,
+        copied_physical_substrate_synthetic_rejections, executed_boundary_denial_evidence,
+        executed_localization_evidence, lane_plan_and_transcript, physical_integrity_harness, physical_integrity_readiness,
     },
     courtroom::harness::test_support::integrity_handoff_test_support::intact_readiness,
     courtroom::physical_integrity::physical_integrity_closeout_bundle::PhysicalIntegrityCloseoutRequest,
@@ -23,12 +23,12 @@ use forge_store_physical_integrity::{
 };
 
 #[test]
-fn physical_integrity_closeout_publishes_s3_report_and_s4_handoff() {
-    let s4_readiness = intact_readiness("s3-closeout-handoff");
+fn physical_integrity_closeout_publishes_physical_integrity_report_and_recovery_handoff() {
+    let s4_readiness = intact_readiness("new-closeout-handoff");
     let expected_identity = s4_readiness.payload().identity().clone();
     let expected_counters = s4_readiness.counters();
-    let closeout = close_s3_physical_integrity_from_executed_evidence(
-        s3_readiness(),
+    let closeout = close_physical_integrity_from_executed_evidence(
+        physical_integrity_readiness(),
         s4_readiness,
         executed_localization_evidence(),
         executed_boundary_denial_evidence(),
@@ -45,8 +45,8 @@ fn physical_integrity_closeout_publishes_s3_report_and_s4_handoff() {
         closeout.report().harness_lane(),
         RoadmapLaneFamily::Integrity
     );
-    assert_eq!(closeout.report().s4_handoff_identity(), &expected_identity);
-    assert_eq!(closeout.report().s4_counters(), expected_counters);
+    assert_eq!(closeout.report().recovery_handoff_identity(), &expected_identity);
+    assert_eq!(closeout.report().recovery_counters(), expected_counters);
     assert_eq!(closeout.report().suite_harnesses().len(), 6);
     assert!(closeout.report().suite_harnesses().iter().all(|harness| {
         harness.lane_family() == RoadmapLaneFamily::Integrity
@@ -56,15 +56,15 @@ fn physical_integrity_closeout_publishes_s3_report_and_s4_handoff() {
     }));
     assert_closeout_harness_matrix(closeout.report().suite_harnesses());
     assert_eq!(closeout.suite().evidence().len(), 6);
-    assert!(closeout.s4_handoff().proves_no_raw_bytes_crossed());
-    assert!(!closeout.s4_handoff().claims_recovery());
+    assert!(closeout.recovery_handoff().proves_no_raw_bytes_crossed());
+    assert!(!closeout.recovery_handoff().claims_recovery());
 }
 
 #[test]
-fn closeout_facade_runs_s3_harness_from_executed_evidence() {
+fn closeout_facade_runs_physical_integrity_harness_from_executed_evidence() {
     let s4_readiness = intact_readiness("facade");
-    let closeout = close_s3_physical_integrity_from_executed_evidence(
-        s3_readiness(),
+    let closeout = close_physical_integrity_from_executed_evidence(
+        physical_integrity_readiness(),
         s4_readiness,
         executed_localization_evidence(),
         executed_boundary_denial_evidence(),
@@ -79,7 +79,7 @@ fn closeout_facade_runs_s3_harness_from_executed_evidence() {
 #[test]
 fn closeout_suite_rejects_missing_suite_and_missing_boundary() {
     let s4_readiness = intact_readiness("missing-suite");
-    let mut evidence = complete_s3_closeout_evidence(&s4_readiness);
+    let mut evidence = complete_physical_integrity_closeout_evidence(&s4_readiness);
     evidence.retain(|row| row.acceptance_suite() != S3AcceptanceSuiteKind::S4IntegrityHandoff);
     let denial = PhysicalIntegrityCloseoutSuite::admit(evidence).unwrap_err();
     assert_eq!(
@@ -89,11 +89,11 @@ fn closeout_suite_rejects_missing_suite_and_missing_boundary() {
         )
     );
 
-    let mut evidence = complete_s3_closeout_evidence(&s4_readiness);
+    let mut evidence = complete_physical_integrity_closeout_evidence(&s4_readiness);
     let mut denials = executed_boundary_denial_evidence();
     denials.retain(|row| row.boundary() != S3CloseoutDenialBoundary::DigestAsChecksum);
     evidence[1] = PhysicalIntegrityCloseoutSuiteEvidence::boundary_denial(
-        s3_harness(
+        physical_integrity_harness(
             S3AcceptanceSuiteKind::BoundaryDenial,
             S3CloseoutHarnessExecutionEvidence::boundary_denial(&denials),
         ),
@@ -111,7 +111,7 @@ fn closeout_suite_rejects_missing_suite_and_missing_boundary() {
 #[test]
 fn closeout_suite_rejects_harness_copied_across_suite_rows() {
     let s4_readiness = intact_readiness("copied-harness-suite");
-    let mut evidence = complete_s3_closeout_evidence(&s4_readiness);
+    let mut evidence = complete_physical_integrity_closeout_evidence(&s4_readiness);
     let wrong_harness = evidence
         .iter()
         .find(|row| row.acceptance_suite() == S3AcceptanceSuiteKind::CorruptionLocalization)
@@ -163,10 +163,10 @@ fn closeout_rejects_mismatched_executed_artifacts_instead_of_labels() {
 #[test]
 fn closeout_rejects_synthetic_reports_copied_from_another_transcript() {
     let s4_readiness = intact_readiness("copied-synthetic");
-    let mut evidence = complete_s3_closeout_evidence(&s4_readiness);
-    let copied = copied_s2_synthetic_rejections();
+    let mut evidence = complete_physical_integrity_closeout_evidence(&s4_readiness);
+    let copied = copied_physical_substrate_synthetic_rejections();
     evidence[3] = PhysicalIntegrityCloseoutSuiteEvidence::synthetic_rejection(
-        s3_harness(
+        physical_integrity_harness(
             S3AcceptanceSuiteKind::SyntheticShortcutRejection,
             S3CloseoutHarnessExecutionEvidence::synthetic_rejection(&copied),
         ),
@@ -183,9 +183,9 @@ fn closeout_rejects_synthetic_reports_copied_from_another_transcript() {
 }
 
 #[test]
-fn s3_synthetic_closeout_rejects_expected_errors_buffers_and_fixture_labels() {
+fn physical_integrity_synthetic_closeout_rejects_expected_errors_buffers_and_fixture_labels() {
     let s4_readiness = intact_readiness("synthetic-closeout");
-    let suite = complete_s3_closeout_suite(&s4_readiness);
+    let suite = complete_physical_integrity_closeout_suite(&s4_readiness);
     let synthetic = suite
         .evidence_for(S3AcceptanceSuiteKind::SyntheticShortcutRejection)
         .unwrap();
@@ -205,7 +205,7 @@ fn s3_synthetic_closeout_rejects_expected_errors_buffers_and_fixture_labels() {
 }
 
 #[test]
-fn s3_harness_closeout_rejects_non_integrity_lane_transcripts() {
+fn physical_integrity_harness_closeout_rejects_non_integrity_lane_transcripts() {
     let (plan, transcript) = lane_plan_and_transcript(RoadmapLaneFamily::BufferPool);
     let denial = S3HarnessTranscriptEvidence::from_suite_plan_and_transcript(
         S3AcceptanceSuiteKind::HarnessTranscript,
@@ -222,7 +222,7 @@ fn s3_harness_closeout_rejects_non_integrity_lane_transcripts() {
 }
 
 #[test]
-fn s3_synthetic_closeout_does_not_count_mismatched_transcript_as_rejection() {
+fn physical_integrity_synthetic_closeout_does_not_count_mismatched_transcript_as_rejection() {
     let (_, input_transcript) = lane_plan_and_transcript(RoadmapLaneFamily::BufferPool);
     let (_, request_transcript) = lane_plan_and_transcript(RoadmapLaneFamily::Integrity);
     let input = SyntheticCloseoutShortcutInput::from_transcript(
@@ -239,13 +239,13 @@ fn s3_synthetic_closeout_does_not_count_mismatched_transcript_as_rejection() {
 }
 
 #[test]
-fn closeout_rejects_s4_suite_evidence_copied_from_another_handoff() {
+fn closeout_rejects_recovery_suite_evidence_copied_from_another_handoff() {
     let request_handoff = intact_readiness("request-handoff");
     let copied_handoff = intact_readiness("copied-handoff");
-    let suite = complete_s3_closeout_suite(&copied_handoff);
+    let suite = complete_physical_integrity_closeout_suite(&copied_handoff);
 
     let denial = PhysicalIntegrityCertificationBundle::close(
-        PhysicalIntegrityCloseoutRequest::new(suite, s3_readiness(), request_handoff),
+        PhysicalIntegrityCloseoutRequest::new(suite, physical_integrity_readiness(), request_handoff),
     )
     .unwrap_err();
 

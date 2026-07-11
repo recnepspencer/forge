@@ -60,7 +60,7 @@ impl S8FutureLayoutCapabilityRequest {
         }
     }
 
-    pub const fn phase_eight_capability(self) -> Option<S8LayoutRequestedCapability> {
+    pub const fn requested_capability(self) -> Option<S8LayoutRequestedCapability> {
         match self {
             Self::PointLookup { .. } => Some(S8LayoutRequestedCapability::PointLookup),
             Self::OrderedRange { .. } => Some(S8LayoutRequestedCapability::OrderedRange),

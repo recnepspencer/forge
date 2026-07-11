@@ -2,7 +2,7 @@
 pub struct ResidencyVocabulary;
 
 impl ResidencyVocabulary {
-    pub const fn s2_phase_one() -> &'static [ResidencyAuthorityTerm] {
+    pub const fn physical_substrate_vocabulary() -> &'static [ResidencyAuthorityTerm] {
         &[
             ResidencyAuthorityTerm::ResidentMemory,
             ResidencyAuthorityTerm::PinnedPage,

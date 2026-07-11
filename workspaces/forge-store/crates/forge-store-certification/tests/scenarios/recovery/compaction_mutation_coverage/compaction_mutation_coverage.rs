@@ -7,7 +7,7 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn compaction_mutation_coverage_requires_all_s5_interleaving_mutants() {
+fn compaction_mutation_coverage_requires_all_physical_isolation_interleaving_mutants() {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let evidence = coverage_support::compaction_mutation_evidence(&replay).unwrap();
@@ -26,7 +26,7 @@ fn compaction_mutation_coverage_requires_all_s5_interleaving_mutants() {
 }
 
 #[test]
-fn compaction_mutation_coverage_rejects_replay_without_s5_interleaving_mutants() {
+fn compaction_mutation_coverage_rejects_replay_without_physical_isolation_interleaving_mutants() {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle_without_compaction_mutations(&plan);
 
@@ -37,7 +37,7 @@ fn compaction_mutation_coverage_rejects_replay_without_s5_interleaving_mutants()
 }
 
 #[test]
-fn compaction_mutation_observation_rejects_each_missing_s5_interleaving_mutant() {
+fn compaction_mutation_observation_rejects_each_missing_physical_isolation_interleaving_mutant() {
     let plan = coverage_support::lowered_ci_plan();
     let schedule = coverage_support::schedule(&plan);
     for missing in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
@@ -68,7 +68,7 @@ fn compaction_mutation_lane_kind_is_derived_from_operation_receipt() {
 }
 
 #[test]
-fn compaction_mutation_observation_rejects_duplicate_s5_interleaving_mutant() {
+fn compaction_mutation_observation_rejects_duplicate_physical_isolation_interleaving_mutant() {
     let plan = coverage_support::lowered_ci_plan();
     let schedule = coverage_support::schedule(&plan);
     let mut lanes = coverage_support::complete_compaction_mutation_lanes(&plan, &schedule).unwrap();

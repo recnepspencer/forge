@@ -23,7 +23,7 @@ pub use buffer_pool::{
     SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow,
 };
 pub use foundational::{
-    certify_s0_handoff_gate_proof_evidence, AllocationEnvelopePerformanceReceipt,
+    certify_foundational_handoff_gate_proof_evidence, AllocationEnvelopePerformanceReceipt,
     BufferPoolProvenanceAttachment, CompletedResidencyBoundaryReceipt,
     CopyMaterializationPerformanceReceipt, FoundationalBoundaryAuthorityResult,
     FoundationalBoundaryEvidenceDenial, FoundationalEvidenceProfile, FoundationalEvidenceRichness,

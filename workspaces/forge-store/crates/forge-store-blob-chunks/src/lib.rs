@@ -68,7 +68,7 @@ pub(crate) use publication::test_support::publish_generation_with_bytes_and_chun
 #[cfg(test)]
 pub(crate) use retention_reclaim::test_support::reclaim_fixture as phase25_reclaim_fixture;
 #[cfg(test)]
-pub(crate) use streaming::phase24_layout_runtime_case;
+pub(crate) use streaming::layout_runtime_case;
 
 // --- Construction-boundary compile-fail evidence ---
 #[path = "compile_fail/capsule_readiness.rs"]

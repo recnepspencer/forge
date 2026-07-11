@@ -9,7 +9,7 @@ use forge_store_recovery_physics::{
     RecoveryPhysicsEvidenceSource, RecoveryProfileId,
 };
 use forge_store_test_support::{
-    deterministic_s4_recovery_artifacts, runtime_disagreement_s4_recovery_artifacts,
+    deterministic_recovery_artifacts, runtime_disagreement_recovery_artifacts,
 };
 
 pub fn bundle_from_source(
@@ -34,9 +34,9 @@ pub fn verifier_disagreement_source() -> RecoveryPhysicsEvidenceSource {
     let report = RecoveryOfflineVerifier::for_profile(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
     )
-    .verify_persisted_artifacts(&runtime_disagreement_s4_recovery_artifacts())
+    .verify_persisted_artifacts(&runtime_disagreement_recovery_artifacts())
     .unwrap();
     RecoveryPhysicsEvidenceSource::from_executed_recovery(
         &receipt,
@@ -51,8 +51,8 @@ fn verified_report() -> OfflineRecoveryVerificationReport {
     RecoveryOfflineVerifier::for_profile(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
-        RecoveryProfileId::strict_s4(),
+        RecoveryProfileId::strict_offline_recovery_artifacts(),
     )
-    .verify_persisted_artifacts(&deterministic_s4_recovery_artifacts())
+    .verify_persisted_artifacts(&deterministic_recovery_artifacts())
     .unwrap()
 }

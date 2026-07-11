@@ -19,7 +19,7 @@ use forge_store_test_support::{
 
 #[test]
 fn executed_transcript_replays_without_live_runtime_state() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let fixture = production_fixture();
     let transcript =
         forge_store_physical_certification::PhysicalSimulationTranscript::from_executed_parts(
@@ -83,8 +83,8 @@ fn executed_transcript_replays_without_live_runtime_state() {
 
 #[test]
 fn detached_replay_admission_denies_copied_schedule_authority() {
-    let plan = counter_support::lower_s5_plan();
-    let alternate_plan = counter_support::lower_s5_plan_for_profile(
+    let plan = counter_support::lower_physical_isolation_plan();
+    let alternate_plan = counter_support::lower_physical_isolation_plan_for_profile(
         forge_store_physical_certification::PhysicalSimulationProfile::CiCertification,
     );
     let transcript =
@@ -111,7 +111,7 @@ fn detached_replay_admission_denies_copied_schedule_authority() {
 
 #[test]
 fn transcript_identity_changes_when_replay_seed_changes() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let first = replay_bundle_for_seed(&plan, developer_smoke_replay_seed());
     let second = replay_bundle_for_seed(
         &plan,
@@ -128,7 +128,7 @@ fn transcript_identity_changes_when_replay_seed_changes() {
 
 #[test]
 fn transcript_identity_changes_when_runtime_verifier_or_fault_detail_changes() {
-    let plan = counter_support::lower_s5_plan();
+    let plan = counter_support::lower_physical_isolation_plan();
     let base = replay_bundle_for_seed(&plan, developer_smoke_replay_seed());
     let verifier = replay_bundle_from_parts(executed_parts_for_seed_with_trace(
         &plan,
@@ -153,7 +153,7 @@ fn transcript_identity_changes_when_runtime_verifier_or_fault_detail_changes() {
 #[test]
 fn evidence_materializes_foundational_packaging_without_authority_promotion() {
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay_bundle_for_seed(
-        &counter_support::lower_s5_plan(),
+        &counter_support::lower_physical_isolation_plan(),
         developer_smoke_replay_seed(),
     ))
     .unwrap();
@@ -177,7 +177,7 @@ fn evidence_materializes_foundational_packaging_without_authority_promotion() {
 #[test]
 fn boundary_bridged_foundational_evidence_requires_explicit_store_readmission() {
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay_bundle_for_seed(
-        &counter_support::lower_s5_plan(),
+        &counter_support::lower_physical_isolation_plan(),
         developer_smoke_replay_seed(),
     ))
     .unwrap();

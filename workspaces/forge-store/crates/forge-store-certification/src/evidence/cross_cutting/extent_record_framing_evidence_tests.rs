@@ -12,7 +12,7 @@ use forge_store_physical_format::{
 
 #[test]
 fn every_extent_record_framing_row_maps_to_physical_substrate() {
-    for row in PhysicalExtentRecordFramingEvidenceRow::s1_required() {
+    for row in PhysicalExtentRecordFramingEvidenceRow::physical_format_required() {
         assert_eq!(
             row.physical_substrate_lane().family().as_str(),
             "physical_substrate"
@@ -23,8 +23,8 @@ fn every_extent_record_framing_row_maps_to_physical_substrate() {
 #[test]
 fn extent_locate_report_feeds_foundational_counter_receipt() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -57,8 +57,8 @@ fn extent_locate_report_feeds_foundational_counter_receipt() {
 #[test]
 fn length_mismatch_denial_certifies_from_real_extent_denial() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -96,8 +96,8 @@ fn length_mismatch_denial_certifies_from_real_extent_denial() {
 #[test]
 fn missing_membership_denial_certifies_from_real_extent_denial() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let extent_cell = generations
         .extent_cell(segment(7), extent(20))
         .with_extent_generation(generation(5));
@@ -135,8 +135,8 @@ fn missing_membership_denial_certifies_from_real_extent_denial() {
 #[test]
 fn moved_slot_misuse_denial_certifies_from_real_extent_denial() {
     let records = extent_record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let slot_cell = generations
         .slot_cell(segment(7), page(3), slot(1))
         .with_slot_generation(generation(5));
@@ -236,8 +236,8 @@ fn assert_counter_row(rows: &[FoundationalPerformanceCounterRow], name: &str, co
 }
 
 fn extent_record_authority() -> PhysicalExtentRecordAuthority {
-    PhysicalExtentRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalExtentRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

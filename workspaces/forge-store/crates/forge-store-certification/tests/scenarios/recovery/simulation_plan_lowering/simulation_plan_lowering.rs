@@ -14,8 +14,8 @@ use forge_store_test_support::{
 
 #[test]
 fn equivalent_scenarios_lower_into_same_admitted_plan_identity() {
-    let first = lower_s5_plan(s5_scenario(false));
-    let second = lower_s5_plan(s5_scenario(true));
+    let first = lower_physical_isolation_plan(physical_isolation_scenario(false));
+    let second = lower_physical_isolation_plan(physical_isolation_scenario(true));
 
     assert_eq!(first.identity(), second.identity());
     assert_eq!(
@@ -30,7 +30,7 @@ fn equivalent_scenarios_lower_into_same_admitted_plan_identity() {
 
 #[test]
 fn physical_isolation_readiness_shape_plan_names_all_pre_execution_requirements() {
-    let plan = lower_s5_plan(s5_scenario(false));
+    let plan = lower_physical_isolation_plan(physical_isolation_scenario(false));
 
     assert!(plan
         .required_capabilities()
@@ -78,7 +78,7 @@ fn missing_capabilities_deny_before_plan_construction() {
         PhysicalSimulationCapability::ForbiddenShortcutDenial,
     ] {
         let denial = lower_physical_simulation_plan(
-            s5_scenario(false),
+            physical_isolation_scenario(false),
             complete_context().with_capabilities(
                 PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe()
                     .without(missing),
@@ -93,7 +93,7 @@ fn missing_capabilities_deny_before_plan_construction() {
 #[test]
 fn unsupported_profile_denies_before_execution() {
     let denial = lower_physical_simulation_plan(
-        s5_scenario(false),
+        physical_isolation_scenario(false),
         complete_context()
             .with_supported_profiles(PhysicalSimulationProfileSet::developer_smoke_only())
             .with_capabilities(
@@ -114,7 +114,7 @@ fn unsupported_profile_denies_before_execution() {
 #[test]
 fn every_declared_profile_preserves_the_same_planning_proof_model() {
     let baseline = lower_physical_simulation_plan(
-        s5_scenario(false),
+        physical_isolation_scenario(false),
         complete_context_for_profile(PhysicalSimulationProfile::DeveloperSmoke),
     )
     .unwrap();
@@ -126,7 +126,7 @@ fn every_declared_profile_preserves_the_same_planning_proof_model() {
         PhysicalSimulationProfile::HardwareQualification,
     ] {
         let plan = lower_physical_simulation_plan(
-            s5_scenario(false),
+            physical_isolation_scenario(false),
             complete_context_for_profile(profile),
         )
         .unwrap();
@@ -144,7 +144,7 @@ fn every_declared_profile_preserves_the_same_planning_proof_model() {
 }
 
 #[test]
-fn mismatched_scenario_meaning_denies_instead_of_defaulting_to_s5_shape() {
+fn mismatched_scenario_meaning_denies_instead_of_defaulting_to_physical_isolation_shape() {
     let denial = lower_physical_simulation_plan(mismatched_scenario(), complete_context())
         .expect_err("mismatched scenario meaning must not default to S5 shape");
 
@@ -160,7 +160,7 @@ fn mismatched_scenario_meaning_denies_instead_of_defaulting_to_s5_shape() {
 #[test]
 fn absent_or_incomplete_forbidden_shortcuts_deny_before_execution() {
     let absent_denial = lower_physical_simulation_plan(
-        s5_scenario(false),
+        physical_isolation_scenario(false),
         complete_context_without_forbidden_shortcuts(),
     )
     .expect_err("absent forbidden shortcut set cannot lower");
@@ -171,7 +171,7 @@ fn absent_or_incomplete_forbidden_shortcuts_deny_before_execution() {
     );
 
     let missing_denial = lower_physical_simulation_plan(
-        s5_scenario(false),
+        physical_isolation_scenario(false),
         complete_context().with_forbidden_shortcuts(
             ForbiddenShortcutSet::physical_certification_baseline()
                 .without(ForbiddenShortcutKind::PrivateMutation),
@@ -217,8 +217,8 @@ fn ambiguous_future_fault_scope_denies_before_execution() {
 
 #[test]
 fn scenario_families_lower_to_distinct_plan_requirements() {
-    let s4 = lower_physical_simulation_plan(s4_scenario(), complete_context()).unwrap();
-    let s5 = lower_s5_plan(s5_scenario(false));
+    let s4 = lower_physical_simulation_plan(recovery_scenario(), complete_context()).unwrap();
+    let s5 = lower_physical_isolation_plan(physical_isolation_scenario(false));
     let shortcut = lower_physical_simulation_plan(shortcut_scenario(), complete_context()).unwrap();
 
     assert!(s4
@@ -249,7 +249,7 @@ impl ReleaseProfileContext for SimulationPlanningContext {
     }
 }
 
-fn lower_s5_plan(
+fn lower_physical_isolation_plan(
     scenario: forge_store_physical_certification::CertifiedPhysicalScenario,
 ) -> forge_store_physical_certification::PhysicalSimulationPlan {
     lower_physical_simulation_plan(scenario, complete_context()).unwrap()
@@ -283,7 +283,7 @@ fn complete_context_without_forbidden_shortcuts() -> SimulationPlanningContext {
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
 }
 
-fn s5_scenario(
+fn physical_isolation_scenario(
     reversed_actor_order: bool,
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
@@ -309,7 +309,7 @@ fn s5_scenario(
         .unwrap()
 }
 
-fn s4_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
+fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s4.recovery")
         .family(PhysicalSimulationScenarioFamily::S4RecoveryDogfood)
         .intent(PhysicalScenarioIntent::RecoveryReplayDogfood)
@@ -323,7 +323,7 @@ fn s4_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenari
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

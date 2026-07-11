@@ -17,7 +17,7 @@ const ROOT_PUBLICATION_YIELDPOINT: &str = "root-publication-before-observe";
 #[test]
 fn same_plan_seed_profile_actors_and_budget_reproduce_schedule_identity() {
     let plan = lower_physical_simulation_plan(
-        s5_scenario(
+        physical_isolation_scenario(
             "store.physical.s5.deterministic.schedule",
             "schedule",
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
@@ -145,7 +145,7 @@ fn schedule_for(
     budget: StateSpaceBudget,
 ) -> PhysicalInterleavingSchedule {
     let plan = lower_physical_simulation_plan(
-        s5_scenario(scenario_name, fixture_label, first_actor, second_actor),
+        physical_isolation_scenario(scenario_name, fixture_label, first_actor, second_actor),
         complete_context(profile),
     )
     .unwrap();
@@ -202,7 +202,7 @@ fn complete_context(profile: PhysicalSimulationProfile) -> SimulationPlanningCon
         .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
-fn s5_scenario(
+fn physical_isolation_scenario(
     scenario_name: &'static str,
     fixture_label: &'static str,
     first_actor: PhysicalScenarioActor,

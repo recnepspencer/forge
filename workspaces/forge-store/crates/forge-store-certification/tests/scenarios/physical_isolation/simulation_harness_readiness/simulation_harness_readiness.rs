@@ -23,7 +23,7 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn s5_receives_store_owned_simulation_harness_readiness() {
+fn physical_isolation_receives_store_owned_simulation_harness_readiness() {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)

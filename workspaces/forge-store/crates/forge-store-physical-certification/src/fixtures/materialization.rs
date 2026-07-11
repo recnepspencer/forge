@@ -104,9 +104,9 @@ impl ProductionBackedFixtureMaterialization {
 }
 
 fn build_persisted_layout(root_reference: PhysicalRootReference) -> PersistedPhysicalLayout {
-    let encoding = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+    let encoding = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
     let byte_order = encoding.declaration().byte_order();
-    let headers = PhysicalHeaderAuthority::s1(encoding);
+    let headers = PhysicalHeaderAuthority::for_canonical_physical_format(encoding);
     let generation = PhysicalGeneration::from_raw(7).unwrap();
     let cells = PhysicalFixtureCells::new(root_reference, generation);
     let root = cells.root_manifest();
@@ -151,7 +151,7 @@ struct PhysicalFixtureCells {
 
 impl PhysicalFixtureCells {
     fn new(root_reference: PhysicalRootReference, generation: PhysicalGeneration) -> Self {
-        let generations = PhysicalGenerationAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
         let segment_id = PhysicalSegmentId::from_raw(1).unwrap();
         let page_id = PhysicalPageId::from_raw(1).unwrap();
         let extent_id = PhysicalExtentId::from_raw(1).unwrap();
@@ -185,7 +185,7 @@ impl PhysicalFixtureCells {
     }
 
     fn root_manifest(&self) -> forge_store_physical_format::PhysicalRootManifest {
-        forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(self.root_cell)
+        forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(self.root_cell)
             .segment(self.segment_cell)
             .ordinary_page(self.slot_cell)
             .extent(self.extent_cell)
@@ -200,7 +200,7 @@ fn record_page_bytes(
     page_cell: forge_store_physical_format::PageGenerationCell,
     slot_cell: forge_store_physical_format::SlotGenerationCell,
 ) -> Vec<u8> {
-    let authority = PhysicalPageRecordAuthority::s1(headers);
+    let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
     let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
@@ -252,7 +252,7 @@ fn header_bytes(
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
     bytes.push(tag);
-    bytes.extend_from_slice(&byte_order.write_u16(PhysicalFormatVersion::s1_initial().value()));
+    bytes.extend_from_slice(&byte_order.write_u16(PhysicalFormatVersion::initial_format_version().value()));
     bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
     bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));
     bytes.extend_from_slice(&byte_order.write_u64(generation.get()));

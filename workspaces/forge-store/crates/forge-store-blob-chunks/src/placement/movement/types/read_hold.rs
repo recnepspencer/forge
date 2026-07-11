@@ -7,7 +7,7 @@ pub struct BlobPlacementMovementReadHold {
 }
 
 impl BlobPlacementMovementReadHold {
-    pub const fn from_s5_stable_read_and_movement_interlock(
+    pub const fn from_physical_isolation_stable_read_and_movement_interlock(
         stable_read: StablePhysicalReadReceipt,
         movement_interlock: ChunkMigrationReadInterlockPlan,
     ) -> Self {

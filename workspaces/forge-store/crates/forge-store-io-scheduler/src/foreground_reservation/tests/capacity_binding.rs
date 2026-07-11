@@ -5,8 +5,8 @@ use super::common::*;
 
 #[test]
 fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);
@@ -45,8 +45,8 @@ fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
 
 #[test]
 fn policy_receipt_budget_mismatch_denies_capacity_admission() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let admitted = full_capacity_budget();
@@ -72,8 +72,8 @@ fn policy_receipt_budget_mismatch_denies_capacity_admission() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let requested_backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_backend = backend_admission(IoSchedulerBackendCapabilityRequirement::BufferedFile);
     let lane = point_read_lane();
@@ -107,8 +107,8 @@ fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_lane = point_read_lane();
     let requested_lane = ForegroundLaneDeclaration::point_read()
@@ -147,8 +147,8 @@ fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let admitted_arbitration =
@@ -184,9 +184,9 @@ fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_readiness_counter_basis() {
-    let admitted_readiness = s6_readiness_admission();
-    let requested_readiness = s6_readiness_admission_with_counts(3, 2);
-    let security = s6_security_scope_admission();
+    let admitted_readiness = io_qos_readiness_admission();
+    let requested_readiness = io_qos_readiness_admission_with_counts(3, 2);
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);

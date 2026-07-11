@@ -45,7 +45,7 @@ use forge_store_test_support::{
 use support::{physical_replay_for_scenario, replay_scenario};
 
 #[test]
-fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() {
+fn certifies_closeout_from_lower_store_evidence_and_counter_receipts() {
     let scenario_evidence = closeout_scenario_evidence();
     let replay_transcripts = closeout_replay_transcripts();
     let security_scope = security_foundation_scope();
@@ -66,7 +66,7 @@ fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() 
     assert!(closeout.performance_receipts().all_counter_backed());
     assert!(closeout
         .api_adoption()
-        .uses_required_s5_1_foundational_lanes());
+        .uses_required_security_scope_foundational_lanes());
     receipt_assertions::assert_exact_counter_backed_receipt_rows(closeout.performance_receipts());
     assert_eq!(closeout.readiness_construction_attempts(), 0);
 
@@ -200,7 +200,7 @@ fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() 
 }
 
 #[test]
-fn phase_11_rejects_harness_evidence_with_mismatched_lower_store_counters() {
+fn rejects_harness_evidence_with_mismatched_lower_store_counters() {
     let mut scenario_evidence = closeout_scenario_evidence();
     let first_evidence = scenario_evidence[0];
     scenario_evidence[0] = SecurityScopeHarnessEvidence::from_observation_and_store_counters(

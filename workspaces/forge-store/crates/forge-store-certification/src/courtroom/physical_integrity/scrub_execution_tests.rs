@@ -303,7 +303,7 @@ fn ordinal(value: u64) -> ScrubWindowOrdinal {
 
 fn persisted_scrub_fixture_windows(payload: &[u8]) -> Vec<Vec<u8>> {
     let path = std::env::temp_dir().join(format!(
-        "forge-store-s3-phase11-scrub-{}-{}.bin",
+        "forge-store-new-phase11-scrub-{}-{}.bin",
         std::process::id(),
         payload.len()
     ));

@@ -37,7 +37,7 @@ impl FoundationalAdoptionFamily {
         }
     }
 
-    pub const fn required_for_s1() -> [Self; 6] {
+    pub const fn required_for_physical_format() -> [Self; 6] {
         [
             Self::Canonicalization,
             Self::Diagnostics,
@@ -107,7 +107,7 @@ impl FoundationalVocabularyAdoptionMapBuilder {
             return Err(FoundationalAdoptionDenial::WrongRoadmapScope);
         }
 
-        for family in FoundationalAdoptionFamily::required_for_s1() {
+        for family in FoundationalAdoptionFamily::required_for_physical_format() {
             if !self.families.contains(&family) {
                 return Err(FoundationalAdoptionDenial::MissingRequiredFamily(family));
             }
@@ -125,7 +125,7 @@ impl FoundationalVocabularyAdoptionMapBuilder {
             rows,
             lane_set: FoundationalPublicLaneSet::from_public_foundational_apis(),
             proof_vocabulary,
-            required_evidence: PhysicalFoundationEvidenceField::required_for_s1().to_vec(),
+            required_evidence: PhysicalFoundationEvidenceField::required_for_physical_format().to_vec(),
         })
     }
 }
@@ -147,9 +147,9 @@ impl FoundationalVocabularyAdoptionMap {
         }
     }
 
-    pub fn s1_all_public_lanes() -> Result<Self, FoundationalAdoptionDenial> {
+    pub fn physical_format_all_public_lanes() -> Result<Self, FoundationalAdoptionDenial> {
         let mut builder = Self::builder(ROADMAP_2_S1_SCOPE);
-        for family in FoundationalAdoptionFamily::required_for_s1() {
+        for family in FoundationalAdoptionFamily::required_for_physical_format() {
             builder = builder.adopt_public_lane(family)?;
         }
         builder.prove_with_foundational_public_lanes()
@@ -187,17 +187,17 @@ mod tests {
 
     #[test]
     fn adoption_map_covers_every_required_family() {
-        let map = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+        let map = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("all required public lanes are declared");
 
-        for family in FoundationalAdoptionFamily::required_for_s1() {
+        for family in FoundationalAdoptionFamily::required_for_physical_format() {
             assert!(map.covers_family(family));
         }
     }
 
     #[test]
     fn adoption_map_digest_converges_across_independent_construction_paths() {
-        let first = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+        let first = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("first construction path succeeds");
         let mut second_builder = FoundationalVocabularyAdoptionMap::builder(ROADMAP_2_S1_SCOPE);
         for family in [

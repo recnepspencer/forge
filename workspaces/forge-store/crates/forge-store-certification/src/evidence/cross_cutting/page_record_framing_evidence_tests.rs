@@ -12,7 +12,7 @@ use forge_store_physical_format::{
 
 #[test]
 fn every_page_record_framing_row_maps_to_physical_substrate() {
-    for row in PhysicalPageRecordFramingEvidenceRow::s1_required() {
+    for row in PhysicalPageRecordFramingEvidenceRow::physical_format_required() {
         assert_eq!(
             row.physical_substrate_lane().family().as_str(),
             "physical_substrate"
@@ -73,8 +73,8 @@ fn framing_evidence_rejects_page_local_scan_drift() {
 #[test]
 fn moved_slot_denial_certifies_from_real_page_record_denial() {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -135,8 +135,8 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ))
 }
 

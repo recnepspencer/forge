@@ -14,7 +14,7 @@ pub enum PlatformPhysicalFacadeEvidenceRow {
 }
 
 impl PlatformPhysicalFacadeEvidenceRow {
-    pub const fn s1_required() -> [Self; 3] {
+    pub const fn physical_format_required() -> [Self; 3] {
         [
             Self::OperationSurface,
             Self::RuntimeVerifierParity,

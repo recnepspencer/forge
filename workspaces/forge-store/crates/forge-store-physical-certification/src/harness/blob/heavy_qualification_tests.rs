@@ -1,5 +1,5 @@
 use forge_store_blob_chunks::{
-    admit_canonical_phase23_qualification_lane,
+    admit_canonical_qualification_lane,
     certification_test_authority::{execute_blob_harness, BlobHarnessExecutionInput},
     deny_ambient_chaos_corpus_as_canonical, deny_generated_expected_byte_artifact,
     deny_hidden_temporary_sidecar, deny_logical_size_only_heavy_qualification,
@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[test]
-fn heavy_replay_bundle_carries_phase23_evidence_oracles() {
+fn heavy_replay_bundle_carries_evidence_oracles() {
     let replay =
         synthetic_blob_harness_replay_bundle_for_test_support(heavy_multi_gb_scenario_seed());
 
@@ -46,7 +46,7 @@ fn lowered_plan_requires_heavy_qualification_oracle_family() {
 #[test]
 fn canonical_pattern_profiles_execute_with_shared_evidence_schema() {
     let seed = local_scenario_seed();
-    for pattern in DeterministicBytePatternProfile::canonical_phase23_patterns() {
+    for pattern in DeterministicBytePatternProfile::canonical_heavy_blob_patterns() {
         let witness = execute_blob_harness(
             BlobHarnessExecutionInput::new(
                 seed.profile().envelope().profile(),
@@ -178,23 +178,23 @@ fn hostile_qualification_patterns_are_executed_lane_denials() {
     .expect("hostile plan");
 
     assert_eq!(
-        admit_canonical_phase23_qualification_lane(&sparse),
+        admit_canonical_qualification_lane(&sparse),
         Err(deny_sparse_only_heavy_qualification())
     );
     assert_eq!(
-        admit_canonical_phase23_qualification_lane(&logical_only),
+        admit_canonical_qualification_lane(&logical_only),
         Err(deny_logical_size_only_heavy_qualification())
     );
     assert_eq!(
-        admit_canonical_phase23_qualification_lane(&whole_object),
+        admit_canonical_qualification_lane(&whole_object),
         Err(deny_whole_object_expected_buffer())
     );
     assert_eq!(
-        admit_canonical_phase23_qualification_lane(&generated_expected),
+        admit_canonical_qualification_lane(&generated_expected),
         Err(deny_generated_expected_byte_artifact())
     );
     assert_eq!(
-        admit_canonical_phase23_qualification_lane(&hidden_sidecar),
+        admit_canonical_qualification_lane(&hidden_sidecar),
         Err(deny_hidden_temporary_sidecar())
     );
 }

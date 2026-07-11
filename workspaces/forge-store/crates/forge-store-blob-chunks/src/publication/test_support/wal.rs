@@ -57,7 +57,7 @@ pub(crate) fn pre_wal_replay_edge(
 }
 
 pub(crate) fn recovery_entry(operation_digest: &str) -> RecoveryEntryAdmission {
-    forge_store_test_support::admitted_s4_partial_publication_recovery_entry(operation_digest)
+    forge_store_test_support::admitted_recovery_partial_publication_recovery_entry(operation_digest)
 }
 
 pub(crate) fn recovery_replay_entry(operation_digest: &str) -> RecoveryReplayEntryGate {
@@ -66,7 +66,7 @@ pub(crate) fn recovery_replay_entry(operation_digest: &str) -> RecoveryReplayEnt
 }
 
 pub(crate) fn generic_recovery_replay_entry(operation_digest: &str) -> RecoveryReplayEntryGate {
-    let recovery_entry = forge_store_test_support::admitted_s4_recovery_entry(operation_digest);
+    let recovery_entry = forge_store_test_support::admitted_recovery_entry(operation_digest);
     replay_entry_from_recovery_entry(operation_digest, recovery_entry)
 }
 

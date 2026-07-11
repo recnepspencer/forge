@@ -121,7 +121,7 @@ pub(crate) fn inspect_chunk_denial(
             admitted_chunk_window(4096, window_bytes),
         )
         .unwrap();
-        denial = Some(ChunkIntegrityAuthority::s3().inspect(request).unwrap_err());
+        denial = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap_err());
     });
     denial.unwrap()
 }
@@ -134,7 +134,7 @@ fn inspect_intact_chunk_window() -> forge_store_physical_integrity::ChunkIntegri
             admitted_chunk_window(4096, 1024),
         )
         .unwrap();
-        report = Some(ChunkIntegrityAuthority::s3().inspect(request).unwrap());
+        report = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap());
     });
     report.unwrap()
 }
@@ -152,7 +152,7 @@ fn assert_chunk_damage(
             admitted_chunk_window(4096, 1024),
         )
         .unwrap();
-        denial = Some(ChunkIntegrityAuthority::s3().inspect(request).unwrap_err());
+        denial = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap_err());
     });
     let denial = denial.unwrap();
 

@@ -56,7 +56,7 @@ fn same_persisted_bytes_select_same_sources_under_same_profile() {
 }
 
 #[test]
-fn stale_residue_orphans_invalid_compaction_and_s3_blocked_records_deny() {
+fn stale_residue_orphans_invalid_compaction_and_physical_integrity_blocked_records_deny() {
     let invalid_compaction = CompactionCutoverRecoveryPosture::missing_generation_identity(trace(
         "invalid-compaction",
         3,
@@ -100,7 +100,7 @@ fn stale_residue_orphans_invalid_compaction_and_s3_blocked_records_deny() {
     let blocked = RecoverySourcePrecedenceGraph::new("strict-test-profile")
         .discover(RecoverySourceCandidate::recovery_blocked(
             blocked_manifest_damage(),
-            trace("s3-blocked", 4),
+            trace("new-blocked", 4),
         ))
         .admit_sources();
 
@@ -304,7 +304,7 @@ fn compaction_visibility_requires_generation_cutover_recoverability_and_durabili
 }
 
 #[test]
-fn wal_only_tail_rejects_torn_s3_tail_posture() {
+fn wal_only_tail_rejects_torn_physical_integrity_tail_posture() {
     let denial = wal_only_tail_denial_from_torn_frame(1, 10);
 
     assert_eq!(
@@ -320,7 +320,7 @@ fn residue(kind: BackendResidueKind, label: &str, order: u64) -> BackendResidueR
 }
 
 fn blocked_manifest_damage() -> RecoveryBlockedByIntegrityDamage {
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::damaged_root(
             damaged_owner(),
         ))
@@ -329,7 +329,7 @@ fn blocked_manifest_damage() -> RecoveryBlockedByIntegrityDamage {
 }
 
 fn damaged_owner() -> forge_store_physical_format::PhysicalGenerationOwner {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),

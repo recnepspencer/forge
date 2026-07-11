@@ -65,7 +65,7 @@ pub(crate) fn root_candidate_resume_checkpoint(case: &str) -> crate::BlobResumeC
 
 fn physical_reference(slot: u16) -> CurrentGenerationPhysicalReference {
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).expect("segment"),
             PhysicalPageId::from_raw(1).expect("page"),
@@ -73,7 +73,7 @@ fn physical_reference(slot: u16) -> CurrentGenerationPhysicalReference {
         )
         .with_slot_generation(generation);
     GenerationCountedPhysicalReference::from_admitted_reference(
-        PhysicalReferenceAuthority::s1().admit_page_slot(cell),
+        PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(cell),
     )
     .require_current_generation(generation)
     .expect("current generation reference")

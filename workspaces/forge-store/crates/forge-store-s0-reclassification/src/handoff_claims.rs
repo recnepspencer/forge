@@ -1,4 +1,4 @@
-use crate::handoff_gate_proof_scan::scan_current_s0_handoff_gate_proof_surfaces;
+use crate::handoff_gate_proof_scan::scan_current_foundational_handoff_gate_proof_surfaces;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum S0HandoffDeniedInputKind {
@@ -234,9 +234,9 @@ pub enum S0HandoffGateProofEvidenceDenial {
     SourceReadFailed(String),
 }
 
-pub fn certify_current_s0_handoff_gate_proof_evidence(
+pub fn certify_current_foundational_handoff_gate_proof_evidence(
 ) -> Result<S0HandoffGateProofEvidence, S0HandoffGateProofEvidenceDenial> {
-    let counts = scan_current_s0_handoff_gate_proof_surfaces()?;
+    let counts = scan_current_foundational_handoff_gate_proof_surfaces()?;
     S0HandoffGateProofEvidence::from_current_workspace_evidence(
         S0CurrentResidueScanEvidence::new(counts.current_residue_scan)?,
         S0TerminalProjectionBoundaryEvidence::new(counts.terminal_projection_boundary)?,

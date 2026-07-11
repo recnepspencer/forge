@@ -11,7 +11,7 @@ use forge_store_physical_format::{
 };
 use forge_store_physical_integrity::ProtectedPhysicalByteView;
 
-use super::s4_recovery_readiness_fixture::s2_readiness;
+use super::s4_recovery_readiness_fixture::physical_substrate_readiness;
 
 pub(super) fn with_protected_payload_view(
     payload: &[u8],
@@ -26,7 +26,7 @@ pub(super) fn with_protected_payload_view(
 }
 
 pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
-    let records = forge_store_physical_format::PhysicalPageRecordAuthority::s1(header_authority());
+    let records = forge_store_physical_format::PhysicalPageRecordAuthority::for_canonical_physical_format(header_authority());
     let cell = page_cell(1, 2, 7);
     let empty = page_bytes(7, &[]);
     let header = records
@@ -54,7 +54,7 @@ pub(super) fn root_with_slot(
     slot: u64,
     generation: u64,
 ) -> PhysicalRootManifest {
-    forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root_publication(99))
+    forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_publication(99))
         .segment(segment_cell(segment))
         .ordinary_page(slot_cell(segment, page, slot, generation))
         .publish()
@@ -66,7 +66,7 @@ pub(super) fn validation(
     slot: u64,
     generation: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = slot_cell(segment, page, slot, generation);
     references
         .validate_page_slot(references.admit_page_slot(cell), cell)
@@ -102,20 +102,20 @@ pub(super) fn frame_witness(
 }
 
 pub(super) fn page_cell(segment: u64, page: u64, generation: u64) -> PageGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment_id(segment), page_id(page))
         .with_page_generation(physical_generation(generation))
 }
 
 pub(super) fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id(segment), page_id(page), record_slot(slot))
         .with_slot_generation(physical_generation(generation))
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
     let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        s2_readiness().physical_substrate_snapshot(),
+        physical_substrate_readiness().physical_substrate_snapshot(),
     )
     .unwrap()
     .with_budget(BufferPoolBudget::declare(
@@ -135,7 +135,7 @@ fn admit_payload_frame(
     payload: &[u8],
 ) -> forge_store_buffer_pool::ResidentFrameAdmission {
     let frame = frame_bytes(generation, payload);
-    let request = ResidentFrameLoadRequest::from_s1_physical_frame(
+    let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validation(1, page, 3, generation),
         frame_witness(payload, validation(1, page, 3, generation)),
     )
@@ -147,17 +147,17 @@ fn admit_payload_frame(
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn segment_cell(segment: u64) -> forge_store_physical_format::SegmentGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .segment_cell(segment_id(segment))
         .with_segment_generation(physical_generation(1))
 }
 
 fn root_publication(root: u64) -> forge_store_physical_format::RootPublicationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(PhysicalRootReference::from_raw(root).unwrap())
         .with_root_publication_generation(physical_generation(1))
 }

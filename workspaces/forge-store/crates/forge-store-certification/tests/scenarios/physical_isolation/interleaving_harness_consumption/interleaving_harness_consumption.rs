@@ -11,11 +11,11 @@ use forge_store_physical_certification::{
 };
 use forge_store_test_support::NativeStoreAspectFixture;
 use s5_interleaving_harness_support::{
-    complete_context, context_without_s5_lane_registration, replay_bundle,
+    complete_context, context_without_physical_isolation_lane_registration, replay_bundle,
 };
 
 #[test]
-fn s5_scenario_families_lower_replay_cover_and_emit_evidence_through_s4_5_pipeline() {
+fn physical_isolation_scenario_families_lower_replay_cover_and_emit_evidence_through_simulation_harness_pipeline() {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan = lower_physical_simulation_plan(lane.scenario().clone(), complete_context())
             .unwrap_or_else(|err| panic!("{} failed to lower: {err:?}", lane.name()));
@@ -70,7 +70,7 @@ fn s5_scenario_families_lower_replay_cover_and_emit_evidence_through_s4_5_pipeli
 }
 
 #[test]
-fn s5_family_lowering_is_readiness_gated_and_rejects_missing_required_s4_5_surfaces() {
+fn physical_isolation_family_lowering_is_readiness_gated_and_rejects_missing_required_simulation_harness_surfaces() {
     let lane = forge_store_certification::physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
@@ -81,7 +81,7 @@ fn s5_family_lowering_is_readiness_gated_and_rejects_missing_required_s4_5_surfa
 
     let no_registration = lower_physical_simulation_plan(
         lane.scenario().clone(),
-        context_without_s5_lane_registration(),
+        context_without_physical_isolation_lane_registration(),
     )
     .unwrap_err();
     assert_eq!(
@@ -104,7 +104,7 @@ fn s5_family_lowering_is_readiness_gated_and_rejects_missing_required_s4_5_surfa
 }
 
 #[test]
-fn s5_interleaving_oracle_is_bound_to_family_specific_observations() {
+fn physical_isolation_interleaving_oracle_is_bound_to_family_specific_observations() {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
@@ -125,7 +125,7 @@ fn s5_interleaving_oracle_is_bound_to_family_specific_observations() {
 }
 
 #[test]
-fn readiness_shape_probe_remains_non_claiming_and_not_s5_closeout_authority() {
+fn readiness_shape_probe_remains_non_claiming_and_not_physical_isolation_closeout_authority() {
     let probe = physical_scenario("store.physical.s5.readiness-shape.non-claim")
         .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
@@ -142,7 +142,7 @@ fn readiness_shape_probe_remains_non_claiming_and_not_s5_closeout_authority() {
         .certify_definition()
         .unwrap();
     let plan =
-        lower_physical_simulation_plan(probe, context_without_s5_lane_registration()).unwrap();
+        lower_physical_simulation_plan(probe, context_without_physical_isolation_lane_registration()).unwrap();
 
     assert!(plan
         .oracle_families()
@@ -234,7 +234,7 @@ fn assert_family_mutation_topology(
             "missing S5 mutation row {required:?} for {family:?}"
         );
         assert!(
-            row_for_matrix_contains_s5_mutation(mutation_result_row, *required),
+            row_for_matrix_contains_physical_isolation_mutation(mutation_result_row, *required),
             "missing coverage matrix S5 mutation row {required:?} for {family:?}"
         );
     }
@@ -250,7 +250,7 @@ fn assert_counter(
     assert!(plan.counter_contracts().contains(kind), "missing {kind:?}");
 }
 
-fn row_for_matrix_contains_s5_mutation(
+fn row_for_matrix_contains_physical_isolation_mutation(
     row: &forge_store_physical_certification::PhysicalCoverageMatrixRow,
     mutation: forge_store_physical_certification::PhysicalIsolationMutationKind,
 ) -> bool {

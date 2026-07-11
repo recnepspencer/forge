@@ -160,7 +160,7 @@ pub struct PhysicalIntegrityReadinessPayload {
 
 impl PhysicalIntegrityReadinessPayload {
     #[allow(clippy::too_many_arguments)]
-    pub fn from_s2_closeout_evidence(
+    pub fn from_physical_substrate_closeout_evidence(
         protected_view_capability: ProtectedIntegrityViewCapability,
         verifier_resident_envelope: VerifierResidentEnvelope,
         scrub_allocation_envelope: ScrubPlanningAllocationEnvelope,

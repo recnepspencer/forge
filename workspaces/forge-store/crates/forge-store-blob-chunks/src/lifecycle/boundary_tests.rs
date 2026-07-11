@@ -10,7 +10,7 @@ use crate::test_support::{blob_scope, integrity_proof_for_scope};
 use crate::{
     reject_copied_counters_as_lifecycle_receipt, reject_copied_digest_string_as_lifecycle_receipt,
     reject_imported_manifest_text_as_lifecycle_receipt,
-    reject_s3_integrity_report_as_lifecycle_receipt,
+    reject_physical_integrity_report_as_lifecycle_receipt,
     reject_terminal_projection_row_as_lifecycle_receipt, AuthenticatedFrameDigest,
     BlobAuthorityClassification, BlobChunkReachabilityRegistry, BlobGeneration,
     BlobLifecycleAdmission, BlobLifecycleDeclaration, BlobLifecycleDenial,
@@ -51,7 +51,7 @@ fn copied_artifacts_have_typed_lifecycle_denials() {
         BlobLifecycleDenial::CopiedCounterSnapshotRejected { counters }
     );
     assert_eq!(
-        reject_s3_integrity_report_as_lifecycle_receipt(&"s3 report"),
+        reject_physical_integrity_report_as_lifecycle_receipt(&"new report"),
         BlobLifecycleDenial::S3IntegrityReportRejected
     );
     assert_eq!(

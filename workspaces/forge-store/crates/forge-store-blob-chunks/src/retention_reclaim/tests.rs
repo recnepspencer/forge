@@ -31,10 +31,10 @@ fn repeated_reclaim_planning_converges_to_same_permit_residue_and_counters() {
 }
 
 #[test]
-fn missing_s6_reclaim_posture_denies_before_permit() {
+fn missing_io_qos_reclaim_posture_denies_before_permit() {
     let BlobRetentionReclaimDenial::MissingS6ReclaimPosture { counters } =
         crate::BlobRetentionReclaimAdmissionAuthority::store_owned()
-            .deny_missing_s6_reclaim_posture()
+            .deny_missing_io_qos_reclaim_posture()
     else {
         panic!("missing S.6 posture must deny");
     };
@@ -44,7 +44,7 @@ fn missing_s6_reclaim_posture_denies_before_permit() {
 }
 
 #[test]
-fn mismatched_s6_reclaim_scope_denies_before_permit() {
+fn mismatched_io_qos_reclaim_scope_denies_before_permit() {
     let Err(BlobRetentionReclaimDenial::S6ReclaimPostureScopeMismatch { counters }) =
         mismatched_scope_admission("phase15-wrong-s6", 3)
     else {

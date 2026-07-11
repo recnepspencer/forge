@@ -40,7 +40,7 @@ pub fn reject_stale_recovery_readiness_as_physical_isolation_entry(
     )
 }
 
-pub fn require_rebound_s4_recovery_readiness_for_physical_isolation_entry(
+pub fn require_rebound_recovery_readiness_for_physical_isolation_entry(
 ) -> PhysicalIsolationEntryCheckedOutcome {
     PhysicalIsolationEntryCheckedOutcome::RebindRequired(
         PhysicalIsolationEntryRebindRequired::S4RecoveryReadinessMustBeRebound,

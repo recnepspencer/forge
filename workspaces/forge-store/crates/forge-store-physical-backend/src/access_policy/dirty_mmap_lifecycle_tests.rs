@@ -21,7 +21,7 @@ use forge_store_physical_format::{
 use forge_store_readiness::{
     close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 #[test]
 fn real_buffer_pool_mmap_dirty_state_blocks_direct_io_admission() {
@@ -117,7 +117,7 @@ fn mmap_dirty_lifecycle_from_buffer_pool() -> AccessPolicyBufferLifecycle {
 
 fn resident_frame_table() -> ResidentFrameTable {
     let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(
@@ -170,7 +170,7 @@ fn load_request_from_frame(
     page_value: u64,
     frame_bytes: &[u8],
 ) -> ResidentFrameLoadRequest {
-    ResidentFrameLoadRequest::from_s1_physical_frame(
+    ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validated_slot_reference(generation_value, page_value),
         frame_header_witness(generation_value, page_value, frame_bytes),
     )
@@ -193,12 +193,12 @@ fn frame_header_witness(
 }
 
 fn test_security_scope() -> AccessPolicySecurityScope {
-    let admitted = admitted_store_internal_security_scope_for_s6_test();
+    let admitted = admitted_store_internal_security_scope_for_io_qos_test();
     AccessPolicySecurityScope::from_current_store_scope(admitted.witnesses())
 }
 
 fn test_reference() -> PhysicalReference {
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(reference_cell(7, 2))
         .reference()
 }
@@ -207,20 +207,20 @@ fn validated_slot_reference(
     generation_value: u64,
     page_value: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = reference_cell(generation_value, page_value);
     let admitted = references.admit_page_slot(cell);
     references.validate_page_slot(admitted, cell).unwrap()
 }
 
 fn reference_cell(generation_value: u64, page_value: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(page_value), slot(3))
         .with_slot_generation(generation(generation_value))
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
@@ -237,8 +237,8 @@ fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),

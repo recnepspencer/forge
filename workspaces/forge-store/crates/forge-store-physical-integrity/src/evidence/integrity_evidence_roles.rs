@@ -156,7 +156,7 @@ impl StorePlannedWorkBoundaryReport {
 
 fn planned_scrub_digest(plan: &ScrubPlan<'_>) -> StableDigest {
     StableDigest::new(format!(
-        "s3-planned-scrub:{:?}:{}:{}",
+        "new-planned-scrub:{:?}:{}:{}",
         plan.mode(),
         plan.plan_identity(),
         plan.windows().len()

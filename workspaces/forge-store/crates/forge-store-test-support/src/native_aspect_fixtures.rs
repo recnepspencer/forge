@@ -135,7 +135,7 @@ impl NativeStoreAspectFixture {
             .map_err(|_| NativeAspectPhysicalReferenceDenial::InvalidSegmentId)?;
         let generation = PhysicalGeneration::from_raw(generation_field(struct_value)?)
             .map_err(|_| NativeAspectPhysicalReferenceDenial::InvalidGeneration)?;
-        let cell = PhysicalGenerationAuthority::s1()
+        let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
             .segment_cell(segment_id)
             .with_segment_generation(generation);
         let reference = GenerationCountedPhysicalReference::from_segment_cell(cell)

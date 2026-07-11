@@ -41,12 +41,12 @@ impl PhysicalHostileScaleFixtureReport {
     }
 
     pub fn header_decode_fixed_fields() -> Self {
-        let generations = PhysicalGenerationAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
         let page_cell = generations
             .page_cell(segment(41), page(51))
             .with_page_generation(generation(7));
-        let header_authority = PhysicalHeaderAuthority::s1(
-            PhysicalBinaryEncodingWitness::s1_canonical()
+        let header_authority = PhysicalHeaderAuthority::for_canonical_physical_format(
+            PhysicalBinaryEncodingWitness::physical_format_canonical()
                 .expect("static S.1 fixture encoding witness is valid"),
         );
         let bytes = page_bytes(generation(7), &[]);
@@ -244,8 +244,8 @@ struct UnrelatedGrowth {
 fn target_locate_counters(
 ) -> Result<PhysicalOperationCounterSnapshot, PhysicalHostileScaleFixtureDenial> {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -281,7 +281,7 @@ fn build_unrelated_physical_growth(
     manifests: u32,
 ) -> Result<UnrelatedGrowth, PhysicalHostileScaleFixtureDenial> {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     for index in 0..pages {
         let page_cell = generations
             .page_cell(segment(100 + index as u64), page(200 + index as u64))
@@ -315,8 +315,8 @@ fn build_unrelated_physical_growth(
 
 fn reference_validation_counters(
 ) -> forge_store_physical_format::PhysicalReferenceValidationCounterSnapshot {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let slot_cell = generations
         .slot_cell(segment(21), page(31), slot(1))
         .with_slot_generation(generation(2));
@@ -340,8 +340,8 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical()
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical()
             .expect("static S.1 fixture encoding witness is valid"),
     ))
 }

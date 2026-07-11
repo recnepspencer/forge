@@ -25,7 +25,7 @@ use forge_store_security::{
 };
 use forge_store_wal::StoreWalRecordIdentity;
 
-pub(crate) fn admit_phase_five_scope(
+pub(crate) fn admit_strategy_scope(
     family_id: DurableArtifactFamilyId,
     key_scope: StoreKeyScope,
     tenant_scope: StoreTenantScope,
@@ -56,7 +56,7 @@ pub(crate) fn admit_phase_five_scope(
 }
 
 pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -78,7 +78,7 @@ pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
 }
 
 pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
-    let (lifecycle, key_domain) = admit_phase_five_scope(
+    let (lifecycle, key_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,
@@ -131,7 +131,7 @@ pub(crate) fn admitted_wal_key_bytes(sequence: u64) -> CanonicalKeyBytes {
 
 pub(crate) fn root_manifest_scope() -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness)
 {
-    admit_phase_five_scope(
+    admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalRootManifest,
         StoreKeyScope::StoreManagedRoot,
         StoreTenantScope::StoreInternal,
@@ -146,7 +146,7 @@ fn admitted_scope(
     authenticity_requirement: StoreAuthenticityRequirement,
     custody_posture: StoreCustodyPosture,
 ) -> StoreAdmittedSecurityScope {
-    let current_authority = current_authority("store.s8.strategy", "test-current");
+    let current_authority = current_authority("store.new.strategy", "test-current");
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
         tenant_scope,

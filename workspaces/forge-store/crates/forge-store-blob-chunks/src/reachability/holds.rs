@@ -88,7 +88,7 @@ impl BlobReachabilityProtectedHold {
         ))
     }
 
-    pub(crate) fn from_s10_backup_handoff(
+    pub(crate) fn from_backup_repair_backup_handoff(
         handoff: &S10BackupExportCustodyHandoff,
         authority: BlobReachabilityAuthorityKey,
     ) -> Result<Self, BlobReachabilityDenial> {

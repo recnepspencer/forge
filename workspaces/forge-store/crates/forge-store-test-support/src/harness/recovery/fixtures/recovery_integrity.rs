@@ -23,7 +23,7 @@ use super::s4_recovery_physical_fixture::{
     frame_witness, page_cell, page_witness, root_with_slot, slot_cell, validation,
     with_protected_payload_view,
 };
-use super::s4_recovery_readiness_fixture::s3_readiness;
+use super::s4_recovery_readiness_fixture::physical_integrity_readiness;
 
 pub(super) fn inspect_page_report(
     payload: &[u8],
@@ -52,14 +52,14 @@ pub(super) fn inspect_page_report(
 
 pub(super) fn inspect_manifest() -> forge_store_physical_integrity::ManifestIntegrityReport {
     let root = root_with_slot(1, 2, 3, 7);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
-                PhysicalReferenceAuthority::s1().admit_root_publication(root.root_publication()),
+                PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication()),
             )
             .with_expected_reference(ManifestExpectedReference::page_slot(
-                PhysicalReferenceAuthority::s1().admit_page_slot(slot_cell(1, 2, 3, 7)),
+                PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(slot_cell(1, 2, 3, 7)),
             )),
         )
         .unwrap()
@@ -71,7 +71,7 @@ pub(super) fn inspect_checkpoint_record(
     with_wal_input(CheckpointAdjacencyPosture::CheckpointAdjacent, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         report = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect_checkpoint_adjacent(request)
                 .unwrap(),
         );
@@ -85,7 +85,7 @@ pub(super) fn inspect_wal_frame(
     let mut report = None;
     with_wal_input(adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
-        report = Some(WalFrameIntegrityAuthority::s3().inspect(request).unwrap());
+        report = Some(WalFrameIntegrityAuthority::new().inspect(request).unwrap());
     });
     report.unwrap()
 }
@@ -130,7 +130,7 @@ pub(super) fn inspect_wal_damage(
     with_wal_payload_input(b"WALF|crc32c|4|checksum-fail|DATA", adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         denial = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );
@@ -221,12 +221,12 @@ fn with_checked_frame(
 fn checksum_admission(
     seed: PhysicalIntegrityAdmissionSeed<'_>,
 ) -> forge_store_physical_integrity::S3ChecksumDeclarationAdmission {
-    checksum_declaration().admit_for_s3_entry(seed.entry_witness())
+    checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness())
 }
 
 fn with_entry_seed(payload: &[u8], run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>)) {
     with_protected_payload_view(payload, |protected| {
-        let entry = IntegrityEntryAdmission::from_s3_payload(s3_readiness().payload()).unwrap();
+        let entry = IntegrityEntryAdmission::from_physical_integrity_payload(physical_integrity_readiness().payload()).unwrap();
         let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
         run(PhysicalIntegrityAdmission::from_entry(lease));
     });
@@ -239,10 +239,10 @@ fn checksum_declaration() -> ChecksumAlgorithmDeclaration {
 }
 
 fn checksum_scope() -> ChecksumScopeDeclaration {
-    let format = forge_store_physical_format::PhysicalFormatDeclaration::s1_canonical().unwrap();
+    let format = forge_store_physical_format::PhysicalFormatDeclaration::physical_format_canonical().unwrap();
     ChecksumScopeDeclaration::for_physical_format(
         format.identity(),
-        ChecksumCoverageMap::s1_page_and_frame_crc32c().unwrap(),
+        ChecksumCoverageMap::physical_format_page_and_frame_crc32c().unwrap(),
     )
     .unwrap()
 }

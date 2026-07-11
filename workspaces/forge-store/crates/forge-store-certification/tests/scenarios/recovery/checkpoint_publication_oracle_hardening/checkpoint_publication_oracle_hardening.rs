@@ -20,7 +20,7 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn checkpoint_publication_observation_satisfies_s5_reader_oracles() {
+fn checkpoint_publication_observation_satisfies_physical_isolation_reader_oracles() {
     let plan = lower_checkpoint_plan();
     let trace = checkpoint_trace(&plan);
     let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
@@ -125,14 +125,14 @@ fn checkpoint_interlock_observation_changes_replay_basis_identity() {
 }
 
 #[test]
-fn checkpoint_publication_lane_is_paired_with_s4_crash_replay_proof() {
+fn checkpoint_publication_lane_is_paired_with_recovery_crash_replay_proof() {
     let plan = lower_checkpoint_crash_replay_plan();
     let trace = checkpoint_crash_replay_trace(&plan);
     let no_mixed_root_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .unwrap();
-    let recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -186,7 +186,7 @@ fn support_attached_recovery_outcome_does_not_carry_checkpoint_crash_lane() {
         .oracle(NoMixedRootOracle)
         .judge(&plan, &scheduled_trace)
         .unwrap();
-    let scheduled_recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let scheduled_recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &scheduled_trace)
         .unwrap();
@@ -194,7 +194,7 @@ fn support_attached_recovery_outcome_does_not_carry_checkpoint_crash_lane() {
         .oracle(NoMixedRootOracle)
         .judge(&plan, &support_attached_trace)
         .unwrap();
-    let support_attached_recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let support_attached_recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &support_attached_trace)
         .unwrap();

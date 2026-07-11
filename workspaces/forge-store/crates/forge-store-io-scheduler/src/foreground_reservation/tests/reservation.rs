@@ -8,8 +8,8 @@ use super::common::*;
 
 #[test]
 fn foreground_reservation_admits_with_backend_stability_security_and_envelope() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
@@ -78,8 +78,8 @@ fn foreground_capacity_pressure_denies_before_reservation_receipt() {
             ForegroundReservationCapacityAuthority::store_owned(),
             point_read_lane(),
             &backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo),
-            &s6_readiness_admission(),
-            &s6_security_scope_admission(),
+            &io_qos_readiness_admission(),
+            &io_qos_security_scope_admission(),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
             ForegroundResourceBudget::new(),
             ForegroundResourceBudget::new(),
@@ -103,9 +103,9 @@ fn foreground_capacity_pressure_denies_before_reservation_receipt() {
 
 #[test]
 fn reservation_request_consumes_sealed_capacity_admission() {
-    let readiness = s6_readiness_admission();
+    let readiness = io_qos_readiness_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
-    let security = s6_security_scope_admission();
+    let security = io_qos_security_scope_admission();
     let lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);
     let capacity = capacity_admission(
@@ -145,8 +145,8 @@ fn reservation_request_consumes_sealed_capacity_admission() {
 #[test]
 fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::Fsync);
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let lane = ForegroundLaneDeclaration::point_read()
         .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
             "point-read",
@@ -185,8 +185,8 @@ fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
 
 #[test]
 fn secure_frame_reservation_requires_bound_security_scope() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let witness = admitted_backend_witness();
     let backend =
         admit_secure_frame_backend_capability_for_scheduler_claim(&witness, &security).unwrap();
@@ -232,8 +232,8 @@ fn secure_frame_reservation_requires_bound_security_scope() {
 
 #[test]
 fn lane_specific_missing_resource_denies_before_capacity_accounting() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::Fsync);
     let lane = ForegroundLaneDeclaration::commit_critical_wal_write()
         .with_latency_envelope(ForegroundLatencyEnvelope::hard_bound("wal-commit", 1))
@@ -313,8 +313,8 @@ fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
 
 #[test]
 fn admission_consumes_arbitration_and_denies_priority_laundering() {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);

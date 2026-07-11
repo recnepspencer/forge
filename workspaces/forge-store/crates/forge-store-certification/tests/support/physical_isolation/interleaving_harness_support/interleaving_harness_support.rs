@@ -30,12 +30,12 @@ use forge_store_physical_isolation::{
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
     forge_store_certification::physical_isolation_ci_certification_planning_context(
-        s5_lane_registration(),
+        physical_isolation_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
-pub(crate) fn context_without_s5_lane_registration() -> SimulationPlanningContext {
+pub(crate) fn context_without_physical_isolation_lane_registration() -> SimulationPlanningContext {
     forge_store_certification::physical_isolation_ci_certification_context_without_lane_registration(
         compaction_mutation_support::compaction_mutation_origin(),
     )
@@ -43,7 +43,7 @@ pub(crate) fn context_without_s5_lane_registration() -> SimulationPlanningContex
 
 pub(crate) fn developer_smoke_context() -> SimulationPlanningContext {
     forge_store_certification::physical_isolation_planning_context(
-        s5_lane_registration(),
+        physical_isolation_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
@@ -125,16 +125,16 @@ pub(crate) fn independent_verifier_observation() -> IndependentVerifierObservati
     )
 }
 
-fn s5_lane_registration() -> PhysicalIsolationCertificationLaneRegistration {
+fn physical_isolation_lane_registration() -> PhysicalIsolationCertificationLaneRegistration {
     let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
         PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
-    register_physical_isolation_certification_lane(&entry, s45_harness_readiness_receipt())
+    register_physical_isolation_certification_lane(&entry, simulation_harness_readiness_receipt())
 }
 
-pub(crate) fn s45_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
+pub(crate) fn simulation_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)

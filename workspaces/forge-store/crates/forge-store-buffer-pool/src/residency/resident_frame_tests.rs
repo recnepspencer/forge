@@ -178,7 +178,7 @@ fn resident_request_rejects_header_reference_mismatch() {
     let mismatched_header = frame_header_witness(4, 2, payload_len_for_frame_size(4096));
 
     let denial =
-        ResidentFrameLoadRequest::from_s1_physical_frame(reference, mismatched_header).unwrap_err();
+        ResidentFrameLoadRequest::from_physical_format_physical_frame(reference, mismatched_header).unwrap_err();
 
     assert_eq!(denial.kind(), ResidentFrameDenialKind::HeaderOwnerMismatch);
 }
@@ -189,7 +189,7 @@ fn resident_request_rejects_non_frame_header() {
     let page_header = page_header_witness(3, 2);
 
     let denial =
-        ResidentFrameLoadRequest::from_s1_physical_frame(reference, page_header).unwrap_err();
+        ResidentFrameLoadRequest::from_physical_format_physical_frame(reference, page_header).unwrap_err();
 
     assert_eq!(
         denial.kind(),
@@ -207,7 +207,7 @@ fn forbidden_residency_proofs_are_typed_denials_not_authority() {
         ResidentFrameDenialKind::ResidentGenerationAsPhysicalProofRejected,
     ];
 
-    for (attempt, denial_kind) in ResidentFrameShortcutAttempt::s2_phase_two_forbidden_attempts()
+    for (attempt, denial_kind) in ResidentFrameShortcutAttempt::physical_substrate_forbidden_attempts()
         .iter()
         .zip(expected)
     {
@@ -219,7 +219,7 @@ fn forbidden_residency_proofs_are_typed_denials_not_authority() {
 
 fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
     let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(
@@ -245,7 +245,7 @@ fn load_request(
     page_value: u64,
     payload_len: usize,
 ) -> ResidentFrameLoadRequest {
-    ResidentFrameLoadRequest::from_s1_physical_frame(
+    ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validated_slot_reference(generation_value, page_value),
         frame_header_witness(generation_value, page_value, payload_len),
     )
@@ -256,8 +256,8 @@ fn validated_slot_reference(
     generation_value: u64,
     page_value: u64,
 ) -> PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(segment(1), page(page_value), slot(3))
         .with_slot_generation(generation(generation_value));
@@ -285,7 +285,7 @@ fn frame_header_witness(
 }
 
 fn page_header_witness(generation_value: u64, page_value: u64) -> PhysicalHeaderDecodeWitness {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment(1), page(page_value))
         .with_page_generation(generation(generation_value));
     header_authority()
@@ -299,7 +299,7 @@ fn page_header_witness(generation_value: u64, page_value: u64) -> PhysicalHeader
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn header_bytes(kind_tag: u8, generation_value: u64, payload_len: usize) -> Vec<u8> {
@@ -320,8 +320,8 @@ fn payload_len_for_frame_size(frame_size: u64) -> usize {
     (frame_size - PHYSICAL_HEADER_LENGTH as u64) as usize
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),

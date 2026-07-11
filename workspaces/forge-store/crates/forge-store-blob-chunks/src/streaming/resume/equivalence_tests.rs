@@ -128,7 +128,7 @@ fn allocation_envelope(streaming_bytes: u64) -> forge_store_budgets::AllocationE
 }
 
 fn pressure_admission() -> BlobStreamingPressureAdmission {
-    BlobStreamingPressureAdmission::from_s6_background_capacity(
+    BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
         false,

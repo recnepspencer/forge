@@ -26,7 +26,7 @@ impl BinaryPhysicalFormatEvidence {
     ) -> Result<Self, BinaryPhysicalFormatEvidenceDenial> {
         let canonical_digest = derive_witness_canonical_digest(witness)?;
         Ok(Self {
-            artifact_id: StableArtifactId::new("forge_store.binary_format.s1")
+            artifact_id: StableArtifactId::new("forge_store.binary_format.for_canonical_physical_format")
                 .expect("static artifact id"),
             foundational_basis: StableArtifactId::new("forge_foundational.canonical_bytes")
                 .expect("static artifact id"),
@@ -110,12 +110,12 @@ fn binary_format_byte_entry((offset, byte): (usize, u8)) -> CanonicalBasisEntry 
 }
 
 fn binary_format_rule_version() -> CanonicalizationRuleVersion {
-    CanonicalizationRuleVersion::new("forge-store.binary-format.s1.v1")
+    CanonicalizationRuleVersion::new("forge-store.binary-format.for_canonical_physical_format.v1")
         .expect("static binary format canonicalization rule version")
 }
 
 const fn binary_format_domain() -> CanonicalBasisDomain {
-    CanonicalBasisDomain::Future("forge-store.binary-format.s1")
+    CanonicalBasisDomain::Future("forge-store.binary-format.for_canonical_physical_format")
 }
 
 #[cfg(test)]
@@ -130,12 +130,12 @@ mod tests {
 
     #[test]
     fn certification_records_canonical_basis_only_at_evidence_boundary() {
-        let witness = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+        let witness = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
         let evidence = BinaryPhysicalFormatEvidence::from_witness(&witness).unwrap();
 
         assert_eq!(
             evidence.artifact_id(),
-            &StableArtifactId::new("forge_store.binary_format.s1").unwrap()
+            &StableArtifactId::new("forge_store.binary_format.for_canonical_physical_format").unwrap()
         );
         assert_eq!(
             evidence.foundational_basis(),
@@ -147,13 +147,13 @@ mod tests {
         );
         assert_eq!(
             evidence.canonical_digest().metadata().entry_count(),
-            PhysicalGoldenFormatHeaderFixture::s1_canonical().len() as u32
+            PhysicalGoldenFormatHeaderFixture::physical_format_canonical().len() as u32
         );
     }
 
     #[test]
     fn certification_digest_changes_when_admitted_format_bytes_change() {
-        let kib16_witness = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+        let kib16_witness = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
         let kib32_witness = witness_for_page_size(PhysicalPageSizeClass::KiB32);
 
         let kib16_evidence = BinaryPhysicalFormatEvidence::from_witness(&kib16_witness).unwrap();
@@ -167,8 +167,8 @@ mod tests {
 
     fn witness_for_page_size(page_size: PhysicalPageSizeClass) -> PhysicalBinaryEncodingWitness {
         let declaration = PhysicalFormatDeclaration::builder()
-            .magic(PhysicalFormatMagic::s1_store())
-            .version(PhysicalFormatVersion::s1_initial())
+            .magic(PhysicalFormatMagic::store_format_magic())
+            .version(PhysicalFormatVersion::initial_format_version())
             .byte_order(PhysicalByteOrder::LittleEndian)
             .field_width(PhysicalFieldWidth::segment_id_u64())
             .field_width(PhysicalFieldWidth::page_id_u64())

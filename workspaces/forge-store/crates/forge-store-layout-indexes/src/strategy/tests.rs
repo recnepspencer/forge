@@ -1,6 +1,6 @@
 #[test]
-fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
-    use super::tests_support::{admit_phase_five_scope, root_manifest_scope};
+fn denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
+    use super::tests_support::{admit_strategy_scope, root_manifest_scope};
     use crate::strategy::registry::S8LayoutAdmissionDenial;
     use crate::strategy::registry::{
         layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
@@ -15,7 +15,7 @@ fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declarati
         StoreKeyScope, StoreTenantScope,
     };
 
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -92,7 +92,7 @@ fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declarati
 }
 
 #[test]
-fn phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families() {
+fn admission_binds_counter_profiles_and_posture_to_strategy_families() {
     use super::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
     use crate::{
         ArtifactFamilyAccessLane, S8AccessShapeDetail, S8MaterializationStateClass,
@@ -254,8 +254,8 @@ fn phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families
 }
 
 #[test]
-fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
-    use super::tests_support::admit_phase_five_scope;
+fn strategy_identity_preserves_family_and_lane_posture() {
+    use super::tests_support::admit_strategy_scope;
     use crate::strategy::registry::{
         layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
     };
@@ -268,7 +268,7 @@ fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
         StoreKeyScope, StoreTenantScope,
     };
 
-    let (page_lifecycle, page_domain) = admit_phase_five_scope(
+    let (page_lifecycle, page_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -277,7 +277,7 @@ fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    let (segment_lifecycle, segment_domain) = admit_phase_five_scope(
+    let (segment_lifecycle, segment_domain) = admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalSegment,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -317,7 +317,7 @@ fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
 }
 
 #[test]
-fn phase_seventeen_btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
+fn btree_strategy_counter_surface_requires_shape_specific_lookup_truth() {
     use super::tests_support::admit_btree_page_strategy;
     use crate::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 
@@ -357,6 +357,6 @@ fn phase_seventeen_btree_strategy_counter_surface_requires_shape_specific_lookup
 }
 
 pub(crate) fn exercise_owner_outcome_cases() {
-    phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declaration();
-    phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families();
+    denies_unsupported_or_incomplete_strategy_claims_before_declaration();
+    admission_binds_counter_profiles_and_posture_to_strategy_families();
 }

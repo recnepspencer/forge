@@ -263,7 +263,7 @@ fn security_scope_harness_replay_denies_replay_scenario_substitution() {
 }
 
 #[test]
-fn security_scope_physical_replay_denies_wrong_s5_family_binding() {
+fn security_scope_physical_replay_denies_wrong_physical_isolation_family_binding() {
     let scenario = SecurityScopeHarnessScenario::metadata_preserved(
         SecurityScopeHarnessSchedule::StableReadPlanAdmission,
     );

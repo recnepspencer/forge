@@ -45,7 +45,7 @@ pub use crate::lifecycle::{
     reject_copied_lifecycle_receipt_as_blob_identity, reject_digest_equality_as_blob_identity,
     reject_imported_manifest_text_as_lifecycle_receipt,
     reject_physical_generation_as_blob_generation, reject_raw_generation_number_as_blob_identity,
-    reject_s3_integrity_report_as_lifecycle_receipt, reject_s6_placement_seed_as_lifecycle_receipt,
+    reject_physical_integrity_report_as_lifecycle_receipt, reject_io_qos_placement_seed_as_lifecycle_receipt,
     reject_semantic_reference_id_as_blob_identity, reject_terminal_projection_row_as_blob_identity,
     reject_terminal_projection_row_as_lifecycle_receipt,
 };

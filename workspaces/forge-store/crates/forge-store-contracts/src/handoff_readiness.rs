@@ -68,7 +68,7 @@ pub struct AcceptedHandoffReadiness {
 }
 
 impl AcceptedHandoffReadiness {
-    pub fn from_s0_artifacts(
+    pub fn from_foundational_handoff_artifacts(
         scope: RoadmapScope,
         evidence_digests: HandoffEvidenceDigestSet,
     ) -> StoreContractResult<Self> {
@@ -90,6 +90,6 @@ impl AcceptedHandoffReadiness {
     }
 
     pub fn physical_authority_scope(&self) -> StoreContractResult<StorePhysicalAuthorityWitness> {
-        StorePhysicalAuthorityWitness::for_s1_vocabulary(self.scope)
+        StorePhysicalAuthorityWitness::for_physical_format_vocabulary(self.scope)
     }
 }

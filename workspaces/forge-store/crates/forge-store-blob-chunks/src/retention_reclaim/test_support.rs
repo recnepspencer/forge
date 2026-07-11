@@ -36,7 +36,7 @@ pub(crate) fn plan(request: BlobRetentionReclaimRequest) -> BlobRetentionReclaim
 
 pub(crate) fn reclaim_fixture(case: &str, physical_slot: u16) -> BlobRetentionReclaimAdmission {
     let (registry, chunk_identity, metadata) = reachability_registry(case);
-    let s6 = s6_handoff_for_metadata(
+    let s6 = io_qos_handoff_for_metadata(
         case,
         current_physical_reference_raw(physical_slot),
         metadata,
@@ -52,7 +52,7 @@ pub(crate) fn mismatched_abandoned_resume_barrier_admission(
     barrier_slot: u16,
 ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
     let (registry, chunk_identity, metadata) = reachability_registry(case);
-    let s6 = s6_handoff_for_metadata(case, current_physical_reference_raw(s6_slot), metadata);
+    let s6 = io_qos_handoff_for_metadata(case, current_physical_reference_raw(s6_slot), metadata);
     let barrier = resume_barrier_for_chunk(&chunk_identity, barrier_slot);
     BlobRetentionReclaimAdmissionAuthority::store_owned().admit_abandoned_resume_orphan(
         &registry,
@@ -71,7 +71,7 @@ pub(crate) fn mismatched_scope_admission(
     let tenant_scope = StoreTenantScope::MultiTenantPhysicalBoundary;
     let scope = blob_scope(case, tenant_scope);
     let admitted = admitted_blob_security_scope(case, tenant_scope);
-    let s6 = s6_handoff_from_parts(region_reference, scope.metadata(), &admitted);
+    let s6 = io_qos_handoff_from_parts(region_reference, scope.metadata(), &admitted);
     BlobRetentionReclaimAdmissionAuthority::store_owned().admit_reachability_orphan(
         &registry,
         &chunk_identity,
@@ -87,7 +87,7 @@ pub(crate) fn live_read_hold_admission(
     registry
         .admit_stable_read_plan_hold(&stable_physical_read_plan_for_certification_test(64))
         .expect("live read hold should bind to current registry authority");
-    let s6 = s6_handoff_for_metadata(
+    let s6 = io_qos_handoff_for_metadata(
         case,
         current_physical_reference_raw(physical_slot),
         metadata,
@@ -108,7 +108,7 @@ pub(crate) fn retention_hold_admission(
     registry
         .admit_retention_hold(&hold)
         .expect("retention hold should bind to current registry authority");
-    let s6 = s6_handoff_for_metadata(
+    let s6 = io_qos_handoff_for_metadata(
         case,
         current_physical_reference_raw(physical_slot),
         metadata,
@@ -120,16 +120,16 @@ pub(crate) fn retention_hold_admission(
     )
 }
 
-fn s6_handoff_for_metadata(
+fn io_qos_handoff_for_metadata(
     case: &str,
     region_reference: PhysicalReference,
     metadata: BlobChunkSecurityMetadataWitness,
 ) -> BlobReclaimPolicyEvidence {
     let admitted = admitted_blob_security_scope(case, StoreTenantScope::TenantPhysicalBoundary);
-    s6_handoff_from_parts(region_reference, metadata, &admitted)
+    io_qos_handoff_from_parts(region_reference, metadata, &admitted)
 }
 
-fn s6_handoff_from_parts(
+fn io_qos_handoff_from_parts(
     region_reference: PhysicalReference,
     metadata: crate::BlobChunkSecurityMetadataWitness,
     admitted: &forge_store_security::StoreAdmittedSecurityScope,
@@ -256,9 +256,9 @@ impl PhysicalStoreReclaimPolicyExecutor for ObservingBackend {
 
 fn current_physical_reference_raw(slot: u16) -> PhysicalReference {
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(
-            PhysicalGenerationAuthority::s1()
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .slot_cell(
                     PhysicalSegmentId::from_raw(1).expect("segment"),
                     PhysicalPageId::from_raw(1).expect("page"),
@@ -272,8 +272,8 @@ fn current_physical_reference_raw(slot: u16) -> PhysicalReference {
 fn current_physical_reference(slot: u16) -> CurrentGenerationPhysicalReference {
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
     GenerationCountedPhysicalReference::from_admitted_reference(
-        PhysicalReferenceAuthority::s1().admit_page_slot(
-            PhysicalGenerationAuthority::s1()
+        PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(
+            PhysicalGenerationAuthority::for_canonical_physical_format()
                 .slot_cell(
                     PhysicalSegmentId::from_raw(1).expect("segment"),
                     PhysicalPageId::from_raw(1).expect("page"),

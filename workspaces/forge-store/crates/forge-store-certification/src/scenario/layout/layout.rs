@@ -8,7 +8,7 @@ pub struct S8LayoutScenarioCertificate {
     executed: S8LayoutExecutedScenarioWitness,
 }
 
-pub fn certify_s8_layout_scenario(
+pub fn certify_layout_index_layout_scenario(
     executed: S8LayoutExecutedScenarioWitness,
 ) -> S8LayoutScenarioCertificate {
     S8LayoutScenarioCertificate { executed }

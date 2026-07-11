@@ -14,7 +14,7 @@ pub struct PhysicalIntegrityCloseoutSuiteEvidence {
     localized_boundaries: Vec<S3ExecutedCorruptionLocalizationEvidence>,
     denied_boundaries: Vec<S3ExecutedBoundaryDenialEvidence>,
     synthetic_rejections: Vec<SyntheticCloseoutShortcutRejectionReport>,
-    s4_handoff: Option<S3S4HandoffCloseoutEvidence>,
+    recovery_handoff: Option<S3S4HandoffCloseoutEvidence>,
     line_cap_composition: Option<S3LineCapCompositionEvidence>,
 }
 
@@ -63,7 +63,7 @@ impl PhysicalIntegrityCloseoutSuiteEvidence {
         .with_synthetic_rejections(rejections)
     }
 
-    pub fn s4_handoff(
+    pub fn recovery_handoff(
         harness: S3HarnessTranscriptEvidence,
         handoff: S3S4HandoffCloseoutEvidence,
     ) -> Self {
@@ -72,7 +72,7 @@ impl PhysicalIntegrityCloseoutSuiteEvidence {
             S3CloseoutEvidenceFamily::S4IntegrityHandoff,
             harness,
         )
-        .with_s4_handoff(handoff)
+        .with_recovery_handoff(handoff)
     }
 
     pub fn line_cap_composition(
@@ -111,8 +111,8 @@ impl PhysicalIntegrityCloseoutSuiteEvidence {
         &self.synthetic_rejections
     }
 
-    pub const fn s4_handoff_evidence(&self) -> Option<&S3S4HandoffCloseoutEvidence> {
-        self.s4_handoff.as_ref()
+    pub const fn recovery_handoff_evidence(&self) -> Option<&S3S4HandoffCloseoutEvidence> {
+        self.recovery_handoff.as_ref()
     }
 
     pub const fn line_cap_composition_evidence(&self) -> Option<&S3LineCapCompositionEvidence> {
@@ -131,7 +131,7 @@ impl PhysicalIntegrityCloseoutSuiteEvidence {
             localized_boundaries: Vec::new(),
             denied_boundaries: Vec::new(),
             synthetic_rejections: Vec::new(),
-            s4_handoff: None,
+            recovery_handoff: None,
             line_cap_composition: None,
         }
     }
@@ -157,8 +157,8 @@ impl PhysicalIntegrityCloseoutSuiteEvidence {
         self
     }
 
-    fn with_s4_handoff(mut self, evidence: S3S4HandoffCloseoutEvidence) -> Self {
-        self.s4_handoff = Some(evidence);
+    fn with_recovery_handoff(mut self, evidence: S3S4HandoffCloseoutEvidence) -> Self {
+        self.recovery_handoff = Some(evidence);
         self
     }
 
@@ -216,7 +216,7 @@ impl PhysicalIntegrityCloseoutSuite {
         require_localization(self)?;
         require_boundary_denials(self)?;
         require_synthetic_rejections(self)?;
-        require_s4_handoff(self)?;
+        require_recovery_handoff(self)?;
         require_line_cap_composition(self)
     }
 }
@@ -347,13 +347,13 @@ fn require_synthetic_rejections(
     Ok(())
 }
 
-fn require_s4_handoff(
+fn require_recovery_handoff(
     suite: &PhysicalIntegrityCloseoutSuite,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     let evidence = suite
         .evidence_for(S3AcceptanceSuiteKind::S4IntegrityHandoff)
         .expect("suite presence checked before S.4 handoff");
-    if evidence.s4_handoff.is_some() {
+    if evidence.recovery_handoff.is_some() {
         Ok(())
     } else {
         Err(PhysicalIntegrityCloseoutDenial::MissingS4HandoffPayload)

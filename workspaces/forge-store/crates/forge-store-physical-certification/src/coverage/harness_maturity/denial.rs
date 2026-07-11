@@ -45,12 +45,12 @@ impl PhysicalIsolationHarnessMaturityDependency {
     }
 }
 
-pub fn reject_missing_s5_correctness_non_claim(
+pub fn reject_missing_physical_isolation_correctness_non_claim(
 ) -> Result<(), PhysicalIsolationHarnessReadinessDenial> {
     Err(PhysicalIsolationHarnessReadinessDenial::MissingPhysicalIsolationCorrectnessNonClaim)
 }
 
-pub fn reject_copied_s5_simulation_harness_readiness_fields(
+pub fn reject_copied_physical_isolation_simulation_harness_readiness_fields(
 ) -> Result<(), PhysicalIsolationHarnessReadinessDenial> {
     Err(PhysicalIsolationHarnessReadinessDenial::CopiedReadinessFieldsDenied)
 }

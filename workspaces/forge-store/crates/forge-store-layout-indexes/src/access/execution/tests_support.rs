@@ -1,6 +1,6 @@
 use crate::access::execution::S8AdmittedExecutedCounters;
 use crate::facade::{access_planning, deterministic_plan_selection, layout_execution_freshness};
-use crate::strategy::tests_support::admit_phase_five_scope;
+use crate::strategy::tests_support::admit_strategy_scope;
 use crate::{access_lowering, S8AccessLoweringDenied, S8DegradedExactScanRequest};
 use forge_store_budgets::S8PreExecutionBudgetEnvelope;
 use forge_store_contracts::DurableArtifactFamilyId;
@@ -14,7 +14,7 @@ pub(crate) fn admit_page_scope() -> (
     crate::ArtifactFamilyLifecycleAdmission,
     crate::PhysicalKeyDomainWitness,
 ) {
-    admit_phase_five_scope(
+    admit_strategy_scope(
         DurableArtifactFamilyId::PhysicalPage,
         StoreKeyScope::PageEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -29,7 +29,7 @@ pub(super) fn admit_wal_scope() -> (
     crate::ArtifactFamilyLifecycleAdmission,
     crate::PhysicalKeyDomainWitness,
 ) {
-    admit_phase_five_scope(
+    admit_strategy_scope(
         DurableArtifactFamilyId::PublicationWalIntent,
         StoreKeyScope::WalCheckpointEnvelope,
         StoreTenantScope::StoreInternal,

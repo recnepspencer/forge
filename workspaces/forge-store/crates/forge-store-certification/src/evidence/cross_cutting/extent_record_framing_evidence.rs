@@ -25,7 +25,7 @@ pub enum PhysicalExtentRecordFramingEvidenceRow {
 }
 
 impl PhysicalExtentRecordFramingEvidenceRow {
-    pub const fn s1_required() -> [Self; 5] {
+    pub const fn physical_format_required() -> [Self; 5] {
         [
             Self::ExtentBackedLargeRecord,
             Self::ExtentLengthMismatchDenied,

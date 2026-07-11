@@ -149,7 +149,7 @@ fn judge_oracle(
             judge_runtime_verifier_parity(trace)
         }
         PhysicalProofOracleKind::S3DamagedBytesDenyBeforeLogicalDecode => {
-            judge_s3_damaged_bytes_deny_before_logical_decode(trace)
+            judge_physical_integrity_damaged_bytes_deny_before_logical_decode(trace)
         }
         PhysicalProofOracleKind::S3DamageLocalizesToPhysicalBoundary
         | PhysicalProofOracleKind::S3RecoveryHandoffContainsOnlyIntegrityEvidence
@@ -314,7 +314,7 @@ fn judge_runtime_verifier_parity(trace: &ObservedPhysicalTrace) -> PhysicalOracl
     }
 }
 
-fn judge_s3_damaged_bytes_deny_before_logical_decode(
+fn judge_physical_integrity_damaged_bytes_deny_before_logical_decode(
     trace: &ObservedPhysicalTrace,
 ) -> PhysicalOracleOutcome {
     if trace

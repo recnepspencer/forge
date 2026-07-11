@@ -14,7 +14,7 @@ pub struct HarnessPhysicalReference(PhysicalReference);
 impl HarnessPhysicalReference {
     /// Construct a harness-only slot reference for certification scenarios.
     pub fn for_courtroom_replay(slot_index: u16) -> Self {
-        let cell = PhysicalGenerationAuthority::s1()
+        let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
             .slot_cell(
                 PhysicalSegmentId::from_raw(1).expect("harness segment id is non-zero"),
                 PhysicalPageId::from_raw(1).expect("harness page id is non-zero"),
@@ -25,7 +25,7 @@ impl HarnessPhysicalReference {
             );
 
         Self(
-            PhysicalReferenceAuthority::s1()
+            PhysicalReferenceAuthority::for_canonical_physical_format()
                 .admit_page_slot(cell)
                 .reference(),
         )

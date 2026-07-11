@@ -27,7 +27,7 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
 
     let (catalog, admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             physical_catalog.clone(),
             physical_catalog.current_root(),
         )
@@ -39,7 +39,7 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
     );
     assert_eq!(
         catalog.discovery_layout().physical_format_version(),
-        forge_store_physical_format::PhysicalFormatVersion::s1_initial()
+        forge_store_physical_format::PhysicalFormatVersion::initial_format_version()
     );
     assert_eq!(
         catalog.discovery_layout().checksum_bytes_checked(),
@@ -94,7 +94,7 @@ fn mismatched_current_root_readmission_is_rejected() {
 
     let denial = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             physical_catalog,
             other_catalog.current_root(),
         )
@@ -117,7 +117,7 @@ fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
         .expect("first physical bootstrap catalog should derive");
     let (_, first_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             first_catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&open)
@@ -135,7 +135,7 @@ fn bootstrap_admission_cannot_unlock_a_different_same_version_catalog() {
         .expect("second physical bootstrap catalog should derive");
     let (_, other_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             other_catalog,
             physical_bootstrap_catalog()
                 .discover_catalog(&other_open)
@@ -158,7 +158,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .expect("physical bootstrap catalog should derive");
     let (published_catalog, published_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             published_physical_catalog.clone(),
             published_physical_catalog.current_root(),
         )
@@ -181,9 +181,9 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .replay_artifact()
         .expect("production-backed certification replay should preserve the native replay artifact")
         .clone();
-    let reopened = PlatformPhysicalFacade::reopen_s1(
+    let reopened = PlatformPhysicalFacade::reopen(
         readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
         certification_replay_artifact.clone(),
     )
     .expect("certification replay layout should reopen through physical authority");
@@ -196,7 +196,7 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
         .expect("certification replay should derive canonical bootstrap catalog");
     let (certification_catalog, certification_admission) = bootstrap_catalog()
         .read_catalog(
-            S8BootstrapOnlyAccessPath::s8_fixed(),
+            S8BootstrapOnlyAccessPath::fixed_bootstrap_access_path(),
             certification_physical_catalog.clone(),
             certification_physical_catalog.current_root(),
         )
@@ -217,9 +217,9 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
 
 fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
     let mut facade =
-        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
             .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             generations
@@ -243,9 +243,9 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
 
 fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
     let mut facade =
-        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+        PlatformPhysicalFacade::open_physical_format(readiness(), PlatformPhysicalOpenRequest::physical_format_canonical())
             .expect("open S.1 facade");
-    let generations = PhysicalGenerationAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             generations
@@ -279,7 +279,7 @@ fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPubl
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 

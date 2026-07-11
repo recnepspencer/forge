@@ -40,7 +40,7 @@ use forge_store_physical_isolation::{
 };
 
 #[test]
-fn s5_entry_admits_only_typed_recovery_completion() {
+fn physical_isolation_entry_admits_only_typed_recovery_completion() {
     let completion = closeout_fixture::recovery_completion();
 
     let entry = admit_physical_isolation_entry(
@@ -155,7 +155,7 @@ fn assert_entry_proof_progression_is_store_authorized(
 }
 
 #[test]
-fn s5_entry_rejects_copied_runtime_semantic_projection_and_json_authority() {
+fn physical_isolation_entry_rejects_copied_runtime_semantic_projection_and_json_authority() {
     assert_eq!(
         reject_copied_recovery_fields_as_physical_isolation_entry().unwrap_err(),
         PhysicalIsolationEntryDenial::CopiedRecoveryFields
@@ -187,19 +187,19 @@ fn s5_entry_rejects_copied_runtime_semantic_projection_and_json_authority() {
         )
     );
     assert!(matches!(
-        forge_store_physical_isolation::require_rebound_s4_recovery_readiness_for_physical_isolation_entry(),
+        forge_store_physical_isolation::require_rebound_recovery_readiness_for_physical_isolation_entry(),
         PhysicalIsolationEntryCheckedOutcome::RebindRequired(_)
     ));
 }
 
 #[test]
-fn physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
+fn physical_isolation_lane_requires_entry_and_simulation_harness_readiness() {
     let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
         PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
-    let receipt = s45_harness_readiness_receipt();
+    let receipt = simulation_harness_readiness_receipt();
 
     let registration =
         register_physical_isolation_certification_lane(&entry, receipt);
@@ -212,7 +212,7 @@ fn physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
 }
 
 #[test]
-fn physical_isolation_lane_denies_near_miss_s45_receipts_before_registration() {
+fn physical_isolation_lane_denies_near_miss_simulation_harness_receipts_before_registration() {
     assert_eq!(
         receipt_denial_for_developer_smoke_profile(),
         PhysicalIsolationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
@@ -258,7 +258,7 @@ fn physical_isolation_lane_rejects_copied_rows_and_runner_shortcuts() {
     );
 }
 
-fn s45_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
+fn simulation_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)
@@ -362,7 +362,7 @@ fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialRece
 }
 
 #[test]
-fn shortcut_report_names_required_s5_entry_boundaries() {
+fn shortcut_report_names_required_physical_isolation_entry_boundaries() {
     let report = complete_shortcut_report();
     for boundary in [
         ShortcutRejectionBoundary::EvidenceLooseLog,

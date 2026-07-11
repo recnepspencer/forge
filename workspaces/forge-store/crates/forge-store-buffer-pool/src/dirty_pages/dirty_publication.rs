@@ -111,7 +111,7 @@ impl DirtyPublicationReceipt {
         let page_id = reference
             .page_id()
             .expect("resident frame requests are admitted page-slot references");
-        PhysicalGenerationAuthority::s1()
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .page_cell(segment_id, page_id)
             .with_page_generation(reference.generation())
     }

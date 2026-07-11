@@ -15,7 +15,7 @@ const CHUNK_STATUS_EXTENT_BOUNDARY_DAMAGE: &str = "extent-boundary-damage";
 pub struct ChunkIntegrityAuthority;
 
 impl ChunkIntegrityAuthority {
-    pub const fn s3() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 

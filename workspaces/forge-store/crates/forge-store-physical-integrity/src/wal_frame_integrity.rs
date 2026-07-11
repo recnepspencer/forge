@@ -17,7 +17,7 @@ const WAL_STATUS_RECOVERY_PRECEDENCE_REQUIRED: &str = "recovery-precedence-requi
 pub struct WalFrameIntegrityAuthority;
 
 impl WalFrameIntegrityAuthority {
-    pub const fn s3() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 

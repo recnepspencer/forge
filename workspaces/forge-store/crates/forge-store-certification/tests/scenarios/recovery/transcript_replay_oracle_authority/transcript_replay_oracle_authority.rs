@@ -22,7 +22,7 @@ use forge_store_test_support::{
 };
 
 #[test]
-fn shortcut_plan_gets_generic_replay_evidence_without_s5_authority() {
+fn shortcut_plan_gets_generic_replay_evidence_without_physical_isolation_authority() {
     let plan = counter_support::lower_shortcut_plan();
     let trace = shortcut_trace(&plan);
     let shortcut_verdict = ReusablePhysicalOracleFamily::forbidden_shortcut_rejection()
@@ -60,10 +60,10 @@ fn shortcut_plan_gets_generic_replay_evidence_without_s5_authority() {
 }
 
 #[test]
-fn s4_recovery_plan_produces_replay_evidence_without_s5_authority() {
+fn recovery_plan_produces_replay_evidence_without_physical_isolation_authority() {
     let plan = lower_recovery_plan();
     let trace = recovery_trace(&plan);
-    let recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -102,10 +102,10 @@ fn s4_recovery_plan_produces_replay_evidence_without_s5_authority() {
 }
 
 #[test]
-fn failed_s4_recovery_oracle_materializes_failure_digest() {
+fn failed_recovery_oracle_materializes_failure_digest() {
     let plan = lower_recovery_plan();
     let trace = recovery_trace_with_outcome(&plan, RecoveryOutcomeObservation::mixed_root());
-    let recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+    let recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -164,7 +164,7 @@ fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalS
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }

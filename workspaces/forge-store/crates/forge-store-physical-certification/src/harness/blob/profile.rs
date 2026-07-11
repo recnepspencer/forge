@@ -70,7 +70,7 @@ impl BlobHarnessProfile {
 }
 
 impl BlobHarnessProfileSet {
-    pub fn phase8_required() -> Self {
+    pub fn required_qualification_profiles() -> Self {
         Self {
             profiles: vec![
                 BlobHarnessProfile::Local,

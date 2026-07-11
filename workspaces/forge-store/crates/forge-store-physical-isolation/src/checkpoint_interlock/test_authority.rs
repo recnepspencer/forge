@@ -53,7 +53,7 @@ fn checkpoint_validation_for_certification_test() -> CheckpointValidation {
             PhysicalRootReference::from_raw(1).expect("root reference"),
         ),
         CheckpointPageLsnFrontier::from_pages([(
-            forge_store_physical_format::PhysicalGenerationAuthority::s1()
+            forge_store_physical_format::PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(
                     forge_store_physical_format::PhysicalSegmentId::from_raw(1).expect("segment"),
                     forge_store_physical_format::PhysicalPageId::from_raw(1).expect("page"),
@@ -79,7 +79,7 @@ fn checkpoint_validation_for_certification_test() -> CheckpointValidation {
 }
 
 fn current_root_for_certification_test(seed: u64) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_s5_entry(
+    CurrentPhysicalRoot::from_physical_isolation_entry(
         CurrentPhysicalRootBasis::new(
             root_epoch_from_entry_seed(seed),
             manifest_epoch_from_entry_seed(seed),

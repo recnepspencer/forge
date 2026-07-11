@@ -12,7 +12,7 @@ pub enum RecoveryPhysicsShortcutAttempt {
 }
 
 impl RecoveryPhysicsShortcutAttempt {
-    pub const fn required_s4_denials() -> [Self; 5] {
+    pub const fn required_recovery_denials() -> [Self; 5] {
         [
             Self::LiveStateReuse,
             Self::LogsOnlyProof,

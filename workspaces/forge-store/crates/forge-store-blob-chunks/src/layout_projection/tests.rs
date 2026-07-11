@@ -4,7 +4,7 @@ use forge_store_retention::RetentionDisposition;
 use forge_store_security::StoreTenantScope;
 
 use crate::corruption::test_support::quarantined_read_corruption;
-use crate::phase24_layout_runtime_case;
+use crate::layout_runtime_case;
 use crate::test_support::{
     admitted_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope, canonical_equivalence,
 };
@@ -28,8 +28,8 @@ const CASE: &str = "phase10.streaming.read";
 const BYTES: &[u8] = b"abcdefghijkl";
 
 #[test]
-fn phase24_layout_admission_uses_published_and_verified_runtime_path() {
-    let (published, _, read_request, verified) = phase24_layout_runtime_case(CASE, BYTES, 4, 4);
+fn layout_admission_uses_published_and_verified_runtime_path() {
+    let (published, _, read_request, verified) = layout_runtime_case(CASE, BYTES, 4, 4);
 
     let blob = published.admit_blob_object_layout().unwrap();
     let chunk_tree = blob.admit_chunk_tree_layout(&verified).unwrap();
@@ -80,7 +80,7 @@ fn phase24_layout_admission_uses_published_and_verified_runtime_path() {
 }
 
 #[test]
-fn phase25_layout_admission_uses_runtime_maintenance_authority() {
+fn layout_admission_uses_runtime_maintenance_authority() {
     let dedupe_scope = blob_scope("phase25-dedupe", StoreTenantScope::TenantPhysicalBoundary);
     let dedupe_existing = candidate_for_bytes_and_scope(BYTES, dedupe_scope);
     let dedupe_candidate = candidate_for_bytes_and_scope(
@@ -209,8 +209,8 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
 }
 
 #[test]
-fn phase24_layout_rejects_proxy_authority_inputs() {
-    let (published, _, _, _) = phase24_layout_runtime_case(CASE, BYTES, 4, 4);
+fn layout_rejects_proxy_authority_inputs() {
+    let (published, _, _, _) = layout_runtime_case(CASE, BYTES, 4, 4);
 
     let root_denial =
         reject_chunk_tree_root_as_blob_object_layout_authority(published.chunk_tree_root())
@@ -220,7 +220,7 @@ fn phase24_layout_rejects_proxy_authority_inputs() {
         BlobLayoutAccessDenialKind::ChunkTreeRootCannotStandInForBlobObjectLayoutAuthority
     );
 
-    let (_, _, read_request, _) = phase24_layout_runtime_case(CASE, BYTES, 4, 4);
+    let (_, _, read_request, _) = layout_runtime_case(CASE, BYTES, 4, 4);
     let frontier_denial =
         reject_streaming_frontier_as_chunk_tree_layout_authority(read_request.frontier())
             .expect_err("frontier cannot stand in for chunk-tree layout");
@@ -238,7 +238,7 @@ fn phase24_layout_rejects_proxy_authority_inputs() {
 
     let blob = published.admit_blob_object_layout().unwrap();
     let (_, _, _, wrong_verified) =
-        phase24_layout_runtime_case("phase10.streaming.unrelated", BYTES, 4, 4);
+        layout_runtime_case("phase10.streaming.unrelated", BYTES, 4, 4);
     let denial = blob
         .admit_chunk_tree_layout(&wrong_verified)
         .expect_err("unrelated verified read should not satisfy chunk-tree layout");
@@ -249,9 +249,9 @@ fn phase24_layout_rejects_proxy_authority_inputs() {
 }
 
 #[test]
-fn phase24_streaming_layout_denies_whole_blob_residency() {
+fn streaming_layout_denies_whole_blob_residency() {
     let (published, _, read_request, verified) =
-        phase24_layout_runtime_case(CASE, BYTES, BYTES.len() as u64, BYTES.len() as u64);
+        layout_runtime_case(CASE, BYTES, BYTES.len() as u64, BYTES.len() as u64);
 
     let blob = published.admit_blob_object_layout().unwrap();
     let chunk_tree = blob.admit_chunk_tree_layout(&verified).unwrap();

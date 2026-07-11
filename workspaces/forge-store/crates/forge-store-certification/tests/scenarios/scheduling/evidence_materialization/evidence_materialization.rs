@@ -5,9 +5,9 @@ mod s6_access_policy_support;
 mod s6_evidence_materialization_support;
 
 use forge_store_certification::{
-    adopt_materialized_s6_certification_evidence_for_closeout,
-    materialize_s6_certification_evidence,
-    reject_materialized_s6_certification_as_runtime_authority,
+    adopt_materialized_io_qos_certification_evidence_for_closeout,
+    materialize_io_qos_certification_evidence,
+    reject_materialized_io_qos_certification_as_runtime_authority,
     S6CertificationMaterializationDenial, S6CertificationRuntimeAuthorityDenial,
     S6CounterStrengthFamily, S6FoundationalAuthorityBoundary, S6MaterializedCounterStrength,
     S6PostAdmissionViolationCause, S6PostAdmissionViolationFamily,
@@ -17,10 +17,10 @@ use forge_store_io_scheduler::BackgroundDebtKind;
 use forge_store_physical_backend::AccessPolicyViolationKind;
 
 #[test]
-fn materialized_s6_evidence_binds_store_witnesses_to_foundational_and_proof_surfaces() {
+fn materialized_io_qos_evidence_binds_store_witnesses_to_foundational_and_proof_surfaces() {
     let sources = s6_evidence_materialization_support::sources();
 
-    let bundle = materialize_s6_certification_evidence(sources)
+    let bundle = materialize_io_qos_certification_evidence(sources)
         .expect("executed S.6 evidence should materialize");
 
     assert!(bundle.is_courtroom_evidence_over_executed_store_law());
@@ -68,7 +68,7 @@ fn materialized_s6_evidence_binds_store_witnesses_to_foundational_and_proof_surf
 #[test]
 fn materialization_marks_certification_only_strength_when_lower_strength_is_not_exposed() {
     let bundle =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("executed S.6 evidence should materialize");
 
     s6_evidence_materialization_support::assert_fixture_counter_strength_matrix(&bundle);
@@ -78,10 +78,10 @@ fn materialization_marks_certification_only_strength_when_lower_strength_is_not_
 #[test]
 fn independently_built_sources_materialize_equivalent_replay_and_proof_surfaces() {
     let first =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("first executed S.6 evidence should materialize");
     let second =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("second executed S.6 evidence should materialize");
 
     assert_eq!(first.canonical(), second.canonical());
@@ -106,12 +106,12 @@ fn independently_built_sources_materialize_equivalent_replay_and_proof_surfaces(
 }
 
 #[test]
-fn materialized_s6_evidence_is_adopted_by_closeout_without_runtime_authority() {
+fn materialized_io_qos_evidence_is_adopted_by_closeout_without_runtime_authority() {
     let bundle =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("executed S.6 evidence should materialize");
 
-    let receipt = adopt_materialized_s6_certification_evidence_for_closeout(&bundle)
+    let receipt = adopt_materialized_io_qos_certification_evidence_for_closeout(&bundle)
         .expect("readiness closeout should adopt materialized evidence");
 
     assert_eq!(receipt.profile_count(), 6);
@@ -165,10 +165,10 @@ fn materialized_s6_evidence_is_adopted_by_closeout_without_runtime_authority() {
 #[test]
 fn certification_bundle_is_rejected_as_runtime_authority() {
     let bundle =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("executed S.6 evidence should materialize");
 
-    let denial = reject_materialized_s6_certification_as_runtime_authority(&bundle);
+    let denial = reject_materialized_io_qos_certification_as_runtime_authority(&bundle);
 
     assert_eq!(
         denial,
@@ -180,7 +180,7 @@ fn certification_bundle_is_rejected_as_runtime_authority() {
 fn materialization_requires_access_policy_evidence() {
     let sources = s6_evidence_materialization_support::sources_without_access_policy_rows();
 
-    let denial = materialize_s6_certification_evidence(sources)
+    let denial = materialize_io_qos_certification_evidence(sources)
         .expect_err("access policy evidence is mandatory");
 
     assert!(matches!(
@@ -193,7 +193,7 @@ fn materialization_requires_access_policy_evidence() {
 fn materialization_derives_post_admission_violations_from_store_outcomes() {
     let sources = s6_evidence_materialization_support::sources_without_post_admission_violations();
 
-    let bundle = materialize_s6_certification_evidence(sources)
+    let bundle = materialize_io_qos_certification_evidence(sources)
         .expect("background violation should still materialize as post-admission evidence");
 
     assert_eq!(bundle.canonical().post_admission_violation_rows(), 1);
@@ -228,7 +228,7 @@ fn materialization_derives_post_admission_violations_from_store_outcomes() {
 fn materialization_requires_flush_durability_rows() {
     let sources = s6_evidence_materialization_support::sources_without_flush_rows();
 
-    let denial = materialize_s6_certification_evidence(sources)
+    let denial = materialize_io_qos_certification_evidence(sources)
         .expect_err("flush durability evidence is mandatory");
 
     assert!(matches!(
@@ -240,7 +240,7 @@ fn materialization_requires_flush_durability_rows() {
 #[test]
 fn materialization_exposes_causal_post_admission_violation_rows() {
     let bundle =
-        materialize_s6_certification_evidence(s6_evidence_materialization_support::sources())
+        materialize_io_qos_certification_evidence(s6_evidence_materialization_support::sources())
             .expect("executed S.6 evidence should materialize");
 
     assert_eq!(bundle.post_admission_violations().len(), 2);
@@ -278,7 +278,7 @@ fn materialization_rejects_near_miss_store_execution_bindings() {
         s6_evidence_materialization_support::sources_with_empty_qualification_matrix()
             .expect("empty qualification is structurally source-bindable");
     assert_eq!(
-        materialize_s6_certification_evidence(empty_qualification)
+        materialize_io_qos_certification_evidence(empty_qualification)
             .expect_err("empty qualification must not materialize"),
         S6CertificationMaterializationDenial::EmptyQualificationMatrix
     );

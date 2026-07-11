@@ -163,9 +163,9 @@ fn decode_canonical_root_manifest(
             decoded.allocation_classes,
             decoded.free_space,
         );
-        let manifest_counters = match ManifestDiscoveryAuthority::s1().reopen_from_root(
+        let manifest_counters = match ManifestDiscoveryAuthority::for_canonical_physical_format().reopen_from_root(
             &root,
-            PhysicalReferenceAuthority::s1().admit_root_publication(root.root_publication()),
+            PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(root.root_publication()),
         ) {
             Ok(report) => report.counters(),
             Err(denial) => {

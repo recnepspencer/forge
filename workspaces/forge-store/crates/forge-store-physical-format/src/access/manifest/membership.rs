@@ -29,8 +29,8 @@ impl<'a> ManifestAccess<'a> {
     ) -> Result<ManifestMembershipLayoutReport, PlatformPhysicalFacadeDenial> {
         let access = canonical_root_manifest(self.facade)?;
         let root = access.root();
-        let references = PhysicalReferenceAuthority::s1();
-        let discovery = ManifestDiscoveryAuthority::s1();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+        let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
         let admission = PhysicalReferenceAdmissionWitness::new(reference);
         let discovery_report = access.manifest_report();
         let counters = match reference.kind() {

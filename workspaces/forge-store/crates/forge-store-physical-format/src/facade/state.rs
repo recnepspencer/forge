@@ -46,9 +46,9 @@ impl PlatformPhysicalFacade {
     ) -> Self {
         Self {
             scope,
-            page_records: PhysicalPageRecordAuthority::s1(headers.clone()),
-            extent_records: crate::PhysicalExtentRecordAuthority::s1(headers.clone()),
-            references: PhysicalReferenceAuthority::s1(),
+            page_records: PhysicalPageRecordAuthority::for_canonical_physical_format(headers.clone()),
+            extent_records: crate::PhysicalExtentRecordAuthority::for_canonical_physical_format(headers.clone()),
+            references: PhysicalReferenceAuthority::for_canonical_physical_format(),
             headers,
             storage,
             counters,

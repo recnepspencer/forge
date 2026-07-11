@@ -11,7 +11,7 @@ pub enum PhysicalOperationKind {
 }
 
 impl PhysicalOperationKind {
-    pub const fn s1_required() -> [Self; 8] {
+    pub const fn required_physical_operations() -> [Self; 8] {
         [
             Self::HeaderDecode,
             Self::PhysicalReferenceValidation,
@@ -75,12 +75,12 @@ pub struct PhysicalOperationComplexityContract {
 }
 
 impl PhysicalOperationComplexityContract {
-    pub const fn s1_required(operation: PhysicalOperationKind) -> Self {
+    pub const fn required_complexity_contract(operation: PhysicalOperationKind) -> Self {
         Self {
             operation,
-            locality: s1_locality(operation),
+            locality: physical_format_locality(operation),
             status: PhysicalComplexityStatus::Declared,
-            asymptotic_bound: s1_bound(operation),
+            asymptotic_bound: physical_format_bound(operation),
             requirements: [
                 PhysicalOperationEvidenceRequirement::CounterReceipt,
                 PhysicalOperationEvidenceRequirement::AlgorithmReview,
@@ -93,9 +93,9 @@ impl PhysicalOperationComplexityContract {
     pub const fn debt_for_tests(operation: PhysicalOperationKind) -> Self {
         Self {
             operation,
-            locality: s1_locality(operation),
+            locality: physical_format_locality(operation),
             status: PhysicalComplexityStatus::Debt,
-            asymptotic_bound: s1_bound(operation),
+            asymptotic_bound: physical_format_bound(operation),
             requirements: [
                 PhysicalOperationEvidenceRequirement::CounterReceipt,
                 PhysicalOperationEvidenceRequirement::AlgorithmReview,
@@ -125,12 +125,12 @@ impl PhysicalOperationComplexityContract {
         self.requirements
     }
 
-    pub const fn is_s1_declared(self) -> bool {
+    pub const fn is_physical_format_declared(self) -> bool {
         matches!(self.status, PhysicalComplexityStatus::Declared)
     }
 }
 
-const fn s1_locality(operation: PhysicalOperationKind) -> PhysicalLocalityClass {
+const fn physical_format_locality(operation: PhysicalOperationKind) -> PhysicalLocalityClass {
     match operation {
         PhysicalOperationKind::HeaderDecode
         | PhysicalOperationKind::PhysicalReferenceValidation => PhysicalLocalityClass::Constant,
@@ -147,7 +147,7 @@ const fn s1_locality(operation: PhysicalOperationKind) -> PhysicalLocalityClass 
     }
 }
 
-const fn s1_bound(operation: PhysicalOperationKind) -> &'static str {
+const fn physical_format_bound(operation: PhysicalOperationKind) -> &'static str {
     match operation {
         PhysicalOperationKind::HeaderDecode => "O(1)",
         PhysicalOperationKind::PhysicalReferenceValidation => "O(1)",

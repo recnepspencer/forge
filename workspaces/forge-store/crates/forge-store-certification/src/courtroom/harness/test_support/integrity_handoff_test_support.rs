@@ -6,7 +6,7 @@ use crate::{
         page_cell, page_slot_admission, root_admission, root_with_slot, scope_membership,
         validation, with_checked_frame, with_checked_page,
     },
-    courtroom::harness::test_support::integrity_readiness_test_support::s3_integrity_readiness,
+    courtroom::harness::test_support::integrity_readiness_test_support::physical_integrity_readiness,
     courtroom::layout::derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
@@ -29,13 +29,13 @@ use forge_store_recovery_physics::{
 };
 
 pub(crate) fn intact_readiness(label: &str) -> AdmittedRecoveryIntegrityInput {
-    admit_s4_handoff_payload(intact_handoff_payload(label))
+    admit_recovery_handoff_payload(intact_handoff_payload(label))
 }
 
-pub(crate) fn admit_s4_handoff_payload(
+pub(crate) fn admit_recovery_handoff_payload(
     payload: IntegrityHandoffPayload,
 ) -> AdmittedRecoveryIntegrityInput {
-    IntegrityHandoffAdmission::admit(s3_integrity_readiness().payload(), payload)
+    IntegrityHandoffAdmission::admit(physical_integrity_readiness().payload(), payload)
         .expect("complete S.3 readiness admits S.4 integrity handoff")
 }
 
@@ -134,7 +134,7 @@ fn inspect_manifest_for_generation(
     generation: u64,
 ) -> forge_store_physical_integrity::ManifestIntegrityReport {
     let root = root_with_slot(1, 2, 3, generation);
-    ManifestIntegrityAuthority::s3()
+    ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -162,7 +162,7 @@ fn inspect_checkpoint_record() -> forge_store_physical_integrity::CheckpointReco
     with_wal_frame_input(CheckpointAdjacencyPosture::CheckpointAdjacent, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         report = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect_checkpoint_adjacent(request)
                 .unwrap(),
         );
@@ -176,7 +176,7 @@ fn inspect_wal_frame(
     let mut report = None;
     with_wal_frame_input(adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
-        report = Some(WalFrameIntegrityAuthority::s3().inspect(request).unwrap());
+        report = Some(WalFrameIntegrityAuthority::new().inspect(request).unwrap());
     });
     report.unwrap()
 }
@@ -244,7 +244,7 @@ fn inspect_wal_damage(
     with_wal_payload_input(b"WALF|crc32c|4|checksum-fail|DATA", adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
         denial = Some(
-            WalFrameIntegrityAuthority::s3()
+            WalFrameIntegrityAuthority::new()
                 .inspect(request)
                 .unwrap_err(),
         );

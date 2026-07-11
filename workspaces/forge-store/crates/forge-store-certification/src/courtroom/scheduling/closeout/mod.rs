@@ -8,9 +8,9 @@ pub use super::materialized_closeout::{
     S6ReadinessResidualDebtEvidenceRow,
 };
 pub use super::{
-    certify_io_pressure_backend_qualification_matrix, certify_s6_backend_capability_admission,
-    certify_s6_background_pacing, certify_s6_foreground_reservation,
-    publish_s6_backend_capability_readiness, S6BackendCapabilityAdmissionCertificationEvidence,
+    certify_io_pressure_backend_qualification_matrix, certify_io_qos_backend_capability_admission,
+    certify_io_qos_background_pacing, certify_io_qos_foreground_reservation,
+    publish_io_qos_backend_capability_readiness, S6BackendCapabilityAdmissionCertificationEvidence,
     S6BackendCapabilityReadinessPublication, S6BackendQualificationMatrixCertification,
     S6BackendQualificationRowOutcome, S6BackgroundPacingCertificationDenial,
     S6BackgroundPacingCertificationEvidence, S6BackgroundPacingOutcomeKind,
@@ -25,9 +25,9 @@ pub use super::{
     S6QueueExecutionCertificationDenial,
 };
 pub use crate::evidence::scheduling::{
-    adopt_materialized_s6_certification_evidence_for_closeout,
-    materialize_s6_certification_evidence,
-    reject_materialized_s6_certification_as_runtime_authority, S6CanonicalEvidenceBasis,
+    adopt_materialized_io_qos_certification_evidence_for_closeout,
+    materialize_io_qos_certification_evidence,
+    reject_materialized_io_qos_certification_as_runtime_authority, S6CanonicalEvidenceBasis,
     S6CanonicalMaterializationDenial, S6CertificationEvidenceAdoptionReceipt,
     S6CertificationMaterializationDenial, S6CertificationProofTrace,
     S6CertificationRuntimeAuthorityDenial, S6CounterStrengthDeclaration, S6CounterStrengthFamily,

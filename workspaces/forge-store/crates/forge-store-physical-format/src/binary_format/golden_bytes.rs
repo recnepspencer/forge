@@ -6,7 +6,7 @@ pub struct PhysicalGoldenFormatHeaderFixture {
 }
 
 impl PhysicalGoldenFormatHeaderFixture {
-    pub const fn s1_canonical() -> Self {
+    pub const fn physical_format_canonical() -> Self {
         Self {
             bytes: [
                 70, 71, 83, 49, 70, 77, 84, 0, 1, 0, 1, 0, 64, 0, 0, 64, 0, 64, 0, 64, 0, 16, 0,

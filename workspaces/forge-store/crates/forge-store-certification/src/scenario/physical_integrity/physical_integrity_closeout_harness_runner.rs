@@ -17,28 +17,28 @@ impl S3CloseoutHarnessRunOutput {
     }
 }
 
-pub(crate) fn run_s3_closeout_harness(
+pub(crate) fn run_physical_integrity_closeout_harness(
     suite: S3AcceptanceSuiteKind,
     execution: S3CloseoutHarnessExecutionEvidence,
 ) -> Result<S3CloseoutHarnessRunOutput, PhysicalIntegrityCloseoutDenial> {
-    let (plan, transcript) = s3_closeout_suite_plan_and_transcript(suite)?;
+    let (plan, transcript) = physical_integrity_closeout_suite_plan_and_transcript(suite)?;
     let executed =
         S3ExecutedCloseoutHarnessRun::from_executed_output(suite, plan, transcript, execution)?;
     let harness = S3HarnessTranscriptEvidence::from_executed_closeout_run(executed)?;
     Ok(S3CloseoutHarnessRunOutput { harness })
 }
 
-pub(crate) fn s3_closeout_suite_plan_and_transcript(
+pub(crate) fn physical_integrity_closeout_suite_plan_and_transcript(
     suite: S3AcceptanceSuiteKind,
 ) -> Result<(crate::PhysicalScenarioPlan, PhysicalStoryTranscript), PhysicalIntegrityCloseoutDenial>
 {
-    let mut harness = PhysicalScenarioQualityHarness::roadmap_2();
+    let mut harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
     for extension in suite_lane_extensions(suite) {
         harness = harness
             .with_lane_family_extension(extension)
             .map_err(|_| PhysicalIntegrityCloseoutDenial::HarnessExecutionFailed(suite))?;
     }
-    let definition = PhysicalScenarioDefinition::story(format!("s3-closeout-{:?}", suite))
+    let definition = PhysicalScenarioDefinition::story(format!("new-closeout-{:?}", suite))
         .roadmap_lane_family(RoadmapLaneFamily::Integrity)
         .large_store_pressure_fixture(LargeStorePressureFixture::for_class(
             LargeStorePressureClass::StreamingPressure,

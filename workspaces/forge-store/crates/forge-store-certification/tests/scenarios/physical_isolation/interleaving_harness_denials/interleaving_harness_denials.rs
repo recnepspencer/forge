@@ -15,7 +15,7 @@ use s5_interleaving_harness_support::{
 };
 
 #[test]
-fn s5_interleaving_oracle_rejects_wrong_family_observation_topology() {
+fn physical_isolation_interleaving_oracle_rejects_wrong_family_observation_topology() {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
@@ -50,7 +50,7 @@ fn s5_interleaving_oracle_rejects_wrong_family_observation_topology() {
 }
 
 #[test]
-fn s5_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
+fn physical_isolation_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
@@ -87,7 +87,7 @@ fn s5_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
 }
 
 #[test]
-fn s5_mutation_evidence_rejects_missing_or_wrong_family_rows() {
+fn physical_isolation_mutation_evidence_rejects_missing_or_wrong_family_rows() {
     for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();

@@ -1,5 +1,5 @@
 #[test]
-fn phase_11_closeout_rejects_certification_owned_authority_shortcuts() {
+fn closeout_rejects_certification_owned_authority_shortcuts() {
     let repo_root = repo_root();
     build_compile_fail_dependencies(&repo_root);
     for fixture in fixtures() {

@@ -84,7 +84,7 @@ pub struct PhysicalManifestUniverseBuilder {
 }
 
 impl PhysicalManifestUniverseBuilder {
-    pub fn s1(root_publication: RootPublicationCell) -> Self {
+    pub fn for_canonical_physical_format(root_publication: RootPublicationCell) -> Self {
         Self {
             root_publication,
             segments: Vec::new(),

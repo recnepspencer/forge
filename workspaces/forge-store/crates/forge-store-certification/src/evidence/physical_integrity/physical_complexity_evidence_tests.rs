@@ -15,9 +15,9 @@ use forge_store_physical_format::{
 
 #[test]
 fn every_required_complexity_contract_has_four_part_evidence() {
-    for operation in PhysicalOperationKind::s1_required() {
+    for operation in PhysicalOperationKind::required_physical_operations() {
         let report = PhysicalComplexityEvidenceReport::verify(
-            PhysicalOperationComplexityContract::s1_required(operation),
+            PhysicalOperationComplexityContract::required_complexity_contract(operation),
             proof_for_operation(operation),
         )
         .unwrap();
@@ -36,7 +36,7 @@ fn every_required_complexity_contract_has_four_part_evidence() {
 
 #[test]
 fn every_required_contract_uses_named_hostile_condition() {
-    for operation in PhysicalOperationKind::s1_required() {
+    for operation in PhysicalOperationKind::required_physical_operations() {
         let fixture = fixture_for_operation(operation);
         assert_eq!(fixture.operation(), operation);
         assert_eq!(fixture.condition(), expected_condition(operation));
@@ -68,7 +68,7 @@ fn algorithm_review_operation_must_match_contract() {
         scale_property_for_fixture(fixture),
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(PhysicalOperationKind::HeaderDecode),
+        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::HeaderDecode),
         proof,
     )
     .unwrap_err();
@@ -92,7 +92,7 @@ fn locate_counters_are_stable_under_real_unrelated_growth_fixture() {
         PhysicalScalePropertyEvidence::CounterStableAcrossUnrelatedGrowth { fixture },
     );
     let report = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(PhysicalOperationKind::LocateByReference),
+        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::LocateByReference),
         proof,
     )
     .unwrap();
@@ -118,7 +118,7 @@ fn fragmented_free_space_fixture_is_bounded_or_deferred_with_pressure() {
         PhysicalScalePropertyEvidence::FragmentedFreeSpaceBoundedOrDeferred { fixture },
     );
     let report = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(
+        PhysicalOperationComplexityContract::required_complexity_contract(
             PhysicalOperationKind::AppendRecordPlacement,
         ),
         proof,
@@ -152,7 +152,7 @@ fn unstable_scale_property_is_rejected() {
         PhysicalScalePropertyEvidence::CounterStableAcrossUnrelatedGrowth { fixture },
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(PhysicalOperationKind::ManifestLookup),
+        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::ManifestLookup),
         proof,
     )
     .unwrap_err();
@@ -184,7 +184,7 @@ fn detached_scale_property_fixture_is_rejected() {
         },
     );
     let denial = PhysicalComplexityEvidenceReport::verify(
-        PhysicalOperationComplexityContract::s1_required(PhysicalOperationKind::ManifestLookup),
+        PhysicalOperationComplexityContract::required_complexity_contract(PhysicalOperationKind::ManifestLookup),
         proof,
     )
     .unwrap_err();

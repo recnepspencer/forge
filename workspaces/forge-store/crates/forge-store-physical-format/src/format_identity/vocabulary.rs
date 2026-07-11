@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn physical_vocabulary_admits_all_required_terms() {
-        let authority = StorePhysicalAuthorityWitness::for_s1_vocabulary(
+        let authority = StorePhysicalAuthorityWitness::for_physical_format_vocabulary(
             forge_store_contracts::ROADMAP_2_S1_SCOPE,
         )
         .expect("S.1 physical vocabulary authority");
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn missing_free_space_map_vocabulary_is_rejected() {
-        let authority = StorePhysicalAuthorityWitness::for_s1_vocabulary(
+        let authority = StorePhysicalAuthorityWitness::for_physical_format_vocabulary(
             forge_store_contracts::ROADMAP_2_S1_SCOPE,
         )
         .expect("S.1 physical vocabulary authority");

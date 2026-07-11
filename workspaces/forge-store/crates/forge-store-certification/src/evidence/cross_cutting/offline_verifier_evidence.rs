@@ -16,7 +16,7 @@ pub enum PhysicalOfflineVerifierEvidenceRow {
 }
 
 impl PhysicalOfflineVerifierEvidenceRow {
-    pub const fn s1_required() -> [Self; 3] {
+    pub const fn physical_format_required() -> [Self; 3] {
         [
             Self::MinimalManifestSmoke,
             Self::RuntimeLayoutMatch,
@@ -126,7 +126,7 @@ impl PhysicalOfflineVerifierEvidenceReport {
         row: PhysicalOfflineVerifierEvidenceRow,
         denial: OfflineVerifierDenial,
     ) -> Result<Self, PhysicalOfflineVerifierEvidenceDenial> {
-        if !denial_is_phase9_evidence(&denial) {
+        if !denial_is_evidence(&denial) {
             return Err(PhysicalOfflineVerifierEvidenceDenial::UnexpectedVerifierDenial);
         }
         Ok(Self::new(
@@ -185,7 +185,7 @@ impl PhysicalOfflineVerifierEvidenceReport {
     }
 }
 
-fn denial_is_phase9_evidence(denial: &OfflineVerifierDenial) -> bool {
+fn denial_is_evidence(denial: &OfflineVerifierDenial) -> bool {
     match denial.kind() {
         OfflineVerifierDenialKind::MissingRootManifest
         | OfflineVerifierDenialKind::AmbiguousRootManifest

@@ -83,7 +83,7 @@ fn observed_trace(
         .unwrap()
         .with_runtime_trace(production_trace(lowered, witness))
         .with_blob_harness_observation(blob_observation);
-    for denial in phase22_shortcut_rejections() {
+    for denial in blob_replay_shortcut_rejections() {
         builder = builder.with_shortcut_rejection_observation(denial);
     }
     builder.complete().unwrap()
@@ -243,7 +243,7 @@ const fn uses_production_boundary_yieldpoint(yieldpoint: BlobHarnessObservedYiel
     )
 }
 
-fn phase22_shortcut_rejections() -> [ShortcutRejectionObservation; 6] {
+fn blob_replay_shortcut_rejections() -> [ShortcutRejectionObservation; 6] {
     [
         ShortcutRejectionObservation::whole_object_helper_denied(),
         ShortcutRejectionObservation::missing_chunk_counters_denied(),

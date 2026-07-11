@@ -14,7 +14,7 @@ use super::{
 };
 
 #[test]
-fn phase_three_role_accuracy_and_scope_are_typed() {
+fn role_accuracy_and_scope_are_typed() {
     let facade = layout_declarations();
     let admitted_scope = admitted_store_managed_root_security_scope_for_layout_partition_test();
     let declaration = facade
@@ -53,7 +53,7 @@ fn phase_three_role_accuracy_and_scope_are_typed() {
 }
 
 #[test]
-fn phase_three_accuracy_claims_deny_inexact_families() {
+fn accuracy_claims_deny_inexact_families() {
     let facade = layout_declarations();
     let exact_family = facade
         .declaration(DurableArtifactFamilyId::DedupeIndex)
@@ -82,7 +82,7 @@ fn phase_three_accuracy_claims_deny_inexact_families() {
 }
 
 #[test]
-fn phase_three_scope_partition_denies_wrong_admitted_scope() {
+fn scope_partition_denies_wrong_admitted_scope() {
     let facade = layout_declarations();
     let root_scope = admitted_store_managed_root_security_scope_for_layout_partition_test();
     let page_scope = admitted_tenant_page_security_scope_for_layout_partition_test();

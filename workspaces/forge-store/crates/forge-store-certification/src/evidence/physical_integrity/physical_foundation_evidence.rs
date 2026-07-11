@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn evidence_bundle_requires_every_declared_field() {
-        let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+        let adoption = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("all foundational lanes are available");
 
         let denial = PhysicalFoundationEvidenceBundle::builder(adoption)
@@ -168,8 +168,8 @@ mod tests {
     }
 
     #[test]
-    fn evidence_bundle_accepts_complete_s1_field_set() {
-        let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+    fn evidence_bundle_accepts_complete_physical_format_field_set() {
+        let adoption = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("all foundational lanes are available");
         let adoption_digest = adoption.proof_vocabulary().digest().clone();
         let mut builder = PhysicalFoundationEvidenceBundle::builder(adoption)
@@ -179,7 +179,7 @@ mod tests {
                 adoption_digest,
             );
 
-        for field in PhysicalFoundationEvidenceField::required_for_s1() {
+        for field in PhysicalFoundationEvidenceField::required_for_physical_format() {
             if field != PhysicalFoundationEvidenceField::ArtifactDigest {
                 builder = builder
                     .with_report_evidence(
@@ -197,10 +197,10 @@ mod tests {
 
         assert_eq!(
             bundle.entries().len(),
-            PhysicalFoundationEvidenceField::required_for_s1().len()
+            PhysicalFoundationEvidenceField::required_for_physical_format().len()
         );
 
-        for field in PhysicalFoundationEvidenceField::required_for_s1() {
+        for field in PhysicalFoundationEvidenceField::required_for_physical_format() {
             let matching_entries: Vec<_> = bundle
                 .entries()
                 .iter()
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn artifact_digest_rejects_raw_store_digest() {
-        let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+        let adoption = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("all foundational lanes are available");
 
         let denial = PhysicalFoundationEvidenceBundle::builder(adoption)
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn evidence_bundle_rejects_duplicate_declared_field() {
-        let adoption = FoundationalVocabularyAdoptionMap::s1_all_public_lanes()
+        let adoption = FoundationalVocabularyAdoptionMap::physical_format_all_public_lanes()
             .expect("all foundational lanes are available");
 
         let denial = PhysicalFoundationEvidenceBundle::builder(adoption)

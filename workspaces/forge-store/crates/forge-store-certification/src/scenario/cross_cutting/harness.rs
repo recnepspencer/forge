@@ -10,7 +10,7 @@ pub struct PhysicalScenarioQualityHarness {
 }
 
 impl PhysicalScenarioQualityHarness {
-    pub fn roadmap_2() -> Self {
+    pub fn cross_cutting_scenario() -> Self {
         Self {
             lane_family_extensions: Vec::new(),
         }

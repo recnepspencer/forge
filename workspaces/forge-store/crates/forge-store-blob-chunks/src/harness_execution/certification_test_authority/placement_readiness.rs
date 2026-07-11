@@ -46,7 +46,7 @@ fn cold_tier_reclaim_receipt(
     let physical_reference = current_physical_reference_raw(1);
     let region =
         PhysicalReclaimRegion::new(physical_reference.reference(), 4096).expect("reclaim region");
-    let reachability = lower_s5_reclaim_reachability_for_region(region, physical_reference);
+    let reachability = lower_physical_isolation_reclaim_reachability_for_region(region, physical_reference);
     let request = ReclaimPolicyRequest::new()
         .for_region(region)
         .with_posture(
@@ -68,7 +68,7 @@ fn cold_tier_reclaim_receipt(
         .expect("reclaim receipt")
 }
 
-fn lower_s5_reclaim_reachability_for_region(
+fn lower_physical_isolation_reclaim_reachability_for_region(
     region: PhysicalReclaimRegion,
     physical_reference: PhysicalReferenceAdmissionWitness,
 ) -> ReclaimPolicyReachabilityProof {
@@ -80,9 +80,9 @@ fn lower_s5_reclaim_reachability_for_region(
         .admit_reachability_removal()
         .expect("reclaim reachability removal");
     let evidence = removal_receipt
-        .lower_for_s6_reclaim_policy(region)
+        .lower_for_io_qos_reclaim_policy(region)
         .expect("reclaim policy evidence");
-    ReclaimPolicyReachabilityProof::from_s5_reclaim_reachability_removal(evidence, region)
+    ReclaimPolicyReachabilityProof::from_physical_isolation_reclaim_reachability_removal(evidence, region)
         .expect("reclaim reachability proof")
 }
 
@@ -130,8 +130,8 @@ impl PhysicalStoreReclaimPolicyExecutor for ObservingReclaimBackend {
 
 fn current_physical_reference_raw(slot: u16) -> PhysicalReferenceAdmissionWitness {
     let generation = PhysicalGeneration::from_raw(7).expect("generation");
-    PhysicalReferenceAuthority::s1().admit_page_slot(
-        PhysicalGenerationAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format().admit_page_slot(
+        PhysicalGenerationAuthority::for_canonical_physical_format()
             .slot_cell(
                 PhysicalSegmentId::from_raw(1).expect("segment"),
                 PhysicalPageId::from_raw(1).expect("page"),

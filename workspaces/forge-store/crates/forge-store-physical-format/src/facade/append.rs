@@ -219,7 +219,7 @@ fn construct_extent_append_outcome(
 }
 
 fn page_cell_for_slot(slot_cell: SlotGenerationCell) -> crate::PageGenerationCell {
-    crate::PhysicalGenerationAuthority::s1()
+    crate::PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(slot_cell.segment_id(), slot_cell.page_id())
         .with_page_generation(slot_cell.generation())
 }

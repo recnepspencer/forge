@@ -139,7 +139,7 @@ impl ReclaimReachabilityRemovalReceipt {
         self.evidence.candidates().contains_owner(owner)
     }
 
-    pub fn lower_for_s6_reclaim_policy(
+    pub fn lower_for_io_qos_reclaim_policy(
         &self,
         region: PhysicalReclaimRegion,
     ) -> Result<S6ReclaimReachabilityRemovalEvidence, S6ReclaimReachabilityRemovalEvidenceDenial>

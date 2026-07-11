@@ -1,3 +1,3 @@
 mod layout;
 
-pub use layout::{certify_s8_layout_scenario, S8LayoutScenarioCertificate};
+pub use layout::{certify_layout_index_layout_scenario, S8LayoutScenarioCertificate};

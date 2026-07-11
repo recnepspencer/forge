@@ -77,7 +77,7 @@ impl S6ForegroundReservationCertificationEvidence {
     }
 }
 
-pub fn certify_s6_foreground_reservation(
+pub fn certify_io_qos_foreground_reservation(
     receipt: ForegroundReservationReceipt,
     expected: ForegroundReservationReceipt,
 ) -> Result<S6ForegroundReservationCertificationEvidence, S6ForegroundReservationCertificationDenial>

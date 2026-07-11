@@ -22,10 +22,10 @@ fn production_driver_trace_matches_backend_registered_boundary_seams() {
     );
     assert_eq!(
         trace.yieldpoints().len(),
-        ProductionStorageBoundarySeam::phase4_registered_seams().len()
+        ProductionStorageBoundarySeam::registered_backend_operation_seams().len()
     );
 
-    for seam in ProductionStorageBoundarySeam::phase4_registered_seams() {
+    for seam in ProductionStorageBoundarySeam::registered_backend_operation_seams() {
         let yieldpoint = trace
             .yieldpoints()
             .iter()
@@ -51,7 +51,7 @@ fn registered_production_boundary_driver(
     let mut driver = ProductionStorageBoundaryDriver::for_backend_profile(
         BackendDurabilityProfileId::PosixFileFsyncDirFsync,
     );
-    for seam in ProductionStorageBoundarySeam::phase4_registered_seams() {
+    for seam in ProductionStorageBoundarySeam::registered_backend_operation_seams() {
         driver = driver.declare_yieldpoint(PhysicalBoundaryYieldpoint::production_storage(*seam));
     }
     driver.admit().unwrap()

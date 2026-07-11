@@ -11,7 +11,7 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_store_published_isolation_capability,
@@ -21,8 +21,8 @@ use crate::{
 use super::super::*;
 
 pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
-    let readiness = s6_readiness_admission();
-    let security = s6_security_scope_admission();
+    let readiness = io_qos_readiness_admission();
+    let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);
@@ -48,11 +48,11 @@ pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
     .expect("point read reservation should admit")
 }
 
-pub(super) fn s6_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
-    s6_readiness_admission_with_counts(2, 1)
+pub(super) fn io_qos_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
+    io_qos_readiness_admission_with_counts(2, 1)
 }
 
-pub(super) fn s6_readiness_admission_with_counts(
+pub(super) fn io_qos_readiness_admission_with_counts(
     wait_count: u64,
     retry_count: u64,
 ) -> crate::IoSchedulerIsolationAdmission {
@@ -242,11 +242,11 @@ const fn backend_evidence_basis_for(
     }
 }
 
-pub(super) fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    s6_security_scope_admission_from(admitted_store_internal_security_scope_for_s6_test())
+pub(super) fn io_qos_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
+    io_qos_security_scope_admission_from(admitted_store_internal_security_scope_for_io_qos_test())
 }
 
-fn s6_security_scope_admission_from(
+fn io_qos_security_scope_admission_from(
     scope: forge_store_security::StoreAdmittedSecurityScope,
 ) -> crate::IoSchedulerSecurityScopeAdmission {
     crate::admit_security_scope_for_scheduler(&scope)

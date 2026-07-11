@@ -1,6 +1,6 @@
 use crate::{
     scenario::physical_integrity::physical_integrity_closeout_harness_runner::{
-        run_s3_closeout_harness, s3_closeout_suite_plan_and_transcript,
+        run_physical_integrity_closeout_harness, physical_integrity_closeout_suite_plan_and_transcript,
     },
     PhysicalIntegrityCloseoutDenial, PhysicalIntegrityCloseoutReport,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence, S3AcceptanceSuiteKind,
@@ -15,20 +15,20 @@ use forge_store_recovery_physics::AdmittedRecoveryIntegrityInput;
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct PhysicalIntegrityCloseoutRequest {
     suite: PhysicalIntegrityCloseoutSuite,
-    s3_readiness: PhysicalIntegrityReadiness,
-    s4_handoff: AdmittedRecoveryIntegrityInput,
+    physical_integrity_readiness: PhysicalIntegrityReadiness,
+    recovery_handoff: AdmittedRecoveryIntegrityInput,
 }
 
 impl PhysicalIntegrityCloseoutRequest {
     pub(crate) fn new(
         suite: PhysicalIntegrityCloseoutSuite,
-        s3_readiness: PhysicalIntegrityReadiness,
-        s4_handoff: AdmittedRecoveryIntegrityInput,
+        physical_integrity_readiness: PhysicalIntegrityReadiness,
+        recovery_handoff: AdmittedRecoveryIntegrityInput,
     ) -> Self {
         Self {
             suite,
-            s3_readiness,
-            s4_handoff,
+            physical_integrity_readiness,
+            recovery_handoff,
         }
     }
 }
@@ -36,8 +36,8 @@ impl PhysicalIntegrityCloseoutRequest {
 #[derive(Debug, PartialEq, Eq)]
 pub struct PhysicalIntegrityCertificationBundle {
     suite: PhysicalIntegrityCloseoutSuite,
-    s3_readiness: PhysicalIntegrityReadiness,
-    s4_handoff: AdmittedRecoveryIntegrityInput,
+    physical_integrity_readiness: PhysicalIntegrityReadiness,
+    recovery_handoff: AdmittedRecoveryIntegrityInput,
     report: PhysicalIntegrityCloseoutReport,
 }
 
@@ -45,14 +45,14 @@ impl PhysicalIntegrityCertificationBundle {
     pub(crate) fn close(
         request: PhysicalIntegrityCloseoutRequest,
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
-        require_s3_readiness_scope(&request.s3_readiness)?;
-        require_s4_handoff(&request.s4_handoff)?;
-        require_s4_handoff_suite_evidence(&request)?;
+        require_physical_integrity_readiness_scope(&request.physical_integrity_readiness)?;
+        require_recovery_handoff(&request.recovery_handoff)?;
+        require_recovery_handoff_suite_evidence(&request)?;
         let report = closeout_report(&request);
         Ok(Self {
             suite: request.suite,
-            s3_readiness: request.s3_readiness,
-            s4_handoff: request.s4_handoff,
+            physical_integrity_readiness: request.physical_integrity_readiness,
+            recovery_handoff: request.recovery_handoff,
             report,
         })
     }
@@ -61,12 +61,12 @@ impl PhysicalIntegrityCertificationBundle {
         &self.suite
     }
 
-    pub const fn s3_readiness(&self) -> &PhysicalIntegrityReadiness {
-        &self.s3_readiness
+    pub const fn physical_integrity_readiness(&self) -> &PhysicalIntegrityReadiness {
+        &self.physical_integrity_readiness
     }
 
-    pub const fn s4_handoff(&self) -> &AdmittedRecoveryIntegrityInput {
-        &self.s4_handoff
+    pub const fn recovery_handoff(&self) -> &AdmittedRecoveryIntegrityInput {
+        &self.recovery_handoff
     }
 
     pub const fn report(&self) -> &PhysicalIntegrityCloseoutReport {
@@ -74,23 +74,23 @@ impl PhysicalIntegrityCertificationBundle {
     }
 }
 
-pub fn close_s3_physical_integrity_from_executed_evidence(
-    s3_readiness: PhysicalIntegrityReadiness,
-    s4_handoff: AdmittedRecoveryIntegrityInput,
+pub fn close_physical_integrity_from_executed_evidence(
+    physical_integrity_readiness: PhysicalIntegrityReadiness,
+    recovery_handoff: AdmittedRecoveryIntegrityInput,
     localized_boundaries: Vec<S3ExecutedCorruptionLocalizationEvidence>,
     denied_boundaries: Vec<S3ExecutedBoundaryDenialEvidence>,
     line_cap_composition: S3LineCapCompositionEvidence,
 ) -> Result<PhysicalIntegrityCertificationBundle, PhysicalIntegrityCloseoutDenial> {
     let suite = PhysicalIntegrityCloseoutSuite::admit(executed_closeout_suite_evidence(
-        &s4_handoff,
+        &recovery_handoff,
         localized_boundaries,
         denied_boundaries,
         line_cap_composition,
     )?)?;
     PhysicalIntegrityCertificationBundle::close(PhysicalIntegrityCloseoutRequest::new(
         suite,
-        s3_readiness,
-        s4_handoff,
+        physical_integrity_readiness,
+        recovery_handoff,
     ))
 }
 
@@ -101,42 +101,42 @@ fn executed_closeout_suite_evidence(
     line_cap_composition: S3LineCapCompositionEvidence,
 ) -> Result<Vec<PhysicalIntegrityCloseoutSuiteEvidence>, PhysicalIntegrityCloseoutDenial> {
     let synthetic_rejections = executed_synthetic_shortcut_rejections()?;
-    let s4_handoff = S3S4HandoffCloseoutEvidence::from_readiness(s4_readiness);
+    let recovery_handoff = S3S4HandoffCloseoutEvidence::from_readiness(s4_readiness);
     Ok(vec![
         PhysicalIntegrityCloseoutSuiteEvidence::corruption_localization(
-            s3_suite_harness(
+            physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::CorruptionLocalization,
                 S3CloseoutHarnessExecutionEvidence::corruption_localization(&localized_boundaries),
             )?,
             localized_boundaries,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::boundary_denial(
-            s3_suite_harness(
+            physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::BoundaryDenial,
                 S3CloseoutHarnessExecutionEvidence::boundary_denial(&denied_boundaries),
             )?,
             denied_boundaries,
         ),
-        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(s3_suite_harness(
+        PhysicalIntegrityCloseoutSuiteEvidence::harness_transcript(physical_integrity_suite_harness(
             S3AcceptanceSuiteKind::HarnessTranscript,
             S3CloseoutHarnessExecutionEvidence::harness_transcript(1),
         )?),
         PhysicalIntegrityCloseoutSuiteEvidence::synthetic_rejection(
-            s3_suite_harness(
+            physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::SyntheticShortcutRejection,
                 S3CloseoutHarnessExecutionEvidence::synthetic_rejection(&synthetic_rejections),
             )?,
             synthetic_rejections,
         ),
-        PhysicalIntegrityCloseoutSuiteEvidence::s4_handoff(
-            s3_suite_harness(
+        PhysicalIntegrityCloseoutSuiteEvidence::recovery_handoff(
+            physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::S4IntegrityHandoff,
-                S3CloseoutHarnessExecutionEvidence::s4_handoff(&s4_handoff),
+                S3CloseoutHarnessExecutionEvidence::recovery_handoff(&recovery_handoff),
             )?,
-            s4_handoff,
+            recovery_handoff,
         ),
         PhysicalIntegrityCloseoutSuiteEvidence::line_cap_composition(
-            s3_suite_harness(
+            physical_integrity_suite_harness(
                 S3AcceptanceSuiteKind::LineCapComposition,
                 S3CloseoutHarnessExecutionEvidence::line_cap_composition(&line_cap_composition),
             )?,
@@ -145,17 +145,17 @@ fn executed_closeout_suite_evidence(
     ])
 }
 
-fn s3_suite_harness(
+fn physical_integrity_suite_harness(
     suite: S3AcceptanceSuiteKind,
     execution: S3CloseoutHarnessExecutionEvidence,
 ) -> Result<crate::S3HarnessTranscriptEvidence, PhysicalIntegrityCloseoutDenial> {
-    Ok(run_s3_closeout_harness(suite, execution)?.harness().clone())
+    Ok(run_physical_integrity_closeout_harness(suite, execution)?.harness().clone())
 }
 
 fn executed_synthetic_shortcut_rejections(
 ) -> Result<Vec<SyntheticCloseoutShortcutRejectionReport>, PhysicalIntegrityCloseoutDenial> {
     let (_, transcript) =
-        s3_closeout_suite_plan_and_transcript(S3AcceptanceSuiteKind::SyntheticShortcutRejection)?;
+        physical_integrity_closeout_suite_plan_and_transcript(S3AcceptanceSuiteKind::SyntheticShortcutRejection)?;
     let mut reports = Vec::new();
     for attempt in required_synthetic_attempts() {
         let input = SyntheticCloseoutShortcutInput::from_transcript(attempt, &transcript);
@@ -189,7 +189,7 @@ fn required_synthetic_attempts() -> [SyntheticCloseoutShortcutAttempt; 7] {
     ]
 }
 
-fn require_s3_readiness_scope(
+fn require_physical_integrity_readiness_scope(
     readiness: &PhysicalIntegrityReadiness,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     if readiness.payload().claims_later_sequence_semantics() {
@@ -199,7 +199,7 @@ fn require_s3_readiness_scope(
     }
 }
 
-fn require_s4_handoff(
+fn require_recovery_handoff(
     handoff: &AdmittedRecoveryIntegrityInput,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     let payload = handoff.payload();
@@ -218,17 +218,17 @@ fn require_s4_handoff(
     Ok(())
 }
 
-fn require_s4_handoff_suite_evidence(
+fn require_recovery_handoff_suite_evidence(
     request: &PhysicalIntegrityCloseoutRequest,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     let Some(evidence) = request
         .suite
         .evidence_for(S3AcceptanceSuiteKind::S4IntegrityHandoff)
-        .and_then(|suite| suite.s4_handoff_evidence())
+        .and_then(|suite| suite.recovery_handoff_evidence())
     else {
         return Err(PhysicalIntegrityCloseoutDenial::MissingS4HandoffPayload);
     };
-    if evidence.matches_readiness(&request.s4_handoff) {
+    if evidence.matches_readiness(&request.recovery_handoff) {
         Ok(())
     } else {
         Err(PhysicalIntegrityCloseoutDenial::S4HandoffEvidenceMismatch)
@@ -238,12 +238,12 @@ fn require_s4_handoff_suite_evidence(
 fn closeout_report(request: &PhysicalIntegrityCloseoutRequest) -> PhysicalIntegrityCloseoutReport {
     PhysicalIntegrityCloseoutReport::from_closeout(
         &request.suite,
-        request.s4_handoff.payload().identity().clone(),
-        request.s4_handoff.counters(),
-        request.s4_handoff.proves_no_raw_bytes_crossed(),
-        request.s4_handoff.claims_recovery(),
+        request.recovery_handoff.payload().identity().clone(),
+        request.recovery_handoff.counters(),
+        request.recovery_handoff.proves_no_raw_bytes_crossed(),
+        request.recovery_handoff.claims_recovery(),
         request
-            .s3_readiness
+            .physical_integrity_readiness
             .payload()
             .claims_later_sequence_semantics(),
     )

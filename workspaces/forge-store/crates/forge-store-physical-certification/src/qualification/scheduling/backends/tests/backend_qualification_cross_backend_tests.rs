@@ -21,7 +21,7 @@ fn ordinary_publisher_rejects_cross_backend_evidence_for_every_capability() {
         BackendCapabilitySupportSet::all_supported(),
     );
 
-    for capability in phase_11_capabilities() {
+    for capability in backend_qualification_capabilities() {
         assert_eq!(
             publish_capability(
                 QualificationMatrixPublisher::from_executed_store_evidence(),
@@ -41,7 +41,7 @@ fn ordinary_publisher_rejects_cross_backend_evidence_for_every_capability() {
 
 #[test]
 fn cross_backend_parity_preserves_causes_for_every_capability() {
-    for capability in phase_11_capabilities() {
+    for capability in backend_qualification_capabilities() {
         let posix = parity_denial_row(BackendTargetProfile::PosixFileFsyncDirSync, capability);
         let windows = parity_denial_row(BackendTargetProfile::WindowsFlushFileBuffers, capability);
         let parity = BackendQualificationParityComparison::compare(&posix, &windows).unwrap();
@@ -156,7 +156,7 @@ fn publish_capability(
     }
 }
 
-fn phase_11_capabilities() -> [BackendCapabilityKind; 8] {
+fn backend_qualification_capabilities() -> [BackendCapabilityKind; 8] {
     [
         BackendCapabilityKind::BufferedFile,
         BackendCapabilityKind::DirectIo,

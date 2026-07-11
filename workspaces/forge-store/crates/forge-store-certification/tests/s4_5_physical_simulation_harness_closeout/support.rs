@@ -35,15 +35,15 @@ use forge_store_test_support::{
 
 use crate::{counter_support, coverage_support};
 
-pub(crate) fn s4_recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
-    s4_recovery_slice_evidence_named(
+pub(crate) fn recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
+    recovery_slice_evidence_named(
         "store.physical.s45.closeout.s4-recovery-dogfood",
         "closeout-s4-recovery",
     )
 }
 
-pub(crate) fn alternate_s4_recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
-    s4_recovery_slice_evidence_named(
+pub(crate) fn alternate_recovery_slice_evidence() -> S4RecoveryDogfoodSliceEvidence {
+    recovery_slice_evidence_named(
         "store.physical.s45.closeout.s4-recovery-dogfood.alternate",
         "closeout-s4-recovery-alternate",
     )
@@ -212,12 +212,12 @@ pub(crate) fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionRep
     .unwrap()
 }
 
-fn s4_recovery_slice_evidence_named(
+fn recovery_slice_evidence_named(
     scenario_name: &str,
     fixture_name: &str,
 ) -> S4RecoveryDogfoodSliceEvidence {
     let scenario = S4RecoveryDogfoodScenario::from_public_authoring(
-        public_s4_recovery_dogfood_scenario(scenario_name, fixture_name),
+        public_recovery_dogfood_scenario(scenario_name, fixture_name),
     )
     .unwrap();
     let plan = lower_physical_simulation_plan(
@@ -225,7 +225,7 @@ fn s4_recovery_slice_evidence_named(
         closeout_context(PhysicalSimulationProfile::DeveloperSmoke),
     )
     .unwrap();
-    let replay = s4_recovery_replay_bundle(&plan);
+    let replay = recovery_replay_bundle(&plan);
     let matrix = complete_registry_for(scenario.scenario(), &plan, &replay)
         .generate_matrix()
         .unwrap();
@@ -233,7 +233,7 @@ fn s4_recovery_slice_evidence_named(
     S4RecoveryDogfoodSliceEvidence::from_replay_evidence(scenario, matrix, evidence).unwrap()
 }
 
-fn public_s4_recovery_dogfood_scenario(
+fn public_recovery_dogfood_scenario(
     scenario_name: &str,
     fixture_name: &str,
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
@@ -249,7 +249,7 @@ fn public_s4_recovery_dogfood_scenario(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
+        .expectation(PhysicalScenarioExpectation::recovery_dogfood())
         .certify_definition()
         .unwrap()
 }
@@ -289,9 +289,9 @@ fn mutation_evidence(replay: &SimulationReplayBundle) -> PhysicalMutationCoverag
     .unwrap()
 }
 
-fn s4_recovery_replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayBundle {
-    let trace = s4_recovery_trace(plan);
-    let recovery_verdict = ReusablePhysicalOracleFamily::s4_recovery_dogfood()
+fn recovery_replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayBundle {
+    let trace = recovery_trace(plan);
+    let recovery_verdict = ReusablePhysicalOracleFamily::recovery_dogfood()
         .oracle(CrashRecoversOldOrNewNeverMixedOracle)
         .judge(plan, &trace)
         .unwrap();
@@ -318,7 +318,7 @@ fn s4_recovery_replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayB
     detached.admit_replay_bundle().unwrap()
 }
 
-fn s4_recovery_trace(plan: &PhysicalSimulationPlan) -> ObservedPhysicalTrace {
+fn recovery_trace(plan: &PhysicalSimulationPlan) -> ObservedPhysicalTrace {
     forge_store_physical_certification::PhysicalSimulationObserver::recovery_outcome()
         .observe_plan(plan)
         .unwrap()

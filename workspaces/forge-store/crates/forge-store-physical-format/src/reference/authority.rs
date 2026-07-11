@@ -12,7 +12,7 @@ pub struct PhysicalReferenceAuthority {
 }
 
 impl PhysicalReferenceAuthority {
-    pub const fn s1() -> Self {
+    pub const fn for_canonical_physical_format() -> Self {
         Self {
             scope: PhysicalReferenceAuthorityScope::StorageFoundationS1,
         }

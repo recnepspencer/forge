@@ -88,7 +88,7 @@ pub(crate) fn shortcut_scenario() -> CertifiedPhysicalScenario {
 }
 
 pub(crate) fn scenario() -> CertifiedPhysicalScenario {
-    counter_support::s5_shortcut_scenario()
+    counter_support::physical_isolation_shortcut_scenario()
 }
 
 pub(crate) fn replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayBundle {

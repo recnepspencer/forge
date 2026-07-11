@@ -52,7 +52,7 @@ impl PhysicalSimulationHarnessCertificationBundle {
         let physical_isolation_readiness =
             accept_store_owned_physical_isolation_harness_readiness(receipt);
         let dogfood = SimulationHarnessDogfoodReport::new(
-            dogfood_evidence.s4_recovery().scenario().clone(),
+            dogfood_evidence.recovery().scenario().clone(),
             dogfood_evidence.shortcut_rejection().scenario().clone(),
             dogfood_evidence
                 .physical_isolation_readiness_shape_probe()

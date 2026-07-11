@@ -28,7 +28,7 @@ use forge_store_security::{
 };
 
 #[test]
-fn s5_1_blob_chunk_scope_and_dedupe_readiness_public_api_courtroom() {
+fn security_scope_blob_chunk_scope_and_dedupe_readiness_public_api_courtroom() {
     let admitted_blob_scope = blob_scope(
         "cert.s51.blob.scope",
         StoreTenantScope::TenantPhysicalBoundary,
@@ -214,8 +214,8 @@ fn physical_witness() -> StorePhysicalBoundaryWitness {
 
 fn record_receipt(bytes: &[u8]) -> StorePhysicalChunkWriteReceipt {
     let records = record_authority();
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let page_cell = generations
         .page_cell(segment(7), page(11))
         .with_page_generation(generation(5));
@@ -257,8 +257,8 @@ fn admitted_page<'a>(
 }
 
 fn record_authority() -> PhysicalPageRecordAuthority {
-    PhysicalPageRecordAuthority::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().expect("canonical physical binary format"),
+    PhysicalPageRecordAuthority::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().expect("canonical physical binary format"),
     ))
 }
 

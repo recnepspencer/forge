@@ -25,7 +25,7 @@ pub struct S6BackgroundPacingCertificationEvidence {
     debt: Option<BackgroundIoDebt>,
 }
 
-pub fn certify_s6_background_pacing(
+pub fn certify_io_qos_background_pacing(
     outcome: BackgroundPacingOutcome,
     expected: BackgroundPacingOutcome,
 ) -> Result<S6BackgroundPacingCertificationEvidence, S6BackgroundPacingCertificationDenial> {

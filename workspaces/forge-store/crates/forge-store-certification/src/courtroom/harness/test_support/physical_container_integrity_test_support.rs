@@ -100,7 +100,7 @@ pub(crate) fn inspect_frame_with_witness_payload(
     let mut denial = None;
     let validation = validation(1, 2, 3, 7);
     with_entry_seed(protected_payload, |seed| {
-        let declaration = checksum_declaration().admit_for_s3_entry(seed.entry_witness());
+        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
@@ -156,7 +156,7 @@ pub(crate) fn page_payload_with_record_for_cell(
     payload: &[u8],
     fixture_cell: PageReportFixtureCell,
 ) -> Vec<u8> {
-    let records = PhysicalPageRecordAuthority::s1(header_authority());
+    let records = PhysicalPageRecordAuthority::for_canonical_physical_format(header_authority());
     let cell = page_cell(
         fixture_cell.segment,
         fixture_cell.page,
@@ -202,7 +202,7 @@ fn occupied_slot_entry_offset() -> usize {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
@@ -220,7 +220,7 @@ fn page_bytes(cell: PageGenerationCell, payload: &[u8]) -> Vec<u8> {
 }
 
 fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id(segment), page_id(page), record_slot(slot))
         .with_slot_generation(physical_generation(generation))
 }

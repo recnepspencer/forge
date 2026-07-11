@@ -19,7 +19,7 @@ pub enum UnsupportedQoSClaim {
 }
 
 impl UnsupportedQoSClaim {
-    const fn canonical_s5_non_claims() -> [Self; 5] {
+    const fn canonical_physical_isolation_non_claims() -> [Self; 5] {
         [
             Self::P99Latency,
             Self::P999Latency,
@@ -57,7 +57,7 @@ pub(crate) struct SchedulerIsolationCapabilityRequest {
 pub fn publish_scheduler_isolation_capability_from_executed_evidence(
     closeout: ExecutedIsolationEvidence,
 ) -> Result<SchedulerIsolationCapability, IsolationReadinessDenial> {
-    let evidence = S6StoreIsolationHandoffEvidence::from_executed_s5_closeout(closeout)?;
+    let evidence = S6StoreIsolationHandoffEvidence::from_executed_physical_isolation_closeout(closeout)?;
     publish_scheduler_isolation_capability(
         SchedulerIsolationCapabilityRequest::from_store_handoff_evidence(evidence),
     )
@@ -104,12 +104,12 @@ fn publish_scheduler_isolation_capability(
         assumptions: PhysicalStabilityAssumption::required(),
         foreground_interference: ForegroundInterferenceSurface::from_counters(counters),
         background_maintenance: BackgroundMaintenanceIsolationAssumption::from_counters(counters),
-        unsupported_qos_claims: UnsupportedQoSClaim::canonical_s5_non_claims(),
+        unsupported_qos_claims: UnsupportedQoSClaim::canonical_physical_isolation_non_claims(),
     })
 }
 
 impl S6StoreIsolationHandoffEvidence {
-    fn from_executed_s5_closeout(
+    fn from_executed_physical_isolation_closeout(
         closeout: ExecutedIsolationEvidence,
     ) -> Result<Self, IsolationReadinessDenial> {
         if closeout.basis().executed_isolation_identity() == 0

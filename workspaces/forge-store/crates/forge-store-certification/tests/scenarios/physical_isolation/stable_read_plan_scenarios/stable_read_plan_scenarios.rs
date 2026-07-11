@@ -24,7 +24,7 @@ use forge_store_test_support::{
 };
 
 #[test]
-fn stable_read_plan_scenarios_execute_through_s4_5_evidence_pipeline() {
+fn stable_read_plan_scenarios_execute_through_simulation_harness_evidence_pipeline() {
     for lane in stable_read_plan_lanes() {
         let plan = lower_physical_simulation_plan(lane.scenario, complete_context()).unwrap();
         let evidence = executed_evidence_bundle(&plan, lane.expected_fault);
@@ -184,7 +184,7 @@ fn executed_evidence_bundle(
         counter_receipt,
     )
     .unwrap()
-    .with_faults(s5_fault_events(expected_fault))
+    .with_faults(physical_isolation_fault_events(expected_fault))
     .with_oracle_verdict(counter_verdict)
     .with_transcript_replay_verdict()
     .unwrap();
@@ -198,7 +198,7 @@ fn executed_evidence_bundle(
     PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap()
 }
 
-fn s5_fault_events(expected_fault: PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
+fn physical_isolation_fault_events(expected_fault: PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
     physical_isolation_stable_read_plan_fault_event(expected_fault)
         .unwrap()
         .into_iter()

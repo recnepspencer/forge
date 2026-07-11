@@ -41,7 +41,7 @@ fn replay_bundle_admits_io_pressure_evidence_and_exact_coverage_rows() {
     );
     for row in coverage.iter() {
         assert_eq!(row.source_identity(), evidence.replay_identity());
-        assert_eq!(row.dimensions(), expected_phase10_dimensions());
+        assert_eq!(row.dimensions(), expected_pressure_dimensions());
     }
 }
 
@@ -236,7 +236,7 @@ fn evidence_for_fault_class(fault_class: PhysicalFaultEvidenceClass) -> IoPressu
     IoPressureHarnessEvidence::from_replay_bundle(scenario, &replay).unwrap()
 }
 
-fn expected_phase10_dimensions() -> &'static [CoverageRowDimension] {
+fn expected_pressure_dimensions() -> &'static [CoverageRowDimension] {
     &[
         CoverageRowDimension::ResourceEnvelopeProfile(PhysicalSimulationProfile::DeveloperSmoke),
         CoverageRowDimension::BackgroundInterference(crate::PhysicalDriverKind::IoPressureBoundary),

@@ -16,7 +16,7 @@ use forge_store_wal::{
 };
 
 #[test]
-fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
+fn wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
     let append_scope = WalFrameDurablePublicationScope::new(2, 9, 40, 80, "sha256:wal-crash", 256)
         .expect("append scope");
     let append_receipt = wal_receipt(append_scope.clone());
@@ -96,7 +96,7 @@ fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
 }
 
 #[test]
-fn phase21_replay_tail_rejects_non_replay_record_kinds() {
+fn replay_tail_rejects_non_replay_record_kinds() {
     let record = BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(11, BlobWalRecordKind::ChunkAppend).unwrap(),
         DurablePublicationDeclaration::wal_frame(

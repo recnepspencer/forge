@@ -8,7 +8,7 @@ use std::{fs, path::PathBuf};
 pub(crate) fn line_cap_composition_evidence() -> S3LineCapCompositionEvidence {
     S3LineCapCompositionEvidence::from_checked_modules_and_owned_files(
         line_cap_module_evidence(),
-        s3_owned_closeout_file_evidence(),
+        physical_integrity_owned_closeout_file_evidence(),
     )
     .unwrap()
 }
@@ -59,7 +59,7 @@ pub(crate) fn line_cap_module_evidence() -> Vec<S3LineCapModuleEvidence> {
     ]
 }
 
-pub(crate) fn s3_owned_closeout_file_evidence() -> Vec<S3OwnedCloseoutFileEvidence> {
+pub(crate) fn physical_integrity_owned_closeout_file_evidence() -> Vec<S3OwnedCloseoutFileEvidence> {
     let cap = 400;
     [certification_courtroom_dir(), certification_scenario_dir()]
         .into_iter()

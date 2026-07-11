@@ -55,7 +55,7 @@ impl SimulationHarnessAcceptanceSuiteName {
         }
     }
 
-    pub const fn required_s45() -> [Self; 21] {
+    pub const fn required_simulation_harness() -> [Self; 21] {
         [
             Self::EntryBoundary,
             Self::AspectNativeScenarioDefinition,

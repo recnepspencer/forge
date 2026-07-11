@@ -201,7 +201,7 @@ impl HeavyBlobExpectedDigestBasis {
 }
 
 impl DeterministicBytePatternProfile {
-    pub const fn canonical_phase23_patterns() -> [Self; 4] {
+    pub const fn canonical_heavy_blob_patterns() -> [Self; 4] {
         [
             Self::IncompressibleSeeded,
             Self::HighlyCompressibleRepeatedSpans,
@@ -210,7 +210,7 @@ impl DeterministicBytePatternProfile {
         ]
     }
 
-    pub const fn is_canonical_phase23_pattern(self) -> bool {
+    pub const fn is_canonical_pattern(self) -> bool {
         matches!(
             self,
             Self::CanonicalMixed
@@ -338,7 +338,7 @@ pub const fn deny_ambient_chaos_corpus_as_canonical() -> HeavyBlobQualificationD
     HeavyBlobQualificationDenial::AmbientCorpusNotCanonical
 }
 
-pub fn admit_canonical_phase23_qualification_lane(
+pub fn admit_canonical_qualification_lane(
     plan: &HeavyBlobFixturePlan,
 ) -> Result<(), HeavyBlobQualificationDenial> {
     match plan.byte_pattern_profile() {

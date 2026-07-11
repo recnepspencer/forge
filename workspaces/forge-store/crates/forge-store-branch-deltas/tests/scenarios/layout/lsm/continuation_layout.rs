@@ -8,7 +8,7 @@ use forge_store_live_query::{
 };
 
 #[test]
-fn phase23_stable_basis_and_continuation_families_bind_support_to_admitted_windows() {
+fn stable_basis_and_continuation_families_bind_support_to_admitted_windows() {
     let stable_basis_id = StableBasisId(41);
     let stable_basis_plan = live_query_semantic_authority().declare_stable_basis_support(
         stable_basis_id,

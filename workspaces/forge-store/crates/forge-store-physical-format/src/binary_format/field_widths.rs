@@ -10,7 +10,7 @@ pub enum PhysicalFieldWidthKind {
 }
 
 impl PhysicalFieldWidthKind {
-    pub const fn required_for_s1() -> [Self; 5] {
+    pub const fn required_for_physical_format() -> [Self; 5] {
         [
             Self::SegmentId,
             Self::PageId,

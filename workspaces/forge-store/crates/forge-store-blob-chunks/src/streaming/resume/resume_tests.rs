@@ -30,7 +30,7 @@ fn public_streaming_ingest_requires_and_records_resume_session_admission() {
         .admit(AllocationRequest::streaming_window(AllocationScope::Streaming, 4).unwrap())
         .unwrap();
     let allocation = allocation.record_allocation(grant).unwrap();
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
         false,
@@ -66,7 +66,7 @@ fn public_streaming_ingest_denies_request_not_bound_to_resume_session() {
         .admit(AllocationRequest::streaming_window(AllocationScope::Streaming, 4).unwrap())
         .unwrap();
     let allocation = allocation.record_allocation(grant).unwrap();
-    let pressure = BlobStreamingPressureAdmission::from_s6_background_capacity(
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
         false,

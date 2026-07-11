@@ -17,7 +17,7 @@ pub enum ReclaimPolicyReachabilityDenial {
 }
 
 impl ReclaimPolicyReachabilityProof {
-    pub fn from_s5_reclaim_reachability_removal(
+    pub fn from_physical_isolation_reclaim_reachability_removal(
         evidence: S6ReclaimReachabilityRemovalEvidence,
         requested_region: PhysicalReclaimRegion,
     ) -> Result<Self, ReclaimPolicyReachabilityDenial> {

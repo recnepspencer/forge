@@ -16,7 +16,7 @@ pub struct BlobStreamingPressureAdmission {
 }
 
 impl BlobStreamingPressureAdmission {
-    pub fn from_s6_background_capacity(
+    pub fn from_io_qos_background_capacity(
         capacity: BackgroundCapacityAdmission,
         foreground_pressure_events: u64,
         late_yield: bool,

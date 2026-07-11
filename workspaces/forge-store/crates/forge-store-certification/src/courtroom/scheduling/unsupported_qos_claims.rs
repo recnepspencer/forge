@@ -8,7 +8,7 @@ pub enum UnsupportedQoSClaim {
 }
 
 impl UnsupportedQoSClaim {
-    pub const fn canonical_s5_non_claims() -> [Self; 5] {
+    pub const fn canonical_physical_isolation_non_claims() -> [Self; 5] {
         [
             Self::P99Latency,
             Self::P999Latency,

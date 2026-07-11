@@ -13,7 +13,7 @@ pub fn admit_chunk_migration_interlock(
     Ok(ChunkMigrationReadInterlockPlan::from_admitted_transition(
         placeholder,
         tier_plan,
-        FutureBlobMigrationNonClaimReport::s5_stability_only(),
+        FutureBlobMigrationNonClaimReport::physical_isolation_stability_only(),
         counters,
     ))
 }

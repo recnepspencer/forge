@@ -169,7 +169,7 @@ fn load_request_from_payload(payload: &[u8]) -> ResidentFrameLoadRequest {
 
 fn resident_frame_table() -> ResidentFrameTable {
     let readiness = prove_physical_substrate_readiness(
-        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+        close_physical_substrate_readiness(accepted_physical_format_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(
@@ -188,7 +188,7 @@ fn resident_frame_table() -> ResidentFrameTable {
 }
 
 fn load_request_from_frame(frame_bytes: &[u8]) -> ResidentFrameLoadRequest {
-    ResidentFrameLoadRequest::from_s1_physical_frame(
+    ResidentFrameLoadRequest::from_physical_format_physical_frame(
         validated_slot_reference(),
         frame_header_witness(frame_bytes),
     )
@@ -196,8 +196,8 @@ fn load_request_from_frame(frame_bytes: &[u8]) -> ResidentFrameLoadRequest {
 }
 
 fn validated_slot_reference() -> PhysicalReferenceValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let cell = generations
         .slot_cell(segment(1), page(2), slot(3))
         .with_slot_generation(generation(7));
@@ -217,7 +217,7 @@ fn frame_header_witness(bytes: &[u8]) -> PhysicalHeaderDecodeWitness {
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
-    PhysicalHeaderAuthority::s1(PhysicalBinaryEncodingWitness::s1_canonical().unwrap())
+    PhysicalHeaderAuthority::for_canonical_physical_format(PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap())
 }
 
 fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
@@ -234,8 +234,8 @@ fn frame_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn accepted_s1_readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+fn accepted_physical_format_readiness() -> AcceptedHandoffReadiness {
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),

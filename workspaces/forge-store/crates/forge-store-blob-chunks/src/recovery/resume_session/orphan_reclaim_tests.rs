@@ -2,7 +2,7 @@ use super::*;
 use forge_store_physical_isolation::{BlobOrphanReclaimBarrier, BlobPartialChunkOrphan};
 
 #[test]
-fn abandoned_partial_chunks_require_s7_orphan_reclaim_proof() {
+fn abandoned_partial_chunks_require_blob_lifecycle_orphan_reclaim_proof() {
     let lane = resume_lane("phase12-orphan", b"aaaabbbbcccc", 12, 12);
     let abandoned =
         BlobResumeSessionAbandoned::abandon(lane.checkpointed.export_checkpoint()).unwrap();

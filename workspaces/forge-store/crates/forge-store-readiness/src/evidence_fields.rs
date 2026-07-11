@@ -36,7 +36,7 @@ impl PhysicalFoundationEvidenceField {
         }
     }
 
-    pub const fn required_for_s1() -> [Self; 12] {
+    pub const fn required_for_physical_format() -> [Self; 12] {
         [
             Self::PhysicalLayoutReport,
             Self::ArtifactDigest,
@@ -53,7 +53,7 @@ impl PhysicalFoundationEvidenceField {
         ]
     }
 
-    pub const fn required_for_s2_foundational_residency() -> [Self; 5] {
+    pub const fn required_for_physical_substrate_foundational_residency() -> [Self; 5] {
         [
             Self::CounterSnapshot,
             Self::PhysicalLayoutReport,

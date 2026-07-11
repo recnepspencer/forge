@@ -6,7 +6,7 @@ use forge_store_physical_certification::{
     CoverageGapDenial, CoverageSurfaceKind, FaultDeliveryAttempt, HarnessCoverageStage,
     OracleFamilyKind, PhysicalCoverageRegistry, PhysicalDriverKind, PhysicalHarnessReadinessReport,
     PhysicalMutationCoverageEvidence,
-    reject_missing_s5_correctness_non_claim, PhysicalIsolationCorrectnessNonClaimEvidence,
+    reject_missing_physical_isolation_correctness_non_claim, PhysicalIsolationCorrectnessNonClaimEvidence,
     PhysicalIsolationHarnessReadinessDenial,
 };
 use forge_store_test_support::admitted_developer_smoke_driver_contracts;
@@ -185,7 +185,7 @@ fn non_generated_coverage_and_maturity_claims_are_denied() {
 #[test]
 fn readiness_denies_missing_non_claim() {
     assert_eq!(
-        reject_missing_s5_correctness_non_claim().unwrap_err(),
+        reject_missing_physical_isolation_correctness_non_claim().unwrap_err(),
         PhysicalIsolationHarnessReadinessDenial::MissingPhysicalIsolationCorrectnessNonClaim
     );
 }

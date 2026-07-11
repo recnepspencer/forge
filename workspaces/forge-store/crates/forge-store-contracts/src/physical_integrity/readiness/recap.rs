@@ -135,7 +135,7 @@ pub struct PhysicalAuthorityRecap {
 }
 
 impl PhysicalAuthorityRecap {
-    pub fn from_s1_authority(
+    pub fn from_physical_format_authority(
         physical_reference_count: u32,
         header_decode_witness_count: u32,
         payload_admission_witness_count: u32,
@@ -178,7 +178,7 @@ pub struct BufferPoolAuthorityRecap {
 }
 
 impl BufferPoolAuthorityRecap {
-    pub fn s2_authority(
+    pub fn physical_substrate_authority(
         lease_pinning_proven: bool,
         resident_frame_authority_proven: bool,
         allocation_envelope_proven: bool,

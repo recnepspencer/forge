@@ -128,10 +128,10 @@ struct FullLayoutFixture {
 
 impl FullLayoutFixture {
     fn new(root_reference: u64) -> Self {
-        let encoding = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+        let encoding = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
         let byte_order = encoding.declaration().byte_order();
-        let headers = PhysicalHeaderAuthority::s1(encoding);
-        let generations = PhysicalGenerationAuthority::s1();
+        let headers = PhysicalHeaderAuthority::for_canonical_physical_format(encoding);
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
         let generation = PhysicalGeneration::from_raw(1).unwrap();
         let root_reference = PhysicalRootReference::from_raw(root_reference).unwrap();
         let segment_id = PhysicalSegmentId::from_raw(1).unwrap();
@@ -162,7 +162,7 @@ impl FullLayoutFixture {
             )
             .unwrap()
             .with_free_space_generation(generation);
-        let root = forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root_cell)
+        let root = forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_cell)
             .segment(segment_cell)
             .ordinary_page(slot_cell)
             .extent(extent_cell)
@@ -186,7 +186,7 @@ impl FullLayoutFixture {
         let page_bytes = record_page_bytes(headers.clone(), byte_order, page_cell, slot_cell);
         let extent_bytes = extent_record_bytes(byte_order, generation, b"large");
         Self {
-            verifier: OfflinePhysicalVerifier::s1(headers),
+            verifier: OfflinePhysicalVerifier::for_canonical_physical_format(headers),
             layout: PersistedPhysicalLayout::builder()
                 .root_manifest(root_manifest.as_slice())
                 .segment_manifest(segment_manifest.as_slice())
@@ -234,10 +234,10 @@ impl FullLayoutFixture {
     }
 
     fn runtime_report(&self) -> forge_store_physical_format::ManifestDiscoveryReport<'_> {
-        ManifestDiscoveryAuthority::s1()
+        ManifestDiscoveryAuthority::for_canonical_physical_format()
             .reopen_from_root(
                 &self.root,
-                PhysicalReferenceAuthority::s1().admit_root_publication(self.root_cell),
+                PhysicalReferenceAuthority::for_canonical_physical_format().admit_root_publication(self.root_cell),
             )
             .unwrap()
     }
@@ -259,7 +259,7 @@ fn record_page_bytes(
     page_cell: forge_store_physical_format::PageGenerationCell,
     slot_cell: forge_store_physical_format::SlotGenerationCell,
 ) -> Vec<u8> {
-    let authority = PhysicalPageRecordAuthority::s1(headers);
+    let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
     let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
@@ -313,7 +313,7 @@ fn header_bytes(
     bytes.push(tag);
     bytes.extend_from_slice(
         &byte_order
-            .write_u16(forge_store_physical_format::PhysicalFormatVersion::s1_initial().value()),
+            .write_u16(forge_store_physical_format::PhysicalFormatVersion::initial_format_version().value()),
     );
     bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
     bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));

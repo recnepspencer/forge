@@ -68,8 +68,8 @@ pub use counters::{
     RequiredCounterContractSet,
 };
 pub use coverage::{
-    reject_copied_s5_simulation_harness_readiness_fields,
-    reject_missing_s5_correctness_non_claim,
+    reject_copied_physical_isolation_simulation_harness_readiness_fields,
+    reject_missing_physical_isolation_correctness_non_claim,
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
     CoverageGapDenial, CoverageRowDimension, CoverageRowSatisfiedReceipt, CoverageSurfaceKind,
     GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityEvidence, HarnessMaturityLevel,
@@ -158,7 +158,7 @@ pub use observation::{
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
-    phase7_verdict_topology, same_run_self_comparison_oracle_attempt,
+    oracle_verdict_topology, same_run_self_comparison_oracle_attempt,
     test_support_oracle_verdict_attempt, BlobByteEqualityOracle, BlobChunkOrderingOracle,
     BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle,
     BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle,

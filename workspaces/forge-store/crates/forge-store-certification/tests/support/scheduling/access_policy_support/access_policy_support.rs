@@ -13,7 +13,7 @@ use forge_store_physical_format::{
     PhysicalAlignmentClass, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub fn base_request(
     backend: &forge_store_physical_backend::AdmittedBackendCapabilityWitness,
@@ -126,7 +126,7 @@ pub fn mixed_request(
 }
 
 pub fn pinned_lifecycle() -> AccessPolicyBufferLifecycle {
-    AccessPolicyBufferLifecycle::for_certification_pinned_s2_lease()
+    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease()
 }
 
 pub fn backend_with_access(
@@ -154,14 +154,14 @@ pub fn backend_with_access(
 }
 
 pub fn test_reference() -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }
@@ -183,7 +183,7 @@ fn admitted_mmap_posture(
 }
 
 fn test_security_scope() -> AccessPolicySecurityScope {
-    let admitted = admitted_store_internal_security_scope_for_s6_test();
+    let admitted = admitted_store_internal_security_scope_for_io_qos_test();
     AccessPolicySecurityScope::from_current_store_scope(admitted.witnesses())
 }
 

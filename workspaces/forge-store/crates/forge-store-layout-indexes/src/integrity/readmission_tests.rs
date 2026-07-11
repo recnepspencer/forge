@@ -39,7 +39,7 @@ fn quarantine_readmission_resumes_foreground_authority_with_family_bound_store_w
                 family: family(),
                 record: quarantine_record.clone(),
             }),
-            &current_authority("store.s8.corruption", "quarantine-success"),
+            &current_authority("store.new.corruption", "quarantine-success"),
         )
         .expect("record-backed quarantine should derive readmission requirement");
     let outcome = layout_corruption().readmit_with(
@@ -66,7 +66,7 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
                 family: family(),
                 record: quarantine_record.clone(),
             }),
-            &current_authority("store.s8.corruption", "quarantine-required-a"),
+            &current_authority("store.new.corruption", "quarantine-required-a"),
         )
         .expect("record-backed quarantine should derive readmission requirement");
 
@@ -76,7 +76,7 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
                 family: family(),
                 record: quarantine_record.clone(),
             }),
-            &current_authority("store.s8.corruption", "quarantine-required-a"),
+            &current_authority("store.new.corruption", "quarantine-required-a"),
         )
         .unwrap();
     let wrong_family = layout_corruption().readmit_with(
@@ -141,11 +141,11 @@ fn quarantine_readmission_requirement_refuses_placeholder_quarantine_outcomes() 
 
     let rebuild_denied = layout_corruption().require_record_backed_recovery_readmission(
         rebuild_required,
-        &current_authority("store.s8.corruption", "placeholder-rebuild"),
+        &current_authority("store.new.corruption", "placeholder-rebuild"),
     );
     let materialization_denied = layout_corruption().require_record_backed_recovery_readmission(
         materialization_required,
-        &current_authority("store.s8.corruption", "placeholder-materialization"),
+        &current_authority("store.new.corruption", "placeholder-materialization"),
     );
 
     assert!(matches!(

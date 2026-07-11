@@ -1,5 +1,5 @@
 use forge_store_test_support::{
-    deterministic_s4_fresh_runtime_driver, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
+    deterministic_recovery_fresh_runtime_driver, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
     StorageBoundaryInterposerDriver,
 };
 
@@ -16,7 +16,7 @@ pub struct RecoveryPhysicsCrashMatrix {
 }
 
 impl RecoveryPhysicsCrashMatrix {
-    pub fn roadmap_2_s4() -> RecoveryPhysicsCrashMatrixBuilder {
+    pub fn recovery_crash_matrix() -> RecoveryPhysicsCrashMatrixBuilder {
         RecoveryPhysicsCrashMatrixBuilder::default()
     }
 
@@ -49,7 +49,7 @@ impl Default for RecoveryPhysicsCrashMatrixBuilder {
             backend_profile,
             fault_driver: FaultSchedulerDriver::deterministic(0x5346_000A),
             storage_driver: StorageBoundaryInterposerDriver::production_like(backend_profile),
-            runtime_driver: deterministic_s4_fresh_runtime_driver(),
+            runtime_driver: deterministic_recovery_fresh_runtime_driver(),
         }
     }
 }

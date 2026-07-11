@@ -9,7 +9,7 @@ use forge_store_recovery_physics::{
 };
 
 #[test]
-fn intact_s3_handoff_and_recovery_envelope_produce_stable_entry_identity() {
+fn intact_physical_integrity_handoff_and_recovery_envelope_produce_stable_entry_identity() {
     let first = admit_entry(intact_readiness("entry-stability"));
     let second = admit_entry(intact_readiness("entry-stability"));
 
@@ -108,7 +108,7 @@ fn quarantine_summary_preserves_its_damage_case_across_mixed_recovery_blockers()
         .inspection_envelope(intact.payload().inspection_envelope().clone())
         .seal()
         .unwrap();
-    let readiness = super::support::admit_s4_handoff_payload(payload);
+    let readiness = super::support::admit_recovery_handoff_payload(payload);
 
     let RecoveryEntryAdmissionDecision::Blocked(blocked) =
         RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority())

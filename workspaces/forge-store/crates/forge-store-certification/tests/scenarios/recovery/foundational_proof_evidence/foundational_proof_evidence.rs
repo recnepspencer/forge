@@ -2,7 +2,7 @@
 mod evidence_support;
 
 #[test]
-fn phase12_foundational_proof_evidence_split_suite_smoke() {
+fn foundational_proof_evidence_split_suite_smoke() {
     let source = evidence_support::verified_source();
     let bundle = evidence_support::bundle_from_source(&source);
 

@@ -23,10 +23,10 @@ fn independent_manifest_walks_converge_on_report_counters_and_reference_basis() 
             page_slot_admission(1, 2, 3, 7),
         ))
     };
-    let first = ManifestIntegrityAuthority::s3()
+    let first = ManifestIntegrityAuthority::new()
         .inspect_manifest(request())
         .unwrap();
-    let second = ManifestIntegrityAuthority::s3()
+    let second = ManifestIntegrityAuthority::new()
         .inspect_manifest(request())
         .unwrap();
 
@@ -140,7 +140,7 @@ fn manifest_body_denials_are_computed_from_physical_reference_evidence() {
 #[test]
 fn denied_manifest_reference_counts_only_performed_probes() {
     let root = root_with_slot(1, 2, 3, 7);
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -162,7 +162,7 @@ fn denied_manifest_reference_counts_only_performed_probes() {
 #[test]
 fn root_posture_variants_distinguish_ambiguous_evidence_without_recovery_choice() {
     let root = root_with_slot(1, 2, 3, 7);
-    let report = ManifestIntegrityAuthority::s3()
+    let report = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::from_root_publication(
             root.clone(),
             root_admission(&root),
@@ -215,7 +215,7 @@ fn root_posture_variants_distinguish_ambiguous_evidence_without_recovery_choice(
 #[test]
 fn current_root_posture_requires_root_publication_validation_witness() {
     let root = root_with_slot(1, 2, 3, 7);
-    let references = PhysicalReferenceAuthority::s1();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
     let root_validation = references
         .validate_root_publication(root_admission(&root), root.root_publication())
         .unwrap();
@@ -241,7 +241,7 @@ fn current_root_posture_requires_root_publication_validation_witness() {
 #[test]
 fn intact_derived_structures_cannot_override_authoritative_manifest_damage() {
     let root = root_with_slot(1, 2, 3, 7);
-    let authoritative_denial = ManifestIntegrityAuthority::s3()
+    let authoritative_denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -257,7 +257,7 @@ fn intact_derived_structures_cannot_override_authoritative_manifest_damage() {
         PhysicalReferenceScope::derived_index(page_cell(1, 2, 7)),
     )
     .unwrap();
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -285,11 +285,11 @@ fn intact_derived_structures_cannot_override_authoritative_manifest_damage() {
 
 #[test]
 fn source_precedence_attempt_requires_authoritative_manifest_denial_evidence() {
-    let missing_root_denial = ManifestIntegrityAuthority::s3()
+    let missing_root_denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::missing_root())
         .unwrap_err();
     let root = root_with_slot(1, 2, 3, 7);
-    let backend_residue_denial = ManifestIntegrityAuthority::s3()
+    let backend_residue_denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -299,7 +299,7 @@ fn source_precedence_attempt_requires_authoritative_manifest_denial_evidence() {
         )
         .unwrap_err();
     let derived_scope = PhysicalReferenceScope::derived_index(page_cell(1, 2, 7));
-    let authoritative_denial = ManifestIntegrityAuthority::s3()
+    let authoritative_denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -310,7 +310,7 @@ fn source_precedence_attempt_requires_authoritative_manifest_denial_evidence() {
             )),
         )
         .unwrap_err();
-    let source_precedence_denial = ManifestIntegrityAuthority::s3()
+    let source_precedence_denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(
             ManifestIntegrityInspectionRequest::from_root_publication(
                 root.clone(),
@@ -340,7 +340,7 @@ fn manifest_membership_remains_the_current_root_admission_basis() {
     let root = root_with_slot(1, 2, 3, 7);
     let scope = PhysicalReferenceScope::manifest_page(page_cell(1, 2, 7));
     let membership = ManifestMembershipProof::from_root(&root, scope).unwrap();
-    let report = ManifestIntegrityAuthority::s3()
+    let report = ManifestIntegrityAuthority::new()
         .inspect_manifest(ManifestIntegrityInspectionRequest::from_root_publication(
             root.clone(),
             root_admission(&root),
@@ -359,7 +359,7 @@ fn assert_manifest_denial(
     locality: Option<PhysicalGenerationOwner>,
     current_root: bool,
 ) {
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(request)
         .unwrap_err();
     assert_eq!(denial.kind(), expected);
@@ -371,7 +371,7 @@ fn assert_root_posture(
     request: ManifestIntegrityInspectionRequest,
     expected: RootManifestIntegrityPosture,
 ) {
-    let denial = ManifestIntegrityAuthority::s3()
+    let denial = ManifestIntegrityAuthority::new()
         .inspect_manifest(request)
         .unwrap_err();
     assert_eq!(denial.posture(), expected);

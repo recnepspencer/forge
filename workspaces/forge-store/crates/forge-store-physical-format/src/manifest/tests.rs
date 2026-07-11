@@ -7,9 +7,9 @@ use crate::{
 
 #[test]
 fn root_manifest_reopen_discovers_manifested_physical_universe() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
@@ -31,7 +31,7 @@ fn root_manifest_reopen_discovers_manifested_physical_universe() {
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(segment_cell)
         .ordinary_page(page_slot)
         .extent(extent_cell)
@@ -73,13 +73,13 @@ fn root_manifest_reopen_discovers_manifested_physical_universe() {
 
 #[test]
 fn allocation_class_manifest_rows_are_physical_placement_rows() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .allocation_class(AllocationClassKind::RootManifest)
         .allocation_class(AllocationClassKind::SegmentManifest)
         .allocation_class(AllocationClassKind::SegmentManifest)
@@ -115,9 +115,9 @@ fn allocation_class_manifest_rows_are_physical_placement_rows() {
 
 #[test]
 fn backend_residue_outside_manifests_is_not_discovery_authority() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
@@ -127,7 +127,7 @@ fn backend_residue_outside_manifests_is_not_discovery_authority() {
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(segment_cell)
         .publish();
     let report = discovery
@@ -154,9 +154,9 @@ fn backend_residue_outside_manifests_is_not_discovery_authority() {
 
 #[test]
 fn free_space_reuse_generation_change_stales_old_reference() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
@@ -181,7 +181,7 @@ fn free_space_reuse_generation_change_stales_old_reference() {
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(segment_cell)
         .free_space_reuse(current_free_space)
         .publish();
@@ -205,9 +205,9 @@ fn free_space_reuse_generation_change_stales_old_reference() {
 
 #[test]
 fn stale_root_publication_denies_before_manifest_traversal() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let old_root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(4));
@@ -217,7 +217,7 @@ fn stale_root_publication_denies_before_manifest_traversal() {
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(current_root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
         .segment(segment_cell)
         .publish();
 
@@ -240,9 +240,9 @@ fn stale_root_publication_denies_before_manifest_traversal() {
 
 #[test]
 fn wrong_root_publication_reference_denies_before_manifest_traversal() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let admitted_other_root = generations
         .root_publication_cell(root_ref(2))
         .with_root_publication_generation(generation(5));
@@ -252,7 +252,7 @@ fn wrong_root_publication_reference_denies_before_manifest_traversal() {
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
-    let manifest = crate::PhysicalManifestUniverseBuilder::s1(current_root)
+    let manifest = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(current_root)
         .segment(segment_cell)
         .publish();
 

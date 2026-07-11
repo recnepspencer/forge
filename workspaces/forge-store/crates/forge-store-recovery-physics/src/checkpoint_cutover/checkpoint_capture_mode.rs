@@ -34,7 +34,7 @@ impl FuzzyCheckpointCertificationModeDenial {
         }
     }
 
-    pub const fn missing_s5_interleaving_assumptions() -> Self {
+    pub const fn missing_physical_isolation_interleaving_assumptions() -> Self {
         Self {
             kind: FuzzyCheckpointCertificationModeDenialKind::MissingS5InterleavingAssumptions,
         }

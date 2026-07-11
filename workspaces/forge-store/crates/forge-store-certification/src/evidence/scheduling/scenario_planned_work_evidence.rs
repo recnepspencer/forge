@@ -60,7 +60,7 @@ impl PhysicalScenarioPlannedWorkBoundaryReport {
 
 fn scenario_plan_digest(plan: &PhysicalScenarioPlan) -> StableDigest {
     StableDigest::new(format!(
-        "s3-scenario-planned-work:{:?}:{}:{}:{}",
+        "new-scenario-planned-work:{:?}:{}:{}:{}",
         plan.identity(),
         plan.story_steps().len(),
         plan.required_oracles().len(),

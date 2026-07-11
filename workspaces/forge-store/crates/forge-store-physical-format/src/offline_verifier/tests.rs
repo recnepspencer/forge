@@ -59,7 +59,7 @@ fn missing_and_ambiguous_roots_deny_before_manifest_decode() {
 #[test]
 fn backend_residue_denies_before_page_header_walk() {
     let mut fixture = verifier_fixture();
-    let residue = PhysicalReferenceAuthority::s1().admit_extent(fixture.extent_cell);
+    let residue = PhysicalReferenceAuthority::for_canonical_physical_format().admit_extent(fixture.extent_cell);
     fixture.layout = PersistedPhysicalLayout::builder()
         .root_manifest(fixture.root_manifest)
         .segment_manifest(fixture.segment_manifest)
@@ -83,7 +83,7 @@ fn backend_residue_denies_before_page_header_walk() {
 fn malformed_membership_denies_before_header_decode() {
     let mut fixture = verifier_fixture();
     let bad_segment = PhysicalSegmentId::from_raw(99).unwrap();
-    let bad_slot = PhysicalGenerationAuthority::s1()
+    let bad_slot = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(bad_segment, fixture.page_id, fixture.slot)
         .with_slot_generation(fixture.generation);
     let bad_segment_manifest = OfflineManifestCodec::encode_segment_manifest(
@@ -205,8 +205,8 @@ fn assert_malformed_section_denies_before_header_decode(
     layout: PersistedPhysicalLayout,
     expected: OfflineVerifierDenialKind,
 ) {
-    let verifier = OfflinePhysicalVerifier::s1(PhysicalHeaderAuthority::s1(
-        PhysicalBinaryEncodingWitness::s1_canonical().unwrap(),
+    let verifier = OfflinePhysicalVerifier::for_canonical_physical_format(PhysicalHeaderAuthority::for_canonical_physical_format(
+        PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap(),
     ));
 
     let denial = verifier.verify(&layout).unwrap_err();
@@ -240,10 +240,10 @@ struct VerifierFixture {
 }
 
 fn verifier_fixture() -> VerifierFixture {
-    let encoding = PhysicalBinaryEncodingWitness::s1_canonical().unwrap();
+    let encoding = PhysicalBinaryEncodingWitness::physical_format_canonical().unwrap();
     let byte_order = encoding.declaration().byte_order();
-    let headers = PhysicalHeaderAuthority::s1(encoding);
-    let generations = PhysicalGenerationAuthority::s1();
+    let headers = PhysicalHeaderAuthority::for_canonical_physical_format(encoding);
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
     let segment_id = PhysicalSegmentId::from_raw(1).unwrap();
     let page_id = PhysicalPageId::from_raw(1).unwrap();
     let extent_id = PhysicalExtentId::from_raw(1).unwrap();
@@ -274,7 +274,7 @@ fn verifier_fixture() -> VerifierFixture {
         )
         .unwrap()
         .with_free_space_generation(generation);
-    let root = crate::PhysicalManifestUniverseBuilder::s1(root_cell)
+    let root = crate::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root_cell)
         .segment(segment_cell)
         .ordinary_page(slot_cell)
         .extent(extent_cell)
@@ -306,7 +306,7 @@ fn verifier_fixture() -> VerifierFixture {
         .extent(PersistedExtentBytes::new(extent_cell, extent_bytes.clone()))
         .build();
     VerifierFixture {
-        verifier: OfflinePhysicalVerifier::s1(headers),
+        verifier: OfflinePhysicalVerifier::for_canonical_physical_format(headers),
         layout,
         root,
         root_manifest,
@@ -330,7 +330,7 @@ fn record_page_bytes(
     page_cell: crate::PageGenerationCell,
     slot_cell: crate::SlotGenerationCell,
 ) -> Vec<u8> {
-    let authority = PhysicalPageRecordAuthority::s1(headers);
+    let authority = PhysicalPageRecordAuthority::for_canonical_physical_format(headers);
     let empty_page = page_bytes(byte_order, page_cell.generation(), &[]);
     let header = authority
         .decode_record_page_header(page_cell, &empty_page, PhysicalPageKind::DataPage)
@@ -386,7 +386,7 @@ fn header_bytes(
     let mut bytes = Vec::with_capacity(PHYSICAL_HEADER_LENGTH as usize + payload_len);
     bytes.push(tag);
     bytes.extend_from_slice(
-        &byte_order.write_u16(crate::PhysicalFormatVersion::s1_initial().value()),
+        &byte_order.write_u16(crate::PhysicalFormatVersion::initial_format_version().value()),
     );
     bytes.extend_from_slice(&byte_order.write_u16(PHYSICAL_HEADER_LENGTH));
     bytes.extend_from_slice(&byte_order.write_u32(payload_len as u32));

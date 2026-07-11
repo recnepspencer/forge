@@ -68,7 +68,7 @@ fn decode_root(
             OfflineVerifierDenial::new(OfflineVerifierDenialKind::MalformedRootManifest, counters)
                 .with_vocabulary_error(error)
         })?;
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .root_publication_cell(root_reference)
         .with_root_publication_generation(generation))
 }
@@ -203,7 +203,7 @@ fn decode_segment_row(
 ) -> Result<crate::SegmentGenerationCell, OfflineVerifierDenial> {
     let segment_id = physical_segment_id(byte_order, bytes, offset + 1, counters)?;
     let generation = physical_generation(byte_order, bytes, offset + 9, counters)?;
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .segment_cell(segment_id)
         .with_segment_generation(generation))
 }
@@ -220,7 +220,7 @@ fn decode_page_slot_row(
         PhysicalRecordSlot::from_raw(byte_order.read_u16([bytes[offset + 17], bytes[offset + 18]]))
             .map_err(|error| vocabulary_denial(error, counters))?;
     let generation = physical_generation(byte_order, bytes, offset + 19, counters)?;
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id, page_id, slot)
         .with_slot_generation(generation))
 }
@@ -235,7 +235,7 @@ fn decode_extent_row(
     let extent_id = PhysicalExtentId::from_raw(read_u64(byte_order, bytes, offset + 9))
         .map_err(|error| vocabulary_denial(error, counters))?;
     let generation = physical_generation(byte_order, bytes, offset + 17, counters)?;
-    Ok(PhysicalGenerationAuthority::s1()
+    Ok(PhysicalGenerationAuthority::for_canonical_physical_format()
         .extent_cell(segment_id, extent_id)
         .with_extent_generation(generation))
 }
@@ -288,7 +288,7 @@ fn decode_free_space_slot_cell(
     let slot =
         PhysicalRecordSlot::from_raw(byte_order.read_u16([bytes[offset + 18], bytes[offset + 19]]))
             .map_err(|error| vocabulary_denial(error, counters))?;
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .free_space_slot_cell(segment_id, page_id, slot, allocation_class)
         .map_err(|error| vocabulary_denial(error, counters))
         .map(|builder| builder.with_free_space_generation(generation))
@@ -305,7 +305,7 @@ fn decode_free_space_extent_cell(
 ) -> Result<FreeSpaceReuseCell, OfflineVerifierDenial> {
     let extent_id = PhysicalExtentId::from_raw(read_u64(byte_order, bytes, offset + 10))
         .map_err(|error| vocabulary_denial(error, counters))?;
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .free_space_extent_cell(segment_id, extent_id, allocation_class)
         .map_err(|error| vocabulary_denial(error, counters))
         .map(|builder| builder.with_free_space_generation(generation))

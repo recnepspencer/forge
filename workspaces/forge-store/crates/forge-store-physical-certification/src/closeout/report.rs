@@ -11,7 +11,7 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SimulationHarnessCloseoutCoverageReport {
-    s4_recovery_matrix: GeneratedCoverageMatrix,
+    recovery_matrix: GeneratedCoverageMatrix,
     shortcut_rejection_matrix: GeneratedCoverageMatrix,
     physical_isolation_readiness_shape_probe_matrix: GeneratedCoverageMatrix,
 }
@@ -30,7 +30,7 @@ pub struct PhysicalSimulationHarnessCloseoutReport {
 impl SimulationHarnessCloseoutCoverageReport {
     pub fn from_dogfood_evidence(dogfood_evidence: &SimulationHarnessDogfoodEvidence) -> Self {
         Self {
-            s4_recovery_matrix: dogfood_evidence.s4_recovery().coverage().clone(),
+            recovery_matrix: dogfood_evidence.recovery().coverage().clone(),
             shortcut_rejection_matrix: dogfood_evidence.shortcut_rejection().coverage().clone(),
             physical_isolation_readiness_shape_probe_matrix: dogfood_evidence
                 .physical_isolation_readiness_shape_probe()
@@ -39,8 +39,8 @@ impl SimulationHarnessCloseoutCoverageReport {
         }
     }
 
-    pub const fn s4_recovery_matrix(&self) -> &GeneratedCoverageMatrix {
-        &self.s4_recovery_matrix
+    pub const fn recovery_matrix(&self) -> &GeneratedCoverageMatrix {
+        &self.recovery_matrix
     }
 
     pub const fn shortcut_rejection_matrix(&self) -> &GeneratedCoverageMatrix {
@@ -61,7 +61,7 @@ impl SimulationHarnessCloseoutCoverageReport {
 
     pub(crate) fn matrices(&self) -> [&GeneratedCoverageMatrix; 3] {
         [
-            &self.s4_recovery_matrix,
+            &self.recovery_matrix,
             &self.shortcut_rejection_matrix,
             &self.physical_isolation_readiness_shape_probe_matrix,
         ]

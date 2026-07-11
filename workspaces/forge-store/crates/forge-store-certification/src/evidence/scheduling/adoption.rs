@@ -40,13 +40,13 @@ pub enum S6CertificationRuntimeAuthorityDenial {
     CertificationEvidenceCannotSatisfyCloseout,
 }
 
-pub fn adopt_materialized_s6_certification_evidence_for_closeout(
+pub fn adopt_materialized_io_qos_certification_evidence_for_closeout(
     bundle: &S6MaterializedCertificationEvidenceBundle,
 ) -> Result<S6CertificationEvidenceAdoptionReceipt, S6CertificationRuntimeAuthorityDenial> {
     closeout_receipt_from_bundle(bundle).map_err(S6CertificationRuntimeAuthorityDenial::from)
 }
 
-pub const fn reject_materialized_s6_certification_as_runtime_authority(
+pub const fn reject_materialized_io_qos_certification_as_runtime_authority(
     _bundle: &S6MaterializedCertificationEvidenceBundle,
 ) -> S6CertificationRuntimeAuthorityDenial {
     S6CertificationRuntimeAuthorityDenial::CertificationEvidenceCannotStrengthenBackendCapability

@@ -20,7 +20,7 @@ pub struct S10BackupExportCustodyHandoff {
 }
 
 impl S10BackupExportCustodyHandoff {
-    pub fn from_s10_permission(
+    pub fn from_backup_repair_permission(
         readiness: BackupExportCustodyReadiness,
         permission: S10BackupExportCustodyPermission,
     ) -> Option<Self> {

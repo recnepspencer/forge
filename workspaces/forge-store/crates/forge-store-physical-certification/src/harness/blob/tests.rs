@@ -88,7 +88,7 @@ fn seed_blob_scenario_shape_is_gated_by_ordinary_simulation_harness_lowerer() {
 #[test]
 fn local_ci_and_heavy_profiles_share_blob_counter_topology() {
     let mut observed = Vec::new();
-    for profile in BlobHarnessProfileSet::phase8_required().iter() {
+    for profile in BlobHarnessProfileSet::required_qualification_profiles().iter() {
         if profile != BlobHarnessProfile::local() {
             assert!(profile.envelope().exceeds_resident_memory_envelope());
         }
@@ -117,7 +117,7 @@ fn local_ci_and_heavy_profiles_share_blob_counter_topology() {
 
 #[test]
 fn profiles_materialize_foundational_identity_for_each_blob_profile() {
-    for profile in BlobHarnessProfileSet::phase8_required().iter() {
+    for profile in BlobHarnessProfileSet::required_qualification_profiles().iter() {
         let seed = BlobHarnessScenarioSeed::builder()
             .profile(profile)
             .placement_external()
@@ -234,7 +234,7 @@ fn replay_bundle_is_stable_and_carries_exact_blob_counter_evidence() {
 }
 
 #[test]
-fn coverage_rows_include_phase22_blob_axes() {
+fn coverage_rows_include_blob_axes() {
     let seed = BlobHarnessScenarioSeed::builder()
         .profile(BlobHarnessProfile::heavy_multi_gb())
         .placement_cold_tier()
@@ -272,7 +272,7 @@ fn coverage_rows_include_phase22_blob_axes() {
 }
 
 #[test]
-fn canonical_heavy_fixture_identity_binds_phase23_basis() {
+fn canonical_heavy_fixture_identity_binds_basis() {
     let seed = heavy_multi_gb_scenario_seed();
     let plan = canonical_heavy_fixture_plan_for_seed(
         &seed,
@@ -327,7 +327,7 @@ fn temp_file_materialization_keeps_schema_and_emits_cleanup_receipt() {
 }
 
 #[test]
-fn hostile_phase23_lanes_are_typed_denials() {
+fn hostile_lanes_are_typed_denials() {
     assert_eq!(
         deny_sparse_only_heavy_qualification(),
         forge_store_blob_chunks::HeavyBlobQualificationDenial::SparseOnlyProofNotCanonical

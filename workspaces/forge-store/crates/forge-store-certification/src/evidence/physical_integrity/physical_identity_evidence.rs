@@ -18,7 +18,7 @@ pub enum PhysicalIdentityEvidenceRow {
 }
 
 impl PhysicalIdentityEvidenceRow {
-    pub const fn s1_required() -> [Self; 12] {
+    pub const fn physical_format_required() -> [Self; 12] {
         [
             Self::SlotGenerationOwnership,
             Self::ExtentGenerationOwnership,
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn every_identity_generation_row_maps_to_physical_substrate_lane() {
-        for row in PhysicalIdentityEvidenceRow::s1_required() {
+        for row in PhysicalIdentityEvidenceRow::physical_format_required() {
             assert_eq!(
                 row.physical_substrate_lane().family().as_str(),
                 "physical_substrate"
@@ -213,8 +213,8 @@ mod tests {
 
     fn stale_slot_counter_report(
     ) -> forge_store_physical_format::PhysicalReferenceValidationCounterSnapshot {
-        let generations = PhysicalGenerationAuthority::s1();
-        let references = PhysicalReferenceAuthority::s1();
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+        let references = PhysicalReferenceAuthority::for_canonical_physical_format();
         let admitted = references.admit_page_slot(
             generations
                 .slot_cell(segment(7), page(11), slot(3))

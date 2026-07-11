@@ -43,7 +43,7 @@ fn secure_scope_pressure_rejects_wrong_operation_receipts() {
 
 #[test]
 fn secure_scope_pressure_rejects_wrong_security_scope_receipts() {
-    let security_scope = forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test();
+    let security_scope = forge_store_security::admitted_wrong_io_qos_security_scope_for_test();
     let denial = crate::admit_security_scope_for_scheduler(&security_scope)
         .expect_err("wrong security scope must not enter scheduler use");
     assert!(matches!(

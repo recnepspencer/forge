@@ -50,7 +50,7 @@ fn top_level_truncated_frame_body_denies_before_container_inspection() {
     let mut denial = None;
 
     with_entry_seed(protected_payload, |seed| {
-        let declaration = checksum_declaration().admit_for_s3_entry(seed.entry_witness());
+        let declaration = checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         denial = Some(
             admission

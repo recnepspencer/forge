@@ -1,5 +1,5 @@
 use forge_store_test_support::{
-    deterministic_s4_fresh_runtime_driver, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
+    deterministic_recovery_fresh_runtime_driver, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
     StorageBoundaryInterposerDriver,
 };
 
@@ -15,8 +15,8 @@ use super::{
 };
 
 #[test]
-fn s4_recovery_crash_matrix_contains_required_lanes() {
-    let matrix = RecoveryPhysicsCrashMatrix::roadmap_2_s4()
+fn recovery_crash_matrix_contains_required_lanes() {
+    let matrix = RecoveryPhysicsCrashMatrix::recovery_crash_matrix()
         .seed(44)
         .backend_profile("ci-certification")
         .lower()
@@ -34,8 +34,8 @@ fn s4_recovery_crash_matrix_contains_required_lanes() {
 }
 
 #[test]
-fn s4_recovery_crash_matrix_denies_live_runtime_reuse_before_execution() {
-    let denial = RecoveryPhysicsCrashMatrix::roadmap_2_s4()
+fn recovery_crash_matrix_denies_live_runtime_reuse_before_execution() {
+    let denial = RecoveryPhysicsCrashMatrix::recovery_crash_matrix()
         .recovery_driver(FreshRuntimeRecoveryDriver::same_process_live_state_reuse())
         .lower()
         .expect_err("same process live-state reuse is not a valid crash harness driver");
@@ -47,13 +47,13 @@ fn s4_recovery_crash_matrix_denies_live_runtime_reuse_before_execution() {
 }
 
 #[test]
-fn s4_recovery_plan_denies_mismatched_boundary_events_before_certification() {
+fn recovery_plan_denies_mismatched_boundary_events_before_certification() {
     let lane = RecoveryPhysicsCrashLane::WalAppend;
     let storage = StorageBoundaryInterposerDriver::production_like("ci-certification");
     let drivers = RecoveryPhysicsScenarioDrivers::new(
         FaultSchedulerDriver::deterministic(7),
         storage.clone(),
-        deterministic_s4_fresh_runtime_driver(),
+        deterministic_recovery_fresh_runtime_driver(),
     );
     let mut builder = RecoveryPhysicsScenarioDefinition::builder(lane)
         .seed(7)
@@ -79,14 +79,14 @@ fn s4_recovery_plan_denies_mismatched_boundary_events_before_certification() {
 }
 
 #[test]
-fn s4_recovery_certification_transcripts_name_harness_evidence() {
-    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_s4_ci()
+fn recovery_certification_transcripts_name_harness_evidence() {
+    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_recovery_ci()
         .expect("Roadmap 2 S.4 harness certifies");
     let certification = roadmap2_certification.certification_matrix();
 
     assert_eq!(
         certification.shortcut_rejections().len(),
-        RecoveryPhysicsShortcutAttempt::required_s4_denials().len()
+        RecoveryPhysicsShortcutAttempt::required_recovery_denials().len()
     );
     for row in certification.rows() {
         let transcript = row.transcript();
@@ -119,8 +119,8 @@ fn s4_recovery_certification_transcripts_name_harness_evidence() {
 }
 
 #[test]
-fn s4_recovery_shortcuts_fail_certification_with_boundary_specific_evidence() {
-    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_s4_ci()
+fn recovery_shortcuts_fail_certification_with_boundary_specific_evidence() {
+    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_recovery_ci()
         .expect("Roadmap 2 S.4 harness certifies");
     let certification = roadmap2_certification.certification_matrix();
     let attempts: Vec<_> = certification
@@ -129,7 +129,7 @@ fn s4_recovery_shortcuts_fail_certification_with_boundary_specific_evidence() {
         .map(|rejection| rejection.attempt())
         .collect();
 
-    for required in RecoveryPhysicsShortcutAttempt::required_s4_denials() {
+    for required in RecoveryPhysicsShortcutAttempt::required_recovery_denials() {
         assert!(attempts.contains(&required));
         assert!(
             RecoveryPhysicsCertificationMatrix::certify_shortcut_attempt(required).is_err(),
@@ -154,8 +154,8 @@ fn s4_recovery_shortcuts_fail_certification_with_boundary_specific_evidence() {
 }
 
 #[test]
-fn s4_recovery_mutation_validation_matrix_fails_required_mutants() {
-    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_s4_ci()
+fn recovery_mutation_validation_matrix_fails_required_mutants() {
+    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_recovery_ci()
         .expect("Roadmap 2 S.4 harness certifies");
     let mutations = RecoveryPhysicsMutationValidationMatrix::validate(
         roadmap2_certification.certification_matrix(),
@@ -175,8 +175,8 @@ fn s4_recovery_mutation_validation_matrix_fails_required_mutants() {
 }
 
 #[test]
-fn s4_recovery_mutation_validation_denies_missing_or_wrong_suite_evidence() {
-    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_s4_ci()
+fn recovery_mutation_validation_denies_missing_or_wrong_suite_evidence() {
+    let roadmap2_certification = RecoveryPhysicsRoadmap2HarnessCertification::certify_recovery_ci()
         .expect("Roadmap 2 S.4 harness certifies");
     let certification = roadmap2_certification.certification_matrix();
     let mut evidence = roadmap2_certification.mutation_evidence().rows().to_vec();

@@ -12,7 +12,7 @@ use forge_store_reclaim_policy::{
     ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority, ReclaimPolicyReachabilityProof,
     ReclaimPolicyRequest, ReclaimPolicySecurityScope,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{admit_tier_placement_io, ColdTierIoPosture};
 
@@ -55,7 +55,7 @@ fn real_cold_tier_posture() -> ColdTierIoPosture {
         .expect("backend should admit");
     let authority = ReclaimPolicyProofAuthority::for_admitted_backend(&backend);
     let region = test_region();
-    let scope = admitted_store_internal_security_scope_for_s6_test();
+    let scope = admitted_store_internal_security_scope_for_io_qos_test();
     let policy = ReclaimPolicyAdmission::admit(
         authority,
         ReclaimPolicyRequest::new()
@@ -94,14 +94,14 @@ fn real_cold_tier_posture() -> ColdTierIoPosture {
 }
 
 fn test_region() -> PhysicalReclaimRegion {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    let reference: PhysicalReference = PhysicalReferenceAuthority::s1()
+    let reference: PhysicalReference = PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference();
     PhysicalReclaimRegion::new(reference, 4096).unwrap()

@@ -1,5 +1,5 @@
 #[test]
-fn s6_secure_io_authority_rejects_lower_authority_sources() {
+fn io_qos_secure_io_authority_rejects_lower_authority_sources() {
     let repo_root = repo_root();
     build_compile_fail_dependencies(&repo_root);
     for fixture in compile_fail_fixtures() {

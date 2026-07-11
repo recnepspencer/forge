@@ -8,7 +8,7 @@ use forge_store_physical_format::{
     PhysicalAlignmentClass, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
 };
-use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
+use forge_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 #[test]
 fn buffered_access_admits_page_cache_visibility_and_security_scope() {
@@ -127,7 +127,7 @@ fn mixed_access_requires_positive_coherence_basis() {
                 .for_physical_reference(reference)
                 .with_security_scope(scope)
                 .with_buffer_lifecycle(
-                    AccessPolicyBufferLifecycle::for_certification_pinned_s2_lease(),
+                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(),
                 )
                 .with_page_cache_policy(page_cache_policy(&backend))
                 .with_alignment_requirement(
@@ -162,7 +162,7 @@ fn mixed_access_denies_when_coherence_basis_belongs_to_other_region() {
                 .for_physical_reference(reference)
                 .with_security_scope(scope)
                 .with_buffer_lifecycle(
-                    AccessPolicyBufferLifecycle::for_certification_pinned_s2_lease(),
+                    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease(),
                 )
                 .with_page_cache_policy(page_cache_policy(&backend))
                 .with_alignment_requirement(
@@ -271,7 +271,7 @@ fn base_request(
 }
 
 fn pinned_lifecycle() -> AccessPolicyBufferLifecycle {
-    AccessPolicyBufferLifecycle::for_certification_pinned_s2_lease()
+    AccessPolicyBufferLifecycle::for_certification_pinned_physical_substrate_lease()
 }
 
 fn page_cache_policy(backend: &crate::AdmittedBackendCapabilityWitness) -> PageCachePolicyProof {
@@ -343,32 +343,32 @@ fn backend_with_direct_io_posture(
 }
 
 fn test_security_scope() -> AccessPolicySecurityScope {
-    let admitted = admitted_store_internal_security_scope_for_s6_test();
+    let admitted = admitted_store_internal_security_scope_for_io_qos_test();
     AccessPolicySecurityScope::from_current_store_scope(admitted.witnesses())
 }
 
 fn test_reference() -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(1).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }
 
 fn other_reference() -> PhysicalReference {
-    let cell = PhysicalGenerationAuthority::s1()
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(
             PhysicalSegmentId::from_raw(2).unwrap(),
             PhysicalPageId::from_raw(1).unwrap(),
             PhysicalRecordSlot::from_raw(1).unwrap(),
         )
         .with_slot_generation(PhysicalGeneration::from_raw(1).unwrap());
-    PhysicalReferenceAuthority::s1()
+    PhysicalReferenceAuthority::for_canonical_physical_format()
         .admit_page_slot(cell)
         .reference()
 }

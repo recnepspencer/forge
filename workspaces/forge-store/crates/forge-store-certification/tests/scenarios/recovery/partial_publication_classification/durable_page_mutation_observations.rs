@@ -78,7 +78,7 @@ fn dirty_evidence(
     ack: &DurableAckReceipt<PosixFileFsyncDirFsyncProfile>,
     payload: &[u8],
 ) -> DirtyPublicationEvidence {
-    DirtyPublicationEvidence::from_s2_publication(
+    DirtyPublicationEvidence::from_physical_substrate_publication(
         scheduled_dirty_publication(payload),
         PageLsn::from_lsn(ack.ack_basis().lsn_range().start()),
     )

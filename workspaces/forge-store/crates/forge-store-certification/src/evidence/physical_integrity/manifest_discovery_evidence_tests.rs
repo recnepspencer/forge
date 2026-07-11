@@ -27,9 +27,9 @@ fn manifest_discovery_evidence_exports_real_root_report() {
 
 #[test]
 fn backend_residue_denial_certifies_from_real_manifest_denial() {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
@@ -39,7 +39,7 @@ fn backend_residue_denial_certifies_from_real_manifest_denial() {
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(segment_cell)
         .publish();
     let report = discovery
@@ -161,9 +161,9 @@ impl ManifestFixture {
 }
 
 fn manifest_fixture() -> ManifestFixture {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let discovery = ManifestDiscoveryAuthority::s1();
+    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
+    let discovery = ManifestDiscoveryAuthority::for_canonical_physical_format();
     let segment_cell = generations
         .segment_cell(segment(7))
         .with_segment_generation(generation(1));
@@ -185,7 +185,7 @@ fn manifest_fixture() -> ManifestFixture {
     let root = generations
         .root_publication_cell(root_ref(1))
         .with_root_publication_generation(generation(5));
-    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::s1(root)
+    let manifest = forge_store_physical_format::PhysicalManifestUniverseBuilder::for_canonical_physical_format(root)
         .segment(segment_cell)
         .ordinary_page(page_slot)
         .extent(extent_cell)

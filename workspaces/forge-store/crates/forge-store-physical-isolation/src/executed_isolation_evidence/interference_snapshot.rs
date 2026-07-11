@@ -78,7 +78,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn s6_handoff_interference_snapshot_declares_exact_store_counter_strength() {
+    fn io_qos_handoff_interference_snapshot_declares_exact_store_counter_strength() {
         let counters = PhysicalIsolationCounterSnapshot::from_store_executed_counts(
             4, 3, 2, 1, 9, 1, 5, 6, 4096,
         )

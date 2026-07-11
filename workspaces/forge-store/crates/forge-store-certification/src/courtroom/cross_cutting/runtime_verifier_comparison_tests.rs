@@ -18,12 +18,12 @@ use forge_store_physical_format::{
 
 #[test]
 fn runtime_and_offline_verifier_reports_compare_through_structured_parity() {
-    let open_request = PlatformPhysicalOpenRequest::s1_canonical();
+    let open_request = PlatformPhysicalOpenRequest::physical_format_canonical();
     let mut facade = open_facade(open_request.clone());
     append_slot(&mut facade, 1);
     let published = facade.publish_physical_root().expect("publish root");
     let runtime_scan = facade.scan_physical_layout().expect("runtime scan");
-    let offline_report = OfflinePhysicalVerifier::s1(open_request.headers().clone())
+    let offline_report = OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
         .verify(published.persisted_layout())
         .expect("offline verifier");
 
@@ -94,7 +94,7 @@ fn controlled_runtime_verifier_mismatch_gets_typed_support_report() {
 
 #[test]
 fn shortcut_lanes_are_rejected_at_named_boundaries() {
-    let mut facade = open_facade(PlatformPhysicalOpenRequest::s1_canonical());
+    let mut facade = open_facade(PlatformPhysicalOpenRequest::physical_format_canonical());
     let live_cache = facade
         .reject_live_runtime_cache_shortcut()
         .expect_err("live runtime cache shortcut denied");
@@ -169,7 +169,7 @@ fn shortcut_support_and_diagnostics_require_facade_shortcut_boundary() {
 }
 
 fn observed_runtime_layout_with_slot(slot_number: u16) -> RuntimeLayoutObservation {
-    let mut facade = open_facade(PlatformPhysicalOpenRequest::s1_canonical());
+    let mut facade = open_facade(PlatformPhysicalOpenRequest::physical_format_canonical());
     append_slot(&mut facade, slot_number);
     facade.publish_physical_root().expect("publish root");
     let scan = facade.scan_physical_layout().expect("runtime scan");
@@ -177,11 +177,11 @@ fn observed_runtime_layout_with_slot(slot_number: u16) -> RuntimeLayoutObservati
 }
 
 fn observed_offline_layout_with_slot(slot_number: u16) -> OfflineVerifierLayoutObservation {
-    let open_request = PlatformPhysicalOpenRequest::s1_canonical();
+    let open_request = PlatformPhysicalOpenRequest::physical_format_canonical();
     let mut facade = open_facade(open_request.clone());
     append_slot(&mut facade, slot_number);
     let published = facade.publish_physical_root().expect("publish root");
-    let report = OfflinePhysicalVerifier::s1(open_request.headers().clone())
+    let report = OfflinePhysicalVerifier::for_canonical_physical_format(open_request.headers().clone())
         .verify(published.persisted_layout())
         .expect("offline verifier");
     OfflineVerifierLayoutObservation::from_verifier_report(&report)
@@ -197,11 +197,11 @@ fn append_slot(facade: &mut PlatformPhysicalFacade, slot_number: u16) {
 }
 
 fn open_facade(open_request: PlatformPhysicalOpenRequest) -> PlatformPhysicalFacade {
-    PlatformPhysicalFacade::open_s1(readiness(), open_request).expect("open S.1 facade")
+    PlatformPhysicalFacade::open_physical_format(readiness(), open_request).expect("open S.1 facade")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(ROADMAP_2_S1_SCOPE, digest_set())
         .expect("S.1 handoff readiness")
 }
 
@@ -222,7 +222,7 @@ fn digest(name: &str) -> StableDigest {
 }
 
 fn slot_cell(slot_number: u16) -> forge_store_physical_format::SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(1), page(1), slot(slot_number))
         .with_slot_generation(generation(5))
 }

@@ -7,11 +7,11 @@ use forge_store_io_scheduler::{IoQueueExecutionDenial, IoQueueExecutionRecorder}
 #[path = "../../../support/recovery/counter_strength/support.rs"]
 mod support;
 
-use support::{counter_receipt, lower_s5_plan, observed_trace};
+use support::{counter_receipt, lower_physical_isolation_plan, observed_trace};
 
 #[test]
 fn denied_allocation_execution_cannot_mint_buffer_pool_counter_evidence() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let mut admission =
         AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
     let grant = admission
@@ -35,7 +35,7 @@ fn denied_allocation_execution_cannot_mint_buffer_pool_counter_evidence() {
 
 #[test]
 fn denied_io_queue_depth_cannot_mint_io_counter_evidence() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let envelope = plan.resource_envelope().io_queue();
     let mut recorder = IoQueueExecutionRecorder::from_envelope(envelope);
     recorder
@@ -58,7 +58,7 @@ fn denied_io_queue_depth_cannot_mint_io_counter_evidence() {
 
 #[test]
 fn denied_io_interference_cannot_mint_io_counter_evidence() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let envelope = plan.resource_envelope().io_queue();
     let mut recorder = IoQueueExecutionRecorder::from_envelope(envelope);
     for _ in 0..envelope.max_interference_events() {
@@ -79,7 +79,7 @@ fn denied_io_interference_cannot_mint_io_counter_evidence() {
 
 #[test]
 fn in_envelope_runtime_sources_still_admit_counter_receipts() {
-    let plan = lower_s5_plan();
+    let plan = lower_physical_isolation_plan();
     let receipt = counter_receipt(&plan, observed_trace(&plan));
 
     assert_eq!(

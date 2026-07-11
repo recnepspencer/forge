@@ -51,7 +51,7 @@ pub struct PhysicalPageSegmentExtentSubstrateEvidence {
     complexity: Vec<PhysicalComplexityEvidenceReport>,
     foundation: PhysicalFoundationEvidenceBundle,
     platform_grade_witness: PlatformGradeClaimWitness,
-    s2_readiness: PhysicalSubstrateReadiness,
+    physical_substrate_readiness: PhysicalSubstrateReadiness,
 }
 
 impl PhysicalPageSegmentExtentSubstrateEvidence {
@@ -67,7 +67,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         complexity: Vec<PhysicalComplexityEvidenceReport>,
         foundation: PhysicalFoundationEvidenceBundle,
         platform_grade_witness: PlatformGradeClaimWitness,
-        s2_readiness: PhysicalSubstrateReadiness,
+        physical_substrate_readiness: PhysicalSubstrateReadiness,
     ) -> Self {
         Self {
             story,
@@ -80,7 +80,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
             complexity,
             foundation,
             platform_grade_witness,
-            s2_readiness,
+            physical_substrate_readiness,
         }
     }
 
@@ -124,8 +124,8 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         &self.foundation
     }
 
-    pub(crate) const fn s2_readiness(&self) -> PhysicalSubstrateReadiness {
-        self.s2_readiness
+    pub(crate) const fn physical_substrate_readiness(&self) -> PhysicalSubstrateReadiness {
+        self.physical_substrate_readiness
     }
 }
 
@@ -153,7 +153,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
             evidence.platform_grade_witness(),
             evidence.foundation.scope(),
         )?;
-        require_s2_readiness_scope(evidence.s2_readiness(), evidence.foundation.scope())?;
+        require_physical_substrate_readiness_scope(evidence.physical_substrate_readiness(), evidence.foundation.scope())?;
         Ok(Self {
             scope: evidence.foundation.scope(),
             run,
@@ -172,8 +172,8 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
         self.run.evidence()
     }
 
-    pub(crate) fn into_s2_readiness(self) -> PhysicalSubstrateReadiness {
-        self.evidence().s2_readiness()
+    pub(crate) fn into_physical_substrate_readiness(self) -> PhysicalSubstrateReadiness {
+        self.evidence().physical_substrate_readiness()
     }
 }
 
@@ -210,7 +210,7 @@ fn require_story_rows(
 fn require_facade_rows(
     reports: &[PlatformPhysicalFacadeEvidenceReport],
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for row in PlatformPhysicalFacadeEvidenceRow::s1_required() {
+    for row in PlatformPhysicalFacadeEvidenceRow::physical_format_required() {
         if !reports.iter().any(|report| report.row() == row) {
             return Err(PhysicalSubstrateCloseoutDenial::MissingFacadeRow(row));
         }
@@ -221,7 +221,7 @@ fn require_facade_rows(
 fn require_manifest_rows(
     reports: &[PhysicalManifestDiscoveryEvidenceReport],
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for row in PhysicalManifestDiscoveryEvidenceRow::s1_required() {
+    for row in PhysicalManifestDiscoveryEvidenceRow::physical_format_required() {
         if !reports.iter().any(|report| report.row() == row) {
             return Err(PhysicalSubstrateCloseoutDenial::MissingManifestRow(row));
         }
@@ -232,7 +232,7 @@ fn require_manifest_rows(
 fn require_offline_verifier_rows(
     reports: &[PhysicalOfflineVerifierEvidenceReport],
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for row in PhysicalOfflineVerifierEvidenceRow::s1_required() {
+    for row in PhysicalOfflineVerifierEvidenceRow::physical_format_required() {
         if !reports.iter().any(|report| report.row() == row) {
             return Err(PhysicalSubstrateCloseoutDenial::MissingOfflineVerifierRow(
                 row,
@@ -285,7 +285,7 @@ fn require_identity_rows(
 fn require_complexity_rows(
     reports: &[PhysicalComplexityEvidenceReport],
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for operation in PhysicalOperationKind::s1_required() {
+    for operation in PhysicalOperationKind::required_physical_operations() {
         let Some(report) = reports
             .iter()
             .find(|report| report.contract().operation() == operation)
@@ -304,7 +304,7 @@ fn require_complexity_rows(
 fn require_foundation_rows(
     foundation: &PhysicalFoundationEvidenceBundle,
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
-    for field in PhysicalFoundationEvidenceField::required_for_s1() {
+    for field in PhysicalFoundationEvidenceField::required_for_physical_format() {
         if !foundation
             .entries()
             .iter()
@@ -329,7 +329,7 @@ fn require_platform_witness_scope(
     }
 }
 
-fn require_s2_readiness_scope(
+fn require_physical_substrate_readiness_scope(
     readiness: PhysicalSubstrateReadiness,
     scope: RoadmapScope,
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {

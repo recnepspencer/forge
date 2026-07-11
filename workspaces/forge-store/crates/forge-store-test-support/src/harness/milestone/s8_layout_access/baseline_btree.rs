@@ -13,9 +13,9 @@ use forge_store_physical_format::{
 
 pub fn deterministic_baseline_btree_witness() -> BaselineBTreeExecutionWitness {
     let readiness = readiness();
-    let mut facade = PlatformPhysicalFacade::open_s1(
+    let mut facade = PlatformPhysicalFacade::open_physical_format(
         readiness.clone(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
+        PlatformPhysicalOpenRequest::physical_format_canonical(),
     )
     .expect("open deterministic B-tree fixture");
     facade
@@ -55,7 +55,7 @@ pub fn baseline_btree_probe_slot() -> PhysicalRecordSlot {
 }
 
 fn readiness() -> AcceptedHandoffReadiness {
-    AcceptedHandoffReadiness::from_s0_artifacts(
+    AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
         ROADMAP_2_S1_SCOPE,
         HandoffEvidenceDigestSet::new(
             digest("backend"),
@@ -87,7 +87,7 @@ fn right_slot_cell() -> SlotGenerationCell {
 }
 
 fn cell(page: u64, slot_value: u16, generation: u64) -> SlotGenerationCell {
-    PhysicalGenerationAuthority::s1()
+    PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment(7), page_id(page), slot(slot_value))
         .with_slot_generation(PhysicalGeneration::from_raw(generation).unwrap())
 }
