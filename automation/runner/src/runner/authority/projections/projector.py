@@ -77,8 +77,16 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
             projection["current_turn_instance_id"] = None
             projection["completed_at"] = event["at"]
             projection["latest_summary"] = event["payload"].get("reason")
+        if event["event_type"] == "operator_pause":
+            projection["awaiting_operator"] = {
+                "phase": event.get("phase_id"),
+                "turn": event.get("turn"),
+                "reason": event["payload"].get("reason"),
+            }
+            projection["latest_summary"] = event["payload"].get("reason")
         if event["event_type"] == "operator_override":
             projection["current_turn_instance_id"] = None
+            projection["awaiting_operator"] = None
             projection["latest_summary"] = event["payload"]["reason"]
             current = projection.get("current")
             if isinstance(current, dict) and current == event["payload"]["current"]:
@@ -145,6 +153,7 @@ def empty_projection(config: dict[str, Any], run_id: str) -> dict[str, Any]:
         },
         "phases": [project_phase(phase) for phase in config["phases"]],
         "operator_intervention": None,
+        "awaiting_operator": None,
         "model_overrides": [],
         "prompt_overrides": [],
         "external_completions": [],

@@ -15,6 +15,7 @@ from runner.graph_runtime.continuation import (
 )
 from runner.graph_runtime.runtime_lane import append_runtime_event, refresh_projection
 from runner.graph_runtime.recovery_disposition import execute_exhausted_recovery_disposition
+from runner.phase_programs.policy_bindings import operator_custom_turn_config
 from runner.graph_runtime.state import (
     ReloadCurrentTurnTransition,
     FinishTurnTransition,
@@ -83,7 +84,13 @@ def append_runner_event(state: GraphState) -> GraphState:
             thread_id=thread_id,
         )
         append_runner_fault(paths, current_turn_payload(current_turn), outcome, prompt_turn.turn_instance_id, thread_id)
-        return finish_exhausted_recovery(paths, current_turn_payload(current_turn), turn_continuation, thread_id)
+        return finish_exhausted_recovery(
+            paths,
+            current_turn_payload(current_turn),
+            turn_continuation,
+            thread_id,
+            awaits_operator=bool(operator_custom_turn_config(run_authority.config)),
+        )
     append_runtime_event(
         paths,
         "codex_turn_completed",
@@ -126,11 +133,12 @@ def finish_exhausted_recovery(
     current: dict[str, object],
     turn_continuation,
     thread_id: str | None,
+    awaits_operator: bool = False,
 ) -> GraphState:
     recovery = continuation_recovery(turn_continuation)
     if recovery is None or recovery.exhausted_disposition is None:
         return {}
-    execute_exhausted_recovery_disposition(paths, current, recovery, thread_id)
+    execute_exhausted_recovery_disposition(paths, current, recovery, thread_id, awaits_operator=awaits_operator)
     return {TURN_TRANSITION_KEY: FinishTurnTransition()}
 
 

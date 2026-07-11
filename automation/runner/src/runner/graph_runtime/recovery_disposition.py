@@ -13,8 +13,13 @@ def execute_exhausted_recovery_disposition(
     current: dict[str, object],
     recovery: RecoveryTurnRequest,
     thread_id: str | None,
+    awaits_operator: bool = False,
 ) -> None:
-    """Materialize an admitted terminal recovery policy in the event ledger."""
+    """Materialize an admitted terminal recovery policy in the event ledger.
+
+    When operator custom turns are available, a `notify_and_pause` disposition
+    pages and idles awaiting an operator reply (a resumable pause) rather than
+    hard-stopping the run, so a Telegram reply alone brings the run back."""
     if recovery.exhausted_disposition is None:
         raise ValueError("only an exhausted recovery request has a terminal disposition")
     record_recovery_attempt(
@@ -25,4 +30,12 @@ def execute_exhausted_recovery_disposition(
         recovery.turn_instance_id or "preflight-recovery",
     )
     if recovery.exhausted_disposition == "notify_and_pause":
-        append_runtime_event(paths, "run_stopped", payload={"reason": recovery.reason}, thread_id=thread_id)
+        event_type = "operator_pause" if awaits_operator else "run_stopped"
+        append_runtime_event(
+            paths,
+            event_type,
+            phase_id=current["phase"],
+            turn=current["turn"],
+            payload={"reason": recovery.reason},
+            thread_id=thread_id,
+        )

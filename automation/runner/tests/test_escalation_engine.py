@@ -3,7 +3,11 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+from runner.authority.run_identity import RuntimePaths
 from runner.facade.lifecycle import parse_operator_custom_turn
+from runner.graph_runtime.continuation.recovery_admission import pending_recovery_reason
+from runner.graph_runtime.continuation.requests import RecoveryTurnRequest
+from runner.graph_runtime.recovery_disposition import execute_exhausted_recovery_disposition
 from runner.generation.scaffold_templates import scaffold_config
 from runner.generation.scaffold_types import ScaffoldRequest
 from runner.graph_runtime.continuation.recovery_planning import plan_recovery_attempt
@@ -187,6 +191,49 @@ class ResetCapTests(unittest.TestCase):
         ]
         request = plan_with_config(events, CUSTOM_TURN_CONFIG)
         self.assertEqual(request.attempt_action, "notify_and_pause")
+
+
+class AutoResumeTests(unittest.TestCase):
+    def disposition_events(self, awaits_operator: bool) -> list[str]:
+        request = RecoveryTurnRequest(
+            reason="ladder exhausted",
+            failure_family="same_phase_loop_exceeded",
+            attempt_action="notify_and_pause",
+            exhausted_disposition="notify_and_pause",
+        )
+        with (
+            patch("runner.graph_runtime.recovery_events.append_runtime_event"),
+            patch("runner.graph_runtime.recovery_disposition.append_runtime_event") as disp_append,
+        ):
+            execute_exhausted_recovery_disposition(
+                RuntimePaths("auto-resume-test"), {"phase": 6, "turn": "review"}, request, None,
+                awaits_operator=awaits_operator,
+            )
+        return [call.args[1] for call in disp_append.call_args_list]
+
+    def test_awaiting_operator_pauses_resumably(self) -> None:
+        # With operator custom turns available, exhaustion is a resumable pause.
+        self.assertEqual(self.disposition_events(awaits_operator=True), ["operator_pause"])
+
+    def test_without_operator_it_hard_stops(self) -> None:
+        self.assertEqual(self.disposition_events(awaits_operator=False), ["run_stopped"])
+
+    def test_operator_override_consumes_the_open_fault(self) -> None:
+        fault = {
+            "event_type": "runner_fault",
+            "phase_id": 6,
+            "turn": "review",
+            "payload": {"failure_family": "same_phase_loop_exceeded"},
+        }
+        override = {
+            "event_type": "operator_override",
+            "phase_id": 6,
+            "turn": "review",
+            "payload": {"reason": "grok fix it", "model_policy": {"provider": "grok", "model": "grok-4.5"}},
+        }
+        # Fault alone -> a recovery is pending; an operator override after it -> none.
+        self.assertIsNotNone(pending_recovery_reason([fault], {"phase": 6, "turn": "review"}, None))
+        self.assertIsNone(pending_recovery_reason([fault, override], {"phase": 6, "turn": "review"}, None))
 
 
 class OperatorCustomTurnTests(unittest.TestCase):

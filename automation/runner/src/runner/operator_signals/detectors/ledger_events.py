@@ -27,6 +27,7 @@ def signal_kind_for_event(event: dict[str, Any]) -> str | None:
     event_type, payload = event.get("event_type"), event.get("payload", {})
     if event_type == "run_completed": return RUN_COMPLETED_SIGNAL
     if event_type == "completion_handoff_failed": return COMPLETION_HANDOFF_FAILED_SIGNAL
+    if event_type == "operator_pause": return BLOCKER_SIGNAL
     if event_type == "operator_override": return BLOCKER_SIGNAL
     if event_type != "runner_fault" or not isinstance(payload, dict): return None
     return {

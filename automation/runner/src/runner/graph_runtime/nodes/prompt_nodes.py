@@ -137,6 +137,7 @@ def materialize_recovery_prompt(state: GraphState) -> GraphState:
                 failure_family=request.failure_family,
                 recovery_kind="outcome_repair" if outcome_repair is not None else "escalation_recovery",
                 recovery_route_guidance=recovery_route_guidance(continuation),
+                prompt_override=(recovery.attempt_params or {}).get("prompt") if recovery is not None else None,
             ),
         )
     }

@@ -33,6 +33,11 @@ def pending_recovery_reason(
         event_type = event["event_type"]
         if event_type == "turn_outcome_recorded":
             return None
+        if event_type == "operator_override":
+            # An operator instruction takes over this cursor: it consumes any open
+            # fault so the run executes the operator's (model + instructions) turn
+            # instead of re-entering the exhausted recovery ladder.
+            return None
         if event_type == "prompt_selected":
             return candidate
         if event_type == "recovery_requested":

@@ -48,6 +48,7 @@ def prepare_recovery_prompt_turn(
     failure_family: str | None = None,
     recovery_kind: str = "escalation_recovery",
     recovery_route_guidance: str = "",
+    prompt_override: str | None = None,
 ) -> PreparedPromptTurn:
     prompt_artifact_path = ""
     contract_artifact_path = ""
@@ -66,7 +67,9 @@ def prepare_recovery_prompt_turn(
         paths.projection,
         paths.events,
         contract_template_override=RECOVERY_CONTRACT_ASSET,
-        prompt_binding_override=recovery_prompt_binding_for_failure(config, failure_family, recovery_kind),
+        prompt_binding_override=recovery_prompt_binding_for_failure(
+            config, failure_family, recovery_kind, prompt_override
+        ),
         record_run_id=projection["run_id"],
         record_turn_instance_id=recovery_prompt_instantiation_id(turn_instance_id),
         context_updates={
@@ -89,6 +92,7 @@ def build_recovery_prompt(
     failure_family: str | None = None,
     recovery_kind: str = "escalation_recovery",
     recovery_route_guidance: str = "",
+    prompt_override: str | None = None,
 ) -> str:
     prepared = prepare_recovery_prompt_turn(
         config,
@@ -99,6 +103,7 @@ def build_recovery_prompt(
         failure_family=failure_family,
         recovery_kind=recovery_kind,
         recovery_route_guidance=recovery_route_guidance,
+        prompt_override=prompt_override,
     )
     return prepared.rendered_prompt
 
@@ -107,7 +112,12 @@ def recovery_prompt_binding_for_failure(
     config: dict[str, Any],
     failure_family: str | None,
     recovery_kind: str,
+    prompt_override: str | None = None,
 ) -> AssemblyBindingReference:
+    if isinstance(prompt_override, str) and prompt_override:
+        # A stage may name its own escalated recovery prompt (e.g. one that
+        # explains the escalation) instead of the default recovery assembly.
+        return AssemblyBindingReference(assembly_id=prompt_override)
     policy = outcome_repair_policy_for_failure_family(config, failure_family)
     if (
         recovery_kind == "outcome_repair"

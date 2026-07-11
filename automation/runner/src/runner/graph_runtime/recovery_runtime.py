@@ -17,6 +17,7 @@ from runner.graph_runtime.qualifying_edits import (
 )
 from runner.phase_programs.policy_bindings import (
     admit_phase_program_policy_bindings,
+    operator_custom_turn_config,
     qualifying_edit_policy,
     stall_signal_policy,
 )
@@ -221,7 +222,9 @@ def admit_preflight_failure(
     )
     if recovery.exhausted_disposition is None:
         return False
-    execute_exhausted_recovery_disposition(paths, current, recovery, thread_id)
+    execute_exhausted_recovery_disposition(
+        paths, current, recovery, thread_id, awaits_operator=bool(operator_custom_turn_config(config))
+    )
     return True
 
 

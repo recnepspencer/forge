@@ -31,6 +31,14 @@ def drive_graph_run(
         projection = refresh_projection(config_path, run_id)
         if projection["completed_at"] is not None or projection["stopped"]:
             return 0
+        # A resumable pause: the ladder is spent and the run is paged, waiting for
+        # an operator custom turn. Idle without exiting so a Telegram reply alone
+        # brings the run back; proceed the moment the operator instruction lands.
+        if projection.get("awaiting_operator") and not projection.get("operator_intervention"):
+            if not loop:
+                return 0
+            time.sleep(sleep_seconds)
+            continue
         current = projection.get("current")
         if current is None:
             append_runtime_event(
