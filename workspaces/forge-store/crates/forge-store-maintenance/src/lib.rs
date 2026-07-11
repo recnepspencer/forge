@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
-pub mod layout_access;
+pub mod layout_projection;
 
 mod memory_envelopes;
 mod scrub_workflow;
 
-pub use layout_access::{
+pub use layout_projection::{
     MaintenanceQueueAccessBudget, MaintenanceQueueClass,
     MaintenanceQueueInterferencePosture, MaintenanceQueueLayoutReport,
 };

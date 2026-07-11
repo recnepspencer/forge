@@ -1,5 +1,5 @@
-mod s7_placement_io_readiness;
+mod placement;
 
-pub use s7_placement_io_readiness::{
+pub use placement::{
     admit_tier_placement_io, TierPlacementIoAdmission,
 };

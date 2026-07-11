@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-pub mod layout_access;
+pub mod layout_projection;
 
 mod cold_state;
 mod cold_tier_posture;
@@ -14,7 +14,7 @@ pub use cold_state::{
 pub use cold_tier_posture::certification_test_support;
 pub use cold_tier_posture::{ColdTierIoPosture, ColdTierIoPostureDenial};
 pub use io_readiness::{admit_tier_placement_io, TierPlacementIoAdmission};
-pub use layout_access::{
+pub use layout_projection::{
     ColdRecallAccessBudget, ColdRecallInterferencePosture, ColdRecallLayoutReport,
     RecallAmplificationAccessBudget, RecallAmplificationInterferencePosture,
     RecallAmplificationLayoutReport, TierPlacementAccessBudget, TierPlacementInterferencePosture,

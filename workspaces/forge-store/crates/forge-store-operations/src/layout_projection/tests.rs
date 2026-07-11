@@ -11,7 +11,7 @@ use crate::{
 
 #[test]
 fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_posture() {
-    let authority = current_authority("phase28.operations");
+    let authority = current_authority("operations.layout-projection");
     let admission = BackupExportCustodyDeclaration::native(
         &authority,
         BackupExportCustodyMode::Backup,

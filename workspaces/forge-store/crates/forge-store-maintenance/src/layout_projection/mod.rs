@@ -1,8 +1,8 @@
-mod maintenance_queue_family;
+mod queue;
 #[cfg(test)]
 mod tests;
 
-pub use maintenance_queue_family::{
+pub use queue::{
     MaintenanceQueueAccessBudget, MaintenanceQueueClass, MaintenanceQueueInterferencePosture,
     MaintenanceQueueLayoutReport,
 };

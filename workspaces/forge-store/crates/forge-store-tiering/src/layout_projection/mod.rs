@@ -1,16 +1,17 @@
-mod cold_recall_family;
-mod recall_amplification_family;
+mod cold_recall;
+mod recall_amplification;
 #[cfg(all(test, feature = "certification-test-authority"))]
 mod tests;
-mod tier_placement_family;
+mod placement;
 
-pub use cold_recall_family::{
+pub use cold_recall::{
     ColdRecallAccessBudget, ColdRecallInterferencePosture, ColdRecallLayoutReport,
 };
-pub use recall_amplification_family::{
+pub use recall_amplification::{
     RecallAmplificationAccessBudget, RecallAmplificationInterferencePosture,
     RecallAmplificationLayoutReport,
 };
-pub use tier_placement_family::{
+pub use placement::{
     TierPlacementAccessBudget, TierPlacementInterferencePosture, TierPlacementLayoutReport,
 };
+

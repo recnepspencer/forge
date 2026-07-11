@@ -64,7 +64,7 @@ mod backup;
 mod backup_export_custody_scheduler_demand;
 mod capsule_chunk_availability;
 mod facade;
-pub mod layout_access;
+pub mod layout_projection;
 mod recovery_posture;
 mod repair;
 mod repair_blast_radius_scheduler_demand;

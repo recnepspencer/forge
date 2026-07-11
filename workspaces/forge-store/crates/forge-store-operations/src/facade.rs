@@ -13,11 +13,11 @@ pub use crate::backup_export_custody_scheduler_demand::backup_prep_background_pr
 pub use crate::capsule_chunk_availability::{
     classify_capsule_chunk_availability, CapsuleChunkAvailabilityPosture,
 };
-pub use crate::layout_access::backup_family::BackupLayoutEvidenceReport;
-pub use crate::layout_access::capsule_operation_family::CapsuleOperationLayoutReport;
-pub use crate::layout_access::export_family::ExportLayoutEvidenceReport;
-pub use crate::layout_access::import_family::ImportLayoutEvidenceReport;
-pub use crate::layout_access::restore_family::RestoreLayoutEvidenceReport;
+pub use crate::layout_projection::backup::BackupLayoutEvidenceReport;
+pub use crate::layout_projection::capsule_operation::CapsuleOperationLayoutReport;
+pub use crate::layout_projection::export::ExportLayoutEvidenceReport;
+pub use crate::layout_projection::import::ImportLayoutEvidenceReport;
+pub use crate::layout_projection::restore::RestoreLayoutEvidenceReport;
 pub use crate::recovery_posture::OperationalRecoveryPosture;
 pub use crate::repair::blast_radius::{
     RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDeclaration, RepairBlastRadiusDenial,
