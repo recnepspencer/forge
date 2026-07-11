@@ -1,4 +1,4 @@
-use crate::background_envelope_counters::BackgroundEnvelopeCounters;
+use super::background_envelope_counters::BackgroundEnvelopeCounters;
 use crate::{
     AllocationAdmission, AllocationReceipt, AllocationRequest, BackgroundEnvelopeCounterSnapshot,
     BackgroundEnvelopeDenialKind, BackgroundEnvelopeRequest, BackgroundMemoryInterferenceReport,

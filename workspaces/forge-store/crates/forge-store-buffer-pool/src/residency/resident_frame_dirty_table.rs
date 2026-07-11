@@ -5,7 +5,7 @@ use crate::{
     ResidentFrameToken,
 };
 
-use crate::resident_frame_record::{
+use super::resident_frame_record::{
     ResidentFrameDirtyMarkTransition, ResidentFrameWriteScheduleTransition,
 };
 

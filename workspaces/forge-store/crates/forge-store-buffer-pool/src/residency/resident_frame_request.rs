@@ -1,6 +1,5 @@
-use crate::{
-    resident_frame_source::ResidentFrameSourceKey, ResidentFrameDenial, ResidentFrameDenialKind,
-};
+use super::resident_frame_source::ResidentFrameSourceKey;
+use crate::{ResidentFrameDenial, ResidentFrameDenialKind};
 use forge_store_physical_format::{
     PhysicalHeaderDecodeWitness, PhysicalHeaderKind, PhysicalReferenceKind,
     PhysicalReferenceValidationWitness,

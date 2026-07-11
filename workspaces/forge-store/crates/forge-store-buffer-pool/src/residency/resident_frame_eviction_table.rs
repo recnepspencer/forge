@@ -1,4 +1,4 @@
-use crate::resident_frame_table::next_lease_epoch;
+use super::resident_frame_table::next_lease_epoch;
 use crate::{
     EvictionCandidateSet, EvictionCounterSnapshot, EvictionPlan, EvictionPressure,
     EvictionProtectionReason, EvictionProtectionSummary, EvictionReceipt, FrameProtectionReceipt,

@@ -3,7 +3,7 @@ use crate::{
     ResidentFrameDenialKind,
 };
 
-use crate::dirty_state_test_support::{admit_payload_frame, load_request, resident_frame_table};
+use super::dirty_state_test_support::{admit_payload_frame, load_request, resident_frame_table};
 
 #[test]
 fn dirty_marking_is_resident_authority_state_with_exact_counts() {

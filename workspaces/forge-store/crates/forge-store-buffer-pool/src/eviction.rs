@@ -1,7 +1,14 @@
 use crate::{
-    EvictionCounterSnapshot, LeaseEpoch, ResidentByteCount, ResidentFrameDenial,
-    ResidentFrameDenialKind, ResidentFrameIdentity, ResidentFrameLoadRequest,
+    LeaseEpoch, ResidentByteCount, ResidentFrameDenial, ResidentFrameDenialKind,
+    ResidentFrameIdentity, ResidentFrameLoadRequest,
 };
+
+mod eviction_counters;
+
+#[cfg(test)]
+mod eviction_tests;
+
+pub use eviction_counters::EvictionCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EvictionPressure {

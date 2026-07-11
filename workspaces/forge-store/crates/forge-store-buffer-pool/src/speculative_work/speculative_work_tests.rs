@@ -1,4 +1,4 @@
-use crate::dirty_state_test_support::{admit_payload_frame, resident_frame_table};
+use crate::dirty_pages::dirty_state_test_support::{admit_payload_frame, resident_frame_table};
 use crate::{
     AllocationAdmission, AllocationByteBudget, AllocationDenial, AllocationEnvelopeDeclaration,
     AllocationRequest, AllocationRequestKind, AllocationScope, DirtyPageCount,

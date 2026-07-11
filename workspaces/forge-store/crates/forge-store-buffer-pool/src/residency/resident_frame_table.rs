@@ -1,5 +1,7 @@
-use crate::{
+use super::{
     resident_frame_record::ResidentFrameRecord, resident_frame_source::ResidentFrameSourceKey,
+};
+use crate::{
     AdmittedBufferPoolEntry, DirtyPageCounterSnapshot, EvictionCounterSnapshot, LeaseEpoch,
     PinLifecycleCounterSnapshot, RecordCopyCounterSnapshot, ResidentFrameAdmission,
     ResidentFrameBytes, ResidentFrameCounterSnapshot, ResidentFrameDenial, ResidentFrameDenialKind,

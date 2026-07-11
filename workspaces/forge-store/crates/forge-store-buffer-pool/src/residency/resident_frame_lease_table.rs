@@ -1,8 +1,8 @@
+use super::resident_frame_record::ResidentFrameRecord;
 use crate::{
-    resident_frame_record::ResidentFrameRecord, LeaseLeakReport, LeaseScope, PageLease,
-    PageLeaseId, PinLifecycleCloseoutReport, PinLifecycleCounterSnapshot, PinnedFrameView,
-    ResidentFrameDenial, ResidentFrameDenialKind, ResidentFrameIdentity, ResidentFrameTable,
-    ResidentFrameToken, UnpinnedPageReceipt,
+    LeaseLeakReport, LeaseScope, PageLease, PageLeaseId, PinLifecycleCloseoutReport,
+    PinLifecycleCounterSnapshot, PinnedFrameView, ResidentFrameDenial, ResidentFrameDenialKind,
+    ResidentFrameIdentity, ResidentFrameTable, ResidentFrameToken, UnpinnedPageReceipt,
 };
 
 impl ResidentFrameTable {

@@ -1,5 +1,5 @@
 use crate::{
-    dirty_state_test_support::{admit_payload_frame, resident_frame_table},
+    dirty_pages::dirty_state_test_support::{admit_payload_frame, resident_frame_table},
     AllocationAdmission, AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationRequest,
     AllocationRequestKind, AllocationScope, RecordViewDenialKind, RecordViewMaterializationProfile,
     ResidentFrameDenialKind,

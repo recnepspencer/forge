@@ -4,7 +4,7 @@ use crate::{
     ResidentFrameLoadRequest,
 };
 
-use crate::dirty_publication::DirtyPublicationEpoch;
+use crate::dirty_pages::dirty_publication::DirtyPublicationEpoch;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ResidentFrameRecord {
