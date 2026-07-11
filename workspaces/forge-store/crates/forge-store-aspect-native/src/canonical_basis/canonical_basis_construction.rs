@@ -7,7 +7,7 @@ use forge_foundational::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::canonical_basis_entries::{aspect_boundary_entries, aspect_patch_entries};
+use super::canonical_basis_entries::{aspect_boundary_entries, aspect_patch_entries};
 use crate::{
     certify_canonical_basis_source, StoreAspectBoundaryFact, StoreAspectPatchBoundaryFact,
     StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisFamily,

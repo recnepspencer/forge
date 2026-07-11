@@ -8,7 +8,7 @@ use forge_foundational::canonicalization_api::lower_lane::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::canonical_basis_domains::validate_store_native_basis_domain;
+use crate::canonical_basis::canonical_basis_domains::validate_store_native_basis_domain;
 use crate::{
     canonical_basis_source_owner_for_family, StoreCanonicalBasisDomainMismatch,
     StoreCanonicalBasisFamily, StoreCanonicalBasisSourceDenial, StoreCanonicalBasisSourceKind,

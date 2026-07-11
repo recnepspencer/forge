@@ -226,3 +226,18 @@ impl StoreCanonicalBasisSourceOwner {
         self.denied_fields.contains(&field_role)
     }
 }
+mod canonical_basis_construction;
+mod canonical_basis_denial;
+pub(crate) mod canonical_basis_domains;
+mod canonical_basis_entries;
+mod canonical_basis_sources;
+
+pub use canonical_basis_construction::{
+    StoreCanonicalBasisConstruction, StoreCanonicalBasisConstructionOutcome,
+};
+pub use canonical_basis_denial::StoreCanonicalBasisConstructionDenial;
+pub use canonical_basis_domains::StoreCanonicalBasisDomainMismatch;
+pub use canonical_basis_sources::{
+    canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
+    certify_canonical_basis_source, STORE_CANONICAL_BASIS_SOURCE_OWNERS,
+};

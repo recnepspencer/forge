@@ -1,7 +1,7 @@
 use forge_foundational::canonicalization_api::lower_lane::basis::CanonicalBasisReadyArtifact;
 use forge_foundational::FoundationalPerformanceClaimSurface;
 
-use crate::canonical_basis_domains::validate_store_native_basis_domain;
+use crate::canonical_basis::canonical_basis_domains::validate_store_native_basis_domain;
 use crate::{
     StoreCanonicalBasisDomainMismatch, StoreCanonicalBasisFamily,
     StoreCompletedBoundaryReceiptEvidence, StoreDiagnosticSupportReportEvidence,

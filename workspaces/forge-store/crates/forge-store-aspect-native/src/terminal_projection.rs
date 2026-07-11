@@ -14,3 +14,13 @@ impl StoreTerminalProjectionText {
         &self.terminal_projection_text
     }
 }
+mod terminal_projection_denial;
+mod terminal_projection_digest_separation;
+mod terminal_projection_display;
+
+pub use terminal_projection_denial::StoreTerminalProjectionDenial;
+pub use terminal_projection_digest_separation::{
+    StoreTerminalChecksumAlgorithm, StoreTerminalChecksumScope, StoreTerminalDocumentChecksum,
+    StoreTerminalProjectionDocumentBytes,
+};
+pub use terminal_projection_display::StoreTerminalProjectionDisplayLabel;
