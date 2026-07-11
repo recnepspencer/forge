@@ -4,8 +4,6 @@ use forge_store_security::{
 
 use crate::{AdmittedBackendCapabilityWitness, BackendTargetProfile, CapabilityEvidenceClass};
 
-mod completion;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BackendQueueExecutionAdaptation {
     None,
@@ -78,25 +76,25 @@ pub struct BackendQueueExecutionBudgetBinding {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackendQueueExecutionCompletion {
-    binding: BackendQueueExecutionPlanBinding,
-    posture: BackendQueueExecutionPosture,
-    queue_depth_sample: u32,
-    read_ahead_units: u64,
-    read_ahead_scope: Option<BackendQueueSpeculativeScope>,
-    write_back_units: u64,
-    write_back_scope: Option<BackendQueueSpeculativeScope>,
-    mechanical_retries: u64,
-    partial_read_events: u64,
-    short_write_events: u64,
-    backpressure: Option<BackendQueueExecutionBackpressure>,
-    foreground_wait_events: u64,
+    pub(super) binding: BackendQueueExecutionPlanBinding,
+    pub(super) posture: BackendQueueExecutionPosture,
+    pub(super) queue_depth_sample: u32,
+    pub(super) read_ahead_units: u64,
+    pub(super) read_ahead_scope: Option<BackendQueueSpeculativeScope>,
+    pub(super) write_back_units: u64,
+    pub(super) write_back_scope: Option<BackendQueueSpeculativeScope>,
+    pub(super) mechanical_retries: u64,
+    pub(super) partial_read_events: u64,
+    pub(super) short_write_events: u64,
+    pub(super) backpressure: Option<BackendQueueExecutionBackpressure>,
+    pub(super) foreground_wait_events: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackendQueueSpeculativeScope {
-    security_scope_identity: StoreSecurityScopeIdentity,
-    tenant_scope: StoreTenantScope,
-    key_scope: StoreKeyScope,
+    pub(super) security_scope_identity: StoreSecurityScopeIdentity,
+    pub(super) tenant_scope: StoreTenantScope,
+    pub(super) key_scope: StoreKeyScope,
 }
 
 impl BackendQueueExecutionPlanBinding {

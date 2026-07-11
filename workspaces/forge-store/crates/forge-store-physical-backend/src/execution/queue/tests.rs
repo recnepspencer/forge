@@ -1,8 +1,9 @@
 use super::*;
 use crate::{
-    BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
-    BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
-    PhysicalBackendCapabilityAdmissionAuthority,
+    AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
+    BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
+    BackendRebindTriggers, BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
+    PhysicalReference, PhysicalStoreBackend,
 };
 use forge_store_aspect_native::StorePhysicalBoundaryWitness;
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};

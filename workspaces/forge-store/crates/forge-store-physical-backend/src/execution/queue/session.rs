@@ -198,6 +198,3 @@ where
         Ok(completion.complete())
     }
 }
-
-#[cfg(test)]
-mod tests;

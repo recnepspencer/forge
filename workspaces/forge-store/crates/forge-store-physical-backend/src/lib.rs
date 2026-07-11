@@ -290,16 +290,13 @@
 mod access_policy;
 mod durability_ordering;
 mod durability_profile;
+mod execution;
 pub mod external_recovery_compile_fail;
 mod heavy_fixture;
 mod io_capability;
 mod operation;
 mod operation_boundary;
 mod placement_observation;
-mod s6_queue_execution;
-mod s6_queue_execution_session;
-mod s6_queue_execution_ticket;
-mod s6_secure_io;
 pub use forge_store_physical_format::PhysicalReference;
 
 pub use access_policy::{
@@ -337,6 +334,18 @@ pub use durability_profile::{
     BackendDurabilityProfileId, BackendDurabilitySupport, MmapFlushNotDurabilityCertifiedProfile,
     PosixFileFsyncDirFsyncProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
     WalDurabilityBarrierReceipt, WalDurabilityBarrierSet, WindowsFlushFileBuffersProfile,
+};
+pub use execution::queue::{
+    preserve_secure_io_for_backend_completion, BackendQueueExecutionAdaptation,
+    BackendQueueExecutionAuthority, BackendQueueExecutionBackpressure,
+    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
+    BackendQueueExecutionCompletionBuilder, BackendQueueExecutionObservedCounters,
+    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
+    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
+    BackendQueueExecutionRunError, BackendQueueExecutionSession, BackendQueueExecutionTicket,
+    BackendQueueExecutionTicketDenial, BackendQueueSpeculativeScope,
+    BackendSecureIoPreservationDenial, BackendSecureIoPreservationReceipt, BackendSecureIoScope,
+    StoreOwnedBackendQueueExecution,
 };
 pub use heavy_fixture::{
     cleanup_heavy_fixture_materialization, preflight_heavy_fixture_directory,
@@ -376,23 +385,4 @@ pub use placement_observation::{
     StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
     StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
     StoreOwnedExternalPlacementRecoveryProbe,
-};
-pub use s6_queue_execution::{
-    BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
-    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
-    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
-    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
-    BackendQueueSpeculativeScope,
-};
-pub use s6_queue_execution_session::{
-    BackendQueueExecutionObservedCounters, BackendQueueExecutionRunError,
-    BackendQueueExecutionSession, StoreOwnedBackendQueueExecution,
-};
-pub use s6_queue_execution_ticket::{
-    BackendQueueExecutionAuthority, BackendQueueExecutionCompletionBuilder,
-    BackendQueueExecutionTicket, BackendQueueExecutionTicketDenial,
-};
-pub use s6_secure_io::{
-    preserve_secure_io_for_backend_completion, BackendSecureIoPreservationDenial,
-    BackendSecureIoPreservationReceipt, BackendSecureIoScope,
 };
