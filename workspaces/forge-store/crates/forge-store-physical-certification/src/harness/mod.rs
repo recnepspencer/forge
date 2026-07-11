@@ -18,7 +18,7 @@ pub use by_milestone::s6::{
     S6IoPressureHarnessScenario, S6IoPressureOracleObservation, S6PressureEvidenceMaturity,
     S6RealBackendSafetyQualification,
 };
-pub use by_milestone::s7_blob_harness::{
+pub use crate::blob_harness::{
     lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
     BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
     BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,

@@ -31,13 +31,3 @@ pub mod s6 {
         all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds,
     };
 }
-
-pub mod s7_blob_harness {
-    pub use crate::s7_blob_harness::{
-        lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
-        BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
-        BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
-        BlobHarnessShortcutDenial, S7BlobResumeCrashPoint, S7BlobResumeExpectedOutcome,
-        S7BlobResumeRecoveryScenario,
-    };
-}

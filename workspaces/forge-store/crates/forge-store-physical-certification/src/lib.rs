@@ -63,8 +63,8 @@ mod s6_io_pressure_shortcut_tests;
 mod s6_io_pressure_test_support;
 #[path = "harness/by_milestone/s6/s6_io_pressure_vocab.rs"]
 mod s6_io_pressure_vocab;
-#[path = "harness/by_milestone/s7_blob_harness/mod.rs"]
-mod s7_blob_harness;
+#[path = "harness/blob/mod.rs"]
+mod blob_harness;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -267,7 +267,7 @@ pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
 #[cfg(feature = "certification-test-support")]
 pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
 pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
-pub use s7_blob_harness::{
+pub use blob_harness::{
     lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
     BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
     BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
@@ -275,7 +275,7 @@ pub use s7_blob_harness::{
     S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
-pub use s7_blob_harness::{
+pub use blob_harness::{
     blob_harness_replay_artifacts_for_certification,
     synthetic_blob_harness_coverage_matrix_for_test_support,
     synthetic_blob_harness_replay_bundle_for_test_support,
