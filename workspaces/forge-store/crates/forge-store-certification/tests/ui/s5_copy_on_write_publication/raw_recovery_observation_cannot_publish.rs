@@ -1,11 +1,11 @@
 use forge_store_recovery_physics::{
-    S5PublicationCrashStage, S5PublicationRecoveryObservation, S5RecoveredPublicationStructure,
+    PublicationCrashStage, RecoveredPublicationStructure, S5PublicationRecoveryObservation,
 };
 
 fn main() {
     let _ = S5PublicationRecoveryObservation::new(
-        S5PublicationCrashStage::DuringPublication,
-        S5RecoveredPublicationStructure::MixedOldAndNewStructure {
+        PublicationCrashStage::DuringPublication,
+        RecoveredPublicationStructure::MixedOldAndNewStructure {
             old_root_epoch: 1,
             old_manifest_epoch: 1,
             new_root_epoch: 2,

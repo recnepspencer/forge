@@ -1,7 +1,7 @@
 #![doc = include_str!("recovery_physics_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
-pub mod layout_access;
+pub mod layout_projection;
 
 mod blob_replay;
 mod checkpoint_cutover;
@@ -16,6 +16,7 @@ mod memory_envelope;
 mod offline_verifier;
 mod page_lsn_publication;
 mod partial_publication;
+mod publication;
 mod recovery_blocking_integrity;
 mod recovery_budget;
 mod recovery_completion;
@@ -30,8 +31,6 @@ mod recovery_integrity_handoff_receipt;
 mod recovery_replay_entry_gate;
 mod redo_replay;
 mod replay_receipt;
-mod s4_recovery_physics_integrity_readiness;
-mod s5_publication_recovery;
 mod s8_runtime_receipt;
 mod security_metadata_admission;
 #[cfg(test)]
@@ -81,6 +80,7 @@ pub use integrity_damage_map::{
     classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
 };
 pub use integrity_handoff::damage_map;
+pub use integrity_handoff::AdmittedRecoveryIntegrityInput;
 pub use integrity_handoff::{
     BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmScopeBasis, IntegrityHandoffAdmission,
     IntegrityHandoffCounters, IntegrityHandoffDeclaration, IntegrityHandoffDenial,
@@ -92,7 +92,7 @@ pub use integrity_vetted_records::{
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
     IntegrityVettedWalFrame,
 };
-pub use layout_access::{
+pub use layout_projection::{
     ensure_recovery_entry_allowed, reject_decision_row, reject_locator_projection,
     BoundedWalTailLayoutReport, CheckpointCutoverLayoutReport,
     CheckpointRecoveryManifestLayoutReport, CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial,
@@ -106,10 +106,12 @@ pub use layout_readmission::{
 };
 pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
 pub use offline_verifier::{
+    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
     FreshRuntimeRecoveryDriver, FreshRuntimeRecoveryExecution, FreshRuntimeRecoveryWitness,
     FreshRuntimeReopenHarnessDenial, FreshRuntimeReopenHarnessEvidence,
     OfflineRecoveryVerificationReport, OfflineRecoveryVerifierConclusion,
-    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifactDigest, PersistedRecoveryArtifacts,
+    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifactDigest,
+    PersistedRecoveryArtifactMaterialization, PersistedRecoveryArtifacts,
     RecoveryDeterminismClassification, RecoveryDeterminismReport, RecoveryNondeterministicMetadata,
     RecoveryOfflineVerifier, RecoveryOfflineVerifierDenial, RecoveryPersistedRecord,
     RecoveryPersistedRecordRole, RecoveryProfileId, RecoveryRuntimeClassification,
@@ -117,8 +119,7 @@ pub use offline_verifier::{
     ReopenedRecoveryArtifactAdmissionDenial, ReopenedRuntimeBoundaryEvidence,
     ReopenedRuntimeRecoverySession, RuntimeRecoveryComparisonClassification,
     RuntimeRecoveryComparisonReport, RuntimeRecoveryReport, RuntimeRecoveryReportDenial,
-    S4CheckpointManifestMaterialization, S4CheckpointPageImageMaterialization,
-    S4PersistedRecoveryArtifactMaterialization, S4WalRedoFrameMaterialization,
+    WalRedoFrameMaterialization,
 };
 pub use page_lsn_publication::{
     DirtyPublicationEvidence, NoUndoPublicationEligibility, NoUndoPublicationProof,
@@ -143,6 +144,10 @@ pub use partial_publication::{
     PartialPublicationReplayedCrashEdge, RecoveredOrRejectedPartialPublication,
     RollbackImageRequiredPosture, TornPublicationDenial, UnacknowledgedDurableWal,
     UnacknowledgedPublicationOutcome, UnadmittedDurablePageMutationDenial,
+};
+pub use publication::{
+    ExecutedPublicationRecoveryReceipt, PublicationCrashStage, PublicationRecoveryReplayInput,
+    RecoveredPublicationStructure, RecoveredPublicationStructureKind,
 };
 pub use recovery_blocking_integrity::{
     RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
@@ -193,12 +198,6 @@ pub use redo_replay::{
     WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
 };
 pub use replay_receipt::{CheckpointValidityDecision, WalReplayReceipt};
-pub use s4_recovery_physics_integrity_readiness::S4RecoveryPhysicsIntegrityReadiness;
-pub use s5_publication_recovery::{
-    ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage,
-    S5PublicationRecoveryReplayInput, S5RecoveredPublicationStructure,
-    S5RecoveredPublicationStructureKind,
-};
 #[cfg(feature = "certification-test-authority")]
 pub use s8_runtime_receipt::s8_recovery_runtime_receipt_for_certification_test;
 pub use s8_runtime_receipt::{S8RecoveryRuntimeReceipt, S8RecoveryRuntimeStrategy};

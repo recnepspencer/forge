@@ -1,5 +1,5 @@
 use super::persisted_artifacts::PersistedRecoveryArtifactDenial;
-use super::s4_physical_record_grammar::{parse_s4_physical_record, S4PersistedPhysicalRecord};
+use super::physical_record_grammar::{parse_physical_record, PersistedPhysicalRecord};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryPersistedRecordRole {
@@ -12,7 +12,7 @@ pub enum RecoveryPersistedRecordRole {
 pub struct RecoveryPersistedRecord {
     record_id: String,
     bytes: Vec<u8>,
-    physical_record: S4PersistedPhysicalRecord,
+    physical_record: PersistedPhysicalRecord,
 }
 
 impl RecoveryPersistedRecord {
@@ -28,7 +28,7 @@ impl RecoveryPersistedRecord {
         if bytes.is_empty() {
             return Err(PersistedRecoveryArtifactDenial::EmptyRecordBytes { record_id });
         }
-        let physical_record = parse_s4_physical_record(&record_id, &bytes)?;
+        let physical_record = parse_physical_record(&record_id, &bytes)?;
         Ok(Self {
             record_id,
             bytes,
@@ -48,7 +48,7 @@ impl RecoveryPersistedRecord {
         self.physical_record.role()
     }
 
-    pub(super) const fn physical_record(&self) -> &S4PersistedPhysicalRecord {
+    pub(super) const fn physical_record(&self) -> &PersistedPhysicalRecord {
         &self.physical_record
     }
 }

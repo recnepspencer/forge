@@ -2,8 +2,9 @@ use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
-    StoreDurabilityBoundaryReached, StoreDurabilityDenial, StoreDurabilityFileSyncKind,
-    StoreDurabilityRequirement, StoreDurabilityRuntime, StoreDurabilityWriteAccepted,
+    StoreDurabilityBoundaryReached, StoreDurabilityDenial, StoreDurabilityExecutionBoundary,
+    StoreDurabilityFileSyncKind, StoreDurabilityRequirement, StoreDurabilityRuntime,
+    StoreDurabilityWriteAccepted,
 };
 
 pub(super) fn admitted(requirement: StoreDurabilityRequirement) -> StoreDurabilityAdmission {
@@ -30,20 +31,30 @@ where
     S: Clone + Eq + core::fmt::Debug,
 {
     assert_eq!(accepted.requirement().required_file_sync(), sync);
-    assert_eq!(
-        accepted.requirement().requires_directory_sync(),
-        directory_sync_completed
-    );
-    assert_eq!(
-        accepted.requirement().requires_rename_durable(),
-        rename_completed
-    );
-    assert_eq!(
-        accepted.requirement().requires_ordering_barrier(),
-        ordering_barrier_completed
-    );
+    let boundary = if directory_sync_completed || rename_completed || ordering_barrier_completed {
+        assert_eq!(
+            accepted.requirement().requires_directory_sync(),
+            directory_sync_completed
+        );
+        assert_eq!(
+            accepted.requirement().requires_rename_durable(),
+            rename_completed
+        );
+        assert_eq!(
+            accepted.requirement().requires_ordering_barrier(),
+            ordering_barrier_completed
+        );
+        StoreDurabilityExecutionBoundary::Complete
+    } else {
+        StoreDurabilityExecutionBoundary::FileSynchronized
+    };
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(&std::env::temp_dir(), b"recovery-durable-write", &accepted)
+        .persist_and_execute_to(
+            &std::env::temp_dir(),
+            b"recovery-durable-write",
+            &accepted,
+            boundary,
+        )
         .unwrap();
     accepted.reach_durability_boundary(proof)
 }

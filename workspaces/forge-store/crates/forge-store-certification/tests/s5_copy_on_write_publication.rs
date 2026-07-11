@@ -20,7 +20,7 @@ use forge_store_physical_isolation::{
     PhysicalPublicationReleasePosture, PublicationCrashRecoveryOutcome, PublicationLatchReadiness,
     PublicationRootCandidate, ReadCopyUpdateRootPublication, RootSwapOrderingContract,
 };
-use forge_store_recovery_physics::S5PublicationCrashStage;
+use forge_store_recovery_physics::PublicationCrashStage;
 use publication_support::{
     execute_publication_recovery_replay, mismatched_release_receipt, publication_inputs,
     publish_copy_on_write, publish_copy_on_write_result, root_publication_validation,
@@ -69,9 +69,9 @@ fn copy_on_write_publication_preserves_old_reachability_and_publishes_new_root()
     assert_eq!(receipt.counters().root_swaps(), 1);
 
     for stage in [
-        S5PublicationCrashStage::BeforePublication,
-        S5PublicationCrashStage::DuringPublication,
-        S5PublicationCrashStage::AfterPublication,
+        PublicationCrashStage::BeforePublication,
+        PublicationCrashStage::DuringPublication,
+        PublicationCrashStage::AfterPublication,
     ] {
         let recovery_receipt = execute_publication_recovery_replay(stage);
         let outcome =

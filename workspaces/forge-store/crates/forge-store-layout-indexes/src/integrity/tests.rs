@@ -4,9 +4,9 @@ use crate::{layout_declarations, LayoutCorruptionClassification, S8PhysicalCover
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{
-    RecoveryOfflineVerifier, RecoveryProfileId, S4CheckpointManifestMaterialization,
-    S4CheckpointPageImageMaterialization, S4PersistedRecoveryArtifactMaterialization,
-    S4WalRedoFrameMaterialization,
+    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
+    WalRedoFrameMaterialization,
 };
 
 pub(super) fn family() -> crate::PhysicalArtifactFamily {
@@ -25,11 +25,11 @@ pub(super) fn offline_admission(
     seed: &str,
 ) -> forge_store_recovery_physics::ReopenedRecoveryArtifactAdmission {
     let recovery_profile = RecoveryProfileId::strict_s4();
-    let artifacts = S4PersistedRecoveryArtifactMaterialization::new(
+    let artifacts = PersistedRecoveryArtifactMaterialization::new(
         seed,
         "posix",
         recovery_profile.clone(),
-        S4CheckpointManifestMaterialization::new(
+        CheckpointManifestMaterialization::new(
             &format!("checkpoint-{seed}"),
             &format!("root-{seed}"),
             19,
@@ -40,14 +40,14 @@ pub(super) fn offline_admission(
             4096,
             1,
         ),
-        S4WalRedoFrameMaterialization::new(
+        WalRedoFrameMaterialization::new(
             &format!("wal-{seed}"),
             20,
             1,
             &format!("sha256:op-{seed}"),
             &format!("sha256:idem-{seed}"),
         ),
-        S4CheckpointPageImageMaterialization::new(
+        CheckpointPageImageMaterialization::new(
             &format!("page-{seed}"),
             1,
             7,

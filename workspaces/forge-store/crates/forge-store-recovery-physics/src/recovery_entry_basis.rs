@@ -1,6 +1,5 @@
 use crate::{
-    PartialPublicationBeforeWalReplayRead, RecoveryMemoryEnvelope,
-    S4RecoveryPhysicsIntegrityReadiness,
+    AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryEnvelope,
 };
 use forge_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
 use forge_store_contracts::{PhysicalAuthorityRecap, StableDigest};
@@ -19,7 +18,7 @@ pub struct RecoveryEntryBasis {
 
 impl RecoveryEntryBasis {
     pub(crate) fn from_entry_inputs(
-        integrity_readiness: &S4RecoveryPhysicsIntegrityReadiness,
+        integrity_readiness: &AdmittedRecoveryIntegrityInput,
         memory_envelope: RecoveryMemoryEnvelope,
         physical_authority: PhysicalAuthorityRecap,
     ) -> Self {

@@ -20,21 +20,19 @@ use forge_store_buffer_pool::{
 use forge_store_contracts::PhysicalAuthorityRecap;
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_recovery_physics::{
-    IntegrityHandoffPayload, RecoveryCheckpointRecordSecurityMetadataEnvelope,
+    AdmittedRecoveryIntegrityInput, IntegrityHandoffPayload,
+    RecoveryCheckpointRecordSecurityMetadataEnvelope,
     RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
     RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoverySecurityScopePropagationInput,
     RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
-    S4RecoveryPhysicsIntegrityReadiness,
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
     StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopeAdmissionRequest,
 };
 
-pub(super) fn admit_entry(
-    readiness: S4RecoveryPhysicsIntegrityReadiness,
-) -> RecoveryEntryAdmission {
+pub(super) fn admit_entry(readiness: AdmittedRecoveryIntegrityInput) -> RecoveryEntryAdmission {
     let decision =
         RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority());
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
@@ -43,7 +41,7 @@ pub(super) fn admit_entry(
     admission
 }
 
-pub(super) fn damaged_readiness() -> S4RecoveryPhysicsIntegrityReadiness {
+pub(super) fn damaged_readiness() -> AdmittedRecoveryIntegrityInput {
     let intact = intact_readiness("blocked-entry");
     let (quarantine_record, quarantine_receipt, quarantine_damage) =
         recovery_blocking_quarantine_binding();

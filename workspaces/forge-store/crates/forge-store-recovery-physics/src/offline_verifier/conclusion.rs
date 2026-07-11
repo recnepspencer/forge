@@ -1,8 +1,8 @@
-use super::decoded_s4_recovery_record_set::DecodedS4RecoveryRecords;
+use super::decoded_recovery_record_set::DecodedRecoveryRecords;
 use super::OfflineRecoveryVerifierConclusion;
 
-pub(super) fn classify_s4_recovery_record_set(
-    decoded: &DecodedS4RecoveryRecords<'_>,
+pub(super) fn classify_recovery_record_set(
+    decoded: &DecodedRecoveryRecords<'_>,
 ) -> OfflineRecoveryVerifierConclusion {
     if decoded.has_ambiguous_role() {
         return OfflineRecoveryVerifierConclusion::AmbiguousPhysicalRecordSet;

@@ -1,4 +1,4 @@
-mod phase22_fixture;
+use super::support as phase22_fixture;
 
 use forge_store_recovery_physics::{
     reject_decision_row, CrashBoundaryLayoutReport, PartialPublicationCrashEdge,

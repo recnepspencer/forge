@@ -1,7 +1,7 @@
 use crate::{
-    classify_recovery_entry_inputs, RecoveryEntryAdmissionDecision, RecoveryEntryAdmissionDenial,
-    RecoveryEntryBasis, RecoveryEntryCounters, RecoveryEntryIdentity,
-    RecoveryEntryInputClassification, RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness,
+    classify_recovery_entry_inputs, AdmittedRecoveryIntegrityInput, RecoveryEntryAdmissionDecision,
+    RecoveryEntryAdmissionDenial, RecoveryEntryBasis, RecoveryEntryCounters, RecoveryEntryIdentity,
+    RecoveryEntryInputClassification, RecoveryMemoryEnvelope,
 };
 use forge_store_contracts::PhysicalAuthorityRecap;
 
@@ -10,14 +10,14 @@ pub struct RecoveryEntryAdmission {
     entry_identity: RecoveryEntryIdentity,
     recovery_basis: RecoveryEntryBasis,
     counters: RecoveryEntryCounters,
-    integrity_readiness: S4RecoveryPhysicsIntegrityReadiness,
+    integrity_readiness: AdmittedRecoveryIntegrityInput,
     memory_envelope: RecoveryMemoryEnvelope,
     physical_authority: PhysicalAuthorityRecap,
 }
 
 impl RecoveryEntryAdmission {
     pub fn admit(
-        integrity_readiness: S4RecoveryPhysicsIntegrityReadiness,
+        integrity_readiness: AdmittedRecoveryIntegrityInput,
         memory_envelope: RecoveryMemoryEnvelope,
         physical_authority: PhysicalAuthorityRecap,
     ) -> RecoveryEntryAdmissionDecision {
@@ -57,7 +57,7 @@ impl RecoveryEntryAdmission {
         self.counters
     }
 
-    pub const fn integrity_readiness(&self) -> &S4RecoveryPhysicsIntegrityReadiness {
+    pub const fn integrity_readiness(&self) -> &AdmittedRecoveryIntegrityInput {
         &self.integrity_readiness
     }
 

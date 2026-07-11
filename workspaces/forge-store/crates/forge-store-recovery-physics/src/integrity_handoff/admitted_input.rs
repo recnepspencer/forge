@@ -1,12 +1,12 @@
 use crate::{IntegrityHandoffCounters, IntegrityHandoffPayload};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4RecoveryPhysicsIntegrityReadiness {
+pub struct AdmittedRecoveryIntegrityInput {
     payload: IntegrityHandoffPayload,
 }
 
-impl S4RecoveryPhysicsIntegrityReadiness {
-    pub(crate) fn from_admitted_s3_handoff(payload: IntegrityHandoffPayload) -> Self {
+impl AdmittedRecoveryIntegrityInput {
+    pub(crate) fn from_admitted_integrity_handoff(payload: IntegrityHandoffPayload) -> Self {
         Self { payload }
     }
 

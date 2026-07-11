@@ -36,10 +36,10 @@ impl WalValidPrefix {
         acknowledged_range: WalLsnRange,
         scan: WalPrefixObservationScan,
     ) -> Result<Self, RedoPlanningDenial> {
-        let replay_index = crate::layout_access::admit_recovery_source_replay_index(source)
+        let replay_index = crate::layout_projection::admit_recovery_source_replay_index(source)
             .map_err(|_| RedoPlanningDenial::new(RedoPlanningDenialKind::NoAdmittedWalTail))?;
         let source_range = replay_index.replay_frontier();
-        crate::layout_access::lookup_recovery_tail_range(&replay_index, acknowledged_range)
+        crate::layout_projection::lookup_recovery_tail_range(&replay_index, acknowledged_range)
             .map_err(|_| missing_acknowledged_range(acknowledged_range, acknowledged_range))?;
         Self::from_observed_frames(
             source_range,

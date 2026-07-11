@@ -1,28 +1,28 @@
 use crate::RecoveryCompletion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S5PublicationCrashStage {
+pub enum PublicationCrashStage {
     BeforePublication,
     DuringPublication,
     AfterPublication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum S5PublicationRecoveryFaultInjection {
+enum PublicationRecoveryFaultInjection {
     None,
     MixedTree,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S5RecoveredPublicationStructureKind {
+pub enum RecoveredPublicationStructureKind {
     OldStableStructure,
     NewStableStructure,
     MixedOldAndNewStructure,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S5RecoveredPublicationStructure {
-    kind: S5RecoveredPublicationStructureKind,
+pub struct RecoveredPublicationStructure {
+    kind: RecoveredPublicationStructureKind,
     old_root_epoch: u64,
     old_manifest_epoch: u64,
     new_root_epoch: u64,
@@ -30,19 +30,19 @@ pub struct S5RecoveredPublicationStructure {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S5PublicationRecoveryReplayInput {
-    stage: S5PublicationCrashStage,
-    fault_injection: S5PublicationRecoveryFaultInjection,
+pub struct PublicationRecoveryReplayInput {
+    stage: PublicationCrashStage,
+    fault_injection: PublicationRecoveryFaultInjection,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExecutedS5PublicationRecoveryReceipt {
-    stage: S5PublicationCrashStage,
-    recovered_kind: S5RecoveredPublicationStructureKind,
+pub struct ExecutedPublicationRecoveryReceipt {
+    stage: PublicationCrashStage,
+    recovered_kind: RecoveredPublicationStructureKind,
     recovery_replayed_frames: usize,
 }
 
-impl S5RecoveredPublicationStructure {
+impl RecoveredPublicationStructure {
     pub const fn old_stable_for_publication_admission(
         root_epoch: u64,
         manifest_epoch: u64,
@@ -59,7 +59,7 @@ impl S5RecoveredPublicationStructure {
 
     const fn old_stable(root_epoch: u64, manifest_epoch: u64) -> Self {
         Self {
-            kind: S5RecoveredPublicationStructureKind::OldStableStructure,
+            kind: RecoveredPublicationStructureKind::OldStableStructure,
             old_root_epoch: root_epoch,
             old_manifest_epoch: manifest_epoch,
             new_root_epoch: root_epoch,
@@ -69,7 +69,7 @@ impl S5RecoveredPublicationStructure {
 
     const fn new_stable(root_epoch: u64, manifest_epoch: u64) -> Self {
         Self {
-            kind: S5RecoveredPublicationStructureKind::NewStableStructure,
+            kind: RecoveredPublicationStructureKind::NewStableStructure,
             old_root_epoch: root_epoch,
             old_manifest_epoch: manifest_epoch,
             new_root_epoch: root_epoch,
@@ -77,27 +77,23 @@ impl S5RecoveredPublicationStructure {
         }
     }
 
-    pub const fn kind(self) -> S5RecoveredPublicationStructureKind {
+    pub const fn kind(self) -> RecoveredPublicationStructureKind {
         self.kind
     }
 
     pub const fn stable_root_epoch(self) -> Option<u64> {
         match self.kind {
-            S5RecoveredPublicationStructureKind::OldStableStructure => Some(self.old_root_epoch),
-            S5RecoveredPublicationStructureKind::NewStableStructure => Some(self.new_root_epoch),
-            S5RecoveredPublicationStructureKind::MixedOldAndNewStructure => None,
+            RecoveredPublicationStructureKind::OldStableStructure => Some(self.old_root_epoch),
+            RecoveredPublicationStructureKind::NewStableStructure => Some(self.new_root_epoch),
+            RecoveredPublicationStructureKind::MixedOldAndNewStructure => None,
         }
     }
 
     pub const fn stable_manifest_epoch(self) -> Option<u64> {
         match self.kind {
-            S5RecoveredPublicationStructureKind::OldStableStructure => {
-                Some(self.old_manifest_epoch)
-            }
-            S5RecoveredPublicationStructureKind::NewStableStructure => {
-                Some(self.new_manifest_epoch)
-            }
-            S5RecoveredPublicationStructureKind::MixedOldAndNewStructure => None,
+            RecoveredPublicationStructureKind::OldStableStructure => Some(self.old_manifest_epoch),
+            RecoveredPublicationStructureKind::NewStableStructure => Some(self.new_manifest_epoch),
+            RecoveredPublicationStructureKind::MixedOldAndNewStructure => None,
         }
     }
 
@@ -118,18 +114,18 @@ impl S5RecoveredPublicationStructure {
     }
 }
 
-impl S5PublicationRecoveryReplayInput {
-    pub const fn from_crash_stage(stage: S5PublicationCrashStage) -> Self {
+impl PublicationRecoveryReplayInput {
+    pub const fn from_crash_stage(stage: PublicationCrashStage) -> Self {
         Self {
             stage,
-            fault_injection: S5PublicationRecoveryFaultInjection::None,
+            fault_injection: PublicationRecoveryFaultInjection::None,
         }
     }
 
-    pub const fn mixed_tree_fault_attempt(stage: S5PublicationCrashStage) -> Self {
+    pub const fn mixed_tree_fault_attempt(stage: PublicationCrashStage) -> Self {
         Self {
             stage,
-            fault_injection: S5PublicationRecoveryFaultInjection::MixedTree,
+            fault_injection: PublicationRecoveryFaultInjection::MixedTree,
         }
     }
 }
@@ -137,48 +133,48 @@ impl S5PublicationRecoveryReplayInput {
 impl RecoveryCompletion {
     pub const fn execute_publication_recovery_replay(
         &self,
-        replay: S5PublicationRecoveryReplayInput,
-    ) -> ExecutedS5PublicationRecoveryReceipt {
+        replay: PublicationRecoveryReplayInput,
+    ) -> ExecutedPublicationRecoveryReceipt {
         replay.execute_with_completion(self)
     }
 }
 
-impl S5PublicationRecoveryReplayInput {
+impl PublicationRecoveryReplayInput {
     const fn execute_with_completion(
         self,
         recovery_completion: &RecoveryCompletion,
-    ) -> ExecutedS5PublicationRecoveryReceipt {
-        ExecutedS5PublicationRecoveryReceipt {
+    ) -> ExecutedPublicationRecoveryReceipt {
+        ExecutedPublicationRecoveryReceipt {
             stage: self.stage,
             recovered_kind: self.recover_structure_kind(),
             recovery_replayed_frames: recovery_completion.replayed_frames(),
         }
     }
 
-    const fn recover_structure_kind(self) -> S5RecoveredPublicationStructureKind {
+    const fn recover_structure_kind(self) -> RecoveredPublicationStructureKind {
         match self.fault_injection {
-            S5PublicationRecoveryFaultInjection::MixedTree => {
-                S5RecoveredPublicationStructureKind::MixedOldAndNewStructure
+            PublicationRecoveryFaultInjection::MixedTree => {
+                RecoveredPublicationStructureKind::MixedOldAndNewStructure
             }
-            S5PublicationRecoveryFaultInjection::None => match self.stage {
-                S5PublicationCrashStage::BeforePublication => {
-                    S5RecoveredPublicationStructureKind::OldStableStructure
+            PublicationRecoveryFaultInjection::None => match self.stage {
+                PublicationCrashStage::BeforePublication => {
+                    RecoveredPublicationStructureKind::OldStableStructure
                 }
-                S5PublicationCrashStage::DuringPublication
-                | S5PublicationCrashStage::AfterPublication => {
-                    S5RecoveredPublicationStructureKind::NewStableStructure
+                PublicationCrashStage::DuringPublication
+                | PublicationCrashStage::AfterPublication => {
+                    RecoveredPublicationStructureKind::NewStableStructure
                 }
             },
         }
     }
 }
 
-impl ExecutedS5PublicationRecoveryReceipt {
-    pub const fn stage(self) -> S5PublicationCrashStage {
+impl ExecutedPublicationRecoveryReceipt {
+    pub const fn stage(self) -> PublicationCrashStage {
         self.stage
     }
 
-    pub const fn recovered_kind(self) -> S5RecoveredPublicationStructureKind {
+    pub const fn recovered_kind(self) -> RecoveredPublicationStructureKind {
         self.recovered_kind
     }
 

@@ -1,10 +1,10 @@
 use crate::source_precedence::RecoverySourceReplayBasis;
 use crate::{LogSequenceNumber, PageLsn, RecoveredPhysicalState};
 
-use super::decoded_s4_recovery_record_set::DecodedS4RecoveryRecords;
+use super::decoded_recovery_record_set::DecodedRecoveryRecords;
 
-pub(super) fn project_s4_recovered_physical_state(
-    decoded: &DecodedS4RecoveryRecords<'_>,
+pub(super) fn project_recovered_physical_state(
+    decoded: &DecodedRecoveryRecords<'_>,
 ) -> Option<RecoveredPhysicalState> {
     let checkpoint = decoded.checkpoint()?;
     let wal_frame = decoded.wal_frame()?;

@@ -126,6 +126,12 @@ pub struct StoreDurabilityRuntime {
     executions: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreDurabilityExecutionBoundary {
+    FileSynchronized,
+    Complete,
+}
+
 impl StoreDurabilityRuntime {
     pub const fn new() -> Self {
         Self { executions: 0 }
@@ -137,9 +143,25 @@ impl StoreDurabilityRuntime {
         payload: &[u8],
         accepted: &StoreDurabilityWriteAccepted<S>,
     ) -> io::Result<StoreDurabilityExecutionProof<S>> {
+        self.persist_and_execute_to(
+            root,
+            payload,
+            accepted,
+            StoreDurabilityExecutionBoundary::Complete,
+        )
+    }
+
+    pub fn persist_and_execute_to<S: Clone>(
+        &mut self,
+        root: &Path,
+        payload: &[u8],
+        accepted: &StoreDurabilityWriteAccepted<S>,
+        boundary: StoreDurabilityExecutionBoundary,
+    ) -> io::Result<StoreDurabilityExecutionProof<S>> {
         let mut target = StoreDurabilityTarget::persist(root, accepted.requirement(), payload)?;
         let mut backend = FileDurabilityBackend {
             target: &mut target,
+            boundary,
         };
         let proof = StoreOwnedDurabilityExecution::execute_with_backend(&mut backend, accepted)?;
         self.executions = self.executions.saturating_add(1);
@@ -153,6 +175,7 @@ impl StoreDurabilityRuntime {
 
 struct FileDurabilityBackend<'target> {
     target: &'target mut StoreDurabilityTarget,
+    boundary: StoreDurabilityExecutionBoundary,
 }
 
 impl<S> PhysicalStoreDurabilityExecutor<S> for FileDurabilityBackend<'_> {
@@ -171,6 +194,12 @@ impl<S> PhysicalStoreDurabilityExecutor<S> for FileDurabilityBackend<'_> {
             requirement.required_barriers(),
             requirement.required_file_sync(),
         );
+        if self.boundary == StoreDurabilityExecutionBoundary::FileSynchronized {
+            return Ok(observation.with_persisted_artifact(
+                self.target.persisted_path(false).to_path_buf(),
+                self.target.bytes_written(),
+            ));
+        }
         if requirement.requires_rename_durable() {
             self.target.rename_publication()?;
             observation = observation.with_rename_completed();

@@ -21,20 +21,20 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    BoundedInspectionEnvelopeEvidence, IntegrityHandoffAdmission, IntegrityHandoffDenialKind,
-    IntegrityHandoffPayload, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
-    IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
-    IntegrityVettedWalFrame, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
-    RecoveryIntegrityHandoffReceipt, S4RecoveryPhysicsIntegrityReadiness,
+    AdmittedRecoveryIntegrityInput, BoundedInspectionEnvelopeEvidence, IntegrityHandoffAdmission,
+    IntegrityHandoffDenialKind, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
+    IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
+    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineSummary,
+    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
 };
 
-pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadiness {
+pub(crate) fn intact_readiness(label: &str) -> AdmittedRecoveryIntegrityInput {
     admit_s4_handoff_payload(intact_handoff_payload(label))
 }
 
 pub(crate) fn admit_s4_handoff_payload(
     payload: IntegrityHandoffPayload,
-) -> S4RecoveryPhysicsIntegrityReadiness {
+) -> AdmittedRecoveryIntegrityInput {
     IntegrityHandoffAdmission::admit(s3_integrity_readiness().payload(), payload)
         .expect("complete S.3 readiness admits S.4 integrity handoff")
 }

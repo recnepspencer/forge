@@ -8,7 +8,7 @@ use crate::{
     RedoApplicationPageFact, RedoPlanningDenial,
 };
 
-use super::s4_physical_record_grammar::{S4CheckpointPageImageRecord, S4PersistedPhysicalRecord};
+use super::physical_record_grammar::{CheckpointPageImageRecord, PersistedPhysicalRecord};
 use super::{
     OfflineRecoveryVerificationReport, OfflineRecoveryVerifierConclusion,
     PersistedRecoveryArtifactDigest, PersistedRecoveryArtifacts, RecoveryProfileId,
@@ -106,7 +106,7 @@ fn replay_cursor_from_reopened_artifacts(
         .records()
         .iter()
         .filter_map(|record| match record.physical_record() {
-            S4PersistedPhysicalRecord::CheckpointPageImage(page) => {
+            PersistedPhysicalRecord::CheckpointPageImage(page) => {
                 Some(reopened_page_fact(artifacts, page))
             }
             _ => None,
@@ -121,7 +121,7 @@ fn replay_cursor_from_reopened_artifacts(
 
 fn reopened_page_fact(
     artifacts: &PersistedRecoveryArtifacts,
-    page: &S4CheckpointPageImageRecord,
+    page: &CheckpointPageImageRecord,
 ) -> Result<RedoApplicationPageFact, ReopenedRecoveryArtifactAdmissionDenial> {
     let page_id = PhysicalPageId::from_raw(page.page_id)
         .map_err(|_| ReopenedRecoveryArtifactAdmissionDenial::InvalidPhysicalPageIdentity)?;
@@ -155,7 +155,7 @@ fn wal_frontier_for_page(artifacts: &PersistedRecoveryArtifacts, page_id: u64) -
         .records()
         .iter()
         .filter_map(|record| match record.physical_record() {
-            S4PersistedPhysicalRecord::WalRedoFrame(frame) if frame.page_id == page_id => {
+            PersistedPhysicalRecord::WalRedoFrame(frame) if frame.page_id == page_id => {
                 Some(frame.lsn)
             }
             _ => None,

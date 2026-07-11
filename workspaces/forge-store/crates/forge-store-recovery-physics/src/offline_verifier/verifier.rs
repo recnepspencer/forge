@@ -1,7 +1,7 @@
-use super::decoded_s4_recovery_record_set::DecodedS4RecoveryRecords;
-use super::s4_recovered_state_projection::project_s4_recovered_physical_state;
-use super::s4_recovery_counter_projection::project_s4_recovery_counters;
-use super::s4_verifier_conclusion::classify_s4_recovery_record_set;
+use super::conclusion::classify_recovery_record_set;
+use super::counter_projection::project_recovery_counters;
+use super::decoded_recovery_record_set::DecodedRecoveryRecords;
+use super::recovered_state_projection::project_recovered_physical_state;
 use super::{
     FreshRuntimeReopenHarnessEvidence, OfflineRecoveryVerificationReport,
     PersistedRecoveryArtifactDigest, PersistedRecoveryArtifacts, RecoveryProfileId,
@@ -34,10 +34,10 @@ impl RecoveryOfflineVerifier {
     ) -> Result<OfflineRecoveryVerificationReport, RecoveryOfflineVerifierDenial> {
         self.require_profile_match(artifacts)?;
         let digest = PersistedRecoveryArtifactDigest::from_artifacts(artifacts);
-        let decoded = DecodedS4RecoveryRecords::from_artifacts(artifacts);
-        let conclusion = classify_s4_recovery_record_set(&decoded);
-        let recovery_state = project_s4_recovered_physical_state(&decoded);
-        let counters = project_s4_recovery_counters(&decoded);
+        let decoded = DecodedRecoveryRecords::from_artifacts(artifacts);
+        let conclusion = classify_recovery_record_set(&decoded);
+        let recovery_state = project_recovered_physical_state(&decoded);
+        let counters = project_recovery_counters(&decoded);
         Ok(OfflineRecoveryVerificationReport::from_offline_inspection(
             digest,
             artifacts.recovery_profile().clone(),

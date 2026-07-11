@@ -11,7 +11,8 @@ pub use admission::{StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome};
 pub use counters::{StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength};
 pub use denial::{StoreDurabilityDenial, StoreDurabilityDenialKind};
 pub use execution::{
-    StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind, StoreDurabilityRuntime,
+    StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind,
+    StoreDurabilityRuntime,
 };
 pub use receipt::{
     StoreDurabilityBoundaryReached, StoreDurabilityOrderingBarrierDurable,

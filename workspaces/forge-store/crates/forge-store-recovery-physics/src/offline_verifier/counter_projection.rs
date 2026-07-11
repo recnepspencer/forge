@@ -1,9 +1,9 @@
 use crate::RecoveryCounterSnapshot;
 
-use super::decoded_s4_recovery_record_set::DecodedS4RecoveryRecords;
+use super::decoded_recovery_record_set::DecodedRecoveryRecords;
 
-pub(super) fn project_s4_recovery_counters(
-    decoded: &DecodedS4RecoveryRecords<'_>,
+pub(super) fn project_recovery_counters(
+    decoded: &DecodedRecoveryRecords<'_>,
 ) -> Option<RecoveryCounterSnapshot> {
     let checkpoint = decoded.checkpoint()?;
     Some(RecoveryCounterSnapshot::from_offline_verifier(

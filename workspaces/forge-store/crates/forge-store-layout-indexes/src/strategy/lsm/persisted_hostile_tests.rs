@@ -7,7 +7,7 @@ use super::*;
 
 #[test]
 fn reopen_rejects_same_identity_artifact_redirected_outside_wal_root() {
-    let access = crate::layout_access::WalLayoutAccess::s8();
+    let access = crate::layout_projection::WalLayoutAccess::s8();
     let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
     let metadata = crate::WalSecurityMetadataCarrier::for_wal_record(
         security.witnesses(),
@@ -18,7 +18,7 @@ fn reopen_rejects_same_identity_artifact_redirected_outside_wal_root() {
         .admit_baseline_lsm_key(metadata, *b"redirect")
         .unwrap();
     let (envelope, anchor) =
-        crate::layout_access::baseline_lsm_certification_execution::durable_record_binding(
+        crate::layout_projection::baseline_lsm_certification_execution::durable_record_binding(
             &access,
             key,
             480,

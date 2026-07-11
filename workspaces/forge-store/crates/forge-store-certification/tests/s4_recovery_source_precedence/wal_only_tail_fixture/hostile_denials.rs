@@ -12,9 +12,7 @@ use forge_store_wal::{admit_replay_cursor, WalSegmentScanRecord, WalTopologyScan
 
 use super::construction::{inspect_wal_payload, torn_wal_payload, wal_payload};
 
-pub(crate) fn wal_only_tail_denial_from_torn_frame(
-    range: WalLsnRange,
-) -> WalOnlyTailProofDenial {
+pub(crate) fn wal_only_tail_denial_from_torn_frame(range: WalLsnRange) -> WalOnlyTailProofDenial {
     let cursor = admit_replay_cursor(
         WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
             WalSegmentId::new(100).unwrap(),

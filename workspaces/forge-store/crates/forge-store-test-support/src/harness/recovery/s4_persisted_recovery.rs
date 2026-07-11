@@ -1,7 +1,8 @@
 use forge_store_recovery_physics::{
-    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifacts, RecoveryPersistedRecord,
-    RecoveryProfileId, S4CheckpointManifestMaterialization, S4CheckpointPageImageMaterialization,
-    S4PersistedRecoveryArtifactMaterialization, S4WalRedoFrameMaterialization,
+    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifactMaterialization,
+    PersistedRecoveryArtifacts, RecoveryPersistedRecord, RecoveryProfileId,
+    WalRedoFrameMaterialization,
 };
 
 pub fn deterministic_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
@@ -58,12 +59,12 @@ fn materialized_artifacts(operation_digest: &str) -> PersistedRecoveryArtifacts 
         .expect("test support emits valid materialized recovery artifacts")
 }
 
-fn materialization(operation_digest: &str) -> S4PersistedRecoveryArtifactMaterialization {
-    S4PersistedRecoveryArtifactMaterialization::new(
+fn materialization(operation_digest: &str) -> PersistedRecoveryArtifactMaterialization {
+    PersistedRecoveryArtifactMaterialization::new(
         "s4-format-v1",
         "strict-posix-fsync-dir-fsync",
         RecoveryProfileId::strict_s4(),
-        S4CheckpointManifestMaterialization::new(
+        CheckpointManifestMaterialization::new(
             "checkpoint-manifest",
             "alpha",
             19,
@@ -74,8 +75,8 @@ fn materialization(operation_digest: &str) -> S4PersistedRecoveryArtifactMateria
             128,
             0,
         ),
-        S4WalRedoFrameMaterialization::new("wal-tail-20", 20, 2, operation_digest, "idem-20"),
-        S4CheckpointPageImageMaterialization::new("page-2", 2, 7, 19, "checkpoint-page"),
+        WalRedoFrameMaterialization::new("wal-tail-20", 20, 2, operation_digest, "idem-20"),
+        CheckpointPageImageMaterialization::new("page-2", 2, 7, 19, "checkpoint-page"),
     )
 }
 

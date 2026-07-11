@@ -66,9 +66,9 @@ pub(crate) fn physical_authority_from_complete_closeout(
 pub(crate) fn physical_authority_from_operation_digest_closeout(
     operation_digest: &str,
 ) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(
-        closeout_fixture::recovery_completion_with_operation_digest(operation_digest),
-    )
+    physical_authority_from_completion(closeout_fixture::recovery_completion_with_operation_digest(
+        operation_digest,
+    ))
 }
 
 fn generation_counted_extent_reference(generation: u64) -> GenerationCountedPhysicalReference {

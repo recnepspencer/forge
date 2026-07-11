@@ -1,4 +1,4 @@
-use crate::{RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness};
+use crate::{AdmittedRecoveryIntegrityInput, RecoveryMemoryEnvelope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryEntryCounters {
@@ -11,7 +11,7 @@ pub struct RecoveryEntryCounters {
 
 impl RecoveryEntryCounters {
     pub(crate) fn from_entry_inputs(
-        integrity_readiness: &S4RecoveryPhysicsIntegrityReadiness,
+        integrity_readiness: &AdmittedRecoveryIntegrityInput,
         memory_envelope: RecoveryMemoryEnvelope,
     ) -> Self {
         Self {

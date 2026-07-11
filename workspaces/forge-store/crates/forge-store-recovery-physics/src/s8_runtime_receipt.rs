@@ -5,9 +5,10 @@ use crate::source_precedence::RecoverySourceReplayBasis;
 use crate::FreshRuntimeRecoveryExecution;
 #[cfg(feature = "certification-test-authority")]
 use crate::{
-    PersistedRecoveryArtifactDigest, RecoveredPhysicalState, RecoveryCounterSnapshot,
-    RecoveryProfileId, S4CheckpointManifestMaterialization, S4CheckpointPageImageMaterialization,
-    S4PersistedRecoveryArtifactMaterialization, S4WalRedoFrameMaterialization,
+    CheckpointManifestMaterialization, CheckpointPageImageMaterialization,
+    PersistedRecoveryArtifactDigest, PersistedRecoveryArtifactMaterialization,
+    RecoveredPhysicalState, RecoveryCounterSnapshot, RecoveryProfileId,
+    WalRedoFrameMaterialization,
 };
 use forge_store_contracts::{
     S8RuntimeCase, S8RuntimeExactCounterEvidence, S8RuntimeExecutionIdentity, S8RuntimeOutcome,
@@ -160,11 +161,11 @@ pub fn s8_recovery_runtime_receipt_for_certification_test(
 #[cfg(feature = "certification-test-authority")]
 fn certification_recovery_execution(case: S8RuntimeCase) -> FreshRuntimeRecoveryExecution {
     let profile = RecoveryProfileId::strict_s4();
-    let artifacts = S4PersistedRecoveryArtifactMaterialization::new(
+    let artifacts = PersistedRecoveryArtifactMaterialization::new(
         "s4",
         "phase33-runtime-recovery",
         profile.clone(),
-        S4CheckpointManifestMaterialization::new(
+        CheckpointManifestMaterialization::new(
             format!("phase33.{case:?}.checkpoint"),
             format!("phase33-root-{case:?}"),
             41,
@@ -175,14 +176,14 @@ fn certification_recovery_execution(case: S8RuntimeCase) -> FreshRuntimeRecovery
             4096,
             1,
         ),
-        S4WalRedoFrameMaterialization::new(
+        WalRedoFrameMaterialization::new(
             format!("phase33.{case:?}.wal"),
             41,
             1,
             format!("phase33-op-{case:?}"),
             format!("phase33-idempotence-{case:?}"),
         ),
-        S4CheckpointPageImageMaterialization::new(
+        CheckpointPageImageMaterialization::new(
             format!("phase33.{case:?}.page"),
             1,
             1,

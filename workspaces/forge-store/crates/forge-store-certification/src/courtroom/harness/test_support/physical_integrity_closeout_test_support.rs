@@ -40,13 +40,13 @@ use forge_store_physical_integrity::{
 };
 
 pub(crate) fn complete_s3_closeout_suite(
-    s4_readiness: &forge_store_recovery_physics::S4RecoveryPhysicsIntegrityReadiness,
+    s4_readiness: &forge_store_recovery_physics::AdmittedRecoveryIntegrityInput,
 ) -> PhysicalIntegrityCloseoutSuite {
     PhysicalIntegrityCloseoutSuite::admit(complete_s3_closeout_evidence(s4_readiness)).unwrap()
 }
 
 pub(crate) fn complete_s3_closeout_evidence(
-    s4_readiness: &forge_store_recovery_physics::S4RecoveryPhysicsIntegrityReadiness,
+    s4_readiness: &forge_store_recovery_physics::AdmittedRecoveryIntegrityInput,
 ) -> Vec<PhysicalIntegrityCloseoutSuiteEvidence> {
     let localization = executed_localization_evidence();
     let denials = executed_boundary_denial_evidence();

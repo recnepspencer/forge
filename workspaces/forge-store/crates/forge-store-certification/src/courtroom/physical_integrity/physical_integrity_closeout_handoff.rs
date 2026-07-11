@@ -1,5 +1,5 @@
 use forge_store_contracts::StableDigest;
-use forge_store_recovery_physics::{IntegrityHandoffCounters, S4RecoveryPhysicsIntegrityReadiness};
+use forge_store_recovery_physics::{AdmittedRecoveryIntegrityInput, IntegrityHandoffCounters};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S3S4HandoffCloseoutEvidence {
@@ -10,7 +10,7 @@ pub struct S3S4HandoffCloseoutEvidence {
 }
 
 impl S3S4HandoffCloseoutEvidence {
-    pub fn from_readiness(readiness: &S4RecoveryPhysicsIntegrityReadiness) -> Self {
+    pub fn from_readiness(readiness: &AdmittedRecoveryIntegrityInput) -> Self {
         Self {
             handoff_identity: readiness.payload().identity().clone(),
             counters: readiness.counters(),
@@ -35,7 +35,7 @@ impl S3S4HandoffCloseoutEvidence {
         self.recovery_claimed
     }
 
-    pub fn matches_readiness(&self, readiness: &S4RecoveryPhysicsIntegrityReadiness) -> bool {
+    pub fn matches_readiness(&self, readiness: &AdmittedRecoveryIntegrityInput) -> bool {
         self.handoff_identity == *readiness.payload().identity()
             && self.counters == readiness.counters()
             && self.no_raw_bytes_crossed == readiness.proves_no_raw_bytes_crossed()

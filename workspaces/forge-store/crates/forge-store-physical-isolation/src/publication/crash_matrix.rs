@@ -1,23 +1,23 @@
 use super::{PhysicalPublicationDenial, PhysicalPublicationReceipt};
 use forge_store_recovery_physics::{
-    ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage, S5RecoveredPublicationStructure,
-    S5RecoveredPublicationStructureKind,
+    ExecutedPublicationRecoveryReceipt, PublicationCrashStage, RecoveredPublicationStructure,
+    RecoveredPublicationStructureKind,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct PublicationCrashRecoveryOutcome {
-    recovery_receipt: ExecutedS5PublicationRecoveryReceipt,
-    recovered: S5RecoveredPublicationStructure,
+    recovery_receipt: ExecutedPublicationRecoveryReceipt,
+    recovered: RecoveredPublicationStructure,
     mixed_tree: bool,
 }
 
 impl PublicationCrashRecoveryOutcome {
     pub fn admit_recovery_receipt(
         receipt: &PhysicalPublicationReceipt,
-        recovery_receipt: ExecutedS5PublicationRecoveryReceipt,
+        recovery_receipt: ExecutedPublicationRecoveryReceipt,
     ) -> Result<Self, PhysicalPublicationDenial> {
         let recovered = bind_recovery_receipt_to_publication(receipt, recovery_receipt)?;
-        if recovered.kind() == S5RecoveredPublicationStructureKind::MixedOldAndNewStructure {
+        if recovered.kind() == RecoveredPublicationStructureKind::MixedOldAndNewStructure {
             return Err(PhysicalPublicationDenial::MixedTreeAfterCrash);
         }
         Ok(Self {
@@ -31,15 +31,15 @@ impl PublicationCrashRecoveryOutcome {
         PhysicalPublicationDenial::MixedTreeAfterCrash
     }
 
-    pub const fn recovery_receipt(self) -> ExecutedS5PublicationRecoveryReceipt {
+    pub const fn recovery_receipt(self) -> ExecutedPublicationRecoveryReceipt {
         self.recovery_receipt
     }
 
-    pub const fn stage(self) -> S5PublicationCrashStage {
+    pub const fn stage(self) -> PublicationCrashStage {
         self.recovery_receipt.stage()
     }
 
-    pub const fn recovered(self) -> S5RecoveredPublicationStructure {
+    pub const fn recovered(self) -> RecoveredPublicationStructure {
         self.recovered
     }
 
@@ -50,22 +50,22 @@ impl PublicationCrashRecoveryOutcome {
 
 fn bind_recovery_receipt_to_publication(
     receipt: &PhysicalPublicationReceipt,
-    recovery_receipt: ExecutedS5PublicationRecoveryReceipt,
-) -> Result<S5RecoveredPublicationStructure, PhysicalPublicationDenial> {
+    recovery_receipt: ExecutedPublicationRecoveryReceipt,
+) -> Result<RecoveredPublicationStructure, PhysicalPublicationDenial> {
     match recovery_receipt.recovered_kind() {
-        S5RecoveredPublicationStructureKind::OldStableStructure => Ok(
-            S5RecoveredPublicationStructure::old_stable_for_publication_admission(
+        RecoveredPublicationStructureKind::OldStableStructure => Ok(
+            RecoveredPublicationStructure::old_stable_for_publication_admission(
                 receipt.old_root().epoch().get(),
                 receipt.old_root().manifest_epoch().get(),
             ),
         ),
-        S5RecoveredPublicationStructureKind::NewStableStructure => Ok(
-            S5RecoveredPublicationStructure::new_stable_for_publication_admission(
+        RecoveredPublicationStructureKind::NewStableStructure => Ok(
+            RecoveredPublicationStructure::new_stable_for_publication_admission(
                 receipt.new_root().epoch().get(),
                 receipt.new_root().manifest_epoch().get(),
             ),
         ),
-        S5RecoveredPublicationStructureKind::MixedOldAndNewStructure => {
+        RecoveredPublicationStructureKind::MixedOldAndNewStructure => {
             Err(PhysicalPublicationDenial::MixedTreeAfterCrash)
         }
     }

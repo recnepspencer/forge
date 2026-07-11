@@ -1,7 +1,7 @@
 use forge_store_physical_isolation::{
     PhysicalPublicationDenial, PhysicalPublicationIntent, PublicationCrashRecoveryOutcome,
 };
-use forge_store_recovery_physics::{S5PublicationCrashStage, S5RecoveredPublicationStructureKind};
+use forge_store_recovery_physics::{PublicationCrashStage, RecoveredPublicationStructureKind};
 
 use super::publication_support::{
     execute_mixed_tree_recovery_replay, execute_publication_recovery_replay, publication_inputs,
@@ -23,12 +23,12 @@ fn crash_matrix_recovers_old_or_new_stable_structure_never_mixed_tree() {
 
     let before = PublicationCrashRecoveryOutcome::admit_recovery_receipt(
         &receipt,
-        execute_publication_recovery_replay(S5PublicationCrashStage::BeforePublication),
+        execute_publication_recovery_replay(PublicationCrashStage::BeforePublication),
     )
     .unwrap();
     assert_eq!(
         before.recovered().kind(),
-        S5RecoveredPublicationStructureKind::OldStableStructure
+        RecoveredPublicationStructureKind::OldStableStructure
     );
     assert_eq!(
         before.recovered().stable_root_epoch(),
@@ -37,12 +37,12 @@ fn crash_matrix_recovers_old_or_new_stable_structure_never_mixed_tree() {
 
     let during = PublicationCrashRecoveryOutcome::admit_recovery_receipt(
         &receipt,
-        execute_publication_recovery_replay(S5PublicationCrashStage::DuringPublication),
+        execute_publication_recovery_replay(PublicationCrashStage::DuringPublication),
     )
     .unwrap();
     assert_eq!(
         during.recovered().kind(),
-        S5RecoveredPublicationStructureKind::NewStableStructure
+        RecoveredPublicationStructureKind::NewStableStructure
     );
     assert_eq!(
         during.recovered().stable_root_epoch(),
@@ -51,12 +51,12 @@ fn crash_matrix_recovers_old_or_new_stable_structure_never_mixed_tree() {
 
     let after = PublicationCrashRecoveryOutcome::admit_recovery_receipt(
         &receipt,
-        execute_publication_recovery_replay(S5PublicationCrashStage::AfterPublication),
+        execute_publication_recovery_replay(PublicationCrashStage::AfterPublication),
     )
     .unwrap();
     assert_eq!(
         after.recovered().kind(),
-        S5RecoveredPublicationStructureKind::NewStableStructure
+        RecoveredPublicationStructureKind::NewStableStructure
     );
     assert_eq!(
         after.recovered().stable_root_epoch(),
@@ -96,7 +96,7 @@ fn recovery_receipt_binds_to_each_publication_receipt_roots() {
         None,
     );
     let recovery_receipt =
-        execute_publication_recovery_replay(S5PublicationCrashStage::AfterPublication);
+        execute_publication_recovery_replay(PublicationCrashStage::AfterPublication);
 
     let first_outcome =
         PublicationCrashRecoveryOutcome::admit_recovery_receipt(&first_receipt, recovery_receipt)

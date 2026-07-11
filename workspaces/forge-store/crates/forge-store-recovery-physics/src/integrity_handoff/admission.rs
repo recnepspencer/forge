@@ -1,5 +1,5 @@
 use super::{IntegrityHandoffDenial, IntegrityHandoffDenialKind, IntegrityHandoffPayload};
-use crate::S4RecoveryPhysicsIntegrityReadiness;
+use crate::AdmittedRecoveryIntegrityInput;
 use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,9 +9,9 @@ impl IntegrityHandoffAdmission {
     pub fn admit(
         s3_payload: S3PhysicalIntegrityReadinessPayload,
         payload: IntegrityHandoffPayload,
-    ) -> Result<S4RecoveryPhysicsIntegrityReadiness, IntegrityHandoffDenial> {
+    ) -> Result<AdmittedRecoveryIntegrityInput, IntegrityHandoffDenial> {
         let _s3_entry_basis = S3HandoffEntryAdmissionBasis::from_payload(s3_payload)?;
-        Ok(S4RecoveryPhysicsIntegrityReadiness::from_admitted_s3_handoff(payload))
+        Ok(AdmittedRecoveryIntegrityInput::from_admitted_integrity_handoff(payload))
     }
 }
 

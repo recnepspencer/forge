@@ -5,9 +5,9 @@ use forge_store_buffer_pool::{
 use forge_store_contracts::{
     AcceptedHandoffReadiness, BufferPoolAuthorityRecap, HandoffEvidenceDigestSet,
     IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap, ProtectedIntegrityViewCapability,
-    S2BoundedCounterRecap, S2DenialBehaviorRecap, S2DeniedBoundaryKind,
-    S2NoMaterializationWitness, S3PhysicalIntegrityReadinessPayload,
-    ScrubPlanningAllocationEnvelope, StableDigest, VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
+    S2BoundedCounterRecap, S2DenialBehaviorRecap, S2DeniedBoundaryKind, S2NoMaterializationWitness,
+    S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, StableDigest,
+    VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,

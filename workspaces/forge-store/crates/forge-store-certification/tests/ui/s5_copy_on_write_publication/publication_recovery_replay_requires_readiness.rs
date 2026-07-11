@@ -1,7 +1,7 @@
-use forge_store_recovery_physics::{S5PublicationCrashStage, S5PublicationRecoveryReplayInput};
+use forge_store_recovery_physics::{PublicationCrashStage, PublicationRecoveryReplayInput};
 
 fn main() {
     let replay =
-        S5PublicationRecoveryReplayInput::from_crash_stage(S5PublicationCrashStage::BeforePublication);
+        PublicationRecoveryReplayInput::from_crash_stage(PublicationCrashStage::BeforePublication);
     let _ = replay.execute();
 }

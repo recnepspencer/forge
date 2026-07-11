@@ -10,20 +10,20 @@ use crate::{
     SyntheticCloseoutShortcutRejectionReport,
 };
 use forge_store_readiness::S3PhysicalIntegrityReadiness;
-use forge_store_recovery_physics::S4RecoveryPhysicsIntegrityReadiness;
+use forge_store_recovery_physics::AdmittedRecoveryIntegrityInput;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct PhysicalIntegrityCloseoutRequest {
     suite: PhysicalIntegrityCloseoutSuite,
     s3_readiness: S3PhysicalIntegrityReadiness,
-    s4_handoff: S4RecoveryPhysicsIntegrityReadiness,
+    s4_handoff: AdmittedRecoveryIntegrityInput,
 }
 
 impl PhysicalIntegrityCloseoutRequest {
     pub(crate) fn new(
         suite: PhysicalIntegrityCloseoutSuite,
         s3_readiness: S3PhysicalIntegrityReadiness,
-        s4_handoff: S4RecoveryPhysicsIntegrityReadiness,
+        s4_handoff: AdmittedRecoveryIntegrityInput,
     ) -> Self {
         Self {
             suite,
@@ -37,7 +37,7 @@ impl PhysicalIntegrityCloseoutRequest {
 pub struct PhysicalIntegrityCertificationBundle {
     suite: PhysicalIntegrityCloseoutSuite,
     s3_readiness: S3PhysicalIntegrityReadiness,
-    s4_handoff: S4RecoveryPhysicsIntegrityReadiness,
+    s4_handoff: AdmittedRecoveryIntegrityInput,
     report: PhysicalIntegrityCloseoutReport,
 }
 
@@ -65,7 +65,7 @@ impl PhysicalIntegrityCertificationBundle {
         &self.s3_readiness
     }
 
-    pub const fn s4_handoff(&self) -> &S4RecoveryPhysicsIntegrityReadiness {
+    pub const fn s4_handoff(&self) -> &AdmittedRecoveryIntegrityInput {
         &self.s4_handoff
     }
 
@@ -76,7 +76,7 @@ impl PhysicalIntegrityCertificationBundle {
 
 pub fn close_s3_physical_integrity_from_executed_evidence(
     s3_readiness: S3PhysicalIntegrityReadiness,
-    s4_handoff: S4RecoveryPhysicsIntegrityReadiness,
+    s4_handoff: AdmittedRecoveryIntegrityInput,
     localized_boundaries: Vec<S3ExecutedCorruptionLocalizationEvidence>,
     denied_boundaries: Vec<S3ExecutedBoundaryDenialEvidence>,
     line_cap_composition: S3LineCapCompositionEvidence,
@@ -95,7 +95,7 @@ pub fn close_s3_physical_integrity_from_executed_evidence(
 }
 
 fn executed_closeout_suite_evidence(
-    s4_readiness: &S4RecoveryPhysicsIntegrityReadiness,
+    s4_readiness: &AdmittedRecoveryIntegrityInput,
     localized_boundaries: Vec<S3ExecutedCorruptionLocalizationEvidence>,
     denied_boundaries: Vec<S3ExecutedBoundaryDenialEvidence>,
     line_cap_composition: S3LineCapCompositionEvidence,
@@ -200,7 +200,7 @@ fn require_s3_readiness_scope(
 }
 
 fn require_s4_handoff(
-    handoff: &S4RecoveryPhysicsIntegrityReadiness,
+    handoff: &AdmittedRecoveryIntegrityInput,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     let payload = handoff.payload();
     if !payload.proves_no_raw_bytes_crossed() || !handoff.proves_no_raw_bytes_crossed() {

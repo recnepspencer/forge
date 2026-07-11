@@ -29,7 +29,7 @@ impl PartialPublicationBeforeWalReplayRead {
                 .with_persisted_bytes(persisted_bytes.clone()),
         );
         let Ok(crash_report) =
-            crate::layout_access::admit_partial_publication_classification(&classification)
+            crate::layout_projection::admit_partial_publication_classification(&classification)
         else {
             return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                 actual_operation_digest: classification

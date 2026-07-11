@@ -78,7 +78,7 @@ impl PartialPublicationReplayReadArtifact {
             PartialPublicationObservationSet::new().with_persisted_bytes(bytes),
         );
         let crash_report =
-            crate::layout_access::admit_partial_publication_classification(&classification)
+            crate::layout_projection::admit_partial_publication_classification(&classification)
                 .map_err(|_| PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                     actual_operation_digest: classification
                         .before_wal_append_operation_digest()

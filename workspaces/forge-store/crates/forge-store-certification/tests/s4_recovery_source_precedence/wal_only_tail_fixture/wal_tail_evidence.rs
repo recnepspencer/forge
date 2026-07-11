@@ -7,9 +7,7 @@ use forge_store_recovery_physics::{
     IntegrityVettedWalFrame, LogSequenceNumber, RecoveryIntegrityHandoffReceipt, WalLsnRange,
 };
 
-use super::construction::{
-    inspect_wal_payload, inspect_wal_payload_for_owner, intact_wal_payload,
-};
+use super::construction::{inspect_wal_payload, inspect_wal_payload_for_owner, intact_wal_payload};
 
 pub(super) fn vetted_wal_frame(range: WalLsnRange) -> IntegrityVettedWalFrame {
     let payload = intact_wal_payload(range);

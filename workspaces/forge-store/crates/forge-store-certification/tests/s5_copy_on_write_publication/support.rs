@@ -15,7 +15,7 @@ use forge_store_physical_isolation::{
     RootSwapOrderingContract,
 };
 use forge_store_recovery_physics::{
-    ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage, S5PublicationRecoveryReplayInput,
+    ExecutedPublicationRecoveryReceipt, PublicationCrashStage, PublicationRecoveryReplayInput,
 };
 
 pub(crate) struct PublicationInputs {
@@ -117,18 +117,18 @@ pub(crate) fn publish_copy_on_write_result(
 }
 
 pub(crate) fn execute_publication_recovery_replay(
-    stage: S5PublicationCrashStage,
-) -> ExecutedS5PublicationRecoveryReceipt {
+    stage: PublicationCrashStage,
+) -> ExecutedPublicationRecoveryReceipt {
     let recovery_readiness = recovery_readiness_admission();
     recovery_readiness.execute_publication_recovery_replay(
-        S5PublicationRecoveryReplayInput::from_crash_stage(stage),
+        PublicationRecoveryReplayInput::from_crash_stage(stage),
     )
 }
 
-pub(crate) fn execute_mixed_tree_recovery_replay() -> ExecutedS5PublicationRecoveryReceipt {
+pub(crate) fn execute_mixed_tree_recovery_replay() -> ExecutedPublicationRecoveryReceipt {
     let recovery_readiness = recovery_readiness_admission();
-    let replay = S5PublicationRecoveryReplayInput::mixed_tree_fault_attempt(
-        S5PublicationCrashStage::DuringPublication,
+    let replay = PublicationRecoveryReplayInput::mixed_tree_fault_attempt(
+        PublicationCrashStage::DuringPublication,
     );
     recovery_readiness.execute_publication_recovery_replay(replay)
 }

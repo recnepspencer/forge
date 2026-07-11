@@ -1,6 +1,6 @@
 use crate::{
-    RecoveryEntryAdmissionDenialKind, RecoveryEntryBasis, RecoveryEntryBlockedByIntegrityDamage,
-    RecoveryEntryCounters, RecoveryMemoryEnvelope, S4RecoveryPhysicsIntegrityReadiness,
+    AdmittedRecoveryIntegrityInput, RecoveryEntryAdmissionDenialKind, RecoveryEntryBasis,
+    RecoveryEntryBlockedByIntegrityDamage, RecoveryEntryCounters, RecoveryMemoryEnvelope,
 };
 use forge_store_contracts::PhysicalAuthorityRecap;
 
@@ -11,7 +11,7 @@ pub(crate) enum RecoveryEntryInputClassification {
 }
 
 pub(crate) fn classify_recovery_entry_inputs(
-    integrity_readiness: &S4RecoveryPhysicsIntegrityReadiness,
+    integrity_readiness: &AdmittedRecoveryIntegrityInput,
     memory_envelope: RecoveryMemoryEnvelope,
     physical_authority: PhysicalAuthorityRecap,
 ) -> RecoveryEntryInputClassification {

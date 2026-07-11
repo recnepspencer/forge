@@ -50,15 +50,11 @@ fn bounded_recovery_plan_and_trace(
     let source_trace = source.source().trace().clone();
     let prefix = valid_prefix(source.source(), 20, 21, [frame(20)]);
     let eligibility = redo_eligibility(19, 20);
-    let grammar = grammar_for_operation_digest(
-        &eligibility,
-        20,
-        page_lsn(20),
-        operation_digest,
-    )
-    .unwrap();
+    let grammar =
+        grammar_for_operation_digest(&eligibility, 20, page_lsn(20), operation_digest).unwrap();
     let admitted = AdmittedRedoFrame::admit(grammar, &prefix).unwrap();
-    let plan = RecoveryRedoPlan::from_valid_prefix(source.source(), prefix, vec![admitted]).unwrap();
+    let plan =
+        RecoveryRedoPlan::from_valid_prefix(source.source(), prefix, vec![admitted]).unwrap();
     let bounded = recovery_budget().admit_recovery(source, plan).unwrap();
     (bounded, source_trace)
 }

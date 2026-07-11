@@ -67,7 +67,7 @@ fn reopen_rejects_correct_manifest_redirected_outside_store_root() {
 }
 
 fn admitted_manifest(
-    access: &crate::layout_access::WalLayoutAccess,
+    access: &crate::layout_projection::WalLayoutAccess,
     plan: &BaselineLsmCompactionPlan,
     checkpoint: u64,
     covered_lsn_start: u64,
@@ -82,7 +82,9 @@ fn admitted_manifest(
         .unwrap();
     access
         .admit_baseline_lsm_manifest_durability(
-            &crate::layout_access::baseline_lsm_certification_execution::manifest_receipt(scope),
+            &crate::layout_projection::baseline_lsm_certification_execution::manifest_receipt(
+                scope,
+            ),
         )
         .unwrap()
 }

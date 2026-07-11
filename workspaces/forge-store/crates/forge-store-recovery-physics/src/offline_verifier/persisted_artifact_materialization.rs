@@ -4,23 +4,23 @@ use super::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4PersistedRecoveryArtifactMaterialization {
+pub struct PersistedRecoveryArtifactMaterialization {
     format_version: String,
     backend_profile: String,
     recovery_profile: RecoveryProfileId,
-    checkpoint: S4CheckpointManifestMaterialization,
-    wal_frame: S4WalRedoFrameMaterialization,
-    page_image: S4CheckpointPageImageMaterialization,
+    checkpoint: CheckpointManifestMaterialization,
+    wal_frame: WalRedoFrameMaterialization,
+    page_image: CheckpointPageImageMaterialization,
 }
 
-impl S4PersistedRecoveryArtifactMaterialization {
+impl PersistedRecoveryArtifactMaterialization {
     pub fn new(
         format_version: impl Into<String>,
         backend_profile: impl Into<String>,
         recovery_profile: RecoveryProfileId,
-        checkpoint: S4CheckpointManifestMaterialization,
-        wal_frame: S4WalRedoFrameMaterialization,
-        page_image: S4CheckpointPageImageMaterialization,
+        checkpoint: CheckpointManifestMaterialization,
+        wal_frame: WalRedoFrameMaterialization,
+        page_image: CheckpointPageImageMaterialization,
     ) -> Self {
         Self {
             format_version: format_version.into(),
@@ -49,7 +49,7 @@ impl S4PersistedRecoveryArtifactMaterialization {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4CheckpointManifestMaterialization {
+pub struct CheckpointManifestMaterialization {
     record_id: String,
     root: String,
     frontier_lsn: u64,
@@ -61,7 +61,7 @@ pub struct S4CheckpointManifestMaterialization {
     total_store_pages: u64,
 }
 
-impl S4CheckpointManifestMaterialization {
+impl CheckpointManifestMaterialization {
     pub fn new(
         record_id: impl Into<String>,
         root: impl Into<String>,
@@ -107,7 +107,7 @@ impl S4CheckpointManifestMaterialization {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4WalRedoFrameMaterialization {
+pub struct WalRedoFrameMaterialization {
     record_id: String,
     lsn: u64,
     page_id: u64,
@@ -115,7 +115,7 @@ pub struct S4WalRedoFrameMaterialization {
     idempotence_digest: String,
 }
 
-impl S4WalRedoFrameMaterialization {
+impl WalRedoFrameMaterialization {
     pub fn new(
         record_id: impl Into<String>,
         lsn: u64,
@@ -146,7 +146,7 @@ impl S4WalRedoFrameMaterialization {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S4CheckpointPageImageMaterialization {
+pub struct CheckpointPageImageMaterialization {
     record_id: String,
     page_id: u64,
     page_generation: u64,
@@ -154,7 +154,7 @@ pub struct S4CheckpointPageImageMaterialization {
     physical_state_digest: String,
 }
 
-impl S4CheckpointPageImageMaterialization {
+impl CheckpointPageImageMaterialization {
     pub fn new(
         record_id: impl Into<String>,
         page_id: u64,

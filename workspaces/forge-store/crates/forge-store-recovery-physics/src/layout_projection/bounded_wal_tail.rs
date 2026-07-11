@@ -1,7 +1,7 @@
 use crate::WalLsnRange;
 
 use super::{
-    replay_index_family::ReplayIndexLayoutReport, RecoveryLayoutAccessDenial,
+    replay_index::ReplayIndexLayoutReport, RecoveryLayoutAccessDenial,
     RecoveryLayoutAccessDenialKind,
 };
 

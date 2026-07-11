@@ -47,7 +47,7 @@ impl BoundedRecoverySourcePrecedenceGraph {
 
     pub fn admit_sources(self) -> BoundedRecoverySourceAdmission {
         let source = self.graph.admit_sources();
-        let layout_report = crate::layout_access::project_recovery_source_layout(&source);
+        let layout_report = crate::layout_projection::project_recovery_source_layout(&source);
         BoundedRecoverySourceAdmission {
             source,
             layout_report,

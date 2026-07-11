@@ -1,18 +1,18 @@
-use super::s4_physical_record_grammar::{
-    S4CheckpointManifestRecord, S4CheckpointPageImageRecord, S4PersistedPhysicalRecord,
-    S4WalRedoFrameRecord,
+use super::physical_record_grammar::{
+    CheckpointManifestRecord, CheckpointPageImageRecord, PersistedPhysicalRecord,
+    WalRedoFrameRecord,
 };
 use super::PersistedRecoveryArtifacts;
 
-pub(super) struct DecodedS4RecoveryRecords<'a> {
-    checkpoint: Option<&'a S4CheckpointManifestRecord>,
-    wal_frame: Option<&'a S4WalRedoFrameRecord>,
-    checkpoint_page: Option<&'a S4CheckpointPageImageRecord>,
+pub(super) struct DecodedRecoveryRecords<'a> {
+    checkpoint: Option<&'a CheckpointManifestRecord>,
+    wal_frame: Option<&'a WalRedoFrameRecord>,
+    checkpoint_page: Option<&'a CheckpointPageImageRecord>,
     ambiguous_role: bool,
     semantic_decode_attempts: u32,
 }
 
-impl<'a> DecodedS4RecoveryRecords<'a> {
+impl<'a> DecodedRecoveryRecords<'a> {
     pub(super) fn from_artifacts(artifacts: &'a PersistedRecoveryArtifacts) -> Self {
         let mut decoded = Self {
             checkpoint: None,
@@ -24,15 +24,15 @@ impl<'a> DecodedS4RecoveryRecords<'a> {
         for record in artifacts.records() {
             decoded.semantic_decode_attempts += 1;
             match record.physical_record() {
-                S4PersistedPhysicalRecord::CheckpointManifest(record) => {
+                PersistedPhysicalRecord::CheckpointManifest(record) => {
                     decoded.ambiguous_role |= decoded.checkpoint.is_some();
                     decoded.checkpoint = Some(record);
                 }
-                S4PersistedPhysicalRecord::WalRedoFrame(record) => {
+                PersistedPhysicalRecord::WalRedoFrame(record) => {
                     decoded.ambiguous_role |= decoded.wal_frame.is_some();
                     decoded.wal_frame = Some(record);
                 }
-                S4PersistedPhysicalRecord::CheckpointPageImage(record) => {
+                PersistedPhysicalRecord::CheckpointPageImage(record) => {
                     decoded.ambiguous_role |= decoded.checkpoint_page.is_some();
                     decoded.checkpoint_page = Some(record);
                 }
@@ -41,15 +41,15 @@ impl<'a> DecodedS4RecoveryRecords<'a> {
         decoded
     }
 
-    pub(super) const fn checkpoint(&self) -> Option<&'a S4CheckpointManifestRecord> {
+    pub(super) const fn checkpoint(&self) -> Option<&'a CheckpointManifestRecord> {
         self.checkpoint
     }
 
-    pub(super) const fn wal_frame(&self) -> Option<&'a S4WalRedoFrameRecord> {
+    pub(super) const fn wal_frame(&self) -> Option<&'a WalRedoFrameRecord> {
         self.wal_frame
     }
 
-    pub(super) const fn checkpoint_page(&self) -> Option<&'a S4CheckpointPageImageRecord> {
+    pub(super) const fn checkpoint_page(&self) -> Option<&'a CheckpointPageImageRecord> {
         self.checkpoint_page
     }
 

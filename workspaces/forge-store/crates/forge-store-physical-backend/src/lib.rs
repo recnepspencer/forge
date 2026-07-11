@@ -317,8 +317,8 @@ pub use access_policy::{
 pub use durability_ordering::{
     StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome, StoreDurabilityBoundaryReached,
     StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength, StoreDurabilityDenial,
-    StoreDurabilityDenialKind, StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind,
-    StoreDurabilityOperation, StoreDurabilityOrderingBarrierDurable,
+    StoreDurabilityDenialKind, StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof,
+    StoreDurabilityFileSyncKind, StoreDurabilityOperation, StoreDurabilityOrderingBarrierDurable,
     StoreDurabilityParentNamespaceDurable, StoreDurabilityPersistedArtifact,
     StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
     StoreDurabilityRuntime, StoreDurabilityState, StoreDurabilityWriteAccepted,
