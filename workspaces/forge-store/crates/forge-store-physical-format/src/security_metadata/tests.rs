@@ -1,3 +1,7 @@
+mod encoding;
+mod manifest_encoding;
+mod support;
+
 use crate::PhysicalSecurityMetadataResultExclusion;
 
 #[test]

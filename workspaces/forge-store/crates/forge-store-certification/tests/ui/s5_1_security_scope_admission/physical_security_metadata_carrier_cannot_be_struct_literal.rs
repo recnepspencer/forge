@@ -1,11 +1,11 @@
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityMetadata,
+    StoreTenantScope,
 };
 
 fn main() {
-    let _forged = StorePhysicalSecurityMetadataCarrier {
+    let _forged = StoreSecurityMetadata {
         key_scope: StoreKeyScope::PageEnvelope,
         tenant_scope: StoreTenantScope::TenantPhysicalBoundary,
         authenticity_requirement: StoreAuthenticityRequirement::required(

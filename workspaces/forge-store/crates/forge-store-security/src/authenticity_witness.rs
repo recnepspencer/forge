@@ -1,24 +1,21 @@
-use crate::{
-    StoreAuthenticityPhysicalIdentity, StoreCurrentAuthenticityScopeWitness,
-    StoreSecurityScopeIdentity,
-};
+use crate::{StoreCurrentAuthenticityScopeWitness, StoreSecurityScopeIdentity};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreAuthenticityWitnessInput {
-    posture: StoreAuthenticityWitnessPosture,
+pub struct StoreAuthenticityWitnessInput<I> {
+    posture: StoreAuthenticityWitnessPosture<I>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum StoreAuthenticityWitnessPosture {
+pub(crate) enum StoreAuthenticityWitnessPosture<I> {
     Absent,
-    Verified(StoreAuthenticityWitnessBinding),
-    Stale(StoreAuthenticityWitnessBinding),
+    Verified(StoreAuthenticityWitnessBinding<I>),
+    Stale(StoreAuthenticityWitnessBinding<I>),
     Unavailable,
     Unsupported,
-    Failed(StoreAuthenticityWitnessBinding),
+    Failed(StoreAuthenticityWitnessBinding<I>),
 }
 
-impl StoreAuthenticityWitnessInput {
+impl<I> StoreAuthenticityWitnessInput<I> {
     pub const fn absent() -> Self {
         Self {
             posture: StoreAuthenticityWitnessPosture::Absent,
@@ -37,11 +34,11 @@ impl StoreAuthenticityWitnessInput {
         }
     }
 
-    pub(crate) const fn from_posture(posture: StoreAuthenticityWitnessPosture) -> Self {
+    pub(crate) const fn from_posture(posture: StoreAuthenticityWitnessPosture<I>) -> Self {
         Self { posture }
     }
 
-    pub(crate) const fn posture(self) -> StoreAuthenticityWitnessPosture {
+    pub(crate) fn posture(self) -> StoreAuthenticityWitnessPosture<I> {
         self.posture
     }
 }
@@ -67,11 +64,11 @@ impl StoreAuthenticityWitnessObservationDeclaration {
     }
 }
 
-pub const fn admit_store_authenticity_witness_observation(
+pub const fn admit_store_authenticity_witness_observation<I>(
     scope: &StoreCurrentAuthenticityScopeWitness,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: I,
     declaration: StoreAuthenticityWitnessObservationDeclaration,
-) -> StoreAuthenticityWitnessInput {
+) -> StoreAuthenticityWitnessInput<I> {
     let binding =
         StoreAuthenticityWitnessBinding::from_admitted_observation(scope, physical_identity);
     match declaration {
@@ -94,15 +91,15 @@ pub const fn admit_store_authenticity_witness_observation(
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreAuthenticityWitnessBinding {
+pub struct StoreAuthenticityWitnessBinding<I> {
     scope_identity: StoreSecurityScopeIdentity,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: I,
 }
 
-impl StoreAuthenticityWitnessBinding {
+impl<I> StoreAuthenticityWitnessBinding<I> {
     const fn from_admitted_observation(
         scope: &StoreCurrentAuthenticityScopeWitness,
-        physical_identity: StoreAuthenticityPhysicalIdentity,
+        physical_identity: I,
     ) -> Self {
         Self {
             scope_identity: scope.identity(),
@@ -114,7 +111,10 @@ impl StoreAuthenticityWitnessBinding {
         self.scope_identity
     }
 
-    pub const fn physical_identity(&self) -> StoreAuthenticityPhysicalIdentity {
+    pub const fn physical_identity(&self) -> I
+    where
+        I: Copy,
+    {
         self.physical_identity
     }
 }

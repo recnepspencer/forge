@@ -7,16 +7,17 @@ use forge_foundational::{
 use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
     deny_basis_free_digest_comparison, deny_basis_free_parity, deny_basis_free_reuse,
-    deny_basis_free_suppression, StoreCanonicalBasisConstruction, StoreCanonicalBasisFamily,
-    StoreCanonicalBasisSourceKind, StoreDigestAuthority, StoreDigestAuthorityDenial,
-    StoreDigestEquivalenceBasis, StoreDigestEquivalenceDenial, StoreDigestEquivalenceOperation,
-    StoreDigestEvidence, StorePhysicalBoundaryWitness,
+    deny_basis_free_suppression, StoreCanonicalBasisFamily, StoreCanonicalBasisSourceKind,
+    StoreDigestAuthority, StoreDigestAuthorityDenial, StoreDigestEquivalenceBasis,
+    StoreDigestEquivalenceDenial, StoreDigestEquivalenceOperation, StoreDigestEvidence,
+    StorePhysicalBoundaryWitness,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_format::{
-    PhysicalBinaryEncodingWitness, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind,
-    PhysicalPublicationState, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    prepare_physical_page_header_canonical_basis, PhysicalBinaryEncodingWitness,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
+    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalPublicationState,
+    PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 
 #[path = "physical_digest_authority_tests.rs"]
@@ -24,8 +25,8 @@ mod physical_digest_authority_tests;
 
 #[test]
 fn same_native_basis_yields_same_digest() {
-    let first = derive_store_digest(page_header_basis(InputOrdering::HeaderFirst));
-    let second = derive_store_digest(page_header_basis(InputOrdering::PhysicalWitnessFirst));
+    let first = derive_store_digest(page_header_basis());
+    let second = derive_store_digest(page_header_basis());
 
     assert_eq!(
         first.canonical_digest().value().bytes(),
@@ -55,8 +56,8 @@ fn store_equivalence_requires_named_native_basis() {
     );
     let decision = match StoreDigestAuthority::compare_native_basis(
         basis,
-        page_header_basis(InputOrdering::HeaderFirst),
-        page_header_basis(InputOrdering::PhysicalWitnessFirst),
+        page_header_basis(),
+        page_header_basis(),
     ) {
         TransitionOutcome::Success(decision) => decision,
         other => panic!("native basis comparison should succeed: {other:?}"),
@@ -76,7 +77,7 @@ fn store_equivalence_requires_named_native_basis() {
 fn digest_authority_rejects_native_basis_from_wrong_store_family() {
     let outcome = StoreDigestAuthority::for_native_basis(
         StoreCanonicalBasisFamily::AspectBoundaryFact,
-        page_header_basis(InputOrdering::HeaderFirst),
+        page_header_basis(),
     )
     .derive(CanonicalDigestAlgorithmId::test_stable_fixture());
 
@@ -109,8 +110,8 @@ fn store_equivalence_rejects_native_basis_from_wrong_store_family() {
 
     let mismatch = match StoreDigestAuthority::compare_native_basis(
         basis,
-        page_header_basis(InputOrdering::HeaderFirst),
-        page_header_basis(InputOrdering::PhysicalWitnessFirst),
+        page_header_basis(),
+        page_header_basis(),
     ) {
         TransitionOutcome::Denied(
             StoreDigestEquivalenceDenial::NativeBasisFamilyDomainMismatch(mismatch),
@@ -181,12 +182,6 @@ fn projection_and_digest_equivalence_are_not_store_authority_basis() {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum InputOrdering {
-    HeaderFirst,
-    PhysicalWitnessFirst,
-}
-
 fn derive_store_digest(
     basis: forge_foundational::canonicalization_api::lower_lane::basis::CanonicalBasisReadyArtifact,
 ) -> StoreDigestEvidence {
@@ -202,20 +197,12 @@ fn derive_store_digest(
 }
 
 fn page_header_basis(
-    ordering: InputOrdering,
 ) -> forge_foundational::canonicalization_api::lower_lane::basis::CanonicalBasisReadyArtifact {
-    let builder =
-        StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::PhysicalPageHeader);
-    let outcome = match ordering {
-        InputOrdering::HeaderFirst => builder
-            .with_page_header_witness(decoded_page_header())
-            .with_physical_boundary_witness(physical_witness())
-            .prepare(basis_version()),
-        InputOrdering::PhysicalWitnessFirst => builder
-            .with_physical_boundary_witness(physical_witness())
-            .with_page_header_witness(decoded_page_header())
-            .prepare(basis_version()),
-    };
+    let outcome = prepare_physical_page_header_canonical_basis(
+        basis_version(),
+        decoded_page_header(),
+        physical_witness(),
+    );
 
     match outcome {
         TransitionOutcome::Success(ready) => ready,

@@ -1,19 +1,17 @@
 use forge_store_aspect_native::StorePhysicalBoundaryWitness;
-use forge_store_security::{
-    StorePhysicalSecurityMetadataCarrier, StoreRawSecurityScopeDeclaration,
-};
+use forge_store_security::{StoreRawSecurityScopeDeclaration, StoreSecurityMetadata};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryRootSecurityMetadataAdmission {
-    metadata: StorePhysicalSecurityMetadataCarrier,
+    metadata: StoreSecurityMetadata,
 }
 
 impl RecoveryRootSecurityMetadataAdmission {
-    pub const fn from_physical_metadata(metadata: StorePhysicalSecurityMetadataCarrier) -> Self {
+    pub const fn from_physical_metadata(metadata: StoreSecurityMetadata) -> Self {
         Self { metadata }
     }
 
-    pub const fn metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn metadata(self) -> StoreSecurityMetadata {
         self.metadata
     }
 

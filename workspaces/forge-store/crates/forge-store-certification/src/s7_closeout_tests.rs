@@ -40,11 +40,20 @@ fn s7_closeout_binds_executed_sources_and_downstream_non_claims() {
     let keys = admit_s7_key_lifecycle_non_claim_handoff(&closeout).unwrap();
     let full = admit_s7_full_certification_non_claim_handoff(&closeout).unwrap();
 
-    assert!(closeout.materialized_evidence().proof_summary().checked_execution());
+    assert!(closeout
+        .materialized_evidence()
+        .proof_summary()
+        .checked_execution());
     assert!(!closeout.binding_tag().is_empty());
     assert_eq!(layout.non_claims(), &S8LayoutReadinessNonClaim::required());
-    assert_eq!(backup.non_claims(), &S10BackupRepairReadinessNonClaim::required());
-    assert_eq!(keys.non_claims(), &S11KeyLifecycleReadinessNonClaim::required());
+    assert_eq!(
+        backup.non_claims(),
+        &S10BackupRepairReadinessNonClaim::required()
+    );
+    assert_eq!(
+        keys.non_claims(),
+        &S11KeyLifecycleReadinessNonClaim::required()
+    );
     assert_eq!(full.non_claims(), &S12FullCertificationNonClaim::required());
 }
 
@@ -66,9 +75,11 @@ fn s7_closeout_shortcut_attempts_are_explicit_runtime_denials() {
     );
     assert_shortcut_rejected(
         S7CloseoutShortcutInput::S6PlacementReadinessOnly {
-            seed: admit_s6_s7_placement_handoff(S6S7PlacementAdmissionAuthority::from_current_store_authority(
-                current_authority("store.s7.closeout.shortcut"),
-            )),
+            seed: admit_s6_s7_placement_handoff(
+                S6S7PlacementAdmissionAuthority::from_current_store_authority(current_authority(
+                    "store.s7.closeout.shortcut",
+                )),
+            ),
         },
         S7CloseoutShortcutAttempt::S6PlacementReadinessOnly,
     );
@@ -92,8 +103,8 @@ fn assert_shortcut_rejected(
     shortcut: S7CloseoutShortcutInput,
     expected_attempt: S7CloseoutShortcutAttempt,
 ) {
-    let denial =
-        evaluate_s7_closeout_request(S7CloseoutRequest::Shortcut(shortcut)).expect_err("shortcut must deny");
+    let denial = evaluate_s7_closeout_request(S7CloseoutRequest::Shortcut(shortcut))
+        .expect_err("shortcut must deny");
     match denial {
         S7CloseoutDenial::ShortcutRejected(report) => {
             assert_eq!(report.attempt(), expected_attempt);

@@ -11,9 +11,10 @@ use forge_store_aspect_native::{
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_format::{
-    PhysicalBinaryEncodingWitness, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalHeaderAuthority, PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind,
-    PhysicalPublicationState, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
+    prepare_physical_page_header_canonical_basis, PhysicalBinaryEncodingWitness,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority,
+    PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalPublicationState,
+    PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 
 #[test]
@@ -22,18 +23,14 @@ fn store_canonical_basis_is_native_and_order_stable() {
     let physical = physical_witness();
     let version = basis_version();
 
-    let first = prepared_entries(
-        StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::PhysicalPageHeader)
-            .with_page_header_witness(header)
-            .with_physical_boundary_witness(physical)
-            .prepare(version.clone()),
-    );
-    let second = prepared_entries(
-        StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::PhysicalPageHeader)
-            .with_physical_boundary_witness(physical)
-            .with_page_header_witness(header)
-            .prepare(version),
-    );
+    let first = prepared_entries(prepare_physical_page_header_canonical_basis(
+        version.clone(),
+        header,
+        physical,
+    ));
+    let second = prepared_entries(prepare_physical_page_header_canonical_basis(
+        version, header, physical,
+    ));
 
     assert_eq!(first, second);
     assert_has_locus(&first, "boundary.authority.scope");
@@ -52,18 +49,15 @@ fn store_canonical_basis_is_native_and_order_stable() {
 #[test]
 fn aspect_boundary_basis_preserves_store_physical_witness_and_order() {
     let fact = aspect_boundary_fact();
-    let physical = physical_witness();
     let version = basis_version();
 
     let first = prepared_entries(
         StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::AspectBoundaryFact)
             .with_aspect_boundary_fact(&fact)
-            .with_physical_boundary_witness(physical)
             .prepare(version.clone()),
     );
     let second = prepared_entries(
         StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::AspectBoundaryFact)
-            .with_physical_boundary_witness(physical)
             .with_aspect_boundary_fact(&fact)
             .prepare(version),
     );
@@ -86,7 +80,6 @@ fn aspect_boundary_basis_preserves_store_physical_witness_and_order() {
 #[test]
 fn aspect_patch_basis_preserves_store_physical_witness_and_order() {
     let fact = aspect_patch_boundary_fact();
-    let physical = physical_witness();
     let version = basis_version();
 
     let first = prepared_entries(
@@ -94,14 +87,12 @@ fn aspect_patch_basis_preserves_store_physical_witness_and_order() {
             StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
         )
         .with_aspect_patch_boundary_fact(&fact)
-        .with_physical_boundary_witness(physical)
         .prepare(version.clone()),
     );
     let second = prepared_entries(
         StoreCanonicalBasisConstruction::for_family(
             StoreCanonicalBasisFamily::AspectPatchBoundaryFact,
         )
-        .with_physical_boundary_witness(physical)
         .with_aspect_patch_boundary_fact(&fact)
         .prepare(version),
     );
@@ -122,34 +113,6 @@ fn aspect_patch_basis_preserves_store_physical_witness_and_order() {
 }
 
 #[test]
-fn missing_physical_witness_denies_basis_construction() {
-    let denial =
-        StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::PhysicalPageHeader)
-            .with_page_header_witness(decoded_page_header())
-            .prepare(basis_version());
-
-    assert_eq!(
-        denied(denial),
-        StoreCanonicalBasisConstructionDenial::MissingPhysicalWitness {
-            family: StoreCanonicalBasisFamily::PhysicalPageHeader,
-        }
-    );
-}
-
-#[test]
-fn semantic_aspect_state_cannot_satisfy_physical_basis_family() {
-    let denial =
-        StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::PhysicalPageHeader)
-            .with_aspect_boundary_fact(&aspect_boundary_fact())
-            .prepare(basis_version());
-
-    assert!(matches!(
-        denied(denial),
-        StoreCanonicalBasisConstructionDenial::Source(_)
-    ));
-}
-
-#[test]
 fn conflicting_native_sources_are_denied_explicitly() {
     let denial =
         StoreCanonicalBasisConstruction::for_family(StoreCanonicalBasisFamily::AspectBoundaryFact)
@@ -165,8 +128,11 @@ fn conflicting_native_sources_are_denied_explicitly() {
     );
 }
 
-fn prepared_entries(
-    outcome: forge_store_aspect_native::StoreCanonicalBasisConstructionOutcome,
+fn prepared_entries<E: std::fmt::Debug>(
+    outcome: TransitionOutcome<
+        forge_foundational::canonicalization_api::lower_lane::basis::CanonicalBasisReadyArtifact,
+        E,
+    >,
 ) -> Vec<forge_foundational::CanonicalBasisEntry> {
     match outcome {
         TransitionOutcome::Success(ready) => ready.payload().entries().to_vec(),

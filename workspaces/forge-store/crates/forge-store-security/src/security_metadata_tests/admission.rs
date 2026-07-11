@@ -1,9 +1,9 @@
 use forge_proof::TransitionOutcome;
-use forge_store_physical_format::PhysicalSecurityMetadataDenial;
 
 use crate::{
-    admit_store_physical_security_metadata, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataAdmissionInput, StorePhysicalSecurityMetadataCarrier,
+    admit_store_security_metadata, StoreKeyVersionPosture, StoreLegacySecurityPosture,
+    StoreSecurityMetadata, StoreSecurityMetadataAdmissionDenial,
+    StoreSecurityMetadataAdmissionInput,
 };
 
 use super::support::{admitted_scope, current_authority};
@@ -11,16 +11,16 @@ use super::support::{admitted_scope, current_authority};
 #[test]
 fn platform_metadata_admission_denies_missing_unsupported_and_unavailable_metadata() {
     assert_metadata_denial(
-        StorePhysicalSecurityMetadataAdmissionInput::MissingPlatformMetadata,
-        PhysicalSecurityMetadataDenial::MissingPlatformSecurityMetadata,
+        StoreSecurityMetadataAdmissionInput::MissingMetadata,
+        StoreSecurityMetadataAdmissionDenial::MissingMetadata,
     );
     assert_metadata_denial(
-        StorePhysicalSecurityMetadataAdmissionInput::UnsupportedPlatformMetadata,
-        PhysicalSecurityMetadataDenial::UnsupportedPlatformSecurityMetadata,
+        StoreSecurityMetadataAdmissionInput::UnsupportedMetadata,
+        StoreSecurityMetadataAdmissionDenial::UnsupportedMetadata,
     );
     assert_metadata_denial(
-        StorePhysicalSecurityMetadataAdmissionInput::UnavailablePlatformMetadata,
-        PhysicalSecurityMetadataDenial::UnavailablePlatformSecurityMetadata,
+        StoreSecurityMetadataAdmissionInput::UnavailableMetadata,
+        StoreSecurityMetadataAdmissionDenial::UnavailableMetadata,
     );
 }
 
@@ -33,11 +33,11 @@ fn platform_metadata_admission_denies_readmission_required_legacy_candidates() {
         StoreLegacySecurityPosture::UnsupportedLegacyArtifact,
     ] {
         assert_metadata_denial(
-            StorePhysicalSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
+            StoreSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
                 StoreKeyVersionPosture::Current,
                 legacy_posture,
             )),
-            PhysicalSecurityMetadataDenial::LegacyReadmissionRequired,
+            StoreSecurityMetadataAdmissionDenial::LegacyReadmissionRequired,
         );
     }
 }
@@ -49,11 +49,11 @@ fn platform_metadata_admission_denies_bad_key_version_candidates_distinctly() {
         StoreKeyVersionPosture::Denied,
     ] {
         assert_metadata_denial(
-            StorePhysicalSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
+            StoreSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
                 unsupported_posture,
                 StoreLegacySecurityPosture::NativeScoped,
             )),
-            PhysicalSecurityMetadataDenial::UnsupportedPlatformSecurityMetadata,
+            StoreSecurityMetadataAdmissionDenial::UnsupportedMetadata,
         );
     }
     for unavailable_posture in [
@@ -61,21 +61,21 @@ fn platform_metadata_admission_denies_bad_key_version_candidates_distinctly() {
         StoreKeyVersionPosture::Stale,
     ] {
         assert_metadata_denial(
-            StorePhysicalSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
+            StoreSecurityMetadataAdmissionInput::Candidate(candidate_metadata(
                 unavailable_posture,
                 StoreLegacySecurityPosture::NativeScoped,
             )),
-            PhysicalSecurityMetadataDenial::UnavailablePlatformSecurityMetadata,
+            StoreSecurityMetadataAdmissionDenial::UnavailableMetadata,
         );
     }
 }
 
 fn assert_metadata_denial(
-    input: StorePhysicalSecurityMetadataAdmissionInput,
-    expected_denial: PhysicalSecurityMetadataDenial,
+    input: StoreSecurityMetadataAdmissionInput,
+    expected_denial: StoreSecurityMetadataAdmissionDenial,
 ) {
     assert_eq!(
-        admit_store_physical_security_metadata(input),
+        admit_store_security_metadata(input),
         TransitionOutcome::Denied(expected_denial)
     );
 }
@@ -83,10 +83,10 @@ fn assert_metadata_denial(
 fn candidate_metadata(
     key_version_posture: StoreKeyVersionPosture,
     legacy_posture: StoreLegacySecurityPosture,
-) -> StorePhysicalSecurityMetadataCarrier {
+) -> StoreSecurityMetadata {
     let authority = current_authority("s51.phase3.metadata_admission", "candidate");
     let witnesses = admitted_scope(&authority);
-    StorePhysicalSecurityMetadataCarrier::for_page_header(
+    StoreSecurityMetadata::from_current_security_scope(
         &witnesses,
         key_version_posture,
         legacy_posture,

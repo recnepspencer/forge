@@ -9,6 +9,7 @@ pub mod layout_access;
 mod binary_format;
 mod blob_manifest;
 mod bootstrap;
+mod canonical_basis;
 mod checksum;
 mod compile_fail;
 mod denial;
@@ -49,6 +50,9 @@ pub use bootstrap::{
     physical_bootstrap_catalog, PhysicalBootstrapCatalogAuthority, PhysicalBootstrapCatalogDenial,
     PhysicalBootstrapCatalogIdentity, PhysicalBootstrapCatalogOpenWitness,
     PhysicalBootstrapCatalogWitness,
+};
+pub use canonical_basis::{
+    prepare_physical_page_header_canonical_basis, PhysicalPageHeaderCanonicalBasisOutcome,
 };
 pub use checksum::{
     s1_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
@@ -150,12 +154,10 @@ pub use reference::{
 };
 pub use security_metadata::{
     AllocationClassSecurityMetadataEnvelope, ExtentSecurityMetadataEnvelope,
-    FreeSpaceSecurityMetadataEnvelope, PhysicalRawSecurityMetadataProjectionSource,
+    FreeSpaceSecurityMetadataEnvelope, PhysicalAuthenticityIdentity,
     PhysicalSecurityMetadataDeclaration, PhysicalSecurityMetadataDeclarationKind,
-    PhysicalSecurityMetadataDenial, PhysicalSecurityMetadataEnvelope,
-    PhysicalSecurityMetadataResultExclusion, PhysicalSecurityScopePropagationDenial,
-    PhysicalSecurityScopePropagationDenialKind, SegmentPageSecurityMetadataEnvelope,
-    SegmentSecurityMetadataEnvelope,
+    PhysicalSecurityMetadataEnvelope, PhysicalSecurityMetadataResultExclusion,
+    SegmentPageSecurityMetadataEnvelope, SegmentSecurityMetadataEnvelope,
 };
 
 #[path = "compile_fail/physical_format_compile_fail.rs"]

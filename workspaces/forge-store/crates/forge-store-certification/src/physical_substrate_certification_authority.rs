@@ -49,10 +49,8 @@ fn scan_closeout_substrate(
 }
 
 fn collect_story_reports(
-) -> Result<
-    Vec<crate::PhysicalSubstrateCloseoutStoryReport>,
-    PhysicalSubstrateCertificationDenial,
-> {
+) -> Result<Vec<crate::PhysicalSubstrateCloseoutStoryReport>, PhysicalSubstrateCertificationDenial>
+{
     story_reports()
 }
 
@@ -64,10 +62,8 @@ fn collect_facade_reports(
 }
 
 fn collect_manifest_reports(
-) -> Result<
-    Vec<crate::PhysicalManifestDiscoveryEvidenceReport>,
-    PhysicalSubstrateCertificationDenial,
-> {
+) -> Result<Vec<crate::PhysicalManifestDiscoveryEvidenceReport>, PhysicalSubstrateCertificationDenial>
+{
     manifest_reports()
 }
 
@@ -84,8 +80,7 @@ fn collect_page_record_reports(
     page_record_reports()
 }
 
-fn collect_extent_record_reports(
-) -> Result<
+fn collect_extent_record_reports() -> Result<
     Vec<crate::PhysicalExtentRecordFramingEvidenceReport>,
     PhysicalSubstrateCertificationDenial,
 > {

@@ -1,8 +1,4 @@
 use forge_proof::TransitionOutcome;
-use forge_store_physical_format::{
-    PhysicalFrameKind, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderKind,
-    PhysicalPageId, PhysicalSegmentId,
-};
 
 use crate::security_scope_test_support::{
     current_authority, platform_authenticity_requirement, platform_request,
@@ -10,11 +6,10 @@ use crate::security_scope_test_support::{
 use crate::{
     admit_store_authenticity_witness_observation, admit_store_security_scope,
     StoreAdmittedSecurityScope, StoreAuthenticityCheck, StoreAuthenticityCheckDenialKind,
-    StoreAuthenticityPhysicalIdentity, StoreAuthenticityRequirement,
-    StoreAuthenticityRequirementClass, StoreAuthenticityResultKind, StoreAuthenticityWitnessInput,
-    StoreAuthenticityWitnessObservationDeclaration, StoreCustodyPosture, StoreKeyScope,
-    StoreKeyVersionPosture, StoreSecurityScopeAdmissionExpectation,
-    StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+    StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreAuthenticityResultKind,
+    StoreAuthenticityWitnessInput, StoreAuthenticityWitnessObservationDeclaration,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
 #[test]
@@ -171,9 +166,9 @@ fn admitted_scope_with_requirement(
 
 fn assert_denial(
     authenticity_scope: &crate::StoreCurrentAuthenticityScopeWitness,
-    witness: StoreAuthenticityWitnessInput,
+    witness: StoreAuthenticityWitnessInput<TestAuthenticityIdentity>,
     expected: StoreAuthenticityCheckDenialKind,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: TestAuthenticityIdentity,
 ) {
     let denial = denial_for(authenticity_scope, witness, physical_identity);
     assert_eq!(denial.kind(), expected);
@@ -183,8 +178,8 @@ fn assert_denial(
 
 fn denial_for(
     authenticity_scope: &crate::StoreCurrentAuthenticityScopeWitness,
-    witness: StoreAuthenticityWitnessInput,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    witness: StoreAuthenticityWitnessInput<TestAuthenticityIdentity>,
+    physical_identity: TestAuthenticityIdentity,
 ) -> crate::StoreAuthenticityCheckDenial {
     StoreAuthenticityCheck::for_requirement(authenticity_scope.requirement())
         .with_security_scope(authenticity_scope)
@@ -196,33 +191,15 @@ fn denial_for(
 
 fn admitted_witness(
     scope: &crate::StoreCurrentAuthenticityScopeWitness,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: TestAuthenticityIdentity,
     declaration: StoreAuthenticityWitnessObservationDeclaration,
-) -> StoreAuthenticityWitnessInput {
+) -> StoreAuthenticityWitnessInput<TestAuthenticityIdentity> {
     admit_store_authenticity_witness_observation(scope, physical_identity, declaration)
 }
 
-fn physical_identity(page: u64) -> StoreAuthenticityPhysicalIdentity {
-    StoreAuthenticityPhysicalIdentity::new(
-        PhysicalHeaderKind::Frame(PhysicalFrameKind::RecordFrame),
-        PhysicalGenerationAuthority::s1()
-            .page_cell(segment(1), page_id(page))
-            .with_page_generation(generation(7))
-            .owner(),
-        128,
-        0xC0FFEE,
-        "crc32c",
-    )
+fn physical_identity(page: u64) -> TestAuthenticityIdentity {
+    TestAuthenticityIdentity(page)
 }
 
-fn segment(value: u64) -> PhysicalSegmentId {
-    PhysicalSegmentId::from_raw(value).unwrap()
-}
-
-fn page_id(value: u64) -> PhysicalPageId {
-    PhysicalPageId::from_raw(value).unwrap()
-}
-
-fn generation(value: u64) -> PhysicalGeneration {
-    PhysicalGeneration::from_raw(value).unwrap()
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TestAuthenticityIdentity(u64);

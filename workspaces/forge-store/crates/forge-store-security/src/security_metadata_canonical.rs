@@ -15,24 +15,24 @@ use forge_proof::TransitionOutcome;
 
 use crate::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier, StoreTenantScope,
+    StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityMetadata,
+    StoreTenantScope,
 };
 
 #[derive(Debug, Clone)]
-pub struct StorePhysicalSecurityMetadataCanonicalBasis {
+pub struct StoreSecurityMetadataCanonicalBasis {
     ready: CanonicalBasisReadyArtifact,
 }
 
-impl StorePhysicalSecurityMetadataCanonicalBasis {
+impl StoreSecurityMetadataCanonicalBasis {
     pub fn from_metadata(
-        metadata: StorePhysicalSecurityMetadataCarrier,
+        metadata: StoreSecurityMetadata,
     ) -> TransitionOutcome<Self, CanonicalBasisConstructionDenial> {
         match prepare_canonical_basis_sequence(
-            CanonicalizationRuleVersion::new("store.s5.1.physical-security-metadata")
+            CanonicalizationRuleVersion::new("store.security-metadata")
                 .expect("static canonicalization rule version"),
             CanonicalBasisDomain::BoundaryArtifact,
-            physical_metadata_canonical_entries(metadata),
+            security_metadata_canonical_entries(metadata),
         ) {
             TransitionOutcome::Success(ready) => TransitionOutcome::success(Self { ready }),
             TransitionOutcome::Denied(denial) => TransitionOutcome::denied(denial),
@@ -45,16 +45,16 @@ impl StorePhysicalSecurityMetadataCanonicalBasis {
     }
 }
 
-pub fn compare_store_physical_security_metadata(
-    left: StorePhysicalSecurityMetadataCarrier,
-    right: StorePhysicalSecurityMetadataCarrier,
+pub fn compare_store_security_metadata(
+    left: StoreSecurityMetadata,
+    right: StoreSecurityMetadata,
 ) -> TransitionOutcome<CanonicalComparisonOutcome, CanonicalBasisConstructionDenial> {
-    let left = match StorePhysicalSecurityMetadataCanonicalBasis::from_metadata(left) {
+    let left = match StoreSecurityMetadataCanonicalBasis::from_metadata(left) {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => return TransitionOutcome::denied(denial),
         TransitionOutcome::Deferred(deferred) => return TransitionOutcome::deferred(deferred),
     };
-    let right = match StorePhysicalSecurityMetadataCanonicalBasis::from_metadata(right) {
+    let right = match StoreSecurityMetadataCanonicalBasis::from_metadata(right) {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => return TransitionOutcome::denied(denial),
         TransitionOutcome::Deferred(deferred) => return TransitionOutcome::deferred(deferred),
@@ -74,8 +74,8 @@ pub fn compare_store_physical_security_metadata(
     TransitionOutcome::success(compare_canonical_basis(&comparison))
 }
 
-fn physical_metadata_canonical_entries(
-    metadata: StorePhysicalSecurityMetadataCarrier,
+fn security_metadata_canonical_entries(
+    metadata: StoreSecurityMetadata,
 ) -> [CanonicalBasisEntry; 7] {
     [
         canonical_u64_entry("key_scope", key_scope_tag(metadata.key_scope())),

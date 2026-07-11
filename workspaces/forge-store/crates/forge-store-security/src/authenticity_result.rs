@@ -1,6 +1,6 @@
 use crate::{
-    StoreAuthenticityCheckCounterSnapshot, StoreAuthenticityPhysicalIdentity,
-    StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreSecurityScopeIdentity,
+    StoreAuthenticityCheckCounterSnapshot, StoreAuthenticityRequirement,
+    StoreAuthenticityRequirementClass, StoreSecurityScopeIdentity,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,19 +9,19 @@ pub enum StoreAuthenticityResultKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreAuthenticityResult {
+pub struct StoreAuthenticityResult<I> {
     kind: StoreAuthenticityResultKind,
     requirement: StoreAuthenticityRequirement,
     scope_identity: StoreSecurityScopeIdentity,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: I,
     counters: StoreAuthenticityCheckCounterSnapshot,
 }
 
-impl StoreAuthenticityResult {
+impl<I> StoreAuthenticityResult<I> {
     pub(crate) const fn verified(
         requirement: StoreAuthenticityRequirement,
         scope_identity: StoreSecurityScopeIdentity,
-        physical_identity: StoreAuthenticityPhysicalIdentity,
+        physical_identity: I,
         counters: StoreAuthenticityCheckCounterSnapshot,
     ) -> Self {
         Self {
@@ -49,7 +49,10 @@ impl StoreAuthenticityResult {
         self.scope_identity
     }
 
-    pub const fn physical_identity(&self) -> StoreAuthenticityPhysicalIdentity {
+    pub const fn physical_identity(&self) -> I
+    where
+        I: Copy,
+    {
         self.physical_identity
     }
 

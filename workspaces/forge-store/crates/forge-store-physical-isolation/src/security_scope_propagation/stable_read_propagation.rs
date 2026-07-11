@@ -1,8 +1,7 @@
 use forge_proof::TransitionOutcome;
 use forge_store_security::{
-    deny_stale_store_security_scope, propagate_store_security_scope,
-    StorePhysicalSecurityMetadataCarrier, StoreSecurityScopePropagationSite,
-    StoreSecurityScopePropagationWitness,
+    deny_stale_store_security_scope, propagate_store_security_scope, StoreSecurityMetadata,
+    StoreSecurityScopePropagationSite, StoreSecurityScopePropagationWitness,
 };
 
 use super::{
@@ -72,7 +71,7 @@ impl StableReadSecurityScopePropagation {
         ))
     }
 
-    pub const fn metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn metadata(self) -> StoreSecurityMetadata {
         self.witness.metadata()
     }
 

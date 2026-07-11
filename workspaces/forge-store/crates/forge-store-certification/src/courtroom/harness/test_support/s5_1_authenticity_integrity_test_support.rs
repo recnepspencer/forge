@@ -11,7 +11,7 @@ use forge_store_aspect_native::{
 };
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use forge_store_physical_format::PhysicalFrameKind;
+use forge_store_physical_format::{PhysicalAuthenticityIdentity, PhysicalFrameKind};
 use forge_store_physical_integrity::{
     AuthenticityPolicyDecodeCounters, AuthenticityPolicyPhysicalDecodeGate,
     DeclaredPhysicalChecksum, LogicalDecodeGateIdentity, PhysicalIntegrityAdmissionRequest,
@@ -20,7 +20,7 @@ use forge_store_physical_integrity::{
 use forge_store_security::{
     admit_store_authenticity_witness_observation, admit_store_security_scope,
     StoreAdmittedSecurityScope, StoreAuthenticityCheck, StoreAuthenticityCheckDenialKind,
-    StoreAuthenticityPhysicalIdentity, StoreAuthenticityRequirement, StoreAuthenticityWitnessInput,
+    StoreAuthenticityRequirement, StoreAuthenticityWitnessInput,
     StoreAuthenticityWitnessObservationDeclaration, StoreCurrentAuthenticityScopeWitness,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
@@ -128,9 +128,9 @@ pub(crate) fn policy_lane_observation(
 
 fn policy_witness(
     scope: &StoreCurrentAuthenticityScopeWitness,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: PhysicalAuthenticityIdentity,
     posture: PolicyWitnessPosture,
-) -> StoreAuthenticityWitnessInput {
+) -> StoreAuthenticityWitnessInput<PhysicalAuthenticityIdentity> {
     match posture {
         PolicyWitnessPosture::Verified => admit_store_authenticity_witness_observation(
             scope,
@@ -143,8 +143,8 @@ fn policy_witness(
 
 fn authenticity_physical_identity(
     identity: &LogicalDecodeGateIdentity,
-) -> StoreAuthenticityPhysicalIdentity {
-    StoreAuthenticityPhysicalIdentity::new(
+) -> PhysicalAuthenticityIdentity {
+    PhysicalAuthenticityIdentity::new(
         identity.header_kind(),
         identity.locality(),
         identity.checked_byte_count(),

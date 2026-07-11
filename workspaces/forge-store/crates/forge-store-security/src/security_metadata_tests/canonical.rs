@@ -2,10 +2,9 @@ use forge_foundational::canonicalization_api::lower_lane::comparison::CanonicalC
 use forge_proof::TransitionOutcome;
 
 use crate::{
-    admit_store_security_scope, compare_store_physical_security_metadata,
-    StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
-    StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier, StoreSecurityScopeAdmissionExpectation,
+    admit_store_security_scope, compare_store_security_metadata, StoreAuthenticityRequirement,
+    StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreLegacySecurityPosture, StoreSecurityMetadata, StoreSecurityScopeAdmissionExpectation,
     StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
@@ -142,7 +141,7 @@ fn metadata_with(
     custody_posture: StoreCustodyPosture,
     legacy_posture: StoreLegacySecurityPosture,
     key_version_posture: StoreKeyVersionPosture,
-) -> StorePhysicalSecurityMetadataCarrier {
+) -> StoreSecurityMetadata {
     let authority = current_authority("s51.phase3.canonical", label);
     let expectation = StoreSecurityScopeAdmissionExpectation::new(
         key_scope,
@@ -164,29 +163,23 @@ fn metadata_with(
         outcome => panic!("custom metadata scope should admit: {outcome:?}"),
     };
     let witnesses = admitted.into_witnesses_for_readiness_handoff();
-    StorePhysicalSecurityMetadataCarrier::from_current_security_scope(
+    StoreSecurityMetadata::from_current_security_scope(
         &witnesses,
         key_version_posture,
         legacy_posture,
     )
 }
 
-fn assert_canonical_equivalent(
-    left: StorePhysicalSecurityMetadataCarrier,
-    right: StorePhysicalSecurityMetadataCarrier,
-) {
+fn assert_canonical_equivalent(left: StoreSecurityMetadata, right: StoreSecurityMetadata) {
     assert!(matches!(
-        compare_store_physical_security_metadata(left, right),
+        compare_store_security_metadata(left, right),
         TransitionOutcome::Success(CanonicalComparisonOutcome::Equivalent(_))
     ));
 }
 
-fn assert_canonical_mismatch(
-    left: StorePhysicalSecurityMetadataCarrier,
-    right: StorePhysicalSecurityMetadataCarrier,
-) {
+fn assert_canonical_mismatch(left: StoreSecurityMetadata, right: StoreSecurityMetadata) {
     assert!(matches!(
-        compare_store_physical_security_metadata(left, right),
+        compare_store_security_metadata(left, right),
         TransitionOutcome::Success(CanonicalComparisonOutcome::Mismatched(_))
     ));
 }

@@ -1,5 +1,6 @@
 use forge_store_physical_certification::{
-    materialize_s7_closeout_evidence, S7ExecutedCloseoutSources, S7MaterializedCloseoutEvidenceBundle,
+    materialize_s7_closeout_evidence, S7ExecutedCloseoutSources,
+    S7MaterializedCloseoutEvidenceBundle,
 };
 use forge_store_readiness::S6ClosedS7PlacementAdmissionSeed;
 
@@ -17,12 +18,22 @@ pub struct S7CloseoutCertificationInput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum S7CloseoutShortcutInput {
     CopiedReceipt,
-    CopiedChunkRows { row_count: usize },
-    CopiedProofId { proof_id: String },
-    S6PlacementReadinessOnly { seed: S6ClosedS7PlacementAdmissionSeed },
-    S5FutureChunkPlaceholderOnly { label: String },
+    CopiedChunkRows {
+        row_count: usize,
+    },
+    CopiedProofId {
+        proof_id: String,
+    },
+    S6PlacementReadinessOnly {
+        seed: S6ClosedS7PlacementAdmissionSeed,
+    },
+    S5FutureChunkPlaceholderOnly {
+        label: String,
+    },
     TerminalProjectionOnly,
-    RawCountersOnly { row_count: usize },
+    RawCountersOnly {
+        row_count: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

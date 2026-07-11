@@ -6,6 +6,3 @@ pub mod repair_blast_radius_family;
 pub mod scope_partition_basis;
 pub mod security_layout_closeout;
 pub mod tenant_scope_family;
-
-#[cfg(test)]
-mod tests;

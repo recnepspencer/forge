@@ -1,7 +1,7 @@
-use forge_store_physical_format::{PhysicalGenerationOwner, PhysicalHeaderKind};
+use crate::{PhysicalGenerationOwner, PhysicalHeaderKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreAuthenticityPhysicalIdentity {
+pub struct PhysicalAuthenticityIdentity {
     header_kind: PhysicalHeaderKind,
     locality: PhysicalGenerationOwner,
     checked_byte_count: u64,
@@ -9,7 +9,7 @@ pub struct StoreAuthenticityPhysicalIdentity {
     checksum_algorithm: &'static str,
 }
 
-impl StoreAuthenticityPhysicalIdentity {
+impl PhysicalAuthenticityIdentity {
     pub const fn new(
         header_kind: PhysicalHeaderKind,
         locality: PhysicalGenerationOwner,

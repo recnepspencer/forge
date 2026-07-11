@@ -103,7 +103,7 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
         },
         CompileFailFixture {
             name: "physical_security_metadata_carrier_cannot_be_struct_literal.rs",
-            expected_stderr: &["StorePhysicalSecurityMetadataCarrier", "private"],
+            expected_stderr: &["StoreSecurityMetadata", "private"],
         },
         CompileFailFixture {
             name: "physical_security_metadata_envelope_cannot_be_struct_literal.rs",
@@ -117,22 +117,19 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
             name: "terminal_physical_metadata_projection_cannot_satisfy_admitted_scope.rs",
             expected_stderr: &[
                 "StoreAdmittedSecurityScope",
-                "StoreRawPhysicalSecurityMetadataProjection",
+                "StoreRawSecurityMetadataProjection",
             ],
         },
         CompileFailFixture {
             name: "serde_loaded_physical_metadata_projection_cannot_satisfy_admitted_scope.rs",
             expected_stderr: &[
                 "StoreAdmittedSecurityScope",
-                "StoreRawPhysicalSecurityMetadataProjection",
+                "StoreRawSecurityMetadataProjection",
             ],
         },
         CompileFailFixture {
             name: "authenticity_result_cannot_satisfy_physical_security_metadata.rs",
-            expected_stderr: &[
-                "StorePhysicalSecurityMetadataCarrier",
-                "StoreAuthenticityResult",
-            ],
+            expected_stderr: &["StoreSecurityMetadata", "StoreAuthenticityResult"],
         },
         CompileFailFixture {
             name: "authenticity_result_cannot_be_struct_literal.rs",

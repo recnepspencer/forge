@@ -1,8 +1,9 @@
+use forge_store_physical_format::PhysicalAuthenticityIdentity;
 use forge_store_security::{StoreAuthenticityRequirement, StoreAuthenticityResult};
 
 fn require_authenticity_requirement(_: StoreAuthenticityRequirement) {}
 
 fn main() {
-    let result: StoreAuthenticityResult = todo!();
+    let result: StoreAuthenticityResult<PhysicalAuthenticityIdentity> = todo!();
     require_authenticity_requirement(result);
 }

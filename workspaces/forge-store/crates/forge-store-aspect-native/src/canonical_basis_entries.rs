@@ -1,24 +1,16 @@
 use forge_foundational::canonicalization_api::lower_lane::basis::{
     CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus,
-    CanonicalBasisValue, CanonicalIntegerWidth,
+    CanonicalBasisValue,
 };
 use forge_foundational::InternedString;
 use forge_store_contracts::PhysicalAuthorityScope;
-use forge_store_physical_format::{
-    PhysicalCellReuseDomain, PhysicalHeaderDecodeWitness, PhysicalHeaderKind,
-    PhysicalPublicationState,
-};
 
 use crate::StorePhysicalBoundaryWitness;
 
-const PAGE_HEADER_DOMAIN: CanonicalBasisDomain =
-    CanonicalBasisDomain::Future("store.physical.page.header");
 const ASPECT_BOUNDARY_DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("store.aspect.boundary.fact");
 const ASPECT_PATCH_DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("store.aspect.patch.boundary.fact");
-const PAGE_HEADER_FIELD_KIND: CanonicalBasisEntryKind =
-    CanonicalBasisEntryKind::Future("store-page-header-field");
 const ASPECT_BOUNDARY_FIELD_KIND: CanonicalBasisEntryKind =
     CanonicalBasisEntryKind::Future("store-aspect-boundary-field");
 const ASPECT_PATCH_FIELD_KIND: CanonicalBasisEntryKind =
@@ -52,124 +44,6 @@ pub fn aspect_patch_entries(
         foundational_entries,
         boundary_witness,
     )
-}
-
-pub fn page_header_entries(
-    header: PhysicalHeaderDecodeWitness,
-    boundary_witness: StorePhysicalBoundaryWitness,
-) -> Vec<CanonicalBasisEntry> {
-    let owner = header.owner();
-    let mut entries = vec![
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "source.kind",
-            "store-page-header",
-        ),
-        u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "header.kind.tag",
-            u64::from(header.kind().tag()),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "header.kind",
-            header_kind_token(header.kind()),
-        ),
-        u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "payload.offset",
-            header.payload_offset() as u64,
-        ),
-        u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "payload.length",
-            u64::from(header.payload_length()),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "publication",
-            publication_token(header.publication()),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.domain",
-            owner_domain_token(owner.domain()),
-        ),
-        u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.generation",
-            owner.generation().get(),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PHYSICAL_BOUNDARY_WITNESS_KIND,
-            "boundary.authority.scope",
-            authority_scope_token(boundary_witness.authority().authority_scope()),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PHYSICAL_BOUNDARY_WITNESS_KIND,
-            "boundary.roadmap",
-            boundary_witness.authority().roadmap_scope().roadmap(),
-        ),
-        text_entry(
-            PAGE_HEADER_DOMAIN,
-            PHYSICAL_BOUNDARY_WITNESS_KIND,
-            "boundary.sequence",
-            boundary_witness.authority().roadmap_scope().sequence(),
-        ),
-    ];
-
-    if let Some(segment) = owner.segment_id() {
-        entries.push(u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.segment",
-            segment.get(),
-        ));
-    }
-    if let Some(page) = owner.page_id() {
-        entries.push(u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.page",
-            page.get(),
-        ));
-    }
-    if let Some(extent) = owner.extent_id() {
-        entries.push(u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.extent",
-            extent.get(),
-        ));
-    }
-    if let Some(slot) = owner.slot() {
-        entries.push(u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.slot",
-            u64::from(slot.get()),
-        ));
-    }
-    if let Some(root) = owner.root_reference() {
-        entries.push(u64_entry(
-            PAGE_HEADER_DOMAIN,
-            PAGE_HEADER_FIELD_KIND,
-            "owner.root",
-            root.get(),
-        ));
-    }
-
-    entries
 }
 
 fn store_boundary_entries(
@@ -281,56 +155,6 @@ fn text_entry(
         kind,
         CanonicalBasisValue::ExactText(value.into()),
     )
-}
-
-fn u64_entry(
-    domain: CanonicalBasisDomain,
-    kind: CanonicalBasisEntryKind,
-    locus: impl Into<InternedString>,
-    value: u64,
-) -> CanonicalBasisEntry {
-    CanonicalBasisEntry::new(
-        domain,
-        CanonicalBasisLocus::Named(locus.into()),
-        kind,
-        CanonicalBasisValue::UnsignedInteger {
-            width: CanonicalIntegerWidth::Bits64,
-            value: u128::from(value),
-        },
-    )
-}
-
-fn header_kind_token(kind: PhysicalHeaderKind) -> &'static str {
-    match kind {
-        PhysicalHeaderKind::Page(page) => match page {
-            forge_store_physical_format::PhysicalPageKind::DataPage => "page.data",
-            forge_store_physical_format::PhysicalPageKind::ManifestPage => "page.manifest",
-        },
-        PhysicalHeaderKind::Frame(frame) => match frame {
-            forge_store_physical_format::PhysicalFrameKind::RecordFrame => "frame.record",
-            forge_store_physical_format::PhysicalFrameKind::ExtentRecordFrame => {
-                "frame.extent-record"
-            }
-        },
-    }
-}
-
-fn publication_token(publication: PhysicalPublicationState) -> &'static str {
-    match publication {
-        PhysicalPublicationState::Unpublished => "unpublished",
-        PhysicalPublicationState::Published => "published",
-    }
-}
-
-fn owner_domain_token(domain: PhysicalCellReuseDomain) -> &'static str {
-    match domain {
-        PhysicalCellReuseDomain::SlotAllocation => "slot-allocation",
-        PhysicalCellReuseDomain::ExtentAllocation => "extent-allocation",
-        PhysicalCellReuseDomain::FreeSpaceReuse => "free-space-reuse",
-        PhysicalCellReuseDomain::RootPublication => "root-publication",
-        PhysicalCellReuseDomain::Page => "page",
-        PhysicalCellReuseDomain::Segment => "segment",
-    }
 }
 
 fn authority_scope_token(scope: PhysicalAuthorityScope) -> &'static str {

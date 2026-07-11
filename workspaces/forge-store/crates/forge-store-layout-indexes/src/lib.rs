@@ -41,6 +41,8 @@ mod phase28_rules;
 mod physical_format_layout_access;
 mod planning;
 mod production_transition;
+#[cfg(test)]
+mod security_scope_projection_tests;
 mod skeleton;
 mod strategy;
 mod strategy_registry;

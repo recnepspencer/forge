@@ -20,7 +20,7 @@ use forge_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalDecodedHeader, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageHeader, PhysicalPageId,
     PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
-    PhysicalSecurityScopePropagationDenialKind, PhysicalSegmentId, SegmentPageManifestEntry,
+    PhysicalSecurityMetadataEnvelope, PhysicalSegmentId, SegmentPageManifestEntry,
     PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_physical_isolation::{
@@ -30,8 +30,8 @@ use forge_store_physical_isolation::{
 use forge_store_security::{
     admit_store_security_scope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier, StorePhysicalSecurityMetadataEnvelope,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+    StoreSecurityMetadata, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeAdmissionRequest, StoreSecurityScopePropagationDenialKind, StoreTenantScope,
 };
 
 #[test]
@@ -87,7 +87,7 @@ fn stale_propagated_scope_is_physical_security_denial_before_logical_decode() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.store_denial().kind(),
-                PhysicalSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
+                StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
             );
             assert_eq!(denial.store_denial().counters().stale(), 1);
         }
@@ -114,7 +114,7 @@ fn security_scope_drift_between_page_header_and_manifest_denies_before_logical_d
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.store_denial().kind(),
-                PhysicalSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
+                StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
             );
             assert_eq!(denial.store_denial().counters().drifted(), 1);
         }
@@ -136,21 +136,21 @@ fn stable_read_handle() -> forge_store_physical_isolation::StablePhysicalReadHan
     .into_execution_ready_handle()
 }
 
-fn platform_page_metadata(identity: &str) -> StorePhysicalSecurityMetadataCarrier {
+fn platform_page_metadata(identity: &str) -> StoreSecurityMetadata {
     platform_page_metadata_with_key_version(identity, StoreKeyVersionPosture::Current)
 }
 
 fn stable_read_scope_input(
     handle: &forge_store_physical_isolation::StablePhysicalReadHandle,
-    page_metadata: StorePhysicalSecurityMetadataCarrier,
-    manifest_metadata: StorePhysicalSecurityMetadataCarrier,
+    page_metadata: StoreSecurityMetadata,
+    manifest_metadata: StoreSecurityMetadata,
 ) -> StableReadSecurityScopePropagationInput {
     let generation = stable_read_reference().generation().get();
-    let page = StorePhysicalSecurityMetadataEnvelope::page_header(
+    let page = PhysicalSecurityMetadataEnvelope::page_header(
         decoded_page_header(generation),
         page_metadata,
     );
-    let manifest = StorePhysicalSecurityMetadataEnvelope::segment_page_manifest_entry(
+    let manifest = PhysicalSecurityMetadataEnvelope::segment_page_manifest_entry(
         segment_page_entry(generation),
         manifest_metadata,
     );
@@ -234,7 +234,7 @@ fn generation(value: u64) -> PhysicalGeneration {
 fn platform_page_metadata_with_key_version(
     identity: &str,
     key_version: StoreKeyVersionPosture,
-) -> StorePhysicalSecurityMetadataCarrier {
+) -> StoreSecurityMetadata {
     let authority = current_authority(identity, "platform-page");
     let admitted = match admit_store_security_scope(
         StoreSecurityScopeAdmissionRequest::platform_page_envelope(
@@ -246,7 +246,7 @@ fn platform_page_metadata_with_key_version(
         TransitionOutcome::Success(admitted) => admitted,
         other => panic!("platform page scope should admit: {other:?}"),
     };
-    StorePhysicalSecurityMetadataCarrier::for_page_header(
+    StoreSecurityMetadata::from_current_security_scope(
         admitted.witnesses(),
         key_version,
         StoreLegacySecurityPosture::NativeScoped,
@@ -256,7 +256,7 @@ fn platform_page_metadata_with_key_version(
 fn platform_page_metadata_with_tenant(
     identity: &str,
     tenant_scope: StoreTenantScope,
-) -> StorePhysicalSecurityMetadataCarrier {
+) -> StoreSecurityMetadata {
     let authority = current_authority(identity, "platform-page");
     let admitted = match admit_store_security_scope(StoreSecurityScopeAdmissionRequest::new(
         &authority,
@@ -279,7 +279,7 @@ fn platform_page_metadata_with_tenant(
         TransitionOutcome::Success(admitted) => admitted,
         other => panic!("platform page scope should admit: {other:?}"),
     };
-    StorePhysicalSecurityMetadataCarrier::for_page_header(
+    StoreSecurityMetadata::from_current_security_scope(
         admitted.witnesses(),
         StoreKeyVersionPosture::Current,
         StoreLegacySecurityPosture::NativeScoped,

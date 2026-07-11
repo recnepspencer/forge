@@ -5,21 +5,22 @@ mod authenticity_check;
 mod authenticity_check_tests;
 mod authenticity_counters;
 mod authenticity_denial;
-mod authenticity_physical_identity;
 mod authenticity_result;
 mod authenticity_vocabulary;
 mod authenticity_witness;
 mod authority_source;
 pub mod layout_access;
-mod physical_security_metadata;
-mod physical_security_metadata_canonical;
-#[cfg(test)]
-mod physical_security_metadata_tests;
 mod raw_security_declarations;
 mod repair_blast_radius;
 mod s5_1_later_milestone_handoff;
 mod s5_1_security_scope_readiness;
 mod scope_vocabulary;
+#[cfg(test)]
+mod security_authority_source_tests;
+mod security_metadata;
+mod security_metadata_canonical;
+#[cfg(test)]
+mod security_metadata_tests;
 mod security_scope_admission;
 mod security_scope_admission_basis;
 mod security_scope_admission_denial;
@@ -56,7 +57,6 @@ pub use authenticity_check::{
 };
 pub use authenticity_counters::StoreAuthenticityCheckCounterSnapshot;
 pub use authenticity_denial::{StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind};
-pub use authenticity_physical_identity::StoreAuthenticityPhysicalIdentity;
 pub use authenticity_result::{StoreAuthenticityResult, StoreAuthenticityResultKind};
 pub use authenticity_vocabulary::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
@@ -95,17 +95,6 @@ pub use layout_access::{
     },
     tenant_scope_family::TenantScopeLayoutReport,
 };
-pub use physical_security_metadata::{
-    admit_store_physical_security_metadata, StoreAllocationClassSecurityMetadataEnvelope,
-    StoreExtentSecurityMetadataEnvelope, StoreFreeSpaceSecurityMetadataEnvelope,
-    StorePhysicalSecurityMetadataAdmissionInput, StorePhysicalSecurityMetadataCarrier,
-    StorePhysicalSecurityMetadataEnvelope, StoreRawPhysicalSecurityMetadataDeclaration,
-    StoreRawPhysicalSecurityMetadataProjection, StoreSegmentPageSecurityMetadataEnvelope,
-    StoreSegmentSecurityMetadataEnvelope,
-};
-pub use physical_security_metadata_canonical::{
-    compare_store_physical_security_metadata, StorePhysicalSecurityMetadataCanonicalBasis,
-};
 pub use raw_security_declarations::{
     evaluate_deserialized_security_scope_readmission,
     readmit_deserialized_security_scope_declaration, StoreApplicationOrgIdClaim, StoreIamRoleClaim,
@@ -128,6 +117,15 @@ pub use s5_1_security_scope_readiness::{
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
     StoreTenantScope,
+};
+pub use security_metadata::{
+    admit_store_security_metadata, StoreRawSecurityMetadataDeclaration,
+    StoreRawSecurityMetadataProjection, StoreSecurityMetadata,
+    StoreSecurityMetadataAdmissionDenial, StoreSecurityMetadataAdmissionInput,
+    StoreSecurityMetadataProjectionSource,
+};
+pub use security_metadata_canonical::{
+    compare_store_security_metadata, StoreSecurityMetadataCanonicalBasis,
 };
 pub use security_scope_admission::{
     admission_counter_snapshot, admit_store_security_scope,
@@ -153,8 +151,8 @@ pub use security_scope_propagation::{
     deny_drifted_store_security_scope, deny_missing_store_security_scope,
     deny_stale_store_security_scope, propagate_store_security_scope,
     StoreSecurityScopePropagationCounters, StoreSecurityScopePropagationDenial,
-    StoreSecurityScopePropagationOutcome, StoreSecurityScopePropagationSite,
-    StoreSecurityScopePropagationWitness,
+    StoreSecurityScopePropagationDenialKind, StoreSecurityScopePropagationOutcome,
+    StoreSecurityScopePropagationSite, StoreSecurityScopePropagationWitness,
 };
 pub use security_scope_receipt::{
     StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeAdmissionReceiptId,

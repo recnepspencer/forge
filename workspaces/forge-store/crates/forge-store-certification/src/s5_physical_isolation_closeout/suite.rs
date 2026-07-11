@@ -1,9 +1,9 @@
 use super::S5CloseoutReservationSet;
+use crate::s6::verify_executed_closeout_handoff_admissible;
 use crate::{
     s5_physical_isolation_required_mutation_rows, S5ExecutedIsolationEvidenceBundle,
     S5PhysicalIsolationMutationEvidence, S6IoQosReadinessHandoffMaterializationDenial,
 };
-use crate::s6::verify_executed_closeout_handoff_admissible;
 use forge_store_physical_certification::{
     CertifiedPhysicalScenario, CoverageSurfaceKind, GeneratedCoverageMatrix,
     MutationValidationPosture, OracleFamilyKind, PhysicalCertificationEvidenceBundle,

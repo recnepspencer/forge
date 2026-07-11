@@ -7,36 +7,28 @@ use forge_store_aspect_native::{
     StorePhysicalBoundaryWitness,
 };
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-
-use crate::{
-    classify_app_org_id_as_security_scope_source, classify_iam_role_as_security_scope_source,
-    classify_identity_provider_claim_as_security_scope_source,
-    classify_kms_key_id_as_security_scope_source,
-    classify_operator_identity_as_security_scope_source,
-    layout_access::{
-        phase27_lookup_rule::SecurityCustodyLookupAccessShape,
-        repair_blast_radius_family::RepairBlastRadiusAuthorityPosture,
-    },
-    security_scope_test_authority::{
-        admitted_tenant_page_export_prepared_scope_for_layout_access_test,
-        admitted_tenant_page_security_scope_for_layout_access_test,
-    },
-    AdmittedAuthenticityLayoutRule, AdmittedCustodyLayoutRule, AdmittedKeyScopeLayoutRule,
-    AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
+use forge_store_contracts::{
+    DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+};
+use forge_store_security::{
+    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
+    RepairBlastRadiusAuthorityPosture, SecurityCustodyLookupAccessShape,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness, StoreTenantScope,
 };
 
-#[test]
-fn security_layout_reports_preserve_s51_posture_on_real_admission_path() {
-    let admitted = admitted_tenant_page_export_prepared_scope_for_layout_access_test();
+use crate::{
+    phase27_authenticity_rule, phase27_custody_rule, phase27_key_scope_rule,
+    phase27_repair_blast_radius_rule, phase27_tenant_scope_rule,
+};
 
-    let tenant = admitted.admit_tenant_scope_layout(&tenant_rule());
-    let key = admitted.admit_key_scope_layout(&key_rule());
-    let authenticity = admitted.admit_authenticity_layout(&authenticity_rule());
-    let custody = admitted.admit_custody_layout(&custody_rule());
+#[test]
+fn security_scope_projection_preserves_admitted_scope_and_access_shape() {
+    let admitted = admitted_tenant_page_export_prepared_scope_for_layout_access_test();
+    let tenant = admitted.admit_tenant_scope_layout(&phase27_tenant_scope_rule().unwrap());
+    let key = admitted.admit_key_scope_layout(&phase27_key_scope_rule().unwrap());
+    let authenticity = admitted.admit_authenticity_layout(&phase27_authenticity_rule().unwrap());
+    let custody = admitted.admit_custody_layout(&phase27_custody_rule().unwrap());
 
     assert_eq!(
         tenant.tenant_scope(),
@@ -63,47 +55,9 @@ fn security_layout_reports_preserve_s51_posture_on_real_admission_path() {
 }
 
 #[test]
-fn security_layout_reports_deny_identity_provider_and_adjacent_strings_as_authority() {
-    let admitted = admitted_tenant_page_security_scope_for_layout_access_test();
-    let tenant = admitted.admit_tenant_scope_layout(&tenant_rule());
-    let key = admitted.admit_key_scope_layout(&key_rule());
-    let custody = admitted.admit_custody_layout(&custody_rule());
-    let repair = admitted_repair_region().admit_repair_blast_radius_layout(&repair_rule());
-
-    assert_eq!(
-        tenant
-            .deny_authority_source(classify_identity_provider_claim_as_security_scope_source())
-            .kind(),
-        crate::StoreSecurityScopeDenialKind::JwtSubjectIsNotTenantScope
-    );
-    assert_eq!(
-        tenant
-            .deny_authority_source(classify_app_org_id_as_security_scope_source())
-            .kind(),
-        crate::StoreSecurityScopeDenialKind::ApplicationOrgIdIsNotTenantScope
-    );
-    assert_eq!(
-        key.deny_authority_source(classify_kms_key_id_as_security_scope_source())
-            .kind(),
-        crate::StoreSecurityScopeDenialKind::KmsKeyIdIsNotKeyScope
-    );
-    assert_eq!(
-        custody
-            .deny_authority_source(classify_iam_role_as_security_scope_source())
-            .kind(),
-        crate::StoreSecurityScopeDenialKind::IamRoleIsNotCustodyPosture
-    );
-    assert_eq!(
-        repair
-            .deny_authority_source(classify_operator_identity_as_security_scope_source())
-            .kind(),
-        crate::StoreSecurityScopeDenialKind::OperatorIdentityIsNotRepairAuthority
-    );
-}
-
-#[test]
-fn repair_blast_radius_layout_stays_readiness_only() {
-    let report = admitted_repair_region().admit_repair_blast_radius_layout(&repair_rule());
+fn repair_blast_radius_projection_stays_readiness_only() {
+    let report = admitted_repair_region()
+        .admit_repair_blast_radius_layout(&phase27_repair_blast_radius_rule().unwrap());
 
     assert_eq!(
         report.authority_posture(),
@@ -124,28 +78,8 @@ fn repair_blast_radius_layout_stays_readiness_only() {
     assert_eq!(report.exact_counters().requests(), 1);
 }
 
-const fn tenant_rule() -> AdmittedTenantScopeLayoutRule {
-    AdmittedTenantScopeLayoutRule::internal_phase27()
-}
-
-const fn key_rule() -> AdmittedKeyScopeLayoutRule {
-    AdmittedKeyScopeLayoutRule::internal_phase27()
-}
-
-const fn authenticity_rule() -> AdmittedAuthenticityLayoutRule {
-    AdmittedAuthenticityLayoutRule::internal_phase27()
-}
-
-const fn custody_rule() -> AdmittedCustodyLayoutRule {
-    AdmittedCustodyLayoutRule::internal_phase27()
-}
-
-const fn repair_rule() -> AdmittedRepairBlastRadiusLayoutRule {
-    AdmittedRepairBlastRadiusLayoutRule::internal_phase27()
-}
-
 fn admitted_repair_region() -> StoreRepairPhysicalRegionWitness {
-    let authority = current_authority("store.s8.phase27.repair", "repair-region");
+    let authority = current_authority("store.security.repair", "repair-region");
     match StoreRepairPhysicalRegionWitness::admit_native(
         &authority,
         StoreRepairPhysicalRegionDeclaration::raw("region-001"),
@@ -164,7 +98,7 @@ fn current_authority(identity_key: &str, value: &str) -> StoreCurrentAuthorityWi
 }
 
 fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
-    let key = aspect_key(identity_key);
+    let key = aspects().vocabulary().key(identity_key).unwrap();
     let contract = scalar_string_contract(key.clone());
     let admitted_state = match aspects()
         .authoritative_state()
@@ -173,16 +107,11 @@ fn boundary_fact(identity_key: &str, value: &str) -> StoreAspectBoundaryFact {
         TransitionOutcome::Success(state) => state,
         outcome => panic!("state admission should succeed: {outcome:?}"),
     };
-
     StoreAspectBoundaryFact::from_admitted_state(
         StoreAspectIdentity::from_aspect_key(key),
         StoreAspectAuthorityInput::new(admitted_state, physical_witness()),
     )
-    .expect("Store boundary fact should admit matching identity")
-}
-
-fn aspect_key(raw: &str) -> AspectKey {
-    aspects().vocabulary().key(raw).unwrap()
+    .expect("matching Store boundary fact should admit")
 }
 
 fn scalar_string_contract(aspect_key: AspectKey) -> AspectContract {

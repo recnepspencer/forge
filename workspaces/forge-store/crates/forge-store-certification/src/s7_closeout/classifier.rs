@@ -17,8 +17,8 @@ pub(crate) fn classify_s7_closeout_request(
             }
             Ok(ClassifiedS7CloseoutRequest { input })
         }
-        S7CloseoutRequest::Shortcut(shortcut) => {
-            Err(S7CloseoutDenial::ShortcutRejected(shortcut_rejection(&shortcut)))
-        }
+        S7CloseoutRequest::Shortcut(shortcut) => Err(S7CloseoutDenial::ShortcutRejected(
+            shortcut_rejection(&shortcut),
+        )),
     }
 }

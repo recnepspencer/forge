@@ -7,12 +7,12 @@ use forge_store_physical_integrity::{
 };
 
 use crate::chunk_integrity_without_blob_lifecycle_tests::inspect_unknown_chunk_denial;
+use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
+    inspect_page_denial, inspect_page_report, page_payload_with_record,
+};
 use crate::derived_index_damage_tests::{
     inspect_damaged_derived_index_with_authority, inspect_intact_derived_index_with_authority,
     inspect_with_damaged_authority, inspect_without_authority_basis,
-};
-use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
-    inspect_page_denial, inspect_page_report, page_payload_with_record,
 };
 
 #[test]

@@ -1,6 +1,6 @@
 use forge_store_security::{
     StoreAdmittedSecurityScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier,
+    StoreSecurityMetadata,
 };
 use forge_store_wal::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
@@ -50,7 +50,7 @@ impl RecoveryCheckpointRecordSecurityMetadataIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryWalRecordSecurityMetadataEnvelope {
     identity: RecoveryWalRecordSecurityMetadataIdentity,
-    security_metadata: StorePhysicalSecurityMetadataCarrier,
+    security_metadata: StoreSecurityMetadata,
 }
 
 impl RecoveryWalRecordSecurityMetadataEnvelope {
@@ -69,7 +69,7 @@ impl RecoveryWalRecordSecurityMetadataEnvelope {
     ) -> Self {
         Self::new(
             identity,
-            StorePhysicalSecurityMetadataCarrier::from_current_security_scope(
+            StoreSecurityMetadata::from_current_security_scope(
                 admitted_scope.witnesses(),
                 key_version_posture,
                 legacy_posture,
@@ -79,7 +79,7 @@ impl RecoveryWalRecordSecurityMetadataEnvelope {
 
     const fn new(
         identity: RecoveryWalRecordSecurityMetadataIdentity,
-        security_metadata: StorePhysicalSecurityMetadataCarrier,
+        security_metadata: StoreSecurityMetadata,
     ) -> Self {
         Self {
             identity,
@@ -91,7 +91,7 @@ impl RecoveryWalRecordSecurityMetadataEnvelope {
         self.identity
     }
 
-    pub const fn security_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn security_metadata(&self) -> StoreSecurityMetadata {
         self.security_metadata
     }
 }
@@ -99,7 +99,7 @@ impl RecoveryWalRecordSecurityMetadataEnvelope {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryCheckpointRecordSecurityMetadataEnvelope {
     identity: RecoveryCheckpointRecordSecurityMetadataIdentity,
-    security_metadata: StorePhysicalSecurityMetadataCarrier,
+    security_metadata: StoreSecurityMetadata,
 }
 
 impl RecoveryCheckpointRecordSecurityMetadataEnvelope {
@@ -122,7 +122,7 @@ impl RecoveryCheckpointRecordSecurityMetadataEnvelope {
     ) -> Self {
         Self::new(
             identity,
-            StorePhysicalSecurityMetadataCarrier::from_current_security_scope(
+            StoreSecurityMetadata::from_current_security_scope(
                 admitted_scope.witnesses(),
                 key_version_posture,
                 legacy_posture,
@@ -132,7 +132,7 @@ impl RecoveryCheckpointRecordSecurityMetadataEnvelope {
 
     const fn new(
         identity: RecoveryCheckpointRecordSecurityMetadataIdentity,
-        security_metadata: StorePhysicalSecurityMetadataCarrier,
+        security_metadata: StoreSecurityMetadata,
     ) -> Self {
         Self {
             identity,
@@ -144,7 +144,7 @@ impl RecoveryCheckpointRecordSecurityMetadataEnvelope {
         self.identity
     }
 
-    pub const fn security_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn security_metadata(&self) -> StoreSecurityMetadata {
         self.security_metadata
     }
 }
@@ -152,7 +152,7 @@ impl RecoveryCheckpointRecordSecurityMetadataEnvelope {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryRootSecurityMetadataEnvelope {
     entry_identity: RecoveryEntryIdentity,
-    security_metadata: StorePhysicalSecurityMetadataCarrier,
+    security_metadata: StoreSecurityMetadata,
 }
 
 impl RecoveryRootSecurityMetadataEnvelope {
@@ -164,7 +164,7 @@ impl RecoveryRootSecurityMetadataEnvelope {
     ) -> Self {
         Self::new(
             recovery_entry.entry_identity().clone(),
-            StorePhysicalSecurityMetadataCarrier::for_recovery_root_admission(
+            StoreSecurityMetadata::from_current_security_scope(
                 admitted_scope.witnesses(),
                 key_version_posture,
                 legacy_posture,
@@ -174,7 +174,7 @@ impl RecoveryRootSecurityMetadataEnvelope {
 
     const fn new(
         entry_identity: RecoveryEntryIdentity,
-        security_metadata: StorePhysicalSecurityMetadataCarrier,
+        security_metadata: StoreSecurityMetadata,
     ) -> Self {
         Self {
             entry_identity,
@@ -186,7 +186,7 @@ impl RecoveryRootSecurityMetadataEnvelope {
         &self.entry_identity
     }
 
-    pub const fn security_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn security_metadata(&self) -> StoreSecurityMetadata {
         self.security_metadata
     }
 }
@@ -196,9 +196,9 @@ pub struct RecoverySecurityScopePropagationInput {
     wal_record_identity: RecoveryWalRecordSecurityMetadataIdentity,
     checkpoint_record_identity: RecoveryCheckpointRecordSecurityMetadataIdentity,
     root_artifact_present: bool,
-    wal_metadata: StorePhysicalSecurityMetadataCarrier,
-    checkpoint_metadata: StorePhysicalSecurityMetadataCarrier,
-    root_metadata: StorePhysicalSecurityMetadataCarrier,
+    wal_metadata: StoreSecurityMetadata,
+    checkpoint_metadata: StoreSecurityMetadata,
+    root_metadata: StoreSecurityMetadata,
     entry_identity: RecoveryEntryIdentity,
 }
 
@@ -235,15 +235,15 @@ impl RecoverySecurityScopePropagationInput {
         self.root_artifact_present
     }
 
-    pub const fn wal_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn wal_metadata(&self) -> StoreSecurityMetadata {
         self.wal_metadata
     }
 
-    pub const fn checkpoint_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn checkpoint_metadata(&self) -> StoreSecurityMetadata {
         self.checkpoint_metadata
     }
 
-    pub const fn root_metadata(&self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn root_metadata(&self) -> StoreSecurityMetadata {
         self.root_metadata
     }
 

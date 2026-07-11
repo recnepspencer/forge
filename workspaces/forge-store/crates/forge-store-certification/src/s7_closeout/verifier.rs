@@ -36,5 +36,7 @@ pub(crate) fn verify_s7_closeout_request(
     if !lower.placement_matches_lifecycle_scope() {
         return Err(S7CloseoutDenial::MissingSecurityScopeBinding);
     }
-    Ok(VerifiedS7CloseoutRequest { input: request.input })
+    Ok(VerifiedS7CloseoutRequest {
+        input: request.input,
+    })
 }

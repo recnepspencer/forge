@@ -9,7 +9,6 @@ description = "Aspect-native Forge Store boundary vocabulary over Foundational A
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-contracts.workspace = true
-forge-store-physical-format.workspace = true
 serde_json = "1"
 
 [lints]

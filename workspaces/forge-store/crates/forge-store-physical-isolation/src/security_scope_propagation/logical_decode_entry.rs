@@ -1,6 +1,4 @@
-use forge_store_security::{
-    StorePhysicalSecurityMetadataCarrier, StoreSecurityScopePropagationWitness,
-};
+use forge_store_security::{StoreSecurityMetadata, StoreSecurityScopePropagationWitness};
 
 use super::{StableReadSecurityScopeCarrierBasis, StableReadSecurityScopePropagationCounters};
 use crate::{CurrentPhysicalRoot, PhysicalByteGuardScope, PhysicalReadProtectedFootprintBasis};
@@ -47,7 +45,7 @@ impl LogicalDecodeSecurityScopeEntry {
         self.carrier_basis
     }
 
-    pub const fn metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn metadata(self) -> StoreSecurityMetadata {
         self.witness.metadata()
     }
 

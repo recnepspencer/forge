@@ -184,6 +184,7 @@ mod s4_recovery_entry_admission_tests;
 mod s4_recovery_harness;
 mod s4_recovery_harness_exports;
 #[cfg(test)]
+#[path = "s5_1_authenticity_integrity_separation_tests/mod.rs"]
 mod s5_1_authenticity_integrity_separation_tests;
 #[cfg(test)]
 mod s5_1_blob_chunk_scope_dedupe_tests;

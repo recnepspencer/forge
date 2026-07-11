@@ -43,8 +43,12 @@ impl S7CloseoutShortcutRejectionReport {
         Self { attempt, reason }
     }
 
-    pub const fn attempt(&self) -> S7CloseoutShortcutAttempt { self.attempt }
-    pub const fn reason(&self) -> &'static str { self.reason }
+    pub const fn attempt(&self) -> S7CloseoutShortcutAttempt {
+        self.attempt
+    }
+    pub const fn reason(&self) -> &'static str {
+        self.reason
+    }
 }
 
 pub(crate) fn shortcut_rejection(

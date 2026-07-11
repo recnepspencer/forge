@@ -7,7 +7,6 @@ pub enum StoreCanonicalBasisConstructionDenial {
     Source(StoreCanonicalBasisSourceDenial),
     MissingNativeSource { family: StoreCanonicalBasisFamily },
     ConflictingNativeSources { family: StoreCanonicalBasisFamily },
-    MissingPhysicalWitness { family: StoreCanonicalBasisFamily },
     Foundational(CanonicalBasisConstructionDenial),
 }
 

@@ -1,6 +1,6 @@
 use forge_store_security::{
     StoreCurrentSecurityScopeWitnessSet, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier,
+    StoreSecurityMetadata,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +35,7 @@ impl StoreCheckpointRecordIdentity {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WalSecurityMetadataCarrier {
-    physical_metadata: StorePhysicalSecurityMetadataCarrier,
+    physical_metadata: StoreSecurityMetadata,
 }
 
 impl WalSecurityMetadataCarrier {
@@ -45,7 +45,7 @@ impl WalSecurityMetadataCarrier {
         legacy_posture: StoreLegacySecurityPosture,
     ) -> Self {
         Self {
-            physical_metadata: StorePhysicalSecurityMetadataCarrier::from_current_security_scope(
+            physical_metadata: StoreSecurityMetadata::from_current_security_scope(
                 witnesses,
                 key_version_posture,
                 legacy_posture,
@@ -61,7 +61,7 @@ impl WalSecurityMetadataCarrier {
         Self::for_wal_record(witnesses, key_version_posture, legacy_posture)
     }
 
-    pub const fn physical_metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn physical_metadata(self) -> StoreSecurityMetadata {
         self.physical_metadata
     }
 

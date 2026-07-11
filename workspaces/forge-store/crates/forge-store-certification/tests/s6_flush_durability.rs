@@ -4,8 +4,7 @@ use forge_store_physical_backend::{
     BackendCapabilitySupportPosture, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
     BackendRebindTriggers, BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
     StoreDurabilityAdmission, StoreDurabilityDenialKind, StoreDurabilityRequirement,
-    StoreDurabilityRuntime, StoreDurabilityState, WalDurabilityBarrier,
-    WalDurabilityBarrierSet,
+    StoreDurabilityRuntime, StoreDurabilityState, WalDurabilityBarrier, WalDurabilityBarrierSet,
 };
 use forge_store_recovery_physics::{
     DurabilityReplayKind, DurableCheckpointPublication, DurableManifestPublication,
@@ -30,7 +29,11 @@ fn certification_materializes_checkpoint_durability_without_minting_authority() 
         )
         .backend_accepted();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(&std::env::temp_dir(), b"checkpoint-certification-write", &accepted)
+        .persist_and_execute(
+            &std::env::temp_dir(),
+            b"checkpoint-certification-write",
+            &accepted,
+        )
         .unwrap();
     let receipt = accepted
         .reach_durability_boundary(proof)
@@ -76,7 +79,11 @@ fn certification_materializes_manifest_durability_evidence() {
         )
         .backend_accepted();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(&std::env::temp_dir(), b"manifest-certification-write", &accepted)
+        .persist_and_execute(
+            &std::env::temp_dir(),
+            b"manifest-certification-write",
+            &accepted,
+        )
         .unwrap();
     let receipt = accepted
         .reach_durability_boundary(proof)

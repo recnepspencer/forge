@@ -1,8 +1,8 @@
 use crate::{
-    derived_index_damage_tests::inspect_with_damaged_authority,
     courtroom::harness::test_support::physical_scope_admission_test_support::{
         root_with_slot, scope_membership, validation, with_checked_frame,
     },
+    derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,

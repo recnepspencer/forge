@@ -1,10 +1,8 @@
-use forge_store_physical_format::PhysicalRawSecurityMetadataProjectionSource;
-
 use crate::{
     readmit_deserialized_security_scope_declaration, StoreKeyVersionPosture,
-    StoreLegacySecurityPosture, StoreRawPhysicalSecurityMetadataDeclaration,
-    StoreRawPhysicalSecurityMetadataProjection, StoreSecurityScopeAdmissionExpectation,
-    StoreSecurityScopeDeclarationProvenance,
+    StoreLegacySecurityPosture, StoreRawSecurityMetadataDeclaration,
+    StoreRawSecurityMetadataProjection, StoreSecurityMetadataProjectionSource,
+    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeDeclarationProvenance,
 };
 
 use super::support::{admitted_scope, current_authority, physical_witness};
@@ -12,23 +10,23 @@ use super::support::{admitted_scope, current_authority, physical_witness};
 #[test]
 fn terminal_metadata_lowers_only_to_raw_readmission_input() {
     assert_projection_lowers_only_to_raw_readmission_input(
-        PhysicalRawSecurityMetadataProjectionSource::TerminalProjected,
+        StoreSecurityMetadataProjectionSource::TerminalProjected,
     );
 }
 
 #[test]
 fn serde_loaded_metadata_lowers_only_to_raw_readmission_input() {
     assert_projection_lowers_only_to_raw_readmission_input(
-        PhysicalRawSecurityMetadataProjectionSource::SerdeLoaded,
+        StoreSecurityMetadataProjectionSource::SerdeLoaded,
     );
 }
 
 fn assert_projection_lowers_only_to_raw_readmission_input(
-    source: PhysicalRawSecurityMetadataProjectionSource,
+    source: StoreSecurityMetadataProjectionSource,
 ) {
     let authority = current_authority("s51.phase3.projection", source_label(source));
     let witnesses = admitted_scope(&authority);
-    let declaration = StoreRawPhysicalSecurityMetadataDeclaration::new(
+    let declaration = StoreRawSecurityMetadataDeclaration::new(
         witnesses.key_scope().key_scope(),
         witnesses.tenant_scope().tenant_scope(),
         witnesses.authenticity_scope().requirement(),
@@ -72,22 +70,22 @@ fn assert_projection_lowers_only_to_raw_readmission_input(
 }
 
 const fn projection_from_source(
-    source: PhysicalRawSecurityMetadataProjectionSource,
-    declaration: StoreRawPhysicalSecurityMetadataDeclaration,
-) -> StoreRawPhysicalSecurityMetadataProjection {
+    source: StoreSecurityMetadataProjectionSource,
+    declaration: StoreRawSecurityMetadataDeclaration,
+) -> StoreRawSecurityMetadataProjection {
     match source {
-        PhysicalRawSecurityMetadataProjectionSource::SerdeLoaded => {
-            StoreRawPhysicalSecurityMetadataProjection::serde_loaded(declaration)
+        StoreSecurityMetadataProjectionSource::SerdeLoaded => {
+            StoreRawSecurityMetadataProjection::serde_loaded(declaration)
         }
-        PhysicalRawSecurityMetadataProjectionSource::TerminalProjected => {
-            StoreRawPhysicalSecurityMetadataProjection::terminal_projected(declaration)
+        StoreSecurityMetadataProjectionSource::TerminalProjected => {
+            StoreRawSecurityMetadataProjection::terminal_projected(declaration)
         }
     }
 }
 
-const fn source_label(source: PhysicalRawSecurityMetadataProjectionSource) -> &'static str {
+const fn source_label(source: StoreSecurityMetadataProjectionSource) -> &'static str {
     match source {
-        PhysicalRawSecurityMetadataProjectionSource::SerdeLoaded => "serde",
-        PhysicalRawSecurityMetadataProjectionSource::TerminalProjected => "terminal",
+        StoreSecurityMetadataProjectionSource::SerdeLoaded => "serde",
+        StoreSecurityMetadataProjectionSource::TerminalProjected => "terminal",
     }
 }

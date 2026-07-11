@@ -49,9 +49,8 @@ fn handoff_constructors_reject_copied_or_mismatched_receipt_surfaces() {
         S4IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent
     );
 
-    let denial =
-        QuarantineSummary::from_recovery_blocking_damage(&record, page_receipt, &damage)
-            .unwrap_err();
+    let denial = QuarantineSummary::from_recovery_blocking_damage(&record, page_receipt, &damage)
+        .unwrap_err();
     assert_eq!(
         denial.kind(),
         S4IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence
@@ -64,8 +63,7 @@ fn handoff_constructors_reject_copied_or_mismatched_receipt_surfaces() {
         S4IntegrityHandoffDenialKind::UnresolvedAuthorityDamageRequiresAuthorityClassification
     );
 
-    QuarantineSummary::from_recovery_blocking_damage(&record, quarantine_receipt, &damage)
-        .unwrap();
+    QuarantineSummary::from_recovery_blocking_damage(&record, quarantine_receipt, &damage).unwrap();
 }
 
 #[test]
@@ -116,7 +114,11 @@ fn inspect_wal_damage(
     let mut denial = None;
     with_wal_input(payload, page_id, adjacency, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();
-        denial = Some(WalFrameIntegrityAuthority::s3().inspect(request).unwrap_err());
+        denial = Some(
+            WalFrameIntegrityAuthority::s3()
+                .inspect(request)
+                .unwrap_err(),
+        );
     });
     denial.unwrap()
 }

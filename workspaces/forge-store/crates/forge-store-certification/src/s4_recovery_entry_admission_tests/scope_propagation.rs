@@ -2,7 +2,6 @@ use super::support::{
     admit_entry, intact_readiness, platform_recovery_scope, recovery_security_scope,
 };
 use forge_proof::TransitionOutcome;
-use forge_store_physical_format::PhysicalSecurityScopePropagationDenialKind;
 use forge_store_recovery_physics::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope,
     RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryReplayEntryGate,
@@ -10,7 +9,9 @@ use forge_store_recovery_physics::{
     RecoverySecurityScopePropagationInput, RecoveryWalRecordSecurityMetadataEnvelope,
     RecoveryWalRecordSecurityMetadataIdentity,
 };
-use forge_store_security::{StoreKeyVersionPosture, StoreLegacySecurityPosture};
+use forge_store_security::{
+    StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopePropagationDenialKind,
+};
 
 #[test]
 fn replay_planning_requires_recovery_entry_admission() {
@@ -33,7 +34,10 @@ fn replay_planning_requires_recovery_entry_admission() {
         1
     );
     assert_eq!(
-        gate.security_scope().counters().root_store_counters().preserved(),
+        gate.security_scope()
+            .counters()
+            .root_store_counters()
+            .preserved(),
         1
     );
     assert!(!gate.replay_planning_started());
@@ -53,7 +57,7 @@ fn replay_gate_denies_security_scope_bound_to_different_entry_identity() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.store_denial().kind(),
-                PhysicalSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
+                StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
             );
             assert_eq!(denial.store_denial().counters().drifted(), 1);
         }
@@ -92,7 +96,7 @@ fn recovery_scope_propagation_denies_root_carrier_from_different_entry_admission
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.store_denial().kind(),
-                PhysicalSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
+                StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
             );
             assert_eq!(denial.store_denial().counters().drifted(), 1);
         }

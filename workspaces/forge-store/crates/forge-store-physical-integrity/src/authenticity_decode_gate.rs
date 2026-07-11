@@ -3,23 +3,26 @@ use crate::{
     IntegrityCheckedPage, IntegrityCheckedPhysicalFormKind, LogicalDecodeGate,
     PreDecodePhysicalDenial, PreDecodePhysicalDenialKind, ProtectedPhysicalByteView,
 };
+use forge_store_physical_format::PhysicalAuthenticityIdentity;
 use forge_store_security::{
-    StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind,
-    StoreAuthenticityPhysicalIdentity, StoreAuthenticityResult,
+    StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind, StoreAuthenticityResult,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthenticityRequiredPhysicalDecodeGate<'lease> {
     gate: LogicalDecodeGate<'lease>,
     form_kind: IntegrityCheckedPhysicalFormKind,
-    authenticity_result: StoreAuthenticityResult,
+    authenticity_result: StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
     counters: AuthenticityRequiredDecodeCounters,
 }
 
 impl<'lease> AuthenticityRequiredPhysicalDecodeGate<'lease> {
     pub fn admit_page(
         checked: IntegrityCheckedPage<'lease>,
-        authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+        authenticity: Result<
+            StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+            StoreAuthenticityCheckDenial,
+        >,
     ) -> Result<Self, PreDecodePhysicalDenial> {
         let expected_identity = authenticity_physical_identity(checked.gate_evidence().identity());
         admit_checked_form(
@@ -34,7 +37,10 @@ impl<'lease> AuthenticityRequiredPhysicalDecodeGate<'lease> {
 
     pub fn admit_frame(
         checked: IntegrityCheckedFrame<'lease>,
-        authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+        authenticity: Result<
+            StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+            StoreAuthenticityCheckDenial,
+        >,
     ) -> Result<Self, PreDecodePhysicalDenial> {
         let expected_identity = authenticity_physical_identity(checked.gate_evidence().identity());
         admit_checked_form(
@@ -55,7 +61,9 @@ impl<'lease> AuthenticityRequiredPhysicalDecodeGate<'lease> {
         self.form_kind
     }
 
-    pub const fn authenticity_result(&self) -> StoreAuthenticityResult {
+    pub const fn authenticity_result(
+        &self,
+    ) -> StoreAuthenticityResult<PhysicalAuthenticityIdentity> {
         self.authenticity_result
     }
 
@@ -68,14 +76,17 @@ impl<'lease> AuthenticityRequiredPhysicalDecodeGate<'lease> {
 pub struct AuthenticityPolicyPhysicalDecodeGate<'lease> {
     gate: LogicalDecodeGate<'lease>,
     form_kind: IntegrityCheckedPhysicalFormKind,
-    authenticity_result: Option<StoreAuthenticityResult>,
+    authenticity_result: Option<StoreAuthenticityResult<PhysicalAuthenticityIdentity>>,
     counters: AuthenticityPolicyDecodeCounters,
 }
 
 impl<'lease> AuthenticityPolicyPhysicalDecodeGate<'lease> {
     pub fn admit_page(
         checked: IntegrityCheckedPage<'lease>,
-        authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+        authenticity: Result<
+            StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+            StoreAuthenticityCheckDenial,
+        >,
     ) -> Result<Self, PreDecodePhysicalDenial> {
         let expected_identity = authenticity_physical_identity(checked.gate_evidence().identity());
         admit_policy_checked_form(
@@ -90,7 +101,10 @@ impl<'lease> AuthenticityPolicyPhysicalDecodeGate<'lease> {
 
     pub fn admit_frame(
         checked: IntegrityCheckedFrame<'lease>,
-        authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+        authenticity: Result<
+            StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+            StoreAuthenticityCheckDenial,
+        >,
     ) -> Result<Self, PreDecodePhysicalDenial> {
         let expected_identity = authenticity_physical_identity(checked.gate_evidence().identity());
         admit_policy_checked_form(
@@ -111,7 +125,9 @@ impl<'lease> AuthenticityPolicyPhysicalDecodeGate<'lease> {
         self.form_kind
     }
 
-    pub const fn authenticity_result(&self) -> Option<StoreAuthenticityResult> {
+    pub const fn authenticity_result(
+        &self,
+    ) -> Option<StoreAuthenticityResult<PhysicalAuthenticityIdentity>> {
         self.authenticity_result
     }
 
@@ -125,8 +141,11 @@ fn admit_checked_form<'lease>(
     gate: LogicalDecodeGate<'lease>,
     form_kind: IntegrityCheckedPhysicalFormKind,
     integrity_counters: crate::PreDecodeAdmissionCounters,
-    expected_identity: StoreAuthenticityPhysicalIdentity,
-    authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+    expected_identity: PhysicalAuthenticityIdentity,
+    authenticity: Result<
+        StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+        StoreAuthenticityCheckDenial,
+    >,
 ) -> Result<AuthenticityRequiredPhysicalDecodeGate<'lease>, PreDecodePhysicalDenial> {
     match authenticity {
         Ok(result) => {
@@ -159,8 +178,11 @@ fn admit_policy_checked_form<'lease>(
     gate: LogicalDecodeGate<'lease>,
     form_kind: IntegrityCheckedPhysicalFormKind,
     integrity_counters: crate::PreDecodeAdmissionCounters,
-    expected_identity: StoreAuthenticityPhysicalIdentity,
-    authenticity: Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial>,
+    expected_identity: PhysicalAuthenticityIdentity,
+    authenticity: Result<
+        StoreAuthenticityResult<PhysicalAuthenticityIdentity>,
+        StoreAuthenticityCheckDenial,
+    >,
 ) -> Result<AuthenticityPolicyPhysicalDecodeGate<'lease>, PreDecodePhysicalDenial> {
     match authenticity {
         Ok(result) => {
@@ -201,8 +223,8 @@ fn admit_policy_checked_form<'lease>(
 
 fn authenticity_physical_identity(
     identity: &crate::LogicalDecodeGateIdentity,
-) -> StoreAuthenticityPhysicalIdentity {
-    StoreAuthenticityPhysicalIdentity::new(
+) -> PhysicalAuthenticityIdentity {
+    PhysicalAuthenticityIdentity::new(
         identity.header_kind(),
         identity.locality(),
         identity.checked_byte_count(),

@@ -1,8 +1,8 @@
-use forge_store_physical_format::{PhysicalGeneration, PhysicalPageHeader, SlotGenerationCell};
-use forge_store_security::{
-    StorePhysicalSecurityMetadataCarrier, StorePhysicalSecurityMetadataEnvelope,
-    StoreSegmentPageSecurityMetadataEnvelope,
+use forge_store_physical_format::{
+    PhysicalGeneration, PhysicalPageHeader, PhysicalSecurityMetadataEnvelope,
+    SegmentPageSecurityMetadataEnvelope, SlotGenerationCell,
 };
+use forge_store_security::StoreSecurityMetadata;
 
 use crate::{
     CurrentPhysicalRoot, PhysicalByteGuardScope, PhysicalReadProtectedFootprintBasis,
@@ -19,8 +19,8 @@ pub struct StableReadSecurityScopeCarrierBasis {
 impl StableReadSecurityScopeCarrierBasis {
     pub fn new(
         guard_scope: PhysicalByteGuardScope,
-        page_header: &StorePhysicalSecurityMetadataEnvelope<PhysicalPageHeader>,
-        manifest_entry: &StoreSegmentPageSecurityMetadataEnvelope,
+        page_header: &PhysicalSecurityMetadataEnvelope<PhysicalPageHeader, StoreSecurityMetadata>,
+        manifest_entry: &SegmentPageSecurityMetadataEnvelope<StoreSecurityMetadata>,
     ) -> Self {
         Self {
             page_header_generation: page_header.header().generation(),
@@ -54,16 +54,16 @@ pub struct StableReadSecurityScopePropagationInput {
     protected_root: CurrentPhysicalRoot,
     footprint_basis: PhysicalReadProtectedFootprintBasis,
     carrier_basis: StableReadSecurityScopeCarrierBasis,
-    page_metadata: StorePhysicalSecurityMetadataCarrier,
-    manifest_metadata: StorePhysicalSecurityMetadataCarrier,
+    page_metadata: StoreSecurityMetadata,
+    manifest_metadata: StoreSecurityMetadata,
 }
 
 impl StableReadSecurityScopePropagationInput {
     pub fn new(
         handle: &StablePhysicalReadHandle,
         guard_scope: PhysicalByteGuardScope,
-        page_header: &StorePhysicalSecurityMetadataEnvelope<PhysicalPageHeader>,
-        manifest_entry: &StoreSegmentPageSecurityMetadataEnvelope,
+        page_header: &PhysicalSecurityMetadataEnvelope<PhysicalPageHeader, StoreSecurityMetadata>,
+        manifest_entry: &SegmentPageSecurityMetadataEnvelope<StoreSecurityMetadata>,
     ) -> Self {
         Self {
             protected_root: handle.plan().root(),
@@ -94,11 +94,11 @@ impl StableReadSecurityScopePropagationInput {
         self.carrier_basis
     }
 
-    pub const fn page_metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn page_metadata(self) -> StoreSecurityMetadata {
         self.page_metadata
     }
 
-    pub const fn manifest_metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn manifest_metadata(self) -> StoreSecurityMetadata {
         self.manifest_metadata
     }
 }

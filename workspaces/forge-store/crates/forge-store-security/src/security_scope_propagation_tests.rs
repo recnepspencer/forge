@@ -1,12 +1,10 @@
-use forge_proof::TransitionOutcome;
-use forge_store_physical_format::PhysicalSecurityScopePropagationDenialKind;
-
 use crate::security_scope_test_support::{current_authority, platform_request};
 use crate::{
     admit_store_security_scope, deny_missing_store_security_scope, propagate_store_security_scope,
-    StoreCustodyPosture, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier, StoreSecurityScopePropagationSite, StoreTenantScope,
+    StoreCustodyPosture, StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityMetadata,
+    StoreSecurityScopePropagationDenialKind, StoreSecurityScopePropagationSite, StoreTenantScope,
 };
+use forge_proof::TransitionOutcome;
 
 #[test]
 fn exact_physical_security_scope_propagates_with_preservation_counter() {
@@ -43,7 +41,7 @@ fn tenant_scope_drift_is_physical_security_denial() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.kind(),
-                PhysicalSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
+                StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
             );
             assert_eq!(denial.counters().drifted(), 1);
         }
@@ -66,7 +64,7 @@ fn stale_key_version_is_not_preserved_scope() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.kind(),
-                PhysicalSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
+                StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
             );
             assert_eq!(denial.counters().stale(), 1);
         }
@@ -81,13 +79,13 @@ fn missing_scope_denial_has_exact_counter() {
 
     assert_eq!(
         denial.kind(),
-        PhysicalSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
+        StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
     );
     assert_eq!(denial.counters().missing(), 1);
 }
 
-fn current_metadata(key_version: StoreKeyVersionPosture) -> StorePhysicalSecurityMetadataCarrier {
-    StorePhysicalSecurityMetadataCarrier::for_page_header(
+fn current_metadata(key_version: StoreKeyVersionPosture) -> StoreSecurityMetadata {
+    StoreSecurityMetadata::from_current_security_scope(
         admitted_witnesses("propagation-current").witnesses(),
         key_version,
         StoreLegacySecurityPosture::NativeScoped,
@@ -108,7 +106,7 @@ fn admitted_witnesses(identity: &str) -> crate::StoreAdmittedSecurityScope {
 #[test]
 fn unsupported_custody_denies_as_unsupported_propagated_scope() {
     let expected = current_metadata(StoreKeyVersionPosture::Current);
-    let unsupported = StorePhysicalSecurityMetadataCarrier::for_page_header(
+    let unsupported = StoreSecurityMetadata::from_current_security_scope(
         admitted_witnesses("unsupported-custody").witnesses(),
         StoreKeyVersionPosture::Current,
         StoreLegacySecurityPosture::NativeScoped,
@@ -126,7 +124,7 @@ fn unsupported_custody_denies_as_unsupported_propagated_scope() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.kind(),
-                PhysicalSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
+                StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
             );
             assert_eq!(denial.counters().unsupported(), 1);
         }
@@ -135,10 +133,10 @@ fn unsupported_custody_denies_as_unsupported_propagated_scope() {
 }
 
 fn replace_custody_for_test(
-    metadata: StorePhysicalSecurityMetadataCarrier,
+    metadata: StoreSecurityMetadata,
     custody: StoreCustodyPosture,
-) -> StorePhysicalSecurityMetadataCarrier {
-    StorePhysicalSecurityMetadataCarrier::from_scope_parts(
+) -> StoreSecurityMetadata {
+    StoreSecurityMetadata::from_scope_parts(
         metadata.key_scope(),
         metadata.tenant_scope(),
         metadata.authenticity_requirement(),
@@ -149,10 +147,10 @@ fn replace_custody_for_test(
 }
 
 fn replace_tenant_for_test(
-    metadata: StorePhysicalSecurityMetadataCarrier,
+    metadata: StoreSecurityMetadata,
     tenant: StoreTenantScope,
-) -> StorePhysicalSecurityMetadataCarrier {
-    StorePhysicalSecurityMetadataCarrier::from_scope_parts(
+) -> StoreSecurityMetadata {
+    StoreSecurityMetadata::from_scope_parts(
         metadata.key_scope(),
         tenant,
         metadata.authenticity_requirement(),

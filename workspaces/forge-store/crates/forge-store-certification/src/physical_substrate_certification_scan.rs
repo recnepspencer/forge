@@ -3,7 +3,9 @@ use forge_store_claim_boundaries::PlatformGradeClaimWitness;
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::{phase19_extent_rule, phase19_page_rule};
+use forge_store_layout_indexes::layout_strategy_admission::{
+    phase19_extent_rule, phase19_page_rule,
+};
 use forge_store_physical_format::{
     PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,

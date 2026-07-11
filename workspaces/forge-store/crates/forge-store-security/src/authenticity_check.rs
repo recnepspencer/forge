@@ -1,9 +1,8 @@
 use crate::authenticity_counters::StoreAuthenticityCheckCounterRecorder;
 use crate::authenticity_witness::StoreAuthenticityWitnessPosture;
 use crate::{
-    StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind,
-    StoreAuthenticityPhysicalIdentity, StoreAuthenticityRequirement, StoreAuthenticityResult,
-    StoreAuthenticityWitnessBinding, StoreAuthenticityWitnessInput,
+    StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind, StoreAuthenticityRequirement,
+    StoreAuthenticityResult, StoreAuthenticityWitnessBinding, StoreAuthenticityWitnessInput,
     StoreCurrentAuthenticityScopeWitness, StoreSecurityScopeIdentity,
 };
 
@@ -35,10 +34,10 @@ pub struct StoreScopedAuthenticityCheck {
 }
 
 impl StoreScopedAuthenticityCheck {
-    pub const fn with_physical_identity(
+    pub const fn with_physical_identity<I>(
         self,
-        physical_identity: StoreAuthenticityPhysicalIdentity,
-    ) -> StorePhysicalAuthenticityCheck {
+        physical_identity: I,
+    ) -> StorePhysicalAuthenticityCheck<I> {
         StorePhysicalAuthenticityCheck {
             requirement: self.requirement,
             scope_identity: self.scope_identity,
@@ -48,17 +47,17 @@ impl StoreScopedAuthenticityCheck {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StorePhysicalAuthenticityCheck {
+pub struct StorePhysicalAuthenticityCheck<I> {
     requirement: StoreAuthenticityRequirement,
     scope_identity: StoreSecurityScopeIdentity,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
+    physical_identity: I,
 }
 
-impl StorePhysicalAuthenticityCheck {
-    pub const fn with_witness(
+impl<I> StorePhysicalAuthenticityCheck<I> {
+    pub fn with_witness(
         self,
-        witness: StoreAuthenticityWitnessInput,
-    ) -> StoreAuthenticityCheckInput {
+        witness: StoreAuthenticityWitnessInput<I>,
+    ) -> StoreAuthenticityCheckInput<I> {
         StoreAuthenticityCheckInput {
             requirement: self.requirement,
             scope_identity: self.scope_identity,
@@ -69,15 +68,15 @@ impl StorePhysicalAuthenticityCheck {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreAuthenticityCheckInput {
+pub struct StoreAuthenticityCheckInput<I> {
     requirement: StoreAuthenticityRequirement,
     scope_identity: StoreSecurityScopeIdentity,
-    physical_identity: StoreAuthenticityPhysicalIdentity,
-    witness: StoreAuthenticityWitnessInput,
+    physical_identity: I,
+    witness: StoreAuthenticityWitnessInput<I>,
 }
 
-impl StoreAuthenticityCheckInput {
-    pub fn admit(self) -> Result<StoreAuthenticityResult, StoreAuthenticityCheckDenial> {
+impl<I: Copy + Eq> StoreAuthenticityCheckInput<I> {
+    pub fn admit(self) -> Result<StoreAuthenticityResult<I>, StoreAuthenticityCheckDenial> {
         let mut counters = StoreAuthenticityCheckCounterRecorder::new();
         counters.record_requirement_check();
         if !self.requirement.requires_admission_before_result() {
@@ -182,9 +181,9 @@ impl StoreAuthenticityCheckInput {
     }
 }
 
-fn reject_wrong_physical_identity(
-    binding: StoreAuthenticityWitnessBinding,
-    expected_physical_identity: StoreAuthenticityPhysicalIdentity,
+fn reject_wrong_physical_identity<I: Copy + Eq>(
+    binding: StoreAuthenticityWitnessBinding<I>,
+    expected_physical_identity: I,
     requirement: StoreAuthenticityRequirement,
     expected_scope: StoreSecurityScopeIdentity,
     counters: &mut StoreAuthenticityCheckCounterRecorder,
@@ -201,8 +200,8 @@ fn reject_wrong_physical_identity(
     ))
 }
 
-fn reject_wrong_scope(
-    binding: StoreAuthenticityWitnessBinding,
+fn reject_wrong_scope<I>(
+    binding: StoreAuthenticityWitnessBinding<I>,
     expected_scope: StoreSecurityScopeIdentity,
     requirement: StoreAuthenticityRequirement,
     counters: &mut StoreAuthenticityCheckCounterRecorder,
@@ -219,11 +218,11 @@ fn reject_wrong_scope(
     ))
 }
 
-fn denial_for_binding(
+fn denial_for_binding<I>(
     kind: StoreAuthenticityCheckDenialKind,
     requirement: StoreAuthenticityRequirement,
     scope_identity: StoreSecurityScopeIdentity,
-    _binding: StoreAuthenticityWitnessBinding,
+    _binding: StoreAuthenticityWitnessBinding<I>,
     counters: StoreAuthenticityCheckCounterRecorder,
 ) -> StoreAuthenticityCheckDenial {
     denial(kind, requirement, scope_identity, counters)

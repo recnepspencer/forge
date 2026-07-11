@@ -44,8 +44,8 @@ pub use foreground_reservation::{
     certify_s6_foreground_reservation, S6ForegroundReservationCertificationDenial,
     S6ForegroundReservationCertificationEvidence,
 };
-pub use io_qos_readiness_handoff::S6IoQosReadinessHandoffMaterializationDenial;
 pub(crate) use io_qos_readiness_handoff::verify_executed_closeout_handoff_admissible;
+pub use io_qos_readiness_handoff::S6IoQosReadinessHandoffMaterializationDenial;
 pub use later_readiness_handoffs::{
     certify_s6_later_readiness_handoffs, S6BackupExportHandoffEvidence,
     S6CompactionHandoffEvidence, S6LaterReadinessHandoffCertification, S6OperatorHandoffEvidence,

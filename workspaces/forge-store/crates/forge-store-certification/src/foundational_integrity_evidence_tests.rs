@@ -9,10 +9,10 @@ use forge_store_physical_integrity::{
     StorePlannedWorkBoundaryKind, StorePlannedWorkBoundaryReport,
 };
 
-use crate::derived_index_damage_tests::inspect_damaged_derived_index_with_authority;
 use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     inspect_page_report, page_payload_with_record,
 };
+use crate::derived_index_damage_tests::inspect_damaged_derived_index_with_authority;
 use crate::{PhysicalScenarioPlannedWorkBoundaryReport, PhysicalScenarioQualityHarness};
 
 #[path = "foundational_integrity_evidence_support.rs"]

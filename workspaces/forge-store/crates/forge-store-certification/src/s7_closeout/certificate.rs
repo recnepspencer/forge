@@ -17,11 +17,19 @@ pub(crate) fn build_closeout_certificate(
         .executed_sources()
         .evidence_bundle()
         .primary();
-    let lower = materialized_evidence.executed_sources().lifecycle_evidence();
+    let lower = materialized_evidence
+        .executed_sources()
+        .lifecycle_evidence();
     let binding_tag = format!(
         "s7-closeout:{}:{}:{:02x}{:02x}{:02x}{:02x}:{:02x}{:02x}{:02x}{:02x}",
         digest_prefix(lower.lifecycle_declaration().object_id().digest().as_str()),
-        digest_prefix(lower.lifecycle_declaration().chunk_tree_root().digest().as_str()),
+        digest_prefix(
+            lower
+                .lifecycle_declaration()
+                .chunk_tree_root()
+                .digest()
+                .as_str()
+        ),
         primary.plan_digest()[0],
         primary.plan_digest()[1],
         primary.plan_digest()[2],

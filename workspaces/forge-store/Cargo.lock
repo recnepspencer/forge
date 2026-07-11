@@ -227,7 +227,6 @@ dependencies = [
  "forge-foundational",
  "forge-proof",
  "forge-store-contracts",
- "forge-store-physical-format",
  "serde_json",
 ]
 
@@ -238,7 +237,6 @@ dependencies = [
  "forge-proof",
  "forge-store-aspect-native",
  "forge-store-contracts",
- "forge-store-physical-format",
 ]
 
 [[package]]
@@ -691,7 +689,6 @@ dependencies = [
  "forge-store-aspect-native",
  "forge-store-authority",
  "forge-store-contracts",
- "forge-store-physical-format",
 ]
 
 [[package]]

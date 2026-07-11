@@ -14,7 +14,6 @@ use forge_store_buffer_pool::{
     BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use forge_store_physical_format::PhysicalSecurityScopePropagationDenialKind;
 use forge_store_readiness::PhysicalAuthorityRecap;
 use forge_store_recovery_physics::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope, RecoveryEntryAdmission,
@@ -25,6 +24,7 @@ use forge_store_recovery_physics::{
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
     StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopeAdmissionRequest,
+    StoreSecurityScopePropagationDenialKind,
 };
 use forge_store_wal::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
@@ -85,7 +85,7 @@ fn recovery_scope_denies_stale_wal_scope_before_replay_publication() {
 
     assert_eq!(
         denial.store_denial().kind(),
-        PhysicalSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
+        StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
     );
     assert_eq!(denial.store_denial().counters().stale(), 1);
 }
@@ -104,7 +104,7 @@ fn recovery_scope_denies_unsupported_wal_checkpoint_scope_before_replay_publicat
 
     assert_eq!(
         denial.store_denial().kind(),
-        PhysicalSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
+        StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
     );
     assert_eq!(denial.store_denial().counters().unsupported(), 1);
 }
@@ -133,7 +133,7 @@ fn recovery_scope_missing_root_denies_before_replay_publication() {
         TransitionOutcome::Denied(denial) => {
             assert_eq!(
                 denial.store_denial().kind(),
-                PhysicalSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
+                StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
             );
             assert_eq!(denial.store_denial().counters().missing(), 1);
         }

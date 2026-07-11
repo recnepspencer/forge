@@ -6,15 +6,12 @@ use forge_foundational::{
     prepare_aspect_patch_for_canonical_basis, prepare_aspect_state_for_canonical_basis,
 };
 use forge_proof::TransitionOutcome;
-use forge_store_physical_format::PhysicalHeaderDecodeWitness;
 
-use crate::canonical_basis_entries::{
-    aspect_boundary_entries, aspect_patch_entries, page_header_entries,
-};
+use crate::canonical_basis_entries::{aspect_boundary_entries, aspect_patch_entries};
 use crate::{
     certify_canonical_basis_source, StoreAspectBoundaryFact, StoreAspectPatchBoundaryFact,
     StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisFamily,
-    StoreCanonicalBasisSourceKind, StorePhysicalBoundaryWitness,
+    StoreCanonicalBasisSourceKind,
 };
 
 pub type StoreCanonicalBasisConstructionOutcome =
@@ -24,7 +21,6 @@ pub type StoreCanonicalBasisConstructionOutcome =
 pub struct StoreCanonicalBasisConstruction {
     family: StoreCanonicalBasisFamily,
     native_source: Option<StoreCanonicalBasisNativeSource>,
-    physical_boundary_witness: Option<StorePhysicalBoundaryWitness>,
     conflicting_native_source: bool,
 }
 
@@ -33,7 +29,6 @@ impl StoreCanonicalBasisConstruction {
         Self {
             family,
             native_source: None,
-            physical_boundary_witness: None,
             conflicting_native_source: false,
         }
     }
@@ -48,19 +43,6 @@ impl StoreCanonicalBasisConstruction {
         self
     }
 
-    pub fn with_page_header_witness(mut self, witness: PhysicalHeaderDecodeWitness) -> Self {
-        self.put_native_source(StoreCanonicalBasisNativeSource::PageHeader(witness));
-        self
-    }
-
-    pub const fn with_physical_boundary_witness(
-        mut self,
-        witness: StorePhysicalBoundaryWitness,
-    ) -> Self {
-        self.physical_boundary_witness = Some(witness);
-        self
-    }
-
     pub fn prepare(
         self,
         version: CanonicalizationRuleVersion,
@@ -68,7 +50,6 @@ impl StoreCanonicalBasisConstruction {
         let Self {
             family,
             native_source,
-            physical_boundary_witness,
             conflicting_native_source,
         } = self;
 
@@ -90,9 +71,6 @@ impl StoreCanonicalBasisConstruction {
             }
             StoreCanonicalBasisNativeSource::AspectPatch(fact) => {
                 prepare_aspect_patch(family, version, fact)
-            }
-            StoreCanonicalBasisNativeSource::PageHeader(header) => {
-                prepare_page_header(family, version, header, physical_boundary_witness)
             }
         }
     }
@@ -175,35 +153,10 @@ fn prepare_aspect_patch(
     ))
 }
 
-fn prepare_page_header(
-    family: StoreCanonicalBasisFamily,
-    version: CanonicalizationRuleVersion,
-    header: PhysicalHeaderDecodeWitness,
-    physical_boundary_witness: Option<StorePhysicalBoundaryWitness>,
-) -> StoreCanonicalBasisConstructionOutcome {
-    if let Err(denial) =
-        certify_canonical_basis_source(family, StoreCanonicalBasisSourceKind::StorePageHeader)
-    {
-        return TransitionOutcome::denied(denial.into());
-    }
-    let Some(boundary_witness) = physical_boundary_witness else {
-        return TransitionOutcome::denied(
-            StoreCanonicalBasisConstructionDenial::MissingPhysicalWitness { family },
-        );
-    };
-
-    map_foundational_outcome(prepare_canonical_basis_sequence(
-        version,
-        CanonicalBasisDomain::Future("store.physical.page.header"),
-        page_header_entries(header, boundary_witness),
-    ))
-}
-
 #[derive(Debug, Clone)]
 enum StoreCanonicalBasisNativeSource {
     AspectState(StoreAspectBoundaryFact),
     AspectPatch(StoreAspectPatchBoundaryFact),
-    PageHeader(PhysicalHeaderDecodeWitness),
 }
 
 fn map_foundational_outcome(

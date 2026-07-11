@@ -6,7 +6,9 @@ use crate::{
     PhysicalPageSegmentExtentSubstrateCloseout, PhysicalSubstrateCloseoutDenial,
     PhysicalSubstrateCloseoutStoryRow, PlatformPhysicalFacadeEvidenceRow,
 };
-use forge_store_contracts::{AcceptedHandoffReadiness, HandoffEvidenceDigestSet, ROADMAP_2_S1_SCOPE, StableDigest};
+use forge_store_contracts::{
+    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+};
 use forge_store_physical_format::PhysicalOperationKind;
 use forge_store_readiness::{
     close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,

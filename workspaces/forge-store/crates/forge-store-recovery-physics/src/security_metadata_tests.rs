@@ -10,8 +10,8 @@ use forge_store_authority::require_current_store_authority;
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_security::{
     admit_store_security_scope, StoreCustodyPosture, StoreKeyVersionPosture,
-    StoreLegacySecurityPosture, StorePhysicalSecurityMetadataCarrier,
-    StoreSecurityScopeAdmissionRequest, StoreSecurityScopeDeclarationProvenance,
+    StoreLegacySecurityPosture, StoreSecurityMetadata, StoreSecurityScopeAdmissionRequest,
+    StoreSecurityScopeDeclarationProvenance,
 };
 
 use crate::RecoveryRootSecurityMetadataAdmission;
@@ -28,7 +28,7 @@ fn recovery_root_security_metadata_lowers_to_raw_readmission_input() {
         TransitionOutcome::Success(admitted) => admitted,
         outcome => panic!("platform scope should admit: {outcome:?}"),
     };
-    let metadata = StorePhysicalSecurityMetadataCarrier::for_recovery_root_admission(
+    let metadata = StoreSecurityMetadata::from_current_security_scope(
         admitted.witnesses(),
         StoreKeyVersionPosture::Current,
         StoreLegacySecurityPosture::ReadmissionRequired,

@@ -24,16 +24,17 @@ use forge_store_recovery_physics::{
     RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
     RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoverySecurityScopePropagationInput,
-    RecoveryWalRecordSecurityMetadataEnvelope,
-    RecoveryWalRecordSecurityMetadataIdentity, S4IntegrityHandoffPayload,
-    S4RecoveryPhysicsIntegrityReadiness,
+    RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
+    S4IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
     StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopeAdmissionRequest,
 };
 
-pub(super) fn admit_entry(readiness: S4RecoveryPhysicsIntegrityReadiness) -> RecoveryEntryAdmission {
+pub(super) fn admit_entry(
+    readiness: S4RecoveryPhysicsIntegrityReadiness,
+) -> RecoveryEntryAdmission {
     let decision =
         RecoveryEntryAdmission::admit(readiness, recovery_memory_envelope(), physical_authority());
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {

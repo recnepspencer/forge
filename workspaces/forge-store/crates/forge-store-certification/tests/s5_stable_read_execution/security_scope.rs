@@ -11,8 +11,9 @@ use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATI
 use forge_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalDecodedHeader, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageHeader, PhysicalPageId,
-    PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot, PhysicalSegmentId,
-    SegmentPageManifestEntry, PHYSICAL_HEADER_LENGTH,
+    PhysicalPageKind, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalSecurityMetadataEnvelope, PhysicalSegmentId, SegmentPageManifestEntry,
+    PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_physical_isolation::{
     LogicalDecodeSecurityScopeEntry, PhysicalByteGuardScope, StablePhysicalReadHandle,
@@ -20,8 +21,7 @@ use forge_store_physical_isolation::{
 };
 use forge_store_security::{
     admit_store_security_scope, StoreCustodyPosture, StoreKeyVersionPosture,
-    StoreLegacySecurityPosture, StorePhysicalSecurityMetadataCarrier,
-    StorePhysicalSecurityMetadataEnvelope, StoreSecurityScopeAdmissionRequest,
+    StoreLegacySecurityPosture, StoreSecurityMetadata, StoreSecurityScopeAdmissionRequest,
 };
 
 #[test]
@@ -83,11 +83,11 @@ pub fn logical_decode_entry_for_handle_with_carrier_generation(
     identity: &str,
 ) -> LogicalDecodeSecurityScopeEntry {
     let metadata = platform_page_metadata(identity);
-    let page = StorePhysicalSecurityMetadataEnvelope::page_header(
+    let page = PhysicalSecurityMetadataEnvelope::page_header(
         decoded_page_header(carrier_generation),
         metadata,
     );
-    let manifest = StorePhysicalSecurityMetadataEnvelope::segment_page_manifest_entry(
+    let manifest = PhysicalSecurityMetadataEnvelope::segment_page_manifest_entry(
         segment_page_entry(carrier_generation),
         metadata,
     );
@@ -103,7 +103,7 @@ pub fn logical_decode_entry_for_handle_with_carrier_generation(
     observed.logical_decode_entry_scope()
 }
 
-fn platform_page_metadata(identity: &str) -> StorePhysicalSecurityMetadataCarrier {
+fn platform_page_metadata(identity: &str) -> StoreSecurityMetadata {
     let authority = current_authority(identity, "stable-read-execution");
     let admitted = match admit_store_security_scope(
         StoreSecurityScopeAdmissionRequest::platform_page_envelope(
@@ -115,7 +115,7 @@ fn platform_page_metadata(identity: &str) -> StorePhysicalSecurityMetadataCarrie
         TransitionOutcome::Success(admitted) => admitted,
         other => panic!("platform page scope should admit: {other:?}"),
     };
-    StorePhysicalSecurityMetadataCarrier::for_page_header(
+    StoreSecurityMetadata::from_current_security_scope(
         admitted.witnesses(),
         StoreKeyVersionPosture::Current,
         StoreLegacySecurityPosture::NativeScoped,

@@ -1,11 +1,7 @@
 use forge_proof::TransitionOutcome;
-use forge_store_physical_format::{
-    PhysicalSecurityScopePropagationDenial, PhysicalSecurityScopePropagationDenialKind,
-};
 
 use crate::{
-    StoreCustodyPosture, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    StorePhysicalSecurityMetadataCarrier,
+    StoreCustodyPosture, StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityMetadata,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,30 +24,39 @@ pub struct StoreSecurityScopePropagationCounters {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StoreSecurityScopePropagationWitness {
-    metadata: StorePhysicalSecurityMetadataCarrier,
+    metadata: StoreSecurityMetadata,
     counters: StoreSecurityScopePropagationCounters,
     site: StoreSecurityScopePropagationSite,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StoreSecurityScopePropagationDenial {
-    physical_denial: PhysicalSecurityScopePropagationDenial,
+    kind: StoreSecurityScopePropagationDenialKind,
     counters: StoreSecurityScopePropagationCounters,
     site: StoreSecurityScopePropagationSite,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreSecurityScopePropagationDenialKind {
+    MissingPropagatedSecurityScope,
+    StalePropagatedSecurityScope,
+    ScopeDriftBeforeLogicalDecode,
+    UnsupportedPropagatedSecurityScope,
+    UnavailablePropagatedSecurityScope,
 }
 
 pub type StoreSecurityScopePropagationOutcome =
     TransitionOutcome<StoreSecurityScopePropagationWitness, StoreSecurityScopePropagationDenial>;
 
 pub fn propagate_store_security_scope(
-    expected: StorePhysicalSecurityMetadataCarrier,
-    observed: StorePhysicalSecurityMetadataCarrier,
+    expected: StoreSecurityMetadata,
+    observed: StoreSecurityMetadata,
     site: StoreSecurityScopePropagationSite,
 ) -> StoreSecurityScopePropagationOutcome {
     if let Some(denial) = classify_candidate_denial(observed) {
         return TransitionOutcome::denied(StoreSecurityScopePropagationDenial::new(
             denial,
-            StoreSecurityScopePropagationCounters::default().with_denial(denial.kind()),
+            StoreSecurityScopePropagationCounters::default().with_denial(denial),
             site,
         ));
     }
@@ -65,7 +70,7 @@ pub fn propagate_store_security_scope(
     }
 
     TransitionOutcome::denied(StoreSecurityScopePropagationDenial::new(
-        PhysicalSecurityScopePropagationDenial::drift(),
+        StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode,
         StoreSecurityScopePropagationCounters::default().with_drifted(),
         site,
     ))
@@ -75,7 +80,7 @@ pub fn deny_missing_store_security_scope(
     site: StoreSecurityScopePropagationSite,
 ) -> StoreSecurityScopePropagationDenial {
     StoreSecurityScopePropagationDenial::new(
-        PhysicalSecurityScopePropagationDenial::missing(),
+        StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope,
         StoreSecurityScopePropagationCounters::default().with_missing(),
         site,
     )
@@ -85,7 +90,7 @@ pub fn deny_stale_store_security_scope(
     site: StoreSecurityScopePropagationSite,
 ) -> StoreSecurityScopePropagationDenial {
     StoreSecurityScopePropagationDenial::new(
-        PhysicalSecurityScopePropagationDenial::stale(),
+        StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope,
         StoreSecurityScopePropagationCounters::default().with_stale(),
         site,
     )
@@ -95,15 +100,15 @@ pub fn deny_drifted_store_security_scope(
     site: StoreSecurityScopePropagationSite,
 ) -> StoreSecurityScopePropagationDenial {
     StoreSecurityScopePropagationDenial::new(
-        PhysicalSecurityScopePropagationDenial::drift(),
+        StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode,
         StoreSecurityScopePropagationCounters::default().with_drifted(),
         site,
     )
 }
 
 fn classify_candidate_denial(
-    metadata: StorePhysicalSecurityMetadataCarrier,
-) -> Option<PhysicalSecurityScopePropagationDenial> {
+    metadata: StoreSecurityMetadata,
+) -> Option<StoreSecurityScopePropagationDenialKind> {
     if metadata
         .legacy_posture()
         .requires_readmission_when_unscoped()
@@ -112,7 +117,7 @@ fn classify_candidate_denial(
             StoreKeyVersionPosture::Stale | StoreKeyVersionPosture::RebindRequired
         )
     {
-        return Some(PhysicalSecurityScopePropagationDenial::stale());
+        return Some(StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope);
     }
 
     if matches!(
@@ -125,7 +130,7 @@ fn classify_candidate_denial(
         metadata.legacy_posture(),
         StoreLegacySecurityPosture::UnsupportedLegacyArtifact
     ) {
-        return Some(PhysicalSecurityScopePropagationDenial::unsupported());
+        return Some(StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope);
     }
 
     if matches!(
@@ -138,7 +143,7 @@ fn classify_candidate_denial(
         metadata.legacy_posture(),
         StoreLegacySecurityPosture::SecurityMetadataUnavailable
     ) {
-        return Some(PhysicalSecurityScopePropagationDenial::unavailable());
+        return Some(StoreSecurityScopePropagationDenialKind::UnavailablePropagatedSecurityScope);
     }
 
     None
@@ -198,21 +203,21 @@ impl StoreSecurityScopePropagationCounters {
         }
     }
 
-    const fn with_denial(self, kind: PhysicalSecurityScopePropagationDenialKind) -> Self {
+    const fn with_denial(self, kind: StoreSecurityScopePropagationDenialKind) -> Self {
         match kind {
-            PhysicalSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope => {
+            StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope => {
                 self.with_missing()
             }
-            PhysicalSecurityScopePropagationDenialKind::StalePropagatedSecurityScope => {
+            StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope => {
                 self.with_stale()
             }
-            PhysicalSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode => {
+            StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode => {
                 self.with_drifted()
             }
-            PhysicalSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope => {
+            StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope => {
                 self.with_unsupported()
             }
-            PhysicalSecurityScopePropagationDenialKind::UnavailablePropagatedSecurityScope => {
+            StoreSecurityScopePropagationDenialKind::UnavailablePropagatedSecurityScope => {
                 self.with_unavailable()
             }
         }
@@ -244,7 +249,7 @@ impl StoreSecurityScopePropagationCounters {
 }
 
 impl StoreSecurityScopePropagationWitness {
-    pub const fn metadata(self) -> StorePhysicalSecurityMetadataCarrier {
+    pub const fn metadata(self) -> StoreSecurityMetadata {
         self.metadata
     }
 
@@ -259,23 +264,19 @@ impl StoreSecurityScopePropagationWitness {
 
 impl StoreSecurityScopePropagationDenial {
     const fn new(
-        physical_denial: PhysicalSecurityScopePropagationDenial,
+        kind: StoreSecurityScopePropagationDenialKind,
         counters: StoreSecurityScopePropagationCounters,
         site: StoreSecurityScopePropagationSite,
     ) -> Self {
         Self {
-            physical_denial,
+            kind,
             counters,
             site,
         }
     }
 
-    pub const fn physical_denial(self) -> PhysicalSecurityScopePropagationDenial {
-        self.physical_denial
-    }
-
-    pub const fn kind(self) -> PhysicalSecurityScopePropagationDenialKind {
-        self.physical_denial.kind()
+    pub const fn kind(self) -> StoreSecurityScopePropagationDenialKind {
+        self.kind
     }
 
     pub const fn counters(self) -> StoreSecurityScopePropagationCounters {

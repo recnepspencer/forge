@@ -70,23 +70,43 @@ pub fn admit_s7_full_certification_non_claim_handoff(
 }
 
 impl S7S8LayoutReadinessHandoff {
-    pub fn binding_tag(&self) -> &str { &self.binding_tag }
-    pub const fn declared_chunk_count(&self) -> u64 { self.declared_chunk_count }
-    pub const fn declared_bytes(&self) -> u64 { self.declared_bytes }
-    pub const fn non_claims(&self) -> &[S8LayoutReadinessNonClaim; 1] { &self.non_claims }
+    pub fn binding_tag(&self) -> &str {
+        &self.binding_tag
+    }
+    pub const fn declared_chunk_count(&self) -> u64 {
+        self.declared_chunk_count
+    }
+    pub const fn declared_bytes(&self) -> u64 {
+        self.declared_bytes
+    }
+    pub const fn non_claims(&self) -> &[S8LayoutReadinessNonClaim; 1] {
+        &self.non_claims
+    }
 }
 
 impl S10BlobBackupRepairNonClaimHandoff {
-    pub fn binding_tag(&self) -> &str { &self.binding_tag }
-    pub const fn non_claims(&self) -> &[S10BackupRepairReadinessNonClaim; 2] { &self.non_claims }
+    pub fn binding_tag(&self) -> &str {
+        &self.binding_tag
+    }
+    pub const fn non_claims(&self) -> &[S10BackupRepairReadinessNonClaim; 2] {
+        &self.non_claims
+    }
 }
 
 impl S11KeyLifecycleNonClaimHandoff {
-    pub fn binding_tag(&self) -> &str { &self.binding_tag }
-    pub const fn non_claims(&self) -> &[S11KeyLifecycleReadinessNonClaim; 2] { &self.non_claims }
+    pub fn binding_tag(&self) -> &str {
+        &self.binding_tag
+    }
+    pub const fn non_claims(&self) -> &[S11KeyLifecycleReadinessNonClaim; 2] {
+        &self.non_claims
+    }
 }
 
 impl S12FullCertificationNonClaimHandoff {
-    pub fn binding_tag(&self) -> &str { &self.binding_tag }
-    pub const fn non_claims(&self) -> &[S12FullCertificationNonClaim; 1] { &self.non_claims }
+    pub fn binding_tag(&self) -> &str {
+        &self.binding_tag
+    }
+    pub const fn non_claims(&self) -> &[S12FullCertificationNonClaim; 1] {
+        &self.non_claims
+    }
 }
