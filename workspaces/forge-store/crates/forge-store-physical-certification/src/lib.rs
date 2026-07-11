@@ -19,6 +19,7 @@ mod planning;
 mod pressure_harness;
 mod qualification;
 mod scenario;
+mod scenarios;
 mod schedule;
 mod security_scope_harness;
 mod shortcut_rejection;
@@ -26,6 +27,7 @@ mod simulation_admission;
 mod transcript;
 
 pub use forge_store_offline_verifier::OfflineVerifierBoundarySeam;
+pub use scenarios::*;
 
 pub use actors::{
     BlobDedupeActor, BlobExportActor, BlobImportActor, BlobIngestActor,

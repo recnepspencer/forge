@@ -1,4 +1,4 @@
-use forge_store_physical_certification::{
+use crate::{
     admit_physical_counter_evidence, CertifiedPhysicalScenario, ExecutedTranscriptParts,
     GeneratedCoverageMatrix, HarnessCoverageStage, ObservedPhysicalTrace, PhysicalCoverageRegistry,
     PhysicalExecutedCounterEvidence, PhysicalFaultEvent, PhysicalInterleavingSchedule,
@@ -7,38 +7,37 @@ use forge_store_physical_certification::{
     ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, SimulationReplayBundle,
 };
 
-pub fn assemble_physical_isolation_physical_isolation_replay_bundle(
+pub fn assemble_physical_isolation_replay_bundle(
     plan: &PhysicalSimulationPlan,
     schedule: PhysicalInterleavingSchedule,
     fixture: &ProductionBackedPhysicalFixture,
     trace: ObservedPhysicalTrace,
-    expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
+    expected_fault: crate::PhysicalScenarioFaultKind,
 ) -> SimulationReplayBundle {
-    let sources =
-        forge_store_physical_certification::PhysicalCounterExecutionSources::admit_for_plan(
-            plan,
-            &schedule,
-            &trace,
-            buffer_pool_evidence(plan),
-            io_queue_evidence(plan),
-        )
-        .unwrap();
+    let sources = crate::PhysicalCounterExecutionSources::admit_for_plan(
+        plan,
+        &schedule,
+        &trace,
+        buffer_pool_evidence(plan),
+        io_queue_evidence(plan),
+    )
+    .unwrap();
     let executed = PhysicalExecutedCounterEvidence::from_execution_sources(plan, sources).unwrap();
     let counter_receipt = admit_physical_counter_evidence(plan, executed).unwrap();
     let parts =
         ExecutedTranscriptParts::new(plan, schedule, fixture, trace.clone(), counter_receipt)
             .unwrap()
             .with_faults(s5_fault_events(expected_fault))
-            .with_oracle_verdict(physical_isolation_physical_isolation_verdict(plan, &trace))
+            .with_oracle_verdict(physical_isolation_verdict(plan, &trace))
             .with_transcript_replay_verdict()
             .unwrap();
     let transcript = PhysicalSimulationTranscript::from_executed_parts(parts).unwrap();
-    forge_store_physical_certification::DetachedSimulationReplayParts::from_transcript(&transcript)
+    crate::DetachedSimulationReplayParts::from_transcript(&transcript)
         .admit_replay_bundle()
         .unwrap()
 }
 
-pub fn physical_isolation_physical_isolation_coverage_matrix(
+pub fn physical_isolation_coverage_matrix(
     scenario: &CertifiedPhysicalScenario,
     plan: &PhysicalSimulationPlan,
     replay: &SimulationReplayBundle,
@@ -67,7 +66,7 @@ pub fn physical_isolation_physical_isolation_coverage_matrix(
         .unwrap()
 }
 
-fn physical_isolation_physical_isolation_verdict(
+fn physical_isolation_verdict(
     plan: &PhysicalSimulationPlan,
     trace: &ObservedPhysicalTrace,
 ) -> PhysicalProofOracleVerdict {
@@ -77,15 +76,11 @@ fn physical_isolation_physical_isolation_verdict(
         .unwrap()
 }
 
-fn s5_fault_events(
-    expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
-) -> Vec<PhysicalFaultEvent> {
-    forge_store_physical_certification::physical_isolation_stable_read_plan_fault_event(
-        expected_fault,
-    )
-    .unwrap()
-    .into_iter()
-    .collect()
+fn s5_fault_events(expected_fault: crate::PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
+    crate::physical_isolation_stable_read_plan_fault_event(expected_fault)
+        .unwrap()
+        .into_iter()
+        .collect()
 }
 
 fn buffer_pool_evidence(

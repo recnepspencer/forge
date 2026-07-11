@@ -219,7 +219,7 @@ pub(crate) fn physical_replay_for_scenario_with_replay_binding(
 
 pub(crate) fn physical_lane_for_binding(
     binding: SecurityScopePhysicalScheduleBinding,
-) -> forge_store_certification::S5PhysicalIsolationHarnessLane {
+) -> forge_store_certification::PhysicalIsolationHarnessLane {
     forge_store_certification::physical_isolation_lanes()
         .into_iter()
         .find(|lane| {

@@ -8,5 +8,5 @@ pub(crate) mod memory;
 pub(crate) mod physical_integrity;
 pub(crate) mod physical_isolation;
 pub(crate) mod physical_substrate;
-pub(crate) mod security;
 pub(crate) mod scheduling;
+pub(crate) mod security;

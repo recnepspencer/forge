@@ -1,6 +1,5 @@
 //! Replay traces, layout observers, and runtime verifier comparison.
 
-
 pub use crate::courtroom::cross_cutting::observed_trace::{
     FixtureAdversaryPosture, FixtureAdversaryReport, LargeStorePressureClass,
     ObservedPhysicalTrace, PhysicalCounterExpectationKind, RuntimeVerifierParityTrace,
@@ -23,9 +22,9 @@ pub use crate::courtroom::layout::layout_observers::{
     OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
     PhysicalLayoutParityReport, RuntimeLayoutObserver,
 };
+pub use crate::replay::layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};
 pub use crate::scenario::cross_cutting::scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
 };
 pub use crate::scenario::cross_cutting::story_transcript::PhysicalStoryTranscript;
-pub use crate::replay::layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};

@@ -4,4 +4,3 @@ mod recovery_harness;
 #[cfg(test)]
 #[path = "s5_1_authenticity_integrity_separation_tests/mod.rs"]
 mod s5_1_authenticity_integrity_separation_tests;
-mod s5_physical_isolation_harness;

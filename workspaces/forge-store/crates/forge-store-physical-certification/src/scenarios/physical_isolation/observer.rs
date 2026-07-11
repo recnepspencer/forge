@@ -1,4 +1,4 @@
-use forge_store_physical_certification::{
+use crate::{
     CheckpointInterlockObservation, CompactionInterlockObservation, CoverageGapDenial,
     ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObservedPhysicalTrace,
     PhysicalInterleavingSchedule, PhysicalIsolationCompactionMutationObservationSet,
@@ -6,14 +6,14 @@ use forge_store_physical_certification::{
     ShortcutRejectionObservation,
 };
 
-pub struct S5PhysicalIsolationTraceFixtures {
+pub struct PhysicalIsolationTraceFixtures {
     compaction_interlock: Option<CompactionInterlockObservation>,
     compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     independent_verifier: Option<IndependentVerifierObservation>,
 }
 
-impl S5PhysicalIsolationTraceFixtures {
+impl PhysicalIsolationTraceFixtures {
     pub const fn complete(
         compaction_interlock: CompactionInterlockObservation,
         compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
@@ -63,10 +63,10 @@ impl S5PhysicalIsolationTraceFixtures {
     }
 }
 
-pub fn observe_physical_isolation_physical_isolation_trace(
+pub fn observe_physical_isolation_trace(
     plan: &PhysicalSimulationPlan,
     _schedule: &PhysicalInterleavingSchedule,
-    fixtures: S5PhysicalIsolationTraceFixtures,
+    fixtures: PhysicalIsolationTraceFixtures,
 ) -> Result<ObservedPhysicalTrace, CoverageGapDenial> {
     let execution = ExecutedPhysicalSimulationObservation::from_executed_plan(plan).unwrap();
     let builder = PhysicalSimulationObserver::independent_physical_trace()

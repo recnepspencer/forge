@@ -34,7 +34,7 @@ fn s5_interleaving_oracle_rejects_wrong_family_observation_topology() {
             }
             other => panic!("unexpected S5 interleaving family {other:?}"),
         };
-        let trace = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
+        let trace = forge_store_certification::observe_physical_isolation_trace(
             &plan, &schedule, fixtures,
         )
         .unwrap();
@@ -54,7 +54,7 @@ fn s5_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
         let schedule = schedule(&plan);
-        let result = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
+        let result = forge_store_certification::observe_physical_isolation_trace(
             &plan,
             &schedule,
             trace_fixtures(&plan, &schedule).without_compaction_mutations(),

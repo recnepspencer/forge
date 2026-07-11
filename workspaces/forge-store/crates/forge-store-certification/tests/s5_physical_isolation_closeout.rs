@@ -18,7 +18,7 @@ mod support;
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
     materialize_s5_executed_isolation_evidence, physical_isolation_lanes,
-    physical_isolation_physical_isolation_coverage_matrix, ExecutedPhysicalIsolationEvidenceSource,
+    physical_isolation_coverage_matrix, ExecutedPhysicalIsolationEvidenceSource,
     PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
     PhysicalIsolationMutationEvidence, S5CloseoutReservedScope,
 };
@@ -97,7 +97,7 @@ fn phase15_closeout_denies_smoke_profile_lane_evidence() {
     .unwrap();
     let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
     let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-    let coverage = physical_isolation_physical_isolation_coverage_matrix(
+    let coverage = physical_isolation_coverage_matrix(
         lane.scenario(),
         &plan,
         &replay,
@@ -242,7 +242,7 @@ fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
             let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
             let mutation =
                 PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-            let coverage = physical_isolation_physical_isolation_coverage_matrix(
+            let coverage = physical_isolation_coverage_matrix(
                 lane.scenario(),
                 &plan,
                 &replay,

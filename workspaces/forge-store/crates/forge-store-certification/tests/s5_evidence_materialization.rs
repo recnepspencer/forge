@@ -273,7 +273,7 @@ fn counter_count(replay: &SimulationReplayBundle, kind: CounterContractKind) -> 
 
 fn lane_for(
     family: PhysicalSimulationScenarioFamily,
-) -> forge_store_certification::S5PhysicalIsolationHarnessLane {
+) -> forge_store_certification::PhysicalIsolationHarnessLane {
     physical_isolation_lanes()
         .into_iter()
         .find(|lane| lane.scenario().definition().family() == family)

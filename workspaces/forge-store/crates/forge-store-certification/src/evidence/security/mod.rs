@@ -4,8 +4,7 @@ pub(crate) mod evidence_bundle;
 pub(crate) mod performance_receipts;
 
 pub(crate) use crate::courtroom::security::closeout::{
-    S51CertificationCloseoutDenial, S51CertificationCloseoutInput,
-    S51CloseoutApiAdoptionEvidence,
+    S51CertificationCloseoutDenial, S51CertificationCloseoutInput, S51CloseoutApiAdoptionEvidence,
 };
 pub use boundary_evidence::{
     S51CloseoutBoundaryEvidencePublication, S51CloseoutFoundationalBoundaryPackage,

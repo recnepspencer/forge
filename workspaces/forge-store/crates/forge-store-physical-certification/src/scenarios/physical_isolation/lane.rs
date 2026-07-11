@@ -1,20 +1,18 @@
-use forge_store_physical_certification::{
+use super::fixture::physical_isolation_boundary_fact;
+use crate::{
     physical_scenario, CertifiedPhysicalScenario, PhysicalScenarioActor,
     PhysicalScenarioExpectation, PhysicalScenarioFault, PhysicalScenarioFaultKind,
     PhysicalScenarioIntent, PhysicalSimulationScenarioFamily,
 };
-use forge_store_test_support::{
-    physical_isolation_boundary_fact, physical_isolation_boundary_yieldpoint,
-};
 
 #[derive(Debug, Clone)]
-pub struct S5PhysicalIsolationHarnessLane {
+pub struct PhysicalIsolationHarnessLane {
     name: &'static str,
     scenario: CertifiedPhysicalScenario,
     expected_fault: PhysicalScenarioFaultKind,
 }
 
-pub fn physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
+pub fn physical_isolation_lanes() -> Vec<PhysicalIsolationHarnessLane> {
     vec![
         lane(
             "compaction-interlock",
@@ -85,7 +83,7 @@ pub fn physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
     ]
 }
 
-impl S5PhysicalIsolationHarnessLane {
+impl PhysicalIsolationHarnessLane {
     pub const fn name(&self) -> &'static str {
         self.name
     }
@@ -106,7 +104,7 @@ fn lane<const N: usize>(
     fault: PhysicalScenarioFault,
     expectation: PhysicalScenarioExpectation,
     actors: [PhysicalScenarioActor; N],
-) -> S5PhysicalIsolationHarnessLane {
+) -> PhysicalIsolationHarnessLane {
     let expected_fault = fault.kind();
     let mut builder = physical_scenario(format!("store.physical.s5.interleaving.{name}"))
         .family(family)
@@ -115,12 +113,14 @@ fn lane<const N: usize>(
     for actor in actors {
         builder = builder.actor(actor);
     }
-    S5PhysicalIsolationHarnessLane {
+    PhysicalIsolationHarnessLane {
         name,
         expected_fault,
         scenario: builder
             .fault(fault)
-            .schedule(physical_isolation_boundary_yieldpoint())
+            .schedule(crate::PhysicalScenarioSchedule::named_boundary_yieldpoint(
+                "root-publication-before-observe",
+            ))
             .expectation(expectation)
             .certify_definition()
             .unwrap(),

@@ -2,13 +2,12 @@ mod api_adoption;
 mod denial;
 mod input;
 
-pub use api_adoption::S51CloseoutApiAdoptionEvidence;
 pub use crate::evidence::security::{
-    S51CertificationCloseoutEvidence, S51CloseoutCounterMatrix, S51CloseoutPerformanceReceipts,
-    S51CloseoutPerformanceRows,
-    S51CloseoutBoundaryEvidencePublication, S51CloseoutFoundationalBoundaryPackage,
-    S51CloseoutFoundationalLane,
+    S51CertificationCloseoutEvidence, S51CloseoutBoundaryEvidencePublication,
+    S51CloseoutCounterMatrix, S51CloseoutFoundationalBoundaryPackage, S51CloseoutFoundationalLane,
+    S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows,
 };
+pub use api_adoption::S51CloseoutApiAdoptionEvidence;
 pub use denial::S51CertificationCloseoutDenial;
 pub use input::{S51CertificationCloseoutInput, S51CertificationEvidencePolicy};
 

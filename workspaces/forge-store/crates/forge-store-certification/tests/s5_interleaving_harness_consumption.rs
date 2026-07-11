@@ -25,7 +25,7 @@ fn s5_scenario_families_lower_replay_cover_and_emit_evidence_through_s4_5_pipeli
             &replay,
         );
         let matrix =
-            forge_store_certification::physical_isolation_physical_isolation_coverage_matrix(
+            forge_store_certification::physical_isolation_coverage_matrix(
                 lane.scenario(),
                 &plan,
                 &replay,

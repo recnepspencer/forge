@@ -31,20 +31,20 @@ use forge_store_physical_isolation::{
 };
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
-    forge_store_certification::physical_isolation_physical_isolation_ci_certification_planning_context(
+    forge_store_certification::physical_isolation_ci_certification_planning_context(
         s5_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
 pub(crate) fn context_without_s5_lane_registration() -> SimulationPlanningContext {
-    forge_store_certification::physical_isolation_physical_isolation_ci_certification_context_without_lane_registration(
+    forge_store_certification::physical_isolation_ci_certification_context_without_lane_registration(
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
 pub(crate) fn developer_smoke_context() -> SimulationPlanningContext {
-    forge_store_certification::physical_isolation_physical_isolation_planning_context(
+    forge_store_certification::physical_isolation_planning_context(
         s5_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
@@ -55,7 +55,7 @@ pub(crate) fn replay_bundle(
     expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
 ) -> forge_store_physical_certification::SimulationReplayBundle {
     let schedule = schedule(plan);
-    let trace = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
+    let trace = forge_store_certification::observe_physical_isolation_trace(
         plan,
         &schedule,
         trace_fixtures(plan, &schedule),
@@ -70,7 +70,7 @@ pub(crate) fn replay_bundle_from_trace(
     trace: forge_store_physical_certification::ObservedPhysicalTrace,
     expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
 ) -> forge_store_physical_certification::SimulationReplayBundle {
-    forge_store_certification::assemble_physical_isolation_physical_isolation_replay_bundle(
+    forge_store_certification::assemble_physical_isolation_replay_bundle(
         plan,
         schedule,
         &resources::production_fixture(),
@@ -82,8 +82,8 @@ pub(crate) fn replay_bundle_from_trace(
 pub(crate) fn trace_fixtures(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
-) -> forge_store_certification::S5PhysicalIsolationTraceFixtures {
-    forge_store_certification::S5PhysicalIsolationTraceFixtures::complete(
+) -> forge_store_certification::PhysicalIsolationTraceFixtures {
+    forge_store_certification::PhysicalIsolationTraceFixtures::complete(
         compaction_interlock_observation(),
         compaction_mutations(plan, schedule).ok(),
         checkpoint_interlock_observation(),
@@ -156,7 +156,7 @@ pub(crate) fn s45_harness_readiness_receipt() -> PhysicalIsolationHarnessReadine
 }
 
 pub(crate) fn lower_lane(
-    lane: &forge_store_certification::S5PhysicalIsolationHarnessLane,
+    lane: &forge_store_certification::PhysicalIsolationHarnessLane,
 ) -> PhysicalSimulationPlan {
     lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap()
 }

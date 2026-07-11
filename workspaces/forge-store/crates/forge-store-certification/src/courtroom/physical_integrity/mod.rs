@@ -1,6 +1,10 @@
 #[cfg(test)]
 pub(crate) mod checksum_declaration_tests;
 #[cfg(test)]
+pub(crate) mod integrity_damage_map_tests;
+#[cfg(test)]
+pub(crate) mod integrity_handoff_tests;
+#[cfg(test)]
 pub(crate) mod manifest_integrity_tests;
 #[cfg(test)]
 pub(crate) mod physical_container_integrity_hardening_tests;
@@ -20,11 +24,6 @@ pub(crate) mod physical_integrity_closeout_report;
 pub(crate) mod physical_integrity_closeout_suite;
 pub(crate) mod physical_integrity_closeout_suite_kind;
 #[cfg(test)]
-pub(crate) mod integrity_damage_map_tests;
-#[cfg(test)]
-pub(crate) mod integrity_handoff_tests;
-pub(crate) mod readiness_handoff;
-#[cfg(test)]
 pub(crate) mod physical_integrity_closeout_tests;
 #[cfg(test)]
 pub(crate) mod physical_integrity_entry_authority_tests;
@@ -42,5 +41,6 @@ pub(crate) mod physical_substrate_manifest_suite;
 pub(crate) mod pre_decode_physical_admission_tests;
 #[cfg(test)]
 pub(crate) mod quarantine_sealing_tests;
+pub(crate) mod readiness_handoff;
 #[cfg(test)]
 pub(crate) mod scrub_execution_tests;
