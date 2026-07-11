@@ -1,5 +1,6 @@
-use forge_store_physical_certification::PhysicalIsolationHarnessMaturityDependencyEvidence;
-use forge_store_readiness::PhysicalIsolationHarnessMaturityDependency;
+use forge_store_physical_certification::{
+    PhysicalIsolationHarnessMaturityDependency, PhysicalIsolationHarnessMaturityDependencyEvidence,
+};
 
 fn main() {
     let _evidence = PhysicalIsolationHarnessMaturityDependencyEvidence {

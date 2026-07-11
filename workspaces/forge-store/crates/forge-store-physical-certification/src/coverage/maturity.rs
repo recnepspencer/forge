@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use forge_store_readiness::{
+use crate::{
     PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
     PhysicalIsolationHarnessReadinessDenial,
 };

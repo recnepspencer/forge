@@ -6,11 +6,9 @@ use forge_store_physical_certification::{
     GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityLevel, HarnessSubsystem,
     MutationValidationPosture, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
     PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationReadinessDependencySet,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
     PhysicalProofOracleKind, PhysicalScenarioActorRole, PhysicalScenarioFaultKind,
     PhysicalSimulationProfile,
-};
-use forge_store_readiness::{
-    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
 };
 
 #[test]

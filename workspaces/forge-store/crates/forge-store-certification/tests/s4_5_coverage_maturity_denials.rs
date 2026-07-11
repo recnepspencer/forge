@@ -6,8 +6,6 @@ use forge_store_physical_certification::{
     CoverageGapDenial, CoverageSurfaceKind, FaultDeliveryAttempt, HarnessCoverageStage,
     OracleFamilyKind, PhysicalCoverageRegistry, PhysicalDriverKind, PhysicalHarnessReadinessReport,
     PhysicalMutationCoverageEvidence,
-};
-use forge_store_readiness::{
     reject_missing_s5_correctness_non_claim, PhysicalIsolationCorrectnessNonClaimEvidence,
     PhysicalIsolationHarnessReadinessDenial,
 };

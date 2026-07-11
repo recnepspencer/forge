@@ -1,5 +1,5 @@
 use forge_store_physical_isolation::PhysicalIsolationEntryAdmission;
-use forge_store_readiness::PhysicalIsolationHarnessReadinessDenial;
+use crate::PhysicalIsolationHarnessReadinessDenial;
 
 use super::{
     accept_store_owned_physical_isolation_harness_readiness,

@@ -1,5 +1,6 @@
-use forge_store_readiness::{
+use crate::{
     PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
+    PhysicalIsolationHarnessMaturityDependency,
 };
 
 use crate::{
@@ -51,7 +52,7 @@ impl PhysicalIsolationHarnessReadinessReceipt {
             )
             .map_err(|_| {
                 PhysicalIsolationHarnessReadinessDenial::MissingDependency(
-                    forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions,
+                    PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions,
                 )
             })?
             .admit_physical_isolation_simulation_harness_readiness(non_claim)?;
@@ -218,31 +219,31 @@ fn require_physical_isolation_oracle_non_claim(
 
 fn dependency_for_surface(
     surface: CoverageSurfaceKind,
-) -> forge_store_readiness::PhysicalIsolationHarnessMaturityDependency {
+) -> PhysicalIsolationHarnessMaturityDependency {
     match surface {
         CoverageSurfaceKind::Scenario | CoverageSurfaceKind::Plan => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions
+            PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions
         }
         CoverageSurfaceKind::YieldpointSchedule => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler
+            PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler
         }
         CoverageSurfaceKind::Actor => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::ActorModel
+            PhysicalIsolationHarnessMaturityDependency::ActorModel
         }
         CoverageSurfaceKind::Driver => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts
+            PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts
         }
         CoverageSurfaceKind::Oracle => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::CertificationOracleFamilies
+            PhysicalIsolationHarnessMaturityDependency::CertificationOracleFamilies
         }
         CoverageSurfaceKind::Counter => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::CounterStrengthContracts
+            PhysicalIsolationHarnessMaturityDependency::CounterStrengthContracts
         }
         CoverageSurfaceKind::Transcript => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::ReplayableTranscripts
+            PhysicalIsolationHarnessMaturityDependency::ReplayableTranscripts
         }
         CoverageSurfaceKind::MutationResult => {
-            forge_store_readiness::PhysicalIsolationHarnessMaturityDependency::MutationValidation
+            PhysicalIsolationHarnessMaturityDependency::MutationValidation
         }
     }
 }

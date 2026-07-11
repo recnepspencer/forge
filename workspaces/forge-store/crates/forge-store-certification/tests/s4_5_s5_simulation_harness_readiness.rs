@@ -19,8 +19,6 @@ use forge_store_physical_certification::{
     PhysicalIsolationProductionDriverCapability, PhysicalIsolationRequiredYieldpoint,
     PhysicalIsolationReusableOracleReadiness, PhysicalProofOracleKind, PhysicalScenarioActorRole,
     ShortcutRejectionObservationKind, SimulationPlanDenial,
-};
-use forge_store_readiness::{
     PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
 };
 

@@ -1,4 +1,4 @@
-use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
+use crate::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 use crate::{
     accept_store_owned_physical_isolation_harness_readiness, GeneratedCoverageMatrix,

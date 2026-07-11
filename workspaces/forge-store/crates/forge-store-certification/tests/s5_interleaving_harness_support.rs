@@ -24,11 +24,11 @@ use forge_store_physical_certification::{
     PhysicalIsolationCompactionMutationObservationSet,
     PhysicalIsolationCompactionMutationReplayBinding, PhysicalIsolationHarnessReadinessReceipt,
     PhysicalSimulationPlan, SimulationPlanningContext,
+    PhysicalIsolationCorrectnessNonClaimEvidence,
 };
 use forge_store_physical_isolation::{
     admit_physical_isolation_entry, PhysicalIsolationEntryRequest,
 };
-use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
     forge_store_certification::physical_isolation_physical_isolation_ci_certification_planning_context(

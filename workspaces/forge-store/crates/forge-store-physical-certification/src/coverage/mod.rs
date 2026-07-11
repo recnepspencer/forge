@@ -1,5 +1,6 @@
 mod blob_dimensions;
 mod denial;
+mod harness_maturity;
 mod matrix;
 mod maturity;
 mod mutation;
@@ -11,6 +12,11 @@ mod sequence;
 pub use denial::{
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
     CoverageGapDenial,
+};
+pub use harness_maturity::{
+    reject_copied_s5_simulation_harness_readiness_fields, reject_missing_s5_correctness_non_claim,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
+    PhysicalIsolationHarnessReadinessDenial,
 };
 pub use matrix::{GeneratedCoverageMatrix, PhysicalCoverageMatrix};
 pub use maturity::{

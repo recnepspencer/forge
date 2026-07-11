@@ -66,6 +66,8 @@ pub use counters::{
     RequiredCounterContractSet,
 };
 pub use coverage::{
+    reject_copied_s5_simulation_harness_readiness_fields,
+    reject_missing_s5_correctness_non_claim,
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
     CoverageGapDenial, CoverageRowDimension, CoverageRowSatisfiedReceipt, CoverageSurfaceKind,
     GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityEvidence, HarnessMaturityLevel,
@@ -73,7 +75,9 @@ pub use coverage::{
     MutationValidationPosture, PhysicalCoverageMatrix, PhysicalCoverageMatrixRow,
     PhysicalCoverageRegistry, PhysicalHarnessReadinessReport,
     PhysicalIsolationCompactionMutationCoverageRow, PhysicalIsolationCompactionMutationKind,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
     PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationHarnessReadiness,
+    PhysicalIsolationHarnessReadinessDenial,
     PhysicalIsolationMutationKind, PhysicalIsolationReadinessDependencySet,
     PhysicalMutationCoverageEvidence, RegisteredCounterCoverageRow, RegisteredOracleCoverageRow,
     RegisteredScenarioCoverageRow, RegisteredTranscriptCoverageRow,

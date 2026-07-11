@@ -21,9 +21,8 @@ use forge_store_physical_certification::{
     PhysicalSimulationHarnessCloseoutSuite, ShortcutRejectionBoundary,
     SimulationHarnessAcceptanceEvidenceLane, SimulationHarnessAcceptanceSuiteName,
     SimulationHarnessAcceptanceSuiteReceiptSet, SimulationHarnessCloseoutCoverageReport,
-    SimulationHarnessDogfoodEvidence,
+    SimulationHarnessDogfoodEvidence, PhysicalIsolationCorrectnessNonClaimEvidence,
 };
-use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 #[test]
 fn s45_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness() {

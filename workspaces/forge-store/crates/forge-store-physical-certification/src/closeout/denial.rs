@@ -1,4 +1,4 @@
-use forge_store_readiness::PhysicalIsolationHarnessReadinessDenial;
+use crate::PhysicalIsolationHarnessReadinessDenial;
 
 use crate::{
     HarnessCoverageStage, PhysicalScenarioActorRole, PhysicalScenarioExpectationKind,

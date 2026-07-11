@@ -1,5 +1,6 @@
-use forge_store_physical_certification::PhysicalIsolationHarnessReadiness;
-use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
+use forge_store_physical_certification::{
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadiness,
+};
 
 fn main() {
     let _readiness = PhysicalIsolationHarnessReadiness::from_generated_maturity(

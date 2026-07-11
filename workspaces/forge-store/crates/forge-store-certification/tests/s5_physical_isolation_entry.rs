@@ -25,7 +25,8 @@ use forge_store_physical_certification::{
     PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
     PhysicalIsolationHarnessReadinessReceipt, PhysicalIsolationLaneRegistrationDenial,
     ShortcutRejectionBoundary, SimulationPlanDenial, SyntheticHarnessShortcutDenialReceipt,
-    SyntheticHarnessShortcutRejectionReport,
+    SyntheticHarnessShortcutRejectionReport, PhysicalIsolationCorrectnessNonClaimEvidence,
+    PhysicalIsolationHarnessReadinessDenial,
 };
 use forge_store_physical_isolation::{
     admit_physical_isolation_entry, reject_copied_recovery_fields_as_physical_isolation_entry,
@@ -36,9 +37,6 @@ use forge_store_physical_isolation::{
     reject_stale_recovery_readiness_as_physical_isolation_entry,
     reject_terminal_projection_as_physical_isolation_entry, PhysicalIsolationEntryCheckedOutcome,
     PhysicalIsolationEntryDenial, PhysicalIsolationEntryRequest,
-};
-use forge_store_readiness::{
-    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
 };
 
 #[test]
