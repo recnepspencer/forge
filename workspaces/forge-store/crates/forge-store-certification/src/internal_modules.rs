@@ -23,6 +23,4 @@ mod s5_1_blob_chunk_scope_dedupe_tests;
 mod s5_1_closeout;
 #[cfg(test)]
 mod s5_1_recovery_scope_propagation_tests;
-mod s5_evidence_materialization;
-mod s5_physical_isolation_closeout;
 mod s5_physical_isolation_harness;

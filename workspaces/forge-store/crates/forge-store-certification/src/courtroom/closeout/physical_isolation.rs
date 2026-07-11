@@ -1,10 +1,10 @@
-pub use crate::s5_evidence_materialization::{
+pub use crate::evidence::physical_isolation::{
     materialize_s5_executed_isolation_evidence, S5ExecutedIsolationEvidenceBundle,
     S5ExecutedIsolationMaterializationDenial, S5FoundationalCanonicalBasis,
     S5FoundationalDiagnostics, S5FoundationalPerformanceReceipts, S5PhysicalIsolationProofTrace,
     S5ProofProjectionArtifact,
 };
-pub use crate::s5_physical_isolation_closeout::{
+pub use crate::courtroom::physical_isolation::closeout::{
     PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutHandoffEvidence,
     PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
     S5CloseoutReservationSet, S5CloseoutReservedScope,

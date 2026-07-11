@@ -9,6 +9,7 @@ pub mod harness;
 pub(crate) mod layout;
 pub(crate) mod memory;
 pub(crate) mod physical_integrity;
+pub(crate) mod physical_isolation;
 pub mod replay;
 pub mod scenario;
 pub mod scheduling;
