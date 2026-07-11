@@ -255,7 +255,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -286,7 +287,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -317,7 +319,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -423,7 +426,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -454,7 +458,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -485,7 +490,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -587,7 +593,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -618,7 +625,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -649,7 +657,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -750,7 +759,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -781,7 +791,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -812,7 +823,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -913,7 +925,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -944,7 +957,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -975,7 +989,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1077,7 +1092,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1108,7 +1124,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1139,7 +1156,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1242,7 +1260,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1273,7 +1292,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1304,7 +1324,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1406,7 +1427,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1437,7 +1459,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",
@@ -1468,7 +1491,8 @@
           "model_policy": {
             "provider": "grok",
             "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "model": "grok-4.5",
+            "goal_mode": true
           },
           "session_policy": {
             "continuity_family": "build",

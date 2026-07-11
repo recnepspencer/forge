@@ -276,6 +276,38 @@ class OperatorCustomTurnTests(unittest.TestCase):
         self.assertEqual(apply_operator_model(base, projection, 2, "implement").model_policy, base.model_policy)
 
 
+class GoalModeTests(unittest.TestCase):
+    def test_goal_mode_adds_grok_self_verification_flag(self) -> None:
+        from runner.adapters.grok import build_grok_command
+        from pathlib import Path
+
+        state = {
+            "session": {"provider": "grok", "model": "grok-4.5", "reuse_session": True, "goal_mode": True, "config": {}},
+            "project": {"cwd": "C:/tmp/demo"},
+        }
+        command = build_grok_command(state, Path("C:/tmp/prompt.md"))
+        self.assertIn("--check", command)
+        # No goal mode -> no --check.
+        state["session"]["goal_mode"] = False
+        self.assertNotIn("--check", build_grok_command(state, Path("C:/tmp/prompt.md")))
+
+    def test_goal_prefix_sets_goal_mode_on_default_model(self) -> None:
+        model, instructions = parse_operator_custom_turn(CUSTOM_TURN_CONFIG, "goal finish the repair")
+        self.assertEqual(model["provider"], "grok")  # default alias
+        self.assertTrue(model["goal_mode"])
+        self.assertEqual(instructions, "finish the repair")
+
+    def test_goal_prefix_with_named_model(self) -> None:
+        model, instructions = parse_operator_custom_turn(CUSTOM_TURN_CONFIG, "goal codex land the cutover")
+        self.assertEqual(model["provider"], "codex")
+        self.assertTrue(model["goal_mode"])
+        self.assertEqual(instructions, "land the cutover")
+
+    def test_no_goal_prefix_leaves_goal_mode_off(self) -> None:
+        model, _ = parse_operator_custom_turn(CUSTOM_TURN_CONFIG, "grok retry once")
+        self.assertNotIn("goal_mode", model)
+
+
 class CustomTurnConfigValidationTests(unittest.TestCase):
     def test_default_alias_must_be_declared(self) -> None:
         errors: list[str] = []

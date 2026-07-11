@@ -175,11 +175,21 @@ PHASES = [
 ]
 
 
+# Repair turns default to goal mode: the provider's self-verification loop drives
+# the repair to completion before review. Flip GOAL_MODE_REPAIR to disable the
+# default; the operator can still toggle it live per turn with a "goal ..." reply.
+REPAIR_TURNS = {"repair", "test_repair_implement", "code_quality_repair"}
+GOAL_MODE_REPAIR = True
+
+
 def role_binding(turn: str) -> dict:
     family, model_policy, assembly_id = TURNS[turn]
+    model_policy = dict(model_policy)
+    if GOAL_MODE_REPAIR and turn in REPAIR_TURNS:
+        model_policy["goal_mode"] = True
     return {
         "role_id": "reviewer" if "review" in turn else "implementer",
-        "model_policy": dict(model_policy),
+        "model_policy": model_policy,
         "session_policy": {"continuity_family": family, "reuse_session": True},
         "prompt_template": {"assembly_id": assembly_id},
     }

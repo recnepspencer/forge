@@ -15,6 +15,7 @@ class RoleModelPolicySeed:
     reasoning_effort: str | None = None
     config: dict[str, Any] = field(default_factory=dict)
     env: dict[str, str] = field(default_factory=dict)
+    goal_mode: bool = False
 
     @classmethod
     def from_mapping(cls, seed: dict[str, Any], field_name: str) -> "RoleModelPolicySeed":
@@ -24,6 +25,9 @@ class RoleModelPolicySeed:
         model = seed.get("model")
         if not isinstance(model, str) or not model:
             raise ValueError(f"{field_name}.model is required")
+        goal_mode = seed.get("goal_mode", False)
+        if not isinstance(goal_mode, bool):
+            raise ValueError(f"{field_name}.goal_mode must be a boolean when present")
         command = seed.get("command")
         if command is not None and (not isinstance(command, str) or not command):
             raise ValueError(f"{field_name}.command must be a non-empty string when present")
@@ -54,6 +58,7 @@ class RoleModelPolicySeed:
             reasoning_effort=reasoning_effort if isinstance(reasoning_effort, str) and reasoning_effort else None,
             config=dict(config_map),
             env=dict(env_map),
+            goal_mode=goal_mode,
         )
 
 
@@ -66,6 +71,7 @@ class RoleModelPolicy:
     reasoning_effort: str | None
     config: dict[str, Any]
     env: dict[str, str]
+    goal_mode: bool = False
 
 
 def role_model_policy_from_seed(model_policy_seed: RoleModelPolicySeed) -> RoleModelPolicy:
@@ -77,6 +83,7 @@ def role_model_policy_from_seed(model_policy_seed: RoleModelPolicySeed) -> RoleM
         reasoning_effort=model_policy_seed.reasoning_effort,
         config=dict(model_policy_seed.config),
         env=dict(model_policy_seed.env),
+        goal_mode=model_policy_seed.goal_mode,
     )
 
 
@@ -94,6 +101,9 @@ def validate_role_model_policy_binding(model_policy: dict[str, Any], errors: lis
         errors.append(f"{field_name}.reasoning_effort is required for codex provider")
     if effort is not None and (not isinstance(effort, str) or not effort):
         errors.append(f"{field_name}.reasoning_effort must be a non-empty string when present")
+    goal_mode = model_policy.get("goal_mode")
+    if goal_mode is not None and not isinstance(goal_mode, bool):
+        errors.append(f"{field_name}.goal_mode must be a boolean when present")
 
 
 def require_role_model_policy_binding(model_policy: dict[str, Any], field_name: str) -> None:

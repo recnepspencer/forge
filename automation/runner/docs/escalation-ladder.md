@@ -121,6 +121,27 @@ This is shared recovery semantics and must land with the graph suite green.
 - operator custom turn: `telegram_bridge` reply parse -> new operator continuation
   in `graph_runtime` -> resume standard.
 
+## Goal mode (implemented)
+
+`goal_mode` is a model-policy flag: when set, the adapter appends the provider's
+self-verification loop so the turn drives itself to completion before handing
+back to review. For grok this is `--check`; codex has no equivalent flag, so
+goal mode is a no-op there. It is set two ways:
+
+- **Config default**: any turn's `model_policy` may carry `"goal_mode": true`.
+  The M1B repair turns default to goal mode (`GOAL_MODE_REPAIR`).
+- **Operator toggle**: a Telegram reply prefixed with `goal` (e.g.
+  `goal finish the repair`, `goal codex land the cutover`) runs that one custom
+  turn in goal mode with the named/default model.
+
+## Resumable operator pause (implemented)
+
+When operator custom turns are configured, an exhausted ladder emits
+`operator_pause` instead of `run_stopped`: the loop idles (paging once) without
+exiting, and an operator reply resumes it automatically — the override consumes
+the open fault so the custom turn runs rather than re-recovering. Without
+operator custom turns configured, `notify_and_pause` still hard-stops.
+
 ## Staged, tested build
 
 1. **Config model** (this increment): `EscalationStage` + `stages` +

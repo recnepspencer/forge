@@ -30,6 +30,10 @@ def build_grok_command(state: dict[str, Any], prompt_file: Path) -> list[str]:
     effort = session.get("reasoning_effort")
     if isinstance(effort, str) and effort:
         result.extend(["--effort", effort])
+    if session.get("goal_mode"):
+        # Goal mode appends grok's headless self-verification loop so the turn
+        # drives itself to completion before handing back to review.
+        result.append("--check")
     if thread_id:
         result.extend(["--resume", thread_id])
     return result

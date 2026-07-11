@@ -110,15 +110,23 @@ def inject_operator_override(
 
 
 def parse_operator_custom_turn(config: dict, message: str) -> tuple[dict | None, str]:
-    """A custom-turn reply is `<model alias> <instructions>`. The first token,
-    if it names a configured alias, picks the model; the remainder is the turn
-    instructions. Absent an alias prefix, the configured default_alias is used
-    and the whole reply is instructions. Without an operator_custom_turn config,
-    the reply is a plain injection at the current model."""
+    """A custom-turn reply is `[goal] <model alias> <instructions>`. A leading
+    `goal` token puts the turn in goal mode (provider self-verification). The
+    next token, if it names a configured alias, picks the model; the remainder
+    is the turn instructions. Absent an alias prefix, the configured
+    default_alias is used and the rest is instructions. Without an
+    operator_custom_turn config, the reply is a plain injection."""
     custom = operator_custom_turn_config(config)
     text = message.strip()
     if custom is None:
         return None, text
+    goal_mode = False
+    token, _, rest = text.partition(" ")
+    if token.rstrip(":").lower() == "goal":
+        goal_mode = True
+        text = rest.strip()
+        if not text:
+            raise ValueError("goal mode requires instructions")
     aliases = custom.get("aliases", {})
     token, _, rest = text.partition(" ")
     alias = token.rstrip(":").lower()
@@ -126,11 +134,16 @@ def parse_operator_custom_turn(config: dict, message: str) -> tuple[dict | None,
         instructions = rest.strip()
         if not instructions:
             raise ValueError("operator custom turn requires instructions after the model name")
-        return aliases[alias], instructions
-    default_alias = custom.get("default_alias")
-    if default_alias in aliases:
-        return aliases[default_alias], text
-    return None, text
+        model_policy = dict(aliases[alias])
+    else:
+        default_alias = custom.get("default_alias")
+        if default_alias not in aliases:
+            return None, text
+        model_policy = dict(aliases[default_alias])
+        instructions = text
+    if goal_mode:
+        model_policy["goal_mode"] = True
+    return model_policy, instructions
 
 
 def operator_override_source_exists(paths: RuntimePaths, source_id: str) -> bool:

@@ -36,6 +36,7 @@ class ResolvedRolePolicy:
         execution_session["reasoning_effort"] = self.model_policy.reasoning_effort
         execution_session["config"] = dict(self.model_policy.config)
         execution_session["env"] = dict(self.model_policy.env)
+        execution_session["goal_mode"] = self.model_policy.goal_mode
         execution_session["role_id"] = self.role.role_id
         execution_session["session_family"] = self.session_policy.continuity_family
         execution_session["escalation_posture"] = self.handoff_policy.escalation_posture
