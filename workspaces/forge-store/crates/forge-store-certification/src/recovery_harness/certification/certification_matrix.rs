@@ -1,4 +1,4 @@
-use crate::s4_recovery_harness::{
+use crate::recovery_harness::{
     RecoveryPhysicsCounterKind, RecoveryPhysicsCrashLane, RecoveryPhysicsCrashMatrix,
     RecoveryPhysicsOracleJudgment, RecoveryPhysicsOracleKind, RecoveryPhysicsShortcutAttempt,
     RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript,

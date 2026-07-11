@@ -1,4 +1,4 @@
-use crate::s4_recovery_harness::{
+use crate::recovery_harness::{
     RecoveryPhysicsCounterExpectation, RecoveryPhysicsCounterKind, RecoveryPhysicsCrashLane,
     RecoveryPhysicsMutant, RecoveryPhysicsOracleKind,
 };

@@ -183,8 +183,7 @@ mod s4_integrity_handoff_tests;
 mod s4_quarantine_receipt_binding_tests;
 #[cfg(test)]
 mod s4_recovery_entry_admission_tests;
-mod s4_recovery_harness;
-mod s4_recovery_harness_exports;
+mod recovery_harness;
 #[cfg(test)]
 #[path = "s5_1_authenticity_integrity_separation_tests/mod.rs"]
 mod s5_1_authenticity_integrity_separation_tests;
