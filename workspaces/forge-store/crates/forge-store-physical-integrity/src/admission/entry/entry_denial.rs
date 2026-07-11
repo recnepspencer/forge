@@ -1,4 +1,4 @@
-use forge_store_contracts::{S3ReadinessDenial, S3ReadinessDenialKind};
+use forge_store_contracts::{PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityEntryDenial {
@@ -32,43 +32,43 @@ pub enum IntegrityEntryDenialKind {
     MissingProtectedPhysicalByteView,
 }
 
-impl From<S3ReadinessDenial> for IntegrityEntryDenial {
-    fn from(denial: S3ReadinessDenial) -> Self {
+impl From<PhysicalIntegrityReadinessDenial> for IntegrityEntryDenial {
+    fn from(denial: PhysicalIntegrityReadinessDenial) -> Self {
         Self::new(match denial.kind() {
-            S3ReadinessDenialKind::S2ReadinessNotSealed => {
+            PhysicalIntegrityReadinessDenialKind::S2ReadinessNotSealed => {
                 IntegrityEntryDenialKind::S2ReadinessNotSealed
             }
-            S3ReadinessDenialKind::MissingProtectedViewCapability => {
+            PhysicalIntegrityReadinessDenialKind::MissingProtectedViewCapability => {
                 IntegrityEntryDenialKind::MissingProtectedViewCapability
             }
-            S3ReadinessDenialKind::MissingVerifierResidentEnvelope => {
+            PhysicalIntegrityReadinessDenialKind::MissingVerifierResidentEnvelope => {
                 IntegrityEntryDenialKind::MissingVerifierResidentEnvelope
             }
-            S3ReadinessDenialKind::MissingScrubAllocationEnvelope => {
+            PhysicalIntegrityReadinessDenialKind::MissingScrubAllocationEnvelope => {
                 IntegrityEntryDenialKind::MissingScrubAllocationEnvelope
             }
-            S3ReadinessDenialKind::MissingInspectionLifetimeLaw => {
+            PhysicalIntegrityReadinessDenialKind::MissingInspectionLifetimeLaw => {
                 IntegrityEntryDenialKind::MissingInspectionLifetimeLaw
             }
-            S3ReadinessDenialKind::MissingNoMaterializationWitness => {
+            PhysicalIntegrityReadinessDenialKind::MissingNoMaterializationWitness => {
                 IntegrityEntryDenialKind::MissingNoMaterializationWitness
             }
-            S3ReadinessDenialKind::MissingCounterRecap => {
+            PhysicalIntegrityReadinessDenialKind::MissingCounterRecap => {
                 IntegrityEntryDenialKind::MissingCounterRecap
             }
-            S3ReadinessDenialKind::MissingDenialBehavior => {
+            PhysicalIntegrityReadinessDenialKind::MissingDenialBehavior => {
                 IntegrityEntryDenialKind::MissingDenialBehavior
             }
-            S3ReadinessDenialKind::MissingPhysicalAuthorityRecap => {
+            PhysicalIntegrityReadinessDenialKind::MissingPhysicalAuthorityRecap => {
                 IntegrityEntryDenialKind::MissingPhysicalAuthorityRecap
             }
-            S3ReadinessDenialKind::PhysicalAuthorityRecapMismatch => {
+            PhysicalIntegrityReadinessDenialKind::PhysicalAuthorityRecapMismatch => {
                 IntegrityEntryDenialKind::PhysicalAuthorityRecapMismatch
             }
-            S3ReadinessDenialKind::MissingBufferPoolAuthorityRecap => {
+            PhysicalIntegrityReadinessDenialKind::MissingBufferPoolAuthorityRecap => {
                 IntegrityEntryDenialKind::MissingBufferPoolAuthorityRecap
             }
-            S3ReadinessDenialKind::LaterSequenceSemanticClaimed => {
+            PhysicalIntegrityReadinessDenialKind::LaterSequenceSemanticClaimed => {
                 IntegrityEntryDenialKind::LaterSequenceSemanticClaimed
             }
         })

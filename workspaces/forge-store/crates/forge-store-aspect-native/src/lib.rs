@@ -42,10 +42,10 @@ mod canonical_basis;
 mod contract_admission;
 mod denial;
 mod equivalence_basis;
+mod handoff;
 mod json_ingress_readmission;
 mod receipts;
 mod physical_witness;
-mod s0_handoff;
 mod terminal_json_projection;
 mod terminal_projection;
 mod value_admission;
@@ -87,7 +87,7 @@ pub use json_ingress_readmission::{
     StoreTerminalJsonReadmissionOutcome,
 };
 pub use physical_witness::StorePhysicalBoundaryWitness;
-pub use s0_handoff::{StoreS0ReadinessHandoffArtifact, StoreS0ReadinessHandoffDenial};
+pub use handoff::{StoreReadinessHandoffArtifact, StoreReadinessHandoffDenial};
 pub use terminal_json_projection::{
     project_store_boundary_fact_to_terminal_json, StoreTerminalJsonProjection,
 };

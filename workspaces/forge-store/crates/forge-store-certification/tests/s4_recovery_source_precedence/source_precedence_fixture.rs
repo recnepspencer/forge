@@ -72,7 +72,7 @@ pub(crate) fn wal_only_tail_denial_from_torn_frame(start: u64, end: u64) -> WalO
     wal_only_tail_fixture::wal_only_tail_denial_from_torn_frame(wal_range(start, end))
 }
 
-pub(crate) fn s3_integrity_readiness() -> forge_store_readiness::S3PhysicalIntegrityReadiness {
+pub(crate) fn s3_integrity_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
     wal_only_tail_fixture::s3_readiness()
 }
 

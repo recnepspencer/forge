@@ -1,6 +1,7 @@
-use crate::{
-    s2_readiness_facts::{S2PhysicalSubstrateEvidenceCounts, S2PhysicalSubstrateHandoffEvidence},
-    S2PhysicalSubstrateReadiness, S2ReadinessDenial, S2ReadinessDenialKind,
+use super::{
+    facts::{PhysicalSubstrateEvidenceCounts, PhysicalSubstrateHandoffEvidence},
+    PhysicalSubstrateReadiness, PhysicalSubstrateReadinessDenial,
+    PhysicalSubstrateReadinessDenialKind,
 };
 use forge_store_contracts::{AcceptedHandoffReadiness, ROADMAP_2_S1_SCOPE};
 use forge_store_physical_format::{
@@ -12,49 +13,49 @@ use forge_store_physical_format::{
 };
 
 #[derive(Debug)]
-pub struct S1PhysicalSubstrateCloseoutReceipt {
+pub struct PhysicalSubstrateCloseoutReceipt {
     scope: forge_store_contracts::RoadmapScope,
-    evidence: S2PhysicalSubstrateHandoffEvidence,
+    evidence: PhysicalSubstrateHandoffEvidence,
 }
 
-impl S1PhysicalSubstrateCloseoutReceipt {
+impl PhysicalSubstrateCloseoutReceipt {
     pub const fn scope(&self) -> forge_store_contracts::RoadmapScope {
         self.scope
     }
 
-    pub(crate) fn into_handoff_evidence(self) -> S2PhysicalSubstrateHandoffEvidence {
+    pub(crate) fn into_handoff_evidence(self) -> PhysicalSubstrateHandoffEvidence {
         self.evidence
     }
 }
 
-pub fn close_s1_physical_substrate_readiness(
+pub fn close_physical_substrate_readiness(
     readiness: AcceptedHandoffReadiness,
-) -> Result<S1PhysicalSubstrateCloseoutReceipt, S2ReadinessDenial> {
+) -> Result<PhysicalSubstrateCloseoutReceipt, PhysicalSubstrateReadinessDenial> {
     if readiness.scope() != ROADMAP_2_S1_SCOPE {
-        return Err(S2ReadinessDenial::new(
-            S2ReadinessDenialKind::WrongRoadmapScope,
+        return Err(PhysicalSubstrateReadinessDenial::new(
+            PhysicalSubstrateReadinessDenialKind::WrongRoadmapScope,
         ));
     }
     let scope = readiness.scope();
     let evidence = prove_s1_physical_handoff_evidence(readiness)?;
-    Ok(S1PhysicalSubstrateCloseoutReceipt { scope, evidence })
+    Ok(PhysicalSubstrateCloseoutReceipt { scope, evidence })
 }
 
-pub fn prove_s2_physical_substrate_readiness(
-    closeout: S1PhysicalSubstrateCloseoutReceipt,
-) -> Result<S2PhysicalSubstrateReadiness, S2ReadinessDenial> {
+pub fn prove_physical_substrate_readiness(
+    closeout: PhysicalSubstrateCloseoutReceipt,
+) -> Result<PhysicalSubstrateReadiness, PhysicalSubstrateReadinessDenial> {
     if closeout.scope() != ROADMAP_2_S1_SCOPE {
-        return Err(S2ReadinessDenial::new(
-            S2ReadinessDenialKind::WrongRoadmapScope,
+        return Err(PhysicalSubstrateReadinessDenial::new(
+            PhysicalSubstrateReadinessDenialKind::WrongRoadmapScope,
         ));
     }
     let scope = closeout.scope();
-    S2PhysicalSubstrateReadiness::from_s1_handoff_evidence(scope, closeout.into_handoff_evidence())
+    PhysicalSubstrateReadiness::from_s1_handoff_evidence(scope, closeout.into_handoff_evidence())
 }
 
 fn prove_s1_physical_handoff_evidence(
     readiness: AcceptedHandoffReadiness,
-) -> Result<S2PhysicalSubstrateHandoffEvidence, S2ReadinessDenial> {
+) -> Result<PhysicalSubstrateHandoffEvidence, PhysicalSubstrateReadinessDenial> {
     let reopen_readiness = readiness.clone();
     let mut facade = open_facade(readiness)?;
     let page_append = facade
@@ -96,11 +97,11 @@ fn prove_s1_physical_handoff_evidence(
     let shortcut_counters = rejected_shortcut_counters(&mut facade)?;
     let physical_references = [page_append.reference(), extent_append.reference()];
     let witnessed = witnessed_payload(11, b"s2-handoff")?;
-    S2PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
+    PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
         &physical_references,
         &[witnessed.0],
         &[witnessed.1],
-        S2PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(
+        PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(
             scan.runtime_report().discovered_references().len() as u32,
             no_materialization_evidence_count(shortcut_counters),
             counter_evidence_count(facade.counters(), reopened.counters()),
@@ -110,14 +111,14 @@ fn prove_s1_physical_handoff_evidence(
 
 fn open_facade(
     readiness: AcceptedHandoffReadiness,
-) -> Result<PlatformPhysicalFacade, S2ReadinessDenial> {
+) -> Result<PlatformPhysicalFacade, PhysicalSubstrateReadinessDenial> {
     PlatformPhysicalFacade::open_s1(readiness, PlatformPhysicalOpenRequest::s1_canonical())
         .map_err(|_| proof_rejected())
 }
 
 fn rejected_shortcut_counters(
     facade: &mut PlatformPhysicalFacade,
-) -> Result<PlatformPhysicalFacadeCounterSnapshot, S2ReadinessDenial> {
+) -> Result<PlatformPhysicalFacadeCounterSnapshot, PhysicalSubstrateReadinessDenial> {
     if facade.reject_full_store_heap_materialization().is_ok()
         || facade.reject_backend_residue_guess().is_ok()
     {
@@ -156,7 +157,7 @@ fn witnessed_payload(
         forge_store_physical_format::PhysicalHeaderDecodeWitness,
         forge_store_physical_format::PhysicalPayloadViewAdmission<'static>,
     ),
-    S2ReadinessDenial,
+    PhysicalSubstrateReadinessDenial,
 > {
     let bytes = Box::leak(header_bytes(generation_value, payload).into_boxed_slice());
     let authority = PhysicalHeaderAuthority::s1(
@@ -177,7 +178,10 @@ fn witnessed_payload(
 
 fn validated_slot_reference(
     generation_value: u64,
-) -> Result<forge_store_physical_format::PhysicalReferenceValidationWitness, S2ReadinessDenial> {
+) -> Result<
+    forge_store_physical_format::PhysicalReferenceValidationWitness,
+    PhysicalSubstrateReadinessDenial,
+> {
     let references = PhysicalReferenceAuthority::s1();
     let cell = PhysicalGenerationAuthority::s1()
         .slot_cell(segment(1)?, page(1)?, slot(11)?)
@@ -189,7 +193,7 @@ fn validated_slot_reference(
 
 fn slot_cell(
     value: u16,
-) -> Result<forge_store_physical_format::SlotGenerationCell, S2ReadinessDenial> {
+) -> Result<forge_store_physical_format::SlotGenerationCell, PhysicalSubstrateReadinessDenial> {
     Ok(PhysicalGenerationAuthority::s1()
         .slot_cell(segment(1)?, page(1)?, slot(value)?)
         .with_slot_generation(generation(5)?))
@@ -197,7 +201,7 @@ fn slot_cell(
 
 fn extent_cell(
     value: u64,
-) -> Result<forge_store_physical_format::ExtentGenerationCell, S2ReadinessDenial> {
+) -> Result<forge_store_physical_format::ExtentGenerationCell, PhysicalSubstrateReadinessDenial> {
     Ok(PhysicalGenerationAuthority::s1()
         .extent_cell(
             segment(1)?,
@@ -221,22 +225,24 @@ fn header_bytes(generation_value: u64, payload: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn segment(value: u64) -> Result<PhysicalSegmentId, S2ReadinessDenial> {
+fn segment(value: u64) -> Result<PhysicalSegmentId, PhysicalSubstrateReadinessDenial> {
     PhysicalSegmentId::from_raw(value).map_err(|_| proof_rejected())
 }
 
-fn page(value: u64) -> Result<PhysicalPageId, S2ReadinessDenial> {
+fn page(value: u64) -> Result<PhysicalPageId, PhysicalSubstrateReadinessDenial> {
     PhysicalPageId::from_raw(value).map_err(|_| proof_rejected())
 }
 
-fn slot(value: u16) -> Result<PhysicalRecordSlot, S2ReadinessDenial> {
+fn slot(value: u16) -> Result<PhysicalRecordSlot, PhysicalSubstrateReadinessDenial> {
     PhysicalRecordSlot::from_raw(value).map_err(|_| proof_rejected())
 }
 
-fn generation(value: u64) -> Result<PhysicalGeneration, S2ReadinessDenial> {
+fn generation(value: u64) -> Result<PhysicalGeneration, PhysicalSubstrateReadinessDenial> {
     PhysicalGeneration::from_raw(value).map_err(|_| proof_rejected())
 }
 
-const fn proof_rejected() -> S2ReadinessDenial {
-    S2ReadinessDenial::new(S2ReadinessDenialKind::S1PhysicalSubstrateProofRejected)
+const fn proof_rejected() -> PhysicalSubstrateReadinessDenial {
+    PhysicalSubstrateReadinessDenial::new(
+        PhysicalSubstrateReadinessDenialKind::S1PhysicalSubstrateProofRejected,
+    )
 }

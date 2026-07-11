@@ -125,7 +125,7 @@ pub(crate) fn executed_boundary_denial_evidence() -> Vec<S3ExecutedBoundaryDenia
     ]
 }
 
-pub(crate) fn s3_readiness() -> forge_store_readiness::S3PhysicalIntegrityReadiness {
+pub(crate) fn s3_readiness() -> forge_store_readiness::PhysicalIntegrityReadiness {
     complete_bounded_memory_closeout()
         .publish_s3_physical_integrity_readiness(s2_readiness())
         .unwrap()

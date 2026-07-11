@@ -9,20 +9,20 @@ use crate::{
     S3S4HandoffCloseoutEvidence, SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,
     SyntheticCloseoutShortcutRejectionReport,
 };
-use forge_store_readiness::S3PhysicalIntegrityReadiness;
+use forge_store_readiness::PhysicalIntegrityReadiness;
 use forge_store_recovery_physics::AdmittedRecoveryIntegrityInput;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct PhysicalIntegrityCloseoutRequest {
     suite: PhysicalIntegrityCloseoutSuite,
-    s3_readiness: S3PhysicalIntegrityReadiness,
+    s3_readiness: PhysicalIntegrityReadiness,
     s4_handoff: AdmittedRecoveryIntegrityInput,
 }
 
 impl PhysicalIntegrityCloseoutRequest {
     pub(crate) fn new(
         suite: PhysicalIntegrityCloseoutSuite,
-        s3_readiness: S3PhysicalIntegrityReadiness,
+        s3_readiness: PhysicalIntegrityReadiness,
         s4_handoff: AdmittedRecoveryIntegrityInput,
     ) -> Self {
         Self {
@@ -36,7 +36,7 @@ impl PhysicalIntegrityCloseoutRequest {
 #[derive(Debug, PartialEq, Eq)]
 pub struct PhysicalIntegrityCertificationBundle {
     suite: PhysicalIntegrityCloseoutSuite,
-    s3_readiness: S3PhysicalIntegrityReadiness,
+    s3_readiness: PhysicalIntegrityReadiness,
     s4_handoff: AdmittedRecoveryIntegrityInput,
     report: PhysicalIntegrityCloseoutReport,
 }
@@ -61,7 +61,7 @@ impl PhysicalIntegrityCertificationBundle {
         &self.suite
     }
 
-    pub const fn s3_readiness(&self) -> &S3PhysicalIntegrityReadiness {
+    pub const fn s3_readiness(&self) -> &PhysicalIntegrityReadiness {
         &self.s3_readiness
     }
 
@@ -75,7 +75,7 @@ impl PhysicalIntegrityCertificationBundle {
 }
 
 pub fn close_s3_physical_integrity_from_executed_evidence(
-    s3_readiness: S3PhysicalIntegrityReadiness,
+    s3_readiness: PhysicalIntegrityReadiness,
     s4_handoff: AdmittedRecoveryIntegrityInput,
     localized_boundaries: Vec<S3ExecutedCorruptionLocalizationEvidence>,
     denied_boundaries: Vec<S3ExecutedBoundaryDenialEvidence>,
@@ -190,7 +190,7 @@ fn required_synthetic_attempts() -> [SyntheticCloseoutShortcutAttempt; 7] {
 }
 
 fn require_s3_readiness_scope(
-    readiness: &S3PhysicalIntegrityReadiness,
+    readiness: &PhysicalIntegrityReadiness,
 ) -> Result<(), PhysicalIntegrityCloseoutDenial> {
     if readiness.payload().claims_later_sequence_semantics() {
         Err(PhysicalIntegrityCloseoutDenial::S3ReadinessClaimsLaterSequence)

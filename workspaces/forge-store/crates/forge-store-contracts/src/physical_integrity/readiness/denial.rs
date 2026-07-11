@@ -1,20 +1,20 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S3ReadinessDenial {
-    kind: S3ReadinessDenialKind,
+pub struct PhysicalIntegrityReadinessDenial {
+    kind: PhysicalIntegrityReadinessDenialKind,
 }
 
-impl S3ReadinessDenial {
-    pub const fn new(kind: S3ReadinessDenialKind) -> Self {
+impl PhysicalIntegrityReadinessDenial {
+    pub const fn new(kind: PhysicalIntegrityReadinessDenialKind) -> Self {
         Self { kind }
     }
 
-    pub const fn kind(self) -> S3ReadinessDenialKind {
+    pub const fn kind(self) -> PhysicalIntegrityReadinessDenialKind {
         self.kind
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S3ReadinessDenialKind {
+pub enum PhysicalIntegrityReadinessDenialKind {
     S2ReadinessNotSealed,
     MissingProtectedViewCapability,
     MissingVerifierResidentEnvelope,

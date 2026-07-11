@@ -24,12 +24,10 @@ mod durable_artifact_family_id;
 mod existing_artifact_family;
 mod handoff_readiness;
 mod physical_authority;
+mod physical_integrity;
+mod physical_substrate;
 mod resources;
 mod roadmap_scope;
-mod s2_physical_substrate_snapshot;
-mod s3_readiness_denial;
-mod s3_readiness_payload;
-mod s3_readiness_recap;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
 pub use compatibility_family::{
@@ -59,15 +57,15 @@ pub use physical_authority::{
 pub use roadmap_scope::{
     RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
 };
-pub use s2_physical_substrate_snapshot::S2PhysicalSubstrateReadinessSnapshot;
-pub use s3_readiness_denial::{S3ReadinessDenial, S3ReadinessDenialKind};
-pub use s3_readiness_payload::{
-    IntegrityInspectionLifetimeLaw, ProtectedIntegrityViewCapability, S2NoMaterializationWitness,
-    S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+pub use physical_substrate::PhysicalSubstrateReadinessSnapshot;
+pub use physical_integrity::readiness::{PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind};
+pub use physical_integrity::readiness::{
+    IntegrityInspectionLifetimeLaw, ProtectedIntegrityViewCapability, NoMaterializationWitness,
+    PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
-pub use s3_readiness_recap::{
-    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S2DeniedBoundaryKind,
+pub use physical_integrity::readiness::{
+    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, BoundedCounterRecap, DenialBehaviorRecap,
+    DeniedBoundaryKind,
 };
 pub use resources::{
     BackgroundPressureDeclaration, BackgroundPressureKind, QueueProducerKind,

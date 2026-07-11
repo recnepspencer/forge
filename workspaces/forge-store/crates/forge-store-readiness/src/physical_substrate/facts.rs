@@ -1,20 +1,20 @@
-use crate::{S2ReadinessDenial, S2ReadinessDenialKind};
+use crate::{PhysicalSubstrateReadinessDenial, PhysicalSubstrateReadinessDenialKind};
 use forge_store_physical_format::{
     PhysicalHeaderDecodeWitness, PhysicalPayloadViewAdmission, PhysicalReference,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2PhysicalReadinessFacts {
-    physical_references: S2ReadinessFactPosture,
-    header_decode_witnesses: S2ReadinessFactPosture,
-    payload_admission_witnesses: S2ReadinessFactPosture,
-    manifest_layout_evidence: S2ReadinessFactPosture,
-    no_materialization_witness: S2ReadinessFactPosture,
-    counter_evidence: S2ReadinessFactPosture,
+pub struct PhysicalSubstrateReadinessFacts {
+    physical_references: PhysicalSubstrateReadinessFactPosture,
+    header_decode_witnesses: PhysicalSubstrateReadinessFactPosture,
+    payload_admission_witnesses: PhysicalSubstrateReadinessFactPosture,
+    manifest_layout_evidence: PhysicalSubstrateReadinessFactPosture,
+    no_materialization_witness: PhysicalSubstrateReadinessFactPosture,
+    counter_evidence: PhysicalSubstrateReadinessFactPosture,
 }
 
-impl S2PhysicalReadinessFacts {
-    pub(crate) fn from_handoff_evidence(evidence: S2PhysicalSubstrateHandoffEvidence) -> Self {
+impl PhysicalSubstrateReadinessFacts {
+    pub(crate) fn from_handoff_evidence(evidence: PhysicalSubstrateHandoffEvidence) -> Self {
         evidence.facts
     }
 
@@ -25,35 +25,46 @@ impl S2PhysicalReadinessFacts {
         manifest_layout_evidence_count: u32,
         no_materialization_witness_count: u32,
         counter_evidence_count: u32,
-    ) -> Result<Self, S2ReadinessDenial> {
+    ) -> Result<Self, PhysicalSubstrateReadinessDenial> {
         let facts = Self {
-            physical_references: S2ReadinessFactPosture::from_count(physical_reference_count),
-            header_decode_witnesses: S2ReadinessFactPosture::from_count(
+            physical_references: PhysicalSubstrateReadinessFactPosture::from_count(
+                physical_reference_count,
+            ),
+            header_decode_witnesses: PhysicalSubstrateReadinessFactPosture::from_count(
                 header_decode_witness_count,
             ),
-            payload_admission_witnesses: S2ReadinessFactPosture::from_count(
+            payload_admission_witnesses: PhysicalSubstrateReadinessFactPosture::from_count(
                 payload_admission_witness_count,
             ),
-            manifest_layout_evidence: S2ReadinessFactPosture::from_count(
+            manifest_layout_evidence: PhysicalSubstrateReadinessFactPosture::from_count(
                 manifest_layout_evidence_count,
             ),
-            no_materialization_witness: S2ReadinessFactPosture::from_count(
+            no_materialization_witness: PhysicalSubstrateReadinessFactPosture::from_count(
                 no_materialization_witness_count,
             ),
-            counter_evidence: S2ReadinessFactPosture::from_count(counter_evidence_count),
+            counter_evidence: PhysicalSubstrateReadinessFactPosture::from_count(
+                counter_evidence_count,
+            ),
         };
         facts.require_complete()?;
         Ok(facts)
     }
 
-    pub const fn posture(&self, fact: S2PhysicalReadinessFact) -> S2ReadinessFactPosture {
+    pub const fn posture(
+        &self,
+        fact: PhysicalSubstrateReadinessFact,
+    ) -> PhysicalSubstrateReadinessFactPosture {
         match fact {
-            S2PhysicalReadinessFact::PhysicalReferences => self.physical_references,
-            S2PhysicalReadinessFact::HeaderDecodeWitnesses => self.header_decode_witnesses,
-            S2PhysicalReadinessFact::PayloadAdmissionWitnesses => self.payload_admission_witnesses,
-            S2PhysicalReadinessFact::ManifestLayoutEvidence => self.manifest_layout_evidence,
-            S2PhysicalReadinessFact::NoMaterializationWitness => self.no_materialization_witness,
-            S2PhysicalReadinessFact::CounterEvidence => self.counter_evidence,
+            PhysicalSubstrateReadinessFact::PhysicalReferences => self.physical_references,
+            PhysicalSubstrateReadinessFact::HeaderDecodeWitnesses => self.header_decode_witnesses,
+            PhysicalSubstrateReadinessFact::PayloadAdmissionWitnesses => {
+                self.payload_admission_witnesses
+            }
+            PhysicalSubstrateReadinessFact::ManifestLayoutEvidence => self.manifest_layout_evidence,
+            PhysicalSubstrateReadinessFact::NoMaterializationWitness => {
+                self.no_materialization_witness
+            }
+            PhysicalSubstrateReadinessFact::CounterEvidence => self.counter_evidence,
         }
     }
 
@@ -81,47 +92,47 @@ impl S2PhysicalReadinessFacts {
         self.counter_evidence.count()
     }
 
-    fn require_complete(&self) -> Result<(), S2ReadinessDenial> {
+    fn require_complete(&self) -> Result<(), PhysicalSubstrateReadinessDenial> {
         require_present(
             self.physical_references,
-            S2ReadinessDenialKind::MissingPhysicalReferences,
+            PhysicalSubstrateReadinessDenialKind::MissingPhysicalReferences,
         )?;
         require_present(
             self.header_decode_witnesses,
-            S2ReadinessDenialKind::MissingHeaderDecodeWitnesses,
+            PhysicalSubstrateReadinessDenialKind::MissingHeaderDecodeWitnesses,
         )?;
         require_present(
             self.payload_admission_witnesses,
-            S2ReadinessDenialKind::MissingPayloadAdmissionWitnesses,
+            PhysicalSubstrateReadinessDenialKind::MissingPayloadAdmissionWitnesses,
         )?;
         require_present(
             self.manifest_layout_evidence,
-            S2ReadinessDenialKind::MissingManifestLayoutEvidence,
+            PhysicalSubstrateReadinessDenialKind::MissingManifestLayoutEvidence,
         )?;
         require_present(
             self.no_materialization_witness,
-            S2ReadinessDenialKind::MissingNoMaterializationWitness,
+            PhysicalSubstrateReadinessDenialKind::MissingNoMaterializationWitness,
         )?;
         require_present(
             self.counter_evidence,
-            S2ReadinessDenialKind::MissingCounterEvidence,
+            PhysicalSubstrateReadinessDenialKind::MissingCounterEvidence,
         )
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2PhysicalSubstrateHandoffEvidence {
-    facts: S2PhysicalReadinessFacts,
+pub struct PhysicalSubstrateHandoffEvidence {
+    facts: PhysicalSubstrateReadinessFacts,
 }
 
-impl S2PhysicalSubstrateHandoffEvidence {
+impl PhysicalSubstrateHandoffEvidence {
     pub(crate) fn from_s1_physical_witnesses(
         physical_references: &[PhysicalReference],
         header_decode_witnesses: &[PhysicalHeaderDecodeWitness],
         payload_admission_witnesses: &[PhysicalPayloadViewAdmission<'_>],
-        evidence_counts: S2PhysicalSubstrateEvidenceCounts,
-    ) -> Result<Self, S2ReadinessDenial> {
-        let facts = S2PhysicalReadinessFacts::from_s1_closeout_counts(
+        evidence_counts: PhysicalSubstrateEvidenceCounts,
+    ) -> Result<Self, PhysicalSubstrateReadinessDenial> {
+        let facts = PhysicalSubstrateReadinessFacts::from_s1_closeout_counts(
             physical_references.len() as u32,
             header_decode_witnesses.len() as u32,
             payload_admission_witnesses.len() as u32,
@@ -134,13 +145,13 @@ impl S2PhysicalSubstrateHandoffEvidence {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2PhysicalSubstrateEvidenceCounts {
+pub struct PhysicalSubstrateEvidenceCounts {
     manifest_layout_evidence_count: u32,
     no_materialization_witness_count: u32,
     counter_evidence_count: u32,
 }
 
-impl S2PhysicalSubstrateEvidenceCounts {
+impl PhysicalSubstrateEvidenceCounts {
     pub(crate) const fn from_s1_closeout_evidence(
         manifest_layout_evidence_count: u32,
         no_materialization_witness_count: u32,
@@ -167,7 +178,7 @@ impl S2PhysicalSubstrateEvidenceCounts {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S2PhysicalReadinessFact {
+pub enum PhysicalSubstrateReadinessFact {
     PhysicalReferences,
     HeaderDecodeWitnesses,
     PayloadAdmissionWitnesses,
@@ -177,11 +188,11 @@ pub enum S2PhysicalReadinessFact {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2ReadinessFactPosture {
+pub struct PhysicalSubstrateReadinessFactPosture {
     count: u32,
 }
 
-impl S2ReadinessFactPosture {
+impl PhysicalSubstrateReadinessFactPosture {
     pub const fn from_count(count: u32) -> Self {
         Self { count }
     }
@@ -196,12 +207,12 @@ impl S2ReadinessFactPosture {
 }
 
 fn require_present(
-    posture: S2ReadinessFactPosture,
-    denial: S2ReadinessDenialKind,
-) -> Result<(), S2ReadinessDenial> {
+    posture: PhysicalSubstrateReadinessFactPosture,
+    denial: PhysicalSubstrateReadinessDenialKind,
+) -> Result<(), PhysicalSubstrateReadinessDenial> {
     if posture.is_present() {
         Ok(())
     } else {
-        Err(S2ReadinessDenial::new(denial))
+        Err(PhysicalSubstrateReadinessDenial::new(denial))
     }
 }

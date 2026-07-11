@@ -1,15 +1,15 @@
 use forge_store_contracts::{
-    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S3PhysicalIntegrityReadinessPayload,
+    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, BoundedCounterRecap, DenialBehaviorRecap,
+    PhysicalIntegrityReadinessPayload,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityEntryBasis {
-    payload: S3PhysicalIntegrityReadinessPayload,
+    payload: PhysicalIntegrityReadinessPayload,
 }
 
 impl IntegrityEntryBasis {
-    pub(crate) const fn from_payload(payload: S3PhysicalIntegrityReadinessPayload) -> Self {
+    pub(crate) const fn from_payload(payload: PhysicalIntegrityReadinessPayload) -> Self {
         Self { payload }
     }
 
@@ -32,11 +32,11 @@ impl IntegrityEntryBasis {
         }
     }
 
-    pub const fn counter_recap(self) -> S2BoundedCounterRecap {
+    pub const fn counter_recap(self) -> BoundedCounterRecap {
         self.payload.counter_recap()
     }
 
-    pub const fn denial_behavior(self) -> S2DenialBehaviorRecap {
+    pub const fn denial_behavior(self) -> DenialBehaviorRecap {
         self.payload.denial_behavior()
     }
 

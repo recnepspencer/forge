@@ -11,7 +11,7 @@ use crate::{
     S2AcceptanceSuiteKind, S2BoundaryDenialKind, ScenarioDenialBoundary,
     SyntheticCloseoutShortcutAttempt,
 };
-use forge_store_contracts::S2DeniedBoundaryKind;
+use forge_store_contracts::DeniedBoundaryKind;
 
 #[test]
 fn bounded_memory_closeout_publishes_concrete_s3_readiness() {
@@ -30,7 +30,7 @@ fn bounded_memory_closeout_publishes_concrete_s3_readiness() {
     assert_eq!(payload.denial_behavior().named_denial_count(), 6);
     assert!(payload
         .denial_behavior()
-        .contains(S2DeniedBoundaryKind::ForgedViewAccess));
+        .contains(DeniedBoundaryKind::ForgedViewAccess));
     assert!(payload
         .buffer_pool_authority_recap()
         .view_admission_authority_proven());

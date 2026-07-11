@@ -7,8 +7,8 @@ use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-    S2PhysicalSubstrateReadiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalSubstrateReadiness,
 };
 
 #[test]
@@ -110,9 +110,9 @@ fn budget_declaration_keeps_resident_pinned_and_dirty_distinct() {
     assert_eq!(buffer_pool_budget.dirty_pages().as_pages(), 2);
 }
 
-fn s2_physical_substrate_readiness() -> S2PhysicalSubstrateReadiness {
-    let closeout = close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap();
-    prove_s2_physical_substrate_readiness(closeout).unwrap()
+fn s2_physical_substrate_readiness() -> PhysicalSubstrateReadiness {
+    let closeout = close_physical_substrate_readiness(accepted_s1_readiness()).unwrap();
+    prove_physical_substrate_readiness(closeout).unwrap()
 }
 
 fn buffer_pool_budget() -> BufferPoolBudget {

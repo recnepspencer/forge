@@ -14,9 +14,9 @@
 //!
 //! ```compile_fail
 //! use forge_store_contracts::ROADMAP_2_S1_SCOPE;
-//! use forge_store_readiness::S1PhysicalSubstrateCloseoutReceipt;
+//! use forge_store_readiness::PhysicalSubstrateCloseoutReceipt;
 //!
-//! let _forged = S1PhysicalSubstrateCloseoutReceipt {
+//! let _forged = PhysicalSubstrateCloseoutReceipt {
 //!     scope: ROADMAP_2_S1_SCOPE,
 //!     evidence: todo!(),
 //! };
@@ -25,16 +25,16 @@
 //! S.2 readiness facts are not public count authority:
 //!
 //! ```compile_fail
-//! use forge_store_readiness::S2PhysicalReadinessFacts;
+//! use forge_store_readiness::PhysicalSubstrateReadinessFacts;
 //!
-//! let _forged = S2PhysicalReadinessFacts::from_s1_closeout_counts(4, 2, 2, 3, 1, 9);
+//! let _forged = PhysicalSubstrateReadinessFacts::from_s1_closeout_counts(4, 2, 2, 3, 1, 9);
 //! ```
 //!
 //! S.2 handoff evidence cannot be synthesized by ordinary callers:
 //!
 //! ```compile_fail
 //! use forge_store_readiness::{
-//!     S2PhysicalSubstrateEvidenceCounts, S2PhysicalSubstrateHandoffEvidence,
+//!     PhysicalSubstrateEvidenceCounts, PhysicalSubstrateHandoffEvidence,
 //! };
 //! ```
 //!
@@ -42,10 +42,10 @@
 //!
 //! ```compile_fail
 //! use forge_store_contracts::ROADMAP_2_S1_SCOPE;
-//! use forge_store_readiness::{S2PhysicalReadinessFacts, S2PhysicalSubstrateReadiness};
+//! use forge_store_readiness::{PhysicalSubstrateReadinessFacts, PhysicalSubstrateReadiness};
 //!
-//! let facts: S2PhysicalReadinessFacts = todo!();
-//! let _forged = S2PhysicalSubstrateReadiness::from_admitted_physical_substrate_closeout(
+//! let facts: PhysicalSubstrateReadinessFacts = todo!();
+//! let _forged = PhysicalSubstrateReadiness::from_admitted_physical_substrate_closeout(
 //!     ROADMAP_2_S1_SCOPE,
 //!     facts,
 //! );
@@ -55,18 +55,18 @@
 //!
 //! ```compile_fail
 //! use forge_store_contracts::AcceptedHandoffReadiness;
-//! use forge_store_readiness::prove_s2_physical_substrate_readiness;
+//! use forge_store_readiness::prove_physical_substrate_readiness;
 //!
 //! let readiness: AcceptedHandoffReadiness = todo!();
-//! let _forged = prove_s2_physical_substrate_readiness(readiness);
+//! let _forged = prove_physical_substrate_readiness(readiness);
 //! ```
 //!
 //! S.3 physical integrity readiness cannot be synthesized from raw fields:
 //!
 //! ```compile_fail
-//! use forge_store_readiness::S3PhysicalIntegrityReadiness;
+//! use forge_store_readiness::PhysicalIntegrityReadiness;
 //!
-//! let _forged = S3PhysicalIntegrityReadiness {
+//! let _forged = PhysicalIntegrityReadiness {
 //!     s2_readiness: todo!(),
 //!     payload: todo!(),
 //! };
@@ -75,11 +75,11 @@
 //! S.3 physical integrity readiness cannot be copied and replayed:
 //!
 //! ```compile_fail
-//! use forge_store_readiness::S3PhysicalIntegrityReadiness;
+//! use forge_store_readiness::PhysicalIntegrityReadiness;
 //!
 //! fn copy_readiness(
-//!     readiness: S3PhysicalIntegrityReadiness,
-//! ) -> (S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadiness) {
+//!     readiness: PhysicalIntegrityReadiness,
+//! ) -> (PhysicalIntegrityReadiness, PhysicalIntegrityReadiness) {
 //!     (readiness, readiness)
 //! }
 //! ```
@@ -90,14 +90,11 @@ mod evidence_fields;
 #[cfg(test)]
 mod evidence_fields_tests;
 mod foundational_adoption;
+mod foundational;
 mod foundational_lanes;
 mod proof_vocabulary;
-mod s0_handoff;
-mod s2_physical_substrate_proof;
-mod s2_physical_substrate_readiness;
-mod s2_readiness_denial;
-mod s2_readiness_facts;
-mod s3_physical_integrity_readiness;
+mod physical_integrity;
+mod physical_substrate;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -111,18 +108,17 @@ pub use foundational_adoption::{
 };
 pub use foundational_lanes::FoundationalPublicLaneSet;
 pub use proof_vocabulary::{FoundationalAdoptionDigest, ProofVocabularyAdoptionMap};
-pub use s0_handoff::{
-    accept_s0_aspect_native_gate_handoff, reconstruct_s0_handoff_verdict_from_native_evidence,
-    reject_terminal_json_projection_as_s0_handoff, S0AspectNativeGateHandoff,
-    S0AspectNativeGateHandoffDenial, S0AspectNativeGateHandoffVerdict,
+pub use foundational::{
+    accept_aspect_native_gate_handoff, reconstruct_aspect_native_handoff_verdict,
+    reject_terminal_json_projection_as_aspect_native_handoff, AspectNativeGateHandoff,
+    AspectNativeGateHandoffDenial, AspectNativeGateHandoffVerdict,
 };
-pub use s2_physical_substrate_proof::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-    S1PhysicalSubstrateCloseoutReceipt,
+pub use physical_substrate::{
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalSubstrateCloseoutReceipt,
 };
-pub use s2_physical_substrate_readiness::S2PhysicalSubstrateReadiness;
-pub use s2_readiness_denial::{S2ReadinessDenial, S2ReadinessDenialKind};
-pub use s2_readiness_facts::{
-    S2PhysicalReadinessFact, S2PhysicalReadinessFacts, S2ReadinessFactPosture,
+pub use physical_substrate::{PhysicalSubstrateReadiness, PhysicalSubstrateReadinessDenial, PhysicalSubstrateReadinessDenialKind};
+pub use physical_substrate::{
+    PhysicalSubstrateReadinessFact, PhysicalSubstrateReadinessFacts, PhysicalSubstrateReadinessFactPosture,
 };
-pub use s3_physical_integrity_readiness::S3PhysicalIntegrityReadiness;
+pub use physical_integrity::PhysicalIntegrityReadiness;

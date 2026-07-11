@@ -2,16 +2,16 @@ use crate::{
     IntegrityEntryDenial, IntegrityEntryDenialKind, IntegrityEntryRequest, IntegrityEntryWitness,
     IntegrityInspectionLease,
 };
-use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
+use forge_store_contracts::PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct IntegrityEntryAdmission {
-    payload: S3PhysicalIntegrityReadinessPayload,
+    payload: PhysicalIntegrityReadinessPayload,
 }
 
 impl IntegrityEntryAdmission {
     pub fn from_s3_payload(
-        payload: S3PhysicalIntegrityReadinessPayload,
+        payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityEntryDenial> {
         payload.require_complete()?;
         Ok(Self { payload })

@@ -11,7 +11,7 @@ use crate::{
     PhysicalSubstrateCertificationDenial,
 };
 use forge_store_contracts::StableArtifactId;
-use forge_store_readiness::S2PhysicalSubstrateReadiness;
+use forge_store_readiness::PhysicalSubstrateReadiness;
 
 pub fn certify_physical_page_segment_extent_substrate(
 ) -> Result<crate::PhysicalPageSegmentExtentSubstrateCloseout, PhysicalSubstrateCertificationDenial>
@@ -21,7 +21,7 @@ pub fn certify_physical_page_segment_extent_substrate(
 }
 
 pub(crate) fn certify_s2_physical_substrate_readiness(
-) -> Result<S2PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
+) -> Result<PhysicalSubstrateReadiness, PhysicalSubstrateCertificationDenial> {
     Ok(certify_physical_page_segment_extent_substrate()?.into_s2_readiness())
 }
 

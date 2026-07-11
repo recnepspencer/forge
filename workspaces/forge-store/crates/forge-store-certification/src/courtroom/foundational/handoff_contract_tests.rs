@@ -25,13 +25,13 @@ use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
     project_store_boundary_fact_to_terminal_json, StoreCompletedBoundaryReceiptEvidence,
     StoreDiagnosticSupportReportEvidence, StorePerformanceReceiptEvidence,
-    StorePhysicalBoundaryWitness, StoreS0ReadinessHandoffArtifact, StoreS0ReadinessHandoffDenial,
+    StorePhysicalBoundaryWitness, StoreReadinessHandoffArtifact, StoreReadinessHandoffDenial,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_readiness::{
-    accept_s0_aspect_native_gate_handoff, reconstruct_s0_handoff_verdict_from_native_evidence,
-    reject_terminal_json_projection_as_s0_handoff, S0AspectNativeGateHandoff,
-    S0AspectNativeGateHandoffDenial,
+    accept_aspect_native_gate_handoff, reconstruct_aspect_native_handoff_verdict,
+    reject_terminal_json_projection_as_aspect_native_handoff, AspectNativeGateHandoff,
+    AspectNativeGateHandoffDenial,
 };
 use forge_store_s0_reclassification::S0HandoffDeniedInputKind;
 use forge_store_test_support::NativeStoreAspectFixture;
@@ -58,7 +58,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_boundary_receipts() {
         Vec::new(),
         vec![diagnostic_evidence()],
         vec![performance_evidence()],
-        StoreS0ReadinessHandoffDenial::MissingBoundaryReceipt,
+        StoreReadinessHandoffDenial::MissingBoundaryReceipt,
     );
 }
 
@@ -69,7 +69,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_diagnostics() {
         vec![completed_receipt_evidence()],
         Vec::new(),
         vec![performance_evidence()],
-        StoreS0ReadinessHandoffDenial::MissingDiagnosticEvidence,
+        StoreReadinessHandoffDenial::MissingDiagnosticEvidence,
     );
 }
 
@@ -80,7 +80,7 @@ fn s0_handoff_artifact_denies_symbolic_readiness_without_performance_evidence() 
         vec![completed_receipt_evidence()],
         vec![diagnostic_evidence()],
         Vec::new(),
-        StoreS0ReadinessHandoffDenial::MissingPerformanceEvidence,
+        StoreReadinessHandoffDenial::MissingPerformanceEvidence,
     );
 }
 
@@ -89,24 +89,24 @@ fn s0_rejects_terminal_projection_as_handoff() {
     let fixture = NativeStoreAspectFixture::scalar_string("s0-terminal-denial");
     let projection = project_store_boundary_fact_to_terminal_json(fixture.boundary_fact()).unwrap();
 
-    let denial = reject_terminal_json_projection_as_s0_handoff(projection);
+    let denial = reject_terminal_json_projection_as_aspect_native_handoff(projection);
 
     assert_eq!(
         denial,
-        S0AspectNativeGateHandoffDenial::TerminalJsonProjectionInput
+        AspectNativeGateHandoffDenial::TerminalJsonProjectionInput
     );
 }
 
 #[test]
 fn s0_handoff_replays_from_native_evidence() {
-    let handoff = S0AspectNativeGateHandoff::new(
+    let handoff = AspectNativeGateHandoff::new(
         native_handoff_artifact(),
         certify_s0_handoff_gate_proof_evidence().unwrap(),
     )
     .unwrap();
 
-    let direct = accept_s0_aspect_native_gate_handoff(handoff.clone());
-    let replayed = reconstruct_s0_handoff_verdict_from_native_evidence(&handoff);
+    let direct = accept_aspect_native_gate_handoff(handoff.clone());
+    let replayed = reconstruct_aspect_native_handoff_verdict(&handoff);
 
     assert_eq!(direct, replayed);
     assert_eq!(replayed.canonical_basis_entry_count(), 3);
@@ -156,8 +156,8 @@ fn s0_handoff_tests_do_not_use_symbolic_required_negative_proof_shortcut() {
 }
 
 fn native_handoff_artifact(
-) -> StoreS0ReadinessHandoffArtifact<FoundationalAuthoritativePerformanceClaim> {
-    StoreS0ReadinessHandoffArtifact::new(
+) -> StoreReadinessHandoffArtifact<FoundationalAuthoritativePerformanceClaim> {
+    StoreReadinessHandoffArtifact::new(
         readiness_basis(),
         vec![completed_receipt_evidence()],
         vec![diagnostic_evidence()],
@@ -171,9 +171,9 @@ fn assert_handoff_artifact_denial(
     completed_receipts: Vec<StoreCompletedBoundaryReceiptEvidence>,
     diagnostics: Vec<StoreDiagnosticSupportReportEvidence>,
     performance: Vec<StorePerformanceReceiptEvidence<FoundationalAuthoritativePerformanceClaim>>,
-    expected_denial: StoreS0ReadinessHandoffDenial,
+    expected_denial: StoreReadinessHandoffDenial,
 ) {
-    let denial = StoreS0ReadinessHandoffArtifact::<FoundationalAuthoritativePerformanceClaim>::new(
+    let denial = StoreReadinessHandoffArtifact::<FoundationalAuthoritativePerformanceClaim>::new(
         canonical_basis,
         completed_receipts,
         diagnostics,

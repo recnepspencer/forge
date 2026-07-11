@@ -1,6 +1,6 @@
 use crate::{
-    BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S3ReadinessDenial, S3ReadinessDenialKind,
+    BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, PhysicalAuthorityRecap,
+    PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,10 +9,12 @@ pub struct ProtectedIntegrityViewCapability {
 }
 
 impl ProtectedIntegrityViewCapability {
-    pub fn protected_views(protected_view_count: u32) -> Result<Self, S3ReadinessDenial> {
+    pub fn protected_views(
+        protected_view_count: u32,
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if protected_view_count == 0 {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingProtectedViewCapability,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingProtectedViewCapability,
             ))
         } else {
             Ok(Self {
@@ -37,10 +39,13 @@ pub struct VerifierResidentEnvelope {
 }
 
 impl VerifierResidentEnvelope {
-    pub fn bounded(resident_bytes: u64, pinned_pages: u32) -> Result<Self, S3ReadinessDenial> {
+    pub fn bounded(
+        resident_bytes: u64,
+        pinned_pages: u32,
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if resident_bytes == 0 || pinned_pages == 0 {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingVerifierResidentEnvelope,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingVerifierResidentEnvelope,
             ))
         } else {
             Ok(Self {
@@ -69,10 +74,10 @@ pub struct ScrubPlanningAllocationEnvelope {
 }
 
 impl ScrubPlanningAllocationEnvelope {
-    pub fn bounded(allocation_bytes: u64) -> Result<Self, S3ReadinessDenial> {
+    pub fn bounded(allocation_bytes: u64) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if allocation_bytes == 0 {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingScrubAllocationEnvelope,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingScrubAllocationEnvelope,
             ))
         } else {
             Ok(Self { allocation_bytes })
@@ -108,24 +113,24 @@ impl IntegrityInspectionLifetimeLaw {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2NoMaterializationWitness {
+pub struct NoMaterializationWitness {
     whole_store_materialization_attempts: u64,
     whole_object_materialization_attempts: u64,
 }
 
-impl S2NoMaterializationWitness {
+impl NoMaterializationWitness {
     pub fn observed_zero(
         whole_store_materialization_attempts: u64,
         whole_object_materialization_attempts: u64,
-    ) -> Result<Self, S3ReadinessDenial> {
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if whole_store_materialization_attempts == 0 && whole_object_materialization_attempts == 0 {
             Ok(Self {
                 whole_store_materialization_attempts,
                 whole_object_materialization_attempts,
             })
         } else {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingNoMaterializationWitness,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingNoMaterializationWitness,
             ))
         }
     }
@@ -140,29 +145,29 @@ impl S2NoMaterializationWitness {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S3PhysicalIntegrityReadinessPayload {
+pub struct PhysicalIntegrityReadinessPayload {
     protected_view_capability: ProtectedIntegrityViewCapability,
     verifier_resident_envelope: VerifierResidentEnvelope,
     scrub_allocation_envelope: ScrubPlanningAllocationEnvelope,
     inspection_lifetime_law: IntegrityInspectionLifetimeLaw,
-    no_materialization_witness: S2NoMaterializationWitness,
-    counter_recap: S2BoundedCounterRecap,
-    denial_behavior: S2DenialBehaviorRecap,
+    no_materialization_witness: NoMaterializationWitness,
+    counter_recap: BoundedCounterRecap,
+    denial_behavior: DenialBehaviorRecap,
     physical_authority_recap: PhysicalAuthorityRecap,
     buffer_pool_authority_recap: BufferPoolAuthorityRecap,
     later_sequence_semantic_claimed: bool,
 }
 
-impl S3PhysicalIntegrityReadinessPayload {
+impl PhysicalIntegrityReadinessPayload {
     #[allow(clippy::too_many_arguments)]
     pub fn from_s2_closeout_evidence(
         protected_view_capability: ProtectedIntegrityViewCapability,
         verifier_resident_envelope: VerifierResidentEnvelope,
         scrub_allocation_envelope: ScrubPlanningAllocationEnvelope,
         inspection_lifetime_law: IntegrityInspectionLifetimeLaw,
-        no_materialization_witness: S2NoMaterializationWitness,
-        counter_recap: S2BoundedCounterRecap,
-        denial_behavior: S2DenialBehaviorRecap,
+        no_materialization_witness: NoMaterializationWitness,
+        counter_recap: BoundedCounterRecap,
+        denial_behavior: DenialBehaviorRecap,
         physical_authority_recap: PhysicalAuthorityRecap,
         buffer_pool_authority_recap: BufferPoolAuthorityRecap,
     ) -> Self {
@@ -180,35 +185,35 @@ impl S3PhysicalIntegrityReadinessPayload {
         }
     }
 
-    pub fn require_complete(self) -> Result<Self, S3ReadinessDenial> {
+    pub fn require_complete(self) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         require(
             self.protected_view_capability.is_concrete(),
-            S3ReadinessDenialKind::MissingProtectedViewCapability,
+            PhysicalIntegrityReadinessDenialKind::MissingProtectedViewCapability,
         )?;
         require(
             self.verifier_resident_envelope.is_bounded(),
-            S3ReadinessDenialKind::MissingVerifierResidentEnvelope,
+            PhysicalIntegrityReadinessDenialKind::MissingVerifierResidentEnvelope,
         )?;
         require(
             self.scrub_allocation_envelope.is_bounded(),
-            S3ReadinessDenialKind::MissingScrubAllocationEnvelope,
+            PhysicalIntegrityReadinessDenialKind::MissingScrubAllocationEnvelope,
         )?;
         require(
             self.inspection_lifetime_law.is_lease_scoped(),
-            S3ReadinessDenialKind::MissingInspectionLifetimeLaw,
+            PhysicalIntegrityReadinessDenialKind::MissingInspectionLifetimeLaw,
         )?;
         require(
             self.no_materialization_witness.forbids_whole_store()
                 && self.no_materialization_witness.forbids_whole_object(),
-            S3ReadinessDenialKind::MissingNoMaterializationWitness,
+            PhysicalIntegrityReadinessDenialKind::MissingNoMaterializationWitness,
         )?;
         require(
             self.denial_behavior.named_denial_count() == 6,
-            S3ReadinessDenialKind::MissingDenialBehavior,
+            PhysicalIntegrityReadinessDenialKind::MissingDenialBehavior,
         )?;
         require(
             !self.later_sequence_semantic_claimed,
-            S3ReadinessDenialKind::LaterSequenceSemanticClaimed,
+            PhysicalIntegrityReadinessDenialKind::LaterSequenceSemanticClaimed,
         )?;
         Ok(self)
     }
@@ -229,15 +234,15 @@ impl S3PhysicalIntegrityReadinessPayload {
         self.inspection_lifetime_law
     }
 
-    pub const fn no_materialization_witness(self) -> S2NoMaterializationWitness {
+    pub const fn no_materialization_witness(self) -> NoMaterializationWitness {
         self.no_materialization_witness
     }
 
-    pub const fn counter_recap(self) -> S2BoundedCounterRecap {
+    pub const fn counter_recap(self) -> BoundedCounterRecap {
         self.counter_recap
     }
 
-    pub const fn denial_behavior(self) -> S2DenialBehaviorRecap {
+    pub const fn denial_behavior(self) -> DenialBehaviorRecap {
         self.denial_behavior
     }
 
@@ -254,10 +259,13 @@ impl S3PhysicalIntegrityReadinessPayload {
     }
 }
 
-fn require(condition: bool, denial: S3ReadinessDenialKind) -> Result<(), S3ReadinessDenial> {
+fn require(
+    condition: bool,
+    denial: PhysicalIntegrityReadinessDenialKind,
+) -> Result<(), PhysicalIntegrityReadinessDenial> {
     if condition {
         Ok(())
     } else {
-        Err(S3ReadinessDenial::new(denial))
+        Err(PhysicalIntegrityReadinessDenial::new(denial))
     }
 }

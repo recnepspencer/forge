@@ -1,7 +1,7 @@
-use crate::{S3ReadinessDenial, S3ReadinessDenialKind};
+use crate::{PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2BoundedCounterRecap {
+pub struct BoundedCounterRecap {
     resident_bytes: u64,
     pinned_pages: u64,
     dirty_pages: u32,
@@ -10,7 +10,7 @@ pub struct S2BoundedCounterRecap {
     materialized_bytes: u64,
 }
 
-impl S2BoundedCounterRecap {
+impl BoundedCounterRecap {
     pub fn exact(
         resident_bytes: u64,
         pinned_pages: u64,
@@ -18,10 +18,10 @@ impl S2BoundedCounterRecap {
         allocation_bytes: u64,
         copied_bytes: u64,
         materialized_bytes: u64,
-    ) -> Result<Self, S3ReadinessDenial> {
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if resident_bytes == 0 || allocation_bytes == 0 {
-            return Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingCounterRecap,
+            return Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingCounterRecap,
             ));
         }
         Ok(Self {
@@ -60,7 +60,7 @@ impl S2BoundedCounterRecap {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S2DeniedBoundaryKind {
+pub enum DeniedBoundaryKind {
     OverBudgetResidency,
     PinLeak,
     DirtyOverflow,
@@ -69,7 +69,7 @@ pub enum S2DeniedBoundaryKind {
     ForgedViewAccess,
 }
 
-impl S2DeniedBoundaryKind {
+impl DeniedBoundaryKind {
     pub const ALL: [Self; 6] = [
         Self::OverBudgetResidency,
         Self::PinLeak,
@@ -92,33 +92,33 @@ impl S2DeniedBoundaryKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2DenialBehaviorRecap {
+pub struct DenialBehaviorRecap {
     named_denial_mask: u8,
 }
 
-impl S2DenialBehaviorRecap {
+impl DenialBehaviorRecap {
     pub fn from_named_boundaries(
-        boundaries: &[S2DeniedBoundaryKind],
-    ) -> Result<Self, S3ReadinessDenial> {
+        boundaries: &[DeniedBoundaryKind],
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         let mask = boundaries
             .iter()
             .fold(0u8, |mask, boundary| mask | boundary.bit());
         let recap = Self {
             named_denial_mask: mask,
         };
-        if S2DeniedBoundaryKind::ALL
+        if DeniedBoundaryKind::ALL
             .iter()
             .all(|boundary| recap.contains(*boundary))
         {
             Ok(recap)
         } else {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingDenialBehavior,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingDenialBehavior,
             ))
         }
     }
 
-    pub const fn contains(self, boundary: S2DeniedBoundaryKind) -> bool {
+    pub const fn contains(self, boundary: DeniedBoundaryKind) -> bool {
         self.named_denial_mask & boundary.bit() != 0
     }
 
@@ -139,13 +139,13 @@ impl PhysicalAuthorityRecap {
         physical_reference_count: u32,
         header_decode_witness_count: u32,
         payload_admission_witness_count: u32,
-    ) -> Result<Self, S3ReadinessDenial> {
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if physical_reference_count == 0
             || header_decode_witness_count == 0
             || payload_admission_witness_count == 0
         {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingPhysicalAuthorityRecap,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingPhysicalAuthorityRecap,
             ))
         } else {
             Ok(Self {
@@ -183,7 +183,7 @@ impl BufferPoolAuthorityRecap {
         resident_frame_authority_proven: bool,
         allocation_envelope_proven: bool,
         view_admission_authority_proven: bool,
-    ) -> Result<Self, S3ReadinessDenial> {
+    ) -> Result<Self, PhysicalIntegrityReadinessDenial> {
         if lease_pinning_proven
             && resident_frame_authority_proven
             && allocation_envelope_proven
@@ -196,8 +196,8 @@ impl BufferPoolAuthorityRecap {
                 view_admission_authority_proven,
             })
         } else {
-            Err(S3ReadinessDenial::new(
-                S3ReadinessDenialKind::MissingBufferPoolAuthorityRecap,
+            Err(PhysicalIntegrityReadinessDenial::new(
+                PhysicalIntegrityReadinessDenialKind::MissingBufferPoolAuthorityRecap,
             ))
         }
     }

@@ -25,8 +25,8 @@ use forge_store_contracts::{
 use forge_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use forge_store_physical_integrity::ScrubPlanningMemoryEnvelope;
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-    S2PhysicalSubstrateReadiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalSubstrateReadiness,
 };
 use forge_store_recovery_physics::RecoveryMemoryEnvelope;
 
@@ -124,9 +124,9 @@ pub(crate) fn operation_reports(
     ]
 }
 
-pub(crate) fn s2_readiness() -> S2PhysicalSubstrateReadiness {
-    prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(
+pub(crate) fn s2_readiness() -> PhysicalSubstrateReadiness {
+    prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(
             AcceptedHandoffReadiness::from_s0_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(

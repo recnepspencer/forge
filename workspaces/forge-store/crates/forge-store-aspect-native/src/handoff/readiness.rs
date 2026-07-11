@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoreS0ReadinessHandoffArtifact<PerformanceClaim>
+pub struct StoreReadinessHandoffArtifact<PerformanceClaim>
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
@@ -19,7 +19,7 @@ where
     performance: Vec<StorePerformanceReceiptEvidence<PerformanceClaim>>,
 }
 
-impl<PerformanceClaim> StoreS0ReadinessHandoffArtifact<PerformanceClaim>
+impl<PerformanceClaim> StoreReadinessHandoffArtifact<PerformanceClaim>
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
@@ -28,21 +28,21 @@ where
         completed_receipts: Vec<StoreCompletedBoundaryReceiptEvidence>,
         diagnostics: Vec<StoreDiagnosticSupportReportEvidence>,
         performance: Vec<StorePerformanceReceiptEvidence<PerformanceClaim>>,
-    ) -> Result<Self, StoreS0ReadinessHandoffDenial> {
+    ) -> Result<Self, StoreReadinessHandoffDenial> {
         validate_store_native_basis_domain(
             StoreCanonicalBasisFamily::ReadinessHandoff,
             &canonical_basis,
         )
-        .map_err(StoreS0ReadinessHandoffDenial::CanonicalBasisDomain)?;
+        .map_err(StoreReadinessHandoffDenial::CanonicalBasisDomain)?;
 
         if completed_receipts.is_empty() {
-            return Err(StoreS0ReadinessHandoffDenial::MissingBoundaryReceipt);
+            return Err(StoreReadinessHandoffDenial::MissingBoundaryReceipt);
         }
         if diagnostics.is_empty() {
-            return Err(StoreS0ReadinessHandoffDenial::MissingDiagnosticEvidence);
+            return Err(StoreReadinessHandoffDenial::MissingDiagnosticEvidence);
         }
         if performance.is_empty() {
-            return Err(StoreS0ReadinessHandoffDenial::MissingPerformanceEvidence);
+            return Err(StoreReadinessHandoffDenial::MissingPerformanceEvidence);
         }
 
         Ok(Self {
@@ -71,7 +71,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StoreS0ReadinessHandoffDenial {
+pub enum StoreReadinessHandoffDenial {
     CanonicalBasisDomain(StoreCanonicalBasisDomainMismatch),
     MissingBoundaryReceipt,
     MissingDiagnosticEvidence,

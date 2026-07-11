@@ -11,7 +11,7 @@ use forge_store_contracts::{
 };
 use forge_store_physical_format::PhysicalOperationKind;
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 #[test]
@@ -53,8 +53,8 @@ fn physical_substrate_authority_exports_interpretable_closeout_evidence() {
 
 #[test]
 fn physical_substrate_authority_mints_s2_readiness_without_raw_descriptors() {
-    let s2_readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(
+    let s2_readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(
             AcceptedHandoffReadiness::from_s0_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(

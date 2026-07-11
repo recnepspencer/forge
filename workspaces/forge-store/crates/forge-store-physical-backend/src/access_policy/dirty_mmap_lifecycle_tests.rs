@@ -19,7 +19,7 @@ use forge_store_physical_format::{
     SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
@@ -116,8 +116,8 @@ fn mmap_dirty_lifecycle_from_buffer_pool() -> AccessPolicyBufferLifecycle {
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(

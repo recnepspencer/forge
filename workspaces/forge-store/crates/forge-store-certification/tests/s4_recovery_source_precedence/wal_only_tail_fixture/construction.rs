@@ -5,8 +5,8 @@ use forge_store_buffer_pool::{
 use forge_store_contracts::{
     AcceptedHandoffReadiness, BufferPoolAuthorityRecap, HandoffEvidenceDigestSet,
     IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap, ProtectedIntegrityViewCapability,
-    S2BoundedCounterRecap, S2DenialBehaviorRecap, S2DeniedBoundaryKind, S2NoMaterializationWitness,
-    S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, StableDigest,
+    BoundedCounterRecap, DenialBehaviorRecap, DeniedBoundaryKind, NoMaterializationWitness,
+    PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, StableDigest,
     VerifierResidentEnvelope, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_physical_format::{
@@ -26,8 +26,8 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest, WalFrameIntegrityReport,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-    S3PhysicalIntegrityReadiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalIntegrityReadiness,
 };
 use forge_store_recovery_physics::WalLsnRange;
 
@@ -138,17 +138,17 @@ fn resident_frame_table() -> ResidentFrameTable {
     ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap())
 }
 
-pub(crate) fn s3_readiness() -> S3PhysicalIntegrityReadiness {
+pub(crate) fn s3_readiness() -> PhysicalIntegrityReadiness {
     let s2 = s2_readiness();
     let facts = s2.facts();
-    let payload = S3PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
+    let payload = PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
         VerifierResidentEnvelope::bounded(8192, 2).unwrap(),
         ScrubPlanningAllocationEnvelope::bounded(1024).unwrap(),
         IntegrityInspectionLifetimeLaw::lease_scoped(),
-        S2NoMaterializationWitness::observed_zero(0, 0).unwrap(),
-        S2BoundedCounterRecap::exact(8192, 1, 0, 1024, 0, 0).unwrap(),
-        S2DenialBehaviorRecap::from_named_boundaries(&S2DeniedBoundaryKind::ALL).unwrap(),
+        NoMaterializationWitness::observed_zero(0, 0).unwrap(),
+        BoundedCounterRecap::exact(8192, 1, 0, 1024, 0, 0).unwrap(),
+        DenialBehaviorRecap::from_named_boundaries(&DeniedBoundaryKind::ALL).unwrap(),
         PhysicalAuthorityRecap::from_s1_authority(
             facts.physical_reference_count(),
             facts.header_decode_witness_count(),
@@ -157,12 +157,12 @@ pub(crate) fn s3_readiness() -> S3PhysicalIntegrityReadiness {
         .unwrap(),
         BufferPoolAuthorityRecap::s2_authority(true, true, true, true).unwrap(),
     );
-    S3PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2, payload).unwrap()
+    PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2, payload).unwrap()
 }
 
-fn s2_readiness() -> forge_store_readiness::S2PhysicalSubstrateReadiness {
-    prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+fn s2_readiness() -> forge_store_readiness::PhysicalSubstrateReadiness {
+    prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap()
 }

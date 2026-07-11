@@ -14,7 +14,7 @@ use crate::{
 use forge_store_claim_boundaries::PlatformGradeClaimWitness;
 use forge_store_contracts::{RoadmapScope, StableArtifactId};
 use forge_store_physical_format::PhysicalOperationKind;
-use forge_store_readiness::{PhysicalFoundationEvidenceField, S2PhysicalSubstrateReadiness};
+use forge_store_readiness::{PhysicalFoundationEvidenceField, PhysicalSubstrateReadiness};
 
 #[derive(Debug)]
 pub struct PhysicalPageSegmentExtentSubstrateRun {
@@ -51,7 +51,7 @@ pub struct PhysicalPageSegmentExtentSubstrateEvidence {
     complexity: Vec<PhysicalComplexityEvidenceReport>,
     foundation: PhysicalFoundationEvidenceBundle,
     platform_grade_witness: PlatformGradeClaimWitness,
-    s2_readiness: S2PhysicalSubstrateReadiness,
+    s2_readiness: PhysicalSubstrateReadiness,
 }
 
 impl PhysicalPageSegmentExtentSubstrateEvidence {
@@ -67,7 +67,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         complexity: Vec<PhysicalComplexityEvidenceReport>,
         foundation: PhysicalFoundationEvidenceBundle,
         platform_grade_witness: PlatformGradeClaimWitness,
-        s2_readiness: S2PhysicalSubstrateReadiness,
+        s2_readiness: PhysicalSubstrateReadiness,
     ) -> Self {
         Self {
             story,
@@ -124,7 +124,7 @@ impl PhysicalPageSegmentExtentSubstrateEvidence {
         &self.foundation
     }
 
-    pub(crate) const fn s2_readiness(&self) -> S2PhysicalSubstrateReadiness {
+    pub(crate) const fn s2_readiness(&self) -> PhysicalSubstrateReadiness {
         self.s2_readiness
     }
 }
@@ -172,7 +172,7 @@ impl PhysicalPageSegmentExtentSubstrateCloseout {
         self.run.evidence()
     }
 
-    pub(crate) fn into_s2_readiness(self) -> S2PhysicalSubstrateReadiness {
+    pub(crate) fn into_s2_readiness(self) -> PhysicalSubstrateReadiness {
         self.evidence().s2_readiness()
     }
 }
@@ -330,7 +330,7 @@ fn require_platform_witness_scope(
 }
 
 fn require_s2_readiness_scope(
-    readiness: S2PhysicalSubstrateReadiness,
+    readiness: PhysicalSubstrateReadiness,
     scope: RoadmapScope,
 ) -> Result<(), PhysicalSubstrateCloseoutDenial> {
     if readiness.scope() == scope {

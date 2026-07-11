@@ -1,5 +1,5 @@
 use forge_store_buffer_pool::BufferPoolEntryDenialKind;
-use forge_store_readiness::S2PhysicalSubstrateReadiness;
+use forge_store_readiness::PhysicalSubstrateReadiness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S2EntryBoundaryEvidenceReport {
@@ -9,7 +9,7 @@ pub struct S2EntryBoundaryEvidenceReport {
 impl S2EntryBoundaryEvidenceReport {
     pub fn from_readiness(
         row: S2EntryBoundaryEvidenceRow,
-        readiness: &S2PhysicalSubstrateReadiness,
+        readiness: &PhysicalSubstrateReadiness,
     ) -> Result<Self, S2EntryBoundaryEvidenceDenial> {
         if !readiness.is_sealed() {
             return Err(S2EntryBoundaryEvidenceDenial::UnsealedReadiness);

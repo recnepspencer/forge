@@ -1,20 +1,20 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2ReadinessDenial {
-    kind: S2ReadinessDenialKind,
+pub struct PhysicalSubstrateReadinessDenial {
+    kind: PhysicalSubstrateReadinessDenialKind,
 }
 
-impl S2ReadinessDenial {
-    pub(crate) const fn new(kind: S2ReadinessDenialKind) -> Self {
+impl PhysicalSubstrateReadinessDenial {
+    pub(crate) const fn new(kind: PhysicalSubstrateReadinessDenialKind) -> Self {
         Self { kind }
     }
 
-    pub const fn kind(&self) -> S2ReadinessDenialKind {
+    pub const fn kind(&self) -> PhysicalSubstrateReadinessDenialKind {
         self.kind
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S2ReadinessDenialKind {
+pub enum PhysicalSubstrateReadinessDenialKind {
     WrongRoadmapScope,
     S1PhysicalSubstrateProofRejected,
     MissingPhysicalReferences,

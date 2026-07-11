@@ -1,31 +1,29 @@
-use crate::{
-    s2_readiness_facts::S2PhysicalSubstrateHandoffEvidence, S2PhysicalReadinessFacts,
-    S2ReadinessDenial,
+use super::{
+    facts::PhysicalSubstrateHandoffEvidence, PhysicalSubstrateReadinessDenial,
+    PhysicalSubstrateReadinessFacts,
 };
-use forge_store_contracts::{
-    RoadmapScope, S2PhysicalSubstrateReadinessSnapshot, ROADMAP_2_S1_SCOPE,
-};
+use forge_store_contracts::{PhysicalSubstrateReadinessSnapshot, RoadmapScope, ROADMAP_2_S1_SCOPE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2PhysicalSubstrateReadiness {
+pub struct PhysicalSubstrateReadiness {
     scope: RoadmapScope,
-    facts: S2PhysicalReadinessFacts,
+    facts: PhysicalSubstrateReadinessFacts,
     sealed: bool,
 }
 
-impl S2PhysicalSubstrateReadiness {
+impl PhysicalSubstrateReadiness {
     pub(crate) fn from_s1_handoff_evidence(
         scope: RoadmapScope,
-        evidence: S2PhysicalSubstrateHandoffEvidence,
-    ) -> Result<Self, S2ReadinessDenial> {
+        evidence: PhysicalSubstrateHandoffEvidence,
+    ) -> Result<Self, PhysicalSubstrateReadinessDenial> {
         if scope != ROADMAP_2_S1_SCOPE {
-            return Err(S2ReadinessDenial::new(
-                crate::S2ReadinessDenialKind::WrongRoadmapScope,
+            return Err(PhysicalSubstrateReadinessDenial::new(
+                crate::PhysicalSubstrateReadinessDenialKind::WrongRoadmapScope,
             ));
         }
         Ok(Self {
             scope,
-            facts: S2PhysicalReadinessFacts::from_handoff_evidence(evidence),
+            facts: PhysicalSubstrateReadinessFacts::from_handoff_evidence(evidence),
             sealed: true,
         })
     }
@@ -34,7 +32,7 @@ impl S2PhysicalSubstrateReadiness {
         self.scope
     }
 
-    pub const fn facts(&self) -> S2PhysicalReadinessFacts {
+    pub const fn facts(&self) -> PhysicalSubstrateReadinessFacts {
         self.facts
     }
 
@@ -42,8 +40,8 @@ impl S2PhysicalSubstrateReadiness {
         self.sealed
     }
 
-    pub const fn physical_substrate_snapshot(&self) -> S2PhysicalSubstrateReadinessSnapshot {
-        S2PhysicalSubstrateReadinessSnapshot::from_exact_counts(
+    pub const fn physical_substrate_snapshot(&self) -> PhysicalSubstrateReadinessSnapshot {
+        PhysicalSubstrateReadinessSnapshot::from_exact_counts(
             self.sealed,
             self.facts.physical_reference_count(),
             self.facts.header_decode_witness_count(),
@@ -57,11 +55,9 @@ impl S2PhysicalSubstrateReadiness {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        s2_readiness_facts::{
-            S2PhysicalSubstrateEvidenceCounts, S2PhysicalSubstrateHandoffEvidence,
-        },
-        S2PhysicalSubstrateReadiness,
+    use super::{
+        super::facts::{PhysicalSubstrateEvidenceCounts, PhysicalSubstrateHandoffEvidence},
+        PhysicalSubstrateReadiness,
     };
     use forge_store_contracts::{RoadmapScope, ROADMAP_2_S1_SCOPE};
     use forge_store_physical_format::{
@@ -74,7 +70,7 @@ mod tests {
     #[test]
     fn readiness_requires_s1_scope() {
         let evidence = complete_evidence();
-        let denial = S2PhysicalSubstrateReadiness::from_s1_handoff_evidence(
+        let denial = PhysicalSubstrateReadiness::from_s1_handoff_evidence(
             RoadmapScope::new("Roadmap 2", "S.0"),
             evidence,
         )
@@ -82,13 +78,13 @@ mod tests {
 
         assert_eq!(
             denial.kind(),
-            crate::S2ReadinessDenialKind::WrongRoadmapScope
+            crate::PhysicalSubstrateReadinessDenialKind::WrongRoadmapScope
         );
     }
 
     #[test]
     fn readiness_exposes_handoff_fact_counts() {
-        let readiness = S2PhysicalSubstrateReadiness::from_s1_handoff_evidence(
+        let readiness = PhysicalSubstrateReadiness::from_s1_handoff_evidence(
             ROADMAP_2_S1_SCOPE,
             complete_evidence(),
         )
@@ -100,7 +96,7 @@ mod tests {
         assert_eq!(readiness.facts().payload_admission_witness_count(), 2);
     }
 
-    fn complete_evidence() -> S2PhysicalSubstrateHandoffEvidence {
+    fn complete_evidence() -> PhysicalSubstrateHandoffEvidence {
         let first = witnessed_payload(3, b"abc");
         let second = witnessed_payload(4, b"def");
         let physical_references = [
@@ -111,11 +107,11 @@ mod tests {
         ];
         let header_decode_witnesses = [first.0, second.0];
         let payload_admission_witnesses = [first.1, second.1];
-        S2PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
+        PhysicalSubstrateHandoffEvidence::from_s1_physical_witnesses(
             &physical_references,
             &header_decode_witnesses,
             &payload_admission_witnesses,
-            S2PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(3, 1, 9),
+            PhysicalSubstrateEvidenceCounts::from_s1_closeout_evidence(3, 1, 9),
         )
         .unwrap()
     }

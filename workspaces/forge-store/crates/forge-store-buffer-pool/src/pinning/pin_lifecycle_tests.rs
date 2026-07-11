@@ -13,7 +13,7 @@ use forge_store_physical_format::{
     PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
@@ -168,8 +168,8 @@ fn admit_payload_frame(
 }
 
 fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(

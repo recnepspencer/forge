@@ -1,13 +1,13 @@
 use super::{IntegrityHandoffDenial, IntegrityHandoffDenialKind, IntegrityHandoffPayload};
 use crate::AdmittedRecoveryIntegrityInput;
-use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
+use forge_store_contracts::PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IntegrityHandoffAdmission;
 
 impl IntegrityHandoffAdmission {
     pub fn admit(
-        s3_payload: S3PhysicalIntegrityReadinessPayload,
+        s3_payload: PhysicalIntegrityReadinessPayload,
         payload: IntegrityHandoffPayload,
     ) -> Result<AdmittedRecoveryIntegrityInput, IntegrityHandoffDenial> {
         let _s3_entry_basis = S3HandoffEntryAdmissionBasis::from_payload(s3_payload)?;
@@ -20,7 +20,7 @@ struct S3HandoffEntryAdmissionBasis;
 
 impl S3HandoffEntryAdmissionBasis {
     fn from_payload(
-        payload: S3PhysicalIntegrityReadinessPayload,
+        payload: PhysicalIntegrityReadinessPayload,
     ) -> Result<Self, IntegrityHandoffDenial> {
         require_protected_integrity_view(payload)?;
         require_lease_scoped_integrity_inspection(payload)?;
@@ -30,7 +30,7 @@ impl S3HandoffEntryAdmissionBasis {
 }
 
 fn require_protected_integrity_view(
-    payload: S3PhysicalIntegrityReadinessPayload,
+    payload: PhysicalIntegrityReadinessPayload,
 ) -> Result<(), IntegrityHandoffDenial> {
     if !payload.protected_view_capability().is_concrete() {
         return denied(IntegrityHandoffDenialKind::MissingS3ProtectedViewCapability);
@@ -39,7 +39,7 @@ fn require_protected_integrity_view(
 }
 
 fn require_lease_scoped_integrity_inspection(
-    payload: S3PhysicalIntegrityReadinessPayload,
+    payload: PhysicalIntegrityReadinessPayload,
 ) -> Result<(), IntegrityHandoffDenial> {
     if !payload.inspection_lifetime_law().is_lease_scoped() {
         return denied(IntegrityHandoffDenialKind::MissingS3InspectionLifetimeLaw);
@@ -48,7 +48,7 @@ fn require_lease_scoped_integrity_inspection(
 }
 
 fn require_no_materialization_entry_witness(
-    payload: S3PhysicalIntegrityReadinessPayload,
+    payload: PhysicalIntegrityReadinessPayload,
 ) -> Result<(), IntegrityHandoffDenial> {
     let witness = payload.no_materialization_witness();
     if !witness.forbids_whole_store() || !witness.forbids_whole_object() {

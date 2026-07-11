@@ -16,7 +16,7 @@ use forge_store_physical_format::{
     PhysicalReferenceValidationWitness, PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 use crate::{
@@ -263,8 +263,8 @@ fn scheduled_dirty_publication(payload: &[u8]) -> DirtyPublicationReceipt {
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(

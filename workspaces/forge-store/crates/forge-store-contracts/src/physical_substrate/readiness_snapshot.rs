@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S2PhysicalSubstrateReadinessSnapshot {
+pub struct PhysicalSubstrateReadinessSnapshot {
     sealed: bool,
     physical_reference_count: u32,
     header_decode_witness_count: u32,
@@ -9,7 +9,7 @@ pub struct S2PhysicalSubstrateReadinessSnapshot {
     counter_evidence_count: u32,
 }
 
-impl S2PhysicalSubstrateReadinessSnapshot {
+impl PhysicalSubstrateReadinessSnapshot {
     pub const fn from_exact_counts(
         sealed: bool,
         physical_reference_count: u32,

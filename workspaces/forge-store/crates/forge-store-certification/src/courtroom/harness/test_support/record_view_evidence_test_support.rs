@@ -15,7 +15,7 @@ use forge_store_physical_format::{
     PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 pub(crate) fn record_view_table_without_conflicts() -> ResidentFrameTable {
@@ -23,8 +23,8 @@ pub(crate) fn record_view_table_without_conflicts() -> ResidentFrameTable {
 }
 
 pub(crate) fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(
             AcceptedHandoffReadiness::from_s0_artifacts(
                 ROADMAP_2_S1_SCOPE,
                 HandoffEvidenceDigestSet::new(

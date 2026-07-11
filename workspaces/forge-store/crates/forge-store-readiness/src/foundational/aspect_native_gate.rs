@@ -1,27 +1,27 @@
 use forge_foundational::FoundationalPerformanceClaimSurface;
-use forge_store_aspect_native::{StoreS0ReadinessHandoffArtifact, StoreTerminalJsonProjection};
+use forge_store_aspect_native::{StoreReadinessHandoffArtifact, StoreTerminalJsonProjection};
 use forge_store_s0_reclassification::{S0HandoffDeniedInputKind, S0HandoffGateProofEvidence};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S0AspectNativeGateHandoff<PerformanceClaim>
+pub struct AspectNativeGateHandoff<PerformanceClaim>
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
-    artifact: StoreS0ReadinessHandoffArtifact<PerformanceClaim>,
+    artifact: StoreReadinessHandoffArtifact<PerformanceClaim>,
     gate_proof_evidence: S0HandoffGateProofEvidence,
 }
 
-impl<PerformanceClaim> S0AspectNativeGateHandoff<PerformanceClaim>
+impl<PerformanceClaim> AspectNativeGateHandoff<PerformanceClaim>
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
     pub fn new(
-        artifact: StoreS0ReadinessHandoffArtifact<PerformanceClaim>,
+        artifact: StoreReadinessHandoffArtifact<PerformanceClaim>,
         gate_proof_evidence: S0HandoffGateProofEvidence,
-    ) -> Result<Self, S0AspectNativeGateHandoffDenial> {
+    ) -> Result<Self, AspectNativeGateHandoffDenial> {
         for required in S0HandoffDeniedInputKind::REQUIRED {
             if !gate_proof_evidence.contains_negative_proof(required) {
-                return Err(S0AspectNativeGateHandoffDenial::MissingNegativeProof(
+                return Err(AspectNativeGateHandoffDenial::MissingNegativeProof(
                     required,
                 ));
             }
@@ -33,7 +33,7 @@ where
         })
     }
 
-    pub const fn artifact(&self) -> &StoreS0ReadinessHandoffArtifact<PerformanceClaim> {
+    pub const fn artifact(&self) -> &StoreReadinessHandoffArtifact<PerformanceClaim> {
         &self.artifact
     }
 
@@ -43,7 +43,7 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S0AspectNativeGateHandoffVerdict {
+pub struct AspectNativeGateHandoffVerdict {
     canonical_basis_entry_count: usize,
     receipt_count: usize,
     diagnostic_count: usize,
@@ -53,7 +53,7 @@ pub struct S0AspectNativeGateHandoffVerdict {
     foundational_adoption_family_count: usize,
 }
 
-impl S0AspectNativeGateHandoffVerdict {
+impl AspectNativeGateHandoffVerdict {
     pub const fn canonical_basis_entry_count(&self) -> usize {
         self.canonical_basis_entry_count
     }
@@ -84,33 +84,33 @@ impl S0AspectNativeGateHandoffVerdict {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S0AspectNativeGateHandoffDenial {
+pub enum AspectNativeGateHandoffDenial {
     TerminalJsonProjectionInput,
     MissingNegativeProof(S0HandoffDeniedInputKind),
 }
 
-pub fn accept_s0_aspect_native_gate_handoff<PerformanceClaim>(
-    handoff: S0AspectNativeGateHandoff<PerformanceClaim>,
-) -> S0AspectNativeGateHandoffVerdict
+pub fn accept_aspect_native_gate_handoff<PerformanceClaim>(
+    handoff: AspectNativeGateHandoff<PerformanceClaim>,
+) -> AspectNativeGateHandoffVerdict
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
-    reconstruct_s0_handoff_verdict_from_native_evidence(&handoff)
+    reconstruct_aspect_native_handoff_verdict(&handoff)
 }
 
-pub fn reject_terminal_json_projection_as_s0_handoff(
+pub fn reject_terminal_json_projection_as_aspect_native_handoff(
     _projection: StoreTerminalJsonProjection,
-) -> S0AspectNativeGateHandoffDenial {
-    S0AspectNativeGateHandoffDenial::TerminalJsonProjectionInput
+) -> AspectNativeGateHandoffDenial {
+    AspectNativeGateHandoffDenial::TerminalJsonProjectionInput
 }
 
-pub fn reconstruct_s0_handoff_verdict_from_native_evidence<PerformanceClaim>(
-    handoff: &S0AspectNativeGateHandoff<PerformanceClaim>,
-) -> S0AspectNativeGateHandoffVerdict
+pub fn reconstruct_aspect_native_handoff_verdict<PerformanceClaim>(
+    handoff: &AspectNativeGateHandoff<PerformanceClaim>,
+) -> AspectNativeGateHandoffVerdict
 where
     PerformanceClaim: FoundationalPerformanceClaimSurface,
 {
-    S0AspectNativeGateHandoffVerdict {
+    AspectNativeGateHandoffVerdict {
         canonical_basis_entry_count: handoff.artifact.canonical_basis().payload().entries().len(),
         receipt_count: handoff.artifact.completed_receipts().len(),
         diagnostic_count: handoff.artifact.diagnostics().len(),

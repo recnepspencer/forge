@@ -14,7 +14,7 @@ use forge_store_physical_format::{
     PhysicalSegmentId, PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 #[test]
@@ -129,8 +129,8 @@ fn generation_separation_row_requires_executed_table_proof() {
 }
 
 fn resident_frame_table() -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(

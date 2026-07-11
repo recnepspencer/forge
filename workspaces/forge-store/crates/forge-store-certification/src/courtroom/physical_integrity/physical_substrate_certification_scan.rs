@@ -10,15 +10,15 @@ use forge_store_physical_format::{
     PlatformPhysicalOpenRequest, PlatformPhysicalScanReport,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
-    S2PhysicalSubstrateReadiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
+    PhysicalSubstrateReadiness,
 };
 
 pub(crate) struct PhysicalSubstrateCertificationScan {
     scan: PlatformPhysicalScanReport,
     shortcut_counters: PlatformPhysicalFacadeCounterSnapshot,
     platform_grade_witness: PlatformGradeClaimWitness,
-    s2_readiness: S2PhysicalSubstrateReadiness,
+    s2_readiness: PhysicalSubstrateReadiness,
 }
 
 impl PhysicalSubstrateCertificationScan {
@@ -68,9 +68,9 @@ impl PhysicalSubstrateCertificationScan {
         let platform_grade_witness =
             PlatformGradeClaimWitness::from_facade_evidence(&scan.platform_evidence())
                 .map_err(|_| PhysicalSubstrateCertificationDenial::PlatformWitnessRejected)?;
-        let s1_closeout = close_s1_physical_substrate_readiness(readiness()?)
+        let s1_closeout = close_physical_substrate_readiness(readiness()?)
             .map_err(|_| PhysicalSubstrateCertificationDenial::S2HandoffEvidenceRejected)?;
-        let s2_readiness = prove_s2_physical_substrate_readiness(s1_closeout)
+        let s2_readiness = prove_physical_substrate_readiness(s1_closeout)
             .map_err(|_| PhysicalSubstrateCertificationDenial::S2HandoffEvidenceRejected)?;
         Ok(Self {
             scan,
@@ -117,7 +117,7 @@ impl PhysicalSubstrateCertificationScan {
         self.platform_grade_witness
     }
 
-    pub(crate) const fn s2_readiness(&self) -> S2PhysicalSubstrateReadiness {
+    pub(crate) const fn s2_readiness(&self) -> PhysicalSubstrateReadiness {
         self.s2_readiness
     }
 }

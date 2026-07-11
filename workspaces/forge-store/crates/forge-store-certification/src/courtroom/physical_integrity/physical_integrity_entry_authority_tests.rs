@@ -9,7 +9,7 @@ use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
     BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, S2BoundaryDenialKind,
 };
-use forge_store_contracts::S2DeniedBoundaryKind;
+use forge_store_contracts::DeniedBoundaryKind;
 use forge_store_physical_integrity::{
     IntegrityEntryAdmission, IntegrityEntryBasis, IntegrityEntryDenialKind, IntegrityEntryRequest,
     ProtectedPhysicalByteView, ScrubEnvelopeLimits, VerifierResidentLimits,
@@ -107,7 +107,7 @@ fn assert_equivalent_entry_authority(
     );
     assert_eq!(
         first.basis.denial_behavior().named_denial_count(),
-        S2DeniedBoundaryKind::ALL.len() as u32
+        DeniedBoundaryKind::ALL.len() as u32
     );
     assert_eq!(
         first.basis.physical_authority_recap(),

@@ -15,7 +15,7 @@ use forge_store_physical_format::{
     PHYSICAL_HEADER_LENGTH,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 #[test]
@@ -218,8 +218,8 @@ fn forbidden_residency_proofs_are_typed_denials_not_authority() {
 }
 
 fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(

@@ -5,26 +5,26 @@ use crate::{
 use forge_store_buffer_pool::BackgroundWorkClass;
 use forge_store_contracts::{
     BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
-    ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S2DeniedBoundaryKind, S2NoMaterializationWitness, S3PhysicalIntegrityReadinessPayload,
-    S3ReadinessDenial, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    ProtectedIntegrityViewCapability, BoundedCounterRecap, DenialBehaviorRecap,
+    DeniedBoundaryKind, NoMaterializationWitness, PhysicalIntegrityReadinessPayload,
+    PhysicalIntegrityReadinessDenial, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
-use forge_store_readiness::{S2PhysicalSubstrateReadiness, S3PhysicalIntegrityReadiness};
+use forge_store_readiness::{PhysicalSubstrateReadiness, PhysicalIntegrityReadiness};
 
 impl BoundedMemoryCloseoutReport {
     pub fn publish_s3_physical_integrity_readiness(
         self,
-        s2_readiness: S2PhysicalSubstrateReadiness,
-    ) -> Result<S3PhysicalIntegrityReadiness, S3ReadinessDenial> {
+        s2_readiness: PhysicalSubstrateReadiness,
+    ) -> Result<PhysicalIntegrityReadiness, PhysicalIntegrityReadinessDenial> {
         let payload = payload_from_closeout(self.bundle(), s2_readiness)?;
-        S3PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2_readiness, payload)
+        PhysicalIntegrityReadiness::from_s2_bounded_residency_closeout(s2_readiness, payload)
     }
 }
 
 fn payload_from_closeout(
     bundle: &BufferPoolCertificationBundle,
-    s2_readiness: S2PhysicalSubstrateReadiness,
-) -> Result<S3PhysicalIntegrityReadinessPayload, S3ReadinessDenial> {
+    s2_readiness: PhysicalSubstrateReadiness,
+) -> Result<PhysicalIntegrityReadinessPayload, PhysicalIntegrityReadinessDenial> {
     let suite = bundle.suite();
     let aggregate = aggregate_operation_counters(suite.reports());
     let protected_view_capability = protected_view_capability_from_closeout(bundle)?;
@@ -35,7 +35,7 @@ fn payload_from_closeout(
         .unwrap_or(0);
     let facts = s2_readiness.facts();
     Ok(
-        S3PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
+        PhysicalIntegrityReadinessPayload::from_s2_closeout_evidence(
             protected_view_capability,
             VerifierResidentEnvelope::bounded(
                 aggregate.max_resident_bytes,
@@ -43,8 +43,8 @@ fn payload_from_closeout(
             )?,
             ScrubPlanningAllocationEnvelope::bounded(scrub_allocation)?,
             IntegrityInspectionLifetimeLaw::lease_scoped(),
-            S2NoMaterializationWitness::observed_zero(0, aggregate.materialized_bytes)?,
-            S2BoundedCounterRecap::exact(
+            NoMaterializationWitness::observed_zero(0, aggregate.materialized_bytes)?,
+            BoundedCounterRecap::exact(
                 aggregate.max_resident_bytes,
                 aggregate.max_pinned_pages,
                 aggregate.max_dirty_pages,
@@ -52,7 +52,7 @@ fn payload_from_closeout(
                 aggregate.copied_bytes,
                 aggregate.materialized_bytes,
             )?,
-            S2DenialBehaviorRecap::from_named_boundaries(&readiness_denials(
+            DenialBehaviorRecap::from_named_boundaries(&readiness_denials(
                 bundle.suite().denials(),
             ))?,
             PhysicalAuthorityRecap::from_s1_authority(
@@ -72,7 +72,7 @@ fn payload_from_closeout(
 
 fn protected_view_capability_from_closeout(
     bundle: &BufferPoolCertificationBundle,
-) -> Result<ProtectedIntegrityViewCapability, S3ReadinessDenial> {
+) -> Result<ProtectedIntegrityViewCapability, PhysicalIntegrityReadinessDenial> {
     if !bundle
         .suite()
         .denials()
@@ -127,20 +127,20 @@ fn has_pinning_evidence(suite: &crate::BoundedMemoryResidencySuite) -> bool {
         .unwrap_or(false)
 }
 
-fn readiness_denials(denials: &[S2BoundaryDenialKind]) -> Vec<S2DeniedBoundaryKind> {
+fn readiness_denials(denials: &[S2BoundaryDenialKind]) -> Vec<DeniedBoundaryKind> {
     denials
         .iter()
         .map(|denial| match denial {
-            S2BoundaryDenialKind::OverBudgetResidency => S2DeniedBoundaryKind::OverBudgetResidency,
-            S2BoundaryDenialKind::PinLeak => S2DeniedBoundaryKind::PinLeak,
-            S2BoundaryDenialKind::DirtyOverflow => S2DeniedBoundaryKind::DirtyOverflow,
+            S2BoundaryDenialKind::OverBudgetResidency => DeniedBoundaryKind::OverBudgetResidency,
+            S2BoundaryDenialKind::PinLeak => DeniedBoundaryKind::PinLeak,
+            S2BoundaryDenialKind::DirtyOverflow => DeniedBoundaryKind::DirtyOverflow,
             S2BoundaryDenialKind::WholeStoreMaterialization => {
-                S2DeniedBoundaryKind::WholeStoreMaterialization
+                DeniedBoundaryKind::WholeStoreMaterialization
             }
             S2BoundaryDenialKind::WholeObjectStreaming => {
-                S2DeniedBoundaryKind::WholeObjectStreaming
+                DeniedBoundaryKind::WholeObjectStreaming
             }
-            S2BoundaryDenialKind::ForgedViewAccess => S2DeniedBoundaryKind::ForgedViewAccess,
+            S2BoundaryDenialKind::ForgedViewAccess => DeniedBoundaryKind::ForgedViewAccess,
         })
         .collect()
 }

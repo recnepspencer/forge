@@ -17,7 +17,7 @@ use forge_store_physical_format::{
 };
 use forge_store_physical_isolation::CurrentGenerationPhysicalReference;
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
+    close_physical_substrate_readiness, prove_physical_substrate_readiness,
 };
 
 pub(crate) fn bounded_copy_for_record(payload: &'static [u8]) -> BoundedCopyRecordView {
@@ -143,8 +143,8 @@ fn admit_payload_frame(
 }
 
 pub(crate) fn resident_frame_table(resident_bytes: u64, frame_count: u32) -> ResidentFrameTable {
-    let readiness = prove_s2_physical_substrate_readiness(
-        close_s1_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
+    let readiness = prove_physical_substrate_readiness(
+        close_physical_substrate_readiness(accepted_s1_readiness()).unwrap(),
     )
     .unwrap();
     let budget = BufferPoolBudget::declare(
