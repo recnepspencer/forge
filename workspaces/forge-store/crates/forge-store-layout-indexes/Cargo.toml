@@ -11,6 +11,7 @@ forge-store-authority = { path = "../forge-store-authority" }
 forge-store-budgets = { path = "../forge-store-budgets" }
 forge-store-compatibility = { path = "../forge-store-compatibility" }
 forge-store-contracts = { path = "../forge-store-contracts" }
+forge-store-io-scheduler = { path = "../forge-store-io-scheduler" }
 forge-store-offline-verifier = { path = "../forge-store-offline-verifier" }
 forge-store-physical-format = { path = "../forge-store-physical-format" }
 forge-store-physical-isolation = { path = "../forge-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
@@ -25,6 +26,7 @@ forge-store-aspect-native = { path = "../forge-store-aspect-native" }
 forge-store-blob-chunks = { path = "../forge-store-blob-chunks", features = ["certification-test-authority"] }
 forge-store-budgets = { path = "../forge-store-budgets" }
 forge-store-certification = { path = "../forge-store-certification" }
+forge-store-io-scheduler = { path = "../forge-store-io-scheduler", features = ["certification-test-authority"] }
 forge-store = { path = "../forge-store" }
 forge-store-operations = { path = "../forge-store-operations" }
 forge-store-physical-certification = { path = "../forge-store-physical-certification" }

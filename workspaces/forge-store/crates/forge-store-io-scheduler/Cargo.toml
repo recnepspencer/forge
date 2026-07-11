@@ -18,7 +18,6 @@ forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-budgets.workspace = true
 forge-store-contracts.workspace = true
 forge-store-buffer-pool.workspace = true
-forge-store-layout-indexes.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-isolation.workspace = true
 forge-store-security.workspace = true

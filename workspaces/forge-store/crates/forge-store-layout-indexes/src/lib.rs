@@ -35,6 +35,13 @@ pub use bootstrap::{
     S8BootstrapCatalogReadOutcome, S8BootstrapCatalogReadOutcomeView, S8BootstrapLayoutCatalog,
     S8BootstrapOnlyAccessDenied, S8BootstrapOnlyAccessPath, S8MinimalRootDiscoveryLayout,
 };
+pub use catalog::system_families::io_scheduler::{
+    project_background_pacing, project_foreground_interference, project_scheduler_reservation,
+    BackgroundPacingInterferencePosture, BackgroundPacingLayoutReport,
+    ForegroundInterferenceAccessBudget, ForegroundInterferenceLayoutReport,
+    ForegroundInterferencePosture, SchedulerReservationInterferencePosture,
+    SchedulerReservationLayoutReport,
+};
 pub use catalog::system_families::offline_verifier::{
     project_offline_custody_capsule, project_offline_export_bundle, project_offline_layout_report,
     project_offline_repair_blast_radius, OfflineVerifierAccessShape,
