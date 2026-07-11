@@ -1,3 +1,4 @@
+pub(crate) mod layout_partition;
 pub(crate) mod security_scope_admission;
 pub(crate) mod security_scope_admission_basis;
 pub(crate) mod security_scope_admission_denial;

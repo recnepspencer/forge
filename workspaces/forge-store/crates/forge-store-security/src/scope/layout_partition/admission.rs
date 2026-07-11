@@ -4,11 +4,11 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StoreLayoutAccessSecurityBoundaryWitness {
+pub struct StoreLayoutPartitionSecurityWitness {
     identity: StoreSecurityScopeIdentity,
 }
 
-impl StoreLayoutAccessSecurityBoundaryWitness {
+impl StoreLayoutPartitionSecurityWitness {
     pub(crate) const fn new(identity: StoreSecurityScopeIdentity) -> Self {
         Self { identity }
     }
@@ -38,13 +38,13 @@ impl StoreLayoutAccessSecurityBoundaryWitness {
     }
 }
 
-pub fn admit_layout_access_security_boundary(
+pub fn admit_layout_partition_security_scope(
     security_scope: &StoreCurrentSecurityScopeWitnessSet,
-) -> StoreLayoutAccessSecurityBoundaryWitness {
+) -> StoreLayoutPartitionSecurityWitness {
     let identity = security_scope.key_scope().identity();
     debug_assert_eq!(identity, security_scope.key_version_scope().identity());
     debug_assert_eq!(identity, security_scope.tenant_scope().identity());
     debug_assert_eq!(identity, security_scope.authenticity_scope().identity());
     debug_assert_eq!(identity, security_scope.custody_scope().identity());
-    StoreLayoutAccessSecurityBoundaryWitness::new(identity)
+    StoreLayoutPartitionSecurityWitness::new(identity)
 }

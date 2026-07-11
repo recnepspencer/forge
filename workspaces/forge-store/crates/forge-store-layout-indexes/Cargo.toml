@@ -16,7 +16,7 @@ forge-store-physical-format = { path = "../forge-store-physical-format" }
 forge-store-physical-isolation = { path = "../forge-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
 forge-store-physical-integrity = { path = "../forge-store-physical-integrity" }
 forge-store-recovery-physics = { path = "../forge-store-recovery-physics", features = ["phase21-layout-rule-construction", "phase22-layout-rule-construction"] }
-forge-store-security = { path = "../forge-store-security", features = ["phase27-layout-rule-construction"] }
+forge-store-security = { path = "../forge-store-security" }
 forge-store-wal = { path = "../forge-store-wal" }
 
 [dev-dependencies]
@@ -31,7 +31,7 @@ forge-store-physical-certification = { path = "../forge-store-physical-certifica
 forge-store-physical-format = { path = "../forge-store-physical-format" }
 forge-store-physical-isolation = { path = "../forge-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
 forge-store-recovery-physics = { path = "../forge-store-recovery-physics", features = ["phase21-layout-rule-construction", "phase22-layout-rule-construction"] }
-forge-store-security = { path = "../forge-store-security", features = ["certification-test-authority", "phase27-layout-rule-construction"] }
+forge-store-security = { path = "../forge-store-security", features = ["certification-test-authority"] }
 forge-store-test-support = { path = "../forge-store-test-support" }
 forge-store-wal = { path = "../forge-store-wal", features = ["certification-authority"] }
 

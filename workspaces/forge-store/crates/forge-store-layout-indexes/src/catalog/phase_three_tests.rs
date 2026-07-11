@@ -1,11 +1,11 @@
 use crate::layout_declarations;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{
-    admitted_store_managed_root_security_scope_for_layout_access_test,
-    admitted_tenant_artifact_security_scope_for_layout_access_test,
-    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
-    admitted_tenant_page_security_scope_for_layout_access_test,
-    admitted_tenant_page_without_authenticity_for_layout_access_test,
+    admitted_store_managed_root_security_scope_for_layout_partition_test,
+    admitted_tenant_artifact_security_scope_for_layout_partition_test,
+    admitted_tenant_page_export_prepared_scope_for_layout_partition_test,
+    admitted_tenant_page_security_scope_for_layout_partition_test,
+    admitted_tenant_page_without_authenticity_for_layout_partition_test,
 };
 
 use super::{
@@ -16,7 +16,7 @@ use super::{
 #[test]
 fn phase_three_role_accuracy_and_scope_are_typed() {
     let facade = layout_declarations();
-    let admitted_scope = admitted_store_managed_root_security_scope_for_layout_access_test();
+    let admitted_scope = admitted_store_managed_root_security_scope_for_layout_partition_test();
     let declaration = facade
         .declaration(DurableArtifactFamilyId::PhysicalRootManifest)
         .unwrap();
@@ -84,13 +84,13 @@ fn phase_three_accuracy_claims_deny_inexact_families() {
 #[test]
 fn phase_three_scope_partition_denies_wrong_admitted_scope() {
     let facade = layout_declarations();
-    let root_scope = admitted_store_managed_root_security_scope_for_layout_access_test();
-    let page_scope = admitted_tenant_page_security_scope_for_layout_access_test();
-    let artifact_scope = admitted_tenant_artifact_security_scope_for_layout_access_test();
+    let root_scope = admitted_store_managed_root_security_scope_for_layout_partition_test();
+    let page_scope = admitted_tenant_page_security_scope_for_layout_partition_test();
+    let artifact_scope = admitted_tenant_artifact_security_scope_for_layout_partition_test();
     let unauthenticated_page_scope =
-        admitted_tenant_page_without_authenticity_for_layout_access_test();
+        admitted_tenant_page_without_authenticity_for_layout_partition_test();
     let export_prepared_page_scope =
-        admitted_tenant_page_export_prepared_scope_for_layout_access_test();
+        admitted_tenant_page_export_prepared_scope_for_layout_partition_test();
     let page_family = facade
         .declaration(DurableArtifactFamilyId::PhysicalPage)
         .unwrap();

@@ -28,7 +28,10 @@ pub fn admitted_security_scope_for_identity_for_test(
     identity: crate::StoreSecurityScopeIdentity,
 ) -> StoreAdmittedSecurityScope {
     assert_eq!(identity.physical_witness(), physical_witness());
-    assert_eq!(identity.key_version_posture(), StoreKeyVersionPosture::Current);
+    assert_eq!(
+        identity.key_version_posture(),
+        StoreKeyVersionPosture::Current
+    );
     admitted_scope(
         identity.key_scope(),
         identity.tenant_scope(),
@@ -48,17 +51,18 @@ pub fn admitted_wrong_s6_io_qos_security_scope_for_test() -> StoreAdmittedSecuri
     )
 }
 
-pub fn admitted_store_managed_root_security_scope_for_layout_access_test(
+pub fn admitted_store_managed_root_security_scope_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_store_internal_security_scope_for_s6_test()
 }
 
-pub fn admitted_tenant_page_security_scope_for_layout_access_test() -> StoreAdmittedSecurityScope {
+pub fn admitted_tenant_page_security_scope_for_layout_partition_test() -> StoreAdmittedSecurityScope
+{
     admitted_wrong_s6_io_qos_security_scope_for_test()
 }
 
-pub fn admitted_tenant_artifact_security_scope_for_layout_access_test() -> StoreAdmittedSecurityScope
-{
+pub fn admitted_tenant_artifact_security_scope_for_layout_partition_test(
+) -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::ArtifactEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -69,7 +73,7 @@ pub fn admitted_tenant_artifact_security_scope_for_layout_access_test() -> Store
     )
 }
 
-pub fn admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test(
+pub fn admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::WalCheckpointEnvelope,
@@ -81,7 +85,7 @@ pub fn admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test(
     )
 }
 
-pub fn admitted_tenant_page_without_authenticity_for_layout_access_test(
+pub fn admitted_tenant_page_without_authenticity_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::PageEnvelope,
@@ -91,7 +95,7 @@ pub fn admitted_tenant_page_without_authenticity_for_layout_access_test(
     )
 }
 
-pub fn admitted_tenant_page_export_prepared_scope_for_layout_access_test(
+pub fn admitted_tenant_page_export_prepared_scope_for_layout_partition_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::PageEnvelope,

@@ -1,5 +1,5 @@
 use forge_store_security::{
-    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test, StoreKeyVersionPosture,
+    admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test, StoreKeyVersionPosture,
     StoreLegacySecurityPosture,
 };
 
@@ -8,7 +8,7 @@ use super::*;
 #[test]
 fn reopen_rejects_same_identity_artifact_redirected_outside_wal_root() {
     let access = crate::layout_projection::WalLayoutAccess::s8();
-    let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
+    let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test();
     let metadata = crate::WalSecurityMetadataCarrier::for_wal_record(
         security.witnesses(),
         StoreKeyVersionPosture::Current,

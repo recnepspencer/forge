@@ -7,7 +7,7 @@ use forge_store_physical_backend::{
     StoreDurabilityWriteAccepted, WalDurabilityBarrier, WalDurabilityBarrierSet,
 };
 use forge_store_security::{
-    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test, StoreKeyVersionPosture,
+    admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test, StoreKeyVersionPosture,
     StoreLegacySecurityPosture,
 };
 
@@ -31,7 +31,7 @@ pub fn execute_baseline_lsm_persisted_fixture(
     physical: BaselineLsmPhysicalPublicationBinding,
 ) -> BaselineLsmExecutionWitness {
     let access = lsm_strategy();
-    let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
+    let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test();
     let metadata = forge_store_wal::WalSecurityMetadataCarrier::for_wal_record(
         security.witnesses(),
         StoreKeyVersionPosture::Current,
@@ -284,7 +284,7 @@ mod artifact_binding_tests {
     #[test]
     fn durable_scope_cannot_authorize_different_wal_bytes() {
         let access = lsm_strategy();
-        let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
+        let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test();
         let metadata = forge_store_wal::WalSecurityMetadataCarrier::for_wal_record(
             security.witnesses(),
             StoreKeyVersionPosture::Current,

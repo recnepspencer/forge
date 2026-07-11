@@ -1,8 +1,8 @@
 use super::{ArtifactDerivedAccuracyWitness, ArtifactFamilyDenial};
 use forge_store_security::{
-    admit_layout_access_security_boundary, StoreAuthenticityRequirement,
+    admit_layout_partition_security_scope, StoreAuthenticityRequirement,
     StoreCurrentSecurityScopeWitnessSet, StoreCustodyPosture, StoreKeyScope,
-    StoreLayoutAccessSecurityBoundaryWitness, StoreTenantScope,
+    StoreLayoutPartitionSecurityWitness, StoreTenantScope,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +22,7 @@ pub struct ArtifactScopePartitionWitness {
     key_partition: ArtifactKeyScopePartition,
     required_authenticity: StoreAuthenticityRequirement,
     required_custody_posture: StoreCustodyPosture,
-    security_boundary: StoreLayoutAccessSecurityBoundaryWitness,
+    security_boundary: StoreLayoutPartitionSecurityWitness,
 }
 
 impl ArtifactScopePartitionWitness {
@@ -32,7 +32,7 @@ impl ArtifactScopePartitionWitness {
         key_partition: ArtifactKeyScopePartition,
         required_authenticity: StoreAuthenticityRequirement,
         required_custody_posture: StoreCustodyPosture,
-        security_boundary: StoreLayoutAccessSecurityBoundaryWitness,
+        security_boundary: StoreLayoutPartitionSecurityWitness,
     ) -> Self {
         Self {
             accuracy,
@@ -68,7 +68,7 @@ impl ArtifactScopePartitionWitness {
         self.required_custody_posture
     }
 
-    pub const fn security_boundary(self) -> StoreLayoutAccessSecurityBoundaryWitness {
+    pub const fn security_boundary(self) -> StoreLayoutPartitionSecurityWitness {
         self.security_boundary
     }
 
@@ -89,7 +89,7 @@ pub(crate) fn require_scope_partition(
     let key_partition = declared_key_partition(accuracy);
     let required_authenticity = declared_authenticity_requirement(accuracy);
     let required_custody_posture = declared_custody_posture(accuracy);
-    let security_boundary = admit_layout_access_security_boundary(security_scope);
+    let security_boundary = admit_layout_partition_security_scope(security_scope);
 
     if !tenant_partition_allows(tenant_partition, security_boundary.tenant_scope()) {
         return Err(ArtifactFamilyDenial::CrossTenantScopePartitionDenied);

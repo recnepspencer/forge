@@ -1,22 +1,10 @@
 #![forbid(unsafe_code)]
 
 mod authenticity;
-#[path = "layout_access/authenticity_family.rs"]
-mod authenticity_family;
 mod authority_source;
-#[path = "layout_access/custody_family.rs"]
-mod custody_family;
-#[path = "layout_access/key_scope_family.rs"]
-mod key_scope_family;
-#[path = "layout_access/phase27_lookup_rule.rs"]
-mod phase27_lookup_rule;
 mod raw_security_declarations;
 mod repair_blast_radius;
-#[path = "layout_access/repair_blast_radius_family.rs"]
-mod repair_blast_radius_family;
 mod scope;
-#[path = "layout_access/scope_partition_basis.rs"]
-mod scope_partition_basis;
 mod scope_vocabulary;
 #[cfg(test)]
 mod security_authority_source_tests;
@@ -24,8 +12,6 @@ mod security_metadata;
 mod security_metadata_canonical;
 #[cfg(test)]
 mod security_metadata_tests;
-#[path = "layout_access/tenant_scope_family.rs"]
-mod tenant_scope_family;
 mod trust_boundary;
 #[cfg(test)]
 mod vocabulary_tests;
@@ -46,7 +32,6 @@ pub use authenticity::authenticity_witness::{
     admit_store_authenticity_witness_observation, StoreAuthenticityWitnessBinding,
     StoreAuthenticityWitnessInput, StoreAuthenticityWitnessObservationDeclaration,
 };
-pub use authenticity_family::AuthenticityLayoutReport;
 pub use authority_source::{
     classify_app_org_id_as_security_scope_source, classify_audit_record_as_security_scope_source,
     classify_foundational_evidence_as_security_scope_source,
@@ -60,13 +45,6 @@ pub use authority_source::{
     classify_store_current_authority_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source, StoreSecurityAuthoritySource,
 };
-pub use custody_family::CustodyLayoutReport;
-pub use key_scope_family::KeyScopeLayoutReport;
-pub use phase27_lookup_rule::{
-    AdmittedAuthenticityLayoutRule, AdmittedCustodyLayoutRule, AdmittedKeyScopeLayoutRule,
-    AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
-    SecurityCustodyLookupAccessShape,
-};
 pub use raw_security_declarations::{
     evaluate_deserialized_security_scope_readmission,
     readmit_deserialized_security_scope_declaration, StoreApplicationOrgIdClaim, StoreIamRoleClaim,
@@ -79,8 +57,8 @@ pub use repair_blast_radius::{
     repair_blast_radius_expectation, StoreRepairPhysicalRegionAdmissionOutcome,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness,
 };
-pub use repair_blast_radius_family::{
-    RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
+pub use scope::layout_partition::{
+    admit_layout_partition_security_scope, StoreLayoutPartitionSecurityWitness,
 };
 pub use scope::security_scope_admission::{
     admission_counter_snapshot, admit_store_security_scope,
@@ -123,12 +101,12 @@ pub use scope::security_scope_roles::{
 pub use scope::security_scope_test_authority::{
     admitted_security_scope_for_identity_for_test,
     admitted_store_internal_security_scope_for_s6_test,
-    admitted_store_managed_root_security_scope_for_layout_access_test,
-    admitted_tenant_artifact_security_scope_for_layout_access_test,
-    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
-    admitted_tenant_page_security_scope_for_layout_access_test,
-    admitted_tenant_page_without_authenticity_for_layout_access_test,
-    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test,
+    admitted_store_managed_root_security_scope_for_layout_partition_test,
+    admitted_tenant_artifact_security_scope_for_layout_partition_test,
+    admitted_tenant_page_export_prepared_scope_for_layout_partition_test,
+    admitted_tenant_page_security_scope_for_layout_partition_test,
+    admitted_tenant_page_without_authenticity_for_layout_partition_test,
+    admitted_tenant_wal_checkpoint_security_scope_for_layout_partition_test,
     admitted_wrong_s6_io_qos_security_scope_for_test,
 };
 pub use scope::security_scope_witnesses::{
@@ -136,9 +114,6 @@ pub use scope::security_scope_witnesses::{
     StoreCurrentCustodyScopeWitness, StoreCurrentKeyScopeWitness,
     StoreCurrentKeyVersionScopeWitness, StoreCurrentSecurityScopeWitnessSet,
     StoreCurrentTenantScopeWitness,
-};
-pub use scope_partition_basis::{
-    admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
 };
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
@@ -153,7 +128,6 @@ pub use security_metadata::{
 pub use security_metadata_canonical::{
     compare_store_security_metadata, StoreSecurityMetadataCanonicalBasis,
 };
-pub use tenant_scope_family::TenantScopeLayoutReport;
 pub use trust_boundary::trust_boundary_observation::{
     store_backup_restore_boundary_fact, store_custody_domain_boundary_fact,
     store_deployment_boundary_fact, store_instance_boundary_fact,
