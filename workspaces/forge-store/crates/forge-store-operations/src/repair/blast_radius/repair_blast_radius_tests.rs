@@ -8,7 +8,7 @@ use forge_store_security::{
     StoreSecurityScopeAdmissionStale, StoreTenantScope,
 };
 
-use crate::repair_blast_radius_test_support::{current_authority, current_authority_for_boundary};
+use super::{current_authority, current_authority_for_boundary};
 use crate::{RepairBlastRadiusDeclaration, RepairBlastRadiusDenial, RepairBlastRadiusPlan};
 use forge_store_contracts::ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY;
 

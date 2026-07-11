@@ -5,9 +5,8 @@ use forge_store_offline_verifier::{
 use forge_store_security::{StoreRepairPhysicalRegionWitness, StoreSecurityScopeIdentity};
 
 use crate::{
-    repair_blast_radius_declaration::repair_region_witness_or_denial,
-    RepairBlastRadiusCounterSnapshot, RepairBlastRadiusDenial, RepairBlastRadiusReadiness,
-    RepairPhysicalRegion,
+    repair::blast_radius::repair_region_witness_or_denial, RepairBlastRadiusCounterSnapshot,
+    RepairBlastRadiusDenial, RepairBlastRadiusReadiness, RepairPhysicalRegion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -8,7 +8,7 @@ use forge_store_security::{
     StoreSecurityScopeAdmissionStale, StoreTenantScope,
 };
 
-use crate::repair_blast_radius_test_support::current_authority;
+use crate::repair::blast_radius::current_authority;
 use crate::{
     RepairBlastRadiusDeclaration, RepairBlastRadiusDenial, RepairBlastRadiusPlan,
     RepairQuarantineScopePreservation,

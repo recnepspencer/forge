@@ -30,6 +30,8 @@ forge-store-security.workspace = true
 forge-store-tiering.workspace = true
 
 [dev-dependencies]
+forge-foundational = { path = "../../../../crates/forge-foundational" }
+forge-store-aspect-native.workspace = true
 forge-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
 forge-store-readiness.workspace = true
 

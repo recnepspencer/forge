@@ -3,8 +3,8 @@
 use crate::BackupExportCapsuleEmission;
 #[cfg(feature = "certification-test-authority")]
 use crate::{
-    backup_export_custody_test_support::current_authority, BackupExportCustodyDeclaration,
-    BackupExportCustodyMode, BackupExportCustodyReadiness,
+    backup::export::current_authority, BackupExportCustodyDeclaration, BackupExportCustodyMode,
+    BackupExportCustodyReadiness,
 };
 use forge_store_contracts::{
     S8RuntimeCase, S8RuntimeExactCounterEvidence, S8RuntimeExecutionIdentity, S8RuntimeOutcome,

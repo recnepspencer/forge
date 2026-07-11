@@ -5,8 +5,7 @@ use forge_store_security::{
     StoreTrustBoundaryCrossing, StoreTrustBoundaryReadmissionTrigger,
 };
 
-use crate::backup_export_custody_declaration::backup_capsule_authenticity;
-use crate::backup_export_custody_test_support::{current_authority, readmission_trigger};
+use super::{backup_capsule_authenticity, current_authority, readmission_trigger};
 use crate::{
     BackupExportCapsuleEmission, BackupExportCustodyDeclaration, BackupExportCustodyDenial,
     BackupExportCustodyMode, BackupExportCustodyReadiness,

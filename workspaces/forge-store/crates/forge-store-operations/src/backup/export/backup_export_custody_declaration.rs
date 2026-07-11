@@ -1,10 +1,10 @@
 use forge_proof::TransitionOutcome;
 use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_security::{
-    admit_store_security_scope, StoreAuthenticityRequirement,
-    StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
-    StoreRawSecurityScopeDeclaration, StoreSecurityScopeAdmissionDenial,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+    admit_store_security_scope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreRawSecurityScopeDeclaration,
+    StoreSecurityScopeAdmissionDenial, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
 use crate::{

@@ -8,7 +8,7 @@ use forge_store_security::{
 };
 
 use crate::{
-    backup_export_custody_declaration::backup_capsule_authenticity, BackupExportCustodyAdmission,
+    backup::export::backup_capsule_authenticity, BackupExportCustodyAdmission,
     BackupExportCustodyCounterSnapshot, BackupExportCustodyDenial,
 };
 

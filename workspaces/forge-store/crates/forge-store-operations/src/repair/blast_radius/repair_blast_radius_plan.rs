@@ -19,11 +19,7 @@ impl RepairBlastRadiusPlan {
         self,
     ) -> Result<RepairBlastRadiusReadiness, RepairBlastRadiusDenial> {
         let (physical_region, admitted_scope, counters) = self.declaration.into_parts();
-        RepairBlastRadiusReadiness::from_admitted_scope(
-            physical_region,
-            admitted_scope,
-            counters,
-        )
+        RepairBlastRadiusReadiness::from_admitted_scope(physical_region, admitted_scope, counters)
     }
 }
 
