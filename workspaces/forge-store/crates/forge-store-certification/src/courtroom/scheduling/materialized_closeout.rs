@@ -96,11 +96,6 @@ pub enum S6MaterializedCertificationAdoptionDenial {
     CertificationEvidenceCannotSatisfyCloseout,
 }
 
-pub const fn reject_materialized_s6_certification_as_runtime_authority(
-) -> S6MaterializedCertificationAdoptionDenial {
-    S6MaterializedCertificationAdoptionDenial::CertificationEvidenceCannotStrengthenRuntimeAuthority
-}
-
 impl S6ReadinessCertificationCounterEvidence {
     pub const fn new(
         family: S6ReadinessCertificationCounterFamily,

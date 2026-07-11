@@ -2,8 +2,6 @@ use forge_store_certification::{
     S6CertificationEvidenceAdoptionReceipt, S6CertificationMaterializationDenial,
     S6CounterStrengthFamily, S6MaterializedCertificationEvidenceBundle,
     S6MaterializedCounterStrength, S6PostAdmissionViolationCause, S6PostAdmissionViolationFamily,
-};
-use forge_store_readiness::{
     S6ReadinessCertificationCounterFamily, S6ReadinessCertificationCounterStrength,
     S6ReadinessResidualDebtEvidenceKind,
 };

@@ -84,33 +84,6 @@
 //! }
 //! ```
 //!
-//! S.6 certification closeout adoption cannot be minted from public scalar rows:
-//!
-//! ```compile_fail
-//! use forge_store_readiness::{
-//!     S6MaterializedCertificationAdoptionReceipt, S6ReadinessCertificationProofSummary,
-//!     S6ReadinessCertificationProofTopology,
-//! };
-//!
-//! let _from_fields = S6MaterializedCertificationAdoptionReceipt {
-//!     canonical_execution_identity_tag: 7,
-//!     proof_execution_identity_tag: 7,
-//!     canonical_lane_binding_mask: 0b111,
-//!     proof_lane_binding_mask: 0b111,
-//!     profile_count: 6,
-//!     profile_boundary_certification_only: true,
-//!     performance_receipt_count: 5,
-//!     counter_strengths: vec![],
-//!     canonical_access_policy_rows: 1,
-//!     canonical_post_admission_violation_rows: 1,
-//!     proof: S6ReadinessCertificationProofSummary::new(true, 5, 1, 1),
-//!     proof_topology: S6ReadinessCertificationProofTopology::new(
-//!         true, true, true, true, true, true, true, true, true, true, true, true, 5, 5, 5,
-//!     ),
-//!     residual_debt_rows: vec![],
-//! };
-//! ```
-//!
 mod adoption_denial;
 mod aspect_native_vocabulary_readiness;
 mod evidence_fields;
@@ -127,7 +100,6 @@ mod s2_readiness_facts;
 mod s3_physical_integrity_readiness;
 mod s5_simulation_harness_denial;
 mod s5_simulation_harness_readiness;
-mod s6_materialized_certification_closeout;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -161,11 +133,3 @@ pub use s5_simulation_harness_denial::{
     PhysicalIsolationHarnessMaturityDependency, PhysicalIsolationHarnessReadinessDenial,
 };
 pub use s5_simulation_harness_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
-pub use s6_materialized_certification_closeout::{
-    reject_materialized_s6_certification_as_runtime_authority,
-    S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
-    S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
-    S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
-    S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
-    S6ReadinessResidualDebtEvidenceRow,
-};

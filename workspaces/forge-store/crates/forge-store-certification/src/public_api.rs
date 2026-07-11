@@ -160,11 +160,15 @@ pub use crate::courtroom::closeout::s6::{
     S6FoundationalAuthorityBoundary, S6FoundationalPerformanceReceipts,
     S6FoundationalProfileEvidence, S6IoQosReadinessHandoffMaterializationDenial,
     S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
+    S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
     S6MaterializedCertificationEvidenceBundle, S6MaterializedCounterStrength,
     S6PostAdmissionViolationCause, S6PostAdmissionViolationEvidenceRow,
     S6PostAdmissionViolationFamily, S6ProofProjectionArtifact, S6QueueExecutionCertificationDenial,
-    S6ReclaimPolicyEvidenceOutcomeKind, S6ReclaimPolicyEvidenceRow,
-    StoreOwnedS6CertificationMaterializationSources,
+    S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
+    S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
+    S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
+    S6ReadinessResidualDebtEvidenceRow, S6ReclaimPolicyEvidenceOutcomeKind,
+    S6ReclaimPolicyEvidenceRow, StoreOwnedS6CertificationMaterializationSources,
 };
 // --- harness: scenario quality and oracle surfaces ---
 pub use crate::courtroom::harness::{

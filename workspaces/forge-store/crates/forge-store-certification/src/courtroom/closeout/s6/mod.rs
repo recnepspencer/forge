@@ -1,5 +1,12 @@
 //! S.6 certification closeout and evidence materialization exports.
 
+pub use crate::courtroom::scheduling::{
+    S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
+    S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
+    S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
+    S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
+    S6ReadinessResidualDebtEvidenceRow,
+};
 pub use crate::s6::{
     certify_io_pressure_backend_qualification_matrix, certify_s6_backend_capability_admission,
     certify_s6_background_pacing, certify_s6_foreground_reservation,

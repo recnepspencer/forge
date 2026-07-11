@@ -1,3 +1,4 @@
+use crate::courtroom::scheduling::S6ReadinessCertificationProofTopology;
 use forge_proof::{
     prelude::{
         recipe, AuthorityMarker, AuthorityWitness, BasisPostureDxExt, BasisPostureKind,
@@ -9,7 +10,6 @@ use forge_proof::{
 };
 use forge_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass};
 use forge_store_physical_certification::IoPressureEvidenceMaturity;
-use forge_store_readiness::S6ReadinessCertificationProofTopology;
 
 use super::S6CertificationEvidenceSources;
 

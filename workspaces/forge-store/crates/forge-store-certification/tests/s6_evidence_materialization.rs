@@ -11,13 +11,10 @@ use forge_store_certification::{
     S6CertificationMaterializationDenial, S6CertificationRuntimeAuthorityDenial,
     S6CounterStrengthFamily, S6FoundationalAuthorityBoundary, S6MaterializedCounterStrength,
     S6PostAdmissionViolationCause, S6PostAdmissionViolationFamily,
+    S6ReadinessResidualDebtEvidenceKind,
 };
 use forge_store_io_scheduler::BackgroundDebtKind;
 use forge_store_physical_backend::AccessPolicyViolationKind;
-use forge_store_readiness::{
-    reject_materialized_s6_certification_as_runtime_authority as reject_readiness_s6_certification_as_runtime_authority,
-    S6MaterializedCertificationAdoptionDenial, S6ReadinessResidualDebtEvidenceKind,
-};
 
 #[test]
 fn materialized_s6_evidence_binds_store_witnesses_to_foundational_and_proof_surfaces() {
@@ -163,11 +160,6 @@ fn materialized_s6_evidence_is_adopted_by_closeout_without_runtime_authority() {
     assert!(receipt
         .proof_topology()
         .is_checked_for_closeout(receipt.proof()));
-
-    assert_eq!(
-        reject_readiness_s6_certification_as_runtime_authority(),
-        S6MaterializedCertificationAdoptionDenial::CertificationEvidenceCannotStrengthenRuntimeAuthority
-    );
 }
 
 #[test]
