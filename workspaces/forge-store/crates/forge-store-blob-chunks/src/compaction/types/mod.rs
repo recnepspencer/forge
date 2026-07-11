@@ -8,7 +8,7 @@ mod rewrite_plan;
 
 pub use cold_readiness::BlobCompactionColdReadiness;
 pub use intent::BlobCompactionIntent;
-pub use pacing::BlobCompactionS6Pacing;
+pub use pacing::BlobCompactionPacingAdmission;
 pub use physical_interlock::BlobCompactionPhysicalInterlock;
 pub use read_hold::BlobCompactionReadHold;
 pub use rewrite_plan::BlobCompactionRewritePlan;

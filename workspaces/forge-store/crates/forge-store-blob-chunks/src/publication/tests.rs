@@ -1,7 +1,7 @@
 use forge_store_physical_isolation::SemanticVisibilityReference;
 use forge_store_recovery_physics::{
     CrashBoundaryLayoutReport, PartialPublicationObservationSet,
-    PartialPublicationReplayReadDenial, PartialPublicationReplayReadWitness,
+    PartialPublicationReplayReadDenial,
     PartialPublicationReplayedCrashEdge,
 };
 
@@ -256,13 +256,9 @@ fn generic_recovery_entry_cannot_mint_before_wal_replay_read_artifact() {
 #[test]
 fn checkpoint_cutover_bytes_are_denied_before_wal_witness() {
     let replay_entry = generic_recovery_replay_entry("phase6-no-before-wal-operation");
-    let record =
-        replay_entry.read_partial_publication_checkpoint_cutover("phase6-no-before-wal-operation");
-
     assert!(matches!(
-        PartialPublicationReplayReadWitness::readmitted_before_wal_append(
-            record.expect("checkpoint cutover read should return a record")
-        ),
+        replay_entry
+            .read_partial_publication_checkpoint_cutover("phase6-no-before-wal-operation"),
         Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend { .. })
     ));
 }

@@ -10,23 +10,23 @@ use crate::retention_reclaim::denial::BlobRetentionReclaimDenial;
 use crate::retention_reclaim::types::admission::BlobRetentionReclaimAdmission;
 use crate::retention_reclaim::verification::barrier_match::verify_resume_barrier_matches_claim;
 use crate::retention_reclaim::verification::hold_blocking::verify_no_live_reachability_holds;
-use crate::retention_reclaim::verification::s6_scope_match::verify_s6_posture_matches_release;
+use crate::retention_reclaim::verification::security_scope::verify_reclaim_policy_scope;
 use crate::{
     BlobChunkIdentity, BlobChunkReachabilityRegistry, BlobReachabilityReclaimDecision,
-    BlobReachabilityReclaimRelease, S6BlobReclaimNonClaimHandoff,
+    BlobReachabilityReclaimRelease, BlobReclaimPolicyEvidence,
 };
 
 pub(crate) fn admit_via_reachability_gate(
     reachability: &BlobChunkReachabilityRegistry,
     chunk_identity: &BlobChunkIdentity,
-    s6_posture: S6BlobReclaimNonClaimHandoff,
+    reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     resume_barrier: Option<&BlobOrphanReclaimBarrier>,
 ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
     verify_no_live_reachability_holds(reachability)?;
     let release = collect_reachability_release(reachability, chunk_identity)?;
-    verify_s6_posture_matches_release(&release, &s6_posture)?;
+    verify_reclaim_policy_scope(&release, &reclaim_policy_evidence)?;
     let physical_claim =
-        BlobRetentionPhysicalOrphanClaim::from_admitted_s6_posture(&release, &s6_posture)?;
+        BlobRetentionPhysicalOrphanClaim::from_admitted_reclaim_policy_evidence(&release, &reclaim_policy_evidence)?;
     let eligibility = match resume_barrier {
         None => RetentionReclaimEligibilityCase::EligibleReachabilityOrphan,
         Some(barrier) => {
@@ -36,7 +36,7 @@ pub(crate) fn admit_via_reachability_gate(
     };
     construct_admission(
         release,
-        s6_posture,
+        reclaim_policy_evidence,
         physical_claim,
         resume_barrier,
         eligibility,
@@ -57,7 +57,7 @@ fn collect_reachability_release(
 
 fn construct_admission(
     release: BlobReachabilityReclaimRelease,
-    s6_posture: S6BlobReclaimNonClaimHandoff,
+    reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     physical_claim: BlobRetentionPhysicalOrphanClaim,
     resume_barrier: Option<&BlobOrphanReclaimBarrier>,
     eligibility: RetentionReclaimEligibilityCase,
@@ -73,6 +73,6 @@ fn construct_admission(
         _ => unreachable!("denials are assembled before construct_admission"),
     };
     Ok(BlobRetentionReclaimAdmission::construct(
-        candidate, s6_posture,
+        candidate, reclaim_policy_evidence,
     ))
 }

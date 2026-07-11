@@ -9,7 +9,7 @@ use forge_store_aspect_native::{
 };
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_blob_chunks::{
-    BlobChunkSecurityMetadataWitness, S6BlobReclaimNonClaimHandoff, S7BlobChunkSecurityHandoff,
+    BlobChunkSecurityMetadataWitness, BlobReclaimPolicyEvidence, AdmittedBlobChunkSecurity,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_backend::{
@@ -73,7 +73,7 @@ fn reclaim_policy_evidence_materializes_execution_and_non_claim_handoffs() {
     .execute(blob_admitted)
     .unwrap()
     .unwrap();
-    let blob = S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(blob_receipt, blob_metadata)
+    let blob = BlobReclaimPolicyEvidence::from_reclaim_receipt(blob_receipt, blob_metadata)
         .expect("matching blob metadata should bind reclaim handoff");
     assert!(!blob.carries_blob_lifecycle_claim());
     assert_eq!(blob.security_metadata(), blob_metadata);
@@ -105,7 +105,7 @@ fn blob_reclaim_non_claim_handoff_denies_mismatched_security_metadata() {
         "store.s7.phase2.cert.reclaim.copied",
         StoreTenantScope::MultiTenantPhysicalBoundary,
     );
-    let copied_metadata = S7BlobChunkSecurityHandoff::from_admitted_security_scope(copied_admitted)
+    let copied_metadata = AdmittedBlobChunkSecurity::from_admitted_security_scope(copied_admitted)
         .expect("copied blob metadata should admit")
         .permission()
         .metadata();
@@ -124,11 +124,11 @@ fn blob_reclaim_non_claim_handoff_denies_mismatched_security_metadata() {
     .unwrap();
 
     let admitted =
-        S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt.clone(), receipt_metadata)
+        BlobReclaimPolicyEvidence::from_reclaim_receipt(receipt.clone(), receipt_metadata)
             .expect("matching blob metadata should bind reclaim handoff");
     assert_eq!(admitted.security_metadata(), receipt_metadata);
 
-    let denial = S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt, copied_metadata)
+    let denial = BlobReclaimPolicyEvidence::from_reclaim_receipt(receipt, copied_metadata)
         .expect_err("copied blob metadata must not bind reclaim handoff");
     assert_eq!(denial.receipt_scope(), receipt_metadata.identity());
     assert_eq!(denial.metadata_scope(), copied_metadata.identity());
@@ -194,7 +194,7 @@ fn blob_reclaim_security_scope_and_metadata(
         admitted_blob_security_scope(identity_key, StoreTenantScope::TenantPhysicalBoundary);
     let reclaim_scope = ReclaimPolicySecurityScope::from_admitted_scope(&admitted);
     let handoff =
-        S7BlobChunkSecurityHandoff::from_admitted_security_scope(admitted).expect("blob handoff");
+        AdmittedBlobChunkSecurity::from_admitted_security_scope(admitted).expect("blob handoff");
     (reclaim_scope, handoff.permission().metadata())
 }
 

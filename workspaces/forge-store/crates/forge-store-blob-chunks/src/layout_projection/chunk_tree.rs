@@ -5,7 +5,7 @@ use crate::{
     BlobStreamingContentFrontier, BlobStreamingVerifiedRead, ChunkTreeRoot, LogicalContentDigest,
 };
 
-use super::blob_object_family::BlobObjectLayoutReport;
+use super::blob_object::BlobObjectLayoutReport;
 
 pub fn reject_streaming_frontier_as_chunk_tree_layout_authority(
     _frontier: &BlobStreamingContentFrontier,

@@ -5,6 +5,6 @@ pub use crate::handoffs::{
     BlobBackgroundPressureKind, BlobHarnessAccessMode, BlobHarnessActorMix,
     BlobHarnessChunkSizeClass, BlobHarnessChunkTopology, BlobHarnessFailurePoint,
     BlobHarnessPlacementClass, BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
-    BlobHarnessTopologyDenial, S6BlobReclaimHandoffDenial, S6BlobReclaimNonClaimHandoff,
-    S7BlobChunkSecurityHandoff, S7BlobChunkSecurityPermission,
+    BlobHarnessTopologyDenial, BlobReclaimPolicyScopeDenial, BlobReclaimPolicyEvidence,
+    AdmittedBlobChunkSecurity, BlobChunkSecurityPermission,
 };

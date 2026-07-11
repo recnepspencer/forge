@@ -31,7 +31,7 @@ mod handoffs;
 mod harness_execution;
 mod heavy_fixture;
 mod import_readmission;
-mod layout_access;
+mod layout_projection;
 mod lifecycle;
 mod placement;
 mod publication;
@@ -54,7 +54,7 @@ pub(crate) use compaction::test_support::{
 pub use exports::hostile_lane::*;
 pub use exports::*;
 pub use heavy_fixture::*;
-pub use layout_access::{
+pub use layout_projection::{
     reject_chunk_tree_root_as_blob_object_layout_authority,
     reject_full_blob_buffer_as_streaming_layout_authority,
     reject_streaming_frontier_as_chunk_tree_layout_authority,

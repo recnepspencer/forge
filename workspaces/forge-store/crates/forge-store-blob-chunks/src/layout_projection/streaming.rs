@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{BlobStreamingReadRequest, BlobStreamingVerifiedRead};
 
-use super::chunk_tree_family::ChunkTreeLayoutReport;
+use super::chunk_tree::ChunkTreeLayoutReport;
 
 pub fn reject_full_blob_buffer_as_streaming_layout_authority(
     whole_blob: &[u8],

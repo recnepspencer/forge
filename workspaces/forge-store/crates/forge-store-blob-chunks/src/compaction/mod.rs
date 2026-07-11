@@ -5,9 +5,9 @@
 //!
 //! - **Stable-read evidence** enters through released [`BlobCompactionReadHold`] matched to
 //!   [`CompactionReadInterlockPlan`].
-//! - **I/O admission evidence** enters through [`BlobCompactionS6Pacing`] — prefer
-//!   [`BlobCompactionS6Pacing::from_scheduler_capability`] from scheduler pacing capability with
-//!   readmission verification; certification paths may use [`BlobCompactionS6Pacing::admitted_compaction`].
+//! - **I/O admission evidence** enters through [`BlobCompactionPacingAdmission`] — prefer
+//!   [`BlobCompactionPacingAdmission::from_scheduler_capability`] from scheduler pacing capability with
+//!   readmission verification; certification paths may use [`BlobCompactionPacingAdmission::admitted_compaction`].
 //! - **Cold-tier posture** enters through [`BlobCompactionColdReadiness`] classified via tiering
 //!   [`cold_posture_permits_compaction`].
 //! - **Placement witness** must match lifecycle reachability via admitted [`AdmittedBlobPlacement`].
@@ -38,5 +38,5 @@ pub use recovery::{BlobCompactionResidue, BlobCompactionRestartOutcome};
 pub use transitions::execute_rewrite::BlobCompactionRewriteExecution;
 pub use types::{
     BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPhysicalInterlock,
-    BlobCompactionReadHold, BlobCompactionRewritePlan, BlobCompactionS6Pacing,
+    BlobCompactionReadHold, BlobCompactionRewritePlan, BlobCompactionPacingAdmission,
 };

@@ -27,7 +27,7 @@ use crate::{
     BlobReachabilityEdge, BlobReachabilityReclaimDecision, BlobRetentionHoldKind,
     BlobRetentionReclaimAdmission, BlobRetentionReclaimAdmissionAuthority,
     BlobRetentionReclaimDenial, BlobRetentionReclaimOutcome, BlobRetentionReclaimRequest,
-    BlobRetentionSafeReclaimPlanner, S6BlobReclaimNonClaimHandoff,
+    BlobRetentionSafeReclaimPlanner, BlobReclaimPolicyEvidence,
 };
 
 pub(crate) fn plan(request: BlobRetentionReclaimRequest) -> BlobRetentionReclaimOutcome {
@@ -124,7 +124,7 @@ fn s6_handoff_for_metadata(
     case: &str,
     region_reference: PhysicalReference,
     metadata: BlobChunkSecurityMetadataWitness,
-) -> S6BlobReclaimNonClaimHandoff {
+) -> BlobReclaimPolicyEvidence {
     let admitted = admitted_blob_security_scope(case, StoreTenantScope::TenantPhysicalBoundary);
     s6_handoff_from_parts(region_reference, metadata, &admitted)
 }
@@ -133,7 +133,7 @@ fn s6_handoff_from_parts(
     region_reference: PhysicalReference,
     metadata: crate::BlobChunkSecurityMetadataWitness,
     admitted: &forge_store_security::StoreAdmittedSecurityScope,
-) -> S6BlobReclaimNonClaimHandoff {
+) -> BlobReclaimPolicyEvidence {
     let backend = PhysicalBackendCapabilityAdmissionAuthority::store_owned()
         .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
             BackendTargetProfile::PosixFileFsyncDirSync,
@@ -165,7 +165,7 @@ fn s6_handoff_from_parts(
     .execute(policy)
     .expect("execution should run")
     .expect("execution should succeed");
-    S6BlobReclaimNonClaimHandoff::from_reclaim_receipt(receipt, metadata)
+    BlobReclaimPolicyEvidence::from_reclaim_receipt(receipt, metadata)
         .expect("S.6 blob reclaim handoff should bind metadata")
 }
 

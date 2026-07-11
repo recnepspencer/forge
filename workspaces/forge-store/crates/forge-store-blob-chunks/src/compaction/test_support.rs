@@ -17,7 +17,7 @@ use crate::test_support::{
 use crate::{
     BlobAuthorityClassification, BlobChunkDedupeAdmission, BlobChunkDedupeReferenceRegistry,
     BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionColdReadiness, BlobCompactionIntent,
-    BlobCompactionReadHold, BlobCompactionS6Pacing, BlobCorruptedChunkLocalization,
+    BlobCompactionReadHold, BlobCompactionPacingAdmission, BlobCorruptedChunkLocalization,
     BlobCorruptionDetectionSource, BlobCorruptionGuard, BlobCorruptionPlacementClass,
     BlobCorruptionReferenceEdges, BlobQuarantineAuthority, BlobStreamingContentFrontier,
     BlobStreamingVerifiedRead, LifecycleReceipt,
@@ -182,8 +182,8 @@ pub(crate) fn quarantine_guard(case: &str) -> BlobCorruptionGuard {
     BlobCorruptionGuard::from_quarantine(quarantine)
 }
 
-pub(crate) fn pacing() -> BlobCompactionS6Pacing {
-    BlobCompactionS6Pacing::admitted_compaction(2)
+pub(crate) fn pacing() -> BlobCompactionPacingAdmission {
+    BlobCompactionPacingAdmission::admitted_compaction(2)
 }
 
 pub(crate) fn verified_read_for_rewritten(

@@ -23,9 +23,9 @@ pub(crate) fn assemble_retention_denial(
                 counters: base_denial_counters().record_reachability_denial(),
             }
         }
-        RetentionReclaimEligibilityCase::S6ScopeMismatch => {
+        RetentionReclaimEligibilityCase::ReclaimPolicyScopeMismatch => {
             BlobRetentionReclaimDenial::S6ReclaimPostureScopeMismatch {
-                counters: base_denial_counters().record_s6_posture_denial(),
+                counters: base_denial_counters().record_reclaim_policy_evidence_denial(),
             }
         }
         RetentionReclaimEligibilityCase::BarrierMismatch => {

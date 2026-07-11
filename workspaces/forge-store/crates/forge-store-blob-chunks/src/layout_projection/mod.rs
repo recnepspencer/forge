@@ -1,34 +1,34 @@
 mod behavior;
-mod blob_object_family;
-mod chunk_tree_family;
-mod compaction_family;
-mod dedupe_family;
+mod blob_object;
+mod chunk_tree;
+mod compaction;
+mod dedupe;
 mod denial;
-mod evidence;
-mod quarantine_family;
-mod reachability_family;
-mod reclaim_family;
-mod retention_family;
-mod streaming_family;
+mod counters;
+mod quarantine;
+mod reachability;
+mod reclaim;
+mod retention;
+mod streaming;
 
 pub use behavior::{BlobLayoutCorruptionBehavior, BlobLayoutScopeSafeAbsenceBehavior};
-pub use blob_object_family::{
+pub use blob_object::{
     reject_chunk_tree_root_as_blob_object_layout_authority, BlobGenerationPublicationLayoutReport,
     BlobObjectLayoutReport,
 };
-pub use chunk_tree_family::{
+pub use chunk_tree::{
     reject_streaming_frontier_as_chunk_tree_layout_authority, ChunkTreeLayoutReport,
     StoredChunkLookupLayoutReport,
 };
-pub use compaction_family::CompactionLayoutReport;
-pub use dedupe_family::DedupeLayoutReport;
+pub use compaction::CompactionLayoutReport;
+pub use dedupe::DedupeLayoutReport;
 pub use denial::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind};
-pub use evidence::BlobLayoutAccessPathEvidence;
-pub use quarantine_family::QuarantineLayoutReport;
-pub use reachability_family::ReachabilityLayoutReport;
-pub use reclaim_family::ReclaimLayoutReport;
-pub use retention_family::RetentionLayoutReport;
-pub use streaming_family::{
+pub use counters::BlobLayoutAccessPathEvidence;
+pub use quarantine::QuarantineLayoutReport;
+pub use reachability::ReachabilityLayoutReport;
+pub use reclaim::ReclaimLayoutReport;
+pub use retention::RetentionLayoutReport;
+pub use streaming::{
     reject_full_blob_buffer_as_streaming_layout_authority, StreamingLayoutReport,
     StreamingResumeLayoutReport,
 };

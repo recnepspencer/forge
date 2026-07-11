@@ -39,7 +39,7 @@ fn missing_s6_reclaim_posture_denies_before_permit() {
         panic!("missing S.6 posture must deny");
     };
 
-    assert_eq!(counters.s6_posture_denials(), 1);
+    assert_eq!(counters.reclaim_policy_evidence_denials(), 1);
     assert_eq!(counters.reclaim_permits(), 0);
 }
 
@@ -51,7 +51,7 @@ fn mismatched_s6_reclaim_scope_denies_before_permit() {
         panic!("wrong S.6 posture scope must deny");
     };
 
-    assert_eq!(counters.s6_posture_denials(), 1);
+    assert_eq!(counters.reclaim_policy_evidence_denials(), 1);
     assert_eq!(counters.reclaim_permits(), 0);
 }
 
@@ -169,7 +169,7 @@ fn weak_representations_return_denials_not_authority() {
     let copied_receipt = crate::reject_copied_receipt_as_retention_reclaim_authority();
     let copied_counter = crate::reject_copied_counter_as_retention_reclaim_authority();
     let projection = crate::reject_terminal_projection_as_retention_reclaim_authority();
-    let s6_only = crate::reject_s6_reclaim_handoff_as_retention_reclaim_authority();
+    let policy_evidence_only = crate::reject_reclaim_policy_evidence_as_retention_reclaim_authority();
 
     assert!(matches!(
         residue,
@@ -188,7 +188,7 @@ fn weak_representations_return_denials_not_authority() {
         BlobRetentionReclaimDenial::TerminalProjectionRejected { .. }
     ));
     assert!(matches!(
-        s6_only,
+        policy_evidence_only,
         BlobRetentionReclaimDenial::S6HandoffAloneRejected { .. }
     ));
 }

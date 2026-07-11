@@ -11,7 +11,7 @@ use forge_store_blob_chunks::{
     BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial, BlobChunkDedupeCandidate,
     BlobChunkSecurityScope, BlobChunkSecurityScopeDenial, BlobChunkSequenceAdmission,
     BlobChunkSize, BlobChunkStreamingDenial, BlobChunkStreamingResidencyProof,
-    BlobChunkingRuleAdmission, S7BlobChunkSecurityHandoff,
+    BlobChunkingRuleAdmission, AdmittedBlobChunkSecurity,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_format::{
@@ -44,7 +44,7 @@ fn s5_1_blob_chunk_scope_and_dedupe_readiness_public_api_courtroom() {
         StoreTenantScope::BackupRestoreBoundary,
     );
     assert!(matches!(
-        S7BlobChunkSecurityHandoff::from_admitted_security_scope(backup_readiness),
+        AdmittedBlobChunkSecurity::from_admitted_security_scope(backup_readiness),
         Err(BlobChunkSecurityScopeDenial::WrongTenantScope { counters, .. })
             if counters.denials() == 1
     ));
@@ -108,12 +108,12 @@ fn candidate_for_scope(scope: BlobChunkSecurityScope) -> BlobChunkDedupeCandidat
 }
 
 fn blob_scope(identity_key: &str, tenant_scope: StoreTenantScope) -> BlobChunkSecurityScope {
-    let handoff = S7BlobChunkSecurityHandoff::from_admitted_security_scope(blob_readiness_for(
+    let handoff = AdmittedBlobChunkSecurity::from_admitted_security_scope(blob_readiness_for(
         identity_key,
         tenant_scope,
     ))
     .expect("blob handoff should admit");
-    BlobChunkSecurityScope::from_s7_handoff(handoff)
+    BlobChunkSecurityScope::from_admitted_blob_security(handoff)
 }
 
 fn blob_readiness_for(

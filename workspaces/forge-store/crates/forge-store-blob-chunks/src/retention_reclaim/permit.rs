@@ -1,6 +1,6 @@
 use forge_store_contracts::StableDigest;
 
-use crate::{BlobChunkIdentity, BlobReachabilityReclaimRelease, S6BlobReclaimNonClaimHandoff};
+use crate::{BlobChunkIdentity, BlobReachabilityReclaimRelease, BlobReclaimPolicyEvidence};
 
 use super::{
     candidate::BlobRetentionOrphanCandidate, counters::BlobRetentionReclaimCounterSnapshot,
@@ -11,7 +11,7 @@ use super::{
 pub struct BlobRetentionReclaimPermit {
     identity: StableDigest,
     candidate: BlobRetentionOrphanCandidate,
-    s6_posture: S6BlobReclaimNonClaimHandoff,
+    reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     residue: BlobLocalizedReclaimResidue,
     counters: BlobRetentionReclaimCounterSnapshot,
 }
@@ -26,20 +26,20 @@ pub struct BlobRetentionReclaimReceipt {
 impl BlobRetentionReclaimPermit {
     pub(crate) fn from_candidate(
         candidate: BlobRetentionOrphanCandidate,
-        s6_posture: S6BlobReclaimNonClaimHandoff,
+        reclaim_policy_evidence: BlobReclaimPolicyEvidence,
         residue: BlobLocalizedReclaimResidue,
         counters: BlobRetentionReclaimCounterSnapshot,
     ) -> Self {
         let identity = StableDigest::new(format!(
             "s7.retention.reclaim.permit:{}:{:?}",
             candidate.identity().as_str(),
-            s6_posture.security_scope()
+            reclaim_policy_evidence.security_scope()
         ))
         .expect("retention reclaim permit identity is nonempty");
         Self {
             identity,
             candidate,
-            s6_posture,
+            reclaim_policy_evidence,
             residue,
             counters,
         }
@@ -61,8 +61,8 @@ impl BlobRetentionReclaimPermit {
         self.candidate.release()
     }
 
-    pub const fn s6_posture(&self) -> &S6BlobReclaimNonClaimHandoff {
-        &self.s6_posture
+    pub const fn reclaim_policy_evidence(&self) -> &BlobReclaimPolicyEvidence {
+        &self.reclaim_policy_evidence
     }
 
     pub const fn residue_report(&self) -> &BlobLocalizedReclaimResidue {

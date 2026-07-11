@@ -5,7 +5,7 @@ pub(crate) enum CompactionEligibilityCase {
     MissingReachabilityProof,
     ActiveReadHold,
     ReadHoldPlanMismatch,
-    UnsupportedS6Pacing,
+    UnsupportedSchedulerPacing,
     UnavailableColdChunk,
     QuarantineHold,
     EquivalenceBasisMismatch,

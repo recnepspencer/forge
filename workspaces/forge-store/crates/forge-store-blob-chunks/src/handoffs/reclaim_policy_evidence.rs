@@ -6,29 +6,29 @@ use forge_store_reclaim_policy::{
 use crate::BlobChunkSecurityMetadataWitness;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S6BlobReclaimNonClaimHandoff {
+pub struct BlobReclaimPolicyEvidence {
     receipt: ReclaimPolicyExecutionReceipt,
     security_metadata: BlobChunkSecurityMetadataWitness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S6BlobReclaimHandoffDenial {
+pub struct BlobReclaimPolicyScopeDenial {
     receipt_scope: forge_store_security::StoreSecurityScopeIdentity,
     metadata_scope: forge_store_security::StoreSecurityScopeIdentity,
     receipt: forge_store_security::StoreSecurityScopeAdmissionReceipt,
     metadata_receipt: forge_store_security::StoreSecurityScopeAdmissionReceipt,
 }
 
-impl S6BlobReclaimNonClaimHandoff {
+impl BlobReclaimPolicyEvidence {
     pub fn from_reclaim_receipt(
         receipt: ReclaimPolicyExecutionReceipt,
         metadata: BlobChunkSecurityMetadataWitness,
-    ) -> Result<Self, S6BlobReclaimHandoffDenial> {
+    ) -> Result<Self, BlobReclaimPolicyScopeDenial> {
         let policy = receipt.policy();
         let receipt_scope = policy.security_scope().identity();
         let policy_receipt = policy.security_scope().receipt();
         if receipt_scope != metadata.identity() || policy_receipt != metadata.receipt() {
-            return Err(S6BlobReclaimHandoffDenial {
+            return Err(BlobReclaimPolicyScopeDenial {
                 receipt_scope,
                 metadata_scope: metadata.identity(),
                 receipt: policy_receipt,
@@ -79,7 +79,7 @@ impl S6BlobReclaimNonClaimHandoff {
     }
 }
 
-impl S6BlobReclaimHandoffDenial {
+impl BlobReclaimPolicyScopeDenial {
     pub const fn receipt_scope(self) -> forge_store_security::StoreSecurityScopeIdentity {
         self.receipt_scope
     }

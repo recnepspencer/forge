@@ -6,7 +6,7 @@ use crate::{
     BlobChunkIdentity, BlobChunkIntegrityCounterSnapshot, BlobChunkIntegrityDenial,
     BlobChunkIntegrityProof, BlobChunkOrdinal, BlobChunkSecurityMetadataWitness,
     BlobChunkSecurityScope, BlobChunkingRuleAdmission, ChunkTreeRoot, LogicalContentDigest,
-    S7BlobChunkSecurityHandoff, StoredChunkDigest,
+    AdmittedBlobChunkSecurity, StoredChunkDigest,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -30,12 +30,12 @@ impl BlobChunkSequenceAdmission {
     }
 
     pub fn start_from_handoff(
-        security: S7BlobChunkSecurityHandoff,
+        security: AdmittedBlobChunkSecurity,
         rule: BlobChunkingRuleAdmission,
         declared_total_bytes: u64,
     ) -> Result<Self, BlobChunkIntegrityDenial> {
         Self::new(
-            BlobChunkSecurityScope::from_s7_handoff(security),
+            BlobChunkSecurityScope::from_admitted_blob_security(security),
             rule,
             declared_total_bytes,
         )

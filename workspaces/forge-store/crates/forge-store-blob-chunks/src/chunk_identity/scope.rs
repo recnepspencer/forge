@@ -6,7 +6,7 @@ use forge_store_security::{
 
 use crate::{
     BlobChunkScopeCounterSnapshot, BlobChunkSecurityMetadataWitness, BlobChunkSecurityScopeDenial,
-    S7BlobChunkSecurityHandoff,
+    AdmittedBlobChunkSecurity,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -25,7 +25,7 @@ impl BlobChunkSecurityScope {
         })
     }
 
-    pub fn from_s7_handoff(handoff: S7BlobChunkSecurityHandoff) -> Self {
+    pub fn from_admitted_blob_security(handoff: AdmittedBlobChunkSecurity) -> Self {
         handoff.into_scope()
     }
 

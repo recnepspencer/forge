@@ -166,7 +166,7 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
     assert_eq!(retention.protected_holds(), 1);
     assert_eq!(
         reclaim.security_scope(),
-        permit.s6_posture().security_scope()
+        permit.reclaim_policy_evidence().security_scope()
     );
     assert_eq!(
         quarantine_layout.repair_capability(),
@@ -175,7 +175,7 @@ fn phase25_layout_admission_uses_runtime_maintenance_authority() {
     reclaim
         .proves_scope_safe_absence_for_chunk(
             permit.chunk_identity(),
-            permit.s6_posture().security_scope(),
+            permit.reclaim_policy_evidence().security_scope(),
         )
         .unwrap();
     let wrong_scope = blob_scope(

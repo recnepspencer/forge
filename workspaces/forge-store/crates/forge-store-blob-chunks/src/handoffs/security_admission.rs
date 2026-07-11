@@ -7,11 +7,11 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S7BlobChunkSecurityPermission {
+pub struct BlobChunkSecurityPermission {
     metadata: BlobChunkSecurityMetadataWitness,
 }
 
-impl S7BlobChunkSecurityPermission {
+impl BlobChunkSecurityPermission {
     pub const fn identity(self) -> StoreSecurityScopeIdentity {
         self.metadata.identity()
     }
@@ -22,12 +22,12 @@ impl S7BlobChunkSecurityPermission {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct S7BlobChunkSecurityHandoff {
-    permission: S7BlobChunkSecurityPermission,
+pub struct AdmittedBlobChunkSecurity {
+    permission: BlobChunkSecurityPermission,
     scope: BlobChunkSecurityScope,
 }
 
-impl S7BlobChunkSecurityHandoff {
+impl AdmittedBlobChunkSecurity {
     pub fn from_admitted_security_scope(
         security_scope: StoreAdmittedSecurityScope,
     ) -> Result<Self, BlobChunkSecurityScopeDenial> {
@@ -37,14 +37,14 @@ impl S7BlobChunkSecurityHandoff {
 
     pub(crate) fn from_blob_security_scope(scope: BlobChunkSecurityScope) -> Self {
         Self {
-            permission: S7BlobChunkSecurityPermission {
+            permission: BlobChunkSecurityPermission {
                 metadata: scope.metadata(),
             },
             scope,
         }
     }
 
-    pub const fn permission(&self) -> S7BlobChunkSecurityPermission {
+    pub const fn permission(&self) -> BlobChunkSecurityPermission {
         self.permission
     }
 

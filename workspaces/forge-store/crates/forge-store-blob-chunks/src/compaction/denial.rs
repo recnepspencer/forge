@@ -17,7 +17,7 @@ pub enum BlobCompactionDenial {
         state: ColdPlacementState,
         counters: BlobCompactionCounterSnapshot,
     },
-    UnsupportedS6Pacing {
+    UnsupportedSchedulerPacing {
         counters: BlobCompactionCounterSnapshot,
     },
     MissingReachabilityProof {

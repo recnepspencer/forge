@@ -4,7 +4,7 @@ use crate::retention_reclaim::holds::BlobRetentionHoldKind;
 pub(crate) enum RetentionReclaimEligibilityCase {
     BlockedByReachabilityHold { kind: BlobRetentionHoldKind },
     ReachabilityDenied,
-    S6ScopeMismatch,
+    ReclaimPolicyScopeMismatch,
     BarrierMismatch,
     EligibleReachabilityOrphan,
     EligibleAbandonedResumeOrphan,

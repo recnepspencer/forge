@@ -6,7 +6,7 @@ use crate::retention_reclaim::denial::BlobRetentionReclaimDenial;
 use crate::retention_reclaim::holds::BlobRetentionHold;
 use crate::retention_reclaim::types::admission::BlobRetentionReclaimAdmission;
 use crate::retention_reclaim::verification::hold_blocking::deny_retention_hold;
-use crate::{BlobChunkIdentity, BlobChunkReachabilityRegistry, S6BlobReclaimNonClaimHandoff};
+use crate::{BlobChunkIdentity, BlobChunkReachabilityRegistry, BlobReclaimPolicyEvidence};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct BlobRetentionReclaimAdmissionAuthority {
@@ -22,9 +22,9 @@ impl BlobRetentionReclaimAdmissionAuthority {
         self,
         reachability: &BlobChunkReachabilityRegistry,
         chunk_identity: &BlobChunkIdentity,
-        s6_posture: S6BlobReclaimNonClaimHandoff,
+        reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
-        admit_via_reachability_gate(reachability, chunk_identity, s6_posture, None)
+        admit_via_reachability_gate(reachability, chunk_identity, reclaim_policy_evidence, None)
     }
 
     pub fn admit_abandoned_resume_orphan(
@@ -32,9 +32,9 @@ impl BlobRetentionReclaimAdmissionAuthority {
         reachability: &BlobChunkReachabilityRegistry,
         chunk_identity: &BlobChunkIdentity,
         barrier: &BlobOrphanReclaimBarrier,
-        s6_posture: S6BlobReclaimNonClaimHandoff,
+        reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
-        admit_via_reachability_gate(reachability, chunk_identity, s6_posture, Some(barrier))
+        admit_via_reachability_gate(reachability, chunk_identity, reclaim_policy_evidence, Some(barrier))
     }
 
     pub fn deny_retention_hold(self, hold: &BlobRetentionHold) -> BlobRetentionReclaimDenial {
@@ -46,7 +46,7 @@ impl BlobRetentionReclaimAdmissionAuthority {
             counters: BlobRetentionReclaimCounterSnapshot::start()
                 .with_orphan_candidate()
                 .record_replay_convergence_check()
-                .record_s6_posture_denial(),
+                .record_reclaim_policy_evidence_denial(),
         }
     }
 }

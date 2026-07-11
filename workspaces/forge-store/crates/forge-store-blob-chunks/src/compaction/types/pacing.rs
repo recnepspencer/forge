@@ -4,7 +4,7 @@ use forge_store_contracts::{
 use forge_store_io_scheduler::{BackgroundIoPressureClass, BackgroundPacingCapability};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BlobCompactionS6Pacing {
+pub enum BlobCompactionPacingAdmission {
     Admitted {
         declaration: IoPressureBackgroundPressureDeclaration,
         foreground_yields: u64,
@@ -13,7 +13,7 @@ pub enum BlobCompactionS6Pacing {
     Unsupported,
 }
 
-impl BlobCompactionS6Pacing {
+impl BlobCompactionPacingAdmission {
     pub const fn admitted_compaction(foreground_yields: u64) -> Self {
         Self::Admitted {
             declaration: IoPressureBackgroundPressureDeclaration::compaction_rewrite(),
@@ -74,4 +74,4 @@ impl BlobCompactionS6Pacing {
 }
 
 #[allow(dead_code)]
-fn _pacing_is_part_of_the_boundary(_: BlobCompactionS6Pacing) {}
+fn _pacing_is_part_of_the_boundary(_: BlobCompactionPacingAdmission) {}

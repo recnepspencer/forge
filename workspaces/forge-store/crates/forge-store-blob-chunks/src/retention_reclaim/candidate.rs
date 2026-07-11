@@ -2,7 +2,7 @@ use forge_store_contracts::StableDigest;
 use forge_store_physical_format::PhysicalGenerationOwner;
 use forge_store_physical_isolation::BlobOrphanReclaimBarrier;
 
-use crate::{BlobChunkIdentity, BlobReachabilityReclaimRelease, S6BlobReclaimNonClaimHandoff};
+use crate::{BlobChunkIdentity, BlobReachabilityReclaimRelease, BlobReclaimPolicyEvidence};
 
 use super::denial::BlobRetentionReclaimDenial;
 
@@ -52,18 +52,18 @@ impl BlobRetentionPhysicalOrphanIdentity {
 }
 
 impl BlobRetentionPhysicalOrphanClaim {
-    pub(crate) fn from_admitted_s6_posture(
+    pub(crate) fn from_admitted_reclaim_policy_evidence(
         release: &BlobReachabilityReclaimRelease,
-        s6_posture: &S6BlobReclaimNonClaimHandoff,
+        reclaim_policy_evidence: &BlobReclaimPolicyEvidence,
     ) -> Result<Self, BlobRetentionReclaimDenial> {
-        let durable_bytes = u64::from(s6_posture.region().byte_len());
+        let durable_bytes = u64::from(reclaim_policy_evidence.region().byte_len());
         if durable_bytes == 0 {
             return Err(identity_mismatch_denial());
         }
         Ok(Self {
             chunk_identity: release.chunk_identity().clone(),
             physical_identity: BlobRetentionPhysicalOrphanIdentity {
-                owner: s6_posture.region().reference().generation_owner(),
+                owner: reclaim_policy_evidence.region().reference().generation_owner(),
                 durable_bytes,
             },
         })

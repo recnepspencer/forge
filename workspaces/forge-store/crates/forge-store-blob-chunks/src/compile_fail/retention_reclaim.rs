@@ -17,9 +17,9 @@
 //! ```
 //! S.6 reclaim posture alone cannot satisfy retention reclaim permits:
 //! ```compile_fail
-//! use forge_store_blob_chunks::{BlobRetentionReclaimPermit, S6BlobReclaimNonClaimHandoff};
+//! use forge_store_blob_chunks::{BlobRetentionReclaimPermit, BlobReclaimPolicyEvidence};
 //! fn requires_permit(_: BlobRetentionReclaimPermit) {}
-//! let handoff: S6BlobReclaimNonClaimHandoff = todo!();
+//! let handoff: BlobReclaimPolicyEvidence = todo!();
 //! requires_permit(handoff);
 //! ```
 //! Reachability-local reclaim release cannot satisfy retention reclaim permits:
@@ -42,7 +42,7 @@
 //! let _forged = BlobRetentionReclaimPermit {
 //!     identity: todo!(),
 //!     chunk_identity: todo!(),
-//!     s6_posture: todo!(),
+//!     reclaim_policy_evidence: todo!(),
 //!     residue: todo!(),
 //!     counters: todo!(),
 //! };

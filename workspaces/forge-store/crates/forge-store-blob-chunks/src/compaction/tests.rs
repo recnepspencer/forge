@@ -6,13 +6,13 @@ use super::test_support::{
 };
 use crate::{
     BlobCompactionAuthority, BlobCompactionDenial, BlobCompactionEquivalence,
-    BlobCompactionRestartOutcome, BlobCompactionS6Pacing,
+    BlobCompactionRestartOutcome, BlobCompactionPacingAdmission,
 };
 
 #[test]
 fn compaction_plan_admits_blob_owned_rewrite_basis() {
     let plan = BlobCompactionAuthority::store_owned()
-        .plan_compaction(intent("phase18-plan").with_s6_pacing(pacing()))
+        .plan_compaction(intent("phase18-plan").with_pacing_admission(pacing()))
         .expect("compaction plan should admit");
 
     assert_eq!(plan.counters().chunks_scanned(), 1);
@@ -49,9 +49,9 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
 
     assert!(matches!(
         BlobCompactionAuthority::store_owned().plan_compaction(
-            intent("phase18-pacing").with_s6_pacing(BlobCompactionS6Pacing::Unsupported)
+            intent("phase18-pacing").with_pacing_admission(BlobCompactionPacingAdmission::Unsupported)
         ),
-        Err(BlobCompactionDenial::UnsupportedS6Pacing { .. })
+        Err(BlobCompactionDenial::UnsupportedSchedulerPacing { .. })
     ));
 
     assert!(matches!(

@@ -1,6 +1,6 @@
 use super::{
     BlobCompactionColdReadiness, BlobCompactionPhysicalInterlock, BlobCompactionReadHold,
-    BlobCompactionS6Pacing,
+    BlobCompactionPacingAdmission,
 };
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobChunkRegisteredDedupeReference,
@@ -19,7 +19,7 @@ pub struct BlobCompactionIntent {
     dedupe_references: Vec<BlobChunkRegisteredDedupeReference>,
     quarantine_holds: Vec<BlobCorruptionGuard>,
     read_hold: BlobCompactionReadHold,
-    pacing: BlobCompactionS6Pacing,
+    pacing: BlobCompactionPacingAdmission,
     cold: BlobCompactionColdReadiness,
     physical: BlobCompactionPhysicalInterlock,
 }
@@ -41,7 +41,7 @@ impl BlobCompactionIntent {
             dedupe_references: Vec::new(),
             quarantine_holds: Vec::new(),
             read_hold,
-            pacing: BlobCompactionS6Pacing::admitted_compaction(0),
+            pacing: BlobCompactionPacingAdmission::admitted_compaction(0),
             cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
             physical: BlobCompactionPhysicalInterlock::Admitted(physical),
         }
@@ -62,7 +62,7 @@ impl BlobCompactionIntent {
             dedupe_references: Vec::new(),
             quarantine_holds: Vec::new(),
             read_hold,
-            pacing: BlobCompactionS6Pacing::admitted_compaction(0),
+            pacing: BlobCompactionPacingAdmission::admitted_compaction(0),
             cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
             physical: BlobCompactionPhysicalInterlock::Admitted(physical),
         }
@@ -73,7 +73,7 @@ impl BlobCompactionIntent {
         self
     }
 
-    pub fn with_s6_pacing(mut self, pacing: BlobCompactionS6Pacing) -> Self {
+    pub fn with_pacing_admission(mut self, pacing: BlobCompactionPacingAdmission) -> Self {
         self.pacing = pacing;
         self
     }
@@ -84,7 +84,7 @@ impl BlobCompactionIntent {
         foreground_yields: u64,
     ) -> Self {
         self.pacing =
-            BlobCompactionS6Pacing::from_scheduler_capability(capability, foreground_yields);
+            BlobCompactionPacingAdmission::from_scheduler_capability(capability, foreground_yields);
         self
     }
 
@@ -142,7 +142,7 @@ impl BlobCompactionIntent {
         self.read_hold
     }
 
-    pub(crate) const fn pacing(&self) -> BlobCompactionS6Pacing {
+    pub(crate) const fn pacing(&self) -> BlobCompactionPacingAdmission {
         self.pacing
     }
 

@@ -1,10 +1,10 @@
 use crate::retention_reclaim::candidate::BlobRetentionOrphanCandidate;
-use crate::S6BlobReclaimNonClaimHandoff;
+use crate::BlobReclaimPolicyEvidence;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobRetentionReclaimAdmission {
     candidate: BlobRetentionOrphanCandidate,
-    s6_posture: S6BlobReclaimNonClaimHandoff,
+    reclaim_policy_evidence: BlobReclaimPolicyEvidence,
 }
 
 impl BlobRetentionReclaimAdmission {
@@ -12,21 +12,21 @@ impl BlobRetentionReclaimAdmission {
         &self.candidate
     }
 
-    pub const fn s6_posture(&self) -> &S6BlobReclaimNonClaimHandoff {
-        &self.s6_posture
+    pub const fn reclaim_policy_evidence(&self) -> &BlobReclaimPolicyEvidence {
+        &self.reclaim_policy_evidence
     }
 
-    pub(crate) fn into_parts(self) -> (BlobRetentionOrphanCandidate, S6BlobReclaimNonClaimHandoff) {
-        (self.candidate, self.s6_posture)
+    pub(crate) fn into_parts(self) -> (BlobRetentionOrphanCandidate, BlobReclaimPolicyEvidence) {
+        (self.candidate, self.reclaim_policy_evidence)
     }
 
     pub(crate) fn construct(
         candidate: BlobRetentionOrphanCandidate,
-        s6_posture: S6BlobReclaimNonClaimHandoff,
+        reclaim_policy_evidence: BlobReclaimPolicyEvidence,
     ) -> Self {
         Self {
             candidate,
-            s6_posture,
+            reclaim_policy_evidence,
         }
     }
 }

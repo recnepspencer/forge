@@ -1,4 +1,4 @@
-use forge_store_blob_chunks::S6BlobReclaimNonClaimHandoff;
+use forge_store_blob_chunks::BlobReclaimPolicyEvidence;
 use forge_store_physical_format::ReclaimedByteInterpretation;
 use forge_store_reclaim_policy::{
     AdmittedReclaimPolicy, ReclaimPolicyCounterSnapshot, ReclaimPolicyDenial,
@@ -69,7 +69,7 @@ impl S6ReclaimPolicyEvidenceRow {
         }
     }
 
-    pub fn from_blob_non_claim_handoff(handoff: S6BlobReclaimNonClaimHandoff) -> Self {
+    pub fn from_blob_non_claim_handoff(handoff: BlobReclaimPolicyEvidence) -> Self {
         Self {
             operation: None,
             interpretation: Some(handoff.interpretation()),

@@ -2,7 +2,7 @@ use super::compaction_eligibility_case::CompactionEligibilityCase;
 use crate::compaction::types::BlobCompactionIntent;
 use crate::compaction::verification::{
     cold_readiness, dedupe_edges, lifecycle_placement, lifecycle_reachability, physical_interlock,
-    quarantine_absent, reachability_present, read_hold_matches_physical, s6_pacing,
+    pacing_admission, quarantine_absent, reachability_present, read_hold_matches_physical,
     uncompacted_publication,
 };
 use crate::{BlobCompactionCounterSnapshot, BlobCompactionDenial};
@@ -28,7 +28,7 @@ pub(crate) fn classify_compaction_eligibility(
     {
         return case;
     }
-    if let Some(case) = s6_pacing::require_s6_pacing(intent) {
+    if let Some(case) = pacing_admission::require_pacing_admission(intent) {
         return case;
     }
     if let Some(case) = cold_readiness::require_cold_readiness(intent) {
@@ -96,8 +96,8 @@ pub(crate) fn assemble_compaction_denial(
                 counters: denial_counters,
             }
         }
-        CompactionEligibilityCase::UnsupportedS6Pacing => {
-            BlobCompactionDenial::UnsupportedS6Pacing {
+        CompactionEligibilityCase::UnsupportedSchedulerPacing => {
+            BlobCompactionDenial::UnsupportedSchedulerPacing {
                 counters: denial_counters,
             }
         }

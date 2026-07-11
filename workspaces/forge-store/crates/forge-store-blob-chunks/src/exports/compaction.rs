@@ -2,7 +2,7 @@
 pub use crate::compaction::{
     BlobCompactionAuthority, BlobCompactionColdReadiness, BlobCompactionEquivalence,
     BlobCompactionIntent, BlobCompactionPhysicalInterlock, BlobCompactionReadHold,
-    BlobCompactionRewriteExecution, BlobCompactionRewritePlan, BlobCompactionS6Pacing,
+    BlobCompactionRewriteExecution, BlobCompactionRewritePlan, BlobCompactionPacingAdmission,
 };
 // --- Outcomes (transition receipts) ---
 pub use crate::compaction::{

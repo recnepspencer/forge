@@ -26,8 +26,8 @@ pub fn cold_tier_io_posture_for_certification_test(
         ))
         .expect("certification backend should admit");
     let authority = ReclaimPolicyProofAuthority::for_admitted_backend(&backend);
-    let admitted_scope = forge_store_security::admitted_store_internal_security_scope_for_s6_test();
-    assert_eq!(admitted_scope.identity(), security_scope);
+    let admitted_scope =
+        forge_store_security::admitted_security_scope_for_identity_for_test(security_scope);
     let region = certification_region();
     let policy = ReclaimPolicyAdmission::admit(
         authority,

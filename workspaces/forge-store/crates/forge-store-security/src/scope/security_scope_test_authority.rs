@@ -24,6 +24,19 @@ pub fn admitted_store_internal_security_scope_for_s6_test() -> StoreAdmittedSecu
     )
 }
 
+pub fn admitted_security_scope_for_identity_for_test(
+    identity: crate::StoreSecurityScopeIdentity,
+) -> StoreAdmittedSecurityScope {
+    assert_eq!(identity.physical_witness(), physical_witness());
+    assert_eq!(identity.key_version_posture(), StoreKeyVersionPosture::Current);
+    admitted_scope(
+        identity.key_scope(),
+        identity.tenant_scope(),
+        identity.authenticity_requirement(),
+        identity.custody_posture(),
+    )
+}
+
 pub fn admitted_wrong_s6_io_qos_security_scope_for_test() -> StoreAdmittedSecurityScope {
     admitted_scope(
         StoreKeyScope::PageEnvelope,

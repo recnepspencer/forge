@@ -43,7 +43,7 @@ impl ReclaimLayoutReport {
     fn from_permit(permit: &BlobRetentionReclaimPermit) -> Self {
         let family_id = DurableArtifactFamilyId::ReclaimReceipt;
         let rebuild_posture = declared_rebuild_posture(family_id);
-        let receipt = permit.s6_posture().receipt();
+        let receipt = permit.reclaim_policy_evidence().receipt();
         Self {
             family_id,
             access_shape: S8AccessShape::BoundedScan,
@@ -52,7 +52,7 @@ impl ReclaimLayoutReport {
             corruption_behavior: corruption_behavior_for(rebuild_posture),
             permit_identity: permit.identity().clone(),
             chunk_identity: permit.chunk_identity().clone(),
-            security_scope: permit.s6_posture().security_scope(),
+            security_scope: permit.reclaim_policy_evidence().security_scope(),
             reclaim_region: receipt.policy().region(),
             observed_interpretation: receipt.observed_interpretation(),
             released_edges: permit.reclaim_release().released_edges().len() as u64,

@@ -9,7 +9,7 @@ pub struct BlobRetentionReclaimCounterSnapshot {
     reclaim_permits: u64,
     reclaimed_chunks: u64,
     residue_localizations: u64,
-    s6_posture_denials: u64,
+    reclaim_policy_evidence_denials: u64,
     reachability_denials: u64,
     copied_or_weak_denials: u64,
     identity_mismatch_denials: u64,
@@ -35,7 +35,7 @@ impl BlobRetentionReclaimCounterSnapshot {
             reclaim_permits: 0,
             reclaimed_chunks: 0,
             residue_localizations: 0,
-            s6_posture_denials: 0,
+            reclaim_policy_evidence_denials: 0,
             reachability_denials: 0,
             copied_or_weak_denials: 0,
             identity_mismatch_denials: 0,
@@ -76,9 +76,9 @@ impl BlobRetentionReclaimCounterSnapshot {
         }
     }
 
-    pub(crate) const fn record_s6_posture_denial(self) -> Self {
+    pub(crate) const fn record_reclaim_policy_evidence_denial(self) -> Self {
         Self {
-            s6_posture_denials: self.s6_posture_denials + 1,
+            reclaim_policy_evidence_denials: self.reclaim_policy_evidence_denials + 1,
             ..self
         }
     }
@@ -180,8 +180,8 @@ impl BlobRetentionReclaimCounterSnapshot {
         self.residue_localizations
     }
 
-    pub const fn s6_posture_denials(self) -> u64 {
-        self.s6_posture_denials
+    pub const fn reclaim_policy_evidence_denials(self) -> u64 {
+        self.reclaim_policy_evidence_denials
     }
 
     pub const fn copied_or_weak_denials(self) -> u64 {

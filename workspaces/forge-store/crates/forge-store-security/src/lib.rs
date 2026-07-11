@@ -121,6 +121,7 @@ pub use scope::security_scope_roles::{
 };
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use scope::security_scope_test_authority::{
+    admitted_security_scope_for_identity_for_test,
     admitted_store_internal_security_scope_for_s6_test,
     admitted_store_managed_root_security_scope_for_layout_access_test,
     admitted_tenant_artifact_security_scope_for_layout_access_test,
