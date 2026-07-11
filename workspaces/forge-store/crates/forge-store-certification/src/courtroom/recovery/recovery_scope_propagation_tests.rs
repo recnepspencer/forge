@@ -1,4 +1,4 @@
-use crate::courtroom::harness::test_support::s4_integrity_handoff_test_support::intact_readiness;
+use crate::courtroom::harness::test_support::integrity_handoff_test_support::intact_readiness;
 use forge_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };

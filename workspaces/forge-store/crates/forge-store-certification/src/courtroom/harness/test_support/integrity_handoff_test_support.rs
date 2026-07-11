@@ -6,7 +6,7 @@ use crate::{
         page_cell, page_slot_admission, root_admission, root_with_slot, scope_membership,
         validation, with_checked_frame, with_checked_page,
     },
-    courtroom::harness::test_support::s3_integrity_readiness_test_support::s3_integrity_readiness,
+    courtroom::harness::test_support::integrity_readiness_test_support::s3_integrity_readiness,
     courtroom::layout::derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{

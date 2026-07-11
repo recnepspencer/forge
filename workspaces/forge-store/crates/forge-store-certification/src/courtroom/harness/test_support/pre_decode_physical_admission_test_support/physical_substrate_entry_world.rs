@@ -7,7 +7,7 @@ use super::super::{
 };
 use super::{
     checksum_fixture::checksum_declaration,
-    s1_witness_world::{current_validation, frame_witness},
+    physical_substrate_witness_world::{current_validation, frame_witness},
 };
 use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,

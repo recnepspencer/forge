@@ -5,7 +5,7 @@ use super::support::{
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
     crc32c, with_pre_decode_admission, CountingSemanticDecoder,
 };
-use crate::courtroom::harness::test_support::s5_1_authenticity_integrity_test_support::admitted_scope;
+use crate::courtroom::harness::test_support::authenticity_integrity_test_support::admitted_scope;
 use forge_store_physical_format::PhysicalFrameKind;
 use forge_store_physical_integrity::{
     AuthenticityRequiredPhysicalDecodeGate, DeclaredPhysicalChecksum,

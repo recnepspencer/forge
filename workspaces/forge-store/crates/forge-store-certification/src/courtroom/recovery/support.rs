@@ -1,8 +1,8 @@
-pub(super) use crate::courtroom::harness::test_support::s4_integrity_handoff_test_support::{
+pub(super) use crate::courtroom::harness::test_support::integrity_handoff_test_support::{
     admit_s4_handoff_payload, intact_readiness, recovery_blocking_quarantine_binding,
     unresolved_authority_record,
 };
-pub(super) use crate::courtroom::harness::test_support::s4_recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
+pub(super) use crate::courtroom::harness::test_support::recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
 use forge_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };

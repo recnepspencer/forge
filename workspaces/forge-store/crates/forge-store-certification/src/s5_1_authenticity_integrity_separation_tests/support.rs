@@ -1,7 +1,7 @@
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
     crc32c, with_pre_decode_admission,
 };
-use crate::courtroom::harness::test_support::s5_1_authenticity_integrity_test_support::{
+use crate::courtroom::harness::test_support::authenticity_integrity_test_support::{
     admitted_scope, admitted_scope_with_requirement,
 };
 use forge_store_physical_format::{PhysicalAuthenticityIdentity, PhysicalFrameKind};
