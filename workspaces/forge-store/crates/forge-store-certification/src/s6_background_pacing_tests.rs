@@ -271,7 +271,7 @@ fn request_with(
 }
 
 fn producer_repair_pressure() -> BackgroundIoPressureShape {
-    BackgroundIoPressureShape::from_s6_background_pressure_declaration(
+    BackgroundIoPressureShape::from_background_pressure_declaration(
         forge_store_operations::repair_background_pressure_shape(2),
     )
 }

@@ -30,7 +30,6 @@ mod s2_physical_substrate_snapshot;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
-mod s6_background_pressure;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
 pub use compatibility_family::{
@@ -57,7 +56,6 @@ pub use physical_authority::{
     PhysicalAuthorityBoundaryInstance, PhysicalAuthorityScope, StorePhysicalAuthorityWitness,
     ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY, ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
 };
-pub use resources::{QueueProducerKind, QueueProducerResourceShape};
 pub use roadmap_scope::{
     RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
 };
@@ -71,8 +69,9 @@ pub use s3_readiness_recap::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind,
 };
-pub use s6_background_pressure::{
-    IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
+pub use resources::{
+    BackgroundPressureDeclaration, BackgroundPressureKind, QueueProducerKind,
+    QueueProducerResourceShape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

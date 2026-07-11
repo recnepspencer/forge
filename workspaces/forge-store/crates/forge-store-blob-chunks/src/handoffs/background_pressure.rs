@@ -1,5 +1,5 @@
 use forge_store_contracts::{
-    IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
+    BackgroundPressureDeclaration, BackgroundPressureKind,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -11,32 +11,32 @@ pub enum BlobBackgroundPressureKind {
 
 pub const fn blob_ingest_background_pressure_shape(
     bytes: u64,
-) -> IoPressureBackgroundPressureDeclaration {
-    IoPressureBackgroundPressureDeclaration::blob_ingest_pressure(bytes)
+) -> BackgroundPressureDeclaration {
+    BackgroundPressureDeclaration::blob_ingest_pressure(bytes)
 }
 
 pub const fn blob_migration_background_pressure_shape(
     bytes: u64,
-) -> IoPressureBackgroundPressureDeclaration {
-    IoPressureBackgroundPressureDeclaration::blob_migration_pressure(bytes)
+) -> BackgroundPressureDeclaration {
+    BackgroundPressureDeclaration::blob_migration_pressure(bytes)
 }
 
-pub const fn blob_compaction_background_pressure_shape() -> IoPressureBackgroundPressureDeclaration
+pub const fn blob_compaction_background_pressure_shape() -> BackgroundPressureDeclaration
 {
-    IoPressureBackgroundPressureDeclaration::compaction_rewrite()
+    BackgroundPressureDeclaration::compaction_rewrite()
 }
 
 pub const fn blob_background_pressure_kind(
-    declaration: IoPressureBackgroundPressureDeclaration,
+    declaration: BackgroundPressureDeclaration,
 ) -> Option<BlobBackgroundPressureKind> {
     match declaration.kind() {
-        IoPressureBackgroundPressureKind::CompactionRewrite => {
+        BackgroundPressureKind::CompactionRewrite => {
             Some(BlobBackgroundPressureKind::Compaction)
         }
-        IoPressureBackgroundPressureKind::BlobIngestPressure => {
+        BackgroundPressureKind::BlobIngestPressure => {
             Some(BlobBackgroundPressureKind::Ingest)
         }
-        IoPressureBackgroundPressureKind::BlobMigrationPressure => {
+        BackgroundPressureKind::BlobMigrationPressure => {
             Some(BlobBackgroundPressureKind::Migration)
         }
         _ => None,

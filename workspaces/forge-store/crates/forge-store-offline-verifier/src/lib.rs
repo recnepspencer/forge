@@ -12,7 +12,7 @@ mod export_bundle_observation;
 mod repair_blast_radius_observation;
 #[cfg(test)]
 mod repair_blast_radius_observation_tests;
-mod s6_background_pressure;
+mod scan;
 
 use forge_store_physical_format::PhysicalReference;
 
@@ -38,7 +38,7 @@ pub use repair_blast_radius_observation::{
     OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,
     OfflineRepairEvidenceKind,
 };
-pub use s6_background_pressure::{
+pub use scan::{
     offline_repair_scan_background_pressure_shape,
     offline_verification_pressure_background_pressure_shape,
 };

@@ -1,5 +1,5 @@
 use forge_store_contracts::{
-    IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
+    BackgroundPressureDeclaration, BackgroundPressureKind,
 };
 
 use crate::{
@@ -96,21 +96,21 @@ impl BackgroundIoPressureShape {
         self
     }
 
-    pub fn from_s6_background_pressure_declaration(
-        declaration: IoPressureBackgroundPressureDeclaration,
+    pub fn from_background_pressure_declaration(
+        declaration: BackgroundPressureDeclaration,
     ) -> Self {
         let shape = match declaration.kind() {
-            IoPressureBackgroundPressureKind::CompactionRewrite => Self::compaction_rewrite(),
-            IoPressureBackgroundPressureKind::CheckpointFlush => Self::checkpoint_flush(),
-            IoPressureBackgroundPressureKind::ScrubScan => Self::scrub_scan(),
-            IoPressureBackgroundPressureKind::ReplicationPrepRead => Self::replication_prep_read(),
-            IoPressureBackgroundPressureKind::BlobIngestPressure => Self::blob_ingest_pressure(),
-            IoPressureBackgroundPressureKind::BlobMigrationPressure => {
+            BackgroundPressureKind::CompactionRewrite => Self::compaction_rewrite(),
+            BackgroundPressureKind::CheckpointFlush => Self::checkpoint_flush(),
+            BackgroundPressureKind::ScrubScan => Self::scrub_scan(),
+            BackgroundPressureKind::ReplicationPrepRead => Self::replication_prep_read(),
+            BackgroundPressureKind::BlobIngestPressure => Self::blob_ingest_pressure(),
+            BackgroundPressureKind::BlobMigrationPressure => {
                 Self::blob_migration_pressure()
             }
-            IoPressureBackgroundPressureKind::BackupPrepRead => Self::backup_prep_read(),
-            IoPressureBackgroundPressureKind::RepairScan => Self::repair_scan(),
-            IoPressureBackgroundPressureKind::VerificationPressure => Self::verification_pressure(),
+            BackgroundPressureKind::BackupPrepRead => Self::backup_prep_read(),
+            BackgroundPressureKind::RepairScan => Self::repair_scan(),
+            BackgroundPressureKind::VerificationPressure => Self::verification_pressure(),
         };
         shape.requesting(background_budget_from_declaration(declaration))
     }
@@ -157,7 +157,7 @@ impl BackgroundIoPressureShape {
 }
 
 fn background_budget_from_declaration(
-    declaration: IoPressureBackgroundPressureDeclaration,
+    declaration: BackgroundPressureDeclaration,
 ) -> BackgroundResourceBudget {
     let mut budget = BackgroundResourceBudget::new();
     if declaration.queue_slots() > 0 {
