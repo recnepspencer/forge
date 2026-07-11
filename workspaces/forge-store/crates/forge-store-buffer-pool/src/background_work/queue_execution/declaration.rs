@@ -1,4 +1,4 @@
-use forge_store_contracts::{S6QueueProducerKind, S6QueueProducerResourceShape};
+use forge_store_contracts::{QueueProducerKind, QueueProducerResourceShape};
 use forge_store_security::{StoreAuthenticityRequirement, StoreKeyScope, StoreTenantScope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -17,7 +17,7 @@ pub struct BufferPoolQueueGroupingScope {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BufferPoolQueueExecutionDeclaration {
     kind: BufferPoolQueueExecutionKind,
-    resource_shape: S6QueueProducerResourceShape,
+    resource_shape: QueueProducerResourceShape,
     flush_epoch: u64,
 }
 
@@ -48,10 +48,7 @@ impl BufferPoolQueueGroupingScope {
 }
 
 impl BufferPoolQueueExecutionDeclaration {
-    pub const fn read_ahead(
-        flush_epoch: u64,
-        resource_shape: S6QueueProducerResourceShape,
-    ) -> Self {
+    pub const fn read_ahead(flush_epoch: u64, resource_shape: QueueProducerResourceShape) -> Self {
         Self {
             kind: BufferPoolQueueExecutionKind::ReadAhead,
             resource_shape,
@@ -59,10 +56,7 @@ impl BufferPoolQueueExecutionDeclaration {
         }
     }
 
-    pub const fn write_back(
-        flush_epoch: u64,
-        resource_shape: S6QueueProducerResourceShape,
-    ) -> Self {
+    pub const fn write_back(flush_epoch: u64, resource_shape: QueueProducerResourceShape) -> Self {
         Self {
             kind: BufferPoolQueueExecutionKind::WriteBack,
             resource_shape,
@@ -74,14 +68,14 @@ impl BufferPoolQueueExecutionDeclaration {
         self.kind
     }
 
-    pub const fn producer_kind(self) -> S6QueueProducerKind {
+    pub const fn producer_kind(self) -> QueueProducerKind {
         match self.kind {
-            BufferPoolQueueExecutionKind::ReadAhead => S6QueueProducerKind::BufferPoolReadAhead,
-            BufferPoolQueueExecutionKind::WriteBack => S6QueueProducerKind::BufferPoolWriteBack,
+            BufferPoolQueueExecutionKind::ReadAhead => QueueProducerKind::BufferPoolReadAhead,
+            BufferPoolQueueExecutionKind::WriteBack => QueueProducerKind::BufferPoolWriteBack,
         }
     }
 
-    pub const fn resource_shape(self) -> S6QueueProducerResourceShape {
+    pub const fn resource_shape(self) -> QueueProducerResourceShape {
         self.resource_shape
     }
 

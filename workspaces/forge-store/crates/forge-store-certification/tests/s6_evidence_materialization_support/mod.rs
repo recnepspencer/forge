@@ -26,7 +26,7 @@ use forge_store_certification::{
     S6AccessPolicyEvidenceRow, S6FlushDurabilityEvidenceRow,
     StoreOwnedS6CertificationMaterializationSources,
 };
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
@@ -60,7 +60,6 @@ pub fn sources() -> StoreOwnedS6CertificationMaterializationSources {
         access_policy_evidence::access_policy_rows(),
     )
 }
-
 pub fn sources_without_flush_rows() -> StoreOwnedS6CertificationMaterializationSources {
     sources_with_options(Vec::new(), access_policy_evidence::access_policy_rows())
 }
@@ -114,7 +113,7 @@ fn queue_outcome() -> QueueExecutionOutcome {
     let budget = point_read_budget();
     let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
         7,
-        S6QueueProducerResourceShape::new()
+        QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
             .with_bandwidth_tokens(budget.bandwidth_tokens())
             .with_read_ahead_windows(budget.read_ahead_window())

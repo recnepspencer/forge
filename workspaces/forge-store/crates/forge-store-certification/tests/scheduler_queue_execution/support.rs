@@ -6,7 +6,7 @@ use forge_foundational::{
     FoundationalPerformanceWorkClass,
 };
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
@@ -28,7 +28,7 @@ pub(super) fn admitted_plan() -> forge_store_io_scheduler::QueueExecutionReadyPl
     let budget = point_read_budget();
     let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
         7,
-        S6QueueProducerResourceShape::new()
+        QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
             .with_bandwidth_tokens(budget.bandwidth_tokens())
             .with_read_ahead_windows(budget.read_ahead_window())
@@ -56,7 +56,6 @@ pub(super) fn admitted_plan() -> forge_store_io_scheduler::QueueExecutionReadyPl
     ))
     .expect("queue work should admit")
 }
-
 pub(super) fn point_read_budget() -> BackgroundResourceBudget {
     BackgroundResourceBudget::new()
         .with_queue_slots(QueueSlot::new(1).unwrap())

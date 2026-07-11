@@ -6,7 +6,7 @@ use forge_foundational::{
     FoundationalPerformanceWorkClass, FoundationalPolicyAdmissionReceipt,
 };
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_secure_frame_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_queue_execution_plan, admit_security_scope_for_scheduler,
@@ -51,12 +51,11 @@ fn secure_frame_queue_execution_consumes_backend_secure_io_preservation() {
     assert_eq!(violation.counters().read_ahead_units(), 1);
     assert_eq!(violation.counters().violation_events(), 1);
 }
-
 fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
     let reservation = admitted_secure_frame_read_reservation_for_certification_test();
     let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
         7,
-        S6QueueProducerResourceShape::new()
+        QueueProducerResourceShape::new()
             .with_queue_slots(1)
             .with_read_ahead_windows(1)
             .with_worker_permits(1),

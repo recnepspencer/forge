@@ -6,7 +6,7 @@ use forge_foundational::{
     FoundationalPerformanceWorkClass,
 };
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
@@ -29,10 +29,9 @@ use crate::{
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
     admitted_plan_for_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
 }
-
 pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
-    let resource_shape = S6QueueProducerResourceShape::new()
+    let resource_shape = QueueProducerResourceShape::new()
         .with_queue_slots(1)
         .with_bandwidth_tokens(4096)
         .with_write_back_windows(1)

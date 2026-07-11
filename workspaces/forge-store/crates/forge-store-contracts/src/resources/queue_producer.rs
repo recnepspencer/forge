@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum S6QueueProducerKind {
+pub enum QueueProducerKind {
     WalCommitRecord,
     WalCheckpointRecord,
     BufferPoolReadAhead,
@@ -7,7 +7,7 @@ pub enum S6QueueProducerKind {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct S6QueueProducerResourceShape {
+pub struct QueueProducerResourceShape {
     queue_slots: u64,
     bandwidth_tokens: u64,
     flush_permits: u64,
@@ -20,7 +20,7 @@ pub struct S6QueueProducerResourceShape {
     reclaim_permits: u64,
 }
 
-impl S6QueueProducerResourceShape {
+impl QueueProducerResourceShape {
     pub const fn new() -> Self {
         Self {
             queue_slots: 0,

@@ -24,13 +24,13 @@ mod durable_artifact_family_id;
 mod existing_artifact_family;
 mod handoff_readiness;
 mod physical_authority;
+mod resources;
 mod roadmap_scope;
 mod s2_physical_substrate_snapshot;
 mod s3_readiness_denial;
 mod s3_readiness_payload;
 mod s3_readiness_recap;
 mod s6_background_pressure;
-mod s6_queue_producer;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
 pub use compatibility_family::{
@@ -57,6 +57,7 @@ pub use physical_authority::{
     PhysicalAuthorityBoundaryInstance, PhysicalAuthorityScope, StorePhysicalAuthorityWitness,
     ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY, ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
 };
+pub use resources::{QueueProducerKind, QueueProducerResourceShape};
 pub use roadmap_scope::{
     RoadmapScope, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE, ROADMAP_2_SCOPE,
 };
@@ -73,7 +74,6 @@ pub use s3_readiness_recap::{
 pub use s6_background_pressure::{
     IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
 };
-pub use s6_queue_producer::{S6QueueProducerKind, S6QueueProducerResourceShape};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableArtifactClass {

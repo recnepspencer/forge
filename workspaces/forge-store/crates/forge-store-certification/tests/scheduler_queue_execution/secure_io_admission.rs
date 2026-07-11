@@ -1,5 +1,5 @@
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
     admit_secure_io_scope_for_scheduler, lower_buffer_pool_queue_declaration,
@@ -46,7 +46,6 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
 
     assert_eq!(plan.work().secure_io(), Some(secure_io));
 }
-
 #[test]
 fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
     let reservation = forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
@@ -158,7 +157,7 @@ fn read_ahead_producer(
 ) -> BufferPoolQueueExecutionDeclaration {
     BufferPoolQueueExecutionDeclaration::read_ahead(
         11,
-        S6QueueProducerResourceShape::new()
+        QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
             .with_bandwidth_tokens(budget.bandwidth_tokens())
             .with_read_ahead_windows(budget.read_ahead_window())

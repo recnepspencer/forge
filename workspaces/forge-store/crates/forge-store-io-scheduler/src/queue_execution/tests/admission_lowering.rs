@@ -1,5 +1,5 @@
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 
 use super::super::test_support::{
     backend_for, grouping_for, point_read_budget, policy_receipt, secure_io_for_work,
@@ -51,11 +51,10 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
         plan.replay_identity()
     );
 }
-
 #[test]
 fn producer_declaration_lowers_through_scheduler_admission() {
     let reservation = admitted_point_read_reservation_for_certification_test();
-    let resource_shape = S6QueueProducerResourceShape::new()
+    let resource_shape = QueueProducerResourceShape::new()
         .with_queue_slots(1)
         .with_bandwidth_tokens(4096)
         .with_read_ahead_windows(1)

@@ -1,5 +1,5 @@
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
-use forge_store_contracts::{S6QueueProducerKind, S6QueueProducerResourceShape};
+use forge_store_contracts::{QueueProducerKind, QueueProducerResourceShape};
 use forge_store_security::{StoreAuthenticityRequirement, StoreKeyScope, StoreTenantScope};
 use forge_store_wal::WalQueueExecutionDeclaration;
 
@@ -22,7 +22,6 @@ pub enum S6QueueDurabilityClass {
     WalCommit,
     PlatformDurable,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QueueWorkClass {
     Foreground(ForegroundIoLaneKind),
@@ -43,8 +42,8 @@ pub struct QueueWorkDeclaration {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct QueueProducerExecutionDeclaration {
-    kind: S6QueueProducerKind,
-    resource_shape: S6QueueProducerResourceShape,
+    kind: QueueProducerKind,
+    resource_shape: QueueProducerResourceShape,
     flush_epoch: u64,
     tenant_scope: StoreTenantScope,
     key_scope: StoreKeyScope,
@@ -138,8 +137,8 @@ impl QueueWorkDeclaration {
 
 impl QueueProducerExecutionDeclaration {
     const fn new(
-        kind: S6QueueProducerKind,
-        resource_shape: S6QueueProducerResourceShape,
+        kind: QueueProducerKind,
+        resource_shape: QueueProducerResourceShape,
         flush_epoch: u64,
         tenant_scope: StoreTenantScope,
         key_scope: StoreKeyScope,
@@ -289,39 +288,39 @@ const fn background_flush_epoch(class: BackgroundIoPressureClass) -> u64 {
     }
 }
 
-const fn durability_for_producer(kind: S6QueueProducerKind) -> S6QueueDurabilityClass {
+const fn durability_for_producer(kind: QueueProducerKind) -> S6QueueDurabilityClass {
     match kind {
-        S6QueueProducerKind::WalCommitRecord | S6QueueProducerKind::WalCheckpointRecord => {
+        QueueProducerKind::WalCommitRecord | QueueProducerKind::WalCheckpointRecord => {
             S6QueueDurabilityClass::WalCommit
         }
-        S6QueueProducerKind::BufferPoolReadAhead => S6QueueDurabilityClass::ReadOnly,
-        S6QueueProducerKind::BufferPoolWriteBack => S6QueueDurabilityClass::BufferedWrite,
+        QueueProducerKind::BufferPoolReadAhead => S6QueueDurabilityClass::ReadOnly,
+        QueueProducerKind::BufferPoolWriteBack => S6QueueDurabilityClass::BufferedWrite,
     }
 }
 
-const fn recovery_ordering_for_producer(kind: S6QueueProducerKind) -> QueueRecoveryOrdering {
+const fn recovery_ordering_for_producer(kind: QueueProducerKind) -> QueueRecoveryOrdering {
     match kind {
-        S6QueueProducerKind::WalCommitRecord | S6QueueProducerKind::WalCheckpointRecord => {
+        QueueProducerKind::WalCommitRecord | QueueProducerKind::WalCheckpointRecord => {
             QueueRecoveryOrdering::WalBeforeData
         }
-        S6QueueProducerKind::BufferPoolReadAhead | S6QueueProducerKind::BufferPoolWriteBack => {
+        QueueProducerKind::BufferPoolReadAhead | QueueProducerKind::BufferPoolWriteBack => {
             QueueRecoveryOrdering::NotRecoveryCritical
         }
     }
 }
 
-const fn writeback_policy_for_producer(kind: S6QueueProducerKind) -> QueueWritebackPolicy {
+const fn writeback_policy_for_producer(kind: QueueProducerKind) -> QueueWritebackPolicy {
     match kind {
-        S6QueueProducerKind::WalCommitRecord | S6QueueProducerKind::WalCheckpointRecord => {
+        QueueProducerKind::WalCommitRecord | QueueProducerKind::WalCheckpointRecord => {
             QueueWritebackPolicy::Immediate
         }
-        S6QueueProducerKind::BufferPoolReadAhead => QueueWritebackPolicy::None,
-        S6QueueProducerKind::BufferPoolWriteBack => QueueWritebackPolicy::DeferredWithinFlushEpoch,
+        QueueProducerKind::BufferPoolReadAhead => QueueWritebackPolicy::None,
+        QueueProducerKind::BufferPoolWriteBack => QueueWritebackPolicy::DeferredWithinFlushEpoch,
     }
 }
 
 fn budget_from_shape(
-    shape: S6QueueProducerResourceShape,
+    shape: QueueProducerResourceShape,
 ) -> Result<BackgroundResourceBudget, QueueExecutionAdmissionDenial> {
     let mut budget = BackgroundResourceBudget::new();
     if shape.queue_slots() > 0 {

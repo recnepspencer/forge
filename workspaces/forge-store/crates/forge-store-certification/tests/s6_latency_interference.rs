@@ -8,7 +8,7 @@ use forge_foundational::{
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use forge_store_certification::S6LatencyInterferenceEvidence;
-use forge_store_contracts::S6QueueProducerResourceShape;
+use forge_store_contracts::QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
@@ -54,7 +54,6 @@ fn real_scheduler_assessment_certifies_without_laundering_sampled_rows() {
             .count()
     );
 }
-
 #[test]
 fn certification_replay_preserves_policy_counter_and_proof_topology() {
     let first = certified_latency_evidence(3);
@@ -95,7 +94,7 @@ fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
     let budget = point_read_budget();
     let producer = BufferPoolQueueExecutionDeclaration::read_ahead(
         7,
-        S6QueueProducerResourceShape::new()
+        QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
             .with_read_ahead_windows(budget.read_ahead_window())
             .with_worker_permits(budget.worker_permits())

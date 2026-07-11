@@ -23,7 +23,6 @@ mod record_access;
 mod record_view;
 mod residency;
 mod residency_vocabulary;
-mod s6_queue_work;
 mod speculative_work;
 mod streaming_allocation;
 
@@ -39,7 +38,8 @@ pub use allocation::{
 pub use background_work::{
     AdmittedBackgroundEnvelope, BackgroundEnvelopeAdmission, BackgroundEnvelopeCounterSnapshot,
     BackgroundEnvelopeDenialKind, BackgroundEnvelopeRequest, BackgroundEnvelopeRequestBuilder,
-    BackgroundMemoryInterferenceReport,
+    BackgroundMemoryInterferenceReport, BufferPoolQueueExecutionDeclaration,
+    BufferPoolQueueExecutionKind, BufferPoolQueueGroupingScope,
 };
 pub use background_work_budget::BackgroundWorkBudgetSnapshot;
 pub use background_work_class::BackgroundWorkClass;
@@ -88,9 +88,6 @@ pub use residency::{
     ResidentFrameToken, ResidentGenerationSeparationProof,
 };
 pub use residency_vocabulary::{ResidencyAuthorityTerm, ResidencyVocabulary};
-pub use s6_queue_work::{
-    BufferPoolQueueExecutionDeclaration, BufferPoolQueueExecutionKind, BufferPoolQueueGroupingScope,
-};
 pub use speculative_work::{
     PrefetchAdmission, PrefetchPlan, PrefetchRequest, PrefetchWindow, ReadAheadAdmission,
     ReadAheadPlan, ReadAheadRequest, SpeculativePhysicalWorkAdmission,

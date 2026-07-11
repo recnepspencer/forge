@@ -7,9 +7,9 @@ pub mod recovery_read;
 pub mod wal_topology;
 
 mod blob_records;
+mod durability;
 mod durable_publication;
 mod operation_denial;
-mod s6_queue_work;
 mod security_metadata;
 #[cfg(test)]
 mod security_metadata_tests;
@@ -29,6 +29,7 @@ pub use blob_records::{
     BlobWalReplayRebuildWitness,
 };
 pub use checkpoint::{admit_checkpoint_cutover, admit_checkpoint_publication};
+pub use durability::{WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope};
 pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
     WalFrameDurablePublicationScope,
@@ -40,9 +41,6 @@ pub use layout_access::{
 };
 pub use operation_denial::{WalOperationDenial, WalOperationDenialKind};
 pub use recovery_read::{admit_replay_cursor, inspect_replay_tail_record};
-pub use s6_queue_work::{
-    WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope,
-};
 pub use security_metadata::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
     StoreWalRecordIdentity, WalRecordSecurityMetadataEnvelope, WalSecurityMetadataCarrier,

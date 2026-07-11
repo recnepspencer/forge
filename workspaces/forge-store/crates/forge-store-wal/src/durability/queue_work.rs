@@ -1,4 +1,4 @@
-use forge_store_contracts::{S6QueueProducerKind, S6QueueProducerResourceShape};
+use forge_store_contracts::{QueueProducerKind, QueueProducerResourceShape};
 use forge_store_security::{StoreAuthenticityRequirement, StoreKeyScope, StoreTenantScope};
 
 use crate::WalSecurityMetadataCarrier;
@@ -20,7 +20,7 @@ pub struct WalQueueGroupingScope {
 pub struct WalQueueExecutionDeclaration {
     kind: WalQueueExecutionKind,
     flush_epoch: u64,
-    resource_shape: S6QueueProducerResourceShape,
+    resource_shape: QueueProducerResourceShape,
     grouping_scope: WalQueueGroupingScope,
 }
 
@@ -50,7 +50,7 @@ impl WalQueueGroupingScope {
 impl WalQueueExecutionDeclaration {
     pub const fn commit_record(
         flush_epoch: u64,
-        resource_shape: S6QueueProducerResourceShape,
+        resource_shape: QueueProducerResourceShape,
         grouping_scope: WalQueueGroupingScope,
     ) -> Self {
         Self {
@@ -63,7 +63,7 @@ impl WalQueueExecutionDeclaration {
 
     pub const fn checkpoint_record(
         flush_epoch: u64,
-        resource_shape: S6QueueProducerResourceShape,
+        resource_shape: QueueProducerResourceShape,
         grouping_scope: WalQueueGroupingScope,
     ) -> Self {
         Self {
@@ -82,14 +82,14 @@ impl WalQueueExecutionDeclaration {
         self.flush_epoch
     }
 
-    pub const fn producer_kind(self) -> S6QueueProducerKind {
+    pub const fn producer_kind(self) -> QueueProducerKind {
         match self.kind {
-            WalQueueExecutionKind::CommitRecord => S6QueueProducerKind::WalCommitRecord,
-            WalQueueExecutionKind::CheckpointRecord => S6QueueProducerKind::WalCheckpointRecord,
+            WalQueueExecutionKind::CommitRecord => QueueProducerKind::WalCommitRecord,
+            WalQueueExecutionKind::CheckpointRecord => QueueProducerKind::WalCheckpointRecord,
         }
     }
 
-    pub const fn resource_shape(self) -> S6QueueProducerResourceShape {
+    pub const fn resource_shape(self) -> QueueProducerResourceShape {
         self.resource_shape
     }
 
