@@ -8,20 +8,12 @@ use super::{
     BaselineLsmLookupExecution, BaselineLsmManifestPublicationExecution,
     BaselineLsmReplayExecution,
 };
-use crate::{
+use forge_store_wal::{
     record_kind_admits_recovery_replay, BlobWalRecordEnvelope, BlobWalRecordIdentity,
     BlobWalRecordKind, DurablePublicationDeclaration, DurablePublicationScope,
 };
 
 impl BaselineLsmExecutionWitness {
-    #[cfg(test)]
-    pub(crate) fn seeded() -> Self {
-        crate::layout_access::execute_baseline_lsm_persisted_fixture(
-            super::BaselineLsmPhysicalPublicationBinding::new(2, 2, 2)
-                .expect("test physical binding"),
-        )
-    }
-
     pub(crate) fn execute(
         request: BaselineLsmExecutionRequest,
         session: &mut super::BaselineLsmWalIndexSession,

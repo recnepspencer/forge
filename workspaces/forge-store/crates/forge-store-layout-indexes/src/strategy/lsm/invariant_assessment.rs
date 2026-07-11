@@ -1,6 +1,6 @@
-use super::baseline_lsm_counter_observation::BaselineLsmLookupDisposition;
-use super::baseline_lsm_invariant_witness::collect_baseline_lsm_invariant_witness;
-use crate::BlobWalRecordKind;
+use super::execution::BaselineLsmLookupDisposition;
+use super::invariant_observation::collect_baseline_lsm_invariant_witness;
+use forge_store_wal::BlobWalRecordKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineLsmLookupInvariantProof {
@@ -183,7 +183,7 @@ impl BaselineLsmInvariantProof {
 }
 
 fn lookup_case_proof(
-    case: super::baseline_lsm_invariant_witness::BaselineLsmLookupCaseInvariantWitness,
+    case: super::invariant_observation::BaselineLsmLookupCaseInvariantWitness,
 ) -> BaselineLsmLookupInvariantProof {
     BaselineLsmLookupInvariantProof {
         probe_sequence: case.probe_sequence(),
@@ -196,7 +196,7 @@ fn lookup_case_proof(
 }
 
 pub fn prove_baseline_lsm_invariants(
-    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+    execution: &super::BaselineLsmExecutionWitness,
 ) -> BaselineLsmInvariantProof {
     let witness = collect_baseline_lsm_invariant_witness(execution);
 
@@ -232,7 +232,7 @@ pub fn prove_baseline_lsm_invariants(
 }
 
 pub fn prove_baseline_lsm_older_run_lookup(
-    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+    execution: &super::BaselineLsmExecutionWitness,
 ) -> BaselineLsmLookupInvariantProof {
     lookup_case_proof(
         collect_baseline_lsm_invariant_witness(execution)
@@ -242,7 +242,7 @@ pub fn prove_baseline_lsm_older_run_lookup(
 }
 
 pub fn prove_baseline_lsm_tombstone_blocked_lookup(
-    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+    execution: &super::BaselineLsmExecutionWitness,
 ) -> BaselineLsmLookupInvariantProof {
     lookup_case_proof(
         collect_baseline_lsm_invariant_witness(execution)

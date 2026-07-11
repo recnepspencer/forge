@@ -4,10 +4,10 @@ use super::{
 };
 use crate::key_domain::{declare_comparator_law, require_canonical_key_encoding};
 use crate::strategy::{S8StrategyDeclaration, S8StrategyDenial};
-use forge_store_wal::layout_access::baseline_lsm_counter_observation::{
+use super::{
     BaselineLsmCompactionPublicationReceipt, BaselineLsmLookupDisposition,
 };
-use forge_store_wal::layout_access::baseline_lsm_invariant_proof::{
+use super::invariant_assessment::{
     BaselineLsmLookupInvariantProof, BaselineLsmPublicationInvariantProof,
     BaselineLsmRecoveryInvariantProof,
 };

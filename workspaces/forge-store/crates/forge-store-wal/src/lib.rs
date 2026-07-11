@@ -1,10 +1,14 @@
 #![forbid(unsafe_code)]
 
+pub mod append;
+pub mod checkpoint;
 pub mod layout_access;
+pub mod recovery_read;
 pub mod wal_topology;
 
 mod blob_records;
 mod durable_publication;
+mod operation_denial;
 mod s6_queue_work;
 mod security_metadata;
 #[cfg(test)]
@@ -18,24 +22,24 @@ pub enum DurablePublicationPhase {
     Recovered,
 }
 
+pub use append::admit_durable_append;
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
     BlobWalReplayRebuildWitness,
 };
+pub use checkpoint::admit_checkpoint_publication;
 pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
     WalFrameDurablePublicationScope,
 };
 pub use layout_access::{
-    AdmittedCheckpointLayoutFamily, AdmittedCheckpointLayoutRule,
-    AdmittedCheckpointPublicationReceipt, AdmittedDurableMutationLayoutFamily,
-    AdmittedReplayTailCursor, AdmittedReplayTailLayoutFamily, AdmittedWalAppendLayoutRule,
-    AdmittedWalAppendReceipt, AdmittedWalTailLayoutRule, CheckpointLayoutFamilyHome,
-    CheckpointPublicationLayoutReport, DurableMutationLayoutFamilyHome, ReplayTailLayoutFamilyHome,
-    WalAppendLayoutReport, WalLayoutAccess, WalLayoutAccessDenial, WalLayoutAccessDenialKind,
-    WalReplayTailCursorReport, WalReplayTailRecordReport,
+    AdmittedCheckpointPublicationReceipt, AdmittedReplayTailCursor, AdmittedWalAppendReceipt,
+    CheckpointPublicationLayoutReport, WalAppendLayoutReport, WalReplayTailCursorReport,
+    WalReplayTailRecordReport,
 };
+pub use operation_denial::{WalOperationDenial, WalOperationDenialKind};
+pub use recovery_read::{admit_replay_cursor, inspect_replay_tail_record};
 pub use s6_queue_work::{
     WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope,
 };

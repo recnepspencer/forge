@@ -1,4 +1,4 @@
-use crate::layout_access::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial;
+use super::BaselineLsmExecutionAdmissionDenial;
 use crate::DurablePublicationDeclaration;
 use forge_store_security::{
     admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test, StoreKeyVersionPosture,

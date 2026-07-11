@@ -735,6 +735,7 @@ dependencies = [
  "forge-store-readiness",
  "forge-store-recovery-physics",
  "forge-store-security",
+ "forge-store-wal",
 ]
 
 [[package]]

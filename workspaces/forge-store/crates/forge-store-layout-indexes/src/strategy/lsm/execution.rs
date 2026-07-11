@@ -1,10 +1,10 @@
-#[path = "baseline_lsm_compaction_execution.rs"]
+#[path = "compaction_execution.rs"]
 mod baseline_lsm_compaction_execution;
-#[path = "baseline_lsm_compaction_transition.rs"]
+#[path = "compaction_transition.rs"]
 mod baseline_lsm_compaction_transition;
-#[path = "baseline_lsm_execution_request.rs"]
+#[path = "execution_request.rs"]
 mod baseline_lsm_execution_request;
-#[path = "baseline_lsm_execution_witness.rs"]
+#[path = "execution_witness.rs"]
 mod baseline_lsm_execution_witness;
 
 pub use baseline_lsm_compaction_execution::{
@@ -15,7 +15,7 @@ pub use baseline_lsm_compaction_transition::BaselineLsmCompactionTransition;
 #[cfg(test)]
 pub(crate) use baseline_lsm_execution_request::baseline_lsm_manifest_membership_digest;
 pub(crate) use baseline_lsm_execution_request::BaselineLsmExecutionRequest;
-pub(crate) use baseline_lsm_execution_request::{
+pub use baseline_lsm_execution_request::{
     baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
     baseline_lsm_record_artifact_bytes,
 };
@@ -25,13 +25,13 @@ pub use baseline_lsm_execution_request::{
     BaselineLsmPhysicalPublicationBinding, BaselineLsmWalIndexSession,
 };
 
-use crate::{
+use forge_store_wal::{
     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, DurablePublicationDeclaration,
     DurablePublicationScope,
 };
 
 #[cfg(test)]
-#[path = "baseline_lsm_counter_observation_tests.rs"]
+#[path = "execution_tests.rs"]
 mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -315,71 +315,4 @@ pub enum BaselineLsmExecutionAdmissionDenial {
     DurableRecordBindingMismatch,
     RecordKeyScopeMismatch,
     PhysicalPublicationBindingMismatch,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct BaselineLsmExecutionTranscript {
-    newest_lookup: BaselineLsmLookupExecution,
-    older_lookup: BaselineLsmLookupExecution,
-    tombstone_blocked_lookup: BaselineLsmLookupExecution,
-    publication: BaselineLsmManifestPublicationExecution,
-    recovery: BaselineLsmReplayExecution,
-    compaction: BaselineLsmCompactionPublicationReceipt,
-}
-
-impl BaselineLsmExecutionTranscript {
-    fn new(
-        newest_lookup: BaselineLsmLookupExecution,
-        older_lookup: BaselineLsmLookupExecution,
-        tombstone_blocked_lookup: BaselineLsmLookupExecution,
-        publication: BaselineLsmManifestPublicationExecution,
-        recovery: BaselineLsmReplayExecution,
-        compaction: BaselineLsmCompactionPublicationReceipt,
-    ) -> Self {
-        Self {
-            newest_lookup,
-            older_lookup,
-            tombstone_blocked_lookup,
-            publication,
-            recovery,
-            compaction,
-        }
-    }
-
-    pub const fn newest_lookup(&self) -> BaselineLsmLookupExecution {
-        self.newest_lookup
-    }
-
-    pub const fn older_lookup(&self) -> BaselineLsmLookupExecution {
-        self.older_lookup
-    }
-
-    pub const fn tombstone_blocked_lookup(&self) -> BaselineLsmLookupExecution {
-        self.tombstone_blocked_lookup
-    }
-
-    pub fn publication(&self) -> &BaselineLsmManifestPublicationExecution {
-        &self.publication
-    }
-
-    pub const fn recovery(&self) -> BaselineLsmReplayExecution {
-        self.recovery
-    }
-
-    pub(crate) const fn compaction(&self) -> &BaselineLsmCompactionPublicationReceipt {
-        &self.compaction
-    }
-}
-
-pub(crate) fn execute_baseline_lsm_transcript(
-    witness: &BaselineLsmExecutionWitness,
-) -> BaselineLsmExecutionTranscript {
-    BaselineLsmExecutionTranscript::new(
-        witness.execute_lookup_latest_visible_record(witness.memtable_records()[0].sequence()),
-        witness.execute_lookup_older_visible_record(),
-        witness.execute_lookup_tombstone_blocked_record(),
-        witness.execute_manifest_publication(),
-        witness.execute_replay_wal_tail(),
-        witness.compaction_publication_receipt().clone(),
-    )
 }

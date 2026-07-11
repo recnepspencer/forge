@@ -5,44 +5,7 @@ use forge_store_physical_backend::{
 
 use crate::WalFrameDurablePublicationScope;
 
-use super::{WalLayoutAccessDenial, WalLayoutAccessDenialKind};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedWalAppendLayoutRule {
-    _private: (),
-}
-
-impl AdmittedWalAppendLayoutRule {
-    pub(crate) const fn internal_phase21() -> Self {
-        Self { _private: () }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DurableMutationLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DurableMutationLayoutAdmission {
-    _private: (),
-}
-
-impl DurableMutationLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedWalAppendLayoutRule,
-    ) -> Result<DurableMutationLayoutAdmission, WalLayoutAccessDenial> {
-        Ok(DurableMutationLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedDurableMutationLayoutFamily {
-    _admission: DurableMutationLayoutAdmission,
-}
+use crate::{WalOperationDenial, WalOperationDenialKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedWalAppendReceipt {
@@ -51,30 +14,6 @@ pub struct AdmittedWalAppendReceipt {
     state: StoreDurabilityState,
     persisted_path: std::path::PathBuf,
     persisted_bytes: u64,
-}
-
-impl AdmittedDurableMutationLayoutFamily {
-    pub(crate) const fn new(admission: DurableMutationLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
-    pub fn admit_append_receipt(
-        &self,
-        receipt: &StoreDurabilityOrderingBarrierDurable<WalFrameDurablePublicationScope>,
-    ) -> Result<AdmittedWalAppendReceipt, WalLayoutAccessDenial> {
-        if receipt.publication() != StoreDurabilityPublicationKind::WalFrame {
-            return Err(WalLayoutAccessDenial::new(
-                WalLayoutAccessDenialKind::WrongPublicationKind,
-            ));
-        }
-        Ok(AdmittedWalAppendReceipt::from_receipt(receipt))
-    }
-
-    pub fn append_report(&self, receipt: &AdmittedWalAppendReceipt) -> WalAppendLayoutReport {
-        WalAppendLayoutReport::from_admitted_receipt(receipt)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,6 +70,10 @@ impl AdmittedWalAppendReceipt {
         &self.scope
     }
 
+    pub fn report(&self) -> WalAppendLayoutReport {
+        WalAppendLayoutReport::from_admitted_receipt(self)
+    }
+
     pub const fn counters(&self) -> StoreDurabilityCounterSnapshot {
         self.counters
     }
@@ -147,11 +90,22 @@ impl AdmittedWalAppendReceipt {
         self.scope.lsn_end() - self.scope.lsn_start()
     }
 
-    pub(crate) fn persisted_path(&self) -> &std::path::Path {
+    pub fn persisted_path(&self) -> &std::path::Path {
         &self.persisted_path
     }
 
-    pub(crate) const fn persisted_bytes(&self) -> u64 {
+    pub const fn persisted_bytes(&self) -> u64 {
         self.persisted_bytes
     }
+}
+
+pub fn admit_durable_append(
+    receipt: &StoreDurabilityOrderingBarrierDurable<WalFrameDurablePublicationScope>,
+) -> Result<AdmittedWalAppendReceipt, WalOperationDenial> {
+    if receipt.publication() != StoreDurabilityPublicationKind::WalFrame {
+        return Err(WalOperationDenial::new(
+            WalOperationDenialKind::WrongPublicationKind,
+        ));
+    }
+    Ok(AdmittedWalAppendReceipt::from_receipt(receipt))
 }

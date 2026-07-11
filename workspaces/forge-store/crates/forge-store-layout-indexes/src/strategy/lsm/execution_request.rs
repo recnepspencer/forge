@@ -1,35 +1,35 @@
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
 
-use crate::{
+use forge_store_wal::{
     AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, CheckpointDurablePublicationScope,
     StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,
 };
 
-#[path = "baseline_lsm_execution_binding.rs"]
+#[path = "execution_binding.rs"]
 mod execution_binding;
 pub(crate) use execution_binding::BaselineLsmExecutionRequest;
 
-#[path = "baseline_lsm_artifact_binding.rs"]
+#[path = "artifact_binding.rs"]
 mod artifact_binding;
 use artifact_binding::persisted_artifact_matches;
-pub(crate) use artifact_binding::{
+pub use artifact_binding::{
     baseline_lsm_manifest_artifact_bytes, baseline_lsm_manifest_membership_digest,
     baseline_lsm_output_artifact_bytes, baseline_lsm_record_artifact_bytes,
 };
 
-#[path = "baseline_lsm_persisted_codec.rs"]
+#[path = "persisted_codec.rs"]
 mod persisted_codec;
 
-#[path = "baseline_lsm_store_binding.rs"]
+#[path = "store_binding.rs"]
 mod store_binding;
 
-#[path = "baseline_lsm_persisted_index.rs"]
+#[path = "persisted_index.rs"]
 mod persisted_index;
 pub use persisted_index::BaselineLsmWalIndexSession;
 
 #[cfg(test)]
-#[path = "baseline_lsm_persisted_index_tests.rs"]
+#[path = "persisted_index_tests.rs"]
 mod persisted_index_tests;
 
 #[cfg(test)]
@@ -94,7 +94,7 @@ pub struct BaselineLsmAdmittedKey {
 
 impl BaselineLsmAdmittedKey {
     pub(crate) fn admit(
-        metadata: crate::WalSecurityMetadataCarrier,
+        metadata: forge_store_wal::WalSecurityMetadataCarrier,
         canonical_key_bytes: [u8; 8],
     ) -> Option<Self> {
         if canonical_key_bytes == [0; 8] {
@@ -134,7 +134,7 @@ impl BaselineLsmAdmittedRecord {
         durable: &AdmittedWalAppendReceipt,
         key: BaselineLsmAdmittedKey,
     ) -> Option<Self> {
-        let crate::DurablePublicationScope::WalFrame(envelope_scope) =
+        let forge_store_wal::DurablePublicationScope::WalFrame(envelope_scope) =
             envelope.durable_publication().scope()
         else {
             return None;
@@ -167,7 +167,7 @@ impl BaselineLsmAdmittedRecord {
         persisted_bytes: u64,
         wal_root: &std::path::Path,
     ) -> Option<Self> {
-        let crate::DurablePublicationScope::WalFrame(envelope_scope) =
+        let forge_store_wal::DurablePublicationScope::WalFrame(envelope_scope) =
             envelope.durable_publication().scope()
         else {
             return None;
@@ -333,7 +333,7 @@ impl BaselineLsmCompactionPlan {
         )
     }
 
-    pub(crate) fn output_frame_digest(
+    pub fn output_frame_digest(
         &self,
         physical: BaselineLsmPhysicalPublicationBinding,
     ) -> String {

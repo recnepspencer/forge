@@ -1,6 +1,6 @@
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
 
-use crate::{
+use forge_store_wal::{
     BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
     WalFrameDurablePublicationScope,
 };

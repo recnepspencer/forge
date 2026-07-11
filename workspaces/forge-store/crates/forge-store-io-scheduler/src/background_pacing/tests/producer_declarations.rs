@@ -1,5 +1,4 @@
 use super::test_support::World;
-
 use crate::{
     admit_background_pacing, BackgroundIoPressureClass, BackgroundIoPressureShape,
     BackgroundPacingDenial, BackgroundPacingOutcome,
@@ -9,21 +8,15 @@ use crate::{
 fn producer_pressure_declarations_lower_into_scheduler_shapes() {
     let cases = [
         (
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_compaction_background_pressure(),
-            ),
+            forge_store_physical_isolation::compaction_rewrite_scheduler_demand(),
             BackgroundIoPressureClass::CompactionRewrite,
         ),
         (
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_checkpoint_background_pressure(),
-            ),
+            forge_store_physical_isolation::checkpoint_flush_scheduler_demand(),
             BackgroundIoPressureClass::CheckpointFlush,
         ),
         (
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_scrub_background_pressure(),
-            ),
+            forge_store_physical_integrity::scrub_scan_scheduler_demand(),
             BackgroundIoPressureClass::ScrubScan,
         ),
         (
@@ -69,9 +62,7 @@ fn producer_pressure_declarations_lower_into_scheduler_shapes() {
 #[test]
 fn physical_isolation_declarations_lower_concrete_resource_units() {
     let compaction = BackgroundIoPressureShape::from_s6_background_pressure_declaration(
-        physical_isolation_pressure(
-            forge_store_physical_isolation::physical_isolation_compaction_background_pressure(),
-        ),
+        forge_store_physical_isolation::compaction_rewrite_scheduler_demand(),
     );
     assert!(compaction.requested_budget().queue_slots() > 0);
     assert!(compaction.requested_budget().bandwidth_tokens() > 0);
@@ -79,18 +70,14 @@ fn physical_isolation_declarations_lower_concrete_resource_units() {
     assert!(compaction.requested_budget().dirty_page_budget() > 0);
 
     let checkpoint = BackgroundIoPressureShape::from_s6_background_pressure_declaration(
-        physical_isolation_pressure(
-            forge_store_physical_isolation::physical_isolation_checkpoint_background_pressure(),
-        ),
+        forge_store_physical_isolation::checkpoint_flush_scheduler_demand(),
     );
     assert!(checkpoint.requested_budget().flush_permits() > 0);
     assert!(checkpoint.requested_budget().sync_debt() > 0);
     assert!(checkpoint.requested_budget().write_back_window() > 0);
 
     let scrub = BackgroundIoPressureShape::from_s6_background_pressure_declaration(
-        physical_isolation_pressure(
-            forge_store_physical_isolation::physical_isolation_scrub_background_pressure(),
-        ),
+        forge_store_physical_integrity::scrub_scan_scheduler_demand(),
     );
     assert!(scrub.requested_budget().bandwidth_tokens() > 0);
     assert!(scrub.requested_budget().read_ahead_window() > 0);
@@ -128,21 +115,15 @@ fn producer_pressure_declarations_are_scheduler_consumable() {
     let cases = [
         (
             World::new(),
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_compaction_background_pressure(),
-            ),
+            forge_store_physical_isolation::compaction_rewrite_scheduler_demand(),
         ),
         (
             World::commit_wal(),
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_checkpoint_background_pressure(),
-            ),
+            forge_store_physical_isolation::checkpoint_flush_scheduler_demand(),
         ),
         (
             World::new(),
-            physical_isolation_pressure(
-                forge_store_physical_isolation::physical_isolation_scrub_background_pressure(),
-            ),
+            forge_store_physical_integrity::scrub_scan_scheduler_demand(),
         ),
         (
             World::new(),
@@ -203,10 +184,4 @@ fn equivalent_repair_declarations_have_parity_under_same_basis() {
     let operations_outcome = admit_background_pacing(World::new().request(operations));
     let offline_outcome = admit_background_pacing(World::new().request(offline));
     assert_eq!(operations_outcome, offline_outcome);
-}
-
-fn physical_isolation_pressure(
-    pressure: forge_store_physical_isolation::PhysicalIsolationBackgroundPressureKind,
-) -> forge_store_contracts::S6BackgroundPressureDeclaration {
-    forge_store_physical_isolation::physical_isolation_s6_background_pressure_declaration(pressure)
 }

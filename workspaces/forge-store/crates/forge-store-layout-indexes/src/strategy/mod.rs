@@ -33,6 +33,17 @@ pub use invariant_suite::{
     S8StrategyRecoveryInvariant,
 };
 pub use lsm::{
+    baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
+    baseline_lsm_record_artifact_bytes,
+    lsm_strategy, BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord,
+    BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
+    BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordIdentity,
+    BaselineLsmCompactionRecordKind, BaselineLsmCompactionTransition,
+    BaselineLsmCounterObservation, BaselineLsmDurableInputs, BaselineLsmExecutionAdmissionDenial,
+    BaselineLsmExecutionIntent, BaselineLsmExecutionWitness, BaselineLsmLookupExecution,
+    BaselineLsmManifestPublicationExecution, BaselineLsmMembershipObservation,
+    BaselineLsmPhysicalPublicationBinding, BaselineLsmReplayExecution, BaselineLsmRunIdentity,
+    BaselineLsmWalIndexSession, LsmStrategy,
     S8LsmAdvisoryFilterLaw, S8LsmInvariantSuite, S8LsmLookupDisposition, S8LsmMemtableWalLaw,
     S8LsmRunPublicationLaw, S8LsmStaleRunCleanupLaw, S8LsmTombstoneLaw, S8LsmWriteAmplificationLaw,
 };

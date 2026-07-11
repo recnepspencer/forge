@@ -94,22 +94,6 @@ impl BackgroundIoPressureShape {
         self
     }
 
-    pub const fn from_physical_isolation_pressure(
-        pressure: forge_store_physical_isolation::PhysicalIsolationBackgroundPressureKind,
-    ) -> Self {
-        match pressure {
-            forge_store_physical_isolation::PhysicalIsolationBackgroundPressureKind::CompactionRewrite => {
-                Self::compaction_rewrite()
-            }
-            forge_store_physical_isolation::PhysicalIsolationBackgroundPressureKind::CheckpointFlush => {
-                Self::checkpoint_flush()
-            }
-            forge_store_physical_isolation::PhysicalIsolationBackgroundPressureKind::ScrubScan => {
-                Self::scrub_scan()
-            }
-        }
-    }
-
     pub fn from_s6_background_pressure_declaration(
         declaration: S6BackgroundPressureDeclaration,
     ) -> Self {

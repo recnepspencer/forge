@@ -5,44 +5,7 @@ use forge_store_physical_backend::{
 
 use crate::CheckpointDurablePublicationScope;
 
-use super::{WalLayoutAccessDenial, WalLayoutAccessDenialKind};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedCheckpointLayoutRule {
-    _private: (),
-}
-
-impl AdmittedCheckpointLayoutRule {
-    pub(crate) const fn internal_phase21() -> Self {
-        Self { _private: () }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CheckpointLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CheckpointLayoutAdmission {
-    _private: (),
-}
-
-impl CheckpointLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedCheckpointLayoutRule,
-    ) -> Result<CheckpointLayoutAdmission, WalLayoutAccessDenial> {
-        Ok(CheckpointLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedCheckpointLayoutFamily {
-    _admission: CheckpointLayoutAdmission,
-}
+use crate::{WalOperationDenial, WalOperationDenialKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedCheckpointPublicationReceipt {
@@ -52,48 +15,6 @@ pub struct AdmittedCheckpointPublicationReceipt {
     state: StoreDurabilityState,
     persisted_path: std::path::PathBuf,
     persisted_bytes: u64,
-}
-
-impl AdmittedCheckpointLayoutFamily {
-    pub(crate) const fn new(admission: CheckpointLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
-    pub fn admit_checkpoint_publication_receipt(
-        &self,
-        receipt: &StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope>,
-    ) -> Result<AdmittedCheckpointPublicationReceipt, WalLayoutAccessDenial> {
-        self.publication_report(receipt, StoreDurabilityPublicationKind::Checkpoint)
-    }
-
-    pub fn admit_manifest_publication_receipt(
-        &self,
-        receipt: &StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope>,
-    ) -> Result<AdmittedCheckpointPublicationReceipt, WalLayoutAccessDenial> {
-        self.publication_report(receipt, StoreDurabilityPublicationKind::Manifest)
-    }
-
-    pub fn publication_report_for(
-        &self,
-        receipt: &AdmittedCheckpointPublicationReceipt,
-    ) -> CheckpointPublicationLayoutReport {
-        CheckpointPublicationLayoutReport::from_admitted_receipt(receipt)
-    }
-
-    fn publication_report(
-        &self,
-        receipt: &StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope>,
-        expected: StoreDurabilityPublicationKind,
-    ) -> Result<AdmittedCheckpointPublicationReceipt, WalLayoutAccessDenial> {
-        if receipt.publication() != expected {
-            return Err(WalLayoutAccessDenial::new(
-                WalLayoutAccessDenialKind::WrongPublicationKind,
-            ));
-        }
-        Ok(AdmittedCheckpointPublicationReceipt::from_receipt(receipt))
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +74,10 @@ impl AdmittedCheckpointPublicationReceipt {
         &self.scope
     }
 
+    pub fn report(&self) -> CheckpointPublicationLayoutReport {
+        CheckpointPublicationLayoutReport::from_admitted_receipt(self)
+    }
+
     pub const fn counters(&self) -> StoreDurabilityCounterSnapshot {
         self.counters
     }
@@ -169,11 +94,22 @@ impl AdmittedCheckpointPublicationReceipt {
         self.scope.covered_lsn_end() - self.scope.covered_lsn_start()
     }
 
-    pub(crate) fn persisted_path(&self) -> &std::path::Path {
+    pub fn persisted_path(&self) -> &std::path::Path {
         &self.persisted_path
     }
 
-    pub(crate) const fn persisted_bytes(&self) -> u64 {
+    pub const fn persisted_bytes(&self) -> u64 {
         self.persisted_bytes
     }
+}
+
+pub fn admit_checkpoint_publication(
+    receipt: &StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope>,
+) -> Result<AdmittedCheckpointPublicationReceipt, WalOperationDenial> {
+    if receipt.publication() != StoreDurabilityPublicationKind::Manifest {
+        return Err(WalOperationDenial::new(
+            WalOperationDenialKind::WrongPublicationKind,
+        ));
+    }
+    Ok(AdmittedCheckpointPublicationReceipt::from_receipt(receipt))
 }

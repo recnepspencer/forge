@@ -12,12 +12,12 @@ mod counters;
 mod cutover_delta;
 mod denial;
 mod foundational_evidence;
-mod lsm_cutover;
 mod mutation_lane_receipt;
 mod plan;
 mod protected_set;
 mod publication;
 mod reclaim_queue;
+mod scheduler_demand;
 mod stability_proof;
 mod state_machine_contract;
 #[cfg(test)]
@@ -31,9 +31,6 @@ pub use counters::CompactionReadInterlockCounters;
 pub use cutover_delta::CompactionCutoverDelta;
 pub use denial::CompactionReadInterlockDenial;
 pub use foundational_evidence::CompactionInterlockFoundationalEvidence;
-#[cfg(any(test, feature = "certification-authority"))]
-pub use lsm_cutover::execute_baseline_lsm_compaction_for_certification;
-pub use lsm_cutover::{LsmCompactionCutoverAdmission, LsmCompactionCutoverDelta};
 pub use mutation_lane_receipt::{
     CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
 };
@@ -45,6 +42,7 @@ pub use protected_set::CompactionProtectedReferenceSet;
 pub use publication::publish_compaction_rewrite_for_certification;
 pub use publication::CompactionRewritePublication;
 pub use reclaim_queue::{CompactionDeferredReclaimQueue, DrainedCompactionReclaim};
+pub use scheduler_demand::compaction_rewrite_scheduler_demand;
 pub use stability_proof::CompactionCutoverStabilityProof;
 pub use state_machine_contract::{
     compaction_cutover_outcome_facts, CompactionCutoverState, CompactionCutoverTransition,

@@ -6,8 +6,8 @@ use super::persisted_codec::{
     decode_key, decode_kind, hex, key_scope_code, number, tenant_code, text,
 };
 use super::{component_slot, BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord};
-use crate::layout_access::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial;
-use crate::{
+use super::super::BaselineLsmExecutionAdmissionDenial;
+use forge_store_wal::{
     AdmittedCheckpointPublicationReceipt, BlobWalRecordEnvelope, BlobWalRecordIdentity,
     DurablePublicationDeclaration, WalFrameDurablePublicationScope,
 };

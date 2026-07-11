@@ -89,6 +89,7 @@ mod scrub_plan;
 mod scrub_plan_identity;
 mod scrub_planning_memory_envelope;
 mod scrub_resume;
+mod scrub_scheduler_demand;
 mod scrub_window;
 mod wal_frame_integrity;
 mod wal_frame_integrity_counters;
@@ -258,6 +259,7 @@ pub use scrub_denial::{
 pub use scrub_execution::{
     ScrubExecution, ScrubExecutionReceipt, ScrubIntegrityFinding, ScrubProgressReport,
 };
+pub use scrub_scheduler_demand::scrub_scan_scheduler_demand;
 pub use scrub_plan::{
     PlannedScrubWindow, PlannedScrubWindowStatus, ScrubPlan, ScrubPlanBudget, ScrubPlanRequest,
 };

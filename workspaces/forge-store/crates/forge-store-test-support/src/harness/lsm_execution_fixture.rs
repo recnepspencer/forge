@@ -11,11 +11,15 @@ use forge_store_security::{
     StoreLegacySecurityPosture,
 };
 
-use super::baseline_lsm_counter_observation::{
-    BaselineLsmExecutionIntent, BaselineLsmExecutionWitness, BaselineLsmPhysicalPublicationBinding,
+use forge_store_layout_indexes::{
+    baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
+    baseline_lsm_record_artifact_bytes, lsm_strategy, BaselineLsmAdmittedKey,
+    BaselineLsmAdmittedRecord, BaselineLsmExecutionAdmissionDenial, BaselineLsmExecutionIntent,
+    BaselineLsmExecutionWitness, BaselineLsmPhysicalPublicationBinding,
+    BaselineLsmWalIndexSession, LsmStrategy,
 };
-use super::WalLayoutAccess;
-use crate::{
+use forge_store_wal::{
+    admit_checkpoint_publication, admit_durable_append, AdmittedWalAppendReceipt,
     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
     CheckpointDurablePublicationScope, DurablePublicationDeclaration,
     StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,
@@ -26,23 +30,23 @@ use crate::{
 pub fn execute_baseline_lsm_persisted_fixture(
     physical: BaselineLsmPhysicalPublicationBinding,
 ) -> BaselineLsmExecutionWitness {
-    let access = WalLayoutAccess::s8();
+    let access = lsm_strategy();
     let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
-    let metadata = crate::WalSecurityMetadataCarrier::for_wal_record(
+    let metadata = forge_store_wal::WalSecurityMetadataCarrier::for_wal_record(
         security.witnesses(),
         StoreKeyVersionPosture::Current,
         StoreLegacySecurityPosture::NativeScoped,
     );
     let key = access
-        .admit_baseline_lsm_key(metadata, *b"lsm-key1")
+        .admit_key(metadata, *b"lsm-key1")
         .expect("security-scoped canonical key");
     let (first_envelope, first_durable) =
         durable_record_binding(&access, key, 41, BlobWalRecordKind::LsmValue);
     let mut persisted = access
-        .open_baseline_lsm_index(&first_durable)
+        .open_index(&first_durable)
         .expect("WAL-owned persistent membership index");
     let first_record = access
-        .persist_baseline_lsm_record(&mut persisted, first_envelope, &first_durable, key)
+        .persist_record(&mut persisted, first_envelope, &first_durable, key)
         .expect("first record binds the index to its WAL store");
     let _persisted_records = [
         first_record,
@@ -63,79 +67,76 @@ pub fn execute_baseline_lsm_persisted_fixture(
     ];
     drop(persisted);
     let mut persisted = access
-        .open_baseline_lsm_index(&first_durable)
+        .open_index(&first_durable)
         .expect("reopen re-admits membership from persisted WAL artifacts");
     let plan = access
-        .lower_baseline_lsm_compaction(&persisted, key)
+        .lower_compaction(&persisted, key)
         .expect("persisted WAL membership lowers to one compaction plan");
     let output_digest = plan.output_frame_digest(physical);
     let output_scope = wal_scope(44, output_digest, 4096);
-    let output_artifact =
-        super::baseline_lsm_counter_observation::baseline_lsm_output_artifact_bytes(&output_scope);
-    let output = access
-        .admit_baseline_lsm_append_durability(&wal_receipt(output_scope, &output_artifact))
+    let output_artifact = baseline_lsm_output_artifact_bytes(&output_scope);
+    let output = admit_durable_append(&wal_receipt(output_scope, &output_artifact))
         .expect("executed output durability");
     let manifest_scope = plan
         .manifest_scope(StoreCheckpointRecordIdentity::new(1), 41, 45)
         .expect("manifest coverage");
-    let manifest = access
-        .admit_baseline_lsm_manifest_durability(&manifest_receipt(manifest_scope))
+    let manifest = admit_checkpoint_publication(&manifest_receipt(manifest_scope))
         .expect("executed manifest durability");
     let inputs = access
-        .admit_baseline_lsm_persisted_source(plan.clone(), manifest.clone(), output.clone())
+        .admit_durable_inputs(plan.clone(), manifest.clone(), output.clone())
         .expect("manifest admits the complete durable input set");
     let stale_inputs = access
-        .admit_baseline_lsm_persisted_source(plan, manifest, output)
+        .admit_durable_inputs(plan, manifest, output)
         .expect("the same current persisted membership can be planned concurrently");
     let witness = access
-        .execute_baseline_lsm(
+        .execute(
             &mut persisted,
             BaselineLsmExecutionIntent::new(physical),
             inputs,
         )
         .expect("durable LSM inputs execute");
     assert_eq!(
-        access.execute_baseline_lsm(
+        access.execute(
             &mut persisted,
             BaselineLsmExecutionIntent::new(physical),
             stale_inputs,
         ),
-        Err(super::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial::PersistedMembershipStale),
+        Err(BaselineLsmExecutionAdmissionDenial::PersistedMembershipStale),
         "retirement must stale every concurrent plan derived from the prior key-local version",
     );
     witness
 }
 
 fn durable_record(
-    access: &WalLayoutAccess,
-    persisted: &mut super::baseline_lsm_counter_observation::BaselineLsmWalIndexSession,
-    key: super::baseline_lsm_counter_observation::BaselineLsmAdmittedKey,
+    access: &LsmStrategy,
+    persisted: &mut BaselineLsmWalIndexSession,
+    key: BaselineLsmAdmittedKey,
     sequence: u64,
     kind: BlobWalRecordKind,
-) -> super::baseline_lsm_counter_observation::BaselineLsmAdmittedRecord {
+) -> BaselineLsmAdmittedRecord {
     let (envelope, durable) = durable_record_binding(access, key, sequence, kind);
     access
-        .persist_baseline_lsm_record(persisted, envelope, &durable, key)
+        .persist_record(persisted, envelope, &durable, key)
         .expect("record binds to durable append")
 }
 
 pub(crate) fn durable_record_binding(
-    access: &WalLayoutAccess,
-    key: super::baseline_lsm_counter_observation::BaselineLsmAdmittedKey,
+    access: &LsmStrategy,
+    key: BaselineLsmAdmittedKey,
     sequence: u64,
     kind: BlobWalRecordKind,
-) -> (BlobWalRecordEnvelope, crate::AdmittedWalAppendReceipt) {
+) -> (BlobWalRecordEnvelope, AdmittedWalAppendReceipt) {
     durable_record_binding_for_store(access, key, sequence, kind, 1, 1)
 }
 
 pub(crate) fn durable_record_binding_for_store(
-    access: &WalLayoutAccess,
-    key: super::baseline_lsm_counter_observation::BaselineLsmAdmittedKey,
+    access: &LsmStrategy,
+    key: BaselineLsmAdmittedKey,
     sequence: u64,
     kind: BlobWalRecordKind,
     segment_id: u64,
     generation: u64,
-) -> (BlobWalRecordEnvelope, crate::AdmittedWalAppendReceipt) {
+) -> (BlobWalRecordEnvelope, AdmittedWalAppendReceipt) {
     let payload_digest = format!("lsm-input:{sequence}:{kind:?}");
     let scope = WalFrameDurablePublicationScope::new(
         segment_id,
@@ -152,10 +153,8 @@ pub(crate) fn durable_record_binding_for_store(
         payload_digest.clone(),
     )
     .expect("WAL envelope");
-    let artifact =
-        super::baseline_lsm_counter_observation::baseline_lsm_record_artifact_bytes(&envelope, key);
-    let durable = access
-        .admit_baseline_lsm_append_durability(&wal_receipt(scope, &artifact))
+    let artifact = baseline_lsm_record_artifact_bytes(&envelope, key);
+    let durable = admit_durable_append(&wal_receipt(scope, &artifact))
         .expect("executed WAL durability");
     (envelope, durable)
 }
@@ -198,8 +197,7 @@ pub(crate) fn wal_receipt(
 pub(crate) fn manifest_receipt(
     scope: CheckpointDurablePublicationScope,
 ) -> StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope> {
-    let artifact =
-        super::baseline_lsm_counter_observation::baseline_lsm_manifest_artifact_bytes(&scope);
+    let artifact = baseline_lsm_manifest_artifact_bytes(&scope);
     let requirement = StoreDurabilityRequirement::manifest_publication(
         WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
             .insert(WalDurabilityBarrier::WalDirectoryFsync),
@@ -285,19 +283,18 @@ mod artifact_binding_tests {
 
     #[test]
     fn durable_scope_cannot_authorize_different_wal_bytes() {
-        let access = WalLayoutAccess::s8();
+        let access = lsm_strategy();
         let security = admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test();
-        let metadata = crate::WalSecurityMetadataCarrier::for_wal_record(
+        let metadata = forge_store_wal::WalSecurityMetadataCarrier::for_wal_record(
             security.witnesses(),
             StoreKeyVersionPosture::Current,
             StoreLegacySecurityPosture::NativeScoped,
         );
         let key = access
-            .admit_baseline_lsm_key(metadata, *b"mismatch")
+            .admit_key(metadata, *b"mismatch")
             .unwrap();
         let scope = wal_scope(91, "claimed-frame".into(), 11);
-        let receipt = access
-            .admit_baseline_lsm_append_durability(&wal_receipt(scope.clone(), b"wrong-bytes"))
+        let receipt = admit_durable_append(&wal_receipt(scope.clone(), b"wrong-bytes"))
             .unwrap();
         let envelope = BlobWalRecordEnvelope::new(
             BlobWalRecordIdentity::new(91, BlobWalRecordKind::LsmValue).unwrap(),
@@ -305,10 +302,10 @@ mod artifact_binding_tests {
             "claimed-frame",
         )
         .unwrap();
-        let mut index = access.open_baseline_lsm_index(&receipt).unwrap();
+        let mut index = access.open_index(&receipt).unwrap();
         assert_eq!(
-            access.persist_baseline_lsm_record(&mut index, envelope, &receipt, key),
-            Err(super::super::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)
+            access.persist_record(&mut index, envelope, &receipt, key),
+            Err(BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)
         );
     }
 }

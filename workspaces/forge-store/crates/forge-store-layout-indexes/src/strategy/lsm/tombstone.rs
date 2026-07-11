@@ -1,5 +1,5 @@
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
-use forge_store_wal::layout_access::baseline_lsm_counter_observation::{
+use super::{
     BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordKind,
 };
 

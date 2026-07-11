@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::layout_access::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial;
+use super::super::BaselineLsmExecutionAdmissionDenial;
 
 pub(super) struct ParsedManifestMembership {
     pub(super) checkpoint_epoch: u64,

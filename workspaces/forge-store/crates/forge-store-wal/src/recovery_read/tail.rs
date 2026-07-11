@@ -4,87 +4,33 @@ use crate::{
     WalFrameOrderingProof, WalSegmentGeneration, WalTopologyScan,
 };
 
-use super::{WalLayoutAccessDenial, WalLayoutAccessDenialKind};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedWalTailLayoutRule {
-    _private: (),
-}
-
-impl AdmittedWalTailLayoutRule {
-    pub(crate) const fn internal_phase21() -> Self {
-        Self { _private: () }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ReplayTailLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ReplayTailLayoutAdmission {
-    _private: (),
-}
-
-impl ReplayTailLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedWalTailLayoutRule,
-    ) -> Result<ReplayTailLayoutAdmission, WalLayoutAccessDenial> {
-        Ok(ReplayTailLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedReplayTailLayoutFamily {
-    _admission: ReplayTailLayoutAdmission,
-}
+use crate::{WalOperationDenial, WalOperationDenialKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedReplayTailCursor {
     cursor: ReplayCursor,
 }
 
-impl AdmittedReplayTailLayoutFamily {
-    pub(crate) const fn new(admission: ReplayTailLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
+pub fn admit_replay_cursor(
+    scan: WalTopologyScan,
+    expected_generation: WalSegmentGeneration,
+) -> Result<AdmittedReplayTailCursor, WalOperationDenial> {
+    let cursor = scan
+        .admit_replay_cursor(expected_generation)
+        .map_err(|_| WalOperationDenial::new(WalOperationDenialKind::ReplayTopologyDenied))?;
+    Ok(AdmittedReplayTailCursor { cursor })
+}
 
-    pub fn admit_replay_cursor(
-        &self,
-        scan: WalTopologyScan,
-        expected_generation: WalSegmentGeneration,
-    ) -> Result<AdmittedReplayTailCursor, WalLayoutAccessDenial> {
-        let cursor = scan.admit_replay_cursor(expected_generation).map_err(|_| {
-            WalLayoutAccessDenial::new(WalLayoutAccessDenialKind::ReplayTopologyDenied)
-        })?;
-        Ok(AdmittedReplayTailCursor { cursor })
+pub fn inspect_replay_tail_record(
+    cursor: &AdmittedReplayTailCursor,
+    record: &BlobWalRecordEnvelope,
+) -> Result<WalReplayTailRecordReport, WalOperationDenial> {
+    if !record_kind_admits_recovery_replay(record.identity().kind()) {
+        return Err(WalOperationDenial::new(
+            WalOperationDenialKind::NonReplayTailRecord,
+        ));
     }
-
-    pub fn replay_tail_record(
-        &self,
-        cursor: &AdmittedReplayTailCursor,
-        record: &BlobWalRecordEnvelope,
-    ) -> Result<WalReplayTailRecordReport, WalLayoutAccessDenial> {
-        if !record_kind_admits_recovery_replay(record.identity().kind()) {
-            return Err(WalLayoutAccessDenial::new(
-                WalLayoutAccessDenialKind::NonReplayTailRecord,
-            ));
-        }
-        Ok(WalReplayTailRecordReport::from_record(cursor, record))
-    }
-
-    pub fn replay_cursor_report(
-        &self,
-        cursor: &AdmittedReplayTailCursor,
-    ) -> WalReplayTailCursorReport {
-        WalReplayTailCursorReport::from_cursor(cursor)
-    }
+    Ok(WalReplayTailRecordReport::from_record(cursor, record))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -187,6 +133,10 @@ impl WalReplayTailRecordReport {
 }
 
 impl AdmittedReplayTailCursor {
+    pub fn report(&self) -> WalReplayTailCursorReport {
+        WalReplayTailCursorReport::from_cursor(self)
+    }
+
     pub fn segments(&self) -> &[crate::ReplayCursorSegment] {
         self.cursor.segments()
     }

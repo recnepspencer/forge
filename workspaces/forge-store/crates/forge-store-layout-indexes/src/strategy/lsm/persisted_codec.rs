@@ -1,7 +1,7 @@
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
 
 use super::{BaselineLsmAdmittedKey, BlobWalRecordKind};
-use crate::layout_access::baseline_lsm_counter_observation::BaselineLsmExecutionAdmissionDenial;
+use super::super::BaselineLsmExecutionAdmissionDenial;
 
 pub(super) fn decode_key(
     tenant: &str,

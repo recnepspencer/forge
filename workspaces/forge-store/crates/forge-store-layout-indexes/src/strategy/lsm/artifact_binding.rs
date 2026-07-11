@@ -1,13 +1,14 @@
 use super::{BaselineLsmAdmittedKey, BlobWalRecordEnvelope, BlobWalRecordIdentity};
-use crate::{
+use forge_store_wal::{
     BlobWalRecordKind, CheckpointDurablePublicationScope, WalFrameDurablePublicationScope,
 };
 
-pub(crate) fn baseline_lsm_record_artifact_bytes(
+pub fn baseline_lsm_record_artifact_bytes(
     envelope: &BlobWalRecordEnvelope,
     key: BaselineLsmAdmittedKey,
 ) -> Vec<u8> {
-    let crate::DurablePublicationScope::WalFrame(scope) = envelope.durable_publication().scope()
+    let forge_store_wal::DurablePublicationScope::WalFrame(scope) =
+        envelope.durable_publication().scope()
     else {
         return Vec::new();
     };
@@ -39,7 +40,7 @@ pub(super) fn record_artifact_checksum(bytes: &[u8]) -> u64 {
     })
 }
 
-pub(crate) fn baseline_lsm_output_artifact_bytes(
+pub fn baseline_lsm_output_artifact_bytes(
     scope: &WalFrameDurablePublicationScope,
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(4096);
@@ -49,7 +50,7 @@ pub(crate) fn baseline_lsm_output_artifact_bytes(
     bytes
 }
 
-pub(crate) fn baseline_lsm_manifest_artifact_bytes(
+pub fn baseline_lsm_manifest_artifact_bytes(
     scope: &CheckpointDurablePublicationScope,
 ) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(64 + scope.manifest_digest().len());
@@ -72,7 +73,7 @@ pub(super) fn persisted_artifact_matches(
             .unwrap_or(false)
 }
 
-pub(crate) fn baseline_lsm_manifest_membership_digest(
+pub fn baseline_lsm_manifest_membership_digest(
     key: BaselineLsmAdmittedKey,
     records: [BlobWalRecordIdentity; 3],
     store_binding: &str,

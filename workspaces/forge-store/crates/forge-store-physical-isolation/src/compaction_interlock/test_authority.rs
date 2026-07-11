@@ -88,7 +88,6 @@ pub fn compaction_cutover_evidence_for_certification_rewrite_manifest(
         CompactionCutoverDelta::lower(plan.clone(), new_root)
             .expect("compaction cutover delta should lower"),
         publication_receipt,
-        super::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .expect("compaction rewrite publication should admit");
     CompactionCutoverEvidenceForCertification {

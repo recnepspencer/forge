@@ -1,4 +1,4 @@
-/// WAL-owned state change established by ordinary baseline-LSM compaction.
+/// Strategy-owned state change established by ordinary LSM compaction.
 ///
 /// The type is public for lower Store consumers, but its successful value can
 /// only be obtained from a WAL execution receipt.

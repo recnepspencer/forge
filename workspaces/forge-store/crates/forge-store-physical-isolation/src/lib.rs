@@ -30,7 +30,6 @@ mod readiness;
 mod reclaim_reachability;
 mod root_protocol;
 mod s5_harness_readiness;
-mod s6_background_pressure;
 mod security_scope_propagation;
 mod stable_read_execution;
 
@@ -59,7 +58,6 @@ pub use compaction_interlock::compaction_read_interlock_plan_for_certification_t
 pub use compaction_interlock::{
     compaction_cutover_evidence_for_certification_plan,
     compaction_cutover_evidence_for_certification_rewrite_manifest,
-    execute_baseline_lsm_compaction_for_certification,
     publish_compaction_rewrite_for_certification, CompactionCutoverEvidenceForCertification,
 };
 pub use compaction_interlock::{
@@ -213,12 +211,6 @@ pub use root_protocol::{
 };
 pub use s5_harness_readiness::{
     s5_simulation_harness_readiness_requirement, S5SimulationHarnessReadinessRequirement,
-};
-pub use s6_background_pressure::{
-    physical_isolation_checkpoint_background_pressure,
-    physical_isolation_compaction_background_pressure,
-    physical_isolation_s6_background_pressure_declaration,
-    physical_isolation_scrub_background_pressure, PhysicalIsolationBackgroundPressureKind,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use readiness::publish_scheduler_isolation_capability_for_certification_test;

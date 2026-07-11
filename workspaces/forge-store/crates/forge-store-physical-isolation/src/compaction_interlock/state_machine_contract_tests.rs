@@ -3,7 +3,7 @@ use super::{
     compaction_read_interlock_plan_for_certification_test, CompactionCutoverDelta,
     CompactionCutoverStabilityProof, CompactionCutoverState, CompactionCutoverTransitionKind,
     CompactionDeferredReclaimQueue, CompactionMutationLaneReceipt,
-    CompactionMutationLaneReceiptKind, CompactionReadInterlockDenial, LsmCompactionCutoverDelta,
+    CompactionMutationLaneReceiptKind,
 };
 
 #[test]
@@ -25,18 +25,10 @@ fn real_cutover_typestates_emit_the_formal_model_states() {
         publication.cutover_transition(),
         CompactionCutoverTransitionKind::PublishRewrite.transition()
     );
-    assert!(publication
-        .lsm_compaction_receipt()
-        .compaction_transition()
-        .is_tombstone_retention_admitted());
     assert_eq!(
         publication.cutover_state(),
         CompactionCutoverState::PublicationCommitted
     );
-    assert!(publication
-        .lsm_compaction_receipt()
-        .tombstone_blocks_older());
-    assert!(publication.lsm_compaction_receipt().publication_is_bound());
 
     let proof = CompactionCutoverStabilityProof::admit(publication.clone(), recovery).unwrap();
     assert_eq!(
@@ -65,61 +57,6 @@ fn real_cutover_typestates_emit_the_formal_model_states() {
         drained.cutover_transition(),
         CompactionCutoverTransitionKind::DrainReclaimAfterReadRelease.transition()
     );
-}
-
-#[test]
-fn lsm_receipt_must_bind_the_physical_cutover_target() {
-    let plan = compaction_read_interlock_plan_for_certification_test();
-    let rewritten_root = super::test_authority::rewritten_root_for_certification_plan(
-        &plan,
-        plan.protected().root().manifest_epoch().get() + 1,
-    );
-    let delta = CompactionCutoverDelta::lower(plan.clone(), rewritten_root).unwrap();
-    let wrong_binding = forge_store_wal::layout_access::baseline_lsm_counter_observation::BaselineLsmPhysicalPublicationBinding::new(
-        rewritten_root.scope(),
-        plan.target_epoch().get() + 1,
-        rewritten_root.manifest_epoch().get(),
-    )
-    .unwrap();
-    let wrong_receipt =
-        forge_store_wal::layout_access::execute_baseline_lsm_persisted_fixture(wrong_binding)
-            .compaction_publication_receipt()
-            .clone();
-    let outcome = LsmCompactionCutoverDelta::admit(delta, wrong_receipt);
-    assert_eq!(
-        outcome.production_transition(),
-        CompactionCutoverTransitionKind::DenyLsmPhysicalTarget.transition()
-    );
-    assert_eq!(
-        outcome.into_result().unwrap_err(),
-        CompactionReadInterlockDenial::LsmPhysicalTargetMismatch
-    );
-}
-
-#[test]
-fn ordinary_lsm_admission_carries_the_wal_owner_transition() {
-    let plan = compaction_read_interlock_plan_for_certification_test();
-    let rewritten_root = super::test_authority::rewritten_root_for_certification_plan(
-        &plan,
-        plan.protected().root().manifest_epoch().get() + 1,
-    );
-    let delta = CompactionCutoverDelta::lower(plan, rewritten_root).unwrap();
-    let binding = forge_store_wal::layout_access::baseline_lsm_counter_observation::BaselineLsmPhysicalPublicationBinding::new(
-        rewritten_root.scope(),
-        rewritten_root.epoch().get(),
-        rewritten_root.manifest_epoch().get(),
-    )
-    .unwrap();
-    let receipt = forge_store_wal::layout_access::execute_baseline_lsm_persisted_fixture(binding)
-        .compaction_publication_receipt()
-        .clone();
-
-    let outcome = LsmCompactionCutoverDelta::admit(delta, receipt);
-    assert_eq!(
-        outcome.production_transition(),
-        CompactionCutoverTransitionKind::AdmitLsmTombstoneRetention.transition()
-    );
-    outcome.into_result().unwrap();
 }
 
 #[test]

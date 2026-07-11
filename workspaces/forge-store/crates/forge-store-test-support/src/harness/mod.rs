@@ -6,6 +6,7 @@
 //! falsify production topology.
 
 pub mod fixtures;
+mod lsm_execution_fixture;
 mod milestone;
 pub mod physical_reference;
 pub mod physical_simulation;
@@ -17,3 +18,4 @@ pub use milestone::s8_layout_access::{
     execute_s8_layout_runtime_receipt,
 };
 pub use production_facade::*;
+pub use lsm_execution_fixture::execute_baseline_lsm_persisted_fixture;

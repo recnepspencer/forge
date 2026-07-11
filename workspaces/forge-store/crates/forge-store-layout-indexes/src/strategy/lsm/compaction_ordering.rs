@@ -1,4 +1,4 @@
-use forge_store_wal::layout_access::baseline_lsm_counter_observation::BaselineLsmCompactionPublicationReceipt;
+use super::BaselineLsmCompactionPublicationReceipt;
 
 use crate::strategy::S8StrategyDenial;
 

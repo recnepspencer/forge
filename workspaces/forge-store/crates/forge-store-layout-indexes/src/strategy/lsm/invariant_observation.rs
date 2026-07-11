@@ -1,7 +1,5 @@
-use super::baseline_lsm_counter_observation::{
-    execute_baseline_lsm_transcript, BaselineLsmLookupDisposition,
-};
-use crate::BlobWalRecordKind;
+use super::execution::BaselineLsmLookupDisposition;
+use forge_store_wal::BlobWalRecordKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineLsmLookupCaseInvariantWitness {
@@ -180,15 +178,15 @@ impl BaselineLsmInvariantWitness {
 }
 
 pub fn collect_baseline_lsm_invariant_witness(
-    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+    execution: &super::BaselineLsmExecutionWitness,
 ) -> BaselineLsmInvariantWitness {
-    let transcript = execute_baseline_lsm_transcript(execution);
-    let newest_run = transcript.newest_lookup();
-    let older_run = transcript.older_lookup();
-    let tombstone_blocked = transcript.tombstone_blocked_lookup();
-    let publication = transcript.publication();
-    let recovery = transcript.recovery();
-    let compaction = transcript.compaction();
+    let newest_run = execution
+        .execute_lookup_latest_visible_record(execution.memtable_records()[0].sequence());
+    let older_run = execution.execute_lookup_older_visible_record();
+    let tombstone_blocked = execution.execute_lookup_tombstone_blocked_record();
+    let publication = execution.execute_manifest_publication();
+    let recovery = execution.execute_replay_wal_tail();
+    let compaction = execution.compaction_publication_receipt();
 
     BaselineLsmInvariantWitness {
         lookup: BaselineLsmLookupInvariantWitness {

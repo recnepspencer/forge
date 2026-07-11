@@ -209,6 +209,19 @@ pub(crate) use planning::{
     S8SelectionCandidateAudit, S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
     S8SelectionCandidateRejection,
 };
+pub use strategy::{
+    baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
+    baseline_lsm_record_artifact_bytes,
+    lsm_strategy, BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord,
+    BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
+    BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordIdentity,
+    BaselineLsmCompactionRecordKind, BaselineLsmCompactionTransition,
+    BaselineLsmCounterObservation, BaselineLsmDurableInputs, BaselineLsmExecutionAdmissionDenial,
+    BaselineLsmExecutionIntent, BaselineLsmExecutionWitness, BaselineLsmLookupExecution,
+    BaselineLsmManifestPublicationExecution, BaselineLsmMembershipObservation,
+    BaselineLsmPhysicalPublicationBinding, BaselineLsmReplayExecution, BaselineLsmRunIdentity,
+    BaselineLsmWalIndexSession, LsmStrategy,
+};
 pub(crate) use strategy::{
     S8BTreeCorruptionRegion, S8BTreeInvariantSuite, S8BTreeLookupBranch, S8BTreeNodeFormatLaw,
     S8BTreeRebuildMigrationLaw, S8BTreeRootPublicationLaw, S8BTreeSearchPathLaw,

@@ -1,6 +1,9 @@
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
 
-use crate::{BlobWalRecordIdentity, DurablePublicationDeclaration, DurablePublicationScope};
+use forge_store_wal::{
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
+    DurablePublicationScope,
+};
 
 use super::{BaselineLsmCounterObservation, BaselineLsmPhysicalPublicationBinding};
 
@@ -95,7 +98,7 @@ pub struct BaselineLsmCompactionPublicationReceipt {
     key: BaselineLsmCompactionKeyIdentity,
     input_runs: [BaselineLsmRunIdentity; 3],
     output_run: BaselineLsmRunIdentity,
-    output_publication: crate::BlobWalRecordEnvelope,
+    output_publication: BlobWalRecordEnvelope,
     tombstone_record: BaselineLsmCompactionRecordIdentity,
     retired_value_record: BaselineLsmCompactionRecordIdentity,
     manifest_publication: DurablePublicationDeclaration,
@@ -120,7 +123,7 @@ impl BaselineLsmCompactionPublicationReceipt {
         key: BaselineLsmCompactionKeyIdentity,
         input_runs: [BaselineLsmRunIdentity; 3],
         output_run: BaselineLsmRunIdentity,
-        output_publication: crate::BlobWalRecordEnvelope,
+        output_publication: BlobWalRecordEnvelope,
         tombstone_record: BaselineLsmCompactionRecordIdentity,
         retired_value_record: BaselineLsmCompactionRecordIdentity,
         manifest_publication: DurablePublicationDeclaration,
@@ -205,7 +208,7 @@ impl BaselineLsmCompactionPublicationReceipt {
         self.output_run
     }
 
-    pub const fn output_publication(&self) -> &crate::BlobWalRecordEnvelope {
+    pub const fn output_publication(&self) -> &BlobWalRecordEnvelope {
         &self.output_publication
     }
 
