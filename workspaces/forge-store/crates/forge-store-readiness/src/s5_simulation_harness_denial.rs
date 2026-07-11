@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S5SimulationHarnessReadinessDenial {
-    MissingDependency(S5HarnessMaturityDependency),
+pub enum PhysicalIsolationHarnessReadinessDenial {
+    MissingDependency(PhysicalIsolationHarnessMaturityDependency),
     MissingInterleavingCapability,
     MissingMaintenanceActorCapability,
     MissingProductionBoundaryYieldpoint,
@@ -9,7 +9,7 @@ pub enum S5SimulationHarnessReadinessDenial {
     MissingCounterContract,
     MissingReplayableTranscript,
     MissingShortcutDenialReport,
-    MissingS5CorrectnessNonClaim,
+    MissingPhysicalIsolationCorrectnessNonClaim,
     WrongSequenceMaturityEvidence,
     UnsupportedProfileMaturityEvidence,
     CopiedReadinessFieldsDenied,
@@ -19,7 +19,7 @@ pub enum S5SimulationHarnessReadinessDenial {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum S5HarnessMaturityDependency {
+pub enum PhysicalIsolationHarnessMaturityDependency {
     ScenarioDefinitions,
     DeterministicScheduler,
     ActorModel,
@@ -30,7 +30,7 @@ pub enum S5HarnessMaturityDependency {
     MutationValidation,
 }
 
-impl S5HarnessMaturityDependency {
+impl PhysicalIsolationHarnessMaturityDependency {
     pub const fn required_for_ci() -> [Self; 8] {
         [
             Self::ScenarioDefinitions,
@@ -45,11 +45,12 @@ impl S5HarnessMaturityDependency {
     }
 }
 
-pub fn reject_missing_s5_correctness_non_claim() -> Result<(), S5SimulationHarnessReadinessDenial> {
-    Err(S5SimulationHarnessReadinessDenial::MissingS5CorrectnessNonClaim)
+pub fn reject_missing_s5_correctness_non_claim(
+) -> Result<(), PhysicalIsolationHarnessReadinessDenial> {
+    Err(PhysicalIsolationHarnessReadinessDenial::MissingPhysicalIsolationCorrectnessNonClaim)
 }
 
 pub fn reject_copied_s5_simulation_harness_readiness_fields(
-) -> Result<(), S5SimulationHarnessReadinessDenial> {
-    Err(S5SimulationHarnessReadinessDenial::CopiedReadinessFieldsDenied)
+) -> Result<(), PhysicalIsolationHarnessReadinessDenial> {
+    Err(PhysicalIsolationHarnessReadinessDenial::CopiedReadinessFieldsDenied)
 }

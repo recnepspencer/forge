@@ -1,5 +1,5 @@
 use forge_store_physical_certification::{
-    S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessReplayTranscript,
+    SecurityScopeHarnessEvidence, SecurityScopeHarnessReplayTranscript,
 };
 use forge_store_security::StoreAdmittedSecurityScope;
 
@@ -10,8 +10,8 @@ pub struct S51CertificationEvidencePolicy {
 
 #[derive(Debug)]
 pub struct S51CertificationCloseoutInput {
-    scenario_evidence: Vec<S51SecurityScopeHarnessEvidence>,
-    replay_transcripts: Vec<S51SecurityScopeHarnessReplayTranscript>,
+    scenario_evidence: Vec<SecurityScopeHarnessEvidence>,
+    replay_transcripts: Vec<SecurityScopeHarnessReplayTranscript>,
     security_scope: StoreAdmittedSecurityScope,
     policy: S51CertificationEvidencePolicy,
 }
@@ -30,8 +30,8 @@ impl S51CertificationEvidencePolicy {
 
 impl S51CertificationCloseoutInput {
     pub fn from_replay_and_security_scope(
-        scenario_evidence: impl IntoIterator<Item = S51SecurityScopeHarnessEvidence>,
-        replay_transcripts: impl IntoIterator<Item = S51SecurityScopeHarnessReplayTranscript>,
+        scenario_evidence: impl IntoIterator<Item = SecurityScopeHarnessEvidence>,
+        replay_transcripts: impl IntoIterator<Item = SecurityScopeHarnessReplayTranscript>,
         security_scope: StoreAdmittedSecurityScope,
         policy: S51CertificationEvidencePolicy,
     ) -> Self {
@@ -43,11 +43,11 @@ impl S51CertificationCloseoutInput {
         }
     }
 
-    pub fn scenario_evidence(&self) -> &[S51SecurityScopeHarnessEvidence] {
+    pub fn scenario_evidence(&self) -> &[SecurityScopeHarnessEvidence] {
         &self.scenario_evidence
     }
 
-    pub fn replay_transcripts(&self) -> &[S51SecurityScopeHarnessReplayTranscript] {
+    pub fn replay_transcripts(&self) -> &[SecurityScopeHarnessReplayTranscript] {
         &self.replay_transcripts
     }
 

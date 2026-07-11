@@ -17,9 +17,7 @@ use forge_store_physical_backend::{
     StoreOwnedBlobBackendResidueScan, StoreOwnedBlobPhysicalManifestTraversal,
     StoreOwnedExternalPlacementCleanup, StoreOwnedExternalPlacementRecoveryProbe,
 };
-use forge_store_tiering::{
-    admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission,
-};
+use forge_store_tiering::{admit_tier_placement_io, ColdPlacementState, TierPlacementIoAdmission};
 
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority,
@@ -57,7 +55,7 @@ pub(crate) fn admit_cold_placement(
     authority
         .admit(
             reachability,
-            BlobPlacementIntent::cold(readiness(reachability), S7ColdPlacementState::ColdAvailable),
+            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdAvailable),
         )
         .expect("cold placement should admit")
 }

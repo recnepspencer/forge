@@ -1,9 +1,9 @@
 use crate::{
-    CounterContractKind, FixtureClassKind, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
-    PhysicalFaultEvidenceClass, PhysicalProofOracleKind, PhysicalScenarioActorRole,
-    PhysicalScenarioFaultKind, PhysicalSimulationProfile, S5CompactionMutationKind,
-    S5PhysicalIsolationMutationKind, S6HarnessSecureIoPosture, S6IoPressureFaultKind,
-    S6PressureEvidenceMaturity,
+    CounterContractKind, FixtureClassKind, IoPressureEvidenceMaturity, IoPressureFaultKind,
+    IoPressureHarnessSecureIoPosture, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
+    PhysicalFaultEvidenceClass, PhysicalIsolationCompactionMutationKind,
+    PhysicalIsolationMutationKind, PhysicalProofOracleKind, PhysicalScenarioActorRole,
+    PhysicalScenarioFaultKind, PhysicalSimulationProfile,
 };
 use forge_store_blob_chunks::{
     BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass, BlobHarnessFailurePoint,
@@ -15,7 +15,7 @@ use forge_store_io_scheduler::{
 };
 use forge_store_physical_backend::BackendTargetProfile;
 
-use super::{HarnessSubsystem, Roadmap2HarnessSequence};
+use super::{HarnessCoverageStage, HarnessSubsystem};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoverageSurfaceKind {
@@ -44,15 +44,15 @@ pub enum CoverageRowDimension {
     CounterContract(CounterContractKind),
     TranscriptOutput,
     MutationValidationPosture(MutationValidationPosture),
-    CompactionMutation(S5CompactionMutationKind),
-    S5PhysicalIsolationMutation(S5PhysicalIsolationMutationKind),
-    S6BackendTarget(BackendTargetProfile),
-    S6ForegroundLane(ForegroundIoLaneKind),
-    S6BackgroundPressure(BackgroundIoPressureClass),
-    S6SecureIoPosture(S6HarnessSecureIoPosture),
-    S6IoPressureFaultKind(S6IoPressureFaultKind),
-    S6FaultEvidenceClass(PhysicalFaultEvidenceClass),
-    S6EvidenceMaturity(S6PressureEvidenceMaturity),
+    CompactionMutation(PhysicalIsolationCompactionMutationKind),
+    PhysicalIsolationMutation(PhysicalIsolationMutationKind),
+    IoPressureBackendTarget(BackendTargetProfile),
+    IoPressureForegroundLane(ForegroundIoLaneKind),
+    IoPressureBackgroundPressure(BackgroundIoPressureClass),
+    SecureIoPosture(IoPressureHarnessSecureIoPosture),
+    IoPressureFaultKind(IoPressureFaultKind),
+    IoPressureFaultEvidenceClass(PhysicalFaultEvidenceClass),
+    IoPressureEvidenceMaturity(IoPressureEvidenceMaturity),
     BlobSizeClass(BlobHarnessSizeClass),
     BlobChunkCount(u64),
     BlobChunkSizeClass(BlobHarnessChunkSizeClass),
@@ -71,7 +71,7 @@ pub enum MutationValidationPosture {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalCoverageMatrixRow {
-    sequence: Roadmap2HarnessSequence,
+    sequence: HarnessCoverageStage,
     subsystem: HarnessSubsystem,
     surface: CoverageSurfaceKind,
     source_identity: [u8; 32],
@@ -102,7 +102,7 @@ pub struct MutationResultCoverageRow(PhysicalCoverageMatrixRow);
 
 impl PhysicalCoverageMatrixRow {
     pub(crate) fn generated(
-        sequence: Roadmap2HarnessSequence,
+        sequence: HarnessCoverageStage,
         surface: CoverageSurfaceKind,
         source_identity: [u8; 32],
         dimensions: impl IntoIterator<Item = CoverageRowDimension>,
@@ -127,7 +127,7 @@ impl PhysicalCoverageMatrixRow {
         }
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.sequence
     }
 

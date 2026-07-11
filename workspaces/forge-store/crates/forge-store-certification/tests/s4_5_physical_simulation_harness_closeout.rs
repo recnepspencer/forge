@@ -10,35 +10,38 @@ use std::collections::BTreeSet;
 use closeout_support::{
     acceptance_suite_receipts, alternate_s4_recovery_slice_evidence,
     complete_acceptance_suite_receipts, complete_executed_acceptance_suites,
-    complete_shortcut_report, executed_acceptance_suites, s4_recovery_slice_evidence,
-    s5_readiness_slice_evidence, shortcut_slice_evidence,
+    complete_shortcut_report, executed_acceptance_suites,
+    physical_isolation_readiness_slice_evidence, s4_recovery_slice_evidence,
+    shortcut_slice_evidence,
 };
 
 use forge_store_physical_certification::{
-    ForbiddenShortcutKind, PhysicalSimulationHarnessCertificationBundle,
-    PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationHarnessCloseoutSuite,
-    S45AcceptanceEvidenceLane, S45AcceptanceSuiteName, S45AcceptanceSuiteReceiptSet,
-    S45CloseoutCoverageReport, S45ExecutedAcceptanceSuiteEvidenceSet, S45HarnessDogfoodEvidence,
-    ShortcutRejectionBoundary,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet, ForbiddenShortcutKind,
+    PhysicalSimulationHarnessCertificationBundle, PhysicalSimulationHarnessCloseoutDenial,
+    PhysicalSimulationHarnessCloseoutSuite, ShortcutRejectionBoundary,
+    SimulationHarnessAcceptanceEvidenceLane, SimulationHarnessAcceptanceSuiteName,
+    SimulationHarnessAcceptanceSuiteReceiptSet, SimulationHarnessCloseoutCoverageReport,
+    SimulationHarnessDogfoodEvidence,
 };
-use forge_store_readiness::S5CorrectnessNonClaimEvidence;
+use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 #[test]
-fn s45_closeout_dogfoods_public_authoring_and_publishes_s5_readiness() {
+fn s45_closeout_dogfoods_public_authoring_and_publishes_physical_isolation_readiness() {
     let s4_recovery = s4_recovery_slice_evidence();
     let shortcut = shortcut_slice_evidence();
-    let s5_probe = s5_readiness_slice_evidence();
-    let dogfood_evidence = S45HarnessDogfoodEvidence::new(s4_recovery, shortcut, s5_probe);
-    let coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
+    let s5_probe = physical_isolation_readiness_slice_evidence();
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(s4_recovery, shortcut, s5_probe);
+    let coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
     let suite_receipts = complete_acceptance_suite_receipts(&dogfood_evidence, &coverage);
     let shortcut_report = complete_shortcut_report();
 
-    let bundle = PhysicalSimulationHarnessCertificationBundle::from_s45_public_authoring_slices(
-        PhysicalSimulationHarnessCloseoutSuite::roadmap2_s45(),
+    let bundle = PhysicalSimulationHarnessCertificationBundle::from_simulation_harness_public_authoring_slices(
+        PhysicalSimulationHarnessCloseoutSuite::simulation_admission(),
         dogfood_evidence,
         suite_receipts,
         shortcut_report,
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap();
     let report = bundle.closeout_report();
@@ -53,17 +56,23 @@ fn s45_closeout_dogfoods_public_authoring_and_publishes_s5_readiness() {
         .used_public_authoring_api());
     assert!(report
         .dogfood()
-        .s5_readiness_shape_probe()
+        .physical_isolation_readiness_shape_probe()
         .used_public_authoring_api());
-    assert!(report.coverage().all_required_s45_lanes_are_satisfied());
-    assert!(report.acceptance().all_required_s45_lanes_are_satisfied());
+    assert!(report
+        .coverage()
+        .all_required_simulation_harness_lanes_are_satisfied());
+    assert!(report
+        .acceptance()
+        .all_required_simulation_harness_lanes_are_satisfied());
     assert!(report
         .acceptance()
         .suites()
         .iter()
         .all(|suite| suite.lanes().len() == 14));
     assert_acceptance_suite_sources_and_basis(report.acceptance());
-    assert!(report.s5_readiness().does_not_claim_s5_correctness());
+    assert!(report
+        .physical_isolation_readiness()
+        .does_not_claim_physical_isolation_correctness());
     assert_eq!(report.shortcut_denial_count(), 9);
     assert!(report
         .future_extension_slots()
@@ -72,7 +81,7 @@ fn s45_closeout_dogfoods_public_authoring_and_publishes_s5_readiness() {
 }
 
 fn assert_acceptance_suite_sources_and_basis(
-    acceptance: &forge_store_physical_certification::S45AcceptanceSuiteMap,
+    acceptance: &forge_store_physical_certification::SimulationHarnessAcceptanceSuiteMap,
 ) {
     let mut suites = BTreeSet::new();
     let mut execution_basis = BTreeSet::new();
@@ -87,136 +96,146 @@ fn assert_acceptance_suite_sources_and_basis(
     }
     assert_eq!(
         suites,
-        S45AcceptanceSuiteName::required_s45()
+        SimulationHarnessAcceptanceSuiteName::required_s45()
             .into_iter()
             .collect::<BTreeSet<_>>()
     );
 }
 
-fn required_acceptance_lanes() -> [S45AcceptanceEvidenceLane; 14] {
+fn required_acceptance_lanes() -> [SimulationHarnessAcceptanceEvidenceLane; 14] {
     [
-        S45AcceptanceEvidenceLane::Scenario,
-        S45AcceptanceEvidenceLane::Plan,
-        S45AcceptanceEvidenceLane::Schedule,
-        S45AcceptanceEvidenceLane::Actors,
-        S45AcceptanceEvidenceLane::Drivers,
-        S45AcceptanceEvidenceLane::Observers,
-        S45AcceptanceEvidenceLane::Oracles,
-        S45AcceptanceEvidenceLane::Transcripts,
-        S45AcceptanceEvidenceLane::Counters,
-        S45AcceptanceEvidenceLane::Positive,
-        S45AcceptanceEvidenceLane::Hostile,
-        S45AcceptanceEvidenceLane::Shortcut,
-        S45AcceptanceEvidenceLane::Replay,
-        S45AcceptanceEvidenceLane::Mutation,
+        SimulationHarnessAcceptanceEvidenceLane::Scenario,
+        SimulationHarnessAcceptanceEvidenceLane::Plan,
+        SimulationHarnessAcceptanceEvidenceLane::Schedule,
+        SimulationHarnessAcceptanceEvidenceLane::Actors,
+        SimulationHarnessAcceptanceEvidenceLane::Drivers,
+        SimulationHarnessAcceptanceEvidenceLane::Observers,
+        SimulationHarnessAcceptanceEvidenceLane::Oracles,
+        SimulationHarnessAcceptanceEvidenceLane::Transcripts,
+        SimulationHarnessAcceptanceEvidenceLane::Counters,
+        SimulationHarnessAcceptanceEvidenceLane::Positive,
+        SimulationHarnessAcceptanceEvidenceLane::Hostile,
+        SimulationHarnessAcceptanceEvidenceLane::Shortcut,
+        SimulationHarnessAcceptanceEvidenceLane::Replay,
+        SimulationHarnessAcceptanceEvidenceLane::Mutation,
     ]
 }
 
 #[test]
 fn closeout_rejects_missing_named_acceptance_suite_receipt() {
-    let dogfood_evidence = S45HarnessDogfoodEvidence::new(
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
         s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
-    let coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
+    let coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
     let mut receipts = acceptance_suite_receipts(&dogfood_evidence, &coverage);
-    receipts.retain(|receipt| receipt.suite() != S45AcceptanceSuiteName::FaultDeliveryBoundary);
+    receipts.retain(|receipt| {
+        receipt.suite() != SimulationHarnessAcceptanceSuiteName::FaultDeliveryBoundary
+    });
 
-    let denial = S45AcceptanceSuiteReceiptSet::from_receipts(receipts).unwrap_err();
+    let denial = SimulationHarnessAcceptanceSuiteReceiptSet::from_receipts(receipts).unwrap_err();
 
     assert_eq!(
         denial,
         PhysicalSimulationHarnessCloseoutDenial::MissingAcceptanceSuiteReceipt {
-            suite: S45AcceptanceSuiteName::FaultDeliveryBoundary,
+            suite: SimulationHarnessAcceptanceSuiteName::FaultDeliveryBoundary,
         }
     );
 }
 
 #[test]
 fn acceptance_receipts_are_issued_by_closeout_suite_authority() {
-    let dogfood_evidence = S45HarnessDogfoodEvidence::new(
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
         s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
-    let coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
-    let receipts = PhysicalSimulationHarnessCloseoutSuite::roadmap2_s45()
+    let coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
+    let receipts = PhysicalSimulationHarnessCloseoutSuite::simulation_admission()
         .execute_required_acceptance_suites(complete_executed_acceptance_suites(
             &dogfood_evidence,
             &coverage,
         ))
         .unwrap();
 
-    assert!(receipts
-        .receipts()
-        .iter()
-        .any(|receipt| receipt.suite() == S45AcceptanceSuiteName::S5SimulationHarnessReadiness));
+    assert!(receipts.receipts().iter().any(|receipt| receipt.suite()
+        == SimulationHarnessAcceptanceSuiteName::PhysicalIsolationHarnessReadiness));
 }
 
 #[test]
 fn closeout_suite_requires_each_named_executed_suite_proof() {
-    let dogfood_evidence = S45HarnessDogfoodEvidence::new(
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
         s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
-    let coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
+    let coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
     let mut executed = executed_acceptance_suites(&dogfood_evidence, &coverage);
-    executed.retain(|suite| suite.suite() != S45AcceptanceSuiteName::GeneratedCoverage);
+    executed
+        .retain(|suite| suite.suite() != SimulationHarnessAcceptanceSuiteName::GeneratedCoverage);
 
-    let denial = S45ExecutedAcceptanceSuiteEvidenceSet::from_executed_suites(executed).unwrap_err();
+    let denial =
+        ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet::from_executed_suites(executed)
+            .unwrap_err();
 
     assert_eq!(
         denial,
         PhysicalSimulationHarnessCloseoutDenial::MissingAcceptanceSuiteExecution {
-            suite: S45AcceptanceSuiteName::GeneratedCoverage,
+            suite: SimulationHarnessAcceptanceSuiteName::GeneratedCoverage,
         }
     );
 }
 
 #[test]
 fn closeout_suite_rejects_replayed_executed_suite_proof() {
-    let dogfood_evidence = S45HarnessDogfoodEvidence::new(
+    let dogfood_evidence = SimulationHarnessDogfoodEvidence::new(
         s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
-    let coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
+    let coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&dogfood_evidence);
     let mut executed = executed_acceptance_suites(&dogfood_evidence, &coverage);
     executed.push(executed[0].clone());
 
-    let denial = S45ExecutedAcceptanceSuiteEvidenceSet::from_executed_suites(executed).unwrap_err();
+    let denial =
+        ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet::from_executed_suites(executed)
+            .unwrap_err();
 
     assert_eq!(
         denial,
         PhysicalSimulationHarnessCloseoutDenial::DuplicateAcceptanceSuiteExecution {
-            suite: S45AcceptanceSuiteName::EntryBoundary,
+            suite: SimulationHarnessAcceptanceSuiteName::EntryBoundary,
         }
     );
 }
 
 #[test]
 fn closeout_rejects_acceptance_receipts_from_different_dogfood_evidence() {
-    let original_dogfood = S45HarnessDogfoodEvidence::new(
+    let original_dogfood = SimulationHarnessDogfoodEvidence::new(
         s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
-    let original_coverage = S45CloseoutCoverageReport::from_dogfood_evidence(&original_dogfood);
+    let original_coverage =
+        SimulationHarnessCloseoutCoverageReport::from_dogfood_evidence(&original_dogfood);
     let stale_receipts = complete_acceptance_suite_receipts(&original_dogfood, &original_coverage);
-    let current_dogfood = S45HarnessDogfoodEvidence::new(
+    let current_dogfood = SimulationHarnessDogfoodEvidence::new(
         alternate_s4_recovery_slice_evidence(),
         shortcut_slice_evidence(),
-        s5_readiness_slice_evidence(),
+        physical_isolation_readiness_slice_evidence(),
     );
 
-    let denial = PhysicalSimulationHarnessCertificationBundle::from_s45_public_authoring_slices(
-        PhysicalSimulationHarnessCloseoutSuite::roadmap2_s45(),
+    let denial = PhysicalSimulationHarnessCertificationBundle::from_simulation_harness_public_authoring_slices(
+        PhysicalSimulationHarnessCloseoutSuite::simulation_admission(),
         current_dogfood,
         stale_receipts,
         complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err();
 
@@ -230,11 +249,11 @@ fn closeout_rejects_acceptance_receipts_from_different_dogfood_evidence() {
 fn future_extension_slots_are_visible_without_future_behavior_or_readiness() {
     let inventory =
         forge_store_physical_certification::FutureHarnessExtensionSlotInventory::
-            s45_reserved_future_slots();
+            simulation_harness_reserved_future_slots();
 
     for slot in inventory.slots() {
         assert!(!slot.implements_future_behavior());
-        assert!(!slot.can_satisfy_s5_readiness());
+        assert!(!slot.can_satisfy_physical_isolation_readiness());
     }
     assert!(inventory.all_reserved_without_future_behavior());
 }

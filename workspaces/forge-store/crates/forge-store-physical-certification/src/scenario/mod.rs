@@ -19,8 +19,8 @@ pub use denial::{
     JsonScenarioAuthorityDenied, PhysicalScenarioDefinitionDenial, TerminalProjectionScenarioDenied,
 };
 pub use expectation::{
-    PhysicalScenarioExpectation, PhysicalScenarioExpectationKind, PhysicalScenarioNonClaim,
-    S7BlobHarnessScenarioMetadata,
+    BlobHarnessScenarioMetadata, PhysicalScenarioExpectation, PhysicalScenarioExpectationKind,
+    PhysicalScenarioNonClaim,
 };
 pub use identity::PhysicalScenarioCanonicalIdentity;
 pub(crate) use proof_progression::certify_scenario_definition;

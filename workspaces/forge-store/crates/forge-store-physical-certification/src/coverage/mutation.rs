@@ -4,20 +4,20 @@ use crate::{
 };
 use forge_store_physical_isolation::CompactionReadInterlockDenial;
 
-use super::{CoverageGapDenial, MutationValidationPosture, Roadmap2HarnessSequence};
+use super::{CoverageGapDenial, HarnessCoverageStage, MutationValidationPosture};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalMutationCoverageEvidence {
-    sequence: Roadmap2HarnessSequence,
+    sequence: HarnessCoverageStage,
     plan_identity: [u8; 32],
     posture: MutationValidationPosture,
     denial: FaultDeliveryDenial,
-    compaction_mutations: Vec<S5CompactionMutationCoverageRow>,
-    s5_physical_isolation_mutations: Vec<S5PhysicalIsolationMutationKind>,
+    compaction_mutations: Vec<PhysicalIsolationCompactionMutationCoverageRow>,
+    physical_isolation_mutations: Vec<PhysicalIsolationMutationKind>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum S5CompactionMutationKind {
+pub enum PhysicalIsolationCompactionMutationKind {
     InPlaceOverwriteDenied,
     EarlyReclaimDenied,
     StaleEpochReuseDenied,
@@ -27,7 +27,7 @@ pub enum S5CompactionMutationKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum S5PhysicalIsolationMutationKind {
+pub enum PhysicalIsolationMutationKind {
     CompactionInPlaceOverwriteDenied,
     CompactionEarlyReclaimDenied,
     CompactionStaleEpochReuseDenied,
@@ -42,14 +42,14 @@ pub enum S5PhysicalIsolationMutationKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S5CompactionMutationCoverageRow {
-    kind: S5CompactionMutationKind,
+pub struct PhysicalIsolationCompactionMutationCoverageRow {
+    kind: PhysicalIsolationCompactionMutationKind,
     denial: CompactionReadInterlockDenial,
 }
 
 impl PhysicalMutationCoverageEvidence {
     pub fn from_private_mutation_denial_plan(
-        sequence: Roadmap2HarnessSequence,
+        sequence: HarnessCoverageStage,
         plan: &PhysicalSimulationPlan,
         attempt: FaultDeliveryAttempt,
     ) -> Result<Self, CoverageGapDenial> {
@@ -60,14 +60,14 @@ impl PhysicalMutationCoverageEvidence {
                 posture: MutationValidationPosture::ExpectedFailureObserved,
                 denial: FaultDeliveryDenial::PrivateMutationDenied,
                 compaction_mutations: Vec::new(),
-                s5_physical_isolation_mutations: Vec::new(),
+                physical_isolation_mutations: Vec::new(),
             }),
             _ => Err(CoverageGapDenial::MissingMutationResult),
         }
     }
 
     pub fn from_replay_private_mutation_denial(
-        sequence: Roadmap2HarnessSequence,
+        sequence: HarnessCoverageStage,
         replay: &SimulationReplayBundle,
         attempt: FaultDeliveryAttempt,
     ) -> Result<Self, CoverageGapDenial> {
@@ -88,14 +88,14 @@ impl PhysicalMutationCoverageEvidence {
                 posture: MutationValidationPosture::ExpectedFailureObserved,
                 denial: FaultDeliveryDenial::PrivateMutationDenied,
                 compaction_mutations: Vec::new(),
-                s5_physical_isolation_mutations: Vec::new(),
+                physical_isolation_mutations: Vec::new(),
             }),
             _ => Err(CoverageGapDenial::MissingMutationResult),
         }
     }
 
     pub fn from_replay_private_and_compaction_mutation_denials(
-        sequence: Roadmap2HarnessSequence,
+        sequence: HarnessCoverageStage,
         replay: &SimulationReplayBundle,
         attempt: FaultDeliveryAttempt,
     ) -> Result<Self, CoverageGapDenial> {
@@ -116,8 +116,8 @@ impl PhysicalMutationCoverageEvidence {
         Ok(evidence)
     }
 
-    pub fn from_replay_private_and_s5_physical_isolation_denials(
-        sequence: Roadmap2HarnessSequence,
+    pub fn from_replay_private_and_physical_isolation_denials(
+        sequence: HarnessCoverageStage,
         replay: &SimulationReplayBundle,
         attempt: FaultDeliveryAttempt,
     ) -> Result<Self, CoverageGapDenial> {
@@ -127,12 +127,15 @@ impl PhysicalMutationCoverageEvidence {
         } else {
             Self::from_replay_private_mutation_denial(sequence, replay, attempt)?
         };
-        evidence.s5_physical_isolation_mutations =
-            s5_family_mutation_rows(family, replay, evidence.compaction_mutations())?;
+        evidence.physical_isolation_mutations = physical_isolation_family_mutation_rows(
+            family,
+            replay,
+            evidence.compaction_mutations(),
+        )?;
         Ok(evidence)
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.sequence
     }
 
@@ -148,18 +151,18 @@ impl PhysicalMutationCoverageEvidence {
         &self.denial
     }
 
-    pub fn compaction_mutations(&self) -> &[S5CompactionMutationCoverageRow] {
+    pub fn compaction_mutations(&self) -> &[PhysicalIsolationCompactionMutationCoverageRow] {
         &self.compaction_mutations
     }
 
-    pub fn s5_physical_isolation_mutations(&self) -> &[S5PhysicalIsolationMutationKind] {
-        &self.s5_physical_isolation_mutations
+    pub fn physical_isolation_mutations(&self) -> &[PhysicalIsolationMutationKind] {
+        &self.physical_isolation_mutations
     }
 }
 
-impl S5CompactionMutationCoverageRow {
+impl PhysicalIsolationCompactionMutationCoverageRow {
     pub fn observed(
-        kind: S5CompactionMutationKind,
+        kind: PhysicalIsolationCompactionMutationKind,
         denial: CompactionReadInterlockDenial,
     ) -> Result<Self, CoverageGapDenial> {
         if !kind.matches_denial(denial) {
@@ -168,7 +171,7 @@ impl S5CompactionMutationCoverageRow {
         Ok(Self { kind, denial })
     }
 
-    pub const fn kind(&self) -> S5CompactionMutationKind {
+    pub const fn kind(&self) -> PhysicalIsolationCompactionMutationKind {
         self.kind
     }
 
@@ -180,64 +183,64 @@ impl S5CompactionMutationCoverageRow {
 fn requires_compaction_mutation_rows(family: crate::PhysicalSimulationScenarioFamily) -> bool {
     matches!(
         family,
-        crate::PhysicalSimulationScenarioFamily::S5CompactionInterlock
-            | crate::PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-            | crate::PhysicalSimulationScenarioFamily::S5ReclaimReachability
-            | crate::PhysicalSimulationScenarioFamily::S5TierMovementStability
-            | crate::PhysicalSimulationScenarioFamily::S5RestartDuringCutover
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
+            | crate::PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+            | crate::PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability
+            | crate::PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
+            | crate::PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover
     )
 }
 
-fn s5_family_mutation_rows(
+fn physical_isolation_family_mutation_rows(
     family: crate::PhysicalSimulationScenarioFamily,
     replay: &SimulationReplayBundle,
-    compaction: &[S5CompactionMutationCoverageRow],
-) -> Result<Vec<S5PhysicalIsolationMutationKind>, CoverageGapDenial> {
+    compaction: &[PhysicalIsolationCompactionMutationCoverageRow],
+) -> Result<Vec<PhysicalIsolationMutationKind>, CoverageGapDenial> {
     match family {
-        crate::PhysicalSimulationScenarioFamily::S5CompactionInterlock => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock => {
             require_all_compaction_rows(compaction)
         }
-        crate::PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock => {
             require_checkpoint_trace(replay)?;
-            require_compaction_kind(compaction, S5CompactionMutationKind::MixedRootReadDenied)?;
+            require_compaction_kind(compaction, PhysicalIsolationCompactionMutationKind::MixedRootReadDenied)?;
             Ok(vec![
-                S5PhysicalIsolationMutationKind::CheckpointMixedRootReadDenied,
+                PhysicalIsolationMutationKind::CheckpointMixedRootReadDenied,
             ])
         }
-        crate::PhysicalSimulationScenarioFamily::S5ReclaimReachability => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability => {
             require_compaction_trace(replay)?;
-            require_compaction_kind(compaction, S5CompactionMutationKind::EarlyReclaimDenied)?;
+            require_compaction_kind(compaction, PhysicalIsolationCompactionMutationKind::EarlyReclaimDenied)?;
             Ok(vec![
-                S5PhysicalIsolationMutationKind::ReclaimEarlyReachabilityDenied,
+                PhysicalIsolationMutationKind::ReclaimEarlyReachabilityDenied,
             ])
         }
-        crate::PhysicalSimulationScenarioFamily::S5TierMovementStability => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability => {
             require_independent_verifier_trace(replay)?;
             require_compaction_kind(
                 compaction,
-                S5CompactionMutationKind::LatchHierarchyInversionDenied,
+                PhysicalIsolationCompactionMutationKind::LatchHierarchyInversionDenied,
             )?;
             Ok(vec![
-                S5PhysicalIsolationMutationKind::TierMovementStabilityNonClaim,
+                PhysicalIsolationMutationKind::TierMovementStabilityNonClaim,
             ])
         }
-        crate::PhysicalSimulationScenarioFamily::S5FutureChunkStability => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability => {
             require_independent_verifier_trace(replay)?;
             if replay.trace().compaction_mutations().is_some() || !compaction.is_empty() {
                 return Err(CoverageGapDenial::MissingMutationResult);
             }
             Ok(vec![
-                S5PhysicalIsolationMutationKind::FutureChunkStabilityNonClaim,
+                PhysicalIsolationMutationKind::FutureChunkStabilityNonClaim,
             ])
         }
-        crate::PhysicalSimulationScenarioFamily::S5RestartDuringCutover => {
+        crate::PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
             require_checkpoint_trace(replay)?;
             require_compaction_kind(
                 compaction,
-                S5CompactionMutationKind::LatchHierarchyInversionDenied,
+                PhysicalIsolationCompactionMutationKind::LatchHierarchyInversionDenied,
             )?;
             Ok(vec![
-                S5PhysicalIsolationMutationKind::RestartLatchHierarchyInversionDenied,
+                PhysicalIsolationMutationKind::RestartLatchHierarchyInversionDenied,
             ])
         }
         _ => Ok(Vec::new()),
@@ -245,19 +248,19 @@ fn s5_family_mutation_rows(
 }
 
 fn require_all_compaction_rows(
-    compaction: &[S5CompactionMutationCoverageRow],
-) -> Result<Vec<S5PhysicalIsolationMutationKind>, CoverageGapDenial> {
+    compaction: &[PhysicalIsolationCompactionMutationCoverageRow],
+) -> Result<Vec<PhysicalIsolationMutationKind>, CoverageGapDenial> {
     let mut rows = Vec::new();
-    for required in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
+    for required in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         require_compaction_kind(compaction, required)?;
-        rows.push(S5PhysicalIsolationMutationKind::from(required));
+        rows.push(PhysicalIsolationMutationKind::from(required));
     }
     Ok(rows)
 }
 
 fn require_compaction_kind(
-    compaction: &[S5CompactionMutationCoverageRow],
-    required: S5CompactionMutationKind,
+    compaction: &[PhysicalIsolationCompactionMutationCoverageRow],
+    required: PhysicalIsolationCompactionMutationKind,
 ) -> Result<(), CoverageGapDenial> {
     if compaction.iter().any(|row| row.kind() == required) {
         Ok(())
@@ -292,28 +295,32 @@ fn require_independent_verifier_trace(
         .ok_or(CoverageGapDenial::MissingMutationResult)
 }
 
-impl From<S5CompactionMutationKind> for S5PhysicalIsolationMutationKind {
-    fn from(kind: S5CompactionMutationKind) -> Self {
+impl From<PhysicalIsolationCompactionMutationKind> for PhysicalIsolationMutationKind {
+    fn from(kind: PhysicalIsolationCompactionMutationKind) -> Self {
         match kind {
-            S5CompactionMutationKind::InPlaceOverwriteDenied => {
+            PhysicalIsolationCompactionMutationKind::InPlaceOverwriteDenied => {
                 Self::CompactionInPlaceOverwriteDenied
             }
-            S5CompactionMutationKind::EarlyReclaimDenied => Self::CompactionEarlyReclaimDenied,
-            S5CompactionMutationKind::StaleEpochReuseDenied => {
+            PhysicalIsolationCompactionMutationKind::EarlyReclaimDenied => {
+                Self::CompactionEarlyReclaimDenied
+            }
+            PhysicalIsolationCompactionMutationKind::StaleEpochReuseDenied => {
                 Self::CompactionStaleEpochReuseDenied
             }
-            S5CompactionMutationKind::BackendResidueCandidateSelectionDenied => {
+            PhysicalIsolationCompactionMutationKind::BackendResidueCandidateSelectionDenied => {
                 Self::CompactionBackendResidueSelectionDenied
             }
-            S5CompactionMutationKind::LatchHierarchyInversionDenied => {
+            PhysicalIsolationCompactionMutationKind::LatchHierarchyInversionDenied => {
                 Self::CompactionLatchHierarchyInversionDenied
             }
-            S5CompactionMutationKind::MixedRootReadDenied => Self::CompactionMixedRootReadDenied,
+            PhysicalIsolationCompactionMutationKind::MixedRootReadDenied => {
+                Self::CompactionMixedRootReadDenied
+            }
         }
     }
 }
 
-impl S5CompactionMutationKind {
+impl PhysicalIsolationCompactionMutationKind {
     pub const REQUIRED_FOR_PHASE8: [Self; 4] = [
         Self::InPlaceOverwriteDenied,
         Self::EarlyReclaimDenied,

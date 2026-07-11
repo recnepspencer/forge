@@ -1,7 +1,8 @@
 use super::{
-    canonical::S5CanonicalMaterializationDenial, S5ExecutedIsolationEvidenceSource,
-    S5ExecutedIsolationFinding, S5ExecutedIsolationSourceDenial, S5FoundationalCanonicalBasis,
-    S5FoundationalDiagnostics, S5FoundationalPerformanceReceipts, S5PhysicalIsolationProofTrace,
+    canonical::S5CanonicalMaterializationDenial, ExecutedPhysicalIsolationEvidenceSource,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationSourceDenial,
+    S5FoundationalCanonicalBasis, S5FoundationalDiagnostics, S5FoundationalPerformanceReceipts,
+    S5PhysicalIsolationProofTrace,
 };
 use forge_foundational::FoundationalDiagnosticMaterializationDenial;
 use forge_store_physical_isolation::{
@@ -18,7 +19,7 @@ use forge_store_physical_isolation::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S5ExecutedIsolationEvidenceBundle {
-    source_finding: S5ExecutedIsolationFinding,
+    source_finding: ExecutedPhysicalIsolationFinding,
     diagnostics: S5FoundationalDiagnostics,
     performance: S5FoundationalPerformanceReceipts,
     canonical: S5FoundationalCanonicalBasis,
@@ -26,7 +27,7 @@ pub struct S5ExecutedIsolationEvidenceBundle {
 }
 
 impl S5ExecutedIsolationEvidenceBundle {
-    pub const fn source_finding(&self) -> &S5ExecutedIsolationFinding {
+    pub const fn source_finding(&self) -> &ExecutedPhysicalIsolationFinding {
         &self.source_finding
     }
 
@@ -98,7 +99,7 @@ impl S5ExecutedIsolationEvidenceBundle {
 }
 
 pub fn materialize_s5_executed_isolation_evidence(
-    source: S5ExecutedIsolationEvidenceSource,
+    source: ExecutedPhysicalIsolationEvidenceSource,
 ) -> Result<S5ExecutedIsolationEvidenceBundle, S5ExecutedIsolationMaterializationDenial> {
     let finding = source.finding().clone();
     let diagnostics = S5FoundationalDiagnostics::from_finding(&finding)?;
@@ -116,14 +117,14 @@ pub fn materialize_s5_executed_isolation_evidence(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum S5ExecutedIsolationMaterializationDenial {
-    Source(S5ExecutedIsolationSourceDenial),
+    Source(ExecutedPhysicalIsolationSourceDenial),
     Diagnostics(FoundationalDiagnosticMaterializationDenial),
     Performance(crate::FoundationalBoundaryEvidenceDenial),
     Canonical(S5CanonicalMaterializationDenial),
 }
 
-impl From<S5ExecutedIsolationSourceDenial> for S5ExecutedIsolationMaterializationDenial {
-    fn from(denial: S5ExecutedIsolationSourceDenial) -> Self {
+impl From<ExecutedPhysicalIsolationSourceDenial> for S5ExecutedIsolationMaterializationDenial {
+    fn from(denial: ExecutedPhysicalIsolationSourceDenial) -> Self {
         Self::Source(denial)
     }
 }

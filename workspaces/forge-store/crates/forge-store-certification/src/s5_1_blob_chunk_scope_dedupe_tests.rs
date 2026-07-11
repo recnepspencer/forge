@@ -95,7 +95,7 @@ fn candidate_for_scope(scope: BlobChunkSecurityScope) -> BlobChunkDedupeCandidat
     )
     .expect("fixed-size rule should admit");
     let physical_receipt = record_receipt(bytes);
-    let payload = PhysicalChunkChecksumAuthority::s7_canonical()
+    let payload = PhysicalChunkChecksumAuthority::canonical_blob_checksum()
         .admit_store_payload(physical_receipt)
         .expect("payload should admit");
     let sequence = BlobChunkSequenceAdmission::start(scope, rule, bytes.len() as u64)

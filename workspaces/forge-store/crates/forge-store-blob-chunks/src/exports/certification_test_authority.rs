@@ -7,19 +7,19 @@ pub use crate::handoffs::{
 };
 pub use crate::harness_execution::Phase28OperationsWitnesses;
 pub use crate::harness_execution::{
-    execute_s7_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
+    execute_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
     BlobHarnessObservedYieldpoint,
 };
 use crate::BoundaryBridgedCanonicalExportArtifact;
-pub use crate::S7ExecutedLifecycleEvidenceBundle;
+pub use crate::ExecutedBlobLifecycleEvidenceBundle;
 
-pub fn materialize_s7_executed_lifecycle_evidence(
+pub fn materialize_blob_executed_lifecycle_evidence(
     witness: BlobHarnessExecutedWitness,
-) -> S7ExecutedLifecycleEvidenceBundle {
+) -> ExecutedBlobLifecycleEvidenceBundle {
     witness.into_closeout_evidence()
 }
 
-pub fn bridge_s7_export_trust_boundary(
+pub fn bridge_blob_export_trust_boundary(
     witness: &BlobHarnessExecutedWitness,
 ) -> BoundaryBridgedCanonicalExportArtifact {
     witness.bridged_export_artifact().clone()

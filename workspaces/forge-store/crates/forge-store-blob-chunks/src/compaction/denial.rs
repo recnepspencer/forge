@@ -1,6 +1,6 @@
 use super::BlobCompactionCounterSnapshot;
 use forge_store_physical_isolation::CompactionReadInterlockDenial;
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobCompactionDenial {
@@ -14,7 +14,7 @@ pub enum BlobCompactionDenial {
         counters: BlobCompactionCounterSnapshot,
     },
     UnavailableColdChunk {
-        state: S7ColdPlacementState,
+        state: ColdPlacementState,
         counters: BlobCompactionCounterSnapshot,
     },
     UnsupportedS6Pacing {

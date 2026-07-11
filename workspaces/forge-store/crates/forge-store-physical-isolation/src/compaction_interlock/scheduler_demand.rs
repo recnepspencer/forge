@@ -1,5 +1,5 @@
-use forge_store_contracts::S6BackgroundPressureDeclaration;
+use forge_store_contracts::IoPressureBackgroundPressureDeclaration;
 
-pub const fn compaction_rewrite_scheduler_demand() -> S6BackgroundPressureDeclaration {
-    S6BackgroundPressureDeclaration::compaction_rewrite()
+pub const fn compaction_rewrite_scheduler_demand() -> IoPressureBackgroundPressureDeclaration {
+    IoPressureBackgroundPressureDeclaration::compaction_rewrite()
 }

@@ -1,8 +1,11 @@
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use fs4::available_space;
+
+static NEXT_MATERIALIZATION_ID: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum HeavyFixtureBackendProfile {
@@ -67,13 +70,26 @@ impl HeavyFixtureDiskPreflightReceipt {
 
 impl HeavyFixtureTempFileMaterialization {
     pub fn begin(preflight: &HeavyFixtureDiskPreflightReceipt, stem: &str) -> io::Result<Self> {
-        let filename = format!("{}.fixture.bin", sanitized_fixture_stem(stem));
-        let path = preflight.directory.path().join(filename);
-        File::create(&path)?;
-        Ok(Self {
-            path,
-            bytes_written: 0,
-        })
+        let stem = sanitized_fixture_stem(stem);
+        loop {
+            let materialization_id = NEXT_MATERIALIZATION_ID.fetch_add(1, Ordering::Relaxed);
+            let filename = format!(
+                "{stem}.{}.{}.fixture.bin",
+                std::process::id(),
+                materialization_id
+            );
+            let path = preflight.directory.path().join(filename);
+            match File::options().write(true).create_new(true).open(&path) {
+                Ok(_) => {
+                    return Ok(Self {
+                        path,
+                        bytes_written: 0,
+                    });
+                }
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error),
+            }
+        }
     }
 
     pub fn append_chunk(&mut self, bytes: &[u8]) -> io::Result<()> {

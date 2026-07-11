@@ -4,7 +4,7 @@ use forge_store_physical_certification::{
 
 fn main() {
     let _scenario = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture("segment-header-alpha");
 }

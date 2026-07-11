@@ -1,7 +1,5 @@
 use forge_store_physical_backend::{BackendCapabilityKind, BackendCapabilitySupportPosture};
-use forge_store_security::{
-    admitted_wrong_s6_io_qos_security_scope_for_test,
-};
+use forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test;
 
 use super::support::{
     assert_evidence_denial, externally_guaranteed_witness, valid_security_scope,
@@ -33,7 +31,7 @@ fn secure_frame_claim_requires_security_scope_admission() {
 }
 
 #[test]
-fn secure_frame_claim_admits_through_s5_1_security_scope_handoff() {
+fn secure_frame_claim_admits_through_security_scope_handoff() {
     let security_scope = valid_security_scope();
     let witness = externally_guaranteed_witness(
         BackendCapabilityKind::SecureFrameIo,

@@ -16,7 +16,7 @@ pub enum BlobCloseoutShortcutInput {
     CopiedReceipt,
     CopiedChunkRows { row_count: usize },
     CopiedProofId { proof_id: String },
-    S5FutureChunkPlaceholderOnly { label: String },
+    FutureChunkPlaceholderOnly { label: String },
     TerminalProjectionOnly,
     RawCountersOnly { row_count: usize },
 }

@@ -7,7 +7,7 @@ pub(super) fn append_blob_plan_dimensions(
     dimensions: &mut Vec<CoverageRowDimension>,
     plan: &PhysicalSimulationPlan,
 ) {
-    if let Some(metadata) = plan.s7_blob_harness_metadata() {
+    if let Some(metadata) = plan.blob_harness_metadata() {
         dimensions.push(CoverageRowDimension::BlobSizeClass(metadata.size_class()));
         dimensions.push(CoverageRowDimension::BlobChunkSizeClass(
             metadata.chunk_size_class(),
@@ -27,7 +27,7 @@ pub(super) fn append_blob_plan_dimensions(
             blob_envelope_profile_for_plan(plan.profile()),
         ));
     }
-    if let Some(topology) = plan.s7_blob_harness_topology() {
+    if let Some(topology) = plan.blob_harness_topology() {
         dimensions.push(CoverageRowDimension::BlobChunkCount(topology.chunk_count()));
     }
 }
@@ -35,14 +35,8 @@ pub(super) fn append_blob_plan_dimensions(
 pub(super) fn blob_scenario_dimensions(
     scenario: &CertifiedPhysicalScenario,
 ) -> impl Iterator<Item = CoverageRowDimension> + '_ {
-    let metadata = scenario
-        .definition()
-        .expectation()
-        .s7_blob_harness_metadata();
-    let topology = scenario
-        .definition()
-        .expectation()
-        .s7_blob_harness_topology();
+    let metadata = scenario.definition().expectation().blob_harness_metadata();
+    let topology = scenario.definition().expectation().blob_harness_topology();
 
     metadata.into_iter().flat_map(move |metadata| {
         let mut dimensions = vec![

@@ -18,20 +18,17 @@ use forge_foundational::{
     SupportPostureProfile,
 };
 
-use super::{CoverageGapDenial, CoverageSurfaceKind, Roadmap2HarnessSequence};
+use super::{CoverageGapDenial, CoverageSurfaceKind, HarnessCoverageStage};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Roadmap2HarnessReadinessReport {
-    sequence: Roadmap2HarnessSequence,
+pub struct PhysicalHarnessReadinessReport {
+    sequence: HarnessCoverageStage,
     coverage_class: FoundationalDiagnosticCertifiedCoverageClass,
     support_report: FoundationalDiagnosticSupportReport,
 }
 
-impl Roadmap2HarnessReadinessReport {
-    pub fn from_coverage_gap(
-        sequence: Roadmap2HarnessSequence,
-        denial: &CoverageGapDenial,
-    ) -> Self {
+impl PhysicalHarnessReadinessReport {
+    pub fn from_coverage_gap(sequence: HarnessCoverageStage, denial: &CoverageGapDenial) -> Self {
         let gap = named_gap_for_coverage_denial(denial);
         let support_report = support_report_for_named_gap(&gap);
         Self {
@@ -41,7 +38,7 @@ impl Roadmap2HarnessReadinessReport {
         }
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.sequence
     }
 

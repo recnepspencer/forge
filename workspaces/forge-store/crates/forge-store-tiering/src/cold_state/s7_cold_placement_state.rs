@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S7ColdPlacementState {
+pub enum ColdPlacementState {
     HotAvailable,
     ColdAvailable,
     ColdFetchRequired,
@@ -10,7 +10,7 @@ pub enum S7ColdPlacementState {
     ColdRebindRequired,
 }
 
-impl S7ColdPlacementState {
+impl ColdPlacementState {
     pub const fn permits_immediate_publication(self) -> bool {
         matches!(self, Self::HotAvailable | Self::ColdAvailable)
     }

@@ -1,13 +1,19 @@
 #[path = "s4_closeout/fixture.rs"]
 mod closeout_fixture;
+#[path = "s4_5_compaction_mutation_support/compaction_mutation_root_validation.rs"]
+mod compaction_mutation_root_validation;
 #[path = "s5_stable_read_execution/plan_admission.rs"]
 mod plan_admission;
 #[path = "s4_recovery_source_precedence/source_precedence_fixture.rs"]
 mod source_precedence_fixture;
 
+use compaction_mutation_root_validation::{
+    generation_counted_page_reference, root_publication_validation,
+};
 use forge_store_physical_certification::{
-    CoverageGapDenial, PhysicalInterleavingSchedule, PhysicalSimulationPlan,
-    S5CompactionMutationReplayBinding, S5CompactionMutationScheduledLaneOutput,
+    CoverageGapDenial, PhysicalInterleavingSchedule,
+    PhysicalIsolationCompactionMutationReplayBinding,
+    PhysicalIsolationCompactionMutationScheduledLaneOutput, PhysicalSimulationPlan,
 };
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
@@ -53,7 +59,7 @@ pub(crate) fn complete_compaction_mutation_receipts() -> Vec<CompactionMutationL
 pub(crate) fn complete_scheduled_compaction_mutation_lanes(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
-) -> Result<Vec<S5CompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
+) -> Result<Vec<PhysicalIsolationCompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
     scheduled_compaction_mutation_lanes(plan, schedule, complete_compaction_mutation_receipts())
 }
 
@@ -70,7 +76,7 @@ pub(crate) fn different_compaction_mutation_origin() -> CompactionMutationLaneOr
 pub(crate) fn same_footprint_wrong_cutover_lanes(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
-) -> Result<Vec<S5CompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
+) -> Result<Vec<PhysicalIsolationCompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
     let mut receipts = complete_compaction_mutation_receipts();
     receipts[0] = same_footprint_wrong_cutover_in_place_receipt();
     scheduled_compaction_mutation_lanes(plan, schedule, receipts)
@@ -79,13 +85,14 @@ pub(crate) fn same_footprint_wrong_cutover_lanes(
 pub(crate) fn detached_compaction_mutation_lanes(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
-) -> Result<Vec<S5CompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
-    let binding = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
+) -> Result<Vec<PhysicalIsolationCompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
+    let binding =
+        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
     let detached_step_index = binding.compaction_actor_step_index().saturating_add(1);
     complete_compaction_mutation_receipts()
         .into_iter()
         .map(|receipt| {
-            S5CompactionMutationScheduledLaneOutput::from_schedule_step_receipt(
+            PhysicalIsolationCompactionMutationScheduledLaneOutput::from_schedule_step_receipt(
                 &binding,
                 schedule,
                 detached_step_index,
@@ -99,12 +106,13 @@ fn scheduled_compaction_mutation_lanes(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
     receipts: impl IntoIterator<Item = CompactionMutationLaneReceipt>,
-) -> Result<Vec<S5CompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
-    let binding = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
+) -> Result<Vec<PhysicalIsolationCompactionMutationScheduledLaneOutput>, CoverageGapDenial> {
+    let binding =
+        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
     receipts
         .into_iter()
         .map(|receipt| {
-            S5CompactionMutationScheduledLaneOutput::from_schedule_step_receipt(
+            PhysicalIsolationCompactionMutationScheduledLaneOutput::from_schedule_step_receipt(
                 &binding,
                 schedule,
                 binding.compaction_actor_step_index(),
@@ -355,9 +363,9 @@ fn physical_authority_from_complete_closeout() -> PhysicalReadStabilityAuthority
 fn physical_authority_from_operation_digest_closeout_with_digest(
     digest: &str,
 ) -> PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(
-        closeout_fixture::recovery_completion_with_operation_digest(digest),
-    )
+    physical_authority_from_completion(closeout_fixture::recovery_completion_with_operation_digest(
+        digest,
+    ))
 }
 
 fn physical_authority_from_completion(
@@ -381,28 +389,5 @@ fn current_root_from_authority(authority: &PhysicalReadStabilityAuthority) -> Cu
 fn current_generation_page_reference(generation: u64) -> CurrentGenerationPhysicalReference {
     generation_counted_page_reference(generation)
         .require_current_generation(PhysicalGeneration::from_raw(generation).unwrap())
-        .unwrap()
-}
-
-fn generation_counted_page_reference(generation: u64) -> GenerationCountedPhysicalReference {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let segment = PhysicalSegmentId::from_raw(17).unwrap();
-    let page = PhysicalPageId::from_raw(23).unwrap();
-    let slot = PhysicalRecordSlot::from_raw(1).unwrap();
-    let cell = generations
-        .slot_cell(segment, page, slot)
-        .with_slot_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    GenerationCountedPhysicalReference::from_admitted_reference(references.admit_page_slot(cell))
-}
-
-fn root_publication_validation(root: u64, generation: u64) -> RootPublicationValidationWitness {
-    let generations = PhysicalGenerationAuthority::s1();
-    let references = PhysicalReferenceAuthority::s1();
-    let cell = generations
-        .root_publication_cell(PhysicalRootReference::from_raw(root).unwrap())
-        .with_root_publication_generation(PhysicalGeneration::from_raw(generation).unwrap());
-    references
-        .validate_root_publication(references.admit_root_publication(cell), cell)
         .unwrap()
 }

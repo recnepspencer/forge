@@ -158,9 +158,9 @@ pub use s2_readiness_facts::{
 pub use s3_physical_integrity_readiness::S3PhysicalIntegrityReadiness;
 pub use s5_simulation_harness_denial::{
     reject_copied_s5_simulation_harness_readiness_fields, reject_missing_s5_correctness_non_claim,
-    S5HarnessMaturityDependency, S5SimulationHarnessReadinessDenial,
+    PhysicalIsolationHarnessMaturityDependency, PhysicalIsolationHarnessReadinessDenial,
 };
-pub use s5_simulation_harness_readiness::S5CorrectnessNonClaimEvidence;
+pub use s5_simulation_harness_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 pub use s6_materialized_certification_closeout::{
     reject_materialized_s6_certification_as_runtime_authority,
     S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,

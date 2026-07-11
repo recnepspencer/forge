@@ -1,10 +1,10 @@
 use forge_store_physical_certification::{
-    S45ExistingHarnessSurface, S45HarnessSurfaceClassification,
+    ExistingSimulationHarnessSurface, SimulationHarnessSurfaceClassification,
 };
 
 fn main() {
-    let _ = S45ExistingHarnessSurface::new(
+    let _ = ExistingSimulationHarnessSurface::new(
         "forge-store-test-support::pretend_certification_meaning",
-        S45HarnessSurfaceClassification::CertificationMeaning,
+        SimulationHarnessSurfaceClassification::CertificationMeaning,
     );
 }

@@ -1,216 +1,236 @@
 use super::{
-    PhysicalSimulationHarnessCloseoutDenial, S45AcceptanceSuiteEvidenceSource,
-    S45AcceptanceSuiteExecutionProof, S45AcceptanceSuiteName, S45CloseoutCoverageReport,
-    S45HarnessDogfoodEvidence,
+    PhysicalSimulationHarnessCloseoutDenial, SimulationHarnessAcceptanceSuiteEvidenceSource,
+    SimulationHarnessAcceptanceSuiteExecutionProof, SimulationHarnessAcceptanceSuiteName,
+    SimulationHarnessCloseoutCoverageReport, SimulationHarnessDogfoodEvidence,
 };
 
-impl S45AcceptanceSuiteExecutionProof {
+impl SimulationHarnessAcceptanceSuiteExecutionProof {
     pub fn entry_boundary_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
-        from_named_suite_run(S45AcceptanceSuiteName::EntryBoundary, dogfood, coverage)
+        from_named_suite_run(
+            SimulationHarnessAcceptanceSuiteName::EntryBoundary,
+            dogfood,
+            coverage,
+        )
     }
 
     pub fn aspect_native_scenario_definition_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::AspectNativeScenarioDefinition,
+            SimulationHarnessAcceptanceSuiteName::AspectNativeScenarioDefinition,
             dogfood,
             coverage,
         )
     }
 
     pub fn simulation_plan_lowering_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::SimulationPlanLowering,
+            SimulationHarnessAcceptanceSuiteName::SimulationPlanLowering,
             dogfood,
             coverage,
         )
     }
 
     pub fn golden_path_authoring_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::GoldenPathAuthoring,
+            SimulationHarnessAcceptanceSuiteName::GoldenPathAuthoring,
             dogfood,
             coverage,
         )
     }
 
     pub fn production_driver_contract_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::ProductionDriverContract,
+            SimulationHarnessAcceptanceSuiteName::ProductionDriverContract,
             dogfood,
             coverage,
         )
     }
 
     pub fn yieldpoint_control_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
-        from_named_suite_run(S45AcceptanceSuiteName::YieldpointControl, dogfood, coverage)
+        from_named_suite_run(
+            SimulationHarnessAcceptanceSuiteName::YieldpointControl,
+            dogfood,
+            coverage,
+        )
     }
 
     pub fn deterministic_schedule_replay_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::DeterministicScheduleReplay,
+            SimulationHarnessAcceptanceSuiteName::DeterministicScheduleReplay,
             dogfood,
             coverage,
         )
     }
 
     pub fn fault_delivery_boundary_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::FaultDeliveryBoundary,
+            SimulationHarnessAcceptanceSuiteName::FaultDeliveryBoundary,
             dogfood,
             coverage,
         )
     }
 
     pub fn observer_oracle_separation_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::ObserverOracleSeparation,
+            SimulationHarnessAcceptanceSuiteName::ObserverOracleSeparation,
             dogfood,
             coverage,
         )
     }
 
     pub fn oracle_library_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
-        from_named_suite_run(S45AcceptanceSuiteName::OracleLibrary, dogfood, coverage)
+        from_named_suite_run(
+            SimulationHarnessAcceptanceSuiteName::OracleLibrary,
+            dogfood,
+            coverage,
+        )
     }
 
     pub fn counter_contract_profile_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::CounterContractProfile,
+            SimulationHarnessAcceptanceSuiteName::CounterContractProfile,
             dogfood,
             coverage,
         )
     }
 
     pub fn counter_strength_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
-        from_named_suite_run(S45AcceptanceSuiteName::CounterStrength, dogfood, coverage)
+        from_named_suite_run(
+            SimulationHarnessAcceptanceSuiteName::CounterStrength,
+            dogfood,
+            coverage,
+        )
     }
 
     pub fn production_backed_fixture_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::ProductionBackedFixture,
+            SimulationHarnessAcceptanceSuiteName::ProductionBackedFixture,
             dogfood,
             coverage,
         )
     }
 
     pub fn transcript_evidence_bundle_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::TranscriptEvidenceBundle,
+            SimulationHarnessAcceptanceSuiteName::TranscriptEvidenceBundle,
             dogfood,
             coverage,
         )
     }
 
     pub fn coverage_maturity_ladder_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::CoverageMaturityLadder,
+            SimulationHarnessAcceptanceSuiteName::CoverageMaturityLadder,
             dogfood,
             coverage,
         )
     }
 
     pub fn generated_coverage_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
-        from_named_suite_run(S45AcceptanceSuiteName::GeneratedCoverage, dogfood, coverage)
+        from_named_suite_run(
+            SimulationHarnessAcceptanceSuiteName::GeneratedCoverage,
+            dogfood,
+            coverage,
+        )
     }
 
     pub fn forbidden_shortcut_rejection_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::ForbiddenShortcutRejection,
+            SimulationHarnessAcceptanceSuiteName::ForbiddenShortcutRejection,
             dogfood,
             coverage,
         )
     }
 
     pub fn harness_dogfood_vertical_slice_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::HarnessDogfoodVerticalSlice,
+            SimulationHarnessAcceptanceSuiteName::HarnessDogfoodVerticalSlice,
             dogfood,
             coverage,
         )
     }
 
     pub fn extension_slot_containment_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::ExtensionSlotContainment,
+            SimulationHarnessAcceptanceSuiteName::ExtensionSlotContainment,
             dogfood,
             coverage,
         )
     }
 
     pub fn foundational_proof_simulation_evidence_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::FoundationalProofSimulationEvidence,
+            SimulationHarnessAcceptanceSuiteName::FoundationalProofSimulationEvidence,
             dogfood,
             coverage,
         )
     }
 
-    pub fn s5_simulation_harness_readiness_suite_run(
-        dogfood: &S45HarnessDogfoodEvidence,
-        coverage: &S45CloseoutCoverageReport,
+    pub fn physical_isolation_simulation_harness_readiness_suite_run(
+        dogfood: &SimulationHarnessDogfoodEvidence,
+        coverage: &SimulationHarnessCloseoutCoverageReport,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         from_named_suite_run(
-            S45AcceptanceSuiteName::S5SimulationHarnessReadiness,
+            SimulationHarnessAcceptanceSuiteName::PhysicalIsolationHarnessReadiness,
             dogfood,
             coverage,
         )
@@ -218,12 +238,13 @@ impl S45AcceptanceSuiteExecutionProof {
 }
 
 fn from_named_suite_run(
-    suite: S45AcceptanceSuiteName,
-    dogfood: &S45HarnessDogfoodEvidence,
-    coverage: &S45CloseoutCoverageReport,
-) -> Result<S45AcceptanceSuiteExecutionProof, PhysicalSimulationHarnessCloseoutDenial> {
-    S45AcceptanceSuiteExecutionProof::from_closeout_suite_run(
-        S45AcceptanceSuiteEvidenceSource::for_suite(suite),
+    suite: SimulationHarnessAcceptanceSuiteName,
+    dogfood: &SimulationHarnessDogfoodEvidence,
+    coverage: &SimulationHarnessCloseoutCoverageReport,
+) -> Result<SimulationHarnessAcceptanceSuiteExecutionProof, PhysicalSimulationHarnessCloseoutDenial>
+{
+    SimulationHarnessAcceptanceSuiteExecutionProof::from_closeout_suite_run(
+        SimulationHarnessAcceptanceSuiteEvidenceSource::for_suite(suite),
         dogfood,
         coverage,
     )

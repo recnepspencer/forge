@@ -7,12 +7,12 @@ use forge_store_physical_backend::{AccessPolicyViolationKind, AdmittedBackendCap
 
 use crate::{
     certify_s6_backend_capability_admission, certify_s6_background_pacing,
-    certify_s6_foreground_reservation, S6AccessPolicyEvidenceOutcomeKind,
-    S6AccessPolicyEvidenceRow, S6BackendCapabilityAdmissionCertificationEvidence,
-    S6BackendQualificationMatrixCertification, S6BackgroundPacingCertificationEvidence,
-    S6CertificationMaterializationDenial, S6CertifiedQueueExecutionEvidence,
-    S6FlushDurabilityEvidenceRow, S6ForegroundReservationCertificationEvidence,
-    S6IoPressureHarnessCloseoutEvidence, S6LatencyInterferenceEvidence,
+    certify_s6_foreground_reservation, IoPressureHarnessCloseoutEvidence,
+    S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow,
+    S6BackendCapabilityAdmissionCertificationEvidence, S6BackendQualificationMatrixCertification,
+    S6BackgroundPacingCertificationEvidence, S6CertificationMaterializationDenial,
+    S6CertifiedQueueExecutionEvidence, S6FlushDurabilityEvidenceRow,
+    S6ForegroundReservationCertificationEvidence, S6LatencyInterferenceEvidence,
     S6MaterializedCounterStrength,
 };
 
@@ -49,7 +49,7 @@ pub struct StoreOwnedS6CertificationMaterializationSources {
     access_policy_rows: Vec<S6AccessPolicyEvidenceRow>,
     post_admission_violations: Vec<S6PostAdmissionViolationEvidenceRow>,
     flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
-    harness_closeout: S6IoPressureHarnessCloseoutEvidence,
+    harness_closeout: IoPressureHarnessCloseoutEvidence,
     qualification_matrix: S6BackendQualificationMatrixCertification,
     latency_interference: Option<S6LatencyInterferenceEvidence>,
 }
@@ -65,7 +65,7 @@ pub(crate) struct S6CertificationEvidenceSources {
     access_policy_rows: Vec<S6AccessPolicyEvidenceRow>,
     post_admission_violations: Vec<S6PostAdmissionViolationEvidenceRow>,
     flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
-    harness_closeout: S6IoPressureHarnessCloseoutEvidence,
+    harness_closeout: IoPressureHarnessCloseoutEvidence,
     qualification_matrix: S6BackendQualificationMatrixCertification,
     latency_interference: Option<S6LatencyInterferenceEvidence>,
 }
@@ -134,7 +134,7 @@ impl StoreOwnedS6CertificationMaterializationSources {
         secure_io_preservation: SecureIoPreservationReceipt,
         access_policy_rows: Vec<S6AccessPolicyEvidenceRow>,
         flush_durability: Vec<S6FlushDurabilityEvidenceRow>,
-        harness_closeout: S6IoPressureHarnessCloseoutEvidence,
+        harness_closeout: IoPressureHarnessCloseoutEvidence,
         qualification_matrix: S6BackendQualificationMatrixCertification,
         latency_interference: Option<S6LatencyInterferenceEvidence>,
     ) -> Result<Self, S6CertificationMaterializationDenial> {
@@ -307,7 +307,7 @@ impl S6CertificationEvidenceSources {
         &self.flush_durability
     }
 
-    pub const fn harness_closeout(&self) -> &S6IoPressureHarnessCloseoutEvidence {
+    pub const fn harness_closeout(&self) -> &IoPressureHarnessCloseoutEvidence {
         &self.harness_closeout
     }
 

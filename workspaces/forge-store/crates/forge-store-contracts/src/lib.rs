@@ -71,7 +71,9 @@ pub use s3_readiness_recap::{
     BufferPoolAuthorityRecap, PhysicalAuthorityRecap, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind,
 };
-pub use s6_background_pressure::{S6BackgroundPressureDeclaration, S6BackgroundPressureKind};
+pub use s6_background_pressure::{
+    IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
+};
 pub use s6_queue_producer::{S6QueueProducerKind, S6QueueProducerResourceShape};
 pub use s8_runtime_lifecycle::{
     S8RuntimeCase, S8RuntimeExactCounterEvidence, S8RuntimeExecutionIdentity, S8RuntimeOutcome,

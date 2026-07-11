@@ -1,6 +1,7 @@
 use crate::{
-    CoverageGapDenial, PhysicalInterleavingSchedule, PhysicalScenarioActorRole,
-    PhysicalSimulationPlan, S5CompactionMutationCoverageRow, S5CompactionMutationKind,
+    CoverageGapDenial, PhysicalInterleavingSchedule,
+    PhysicalIsolationCompactionMutationCoverageRow, PhysicalIsolationCompactionMutationKind,
+    PhysicalScenarioActorRole, PhysicalSimulationPlan,
 };
 use forge_store_physical_isolation::{
     CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
@@ -8,15 +9,15 @@ use forge_store_physical_isolation::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CompactionMutationObservationSet {
+pub struct PhysicalIsolationCompactionMutationObservationSet {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     origin: CompactionMutationLaneOrigin,
-    rows: Vec<S5CompactionMutationCoverageRow>,
+    rows: Vec<PhysicalIsolationCompactionMutationCoverageRow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CompactionMutationReplayBinding {
+pub struct PhysicalIsolationCompactionMutationReplayBinding {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     origin: CompactionMutationLaneOrigin,
@@ -24,23 +25,23 @@ pub struct S5CompactionMutationReplayBinding {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CompactionMutationLaneExecution {
+pub struct PhysicalIsolationCompactionMutationLaneExecution {
     origin: CompactionMutationLaneOrigin,
-    row: S5CompactionMutationCoverageRow,
+    row: PhysicalIsolationCompactionMutationCoverageRow,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CompactionMutationScheduledLaneOutput {
+pub struct PhysicalIsolationCompactionMutationScheduledLaneOutput {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     compaction_actor_step_index: usize,
-    execution: S5CompactionMutationLaneExecution,
+    execution: PhysicalIsolationCompactionMutationLaneExecution,
 }
 
-impl S5CompactionMutationObservationSet {
+impl PhysicalIsolationCompactionMutationObservationSet {
     pub fn from_scheduled_lanes(
-        binding: S5CompactionMutationReplayBinding,
-        lanes: impl IntoIterator<Item = S5CompactionMutationScheduledLaneOutput>,
+        binding: PhysicalIsolationCompactionMutationReplayBinding,
+        lanes: impl IntoIterator<Item = PhysicalIsolationCompactionMutationScheduledLaneOutput>,
     ) -> Result<Self, CoverageGapDenial> {
         let rows = require_complete_origin_bound_rows(&binding, lanes)?;
         Ok(Self {
@@ -59,7 +60,7 @@ impl S5CompactionMutationObservationSet {
         &self.schedule_identity
     }
 
-    pub fn rows(&self) -> &[S5CompactionMutationCoverageRow] {
+    pub fn rows(&self) -> &[PhysicalIsolationCompactionMutationCoverageRow] {
         &self.rows
     }
 
@@ -68,14 +69,14 @@ impl S5CompactionMutationObservationSet {
     }
 }
 
-impl S5CompactionMutationReplayBinding {
+impl PhysicalIsolationCompactionMutationReplayBinding {
     pub fn from_plan_and_schedule(
         plan: &PhysicalSimulationPlan,
         schedule: &PhysicalInterleavingSchedule,
     ) -> Result<Self, CoverageGapDenial> {
         let compaction_actor_step_index = require_schedule_matches_compaction_plan(plan, schedule)?;
         let origin = plan
-            .s5_compaction_mutation_origin()
+            .physical_isolation_compaction_mutation_origin()
             .cloned()
             .ok_or(CoverageGapDenial::MissingMutationResult)?;
         Ok(Self {
@@ -95,20 +96,20 @@ impl S5CompactionMutationReplayBinding {
     }
 }
 
-impl S5CompactionMutationLaneExecution {
+impl PhysicalIsolationCompactionMutationLaneExecution {
     pub fn from_operation_receipt(receipt: CompactionMutationLaneReceipt) -> Self {
         let origin = receipt.origin().clone();
         Self {
             origin,
-            row: S5CompactionMutationCoverageRow::observed(
-                s5_kind_from_receipt_kind(receipt.kind()),
+            row: PhysicalIsolationCompactionMutationCoverageRow::observed(
+                physical_isolation_kind_from_receipt_kind(receipt.kind()),
                 receipt.denial(),
             )
             .expect("receipt kind and denial are admitted by physical-isolation"),
         }
     }
 
-    pub const fn kind(&self) -> S5CompactionMutationKind {
+    pub const fn kind(&self) -> PhysicalIsolationCompactionMutationKind {
         self.row.kind()
     }
 
@@ -121,9 +122,9 @@ impl S5CompactionMutationLaneExecution {
     }
 }
 
-impl S5CompactionMutationScheduledLaneOutput {
+impl PhysicalIsolationCompactionMutationScheduledLaneOutput {
     pub fn from_schedule_step_receipt(
-        binding: &S5CompactionMutationReplayBinding,
+        binding: &PhysicalIsolationCompactionMutationReplayBinding,
         schedule: &PhysicalInterleavingSchedule,
         actor_step_index: usize,
         receipt: CompactionMutationLaneReceipt,
@@ -133,11 +134,13 @@ impl S5CompactionMutationScheduledLaneOutput {
             plan_identity: binding.plan_identity,
             schedule_identity: binding.schedule_identity,
             compaction_actor_step_index: actor_step_index,
-            execution: S5CompactionMutationLaneExecution::from_operation_receipt(receipt),
+            execution: PhysicalIsolationCompactionMutationLaneExecution::from_operation_receipt(
+                receipt,
+            ),
         })
     }
 
-    pub const fn kind(&self) -> S5CompactionMutationKind {
+    pub const fn kind(&self) -> PhysicalIsolationCompactionMutationKind {
         self.execution.kind()
     }
 
@@ -150,25 +153,27 @@ impl S5CompactionMutationScheduledLaneOutput {
     }
 }
 
-fn s5_kind_from_receipt_kind(kind: CompactionMutationLaneReceiptKind) -> S5CompactionMutationKind {
+fn physical_isolation_kind_from_receipt_kind(
+    kind: CompactionMutationLaneReceiptKind,
+) -> PhysicalIsolationCompactionMutationKind {
     match kind {
         CompactionMutationLaneReceiptKind::InPlaceOverwriteDenied => {
-            S5CompactionMutationKind::InPlaceOverwriteDenied
+            PhysicalIsolationCompactionMutationKind::InPlaceOverwriteDenied
         }
         CompactionMutationLaneReceiptKind::EarlyReclaimDenied => {
-            S5CompactionMutationKind::EarlyReclaimDenied
+            PhysicalIsolationCompactionMutationKind::EarlyReclaimDenied
         }
         CompactionMutationLaneReceiptKind::StaleEpochReuseDenied => {
-            S5CompactionMutationKind::StaleEpochReuseDenied
+            PhysicalIsolationCompactionMutationKind::StaleEpochReuseDenied
         }
         CompactionMutationLaneReceiptKind::BackendResidueCandidateSelectionDenied => {
-            S5CompactionMutationKind::BackendResidueCandidateSelectionDenied
+            PhysicalIsolationCompactionMutationKind::BackendResidueCandidateSelectionDenied
         }
         CompactionMutationLaneReceiptKind::LatchHierarchyInversionDenied => {
-            S5CompactionMutationKind::LatchHierarchyInversionDenied
+            PhysicalIsolationCompactionMutationKind::LatchHierarchyInversionDenied
         }
         CompactionMutationLaneReceiptKind::MixedRootReadDenied => {
-            S5CompactionMutationKind::MixedRootReadDenied
+            PhysicalIsolationCompactionMutationKind::MixedRootReadDenied
         }
     }
 }
@@ -185,13 +190,14 @@ fn require_schedule_matches_compaction_plan(
         .actor_steps()
         .iter()
         .position(|step| {
-            is_s5_mutation_actor(step.actor_role()) && step.yieldpoint() == declared_yieldpoint
+            is_physical_isolation_mutation_actor(step.actor_role())
+                && step.yieldpoint() == declared_yieldpoint
         })
         .ok_or(CoverageGapDenial::MissingMutationResult)
 }
 
 fn require_schedule_step_matches_binding(
-    binding: &S5CompactionMutationReplayBinding,
+    binding: &PhysicalIsolationCompactionMutationReplayBinding,
     schedule: &PhysicalInterleavingSchedule,
     actor_step_index: usize,
 ) -> Result<(), CoverageGapDenial> {
@@ -203,12 +209,12 @@ fn require_schedule_step_matches_binding(
     schedule
         .actor_steps()
         .get(actor_step_index)
-        .filter(|step| is_s5_mutation_actor(step.actor_role()))
+        .filter(|step| is_physical_isolation_mutation_actor(step.actor_role()))
         .map(|_| ())
         .ok_or(CoverageGapDenial::MissingMutationResult)
 }
 
-fn is_s5_mutation_actor(role: PhysicalScenarioActorRole) -> bool {
+fn is_physical_isolation_mutation_actor(role: PhysicalScenarioActorRole) -> bool {
     matches!(
         role,
         PhysicalScenarioActorRole::CompactionDriver
@@ -220,9 +226,9 @@ fn is_s5_mutation_actor(role: PhysicalScenarioActorRole) -> bool {
 }
 
 fn require_complete_origin_bound_rows(
-    binding: &S5CompactionMutationReplayBinding,
-    lanes: impl IntoIterator<Item = S5CompactionMutationScheduledLaneOutput>,
-) -> Result<Vec<S5CompactionMutationCoverageRow>, CoverageGapDenial> {
+    binding: &PhysicalIsolationCompactionMutationReplayBinding,
+    lanes: impl IntoIterator<Item = PhysicalIsolationCompactionMutationScheduledLaneOutput>,
+) -> Result<Vec<PhysicalIsolationCompactionMutationCoverageRow>, CoverageGapDenial> {
     let lanes = lanes.into_iter().collect::<Vec<_>>();
     if lanes.iter().any(|lane| {
         lane.plan_identity != binding.plan_identity
@@ -236,10 +242,10 @@ fn require_complete_origin_bound_rows(
         .into_iter()
         .map(|lane| lane.execution.row)
         .collect::<Vec<_>>();
-    if rows.len() != S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.len() {
+    if rows.len() != PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.len() {
         return Err(CoverageGapDenial::MissingMutationResult);
     }
-    for required in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
+    for required in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         if rows.iter().filter(|row| row.kind() == required).count() != 1 {
             return Err(CoverageGapDenial::MissingMutationResult);
         }

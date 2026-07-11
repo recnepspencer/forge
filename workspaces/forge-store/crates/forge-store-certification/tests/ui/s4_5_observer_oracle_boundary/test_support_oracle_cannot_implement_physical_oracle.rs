@@ -11,7 +11,7 @@ impl PhysicalProofOracle for TestSupportOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S5ReadinessShape
+        OracleFamilyKind::PhysicalIsolationReadinessShape
     }
 
     fn judge_basis(

@@ -1,5 +1,5 @@
 #[test]
-fn s5_1_security_scope_admission_rejects_forged_or_lower_authority_witnesses() {
+fn security_scope_admission_rejects_forged_or_lower_authority_witnesses() {
     let repo_root = repo_root();
     ensure_compile_fail_fixture_support_crates_are_linked();
     build_compile_fail_dependencies(&repo_root);
@@ -251,7 +251,7 @@ fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
         manifest_dir
             .join("tests")
             .join("ui")
-            .join("s5_1_security_scope_admission")
+            .join("security_scope_admission")
             .join(fixture_name),
         source_dir.join("main.rs"),
     )

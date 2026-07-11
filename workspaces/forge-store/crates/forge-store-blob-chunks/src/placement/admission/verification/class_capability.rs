@@ -1,7 +1,7 @@
 use forge_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityKind, CapabilityEvidenceClass,
 };
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use crate::placement::admission::{
     basis::BlobPlacementReachabilityBasis, BlobPlacementAdmissionDenial, BlobPlacementClass,
@@ -75,7 +75,7 @@ pub(crate) fn verify_class_backend_capability(
                 })?;
             let state = intent
                 .cold_state()
-                .unwrap_or(S7ColdPlacementState::ColdUnavailable);
+                .unwrap_or(ColdPlacementState::ColdUnavailable);
             if !state.permits_immediate_publication() {
                 return Err(BlobPlacementAdmissionDenial::ColdChunkUnavailable {
                     state,

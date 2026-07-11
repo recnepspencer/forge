@@ -15,7 +15,7 @@ use forge_store_physical_certification::{
     OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
     PhysicalEvidenceBundleDenial, PhysicalProofOracleKind, PhysicalProofOracleVerdictKind,
     PhysicalScenarioActorRole, PhysicalScenarioIntent, PhysicalSimulationScenarioFamily,
-    S45HarnessBoundaryDenial, ShortcutRejectionBoundary, ShortcutRejectionObservationKind,
+    ShortcutRejectionBoundary, ShortcutRejectionObservationKind, SimulationHarnessBoundaryDenial,
     SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionDenial,
     SyntheticHarnessShortcutRejectionReport,
 };
@@ -27,7 +27,7 @@ fn forbidden_shortcut_report_requires_all_store_owned_denials() {
         complete_shortcut_denial_receipts(),
     )
     .unwrap()
-    .require_all_roadmap2_shortcuts_denied()
+    .require_all_certification_shortcuts_denied()
     .unwrap();
 
     assert!(report.all_required_shortcuts_denied());
@@ -57,7 +57,7 @@ fn same_shortcut_kind_from_wrong_boundary_cannot_satisfy_required_boundary() {
         .retain(|receipt| receipt.boundary() != ShortcutRejectionBoundary::TranscriptCopiedFields);
     receipts.push(
         shortcut_denial_from_harness_boundary_denial(
-            S45HarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
+            SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
         )
         .unwrap(),
     );
@@ -195,7 +195,7 @@ fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialRece
 #[test]
 fn harness_boundary_denials_can_feed_shortcut_receipts_without_owning_evidence() {
     let copied = shortcut_denial_from_harness_boundary_denial(
-        S45HarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
+        SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
     )
     .unwrap();
     let log = shortcut_denial_from_oracle_denial(log_only_oracle_attempt().unwrap_err()).unwrap();

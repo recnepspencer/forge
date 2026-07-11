@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum S6BackgroundPressureKind {
+pub enum IoPressureBackgroundPressureKind {
     CompactionRewrite,
     CheckpointFlush,
     ScrubScan,
@@ -12,8 +12,8 @@ pub enum S6BackgroundPressureKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct S6BackgroundPressureDeclaration {
-    kind: S6BackgroundPressureKind,
+pub struct IoPressureBackgroundPressureDeclaration {
+    kind: IoPressureBackgroundPressureKind,
     queue_slots: u64,
     bytes: u64,
     flush_permits: u64,
@@ -26,58 +26,59 @@ pub struct S6BackgroundPressureDeclaration {
     reclaim_permits: u64,
 }
 
-impl S6BackgroundPressureDeclaration {
+impl IoPressureBackgroundPressureDeclaration {
     pub const fn compaction_rewrite() -> Self {
-        Self::new(S6BackgroundPressureKind::CompactionRewrite)
+        Self::new(IoPressureBackgroundPressureKind::CompactionRewrite)
             .with_bytes(4096)
             .with_write_back_pages(1)
             .with_dirty_pages(1)
     }
 
     pub const fn checkpoint_flush() -> Self {
-        Self::new(S6BackgroundPressureKind::CheckpointFlush)
+        Self::new(IoPressureBackgroundPressureKind::CheckpointFlush)
             .with_flush_permits(1)
             .with_sync_debt_units(1)
             .with_write_back_pages(1)
     }
 
     pub const fn scrub_scan() -> Self {
-        Self::new(S6BackgroundPressureKind::ScrubScan)
+        Self::new(IoPressureBackgroundPressureKind::ScrubScan)
             .with_bytes(4096)
             .with_read_ahead_pages(1)
     }
 
     pub const fn replication_prep_read(read_ahead_pages: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::ReplicationPrepRead)
+        Self::new(IoPressureBackgroundPressureKind::ReplicationPrepRead)
             .with_read_ahead_pages(read_ahead_pages)
     }
 
     pub const fn blob_ingest_pressure(bytes: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::BlobIngestPressure).with_bytes(bytes)
+        Self::new(IoPressureBackgroundPressureKind::BlobIngestPressure).with_bytes(bytes)
     }
 
     pub const fn blob_migration_pressure(bytes: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::BlobMigrationPressure)
+        Self::new(IoPressureBackgroundPressureKind::BlobMigrationPressure)
             .with_bytes(bytes)
             .with_reclaim_permits(1)
     }
 
     pub const fn backup_prep_read(bytes: u64, read_ahead_pages: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::BackupPrepRead)
+        Self::new(IoPressureBackgroundPressureKind::BackupPrepRead)
             .with_bytes(bytes)
             .with_read_ahead_pages(read_ahead_pages)
     }
 
     pub const fn repair_scan(read_ahead_pages: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::RepairScan).with_read_ahead_pages(read_ahead_pages)
-    }
-
-    pub const fn verification_pressure(read_ahead_pages: u64) -> Self {
-        Self::new(S6BackgroundPressureKind::VerificationPressure)
+        Self::new(IoPressureBackgroundPressureKind::RepairScan)
             .with_read_ahead_pages(read_ahead_pages)
     }
 
-    pub const fn kind(self) -> S6BackgroundPressureKind {
+    pub const fn verification_pressure(read_ahead_pages: u64) -> Self {
+        Self::new(IoPressureBackgroundPressureKind::VerificationPressure)
+            .with_read_ahead_pages(read_ahead_pages)
+    }
+
+    pub const fn kind(self) -> IoPressureBackgroundPressureKind {
         self.kind
     }
 
@@ -121,7 +122,7 @@ impl S6BackgroundPressureDeclaration {
         self.reclaim_permits
     }
 
-    const fn new(kind: S6BackgroundPressureKind) -> Self {
+    const fn new(kind: IoPressureBackgroundPressureKind) -> Self {
         Self {
             kind,
             queue_slots: 1,

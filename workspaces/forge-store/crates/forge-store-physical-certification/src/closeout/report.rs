@@ -1,35 +1,39 @@
-use crate::{AcceptedS5SimulationHarnessReadiness, GeneratedCoverageMatrix};
+use crate::{AcceptedPhysicalIsolationHarnessReadiness, GeneratedCoverageMatrix};
 
-use super::{lanes_from_closeout_evidence, required_s45_lanes, S45AcceptanceSuiteMap};
 use super::{
-    FutureHarnessExtensionSlotInventory, S45HarnessDogfoodEvidence, S45HarnessDogfoodReport,
+    lanes_from_closeout_evidence, required_simulation_harness_lanes,
+    SimulationHarnessAcceptanceSuiteMap,
+};
+use super::{
+    FutureHarnessExtensionSlotInventory, SimulationHarnessDogfoodEvidence,
+    SimulationHarnessDogfoodReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45CloseoutCoverageReport {
+pub struct SimulationHarnessCloseoutCoverageReport {
     s4_recovery_matrix: GeneratedCoverageMatrix,
     shortcut_rejection_matrix: GeneratedCoverageMatrix,
-    s5_readiness_shape_probe_matrix: GeneratedCoverageMatrix,
+    physical_isolation_readiness_shape_probe_matrix: GeneratedCoverageMatrix,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalSimulationHarnessCloseoutReport {
-    dogfood: S45HarnessDogfoodReport,
-    dogfood_evidence: S45HarnessDogfoodEvidence,
-    coverage: S45CloseoutCoverageReport,
-    acceptance: S45AcceptanceSuiteMap,
-    s5_readiness: AcceptedS5SimulationHarnessReadiness,
+    dogfood: SimulationHarnessDogfoodReport,
+    dogfood_evidence: SimulationHarnessDogfoodEvidence,
+    coverage: SimulationHarnessCloseoutCoverageReport,
+    acceptance: SimulationHarnessAcceptanceSuiteMap,
+    physical_isolation_readiness: AcceptedPhysicalIsolationHarnessReadiness,
     future_extension_slots: FutureHarnessExtensionSlotInventory,
     shortcut_denial_count: usize,
 }
 
-impl S45CloseoutCoverageReport {
-    pub fn from_dogfood_evidence(dogfood_evidence: &S45HarnessDogfoodEvidence) -> Self {
+impl SimulationHarnessCloseoutCoverageReport {
+    pub fn from_dogfood_evidence(dogfood_evidence: &SimulationHarnessDogfoodEvidence) -> Self {
         Self {
             s4_recovery_matrix: dogfood_evidence.s4_recovery().coverage().clone(),
             shortcut_rejection_matrix: dogfood_evidence.shortcut_rejection().coverage().clone(),
-            s5_readiness_shape_probe_matrix: dogfood_evidence
-                .s5_readiness_shape_probe()
+            physical_isolation_readiness_shape_probe_matrix: dogfood_evidence
+                .physical_isolation_readiness_shape_probe()
                 .coverage()
                 .clone(),
         }
@@ -43,12 +47,14 @@ impl S45CloseoutCoverageReport {
         &self.shortcut_rejection_matrix
     }
 
-    pub const fn s5_readiness_shape_probe_matrix(&self) -> &GeneratedCoverageMatrix {
-        &self.s5_readiness_shape_probe_matrix
+    pub const fn physical_isolation_readiness_shape_probe_matrix(
+        &self,
+    ) -> &GeneratedCoverageMatrix {
+        &self.physical_isolation_readiness_shape_probe_matrix
     }
 
-    pub fn all_required_s45_lanes_are_satisfied(&self) -> bool {
-        required_s45_lanes()
+    pub fn all_required_simulation_harness_lanes_are_satisfied(&self) -> bool {
+        required_simulation_harness_lanes()
             .into_iter()
             .all(|lane| lanes_from_closeout_evidence(self).contains(&lane))
     }
@@ -57,18 +63,18 @@ impl S45CloseoutCoverageReport {
         [
             &self.s4_recovery_matrix,
             &self.shortcut_rejection_matrix,
-            &self.s5_readiness_shape_probe_matrix,
+            &self.physical_isolation_readiness_shape_probe_matrix,
         ]
     }
 }
 
 impl PhysicalSimulationHarnessCloseoutReport {
     pub(crate) const fn new(
-        dogfood: S45HarnessDogfoodReport,
-        dogfood_evidence: S45HarnessDogfoodEvidence,
-        coverage: S45CloseoutCoverageReport,
-        acceptance: S45AcceptanceSuiteMap,
-        s5_readiness: AcceptedS5SimulationHarnessReadiness,
+        dogfood: SimulationHarnessDogfoodReport,
+        dogfood_evidence: SimulationHarnessDogfoodEvidence,
+        coverage: SimulationHarnessCloseoutCoverageReport,
+        acceptance: SimulationHarnessAcceptanceSuiteMap,
+        physical_isolation_readiness: AcceptedPhysicalIsolationHarnessReadiness,
         future_extension_slots: FutureHarnessExtensionSlotInventory,
         shortcut_denial_count: usize,
     ) -> Self {
@@ -77,30 +83,30 @@ impl PhysicalSimulationHarnessCloseoutReport {
             dogfood_evidence,
             coverage,
             acceptance,
-            s5_readiness,
+            physical_isolation_readiness,
             future_extension_slots,
             shortcut_denial_count,
         }
     }
 
-    pub const fn dogfood(&self) -> &S45HarnessDogfoodReport {
+    pub const fn dogfood(&self) -> &SimulationHarnessDogfoodReport {
         &self.dogfood
     }
 
-    pub const fn dogfood_evidence(&self) -> &S45HarnessDogfoodEvidence {
+    pub const fn dogfood_evidence(&self) -> &SimulationHarnessDogfoodEvidence {
         &self.dogfood_evidence
     }
 
-    pub const fn coverage(&self) -> &S45CloseoutCoverageReport {
+    pub const fn coverage(&self) -> &SimulationHarnessCloseoutCoverageReport {
         &self.coverage
     }
 
-    pub const fn acceptance(&self) -> &S45AcceptanceSuiteMap {
+    pub const fn acceptance(&self) -> &SimulationHarnessAcceptanceSuiteMap {
         &self.acceptance
     }
 
-    pub const fn s5_readiness(&self) -> &AcceptedS5SimulationHarnessReadiness {
-        &self.s5_readiness
+    pub const fn physical_isolation_readiness(&self) -> &AcceptedPhysicalIsolationHarnessReadiness {
+        &self.physical_isolation_readiness
     }
 
     pub const fn future_extension_slots(&self) -> &FutureHarnessExtensionSlotInventory {

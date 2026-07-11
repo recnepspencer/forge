@@ -1,11 +1,11 @@
-use super::Roadmap2CoverageRegistry;
+use super::PhysicalCoverageRegistry;
 use crate::SimulationReplayBundle;
 
 use super::super::{
     CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, PhysicalCoverageMatrixRow,
 };
 
-impl Roadmap2CoverageRegistry {
+impl PhysicalCoverageRegistry {
     pub fn register_transcript(
         mut self,
         replay: &SimulationReplayBundle,

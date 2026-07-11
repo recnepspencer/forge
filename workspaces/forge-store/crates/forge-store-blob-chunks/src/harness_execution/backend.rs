@@ -56,7 +56,7 @@ pub(super) fn admitted_backend() -> AdmittedBackendCapabilityWitness {
 }
 
 pub(super) fn physical_payload_for_bytes(bytes: &[u8]) -> PhysicalChunkPayloadIntegrityWitness {
-    PhysicalChunkChecksumAuthority::s7_canonical()
+    PhysicalChunkChecksumAuthority::canonical_blob_checksum()
         .admit_store_payload(record_receipt(bytes))
         .expect("payload")
 }

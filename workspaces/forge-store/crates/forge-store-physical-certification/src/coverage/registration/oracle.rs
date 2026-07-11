@@ -1,11 +1,11 @@
-use super::Roadmap2CoverageRegistry;
+use super::PhysicalCoverageRegistry;
 use crate::{PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind};
 
 use super::super::{
     CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, PhysicalCoverageMatrixRow,
 };
 
-impl Roadmap2CoverageRegistry {
+impl PhysicalCoverageRegistry {
     pub fn register_required_oracle_families_from_plan(
         mut self,
     ) -> Result<Self, CoverageGapDenial> {

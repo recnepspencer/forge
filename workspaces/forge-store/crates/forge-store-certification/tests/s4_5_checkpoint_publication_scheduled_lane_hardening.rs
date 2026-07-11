@@ -14,11 +14,13 @@ use checkpoint_oracle_support::{
 use forge_store_physical_certification::{
     reject_same_run_self_comparison_evidence_attempt, reject_terminal_json_evidence_attempt,
     shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_terminal_projection_denial,
-    ObservationDenial, PhysicalScenarioActorRole, PhysicalSimulationObserver,
-    RecoveryOutcomeObservation, S5CheckpointPublicationCrashLaneOutput,
-    S5CheckpointPublicationLaneBinding, S5CheckpointPublicationRecoveryOutcomeLaneOutput,
-    S5CheckpointPublicationScheduledLaneOutput, S5CheckpointPublicationShortcutDenialLaneOutput,
-    S5CheckpointPublicationShortcutRejectionOutput, ShortcutRejectionObservationKind,
+    ObservationDenial, PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    PhysicalIsolationCheckpointPublicationLaneBinding,
+    PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput, PhysicalScenarioActorRole,
+    PhysicalSimulationObserver, RecoveryOutcomeObservation, ShortcutRejectionObservationKind,
 };
 
 #[test]
@@ -41,7 +43,7 @@ fn checkpoint_publication_lane_rejects_unrelated_schedule() {
     let recovery_plan = lower_recovery_plan();
     let recovery_schedule = schedule(&recovery_plan);
 
-    let denial = S5CheckpointPublicationLaneBinding::from_plan_and_schedule(
+    let denial = PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
         &checkpoint_plan,
         &recovery_schedule,
     )
@@ -58,10 +60,11 @@ fn copied_checkpoint_report_is_denied_after_schedule_binding() {
     let plan = lower_checkpoint_plan();
     let schedule = schedule(&plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule).unwrap();
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule)
+            .unwrap();
 
     let denial =
-        S5CheckpointPublicationScheduledLaneOutput::reject_copied_checkpoint_report_attempt(
+        PhysicalIsolationCheckpointPublicationScheduledLaneOutput::reject_copied_checkpoint_report_attempt(
             &binding,
             &schedule,
             binding.checkpoint_actor_step_index(),
@@ -91,10 +94,11 @@ fn scheduled_checkpoint_shortcut_lane_rejects_wrong_checkpoint_origin() {
     let plan = lower_checkpoint_shortcut_plan();
     let schedule = schedule(&plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule).unwrap();
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule)
+            .unwrap();
     let denial_output = same_run_shortcut_denial_output(&binding, &schedule);
 
-    let denial = S5CheckpointPublicationShortcutRejectionOutput::from_scheduled_same_run_denial(
+    let denial = PhysicalIsolationCheckpointPublicationShortcutRejectionOutput::from_scheduled_same_run_denial(
         &binding,
         &schedule,
         binding.checkpoint_actor_step_index(),
@@ -115,21 +119,23 @@ fn scheduled_checkpoint_shortcut_lane_rejects_missing_shortcut_actor_step() {
     let plan = lower_checkpoint_plan();
     let schedule = schedule(&plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule).unwrap();
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule)
+            .unwrap();
     let receipt = shortcut_denial_from_evidence_bundle_denial(
         reject_same_run_self_comparison_evidence_attempt().unwrap_err(),
     )
     .unwrap();
 
-    let denial = S5CheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
-        &binding,
-        &schedule,
-        binding.checkpoint_actor_step_index(),
-        &checkpoint_origin(),
-        checkpoint_evidence(),
-        receipt,
-    )
-    .unwrap_err();
+    let denial =
+        PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
+            &binding,
+            &schedule,
+            binding.checkpoint_actor_step_index(),
+            &checkpoint_origin(),
+            checkpoint_evidence(),
+            receipt,
+        )
+        .unwrap_err();
 
     assert_eq!(
         denial,
@@ -141,7 +147,7 @@ fn scheduled_checkpoint_shortcut_lane_rejects_missing_shortcut_actor_step() {
 fn checkpoint_crash_lane_rejects_recovery_driver_without_fresh_runtime_replay() {
     let checkpoint_plan = lower_checkpoint_crash_replay_plan();
     let checkpoint_schedule = schedule(&checkpoint_plan);
-    let binding = S5CheckpointPublicationLaneBinding::from_plan_and_schedule(
+    let binding = PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
         &checkpoint_plan,
         &checkpoint_schedule,
     )
@@ -150,7 +156,7 @@ fn checkpoint_crash_lane_rejects_recovery_driver_without_fresh_runtime_replay() 
     let recovery_trace = recovery_trace(&recovery_plan);
 
     let denial =
-        S5CheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
+        PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
             &recovery_plan,
@@ -175,7 +181,7 @@ fn checkpoint_crash_lane_rejects_recovery_driver_without_fresh_runtime_replay() 
 fn checkpoint_crash_lane_rejects_mixed_recovery_outcome_receipt() {
     let checkpoint_plan = lower_checkpoint_crash_replay_plan();
     let checkpoint_schedule = schedule(&checkpoint_plan);
-    let binding = S5CheckpointPublicationLaneBinding::from_plan_and_schedule(
+    let binding = PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
         &checkpoint_plan,
         &checkpoint_schedule,
     )
@@ -191,7 +197,7 @@ fn checkpoint_crash_lane_rejects_mixed_recovery_outcome_receipt() {
         .unwrap();
 
     let denial =
-        S5CheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
+        PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
             &recovery_plan,
@@ -216,7 +222,7 @@ fn checkpoint_crash_lane_rejects_mixed_recovery_outcome_receipt() {
 fn checkpoint_crash_lane_rejects_recovery_receipt_from_unrelated_checkpoint_schedule() {
     let checkpoint_plan = lower_checkpoint_crash_replay_plan();
     let checkpoint_schedule = schedule(&checkpoint_plan);
-    let binding = S5CheckpointPublicationLaneBinding::from_plan_and_schedule(
+    let binding = PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
         &checkpoint_plan,
         &checkpoint_schedule,
     )
@@ -224,7 +230,7 @@ fn checkpoint_crash_lane_rejects_recovery_receipt_from_unrelated_checkpoint_sche
     let recovery_plan = lower_recovery_plan();
     let recovery_schedule = schedule(&recovery_plan);
     let recovery_output =
-        S5CheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
+        PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
             &recovery_plan,
@@ -240,21 +246,23 @@ fn checkpoint_crash_lane_rejects_recovery_receipt_from_unrelated_checkpoint_sche
         .unwrap();
     let unrelated_plan = lower_checkpoint_shortcut_plan();
     let unrelated_schedule = schedule(&unrelated_plan);
-    let unrelated_binding = S5CheckpointPublicationLaneBinding::from_plan_and_schedule(
-        &unrelated_plan,
-        &unrelated_schedule,
-    )
-    .unwrap();
+    let unrelated_binding =
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
+            &unrelated_plan,
+            &unrelated_schedule,
+        )
+        .unwrap();
 
-    let denial = S5CheckpointPublicationCrashLaneOutput::from_schedule_step_recovery(
-        &unrelated_binding,
-        &unrelated_schedule,
-        unrelated_binding.checkpoint_actor_step_index(),
-        &checkpoint_origin(),
-        checkpoint_evidence(),
-        &recovery_output,
-    )
-    .unwrap_err();
+    let denial =
+        PhysicalIsolationCheckpointPublicationCrashLaneOutput::from_schedule_step_recovery(
+            &unrelated_binding,
+            &unrelated_schedule,
+            unrelated_binding.checkpoint_actor_step_index(),
+            &checkpoint_origin(),
+            checkpoint_evidence(),
+            &recovery_output,
+        )
+        .unwrap_err();
 
     assert_eq!(
         denial,
@@ -267,20 +275,22 @@ fn scheduled_checkpoint_shortcut_lane_rejects_wrong_shortcut_boundary() {
     let plan = lower_checkpoint_shortcut_plan();
     let schedule = schedule(&plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule).unwrap();
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(&plan, &schedule)
+            .unwrap();
     let terminal_receipt = shortcut_denial_from_terminal_projection_denial(
         reject_terminal_json_evidence_attempt().unwrap_err(),
     );
 
-    let denial = S5CheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
-        &binding,
-        &schedule,
-        actor_step_index(&schedule, PhysicalScenarioActorRole::ShortcutRejectionProbe),
-        &checkpoint_origin(),
-        checkpoint_evidence(),
-        terminal_receipt,
-    )
-    .unwrap_err();
+    let denial =
+        PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
+            &binding,
+            &schedule,
+            actor_step_index(&schedule, PhysicalScenarioActorRole::ShortcutRejectionProbe),
+            &checkpoint_origin(),
+            checkpoint_evidence(),
+            terminal_receipt,
+        )
+        .unwrap_err();
 
     assert_eq!(
         denial,
@@ -289,14 +299,14 @@ fn scheduled_checkpoint_shortcut_lane_rejects_wrong_shortcut_boundary() {
 }
 
 fn same_run_shortcut_denial_output(
-    binding: &S5CheckpointPublicationLaneBinding,
+    binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
     schedule: &forge_store_physical_certification::PhysicalInterleavingSchedule,
-) -> S5CheckpointPublicationShortcutDenialLaneOutput {
+) -> PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput {
     let receipt = shortcut_denial_from_evidence_bundle_denial(
         reject_same_run_self_comparison_evidence_attempt().unwrap_err(),
     )
     .unwrap();
-    S5CheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
+    PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
         binding,
         schedule,
         actor_step_index(schedule, PhysicalScenarioActorRole::ShortcutRejectionProbe),

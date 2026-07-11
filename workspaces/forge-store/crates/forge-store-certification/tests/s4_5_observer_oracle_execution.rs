@@ -33,11 +33,11 @@ fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
         .complete()
         .unwrap();
 
-    let runtime_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let runtime_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &runtime_trace)
         .unwrap();
-    let verifier_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let verifier_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &verifier_trace)
         .unwrap();
@@ -55,7 +55,7 @@ fn executed_observation_receipt_feeds_convergent_oracle_verdicts() {
     );
     assert_eq!(
         verifier_verdict.non_claims(),
-        &[PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness]
+        &[PhysicalOracleNonClaim::PhysicalIsolationCorrectness]
     );
 }
 
@@ -91,12 +91,12 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
 
     assert!(plan
         .oracle_families()
-        .contains(OracleFamilyKind::S5ReadinessShape));
+        .contains(OracleFamilyKind::PhysicalIsolationReadinessShape));
     assert!(plan
         .oracle_families()
         .contains(OracleFamilyKind::ForbiddenShortcutRejection));
 
-    let s5 = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let s5 = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(BlockedReclaimUntilReleaseOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -176,17 +176,19 @@ fn lower_multifamily_plan() -> PhysicalSimulationPlan {
 fn complete_context() -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase7-execution", 7)
@@ -198,14 +200,14 @@ fn s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysi
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }
 
 fn multifamily_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase7.multi-family")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase7-multi-family", 7)
@@ -221,7 +223,7 @@ fn multifamily_scenario() -> forge_store_physical_certification::CertifiedPhysic
             "root-publication-before-observe",
         ))
         .expectation(
-            PhysicalScenarioExpectation::non_claiming_s5_readiness_with_shortcut_rejection(),
+            PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_with_shortcut_rejection(),
         )
         .certify_definition()
         .unwrap()

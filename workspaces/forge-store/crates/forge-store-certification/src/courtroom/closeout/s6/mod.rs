@@ -1,7 +1,7 @@
 //! S.6 certification closeout and evidence materialization exports.
 
 pub use crate::s6::{
-    certify_s6_backend_capability_admission, certify_s6_backend_qualification_matrix,
+    certify_io_pressure_backend_qualification_matrix, certify_s6_backend_capability_admission,
     certify_s6_background_pacing, certify_s6_foreground_reservation,
     publish_s6_backend_capability_readiness, S6BackendCapabilityAdmissionCertificationEvidence,
     S6BackendCapabilityReadinessPublication, S6BackendQualificationMatrixCertification,
@@ -25,7 +25,7 @@ pub use crate::s6_evidence_materialization::{
     StoreOwnedS6CertificationMaterializationSources,
 };
 pub use crate::s6_io_pressure_harness_closeout::{
-    S6IoPressureHarnessCloseoutDenial, S6IoPressureHarnessCloseoutEvidence,
+    IoPressureHarnessCloseoutDenial, IoPressureHarnessCloseoutEvidence,
 };
 pub use crate::s6_latency_interference::{
     S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,

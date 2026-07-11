@@ -1,5 +1,5 @@
 use crate::{
-    scenario::S7BlobHarnessScenarioMetadata, OracleFamilyKind, PhysicalSimulationScenarioFamily,
+    scenario::BlobHarnessScenarioMetadata, OracleFamilyKind, PhysicalSimulationScenarioFamily,
     ShortcutRejectionObservationKind,
 };
 
@@ -44,7 +44,7 @@ impl PhysicalProofOracle for BlobByteEqualityOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -66,7 +66,7 @@ impl PhysicalProofOracle for BlobChunkOrderingOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -88,7 +88,7 @@ impl PhysicalProofOracle for BlobDigestChecksumDistinctionOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -110,7 +110,7 @@ impl PhysicalProofOracle for BlobReachabilityOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -132,7 +132,7 @@ impl PhysicalProofOracle for BlobNoSidecarPathOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -160,7 +160,7 @@ impl PhysicalProofOracle for BlobNoCrossScopeDedupeOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -184,7 +184,7 @@ impl PhysicalProofOracle for BlobConstantMemoryOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHarnessEvidence
+        OracleFamilyKind::BlobHarnessEvidence
     }
 
     fn judge_basis(
@@ -208,7 +208,7 @@ impl PhysicalProofOracle for BlobHeavyQualificationEvidenceOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHeavyQualification
+        OracleFamilyKind::BlobHeavyQualification
     }
 
     fn judge_basis(
@@ -231,7 +231,7 @@ impl PhysicalProofOracle for BlobHeavyCleanupOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHeavyQualification
+        OracleFamilyKind::BlobHeavyQualification
     }
 
     fn judge_basis(
@@ -254,7 +254,7 @@ impl PhysicalProofOracle for BlobHeavyPatternLaneOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S7BlobHeavyQualification
+        OracleFamilyKind::BlobHeavyQualification
     }
 
     fn judge_basis(
@@ -273,20 +273,20 @@ impl PhysicalProofOracle for BlobHeavyPatternLaneOracle {
 
 fn require_blob_basis(
     basis: &OracleVerdictBasis,
-) -> Result<S7BlobHarnessScenarioMetadata, OracleDenial> {
-    if basis.scenario_family() != PhysicalSimulationScenarioFamily::S7BlobHarnessSeed {
+) -> Result<BlobHarnessScenarioMetadata, OracleDenial> {
+    if basis.scenario_family() != PhysicalSimulationScenarioFamily::BlobHarnessSeed {
         return Err(OracleDenial::PlanTraceIdentityMismatch);
     }
     basis
-        .s7_blob_harness_metadata()
-        .ok_or(OracleDenial::MissingS7BlobHarnessMetadata)
+        .blob_harness_metadata()
+        .ok_or(OracleDenial::MissingBlobHarnessMetadata)
 }
 
 fn require_blob_observation(
     basis: &OracleVerdictBasis,
-) -> Result<crate::S7BlobHarnessOracleObservation, OracleDenial> {
+) -> Result<crate::BlobHarnessOracleObservation, OracleDenial> {
     require_blob_basis(basis)?;
     basis
-        .s7_blob_harness_observation()
-        .ok_or(OracleDenial::MissingS7BlobHarnessObservation)
+        .blob_harness_observation()
+        .ok_or(OracleDenial::MissingBlobHarnessObservation)
 }

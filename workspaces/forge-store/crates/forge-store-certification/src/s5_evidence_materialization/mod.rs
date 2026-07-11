@@ -11,11 +11,12 @@ pub use bundle::{
 pub use canonical::S5FoundationalCanonicalBasis;
 pub use diagnostics::S5FoundationalDiagnostics;
 pub use forge_store_physical_certification::{
-    S5EvidenceProfileCounterSet, S5ExecutedIsolationFinding, S5ExecutedIsolationOutcome,
-    S5ExecutedIsolationRequiredCounters, S5ExecutedIsolationSourceBasis,
+    ExecutedPhysicalIsolationEvidenceSource, ExecutedPhysicalIsolationSourceDenial,
 };
 pub use forge_store_physical_certification::{
-    S5ExecutedIsolationEvidenceSource, S5ExecutedIsolationSourceDenial,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationOutcome,
+    ExecutedPhysicalIsolationRequiredCounters, ExecutedPhysicalIsolationSourceBasis,
+    PhysicalIsolationEvidenceProfileCounterSet,
 };
 pub use performance::S5FoundationalPerformanceReceipts;
 pub use proof::{S5PhysicalIsolationProofTrace, S5ProofProjectionArtifact};

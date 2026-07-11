@@ -1,5 +1,5 @@
 #[test]
-fn s5_readiness_handoff_authority_cannot_be_forged_at_compile_time() {
+fn physical_isolation_readiness_handoff_authority_cannot_be_forged_at_compile_time() {
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -14,22 +14,22 @@ struct CompileFailFixture {
 fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
     vec![
         CompileFailFixture {
-            name: "s5_handoff_receipt_cannot_be_struct_literal.rs",
-            expected_stderr: &["S5HarnessReadinessReceipt", "private"],
+            name: "physical_isolation_handoff_receipt_cannot_be_struct_literal.rs",
+            expected_stderr: &["PhysicalIsolationHarnessReadinessReceipt", "private"],
         },
         CompileFailFixture {
             name: "physical_isolation_cannot_accept_generic_runner.rs",
-            expected_stderr: &["S5HarnessReadinessReceipt", "GenericRunner"],
+            expected_stderr: &["PhysicalIsolationHarnessReadinessReceipt", "GenericRunner"],
         },
         CompileFailFixture {
-            name: "generic_runner_cannot_implement_s5_readiness_contract.rs",
-            expected_stderr: &["S5SimulationHarnessReadinessContract", "not found"],
+            name: "generic_runner_cannot_implement_physical_isolation_readiness_contract.rs",
+            expected_stderr: &["PhysicalIsolationHarnessReadinessContract", "not found"],
         },
         CompileFailFixture {
-            name: "future_slot_cannot_be_s5_readiness.rs",
+            name: "future_slot_cannot_be_physical_isolation_readiness.rs",
             expected_stderr: &[
-                "S5HarnessReadinessReceipt",
-                "S5HarnessFutureExtensionReservation",
+                "PhysicalIsolationHarnessReadinessReceipt",
+                "PhysicalIsolationHarnessFutureExtensionReservation",
             ],
         },
     ]
@@ -66,7 +66,7 @@ fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
         manifest_dir
             .join("tests")
             .join("ui")
-            .join("s4_5_s5_readiness")
+            .join("s4_5_physical_isolation_readiness")
             .join(fixture_name),
         source_dir.join("main.rs"),
     )
@@ -106,7 +106,7 @@ fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBu
 
 fn fixture_manifest(repo_root: &std::path::Path) -> String {
     format!(
-        "[package]\nname = \"s45_s5_readiness_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\nforge-store-physical-isolation = {{ path = \"{}\" }}\nforge-store-readiness = {{ path = \"{}\" }}\n",
+        "[package]\nname = \"s45_physical_isolation_readiness_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\nforge-store-physical-isolation = {{ path = \"{}\" }}\nforge-store-readiness = {{ path = \"{}\" }}\n",
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-physical-certification")),
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-physical-isolation")),
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-readiness")),

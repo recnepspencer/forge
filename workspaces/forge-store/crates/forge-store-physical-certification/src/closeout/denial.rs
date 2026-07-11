@@ -1,17 +1,20 @@
-use forge_store_readiness::S5SimulationHarnessReadinessDenial;
+use forge_store_readiness::PhysicalIsolationHarnessReadinessDenial;
 
 use crate::{
-    PhysicalScenarioActorRole, PhysicalScenarioExpectationKind, PhysicalScenarioIntent,
-    PhysicalScenarioNonClaim, PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence,
+    HarnessCoverageStage, PhysicalScenarioActorRole, PhysicalScenarioExpectationKind,
+    PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalSimulationScenarioFamily,
 };
 
-use super::{S45AcceptanceEvidenceLane, S45AcceptanceSuiteName, S45DogfoodSliceKind};
+use super::{
+    SimulationHarnessAcceptanceEvidenceLane, SimulationHarnessAcceptanceSuiteName,
+    SimulationHarnessDogfoodSliceKind,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhysicalSimulationHarnessCloseoutDenial {
     WrongCloseoutSuite {
-        expected: Roadmap2HarnessSequence,
-        actual: Roadmap2HarnessSequence,
+        expected: HarnessCoverageStage,
+        actual: HarnessCoverageStage,
     },
     WrongDogfoodScenarioFamily {
         expected: PhysicalSimulationScenarioFamily,
@@ -29,13 +32,13 @@ pub enum PhysicalSimulationHarnessCloseoutDenial {
         role: PhysicalScenarioActorRole,
     },
     DogfoodSliceScenarioEvidenceMismatch {
-        slice: S45DogfoodSliceKind,
+        slice: SimulationHarnessDogfoodSliceKind,
     },
     DogfoodSliceScenarioCoverageMissing {
-        slice: S45DogfoodSliceKind,
+        slice: SimulationHarnessDogfoodSliceKind,
     },
     DogfoodSliceTranscriptCoverageMissing {
-        slice: S45DogfoodSliceKind,
+        slice: SimulationHarnessDogfoodSliceKind,
     },
     MissingScenarioNonClaim {
         non_claim: PhysicalScenarioNonClaim,
@@ -43,30 +46,30 @@ pub enum PhysicalSimulationHarnessCloseoutDenial {
     MissingShortcutDenialReport,
     MissingMutationCoverage,
     MissingAcceptanceSuiteLane {
-        suite: S45AcceptanceSuiteName,
-        lane: S45AcceptanceEvidenceLane,
+        suite: SimulationHarnessAcceptanceSuiteName,
+        lane: SimulationHarnessAcceptanceEvidenceLane,
     },
     MissingAcceptanceSuiteReceipt {
-        suite: S45AcceptanceSuiteName,
+        suite: SimulationHarnessAcceptanceSuiteName,
     },
     DuplicateAcceptanceSuiteReceipt {
-        suite: S45AcceptanceSuiteName,
+        suite: SimulationHarnessAcceptanceSuiteName,
     },
     MissingAcceptanceSuiteExecution {
-        suite: S45AcceptanceSuiteName,
+        suite: SimulationHarnessAcceptanceSuiteName,
     },
     DuplicateAcceptanceSuiteExecution {
-        suite: S45AcceptanceSuiteName,
+        suite: SimulationHarnessAcceptanceSuiteName,
     },
     StaleAcceptanceSuiteReceipt {
-        suite: S45AcceptanceSuiteName,
+        suite: SimulationHarnessAcceptanceSuiteName,
     },
-    MissingS5ReadinessReceipt(S5SimulationHarnessReadinessDenial),
+    MissingPhysicalIsolationReadinessReceipt(PhysicalIsolationHarnessReadinessDenial),
     FutureSlotClaimedImplementedBehavior,
 }
 
-impl From<S5SimulationHarnessReadinessDenial> for PhysicalSimulationHarnessCloseoutDenial {
-    fn from(denial: S5SimulationHarnessReadinessDenial) -> Self {
-        Self::MissingS5ReadinessReceipt(denial)
+impl From<PhysicalIsolationHarnessReadinessDenial> for PhysicalSimulationHarnessCloseoutDenial {
+    fn from(denial: PhysicalIsolationHarnessReadinessDenial) -> Self {
+        Self::MissingPhysicalIsolationReadinessReceipt(denial)
     }
 }

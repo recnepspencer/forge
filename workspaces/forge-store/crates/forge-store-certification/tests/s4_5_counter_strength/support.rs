@@ -264,12 +264,14 @@ fn complete_context() -> SimulationPlanningContext {
 fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(profile)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 pub(crate) fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
@@ -278,7 +280,7 @@ pub(crate) fn s5_scenario() -> forge_store_physical_certification::CertifiedPhys
 
 fn named_s5_scenario(name: &str) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(name)
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase8-strength", 8)
@@ -290,7 +292,7 @@ fn named_s5_scenario(name: &str) -> forge_store_physical_certification::Certifie
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }
@@ -316,7 +318,7 @@ pub(crate) fn shortcut_scenario() -> forge_store_physical_certification::Certifi
 pub(crate) fn s5_shortcut_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario
 {
     physical_scenario("store.physical.s45.phase8.executed-shortcut-counter")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase8-executed-shortcut", 8)
@@ -330,7 +332,7 @@ pub(crate) fn s5_shortcut_scenario() -> forge_store_physical_certification::Cert
             "root-publication-before-observe",
         ))
         .expectation(
-            PhysicalScenarioExpectation::non_claiming_s5_readiness_with_shortcut_rejection(),
+            PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_with_shortcut_rejection(),
         )
         .certify_definition()
         .unwrap()

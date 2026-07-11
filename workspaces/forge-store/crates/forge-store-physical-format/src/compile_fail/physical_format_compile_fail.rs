@@ -21,13 +21,13 @@
 //! ```compile_fail
 //! use forge_store_physical_format::PhysicalChunkChecksumAuthority;
 //!
-//! let _forged = PhysicalChunkChecksumAuthority::s7_canonical().verify(b"raw");
+//! let _forged = PhysicalChunkChecksumAuthority::canonical_blob_checksum().verify(b"raw");
 //! ```
 //! Chunk payload integrity cannot be admitted from raw bytes without Store write admission:
 //! ```compile_fail
 //! use forge_store_physical_format::PhysicalChunkChecksumAuthority;
 //!
-//! let _forged = PhysicalChunkChecksumAuthority::s7_canonical().admit_store_payload(b"raw");
+//! let _forged = PhysicalChunkChecksumAuthority::canonical_blob_checksum().admit_store_payload(b"raw");
 //! ```
 //! Store physical chunk write receipts cannot be forged from raw fields:
 //! ```compile_fail
@@ -46,7 +46,7 @@
 //! use forge_store_physical_format::PhysicalChunkChecksumAuthority;
 //!
 //! let authority = StorePhysicalAuthorityWitness::for_s1_vocabulary(ROADMAP_2_S1_SCOPE).unwrap();
-//! let _forged = PhysicalChunkChecksumAuthority::s7_canonical()
+//! let _forged = PhysicalChunkChecksumAuthority::canonical_blob_checksum()
 //!     .admit_store_payload((authority, b"raw"));
 //! ```
 //! Bootstrap-open witnesses cannot be forged from raw fields:

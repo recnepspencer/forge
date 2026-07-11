@@ -6,6 +6,11 @@ mod checkpoint_durability_fixture;
 mod checkpoint_evidence_support;
 #[path = "../s4_5_counter_strength/compaction_interlock_trace.rs"]
 mod compaction_interlock_trace;
+#[path = "support/production_trace.rs"]
+mod production_trace;
+
+pub(crate) use production_trace::actor_step_index;
+use production_trace::developer_smoke_production_trace;
 #[path = "../s5_epoch_scope_and_root_kind/support.rs"]
 mod epoch_support;
 #[path = "../s5_stable_read_execution/plan_admission.rs"]
@@ -17,16 +22,19 @@ use forge_store_physical_certification::{
     DetachedSimulationReplayParts, ExecutedPhysicalSimulationObservation, ExecutedTranscriptParts,
     FixtureCapabilityDeclaration, FixtureMutationBoundary, ForbiddenShortcutSet,
     LargeStoreFixtureProfile, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
-    PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioExpectation,
-    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
-    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationProfile,
-    PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
+    PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    PhysicalIsolationCheckpointPublicationLaneBinding,
+    PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput, PhysicalScenarioActor,
+    PhysicalScenarioActorRole, PhysicalScenarioExpectation, PhysicalScenarioIntent,
+    PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet, PhysicalSimulationObserver,
+    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
+    PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
     ProductionBackedPhysicalFixture, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
-    S5CheckpointPublicationCrashLaneOutput, S5CheckpointPublicationLaneBinding,
-    S5CheckpointPublicationRecoveryOutcomeLaneOutput, S5CheckpointPublicationScheduledLaneOutput,
-    S5CheckpointPublicationShortcutDenialLaneOutput,
-    S5CheckpointPublicationShortcutRejectionOutput, SimulationEvidencePolicy,
-    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet,
+    SupportedOracleFamilySet,
 };
 use forge_store_physical_isolation::{
     CheckpointInterlockEvidenceOrigin, CheckpointInterlockFoundationalEvidence,
@@ -190,11 +198,12 @@ pub(crate) fn detached_replay_bundle_from_parts(
 
 fn scheduled_checkpoint_lane_output(
     plan: &PhysicalSimulationPlan,
-) -> S5CheckpointPublicationScheduledLaneOutput {
+) -> PhysicalIsolationCheckpointPublicationScheduledLaneOutput {
     let schedule = schedule(plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(plan, &schedule).unwrap();
-    S5CheckpointPublicationScheduledLaneOutput::from_schedule_step_evidence(
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(plan, &schedule)
+            .unwrap();
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput::from_schedule_step_evidence(
         &binding,
         &schedule,
         binding.checkpoint_actor_step_index(),
@@ -206,16 +215,18 @@ fn scheduled_checkpoint_lane_output(
 
 pub(crate) fn scheduled_checkpoint_crash_lane_output(
     plan: &PhysicalSimulationPlan,
-) -> S5CheckpointPublicationCrashLaneOutput {
+) -> PhysicalIsolationCheckpointPublicationCrashLaneOutput {
     let checkpoint_schedule = schedule(plan);
-    let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(plan, &checkpoint_schedule)
-            .unwrap();
+    let binding = PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(
+        plan,
+        &checkpoint_schedule,
+    )
+    .unwrap();
     let recovery_plan = lower_recovery_plan();
     let recovery_schedule = schedule(&recovery_plan);
     let recovery_trace = recovery_trace(&recovery_plan);
     let recovery_output =
-        S5CheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
+        PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput::from_fresh_runtime_recovery_trace(
             &binding,
             &checkpoint_schedule,
             &recovery_plan,
@@ -229,7 +240,7 @@ pub(crate) fn scheduled_checkpoint_crash_lane_output(
             checkpoint_evidence(),
         )
         .unwrap();
-    S5CheckpointPublicationCrashLaneOutput::from_schedule_step_recovery(
+    PhysicalIsolationCheckpointPublicationCrashLaneOutput::from_schedule_step_recovery(
         &binding,
         &checkpoint_schedule,
         binding.checkpoint_actor_step_index(),
@@ -242,24 +253,26 @@ pub(crate) fn scheduled_checkpoint_crash_lane_output(
 
 pub(crate) fn scheduled_checkpoint_same_run_shortcut_output(
     plan: &PhysicalSimulationPlan,
-) -> S5CheckpointPublicationShortcutRejectionOutput {
+) -> PhysicalIsolationCheckpointPublicationShortcutRejectionOutput {
     let schedule = schedule(plan);
     let binding =
-        S5CheckpointPublicationLaneBinding::from_plan_and_schedule(plan, &schedule).unwrap();
+        PhysicalIsolationCheckpointPublicationLaneBinding::from_plan_and_schedule(plan, &schedule)
+            .unwrap();
     let receipt = shortcut_denial_from_evidence_bundle_denial(
         reject_same_run_self_comparison_evidence_attempt().unwrap_err(),
     )
     .unwrap();
-    let denial_output = S5CheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
-        &binding,
-        &schedule,
-        actor_step_index(&schedule, PhysicalScenarioActorRole::ShortcutRejectionProbe),
-        &checkpoint_origin(),
-        checkpoint_evidence(),
-        receipt,
-    )
-    .unwrap();
-    S5CheckpointPublicationShortcutRejectionOutput::from_scheduled_same_run_denial(
+    let denial_output =
+        PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput::from_denial_receipt(
+            &binding,
+            &schedule,
+            actor_step_index(&schedule, PhysicalScenarioActorRole::ShortcutRejectionProbe),
+            &checkpoint_origin(),
+            checkpoint_evidence(),
+            receipt,
+        )
+        .unwrap();
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput::from_scheduled_same_run_denial(
         &binding,
         &schedule,
         binding.checkpoint_actor_step_index(),
@@ -268,17 +281,6 @@ pub(crate) fn scheduled_checkpoint_same_run_shortcut_output(
         denial_output,
     )
     .unwrap()
-}
-
-pub(crate) fn actor_step_index(
-    schedule: &PhysicalInterleavingSchedule,
-    role: PhysicalScenarioActorRole,
-) -> usize {
-    schedule
-        .actor_steps()
-        .iter()
-        .position(|step| step.actor_role() == role)
-        .unwrap()
 }
 
 fn checkpoint_evidence_for_operation(
@@ -298,17 +300,19 @@ fn checkpoint_evidence_for_operation(
 fn complete_context() -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn checkpoint_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase9.checkpoint-publication-lane")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase9-checkpoint-publication", 9)
@@ -320,7 +324,7 @@ fn checkpoint_scenario() -> forge_store_physical_certification::CertifiedPhysica
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }
@@ -328,7 +332,7 @@ fn checkpoint_scenario() -> forge_store_physical_certification::CertifiedPhysica
 fn checkpoint_crash_replay_scenario(
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase9.checkpoint-publication-crash-replay")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase9-checkpoint-crash-replay", 9)
@@ -342,7 +346,7 @@ fn checkpoint_crash_replay_scenario(
             "root-publication-before-observe",
         ))
         .expectation(
-            PhysicalScenarioExpectation::non_claiming_s5_checkpoint_publication_crash_replay(),
+            PhysicalScenarioExpectation::non_claiming_physical_isolation_checkpoint_publication_crash_replay(),
         )
         .certify_definition()
         .unwrap()
@@ -350,7 +354,7 @@ fn checkpoint_crash_replay_scenario(
 
 fn checkpoint_shortcut_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase9.checkpoint-publication-shortcut")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase9-checkpoint-shortcut", 9)
@@ -363,7 +367,7 @@ fn checkpoint_shortcut_scenario() -> forge_store_physical_certification::Certifi
             "root-publication-before-observe",
         ))
         .expectation(
-            PhysicalScenarioExpectation::non_claiming_s5_readiness_with_shortcut_rejection(),
+            PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_with_shortcut_rejection(),
         )
         .certify_definition()
         .unwrap()
@@ -385,13 +389,5 @@ fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysicalS
         ))
         .expectation(PhysicalScenarioExpectation::s4_recovery_dogfood())
         .certify_definition()
-        .unwrap()
-}
-
-fn developer_smoke_production_trace() -> ProductionBoundaryDriverTrace {
-    admitted_developer_smoke_driver_contracts()
-        .unwrap()
-        .iter()
-        .find_map(|driver| driver.production_boundary_trace())
         .unwrap()
 }

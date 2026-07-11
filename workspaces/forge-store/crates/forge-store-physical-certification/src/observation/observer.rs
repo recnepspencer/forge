@@ -1,13 +1,16 @@
 use super::{
     CheckpointCrashReplayObservation, CheckpointInterlockObservation,
     CompactionInterlockObservation, ObservationDenial, ObservedPhysicalTrace,
-    S5CheckpointPublicationCrashLaneOutput, S5CheckpointPublicationScheduledLaneOutput,
-    S5CheckpointPublicationShortcutRejectionOutput, S5CompactionMutationObservationSet,
+    PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput,
+    PhysicalIsolationCompactionMutationObservationSet,
 };
 use crate::{
-    ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObserverKind,
+    BlobHarnessOracleObservation, ExecutedPhysicalSimulationObservation,
+    IndependentVerifierObservation, IoPressureOracleObservation, ObserverKind,
     PhysicalSimulationPlan, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
-    S6IoPressureOracleObservation, S7BlobHarnessOracleObservation, ShortcutRejectionObservation,
+    ShortcutRejectionObservation,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,9 +28,9 @@ pub struct PhysicalObservationBuilder<'plan> {
     checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     compaction_interlock: Option<CompactionInterlockObservation>,
-    compaction_mutations: Option<S5CompactionMutationObservationSet>,
-    s6_io_pressure: Option<S6IoPressureOracleObservation>,
-    s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
+    compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
+    io_pressure: Option<IoPressureOracleObservation>,
+    blob_harness: Option<BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -73,8 +76,8 @@ impl PhysicalSimulationObserver {
             checkpoint_interlock: None,
             compaction_interlock: None,
             compaction_mutations: None,
-            s6_io_pressure: None,
-            s7_blob_harness: None,
+            io_pressure: None,
+            blob_harness: None,
             shortcut_rejections: Vec::new(),
         })
     }
@@ -135,7 +138,7 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
 
     pub fn with_scheduled_checkpoint_publication_lane(
         mut self,
-        output: S5CheckpointPublicationScheduledLaneOutput,
+        output: PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
     ) -> Result<Self, ObservationDenial> {
         if output.plan_identity() != self.plan.identity().digest_bytes() {
             return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
@@ -146,7 +149,7 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
 
     pub fn with_scheduled_checkpoint_crash_replay_lane(
         mut self,
-        output: S5CheckpointPublicationCrashLaneOutput,
+        output: PhysicalIsolationCheckpointPublicationCrashLaneOutput,
     ) -> Result<Self, ObservationDenial> {
         if output.plan_identity() != self.plan.identity().digest_bytes() {
             return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
@@ -158,7 +161,7 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
 
     pub fn with_scheduled_checkpoint_shortcut_rejection_lane(
         mut self,
-        output: S5CheckpointPublicationShortcutRejectionOutput,
+        output: PhysicalIsolationCheckpointPublicationShortcutRejectionOutput,
     ) -> Result<Self, ObservationDenial> {
         if output.plan_identity() != self.plan.identity().digest_bytes() {
             return Err(ObservationDenial::CheckpointPublicationLanePlanMismatch);
@@ -169,25 +172,25 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
 
     pub fn with_scheduled_compaction_mutation_lanes(
         mut self,
-        observations: S5CompactionMutationObservationSet,
+        observations: PhysicalIsolationCompactionMutationObservationSet,
     ) -> Self {
         self.compaction_mutations = Some(observations);
         self
     }
 
-    pub fn with_s6_io_pressure_observation(
+    pub fn with_io_pressure_observation(
         mut self,
-        observation: S6IoPressureOracleObservation,
+        observation: IoPressureOracleObservation,
     ) -> Self {
-        self.s6_io_pressure = Some(observation);
+        self.io_pressure = Some(observation);
         self
     }
 
-    pub fn with_s7_blob_harness_observation(
+    pub fn with_blob_harness_observation(
         mut self,
-        observation: S7BlobHarnessOracleObservation,
+        observation: BlobHarnessOracleObservation,
     ) -> Self {
-        self.s7_blob_harness = Some(observation);
+        self.blob_harness = Some(observation);
         self
     }
 
@@ -230,8 +233,8 @@ impl<'plan> PhysicalObservationBuilder<'plan> {
             self.checkpoint_interlock,
             self.compaction_interlock,
             self.compaction_mutations,
-            self.s6_io_pressure,
-            self.s7_blob_harness,
+            self.io_pressure,
+            self.blob_harness,
             self.shortcut_rejections,
         ))
     }

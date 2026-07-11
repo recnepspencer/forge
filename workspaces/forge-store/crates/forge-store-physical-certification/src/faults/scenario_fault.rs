@@ -7,7 +7,7 @@ use super::{
 };
 use crate::PhysicalScenarioFaultKind;
 
-pub fn s5_stable_read_plan_fault_event(
+pub fn physical_isolation_stable_read_plan_fault_event(
     fault: PhysicalScenarioFaultKind,
 ) -> Result<Option<PhysicalFaultEvent>, FaultDeliveryDenial> {
     match fault {
@@ -58,12 +58,12 @@ pub fn s5_stable_read_plan_fault_event(
             mixed_root_locus(),
         )
         .map(Some),
-        PhysicalScenarioFaultKind::S6BackendLatencyInjection
-        | PhysicalScenarioFaultKind::S6QueueDepthSaturation
-        | PhysicalScenarioFaultKind::S6BandwidthThrottle
-        | PhysicalScenarioFaultKind::S6DelayedSync
-        | PhysicalScenarioFaultKind::S6PageCachePressure
-        | PhysicalScenarioFaultKind::S6BackgroundPacingLateYield
+        PhysicalScenarioFaultKind::IoPressureBackendLatencyInjection
+        | PhysicalScenarioFaultKind::IoPressureQueueDepthSaturation
+        | PhysicalScenarioFaultKind::IoPressureBandwidthThrottle
+        | PhysicalScenarioFaultKind::IoPressureDelayedSync
+        | PhysicalScenarioFaultKind::IoPressurePageCachePressure
+        | PhysicalScenarioFaultKind::IoPressureBackgroundPacingLateYield
         | PhysicalScenarioFaultKind::BlobCrashAfterChunkWrite
         | PhysicalScenarioFaultKind::BlobCrashAfterSessionCheckpoint
         | PhysicalScenarioFaultKind::BlobCrashAfterRootPublication

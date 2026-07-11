@@ -1,4 +1,4 @@
-//! Shared harness fixtures not tied to a single milestone.
+//! Shared harness fixtures used by multiple permanent certification domains.
 
 pub use crate::allocation_sentinels::AllocationSentinel;
 pub use crate::hostile_readmission_json_fixtures::StoreHostileReadmissionJsonFixture;

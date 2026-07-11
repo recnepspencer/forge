@@ -36,7 +36,7 @@ fn transcript_and_evidence_deny_missing_or_wrong_verdicts() {
         TranscriptReplayDenial::MissingOracleVerdict
     );
 
-    let wrong_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let wrong_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(CounterContractOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -75,7 +75,9 @@ fn transcript_denies_replay_only_verdict_when_plan_requires_another_oracle_famil
 
     assert_eq!(
         denial,
-        TranscriptReplayDenial::RequiredOracleFamilyMissing(OracleFamilyKind::S5ReadinessShape)
+        TranscriptReplayDenial::RequiredOracleFamilyMissing(
+            OracleFamilyKind::PhysicalIsolationReadinessShape
+        )
     );
 }
 
@@ -190,7 +192,7 @@ fn loose_logs_terminal_json_and_same_run_comparisons_are_denials() {
 fn executed_parts(plan: &PhysicalSimulationPlan) -> ExecutedTranscriptParts {
     let trace = counter_support::observed_trace(plan);
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
-    let readiness_verdict = s5_readiness_verdict(plan, &trace);
+    let readiness_verdict = physical_isolation_readiness_verdict(plan, &trace);
     ExecutedTranscriptParts::new(
         plan,
         schedule(plan),
@@ -202,11 +204,11 @@ fn executed_parts(plan: &PhysicalSimulationPlan) -> ExecutedTranscriptParts {
     .with_oracle_verdict(readiness_verdict)
 }
 
-fn s5_readiness_verdict(
+fn physical_isolation_readiness_verdict(
     plan: &PhysicalSimulationPlan,
     trace: &ObservedPhysicalTrace,
 ) -> PhysicalProofOracleVerdict {
-    ReusablePhysicalOracleFamily::s5_readiness_shape()
+    ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(CounterContractOracle)
         .judge(plan, trace)
         .unwrap()

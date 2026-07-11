@@ -1,5 +1,5 @@
 use forge_store_budgets::CounterEvidenceStrength;
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use super::test_support::{
     alternate_movement_read_hold, cold_target, copied_scope_reservation, lifecycle_with_bytes,
@@ -190,7 +190,7 @@ fn target_placement_from_another_lifecycle_basis_is_denied() {
                 case.target,
                 movement_read_hold(),
                 reservation.into(),
-                BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+                BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
                 super::BlobPlacementMovementFreshness::Current,
             )
         ),
@@ -210,7 +210,7 @@ fn copied_foreground_reservation_scope_is_denied_before_movement_planning() {
                 case.target,
                 movement_read_hold(),
                 copied_scope_reservation().into(),
-                BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+                BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
                 super::BlobPlacementMovementFreshness::Current,
             )
         ),
@@ -240,22 +240,22 @@ fn crash_restart_resumes_executed_receipt_or_localizes_residue_without_mixed_pub
 #[test]
 fn cold_lane_states_have_distinct_surface_outcomes() {
     assert_eq!(
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::ColdUnavailable)
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::ColdUnavailable)
             .read_outcome(),
         BlobPlacementMovementColdReadOutcome::DeniedUnavailable
     );
     assert_eq!(
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::ColdStale)
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::ColdStale)
             .capsule_outcome(),
         BlobPlacementMovementColdCapsuleOutcome::DeniedStale
     );
     assert_eq!(
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::ColdScopeDenied)
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::ColdScopeDenied)
             .materialization_outcome(),
         BlobPlacementMovementColdMaterializationOutcome::DeniedScope
     );
     assert_eq!(
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::ColdRebindRequired)
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::ColdRebindRequired)
             .export_outcome(),
         BlobPlacementMovementColdExportOutcome::RebindRequired
     );

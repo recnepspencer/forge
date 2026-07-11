@@ -6,18 +6,23 @@ mod shortcut_report;
 use std::collections::BTreeSet;
 
 use forge_store_physical_certification::{
-    accept_store_owned_s5_harness_readiness,
-    reject_foundational_or_proof_projection_as_s5_harness_readiness,
-    reject_future_slot_as_s5_harness_readiness, reject_generic_runner_as_s5_harness_readiness,
+    accept_store_owned_physical_isolation_harness_readiness,
+    reject_foundational_or_proof_projection_as_physical_isolation_harness_readiness,
+    reject_future_slot_as_physical_isolation_harness_readiness,
+    reject_generic_runner_as_physical_isolation_harness_readiness,
     CounterContractKind, CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind,
     OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
-    PhysicalProofOracleKind, PhysicalScenarioActorRole, S5CompactionMutationKind,
-    S5CounterContractReadiness, S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot,
-    S5HarnessReadinessReceipt, S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
-    S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
+    PhysicalIsolationCompactionMutationKind, PhysicalIsolationCounterContractReadiness,
+    PhysicalIsolationHarnessFutureExtensionReservation,
+    PhysicalIsolationHarnessFutureExtensionSlot, PhysicalIsolationHarnessReadinessReceipt,
+    PhysicalIsolationInterleavingHarnessCapability, PhysicalIsolationMaintenanceActorCapability,
+    PhysicalIsolationProductionDriverCapability, PhysicalIsolationRequiredYieldpoint,
+    PhysicalIsolationReusableOracleReadiness, PhysicalProofOracleKind, PhysicalScenarioActorRole,
     ShortcutRejectionObservationKind, SimulationPlanDenial,
 };
-use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5SimulationHarnessReadinessDenial};
+use forge_store_readiness::{
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
+};
 
 #[test]
 fn s5_receives_store_owned_simulation_harness_readiness() {
@@ -29,11 +34,11 @@ fn s5_receives_store_owned_simulation_harness_readiness() {
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
     let shortcut_report = shortcut_report::complete_shortcut_report();
 
-    let receipt = S5HarnessReadinessReceipt::from_store_harness_evidence(
+    let receipt = PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &shortcut_report,
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap();
 
@@ -50,8 +55,8 @@ fn s5_receives_store_owned_simulation_harness_readiness() {
     assert_eq!(receipt.shortcut_denial_count(), 9);
     assert_compaction_mutation_rows(&matrix);
 
-    let accepted = accept_store_owned_s5_harness_readiness(receipt);
-    assert!(accepted.does_not_claim_s5_correctness());
+    let accepted = accept_store_owned_physical_isolation_harness_readiness(receipt);
+    assert!(accepted.does_not_claim_physical_isolation_correctness());
 }
 
 #[test]
@@ -72,7 +77,7 @@ fn readiness_shape_probe_lowers_and_executes_with_explicit_non_claim() {
         .contains(PhysicalDriverKind::ShortcutRejectionBoundary));
     assert!(plan
         .oracle_families()
-        .contains(OracleFamilyKind::S5ReadinessShape));
+        .contains(OracleFamilyKind::PhysicalIsolationReadinessShape));
     assert!(plan
         .oracle_families()
         .contains(OracleFamilyKind::TranscriptReplayEvidence));
@@ -106,12 +111,12 @@ fn readiness_shape_probe_lowers_and_executes_with_explicit_non_claim() {
             observation.kind() == ShortcutRejectionObservationKind::PrivateMutationDenied
         }));
     assert!(replay.oracle_verdicts().iter().any(|verdict| {
-        verdict.family() == OracleFamilyKind::S5ReadinessShape
+        verdict.family() == OracleFamilyKind::PhysicalIsolationReadinessShape
             && verdict
                 .non_claims()
                 .contains(
                     &forge_store_physical_certification::PhysicalOracleNonClaim::
-                        S5PhysicalIsolationCorrectness,
+                        PhysicalIsolationCorrectness,
                 )
     }));
     for oracle in [
@@ -133,19 +138,19 @@ fn readiness_shape_probe_lowers_and_executes_with_explicit_non_claim() {
 }
 
 #[test]
-fn s5_handoff_denies_near_miss_store_owned_evidence() {
+fn physical_isolation_handoff_denies_near_miss_store_owned_evidence() {
     assert_eq!(
         receipt_denial_for_developer_smoke_profile(),
-        S5SimulationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
+        PhysicalIsolationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
     );
     assert!(matches!(
         receipt_denial_for_matrix_evidence_identity_mismatch(),
-        S5SimulationHarnessReadinessDenial::MissingDependency(_)
+        PhysicalIsolationHarnessReadinessDenial::MissingDependency(_)
     ));
 }
 
 #[test]
-fn s5_handoff_dependencies_deny_before_fake_receipts_exist() {
+fn physical_isolation_handoff_dependencies_deny_before_fake_receipts_exist() {
     assert_eq!(
         coverage_support::ci_plan_without_supported_driver(
             PhysicalDriverKind::ShortcutRejectionBoundary,
@@ -167,36 +172,39 @@ fn s5_handoff_dependencies_deny_before_fake_receipts_exist() {
 }
 
 #[test]
-fn generic_runners_and_future_slots_cannot_satisfy_s5_readiness() {
+fn generic_runners_and_future_slots_cannot_satisfy_physical_isolation_readiness() {
     assert_eq!(
-        reject_generic_runner_as_s5_harness_readiness().unwrap_err(),
-        S5SimulationHarnessReadinessDenial::GenericRunnerCannotSatisfyReadiness
+        reject_generic_runner_as_physical_isolation_harness_readiness().unwrap_err(),
+        PhysicalIsolationHarnessReadinessDenial::GenericRunnerCannotSatisfyReadiness
     );
     assert_eq!(
-        reject_future_slot_as_s5_harness_readiness(S5HarnessFutureExtensionReservation::reserved(
-            S5HarnessFutureExtensionSlot::BlobLifecycle,
-        ),)
+        reject_future_slot_as_physical_isolation_harness_readiness(
+            PhysicalIsolationHarnessFutureExtensionReservation::reserved(
+                PhysicalIsolationHarnessFutureExtensionSlot::BlobLifecycle,
+            ),
+        )
         .unwrap_err(),
-        S5SimulationHarnessReadinessDenial::FutureBehaviorSlotCannotSatisfyReadiness
+        PhysicalIsolationHarnessReadinessDenial::FutureBehaviorSlotCannotSatisfyReadiness
     );
     assert_eq!(
-        reject_foundational_or_proof_projection_as_s5_harness_readiness().unwrap_err(),
-        S5SimulationHarnessReadinessDenial::FoundationalOrProofProjectionCannotSatisfyReadiness
+        reject_foundational_or_proof_projection_as_physical_isolation_harness_readiness()
+            .unwrap_err(),
+        PhysicalIsolationHarnessReadinessDenial::FoundationalOrProofProjectionCannotSatisfyReadiness
     );
 }
 
-fn receipt_denial_for_developer_smoke_profile() -> S5SimulationHarnessReadinessDenial {
+fn receipt_denial_for_developer_smoke_profile() -> PhysicalIsolationHarnessReadinessDenial {
     let plan = coverage_support::lowered_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &shortcut_report::complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
 }
@@ -207,7 +215,8 @@ fn matrix_denial_for_missing_private_mutation_observation() -> CoverageGapDenial
     coverage_support::mutation_evidence_denial(&replay)
 }
 
-fn receipt_denial_for_matrix_evidence_identity_mismatch() -> S5SimulationHarnessReadinessDenial {
+fn receipt_denial_for_matrix_evidence_identity_mismatch() -> PhysicalIsolationHarnessReadinessDenial
+{
     let matrix_plan = coverage_support::lowered_ci_plan();
     let matrix_replay = coverage_support::replay_bundle(&matrix_plan);
     let matrix = coverage_support::complete_registry(&matrix_plan, &matrix_replay)
@@ -215,81 +224,81 @@ fn receipt_denial_for_matrix_evidence_identity_mismatch() -> S5SimulationHarness
         .unwrap();
     let evidence_plan = coverage_support::shortcut_plan();
     let evidence = coverage_support::evidence_bundle_without_compaction_mutations(&evidence_plan);
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &shortcut_report::complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
 }
 
-fn expected_interleaving_capabilities() -> [S5InterleavingHarnessCapability; 12] {
+fn expected_interleaving_capabilities() -> [PhysicalIsolationInterleavingHarnessCapability; 12] {
     [
-        S5InterleavingHarnessCapability::DeterministicReplaySchedule,
-        S5InterleavingHarnessCapability::ProtectBeforeObserveShapeProbe,
-        S5InterleavingHarnessCapability::RootKindSeparationShapeProbe,
-        S5InterleavingHarnessCapability::TraversalAdmissionShapeProbe,
-        S5InterleavingHarnessCapability::ByteGuardUsageShapeProbe,
-        S5InterleavingHarnessCapability::NoHiddenLatchIoShapeProbe,
-        S5InterleavingHarnessCapability::PublicationMemoryOrderingShapeProbe,
-        S5InterleavingHarnessCapability::LeaseExpiryNonAuthorityShapeProbe,
-        S5InterleavingHarnessCapability::FreeReuseGenerationFenceShapeProbe,
-        S5InterleavingHarnessCapability::RestartDuringCutoverShapeProbe,
-        S5InterleavingHarnessCapability::ReadDuringCompactionShapeProbe,
-        S5InterleavingHarnessCapability::CompactionRangeInterlockShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::DeterministicReplaySchedule,
+        PhysicalIsolationInterleavingHarnessCapability::ProtectBeforeObserveShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::RootKindSeparationShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::TraversalAdmissionShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::ByteGuardUsageShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::NoHiddenLatchIoShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::PublicationMemoryOrderingShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::LeaseExpiryNonAuthorityShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::FreeReuseGenerationFenceShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::RestartDuringCutoverShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::ReadDuringCompactionShapeProbe,
+        PhysicalIsolationInterleavingHarnessCapability::CompactionRangeInterlockShapeProbe,
     ]
 }
 
-fn expected_maintenance_actors() -> [S5MaintenanceActorCapability; 3] {
+fn expected_maintenance_actors() -> [PhysicalIsolationMaintenanceActorCapability; 3] {
     [
-        S5MaintenanceActorCapability::ReclaimBarrierParticipant,
-        S5MaintenanceActorCapability::RestartParticipant,
-        S5MaintenanceActorCapability::CompactionCutoverParticipant,
+        PhysicalIsolationMaintenanceActorCapability::ReclaimBarrierParticipant,
+        PhysicalIsolationMaintenanceActorCapability::RestartParticipant,
+        PhysicalIsolationMaintenanceActorCapability::CompactionCutoverParticipant,
     ]
 }
 
-fn expected_yieldpoints() -> [S5RequiredYieldpoint; 7] {
+fn expected_yieldpoints() -> [PhysicalIsolationRequiredYieldpoint; 7] {
     [
-        S5RequiredYieldpoint::RootPublicationBeforeObserve,
-        S5RequiredYieldpoint::RootSwapPublication,
-        S5RequiredYieldpoint::ByteGuardAdmission,
-        S5RequiredYieldpoint::ReclaimBarrier,
-        S5RequiredYieldpoint::RestartDuringCutover,
-        S5RequiredYieldpoint::CompactionCutover,
-        S5RequiredYieldpoint::ShortcutRejectionBoundary,
+        PhysicalIsolationRequiredYieldpoint::RootPublicationBeforeObserve,
+        PhysicalIsolationRequiredYieldpoint::RootSwapPublication,
+        PhysicalIsolationRequiredYieldpoint::ByteGuardAdmission,
+        PhysicalIsolationRequiredYieldpoint::ReclaimBarrier,
+        PhysicalIsolationRequiredYieldpoint::RestartDuringCutover,
+        PhysicalIsolationRequiredYieldpoint::CompactionCutover,
+        PhysicalIsolationRequiredYieldpoint::ShortcutRejectionBoundary,
     ]
 }
 
-fn expected_production_drivers() -> [S5ProductionDriverCapability; 2] {
+fn expected_production_drivers() -> [PhysicalIsolationProductionDriverCapability; 2] {
     [
-        S5ProductionDriverCapability::ProductionBoundaryYieldpoint,
-        S5ProductionDriverCapability::ShortcutRejectionBoundary,
+        PhysicalIsolationProductionDriverCapability::ProductionBoundaryYieldpoint,
+        PhysicalIsolationProductionDriverCapability::ShortcutRejectionBoundary,
     ]
 }
 
-fn expected_oracle_families() -> [S5ReusableOracleReadiness; 3] {
+fn expected_oracle_families() -> [PhysicalIsolationReusableOracleReadiness; 3] {
     [
-        S5ReusableOracleReadiness::S5ReadinessShape,
-        S5ReusableOracleReadiness::TranscriptReplayEvidence,
-        S5ReusableOracleReadiness::ForbiddenShortcutRejection,
+        PhysicalIsolationReusableOracleReadiness::PhysicalIsolationReadinessShape,
+        PhysicalIsolationReusableOracleReadiness::TranscriptReplayEvidence,
+        PhysicalIsolationReusableOracleReadiness::ForbiddenShortcutRejection,
     ]
 }
 
-fn expected_counter_contracts() -> [S5CounterContractReadiness; 12] {
+fn expected_counter_contracts() -> [PhysicalIsolationCounterContractReadiness; 12] {
     [
-        S5CounterContractReadiness::ActorStepExact,
-        S5CounterContractReadiness::ReplayIdentityExact,
-        S5CounterContractReadiness::ForbiddenShortcutExact,
-        S5CounterContractReadiness::ProfileResourceEnvelope,
-        S5CounterContractReadiness::LatchWaits,
-        S5CounterContractReadiness::EpochRetries,
-        S5CounterContractReadiness::ProtectedReferences,
-        S5CounterContractReadiness::BlockedReclaimAttempts,
-        S5CounterContractReadiness::PublicationSwaps,
-        S5CounterContractReadiness::FutureS5SpecificCountersReserved,
-        S5CounterContractReadiness::CompactionCandidateRanges,
-        S5CounterContractReadiness::CopiedPages,
+        PhysicalIsolationCounterContractReadiness::ActorStepExact,
+        PhysicalIsolationCounterContractReadiness::ReplayIdentityExact,
+        PhysicalIsolationCounterContractReadiness::ForbiddenShortcutExact,
+        PhysicalIsolationCounterContractReadiness::ProfileResourceEnvelope,
+        PhysicalIsolationCounterContractReadiness::LatchWaits,
+        PhysicalIsolationCounterContractReadiness::EpochRetries,
+        PhysicalIsolationCounterContractReadiness::ProtectedReferences,
+        PhysicalIsolationCounterContractReadiness::BlockedReclaimAttempts,
+        PhysicalIsolationCounterContractReadiness::PublicationSwaps,
+        PhysicalIsolationCounterContractReadiness::FutureS5SpecificCountersReserved,
+        PhysicalIsolationCounterContractReadiness::CompactionCandidateRanges,
+        PhysicalIsolationCounterContractReadiness::CopiedPages,
     ]
 }
 
@@ -317,7 +326,7 @@ fn assert_counter_row(
 fn assert_compaction_mutation_rows(
     matrix: &forge_store_physical_certification::GeneratedCoverageMatrix,
 ) {
-    for kind in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
+    for kind in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         assert!(
             matrix.rows().iter().any(|row| {
                 row.surface() == CoverageSurfaceKind::MutationResult

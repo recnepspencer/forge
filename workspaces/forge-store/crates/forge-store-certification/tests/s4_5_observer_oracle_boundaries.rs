@@ -26,7 +26,7 @@ fn observer_collects_facts_and_certification_oracle_judges_verdict() {
         .complete()
         .unwrap();
 
-    let verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -34,14 +34,17 @@ fn observer_collects_facts_and_certification_oracle_judges_verdict() {
     assert_eq!(trace.observer(), ObserverKind::IndependentPhysicalTrace);
     assert_eq!(trace.scenario_identity(), plan.scenario_identity());
     assert_eq!(trace.plan_identity(), plan.identity());
-    assert_eq!(verdict.family(), OracleFamilyKind::S5ReadinessShape);
+    assert_eq!(
+        verdict.family(),
+        OracleFamilyKind::PhysicalIsolationReadinessShape
+    );
     assert_eq!(verdict.oracle(), PhysicalProofOracleKind::NoMixedRoot);
     assert_eq!(verdict.kind(), PhysicalProofOracleVerdictKind::Satisfied);
     assert!(verdict.basis().runtime_trace_present());
     assert!(!verdict.basis().independent_verifier_present());
     assert_eq!(
         verdict.non_claims(),
-        &[PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness]
+        &[PhysicalOracleNonClaim::PhysicalIsolationCorrectness]
     );
 }
 
@@ -55,7 +58,7 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .complete()
         .unwrap();
 
-    let denial = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let denial = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(IndependentVerifierAgreementOracle)
         .judge(&plan, &trace)
         .expect_err("same-run runtime trace alone must not satisfy verifier oracle");
@@ -72,7 +75,7 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .complete()
         .unwrap();
 
-    let verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(IndependentVerifierAgreementOracle)
         .judge(&plan, &verified_trace)
         .unwrap();
@@ -104,7 +107,7 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
         .complete()
         .unwrap();
 
-    let verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(IndependentVerifierAgreementOracle)
         .judge(&plan, &disputed_trace)
         .unwrap();
@@ -121,7 +124,7 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
     );
     assert_eq!(
         verdict.non_claims(),
-        &[PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness]
+        &[PhysicalOracleNonClaim::PhysicalIsolationCorrectness]
     );
 }
 
@@ -173,7 +176,7 @@ fn fake_verdict_sources_are_explicitly_denied() {
 }
 
 #[test]
-fn s5_readiness_family_is_reusable_without_claiming_s5_correctness() {
+fn physical_isolation_readiness_family_is_reusable_without_claiming_s5_correctness() {
     let plan = lower_s5_plan();
     let trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(&plan)
@@ -182,7 +185,7 @@ fn s5_readiness_family_is_reusable_without_claiming_s5_correctness() {
         .complete()
         .unwrap();
 
-    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
     let mixed_root = family
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
@@ -196,7 +199,7 @@ fn s5_readiness_family_is_reusable_without_claiming_s5_correctness() {
         assert_eq!(verdict.kind(), PhysicalProofOracleVerdictKind::Satisfied);
         assert_eq!(
             verdict.non_claims(),
-            &[PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness]
+            &[PhysicalOracleNonClaim::PhysicalIsolationCorrectness]
         );
     }
 }
@@ -222,17 +225,19 @@ fn lower_s5_plan() -> PhysicalSimulationPlan {
 fn complete_context() -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase7.observer.oracle")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("phase7", 7)
@@ -244,7 +249,7 @@ fn s5_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenari
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }

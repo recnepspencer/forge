@@ -18,7 +18,7 @@ pub use foundational_profile::BlobHarnessMaterializedProfile;
 pub use lowering::{
     lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
 };
-pub use oracle_observation::S7BlobHarnessOracleObservation;
+pub use oracle_observation::BlobHarnessOracleObservation;
 pub use profile::{BlobHarnessProfile, BlobHarnessProfileSet};
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use replay::blob_harness_replay_artifacts_for_certification;
@@ -28,7 +28,7 @@ pub use replay::{
     replay_bundle_for_seed as synthetic_blob_harness_replay_bundle_for_test_support,
 };
 pub use resume_recovery::{
-    S7BlobResumeCrashPoint, S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
+    BlobResumeCrashPoint, BlobResumeExpectedOutcome, BlobResumeRecoveryScenario,
 };
 pub use scenario_seed::{BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder};
 pub use shortcut_denial::{BlobHarnessShortcutAttempt, BlobHarnessShortcutDenial};

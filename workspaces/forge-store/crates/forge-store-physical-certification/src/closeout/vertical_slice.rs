@@ -4,15 +4,15 @@ use crate::{
 };
 
 use super::{
-    PhysicalSimulationHarnessCloseoutDenial, S4RecoveryDogfoodScenario,
-    S5ReadinessShapeProbeScenario, ShortcutRejectionDogfoodScenario,
+    PhysicalIsolationReadinessShapeProbeScenario, PhysicalSimulationHarnessCloseoutDenial,
+    S4RecoveryDogfoodScenario, ShortcutRejectionDogfoodScenario,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum S45DogfoodSliceKind {
+pub enum SimulationHarnessDogfoodSliceKind {
     S4Recovery,
     ShortcutRejection,
-    S5ReadinessShapeProbe,
+    PhysicalIsolationReadinessShapeProbe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,17 +30,17 @@ pub struct ShortcutRejectionDogfoodSliceEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5ReadinessShapeProbeSliceEvidence {
-    scenario: S5ReadinessShapeProbeScenario,
+pub struct PhysicalIsolationReadinessShapeProbeSliceEvidence {
+    scenario: PhysicalIsolationReadinessShapeProbeScenario,
     coverage: GeneratedCoverageMatrix,
     evidence: PhysicalCertificationEvidenceBundle,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45HarnessDogfoodEvidence {
+pub struct SimulationHarnessDogfoodEvidence {
     s4_recovery: S4RecoveryDogfoodSliceEvidence,
     shortcut_rejection: ShortcutRejectionDogfoodSliceEvidence,
-    s5_readiness_shape_probe: S5ReadinessShapeProbeSliceEvidence,
+    physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeSliceEvidence,
 }
 
 impl S4RecoveryDogfoodSliceEvidence {
@@ -50,7 +50,7 @@ impl S4RecoveryDogfoodSliceEvidence {
         evidence: PhysicalCertificationEvidenceBundle,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_slice_evidence(
-            S45DogfoodSliceKind::S4Recovery,
+            SimulationHarnessDogfoodSliceKind::S4Recovery,
             scenario.scenario().identity(),
             &coverage,
             &evidence,
@@ -82,7 +82,7 @@ impl ShortcutRejectionDogfoodSliceEvidence {
         evidence: PhysicalCertificationEvidenceBundle,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_slice_evidence(
-            S45DogfoodSliceKind::ShortcutRejection,
+            SimulationHarnessDogfoodSliceKind::ShortcutRejection,
             scenario.scenario().identity(),
             &coverage,
             &evidence,
@@ -107,14 +107,14 @@ impl ShortcutRejectionDogfoodSliceEvidence {
     }
 }
 
-impl S5ReadinessShapeProbeSliceEvidence {
+impl PhysicalIsolationReadinessShapeProbeSliceEvidence {
     pub fn from_replay_evidence(
-        scenario: S5ReadinessShapeProbeScenario,
+        scenario: PhysicalIsolationReadinessShapeProbeScenario,
         coverage: GeneratedCoverageMatrix,
         evidence: PhysicalCertificationEvidenceBundle,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_slice_evidence(
-            S45DogfoodSliceKind::S5ReadinessShapeProbe,
+            SimulationHarnessDogfoodSliceKind::PhysicalIsolationReadinessShapeProbe,
             scenario.scenario().identity(),
             &coverage,
             &evidence,
@@ -126,7 +126,7 @@ impl S5ReadinessShapeProbeSliceEvidence {
         })
     }
 
-    pub const fn scenario(&self) -> &S5ReadinessShapeProbeScenario {
+    pub const fn scenario(&self) -> &PhysicalIsolationReadinessShapeProbeScenario {
         &self.scenario
     }
 
@@ -139,16 +139,16 @@ impl S5ReadinessShapeProbeSliceEvidence {
     }
 }
 
-impl S45HarnessDogfoodEvidence {
+impl SimulationHarnessDogfoodEvidence {
     pub const fn new(
         s4_recovery: S4RecoveryDogfoodSliceEvidence,
         shortcut_rejection: ShortcutRejectionDogfoodSliceEvidence,
-        s5_readiness_shape_probe: S5ReadinessShapeProbeSliceEvidence,
+        physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeSliceEvidence,
     ) -> Self {
         Self {
             s4_recovery,
             shortcut_rejection,
-            s5_readiness_shape_probe,
+            physical_isolation_readiness_shape_probe,
         }
     }
 
@@ -160,13 +160,15 @@ impl S45HarnessDogfoodEvidence {
         &self.shortcut_rejection
     }
 
-    pub const fn s5_readiness_shape_probe(&self) -> &S5ReadinessShapeProbeSliceEvidence {
-        &self.s5_readiness_shape_probe
+    pub const fn physical_isolation_readiness_shape_probe(
+        &self,
+    ) -> &PhysicalIsolationReadinessShapeProbeSliceEvidence {
+        &self.physical_isolation_readiness_shape_probe
     }
 }
 
 fn require_slice_evidence(
-    slice: S45DogfoodSliceKind,
+    slice: SimulationHarnessDogfoodSliceKind,
     scenario_identity: &PhysicalScenarioCanonicalIdentity,
     coverage: &GeneratedCoverageMatrix,
     evidence: &PhysicalCertificationEvidenceBundle,
@@ -194,7 +196,7 @@ fn require_slice_evidence(
 }
 
 fn require_coverage_source(
-    _slice: S45DogfoodSliceKind,
+    _slice: SimulationHarnessDogfoodSliceKind,
     coverage: &GeneratedCoverageMatrix,
     surface: CoverageSurfaceKind,
     source_identity: &[u8; 32],

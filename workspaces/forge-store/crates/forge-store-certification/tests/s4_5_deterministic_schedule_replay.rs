@@ -192,12 +192,14 @@ fn assert_exploration_cost(
 fn complete_context(profile: PhysicalSimulationProfile) -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(profile)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn s5_scenario(
@@ -207,7 +209,7 @@ fn s5_scenario(
     second_actor: PhysicalScenarioActor,
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario(scenario_name)
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header(fixture_label, 5)
@@ -219,7 +221,7 @@ fn s5_scenario(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             ROOT_PUBLICATION_YIELDPOINT,
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }

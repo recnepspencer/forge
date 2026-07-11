@@ -9,10 +9,12 @@ use forge_foundational::{
 };
 use forge_proof::{RecipeStageDxExt, RecipeStageKind};
 use forge_store_physical_certification::{
-    fixture_label_oracle_attempt, register_s5_physical_isolation_certification_lane,
-    reject_copied_s45_readiness_rows_as_s5_lane_registration,
-    reject_generic_runner_as_s5_lane_registration,
-    reject_harness_projection_as_s5_lane_registration, reject_loose_log_evidence_attempt,
+    fixture_label_oracle_attempt,
+    register_physical_isolation_certification_lane,
+    reject_copied_simulation_harness_readiness_rows_as_physical_isolation_lane_registration,
+    reject_generic_runner_as_physical_isolation_lane_registration,
+    reject_harness_projection_as_physical_isolation_lane_registration,
+    reject_loose_log_evidence_attempt,
     reject_raw_json_scenario_authority_attempt, reject_same_run_self_comparison_evidence_attempt,
     reject_terminal_json_evidence_attempt, reject_unresolved_simulation_plan_recipe,
     shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
@@ -20,9 +22,10 @@ use forge_store_physical_certification::{
     shortcut_denial_from_scenario_denial, shortcut_denial_from_terminal_projection_denial,
     shortcut_denial_from_transcript_denial, test_support_oracle_verdict_attempt, CoverageGapDenial,
     FaultDeliveryAttempt, ForbiddenShortcutKind, OracleFamilyKind,
-    PhysicalCertificationEvidenceBundle, PhysicalDriverKind, S5HarnessReadinessReceipt,
-    S5PhysicalIsolationLaneRegistrationDenial, ShortcutRejectionBoundary, SimulationPlanDenial,
-    SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionReport,
+    PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
+    PhysicalIsolationHarnessReadinessReceipt, PhysicalIsolationLaneRegistrationDenial,
+    ShortcutRejectionBoundary, SimulationPlanDenial, SyntheticHarnessShortcutDenialReceipt,
+    SyntheticHarnessShortcutRejectionReport,
 };
 use forge_store_physical_isolation::{
     admit_physical_isolation_entry, reject_copied_recovery_fields_as_physical_isolation_entry,
@@ -34,7 +37,9 @@ use forge_store_physical_isolation::{
     reject_terminal_projection_as_physical_isolation_entry, PhysicalIsolationEntryCheckedOutcome,
     PhysicalIsolationEntryDenial, PhysicalIsolationEntryRequest,
 };
-use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5SimulationHarnessReadinessDenial};
+use forge_store_readiness::{
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessReadinessDenial,
+};
 
 #[test]
 fn s5_entry_admits_only_typed_recovery_completion() {
@@ -51,7 +56,10 @@ fn s5_entry_admits_only_typed_recovery_completion() {
         completion.admitted_page_lsn_frontier()
     );
     assert_eq!(entry.replayed_frames(), completion.replayed_frames());
-    assert_eq!(entry.identity().recovered_root(), completion.recovered_root());
+    assert_eq!(
+        entry.identity().recovered_root(),
+        completion.recovered_root()
+    );
     assert_eq!(
         entry.root_epoch_basis(),
         entry.identity().root_epoch_basis()
@@ -187,7 +195,7 @@ fn s5_entry_rejects_copied_runtime_semantic_projection_and_json_authority() {
 }
 
 #[test]
-fn s5_physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
+fn physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
     let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
         PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
@@ -195,24 +203,25 @@ fn s5_physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
     .unwrap();
     let receipt = s45_harness_readiness_receipt();
 
-    let registration = register_s5_physical_isolation_certification_lane(&entry, receipt);
+    let registration =
+        register_physical_isolation_certification_lane(&entry, receipt);
 
     assert_eq!(registration.entry_recovered_root(), entry.recovered_root());
-    assert!(registration.does_not_claim_s5_correctness());
+    assert!(registration.does_not_claim_physical_isolation_correctness());
     assert!(registration
         .accepted_harness()
-        .does_not_claim_s5_correctness());
+        .does_not_claim_physical_isolation_correctness());
 }
 
 #[test]
-fn s5_physical_isolation_lane_denies_near_miss_s45_receipts_before_registration() {
+fn physical_isolation_lane_denies_near_miss_s45_receipts_before_registration() {
     assert_eq!(
         receipt_denial_for_developer_smoke_profile(),
-        S5SimulationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
+        PhysicalIsolationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
     );
     assert!(matches!(
         receipt_denial_for_matrix_evidence_identity_mismatch(),
-        S5SimulationHarnessReadinessDenial::MissingDependency(_)
+        PhysicalIsolationHarnessReadinessDenial::MissingDependency(_)
     ));
     assert_eq!(
         missing_private_mutation_observation_denial(),
@@ -235,54 +244,56 @@ fn s5_physical_isolation_lane_denies_near_miss_s45_receipts_before_registration(
 }
 
 #[test]
-fn s5_physical_isolation_lane_rejects_copied_rows_and_runner_shortcuts() {
+fn physical_isolation_lane_rejects_copied_rows_and_runner_shortcuts() {
     assert_eq!(
-        reject_copied_s45_readiness_rows_as_s5_lane_registration().unwrap_err(),
-        S5PhysicalIsolationLaneRegistrationDenial::CopiedS45ReadinessRows
+        reject_copied_simulation_harness_readiness_rows_as_physical_isolation_lane_registration()
+            .unwrap_err(),
+        PhysicalIsolationLaneRegistrationDenial::CopiedS45ReadinessRows
     );
     assert_eq!(
-        reject_generic_runner_as_s5_lane_registration().unwrap_err(),
-        S5PhysicalIsolationLaneRegistrationDenial::GenericRunner
+        reject_generic_runner_as_physical_isolation_lane_registration().unwrap_err(),
+        PhysicalIsolationLaneRegistrationDenial::GenericRunner
     );
     assert_eq!(
-        reject_harness_projection_as_s5_lane_registration().unwrap_err(),
-        S5PhysicalIsolationLaneRegistrationDenial::HarnessProjection
+        reject_harness_projection_as_physical_isolation_lane_registration().unwrap_err(),
+        PhysicalIsolationLaneRegistrationDenial::HarnessProjection
     );
 }
 
-fn s45_harness_readiness_receipt() -> S5HarnessReadinessReceipt {
+fn s45_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap()
 }
 
-fn receipt_denial_for_developer_smoke_profile() -> S5SimulationHarnessReadinessDenial {
+fn receipt_denial_for_developer_smoke_profile() -> PhysicalIsolationHarnessReadinessDenial {
     let plan = coverage_support::lowered_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
 }
 
-fn receipt_denial_for_matrix_evidence_identity_mismatch() -> S5SimulationHarnessReadinessDenial {
+fn receipt_denial_for_matrix_evidence_identity_mismatch() -> PhysicalIsolationHarnessReadinessDenial
+{
     let matrix_plan = coverage_support::lowered_ci_plan();
     let matrix_replay = coverage_support::replay_bundle(&matrix_plan);
     let matrix = coverage_support::complete_registry(&matrix_plan, &matrix_replay)
@@ -290,11 +301,11 @@ fn receipt_denial_for_matrix_evidence_identity_mismatch() -> S5SimulationHarness
         .unwrap();
     let evidence_plan = coverage_support::shortcut_plan();
     let evidence = coverage_support::evidence_bundle(&evidence_plan);
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap_err()
 }

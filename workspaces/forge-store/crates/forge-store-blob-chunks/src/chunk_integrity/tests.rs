@@ -279,7 +279,7 @@ fn rule(bytes: u64) -> BlobChunkingRuleAdmission {
 
 fn payload(bytes: &[u8]) -> forge_store_physical_format::PhysicalChunkPayloadIntegrityWitness {
     let receipt = record_receipt(bytes);
-    PhysicalChunkChecksumAuthority::s7_canonical()
+    PhysicalChunkChecksumAuthority::canonical_blob_checksum()
         .admit_store_payload(receipt)
         .unwrap()
 }

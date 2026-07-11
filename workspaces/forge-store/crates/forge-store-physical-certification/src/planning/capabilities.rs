@@ -33,11 +33,11 @@ impl PhysicalSimulationCapabilitySet {
         Self::all_for_developer_smoke()
     }
 
-    pub fn s5_readiness_shape_probe() -> Self {
+    pub fn physical_isolation_readiness_shape_probe() -> Self {
         Self::all_for_developer_smoke()
     }
 
-    pub fn s5_ci_certification() -> Self {
+    pub fn physical_isolation_ci_certification() -> Self {
         Self::all_for_developer_smoke()
     }
 

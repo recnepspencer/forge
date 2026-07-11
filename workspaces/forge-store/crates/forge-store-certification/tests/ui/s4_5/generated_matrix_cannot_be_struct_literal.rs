@@ -1,6 +1,6 @@
-use forge_store_physical_certification::{GeneratedCoverageMatrix, Roadmap2PhysicalCoverageMatrix};
+use forge_store_physical_certification::{GeneratedCoverageMatrix, PhysicalCoverageMatrix};
 
 fn main() {
-    let matrix: Roadmap2PhysicalCoverageMatrix = todo!();
+    let matrix: PhysicalCoverageMatrix = todo!();
     let _generated = GeneratedCoverageMatrix { matrix };
 }

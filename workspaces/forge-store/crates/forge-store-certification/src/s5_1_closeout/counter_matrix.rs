@@ -1,30 +1,30 @@
 use forge_store_physical_certification::{
-    S51SecurityScopeFailureKind, S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessSchedule,
-    S51SecurityScopeReplayMutationKind,
+    SecurityScopeFailureKind, SecurityScopeHarnessEvidence, SecurityScopeHarnessSchedule,
+    SecurityScopeReplayMutationKind,
 };
 
 use super::{S51CertificationCloseoutDenial, S51CertificationCloseoutInput};
 
-const REQUIRED_FAILURES: [S51SecurityScopeFailureKind; 6] = [
-    S51SecurityScopeFailureKind::MetadataPreserved,
-    S51SecurityScopeFailureKind::PhysicalScopeDrift,
-    S51SecurityScopeFailureKind::StaleKeyPosture,
-    S51SecurityScopeFailureKind::WrongTenantScope,
-    S51SecurityScopeFailureKind::MissingAuthenticityRequirement,
-    S51SecurityScopeFailureKind::ReplayedCustodyPosture,
+const REQUIRED_FAILURES: [SecurityScopeFailureKind; 6] = [
+    SecurityScopeFailureKind::MetadataPreserved,
+    SecurityScopeFailureKind::PhysicalScopeDrift,
+    SecurityScopeFailureKind::StaleKeyPosture,
+    SecurityScopeFailureKind::WrongTenantScope,
+    SecurityScopeFailureKind::MissingAuthenticityRequirement,
+    SecurityScopeFailureKind::ReplayedCustodyPosture,
 ];
 
-const REQUIRED_SCHEDULES: [S51SecurityScopeHarnessSchedule; 4] = [
-    S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
-    S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
-    S51SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
-    S51SecurityScopeHarnessSchedule::RepairReadAdmission,
+const REQUIRED_SCHEDULES: [SecurityScopeHarnessSchedule; 4] = [
+    SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+    SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+    SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
+    SecurityScopeHarnessSchedule::RepairReadAdmission,
 ];
 
-const REQUIRED_REPLAY_MUTATIONS: [S51SecurityScopeReplayMutationKind; 3] = [
-    S51SecurityScopeReplayMutationKind::ChangedTenantScope,
-    S51SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
-    S51SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
+const REQUIRED_REPLAY_MUTATIONS: [SecurityScopeReplayMutationKind; 3] = [
+    SecurityScopeReplayMutationKind::ChangedTenantScope,
+    SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
+    SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
 ];
 
 const WITNESSES_PER_READINESS_ACCEPTANCE: u64 = 4;
@@ -196,7 +196,7 @@ impl S51CloseoutCounterMatrix {
         self.scenario_evidence_rows + (self.replay_transcripts * 2)
     }
 
-    fn record_evidence(&mut self, evidence: S51SecurityScopeHarnessEvidence) {
+    fn record_evidence(&mut self, evidence: SecurityScopeHarnessEvidence) {
         let lower = evidence.lower_store_admission_counters();
         self.scenario_evidence_rows += 1;
         self.scenario_lower_store_requests += lower.requests();
@@ -212,7 +212,7 @@ impl S51CloseoutCounterMatrix {
         self.replayed_custody_posture += evidence.counters().replayed_custody_posture();
     }
 
-    fn record_replay_evidence(&mut self, evidence: S51SecurityScopeHarnessEvidence) {
+    fn record_replay_evidence(&mut self, evidence: SecurityScopeHarnessEvidence) {
         let lower = evidence.lower_store_admission_counters();
         self.replay_lower_store_requests += lower.requests();
         self.replay_lower_store_current_authority_checks += lower.current_authority_checks();
@@ -227,7 +227,7 @@ impl S51CloseoutCounterMatrix {
 }
 
 fn require_scenario_families(
-    evidence: &[S51SecurityScopeHarnessEvidence],
+    evidence: &[SecurityScopeHarnessEvidence],
 ) -> Result<(), S51CertificationCloseoutDenial> {
     for failure in REQUIRED_FAILURES {
         if !evidence
@@ -261,7 +261,7 @@ fn require_replay_transcripts(
 }
 
 fn crosscheck_lower_store_counters(
-    evidence: S51SecurityScopeHarnessEvidence,
+    evidence: SecurityScopeHarnessEvidence,
 ) -> Result<(), S51CertificationCloseoutDenial> {
     let lower = evidence.lower_store_admission_counters();
     expect("store.security_scope.requests", 1, lower.requests())?;
@@ -302,11 +302,11 @@ fn crosscheck_lower_store_counters(
     )
 }
 
-fn expected_lower_store_witnesses_issued(evidence: S51SecurityScopeHarnessEvidence) -> u64 {
+fn expected_lower_store_witnesses_issued(evidence: SecurityScopeHarnessEvidence) -> u64 {
     evidence.counters().readiness_acceptances() * WITNESSES_PER_READINESS_ACCEPTANCE
 }
 
-fn exact_witness_sets_issued_after_crosscheck(evidence: S51SecurityScopeHarnessEvidence) -> u64 {
+fn exact_witness_sets_issued_after_crosscheck(evidence: SecurityScopeHarnessEvidence) -> u64 {
     evidence.counters().readiness_acceptances()
 }
 

@@ -15,15 +15,15 @@ pub struct ShortcutRejectionDogfoodScenario {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5ReadinessShapeProbeScenario {
+pub struct PhysicalIsolationReadinessShapeProbeScenario {
     scenario: CertifiedPhysicalScenario,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45HarnessDogfoodReport {
+pub struct SimulationHarnessDogfoodReport {
     s4_recovery: S4RecoveryDogfoodScenario,
     shortcut_rejection: ShortcutRejectionDogfoodScenario,
-    s5_readiness_shape_probe: S5ReadinessShapeProbeScenario,
+    physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
 }
 
 impl S4RecoveryDogfoodScenario {
@@ -72,21 +72,21 @@ impl ShortcutRejectionDogfoodScenario {
     }
 }
 
-impl S5ReadinessShapeProbeScenario {
+impl PhysicalIsolationReadinessShapeProbeScenario {
     pub fn from_public_authoring(
         scenario: CertifiedPhysicalScenario,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         require_scenario_shape(
             &scenario,
-            PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe,
             PhysicalScenarioIntent::ProtectBeforeObserveShape,
-            PhysicalScenarioExpectationKind::S5ReadinessWithShortcutRejectionProbe,
+            PhysicalScenarioExpectationKind::PhysicalIsolationReadinessWithShortcutRejectionProbe,
         )?;
         require_actor(&scenario, PhysicalScenarioActorRole::MaintenanceReclaimer)?;
         require_actor(&scenario, PhysicalScenarioActorRole::ForegroundReader)?;
         require_non_claim(
             &scenario,
-            PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim,
+            PhysicalScenarioNonClaim::NoPhysicalIsolationCorrectnessClaim,
         )?;
         Ok(Self { scenario })
     }
@@ -100,16 +100,16 @@ impl S5ReadinessShapeProbeScenario {
     }
 }
 
-impl S45HarnessDogfoodReport {
+impl SimulationHarnessDogfoodReport {
     pub const fn new(
         s4_recovery: S4RecoveryDogfoodScenario,
         shortcut_rejection: ShortcutRejectionDogfoodScenario,
-        s5_readiness_shape_probe: S5ReadinessShapeProbeScenario,
+        physical_isolation_readiness_shape_probe: PhysicalIsolationReadinessShapeProbeScenario,
     ) -> Self {
         Self {
             s4_recovery,
             shortcut_rejection,
-            s5_readiness_shape_probe,
+            physical_isolation_readiness_shape_probe,
         }
     }
 
@@ -121,8 +121,10 @@ impl S45HarnessDogfoodReport {
         &self.shortcut_rejection
     }
 
-    pub const fn s5_readiness_shape_probe(&self) -> &S5ReadinessShapeProbeScenario {
-        &self.s5_readiness_shape_probe
+    pub const fn physical_isolation_readiness_shape_probe(
+        &self,
+    ) -> &PhysicalIsolationReadinessShapeProbeScenario {
+        &self.physical_isolation_readiness_shape_probe
     }
 }
 

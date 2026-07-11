@@ -1,6 +1,6 @@
 use forge_store_blob_chunks::certification_test_authority::{
-    execute_s7_blob_harness, materialize_s7_executed_lifecycle_evidence, BlobHarnessExecutionInput,
-    S7ExecutedLifecycleEvidenceBundle,
+    execute_blob_harness, materialize_blob_executed_lifecycle_evidence, BlobHarnessExecutionInput,
+    ExecutedBlobLifecycleEvidenceBundle,
 };
 use forge_store_buffer_pool::{
     streaming_window_allocation_receipt, AllocationAdmission, BufferPoolExecutedEvidenceSource,
@@ -9,23 +9,22 @@ use forge_store_buffer_pool::{
 use crate::{
     admit_physical_counter_evidence, BlobByteEqualityOracle, BlobChunkOrderingOracle,
     BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHarnessLoweredSeedPlan,
-    BlobHarnessScenarioSeed, BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
-    BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
-    BlobReachabilityOracle, DetachedSimulationReplayParts, ExecutedTranscriptParts,
-    FaultDeliveryAttempt, FixtureCapabilityDeclaration, FixtureMutationBoundary,
-    GeneratedCoverageMatrix, LargeStoreFixtureProfile, NoJsonAuthorityOracle,
-    NoPrivateMutationOracle, PhysicalCounterExecutionSources, PhysicalExecutedCounterEvidence,
+    BlobHarnessOracleObservation, BlobHarnessScenarioSeed, BlobHeavyCleanupOracle,
+    BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle,
+    BlobNoSidecarPathOracle, BlobReachabilityOracle, DetachedSimulationReplayParts,
+    ExecutedTranscriptParts, FaultDeliveryAttempt, FixtureCapabilityDeclaration,
+    FixtureMutationBoundary, GeneratedCoverageMatrix, HarnessCoverageStage,
+    LargeStoreFixtureProfile, NoJsonAuthorityOracle, NoPrivateMutationOracle,
+    PhysicalCounterExecutionSources, PhysicalCoverageRegistry, PhysicalExecutedCounterEvidence,
     PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalMutationCoverageEvidence,
     PhysicalSimulationDriver, PhysicalSimulationObserver, ProductionBackedFixtureMaterialization,
-    ReplaySeed, ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry, Roadmap2HarnessSequence,
-    S7BlobHarnessOracleObservation, ShortcutRejectionObservation, SimulationReplayBundle,
+    ReplaySeed, ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationReplayBundle,
     StateSpaceBudget,
 };
 
 use super::lower_blob_simulation_seed_plan;
 use forge_store_blob_chunks::certification_test_authority::{
-    BlobHarnessExecutedWitness as S7BlobHarnessExecutedActorEvidence,
-    BlobHarnessObservedYieldpoint as S7BlobHarnessObservedYieldpoint,
+    BlobHarnessExecutedWitness as BlobHarnessExecutedActorEvidence, BlobHarnessObservedYieldpoint,
 };
 
 pub fn replay_bundle_for_seed(seed: BlobHarnessScenarioSeed) -> SimulationReplayBundle {
@@ -36,13 +35,13 @@ pub fn coverage_matrix_for_seed(seed: BlobHarnessScenarioSeed) -> GeneratedCover
     let lowered = lower_blob_simulation_seed_plan(seed).unwrap();
     let schedule = schedule_for_plan(&lowered);
     let mutation = PhysicalMutationCoverageEvidence::from_private_mutation_denial_plan(
-        Roadmap2HarnessSequence::S45,
+        HarnessCoverageStage::SimulationAdmission,
         lowered.plan(),
         FaultDeliveryAttempt::private_mutation(),
     )
     .unwrap();
 
-    Roadmap2CoverageRegistry::for_sequence(Roadmap2HarnessSequence::S45)
+    PhysicalCoverageRegistry::for_sequence(HarnessCoverageStage::SimulationAdmission)
         .register_scenario(lowered.scenario())
         .unwrap()
         .register_plan(lowered.plan())
@@ -76,14 +75,14 @@ fn schedule_for_plan(lowered: &BlobHarnessLoweredSeedPlan) -> PhysicalInterleavi
 
 fn observed_trace(
     lowered: &BlobHarnessLoweredSeedPlan,
-    witness: &S7BlobHarnessExecutedActorEvidence,
-    blob_observation: S7BlobHarnessOracleObservation,
+    witness: &BlobHarnessExecutedActorEvidence,
+    blob_observation: BlobHarnessOracleObservation,
 ) -> crate::ObservedPhysicalTrace {
     let mut builder = PhysicalSimulationObserver::independent_physical_trace()
         .observe_plan(lowered.plan())
         .unwrap()
         .with_runtime_trace(production_trace(lowered, witness))
-        .with_s7_blob_harness_observation(blob_observation);
+        .with_blob_harness_observation(blob_observation);
     for denial in phase22_shortcut_rejections() {
         builder = builder.with_shortcut_rejection_observation(denial);
     }
@@ -94,7 +93,7 @@ fn counter_receipt(
     lowered: &BlobHarnessLoweredSeedPlan,
     schedule: &PhysicalInterleavingSchedule,
     trace: &crate::ObservedPhysicalTrace,
-    witness: &S7BlobHarnessExecutedActorEvidence,
+    witness: &BlobHarnessExecutedActorEvidence,
 ) -> crate::PhysicalCounterEvidenceReceipt {
     let sources = PhysicalCounterExecutionSources::admit_for_blob_harness_execution(
         lowered.plan(),
@@ -112,7 +111,7 @@ fn counter_receipt(
 
 fn buffer_pool_evidence(
     plan: &crate::PhysicalSimulationPlan,
-    witness: &S7BlobHarnessExecutedActorEvidence,
+    witness: &BlobHarnessExecutedActorEvidence,
 ) -> BufferPoolExecutedEvidenceSource {
     let mut allocation =
         AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
@@ -147,7 +146,7 @@ fn blob_fixture() -> crate::ProductionBackedPhysicalFixture {
 
 fn production_trace(
     lowered: &BlobHarnessLoweredSeedPlan,
-    witness: &S7BlobHarnessExecutedActorEvidence,
+    witness: &BlobHarnessExecutedActorEvidence,
 ) -> crate::ProductionBoundaryDriverTrace {
     let trace = lowered
         .plan()
@@ -167,7 +166,7 @@ fn production_trace(
 #[derive(Debug, Clone)]
 pub struct ExecutedBlobHarnessReplayArtifacts {
     pub replay: SimulationReplayBundle,
-    pub lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
+    pub lifecycle_evidence: ExecutedBlobLifecycleEvidenceBundle,
 }
 
 pub fn blob_harness_replay_artifacts_for_certification(
@@ -175,10 +174,10 @@ pub fn blob_harness_replay_artifacts_for_certification(
 ) -> ExecutedBlobHarnessReplayArtifacts {
     let lowered = lower_blob_simulation_seed_plan(seed).unwrap();
     let input = execution_input(lowered.plan(), lowered.materialized_profile());
-    let witness = execute_s7_blob_harness(input.clone());
+    let witness = execute_blob_harness(input.clone());
     let schedule = schedule_for_plan(&lowered);
     let blob_observation =
-        S7BlobHarnessOracleObservation::from_executed_witness(lowered.plan(), &witness).unwrap();
+        BlobHarnessOracleObservation::from_executed_witness(lowered.plan(), &witness).unwrap();
     let trace = observed_trace(&lowered, &witness, blob_observation);
     let counter_receipt = counter_receipt(&lowered, &schedule, &trace, &witness);
     let fixture = blob_fixture();
@@ -195,7 +194,7 @@ pub fn blob_harness_replay_artifacts_for_certification(
     let replay = DetachedSimulationReplayParts::from_transcript(&transcript)
         .admit_replay_bundle()
         .unwrap();
-    let lifecycle_evidence = materialize_s7_executed_lifecycle_evidence(witness);
+    let lifecycle_evidence = materialize_blob_executed_lifecycle_evidence(witness);
     ExecutedBlobHarnessReplayArtifacts {
         replay,
         lifecycle_evidence,
@@ -206,8 +205,8 @@ fn execution_input(
     plan: &crate::PhysicalSimulationPlan,
     materialized_profile: &crate::BlobHarnessMaterializedProfile,
 ) -> BlobHarnessExecutionInput {
-    let metadata = plan.s7_blob_harness_metadata().unwrap();
-    let topology = plan.s7_blob_harness_topology().unwrap();
+    let metadata = plan.blob_harness_metadata().unwrap();
+    let topology = plan.blob_harness_topology().unwrap();
     BlobHarnessExecutionInput::new(
         materialized_profile.blob_profile().envelope().profile(),
         metadata.size_class(),
@@ -220,27 +219,27 @@ fn execution_input(
     )
 }
 
-const fn yielded_name(yieldpoint: S7BlobHarnessObservedYieldpoint) -> &'static str {
+const fn yielded_name(yieldpoint: BlobHarnessObservedYieldpoint) -> &'static str {
     match yieldpoint {
-        S7BlobHarnessObservedYieldpoint::WalAppendBeforeFlush => "wal-append-before-flush",
-        S7BlobHarnessObservedYieldpoint::FreshRuntimeReplayOpen => "fresh-runtime-replay-open",
-        S7BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve => {
+        BlobHarnessObservedYieldpoint::WalAppendBeforeFlush => "wal-append-before-flush",
+        BlobHarnessObservedYieldpoint::FreshRuntimeReplayOpen => "fresh-runtime-replay-open",
+        BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve => {
             "root-publication-before-observe"
         }
-        S7BlobHarnessObservedYieldpoint::MemoryPressureBoundary => "memory-pressure-boundary",
-        S7BlobHarnessObservedYieldpoint::IoPressureBoundary => "io-pressure-boundary",
-        S7BlobHarnessObservedYieldpoint::OfflineVerifierLayoutWalkBeforeRuntimeRecovery => {
+        BlobHarnessObservedYieldpoint::MemoryPressureBoundary => "memory-pressure-boundary",
+        BlobHarnessObservedYieldpoint::IoPressureBoundary => "io-pressure-boundary",
+        BlobHarnessObservedYieldpoint::OfflineVerifierLayoutWalkBeforeRuntimeRecovery => {
             "offline-verifier-layout-walk-before-runtime-recovery"
         }
-        S7BlobHarnessObservedYieldpoint::ShortcutRejectionBoundary => "shortcut-rejection-boundary",
+        BlobHarnessObservedYieldpoint::ShortcutRejectionBoundary => "shortcut-rejection-boundary",
     }
 }
 
-const fn uses_production_boundary_yieldpoint(yieldpoint: S7BlobHarnessObservedYieldpoint) -> bool {
+const fn uses_production_boundary_yieldpoint(yieldpoint: BlobHarnessObservedYieldpoint) -> bool {
     matches!(
         yieldpoint,
-        S7BlobHarnessObservedYieldpoint::WalAppendBeforeFlush
-            | S7BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve
+        BlobHarnessObservedYieldpoint::WalAppendBeforeFlush
+            | BlobHarnessObservedYieldpoint::RootPublicationBeforeObserve
     )
 }
 
@@ -257,15 +256,15 @@ fn phase22_shortcut_rejections() -> [ShortcutRejectionObservation; 6] {
 
 fn blob_oracle_verdicts(parts: &ExecutedTranscriptParts) -> Vec<crate::PhysicalProofOracleVerdict> {
     vec![
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobByteEqualityOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobChunkOrderingOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobDigestChecksumDistinctionOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
@@ -277,31 +276,31 @@ fn blob_oracle_verdicts(parts: &ExecutedTranscriptParts) -> Vec<crate::PhysicalP
             .oracle(NoJsonAuthorityOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobNoSidecarPathOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobNoCrossScopeDedupeOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobReachabilityOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_harness_evidence()
+        ReusablePhysicalOracleFamily::blob_harness_evidence()
             .oracle(BlobConstantMemoryOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_heavy_qualification()
+        ReusablePhysicalOracleFamily::blob_heavy_qualification()
             .oracle(BlobHeavyQualificationEvidenceOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_heavy_qualification()
+        ReusablePhysicalOracleFamily::blob_heavy_qualification()
             .oracle(BlobHeavyCleanupOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),
-        ReusablePhysicalOracleFamily::s7_blob_heavy_qualification()
+        ReusablePhysicalOracleFamily::blob_heavy_qualification()
             .oracle(BlobHeavyPatternLaneOracle)
             .judge(parts.plan(), parts.trace())
             .unwrap(),

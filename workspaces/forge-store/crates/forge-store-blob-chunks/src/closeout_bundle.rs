@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S7ExecutedLifecycleEvidenceBundle {
+pub struct ExecutedBlobLifecycleEvidenceBundle {
     security_scope_class: BlobHarnessSecurityScopeClass,
     placement_class: BlobHarnessPlacementClass,
     access_mode: BlobHarnessAccessMode,
@@ -41,7 +41,7 @@ pub struct S7ExecutedLifecycleEvidenceBundle {
     heavy_fixture_evidence: Option<HeavyBlobFixtureExecutionEvidence>,
 }
 
-impl S7ExecutedLifecycleEvidenceBundle {
+impl ExecutedBlobLifecycleEvidenceBundle {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_harness_execution(
         security_scope_class: BlobHarnessSecurityScopeClass,

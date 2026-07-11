@@ -5,12 +5,14 @@ use forge_store_physical_backend::{
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_certification::{
-    BackendQualificationMatrixDenial, PhysicalFaultEvidenceClass, PhysicalSimulationProfile,
-    PublishedQualificationPosture, QualificationMatrixPublisher, QualificationResidualDebt,
-    S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
+    BackendQualificationMatrixDenial, IoPressureHarnessEvidence, IoPressureHarnessScenario,
+    PhysicalFaultEvidenceClass, PhysicalSimulationProfile, PublishedQualificationPosture,
+    QualificationMatrixPublisher, QualificationResidualDebt,
 };
 
-use super::{certify_s6_backend_qualification_matrix, S6BackendQualificationMatrixCertification};
+use super::{
+    certify_io_pressure_backend_qualification_matrix, S6BackendQualificationMatrixCertification,
+};
 
 #[test]
 fn certification_outcomes_keep_denied_and_degraded_rows_visible() {
@@ -35,7 +37,7 @@ fn certification_outcomes_keep_denied_and_degraded_rows_visible() {
         .unwrap()
         .publish()
         .unwrap();
-    let certification = certify_s6_backend_qualification_matrix(matrix).unwrap();
+    let certification = certify_io_pressure_backend_qualification_matrix(matrix).unwrap();
 
     assert_eq!(certification.row_count(), 3);
     assert_eq!(certification.certified_support_rows().len(), 1);
@@ -90,13 +92,13 @@ fn admitted_backend(support: BackendCapabilitySupportSet) -> AdmittedBackendCapa
         .unwrap()
 }
 
-fn io_pressure_evidence() -> S6IoPressureHarnessEvidence {
-    let scenario = S6IoPressureHarnessScenario::deterministic_read_under_repair_pressure()
+fn io_pressure_evidence() -> IoPressureHarnessEvidence {
+    let scenario = IoPressureHarnessScenario::deterministic_read_under_repair_pressure()
         .with_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
         .with_fault_evidence_class(PhysicalFaultEvidenceClass::CertifiedBackend);
-    let replay = forge_store_physical_certification::s6_io_pressure_test_replay_bundle_for(
+    let replay = forge_store_physical_certification::io_pressure_test_replay_bundle_for(
         scenario.clone(),
         PhysicalSimulationProfile::HardwareQualification,
     );
-    S6IoPressureHarnessEvidence::from_replay_bundle(scenario, &replay).unwrap()
+    IoPressureHarnessEvidence::from_replay_bundle(scenario, &replay).unwrap()
 }

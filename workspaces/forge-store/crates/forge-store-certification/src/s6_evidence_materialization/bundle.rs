@@ -5,7 +5,7 @@ use super::{
     S6MaterializedCounterStrength, S6PostAdmissionViolationEvidenceRow,
     StoreOwnedS6CertificationMaterializationSources,
 };
-use crate::{S6AccessPolicyEvidenceRow, S6IoPressureHarnessCloseoutEvidence};
+use crate::{IoPressureHarnessCloseoutEvidence, S6AccessPolicyEvidenceRow};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct S6MaterializedCertificationEvidenceBundle {
@@ -92,7 +92,7 @@ impl S6MaterializedCertificationEvidenceBundle {
         self.sources.post_admission_violations()
     }
 
-    pub const fn harness_closeout(&self) -> &S6IoPressureHarnessCloseoutEvidence {
+    pub const fn harness_closeout(&self) -> &IoPressureHarnessCloseoutEvidence {
         self.sources.harness_closeout()
     }
 

@@ -10,7 +10,9 @@ use super::requirements::{
     RequiredPhysicalDriverSet, RequiredSimulationPlanShape,
 };
 
-pub(crate) fn s5_stable_read_plan_shape(actor_step_count: u64) -> RequiredSimulationPlanShape {
+pub(crate) fn physical_isolation_stable_read_plan_shape(
+    actor_step_count: u64,
+) -> RequiredSimulationPlanShape {
     RequiredSimulationPlanShape {
         capabilities: baseline_capabilities(),
         actors: RequiredActorSet::from_actors([
@@ -24,7 +26,7 @@ pub(crate) fn s5_stable_read_plan_shape(actor_step_count: u64) -> RequiredSimula
         observers: RequiredObserverSet::from_observers([ObserverKind::IndependentPhysicalTrace]),
         oracle_families: RequiredOracleFamilySet::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S5ReadinessShape,
+            OracleFamilyKind::PhysicalIsolationReadinessShape,
         ]),
         counter_contracts: RequiredCounterContractSet::from_contracts([
             PhysicalCounterContract::exact(CounterContractKind::ActorStepExact, actor_step_count),

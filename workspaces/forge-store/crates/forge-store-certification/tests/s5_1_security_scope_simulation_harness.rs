@@ -6,18 +6,16 @@ mod s5_interleaving_harness_support;
 mod support;
 
 use forge_store_physical_certification::{
-    S51SecurityScopeHarnessOutcomeKind, S51SecurityScopeHarnessScenario,
-    S51SecurityScopeHarnessSchedule, S51SecurityScopePhysicalReplayDenial,
-    S51SecurityScopeReplayMutationKind,
+    SecurityScopeHarnessOutcomeKind, SecurityScopeHarnessScenario, SecurityScopeHarnessSchedule,
+    SecurityScopePhysicalReplayDenial, SecurityScopeReplayMutationKind,
 };
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
 use forge_store_test_support::{
-    execute_s5_1_security_scope_harness_replay_with_physical_replay,
-    execute_s5_1_security_scope_harness_scenario, s5_1_security_scope_drift_scenario,
-    s5_1_security_scope_metadata_preservation_scenarios,
-    s5_1_security_scope_missing_authenticity_scenario,
-    s5_1_security_scope_replayed_custody_scenario, s5_1_security_scope_stale_key_scenario,
-    s5_1_security_scope_wrong_tenant_scenario,
+    execute_security_scope_harness_replay_with_physical_replay,
+    execute_security_scope_harness_scenario, security_scope_drift_scenario,
+    security_scope_metadata_preservation_scenarios, security_scope_missing_authenticity_scenario,
+    security_scope_replayed_custody_scenario, security_scope_stale_key_scenario,
+    security_scope_wrong_tenant_scenario,
 };
 use support::{
     assert_lower_store_counter_crosscheck, assert_physical_binding_matches_replay,
@@ -28,13 +26,13 @@ use support::{
 
 #[test]
 fn security_scope_harness_preserves_metadata_across_all_schedules() {
-    for scenario in s5_1_security_scope_metadata_preservation_scenarios() {
-        let execution = execute_s5_1_security_scope_harness_scenario(scenario);
+    for scenario in security_scope_metadata_preservation_scenarios() {
+        let execution = execute_security_scope_harness_scenario(scenario);
         let evidence = execution.evidence();
 
         assert_security_scope_harness_evidence(
             evidence,
-            S51SecurityScopeHarnessOutcomeKind::Admitted,
+            SecurityScopeHarnessOutcomeKind::Admitted,
             1,
             0,
         );
@@ -73,34 +71,34 @@ fn security_scope_harness_preserves_metadata_across_all_schedules() {
 fn security_scope_harness_models_adversarial_scope_failures_before_decode() {
     let cases = [
         (
-            s5_1_security_scope_drift_scenario(),
-            S51SecurityScopeHarnessOutcomeKind::DeniedPhysicalScopeDrift,
+            security_scope_drift_scenario(),
+            SecurityScopeHarnessOutcomeKind::DeniedPhysicalScopeDrift,
             ExpectedTypedCounters::physical_scope_drift(),
         ),
         (
-            s5_1_security_scope_stale_key_scenario(),
-            S51SecurityScopeHarnessOutcomeKind::StaleKeyPosture,
+            security_scope_stale_key_scenario(),
+            SecurityScopeHarnessOutcomeKind::StaleKeyPosture,
             ExpectedTypedCounters::stale_key_posture(),
         ),
         (
-            s5_1_security_scope_wrong_tenant_scenario(),
-            S51SecurityScopeHarnessOutcomeKind::DeniedWrongTenantScope,
+            security_scope_wrong_tenant_scenario(),
+            SecurityScopeHarnessOutcomeKind::DeniedWrongTenantScope,
             ExpectedTypedCounters::wrong_tenant_scope(),
         ),
         (
-            s5_1_security_scope_missing_authenticity_scenario(),
-            S51SecurityScopeHarnessOutcomeKind::DeniedMissingAuthenticityRequirement,
+            security_scope_missing_authenticity_scenario(),
+            SecurityScopeHarnessOutcomeKind::DeniedMissingAuthenticityRequirement,
             ExpectedTypedCounters::missing_authenticity_requirement(),
         ),
         (
-            s5_1_security_scope_replayed_custody_scenario(),
-            S51SecurityScopeHarnessOutcomeKind::DeniedReplayedCustodyPosture,
+            security_scope_replayed_custody_scenario(),
+            SecurityScopeHarnessOutcomeKind::DeniedReplayedCustodyPosture,
             ExpectedTypedCounters::replayed_custody_posture(),
         ),
     ];
 
     for (scenario, expected_outcome, expected_counters) in cases {
-        let evidence = execute_s5_1_security_scope_harness_scenario(scenario).evidence();
+        let evidence = execute_security_scope_harness_scenario(scenario).evidence();
         assert_security_scope_harness_evidence(evidence, expected_outcome, 0, 1);
         assert_security_scope_typed_counters(evidence, expected_counters);
         assert_lower_store_counter_crosscheck(evidence, expected_counters);
@@ -110,32 +108,32 @@ fn security_scope_harness_models_adversarial_scope_failures_before_decode() {
 #[test]
 fn security_scope_harness_replay_rejects_changed_scope_on_same_schedule() {
     let schedules = [
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
-        S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
-        S51SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
-        S51SecurityScopeHarnessSchedule::RepairReadAdmission,
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+        SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
+        SecurityScopeHarnessSchedule::RepairReadAdmission,
     ];
     let mutations = [
         (
-            S51SecurityScopeReplayMutationKind::ChangedTenantScope,
-            S51SecurityScopeHarnessOutcomeKind::DeniedWrongTenantScope,
+            SecurityScopeReplayMutationKind::ChangedTenantScope,
+            SecurityScopeHarnessOutcomeKind::DeniedWrongTenantScope,
         ),
         (
-            S51SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
-            S51SecurityScopeHarnessOutcomeKind::StaleKeyPosture,
+            SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
+            SecurityScopeHarnessOutcomeKind::StaleKeyPosture,
         ),
         (
-            S51SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
-            S51SecurityScopeHarnessOutcomeKind::DeniedMissingAuthenticityRequirement,
+            SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
+            SecurityScopeHarnessOutcomeKind::DeniedMissingAuthenticityRequirement,
         ),
     ];
 
     for schedule in schedules {
         for (mutation, expected_outcome) in mutations {
-            let execution = execute_s5_1_security_scope_harness_replay_with_physical_replay(
+            let execution = execute_security_scope_harness_replay_with_physical_replay(
                 schedule,
                 mutation,
-                physical_replay_for_scenario(S51SecurityScopeHarnessScenario::metadata_preserved(
+                physical_replay_for_scenario(SecurityScopeHarnessScenario::metadata_preserved(
                     schedule,
                 )),
                 physical_replay_for_scenario(replay_scenario(schedule, mutation)),
@@ -170,7 +168,7 @@ fn security_scope_harness_replay_rejects_changed_scope_on_same_schedule() {
             );
             assert_security_scope_harness_evidence(
                 transcript.baseline_evidence(),
-                S51SecurityScopeHarnessOutcomeKind::Admitted,
+                SecurityScopeHarnessOutcomeKind::Admitted,
                 1,
                 0,
             );
@@ -208,15 +206,15 @@ fn security_scope_harness_replay_rejects_changed_scope_on_same_schedule() {
 
 #[test]
 fn security_scope_harness_replay_denies_changed_physical_schedule_before_identity_reuse() {
-    let mutation = S51SecurityScopeReplayMutationKind::ChangedTenantScope;
-    let denial = execute_s5_1_security_scope_harness_replay_with_physical_replay(
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+    let mutation = SecurityScopeReplayMutationKind::ChangedTenantScope;
+    let denial = execute_security_scope_harness_replay_with_physical_replay(
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
         mutation,
-        physical_replay_for_scenario(S51SecurityScopeHarnessScenario::metadata_preserved(
-            S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+        physical_replay_for_scenario(SecurityScopeHarnessScenario::metadata_preserved(
+            SecurityScopeHarnessSchedule::StableReadPlanAdmission,
         )),
         physical_replay_for_scenario(replay_scenario(
-            S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+            SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
             mutation,
         )),
     )
@@ -224,58 +222,54 @@ fn security_scope_harness_replay_denies_changed_physical_schedule_before_identit
 
     assert_eq!(
         denial,
-        S51SecurityScopePhysicalReplayDenial::ReplayScenarioMismatch
+        SecurityScopePhysicalReplayDenial::ReplayScenarioMismatch
     );
 }
 
 #[test]
 fn security_scope_harness_replay_denies_baseline_scenario_substitution() {
-    let schedule = S51SecurityScopeHarnessSchedule::StableReadPlanAdmission;
-    let mutation = S51SecurityScopeReplayMutationKind::ChangedTenantScope;
-    let denial = execute_s5_1_security_scope_harness_replay_with_physical_replay(
+    let schedule = SecurityScopeHarnessSchedule::StableReadPlanAdmission;
+    let mutation = SecurityScopeReplayMutationKind::ChangedTenantScope;
+    let denial = execute_security_scope_harness_replay_with_physical_replay(
         schedule,
         mutation,
-        physical_replay_for_scenario(S51SecurityScopeHarnessScenario::wrong_tenant_scope(
-            schedule,
-        )),
+        physical_replay_for_scenario(SecurityScopeHarnessScenario::wrong_tenant_scope(schedule)),
         physical_replay_for_scenario(replay_scenario(schedule, mutation)),
     )
     .expect_err("baseline replay evidence must carry the baseline metadata scenario");
 
     assert_eq!(
         denial,
-        S51SecurityScopePhysicalReplayDenial::BaselineScenarioMismatch
+        SecurityScopePhysicalReplayDenial::BaselineScenarioMismatch
     );
 }
 
 #[test]
 fn security_scope_harness_replay_denies_replay_scenario_substitution() {
-    let schedule = S51SecurityScopeHarnessSchedule::StableReadPlanAdmission;
-    let mutation = S51SecurityScopeReplayMutationKind::ChangedTenantScope;
-    let denial = execute_s5_1_security_scope_harness_replay_with_physical_replay(
+    let schedule = SecurityScopeHarnessSchedule::StableReadPlanAdmission;
+    let mutation = SecurityScopeReplayMutationKind::ChangedTenantScope;
+    let denial = execute_security_scope_harness_replay_with_physical_replay(
         schedule,
         mutation,
-        physical_replay_for_scenario(S51SecurityScopeHarnessScenario::metadata_preserved(
-            schedule,
-        )),
-        physical_replay_for_scenario(S51SecurityScopeHarnessScenario::stale_key_posture(schedule)),
+        physical_replay_for_scenario(SecurityScopeHarnessScenario::metadata_preserved(schedule)),
+        physical_replay_for_scenario(SecurityScopeHarnessScenario::stale_key_posture(schedule)),
     )
     .expect_err("replay evidence must carry the requested replay mutation scenario");
 
     assert_eq!(
         denial,
-        S51SecurityScopePhysicalReplayDenial::ReplayScenarioMismatch
+        SecurityScopePhysicalReplayDenial::ReplayScenarioMismatch
     );
 }
 
 #[test]
 fn security_scope_physical_replay_denies_wrong_s5_family_binding() {
-    let scenario = S51SecurityScopeHarnessScenario::metadata_preserved(
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+    let scenario = SecurityScopeHarnessScenario::metadata_preserved(
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
     );
     let scenario_binding = scenario.schedule().physical_replay_binding();
     let wrong_replay_binding =
-        S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode.physical_replay_binding();
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode.physical_replay_binding();
     let denial = physical_replay_for_scenario_with_replay_binding(
         scenario,
         scenario_binding,
@@ -285,6 +279,6 @@ fn security_scope_physical_replay_denies_wrong_s5_family_binding() {
 
     assert_eq!(
         denial,
-        S51SecurityScopePhysicalReplayDenial::PhysicalReplayFamilyMismatch
+        SecurityScopePhysicalReplayDenial::PhysicalReplayFamilyMismatch
     );
 }

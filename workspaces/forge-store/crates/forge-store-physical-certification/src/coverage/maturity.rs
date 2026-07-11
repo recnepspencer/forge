@@ -1,14 +1,15 @@
 use std::collections::BTreeMap;
 
 use forge_store_readiness::{
-    S5CorrectnessNonClaimEvidence, S5HarnessMaturityDependency, S5SimulationHarnessReadinessDenial,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
+    PhysicalIsolationHarnessReadinessDenial,
 };
 
 use crate::PhysicalSimulationProfile;
 
 use super::{
     CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, GeneratedCoverageMatrix,
-    HarnessSubsystem, Roadmap2HarnessSequence, S5ReadinessDependencySet,
+    HarnessCoverageStage, HarnessSubsystem, PhysicalIsolationReadinessDependencySet,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -29,21 +30,21 @@ pub struct HarnessSubsystemMaturity {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HarnessMaturityEvidence {
-    sequence: Roadmap2HarnessSequence,
+    sequence: HarnessCoverageStage,
     profile: Option<PhysicalSimulationProfile>,
     subsystems: Vec<HarnessSubsystemMaturity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5HarnessMaturityDependencyEvidence {
-    dependency: S5HarnessMaturityDependency,
+pub struct PhysicalIsolationHarnessMaturityDependencyEvidence {
+    dependency: PhysicalIsolationHarnessMaturityDependency,
     coverage_row_digest: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5SimulationHarnessReadiness {
-    dependencies: Vec<S5HarnessMaturityDependencyEvidence>,
-    non_claim: S5CorrectnessNonClaimEvidence,
+pub struct PhysicalIsolationHarnessReadiness {
+    dependencies: Vec<PhysicalIsolationHarnessMaturityDependencyEvidence>,
+    non_claim: PhysicalIsolationCorrectnessNonClaimEvidence,
 }
 
 impl HarnessMaturityEvidence {
@@ -74,7 +75,7 @@ impl HarnessMaturityEvidence {
         }
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.sequence
     }
 
@@ -95,7 +96,7 @@ impl HarnessMaturityEvidence {
 
     pub fn require_subsystem_level(
         self,
-        dependencies: S5ReadinessDependencySet,
+        dependencies: PhysicalIsolationReadinessDependencySet,
         required: HarnessMaturityLevel,
     ) -> Result<Self, CoverageGapDenial> {
         for subsystem in dependencies.required() {
@@ -114,10 +115,10 @@ impl HarnessMaturityEvidence {
         Ok(self)
     }
 
-    pub fn s5_readiness_dependency_evidence(
+    pub fn physical_isolation_readiness_dependency_evidence(
         &self,
-    ) -> Result<Vec<S5HarnessMaturityDependencyEvidence>, CoverageGapDenial> {
-        let dependencies = S5ReadinessDependencySet::required_for_ci();
+    ) -> Result<Vec<PhysicalIsolationHarnessMaturityDependencyEvidence>, CoverageGapDenial> {
+        let dependencies = PhysicalIsolationReadinessDependencySet::required_for_ci();
         dependencies
             .required()
             .iter()
@@ -133,7 +134,7 @@ impl HarnessMaturityEvidence {
                             .level_for(*subsystem)
                             .unwrap_or(HarnessMaturityLevel::Exists),
                     })?;
-                Ok(S5HarnessMaturityDependencyEvidence {
+                Ok(PhysicalIsolationHarnessMaturityDependencyEvidence {
                     dependency: dependency_for_subsystem(*subsystem),
                     coverage_row_digest: *evidence.source_identity(),
                 })
@@ -141,20 +142,22 @@ impl HarnessMaturityEvidence {
             .collect()
     }
 
-    pub fn admit_s5_simulation_harness_readiness(
+    pub fn admit_physical_isolation_simulation_harness_readiness(
         &self,
-        non_claim: S5CorrectnessNonClaimEvidence,
-    ) -> Result<S5SimulationHarnessReadiness, S5SimulationHarnessReadinessDenial> {
-        if self.sequence != Roadmap2HarnessSequence::S45 {
-            return Err(S5SimulationHarnessReadinessDenial::WrongSequenceMaturityEvidence);
+        non_claim: PhysicalIsolationCorrectnessNonClaimEvidence,
+    ) -> Result<PhysicalIsolationHarnessReadiness, PhysicalIsolationHarnessReadinessDenial> {
+        if self.sequence != HarnessCoverageStage::SimulationAdmission {
+            return Err(PhysicalIsolationHarnessReadinessDenial::WrongSequenceMaturityEvidence);
         }
         if self.profile != Some(PhysicalSimulationProfile::CiCertification) {
-            return Err(S5SimulationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence);
+            return Err(
+                PhysicalIsolationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence,
+            );
         }
         let dependencies = self
-            .s5_readiness_dependency_evidence()
+            .physical_isolation_readiness_dependency_evidence()
             .map_err(readiness_denial_from_coverage_gap)?;
-        S5SimulationHarnessReadiness::from_generated_maturity(dependencies, non_claim)
+        PhysicalIsolationHarnessReadiness::from_generated_maturity(dependencies, non_claim)
     }
 }
 
@@ -176,8 +179,8 @@ impl HarnessSubsystemMaturity {
     }
 }
 
-impl S5HarnessMaturityDependencyEvidence {
-    pub const fn dependency(&self) -> S5HarnessMaturityDependency {
+impl PhysicalIsolationHarnessMaturityDependencyEvidence {
+    pub const fn dependency(&self) -> PhysicalIsolationHarnessMaturityDependency {
         self.dependency
     }
 
@@ -186,17 +189,17 @@ impl S5HarnessMaturityDependencyEvidence {
     }
 }
 
-impl S5SimulationHarnessReadiness {
+impl PhysicalIsolationHarnessReadiness {
     fn from_generated_maturity(
-        dependencies: Vec<S5HarnessMaturityDependencyEvidence>,
-        non_claim: S5CorrectnessNonClaimEvidence,
-    ) -> Result<Self, S5SimulationHarnessReadinessDenial> {
-        for required in S5HarnessMaturityDependency::required_for_ci() {
+        dependencies: Vec<PhysicalIsolationHarnessMaturityDependencyEvidence>,
+        non_claim: PhysicalIsolationCorrectnessNonClaimEvidence,
+    ) -> Result<Self, PhysicalIsolationHarnessReadinessDenial> {
+        for required in PhysicalIsolationHarnessMaturityDependency::required_for_ci() {
             if !dependencies
                 .iter()
                 .any(|evidence| evidence.dependency() == required)
             {
-                return Err(S5SimulationHarnessReadinessDenial::MissingDependency(
+                return Err(PhysicalIsolationHarnessReadinessDenial::MissingDependency(
                     required,
                 ));
             }
@@ -207,18 +210,18 @@ impl S5SimulationHarnessReadiness {
         })
     }
 
-    pub fn dependencies(&self) -> &[S5HarnessMaturityDependencyEvidence] {
+    pub fn dependencies(&self) -> &[PhysicalIsolationHarnessMaturityDependencyEvidence] {
         &self.dependencies
     }
 
-    pub const fn non_claim(&self) -> S5CorrectnessNonClaimEvidence {
+    pub const fn non_claim(&self) -> PhysicalIsolationCorrectnessNonClaimEvidence {
         self.non_claim
     }
 
-    pub const fn does_not_claim_s5_correctness(&self) -> bool {
+    pub const fn does_not_claim_physical_isolation_correctness(&self) -> bool {
         matches!(
             self.non_claim,
-            S5CorrectnessNonClaimEvidence::ShapeProbeOnly
+            PhysicalIsolationCorrectnessNonClaimEvidence::ShapeProbeOnly
         )
     }
 }
@@ -244,49 +247,57 @@ const fn surface_for_dependency(subsystem: HarnessSubsystem) -> CoverageSurfaceK
     }
 }
 
-const fn dependency_for_subsystem(subsystem: HarnessSubsystem) -> S5HarnessMaturityDependency {
+const fn dependency_for_subsystem(
+    subsystem: HarnessSubsystem,
+) -> PhysicalIsolationHarnessMaturityDependency {
     match subsystem {
-        HarnessSubsystem::ScenarioDefinitions => S5HarnessMaturityDependency::ScenarioDefinitions,
-        HarnessSubsystem::DeterministicScheduler => {
-            S5HarnessMaturityDependency::DeterministicScheduler
+        HarnessSubsystem::ScenarioDefinitions => {
+            PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions
         }
-        HarnessSubsystem::ActorModel => S5HarnessMaturityDependency::ActorModel,
+        HarnessSubsystem::DeterministicScheduler => {
+            PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler
+        }
+        HarnessSubsystem::ActorModel => PhysicalIsolationHarnessMaturityDependency::ActorModel,
         HarnessSubsystem::ProductionDriverContracts => {
-            S5HarnessMaturityDependency::ProductionDriverContracts
+            PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts
         }
         HarnessSubsystem::CertificationOracleFamilies => {
-            S5HarnessMaturityDependency::CertificationOracleFamilies
+            PhysicalIsolationHarnessMaturityDependency::CertificationOracleFamilies
         }
         HarnessSubsystem::CounterStrengthContracts => {
-            S5HarnessMaturityDependency::CounterStrengthContracts
+            PhysicalIsolationHarnessMaturityDependency::CounterStrengthContracts
         }
         HarnessSubsystem::ReplayableTranscripts => {
-            S5HarnessMaturityDependency::ReplayableTranscripts
+            PhysicalIsolationHarnessMaturityDependency::ReplayableTranscripts
         }
-        HarnessSubsystem::MutationValidation => S5HarnessMaturityDependency::MutationValidation,
+        HarnessSubsystem::MutationValidation => {
+            PhysicalIsolationHarnessMaturityDependency::MutationValidation
+        }
     }
 }
 
 fn readiness_denial_from_coverage_gap(
     denial: CoverageGapDenial,
-) -> S5SimulationHarnessReadinessDenial {
+) -> PhysicalIsolationHarnessReadinessDenial {
     match denial {
         CoverageGapDenial::WrongSequenceMaturityEvidence => {
-            S5SimulationHarnessReadinessDenial::WrongSequenceMaturityEvidence
+            PhysicalIsolationHarnessReadinessDenial::WrongSequenceMaturityEvidence
         }
         CoverageGapDenial::UnsupportedProfileMaturityEvidence => {
-            S5SimulationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
+            PhysicalIsolationHarnessReadinessDenial::UnsupportedProfileMaturityEvidence
         }
         CoverageGapDenial::SmokeOnlyMaturityDenied { subsystem, .. } => {
-            S5SimulationHarnessReadinessDenial::MissingDependency(dependency_for_subsystem(
+            PhysicalIsolationHarnessReadinessDenial::MissingDependency(dependency_for_subsystem(
                 subsystem,
             ))
         }
         CoverageGapDenial::MissingRegistrationEvidence { surface } => {
-            S5SimulationHarnessReadinessDenial::MissingDependency(dependency_for_surface(surface))
+            PhysicalIsolationHarnessReadinessDenial::MissingDependency(dependency_for_surface(
+                surface,
+            ))
         }
-        _ => S5SimulationHarnessReadinessDenial::MissingDependency(
-            S5HarnessMaturityDependency::ScenarioDefinitions,
+        _ => PhysicalIsolationHarnessReadinessDenial::MissingDependency(
+            PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions,
         ),
     }
 }
@@ -304,19 +315,31 @@ fn profile_from_generated_matrix(
     })
 }
 
-const fn dependency_for_surface(surface: CoverageSurfaceKind) -> S5HarnessMaturityDependency {
+const fn dependency_for_surface(
+    surface: CoverageSurfaceKind,
+) -> PhysicalIsolationHarnessMaturityDependency {
     match surface {
         CoverageSurfaceKind::Scenario | CoverageSurfaceKind::Plan => {
-            S5HarnessMaturityDependency::ScenarioDefinitions
+            PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions
         }
         CoverageSurfaceKind::YieldpointSchedule => {
-            S5HarnessMaturityDependency::DeterministicScheduler
+            PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler
         }
-        CoverageSurfaceKind::Actor => S5HarnessMaturityDependency::ActorModel,
-        CoverageSurfaceKind::Driver => S5HarnessMaturityDependency::ProductionDriverContracts,
-        CoverageSurfaceKind::Oracle => S5HarnessMaturityDependency::CertificationOracleFamilies,
-        CoverageSurfaceKind::Counter => S5HarnessMaturityDependency::CounterStrengthContracts,
-        CoverageSurfaceKind::Transcript => S5HarnessMaturityDependency::ReplayableTranscripts,
-        CoverageSurfaceKind::MutationResult => S5HarnessMaturityDependency::MutationValidation,
+        CoverageSurfaceKind::Actor => PhysicalIsolationHarnessMaturityDependency::ActorModel,
+        CoverageSurfaceKind::Driver => {
+            PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts
+        }
+        CoverageSurfaceKind::Oracle => {
+            PhysicalIsolationHarnessMaturityDependency::CertificationOracleFamilies
+        }
+        CoverageSurfaceKind::Counter => {
+            PhysicalIsolationHarnessMaturityDependency::CounterStrengthContracts
+        }
+        CoverageSurfaceKind::Transcript => {
+            PhysicalIsolationHarnessMaturityDependency::ReplayableTranscripts
+        }
+        CoverageSurfaceKind::MutationResult => {
+            PhysicalIsolationHarnessMaturityDependency::MutationValidation
+        }
     }
 }

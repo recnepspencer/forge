@@ -2,7 +2,7 @@
 
 #[cfg(feature = "certification-test-authority")]
 use crate::certification_test_authority::{
-    execute_s7_blob_harness, BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
+    execute_blob_harness, BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
     BlobHarnessChunkTopology, BlobHarnessExecutionInput, BlobHarnessFailurePoint,
     BlobHarnessPlacementClass, BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
 };
@@ -142,7 +142,7 @@ pub fn s8_blob_runtime_receipt_for_certification_test(case: S8RuntimeCase) -> S8
         BlobHarnessChunkSizeClass::Fixed1MiB,
     )
     .expect("phase33 blob topology should admit");
-    let witness = execute_s7_blob_harness(
+    let witness = execute_blob_harness(
         BlobHarnessExecutionInput::new(
             BlobHarnessEnvelopeProfile::Local,
             BlobHarnessSizeClass::LocalDeterministic,

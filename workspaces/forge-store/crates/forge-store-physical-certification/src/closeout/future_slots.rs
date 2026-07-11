@@ -1,9 +1,11 @@
-use crate::{S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot};
+use crate::{
+    PhysicalIsolationHarnessFutureExtensionReservation, PhysicalIsolationHarnessFutureExtensionSlot,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FuturePhysicalHarnessExtensionFamily {
-    S6HardwareIoQos,
-    S7BlobLifecycle,
+    HardwareIoQos,
+    BlobLifecycle,
     S10RepairPitr,
     S11TenantSecurity,
     S12FullCertificationCampaign,
@@ -12,9 +14,9 @@ pub enum FuturePhysicalHarnessExtensionFamily {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FutureHarnessExtensionSlotReport {
     family: FuturePhysicalHarnessExtensionFamily,
-    reservation: S5HarnessFutureExtensionReservation,
+    reservation: PhysicalIsolationHarnessFutureExtensionReservation,
     implements_future_behavior: bool,
-    can_satisfy_s5_readiness: bool,
+    can_satisfy_physical_isolation_readiness: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,13 +27,13 @@ pub struct FutureHarnessExtensionSlotInventory {
 impl FutureHarnessExtensionSlotReport {
     const fn reserved(
         family: FuturePhysicalHarnessExtensionFamily,
-        slot: S5HarnessFutureExtensionSlot,
+        slot: PhysicalIsolationHarnessFutureExtensionSlot,
     ) -> Self {
         Self {
             family,
-            reservation: S5HarnessFutureExtensionReservation::reserved(slot),
+            reservation: PhysicalIsolationHarnessFutureExtensionReservation::reserved(slot),
             implements_future_behavior: false,
-            can_satisfy_s5_readiness: false,
+            can_satisfy_physical_isolation_readiness: false,
         }
     }
 
@@ -39,7 +41,7 @@ impl FutureHarnessExtensionSlotReport {
         self.family
     }
 
-    pub const fn reservation(&self) -> &S5HarnessFutureExtensionReservation {
+    pub const fn reservation(&self) -> &PhysicalIsolationHarnessFutureExtensionReservation {
         &self.reservation
     }
 
@@ -47,34 +49,34 @@ impl FutureHarnessExtensionSlotReport {
         self.implements_future_behavior
     }
 
-    pub const fn can_satisfy_s5_readiness(&self) -> bool {
-        self.can_satisfy_s5_readiness
+    pub const fn can_satisfy_physical_isolation_readiness(&self) -> bool {
+        self.can_satisfy_physical_isolation_readiness
     }
 }
 
 impl FutureHarnessExtensionSlotInventory {
-    pub fn s45_reserved_future_slots() -> Self {
+    pub fn simulation_harness_reserved_future_slots() -> Self {
         Self {
             slots: vec![
                 FutureHarnessExtensionSlotReport::reserved(
-                    FuturePhysicalHarnessExtensionFamily::S6HardwareIoQos,
-                    S5HarnessFutureExtensionSlot::HardwareQualification,
+                    FuturePhysicalHarnessExtensionFamily::HardwareIoQos,
+                    PhysicalIsolationHarnessFutureExtensionSlot::HardwareQualification,
                 ),
                 FutureHarnessExtensionSlotReport::reserved(
-                    FuturePhysicalHarnessExtensionFamily::S7BlobLifecycle,
-                    S5HarnessFutureExtensionSlot::BlobLifecycle,
+                    FuturePhysicalHarnessExtensionFamily::BlobLifecycle,
+                    PhysicalIsolationHarnessFutureExtensionSlot::BlobLifecycle,
                 ),
                 FutureHarnessExtensionSlotReport::reserved(
                     FuturePhysicalHarnessExtensionFamily::S10RepairPitr,
-                    S5HarnessFutureExtensionSlot::RepairPitr,
+                    PhysicalIsolationHarnessFutureExtensionSlot::RepairPitr,
                 ),
                 FutureHarnessExtensionSlotReport::reserved(
                     FuturePhysicalHarnessExtensionFamily::S11TenantSecurity,
-                    S5HarnessFutureExtensionSlot::TenantSecurity,
+                    PhysicalIsolationHarnessFutureExtensionSlot::TenantSecurity,
                 ),
                 FutureHarnessExtensionSlotReport::reserved(
                     FuturePhysicalHarnessExtensionFamily::S12FullCertificationCampaign,
-                    S5HarnessFutureExtensionSlot::FullS12Campaign,
+                    PhysicalIsolationHarnessFutureExtensionSlot::FullS12Campaign,
                 ),
             ],
         }
@@ -85,8 +87,8 @@ impl FutureHarnessExtensionSlotInventory {
     }
 
     pub fn all_reserved_without_future_behavior(&self) -> bool {
-        self.slots
-            .iter()
-            .all(|slot| !slot.implements_future_behavior() && !slot.can_satisfy_s5_readiness())
+        self.slots.iter().all(|slot| {
+            !slot.implements_future_behavior() && !slot.can_satisfy_physical_isolation_readiness()
+        })
     }
 }

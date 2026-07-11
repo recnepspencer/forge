@@ -31,7 +31,7 @@ pub use backend_capability_admission::{
     S6BackendCapabilityAdmissionCertificationEvidence, S6BackendCapabilityReadinessPublication,
 };
 pub use backend_qualification::{
-    certify_s6_backend_qualification_matrix, S6BackendQualificationMatrixCertification,
+    certify_io_pressure_backend_qualification_matrix, S6BackendQualificationMatrixCertification,
     S6BackendQualificationRowOutcome,
 };
 pub use background_pacing::{

@@ -6,21 +6,21 @@ mod schedule_actor_driver;
 mod transcript;
 
 use super::{
-    CoverageGapDenial, CoverageSurfaceKind, GeneratedCoverageMatrix, PhysicalCoverageMatrixRow,
-    Roadmap2HarnessSequence, Roadmap2PhysicalCoverageMatrix,
+    CoverageGapDenial, CoverageSurfaceKind, GeneratedCoverageMatrix, HarnessCoverageStage,
+    PhysicalCoverageMatrix, PhysicalCoverageMatrixRow,
 };
 use crate::{PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan};
 
 #[derive(Debug, Clone)]
-pub struct Roadmap2CoverageRegistry {
-    sequence: Roadmap2HarnessSequence,
+pub struct PhysicalCoverageRegistry {
+    sequence: HarnessCoverageStage,
     scenario_identity: Option<PhysicalScenarioCanonicalIdentity>,
     plan: Option<PhysicalSimulationPlan>,
     rows: Vec<PhysicalCoverageMatrixRow>,
 }
 
-impl Roadmap2CoverageRegistry {
-    pub fn for_sequence(sequence: Roadmap2HarnessSequence) -> Self {
+impl PhysicalCoverageRegistry {
+    pub fn for_sequence(sequence: HarnessCoverageStage) -> Self {
         Self {
             sequence,
             scenario_identity: None,
@@ -30,7 +30,7 @@ impl Roadmap2CoverageRegistry {
     }
 
     pub fn generate_matrix(self) -> Result<GeneratedCoverageMatrix, CoverageGapDenial> {
-        let matrix = Roadmap2PhysicalCoverageMatrix::generated(self.sequence, self.rows)?;
+        let matrix = PhysicalCoverageMatrix::generated(self.sequence, self.rows)?;
         Ok(GeneratedCoverageMatrix::from_matrix(matrix))
     }
 

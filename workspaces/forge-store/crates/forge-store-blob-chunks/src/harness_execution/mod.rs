@@ -10,7 +10,7 @@ mod scope_admission;
 mod transition_success;
 
 pub use actors::{
-    execute_s7_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
+    execute_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
     BlobHarnessObservedYieldpoint,
 };
 #[cfg(feature = "certification-test-authority")]

@@ -7,23 +7,26 @@ use forge_store_physical_certification::{
     shortcut_denial_from_oracle_denial, shortcut_denial_from_plan_denial,
     shortcut_denial_from_scenario_denial, shortcut_denial_from_terminal_projection_denial,
     shortcut_denial_from_transcript_denial, test_support_oracle_verdict_attempt,
-    CrashRecoversOldOrNewNeverMixedOracle, DetachedSimulationReplayParts, ExecutedTranscriptParts,
-    FaultDeliveryAttempt, ForbiddenShortcutSet, LargeStoreFixtureProfile, ObservedPhysicalTrace,
-    PhysicalCertificationEvidenceBundle, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
-    PhysicalMutationCoverageEvidence, PhysicalScenarioActor, PhysicalScenarioExpectation,
-    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationHarnessCloseoutDenial,
-    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
-    PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
-    ProductionBackedPhysicalFixture, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
-    ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry, Roadmap2HarnessSequence,
-    S45AcceptanceSuiteExecutionProof, S45AcceptanceSuiteReceipt, S45AcceptanceSuiteReceiptSet,
-    S45CloseoutCoverageReport, S45ExecutedAcceptanceSuiteEvidence,
-    S45ExecutedAcceptanceSuiteEvidenceSet, S45HarnessDogfoodEvidence, S4RecoveryDogfoodScenario,
-    S4RecoveryDogfoodSliceEvidence, S5ReadinessShapeProbeScenario,
-    S5ReadinessShapeProbeSliceEvidence, ShortcutRejectionDogfoodScenario,
+    CrashRecoversOldOrNewNeverMixedOracle, DetachedSimulationReplayParts,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidence,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet, ExecutedTranscriptParts,
+    FaultDeliveryAttempt, ForbiddenShortcutSet, HarnessCoverageStage, LargeStoreFixtureProfile,
+    ObservedPhysicalTrace, PhysicalCertificationEvidenceBundle, PhysicalCoverageRegistry,
+    PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
+    PhysicalIsolationReadinessShapeProbeScenario,
+    PhysicalIsolationReadinessShapeProbeSliceEvidence, PhysicalMutationCoverageEvidence,
+    PhysicalScenarioActor, PhysicalScenarioExpectation, PhysicalScenarioIntent,
+    PhysicalScenarioSchedule, PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationPlan,
+    PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
+    PhysicalSimulationTranscript, ProductionBackedPhysicalFixture, ProductionBoundaryDriverTrace,
+    RecoveryOutcomeObservation, ReusablePhysicalOracleFamily, S4RecoveryDogfoodScenario,
+    S4RecoveryDogfoodSliceEvidence, ShortcutRejectionDogfoodScenario,
     ShortcutRejectionDogfoodSliceEvidence, ShortcutRejectionObservation, SimulationEvidencePolicy,
-    SimulationReplayBundle, SupportedObserverSet, SupportedOracleFamilySet,
-    SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionReport,
+    SimulationHarnessAcceptanceSuiteExecutionProof, SimulationHarnessAcceptanceSuiteReceipt,
+    SimulationHarnessAcceptanceSuiteReceiptSet, SimulationHarnessCloseoutCoverageReport,
+    SimulationHarnessDogfoodEvidence, SimulationReplayBundle, SupportedObserverSet,
+    SupportedOracleFamilySet, SyntheticHarnessShortcutDenialReceipt,
+    SyntheticHarnessShortcutRejectionReport,
 };
 use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, production_backed_physical_fixture_materialization,
@@ -60,127 +63,133 @@ pub(crate) fn shortcut_slice_evidence() -> ShortcutRejectionDogfoodSliceEvidence
     ShortcutRejectionDogfoodSliceEvidence::from_replay_evidence(scenario, matrix, evidence).unwrap()
 }
 
-pub(crate) fn s5_readiness_slice_evidence() -> S5ReadinessShapeProbeSliceEvidence {
-    let scenario =
-        S5ReadinessShapeProbeScenario::from_public_authoring(coverage_support::scenario()).unwrap();
+pub(crate) fn physical_isolation_readiness_slice_evidence(
+) -> PhysicalIsolationReadinessShapeProbeSliceEvidence {
+    let scenario = PhysicalIsolationReadinessShapeProbeScenario::from_public_authoring(
+        coverage_support::scenario(),
+    )
+    .unwrap();
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = complete_registry_for(scenario.scenario(), &plan, &replay)
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S5ReadinessShapeProbeSliceEvidence::from_replay_evidence(scenario, matrix, evidence).unwrap()
+    PhysicalIsolationReadinessShapeProbeSliceEvidence::from_replay_evidence(
+        scenario, matrix, evidence,
+    )
+    .unwrap()
 }
 
 pub(crate) fn complete_acceptance_suite_receipts(
-    dogfood: &S45HarnessDogfoodEvidence,
-    coverage: &S45CloseoutCoverageReport,
-) -> S45AcceptanceSuiteReceiptSet {
-    forge_store_physical_certification::PhysicalSimulationHarnessCloseoutSuite::roadmap2_s45()
+    dogfood: &SimulationHarnessDogfoodEvidence,
+    coverage: &SimulationHarnessCloseoutCoverageReport,
+) -> SimulationHarnessAcceptanceSuiteReceiptSet {
+    forge_store_physical_certification::PhysicalSimulationHarnessCloseoutSuite::simulation_admission()
         .execute_required_acceptance_suites(complete_executed_acceptance_suites(dogfood, coverage))
         .unwrap()
 }
 
 pub(crate) fn acceptance_suite_receipts(
-    dogfood: &S45HarnessDogfoodEvidence,
-    coverage: &S45CloseoutCoverageReport,
-) -> Vec<S45AcceptanceSuiteReceipt> {
+    dogfood: &SimulationHarnessDogfoodEvidence,
+    coverage: &SimulationHarnessCloseoutCoverageReport,
+) -> Vec<SimulationHarnessAcceptanceSuiteReceipt> {
     complete_acceptance_suite_receipts(dogfood, coverage)
         .receipts()
         .to_vec()
 }
 
 pub(crate) fn complete_executed_acceptance_suites(
-    dogfood: &S45HarnessDogfoodEvidence,
-    coverage: &S45CloseoutCoverageReport,
-) -> S45ExecutedAcceptanceSuiteEvidenceSet {
-    S45ExecutedAcceptanceSuiteEvidenceSet::from_executed_suites(executed_acceptance_suites(
-        dogfood, coverage,
-    ))
+    dogfood: &SimulationHarnessDogfoodEvidence,
+    coverage: &SimulationHarnessCloseoutCoverageReport,
+) -> ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet {
+    ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet::from_executed_suites(
+        executed_acceptance_suites(dogfood, coverage),
+    )
     .unwrap()
 }
 
 pub(crate) fn executed_acceptance_suites(
-    dogfood: &S45HarnessDogfoodEvidence,
-    coverage: &S45CloseoutCoverageReport,
-) -> Vec<S45ExecutedAcceptanceSuiteEvidence> {
+    dogfood: &SimulationHarnessDogfoodEvidence,
+    coverage: &SimulationHarnessCloseoutCoverageReport,
+) -> Vec<ExecutedSimulationHarnessAcceptanceSuiteEvidence> {
     vec![
-        executed(S45AcceptanceSuiteExecutionProof::entry_boundary_suite_run(
+        executed(SimulationHarnessAcceptanceSuiteExecutionProof::entry_boundary_suite_run(
             dogfood, coverage,
         )),
         executed(
-            S45AcceptanceSuiteExecutionProof::aspect_native_scenario_definition_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::aspect_native_scenario_definition_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::simulation_plan_lowering_suite_run(dogfood, coverage),
+            SimulationHarnessAcceptanceSuiteExecutionProof::simulation_plan_lowering_suite_run(dogfood, coverage),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::golden_path_authoring_suite_run(dogfood, coverage),
+            SimulationHarnessAcceptanceSuiteExecutionProof::golden_path_authoring_suite_run(dogfood, coverage),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::production_driver_contract_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::production_driver_contract_suite_run(
                 dogfood, coverage,
             ),
         ),
-        executed(S45AcceptanceSuiteExecutionProof::yieldpoint_control_suite_run(dogfood, coverage)),
+        executed(SimulationHarnessAcceptanceSuiteExecutionProof::yieldpoint_control_suite_run(dogfood, coverage)),
         executed(
-            S45AcceptanceSuiteExecutionProof::deterministic_schedule_replay_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::deterministic_schedule_replay_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::fault_delivery_boundary_suite_run(dogfood, coverage),
+            SimulationHarnessAcceptanceSuiteExecutionProof::fault_delivery_boundary_suite_run(dogfood, coverage),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::observer_oracle_separation_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::observer_oracle_separation_suite_run(
                 dogfood, coverage,
             ),
         ),
-        executed(S45AcceptanceSuiteExecutionProof::oracle_library_suite_run(
+        executed(SimulationHarnessAcceptanceSuiteExecutionProof::oracle_library_suite_run(
             dogfood, coverage,
         )),
         executed(
-            S45AcceptanceSuiteExecutionProof::counter_contract_profile_suite_run(dogfood, coverage),
+            SimulationHarnessAcceptanceSuiteExecutionProof::counter_contract_profile_suite_run(dogfood, coverage),
         ),
-        executed(S45AcceptanceSuiteExecutionProof::counter_strength_suite_run(dogfood, coverage)),
+        executed(SimulationHarnessAcceptanceSuiteExecutionProof::counter_strength_suite_run(dogfood, coverage)),
         executed(
-            S45AcceptanceSuiteExecutionProof::production_backed_fixture_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::production_backed_fixture_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::transcript_evidence_bundle_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::transcript_evidence_bundle_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::coverage_maturity_ladder_suite_run(dogfood, coverage),
+            SimulationHarnessAcceptanceSuiteExecutionProof::coverage_maturity_ladder_suite_run(dogfood, coverage),
         ),
-        executed(S45AcceptanceSuiteExecutionProof::generated_coverage_suite_run(dogfood, coverage)),
+        executed(SimulationHarnessAcceptanceSuiteExecutionProof::generated_coverage_suite_run(dogfood, coverage)),
         executed(
-            S45AcceptanceSuiteExecutionProof::forbidden_shortcut_rejection_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::forbidden_shortcut_rejection_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::harness_dogfood_vertical_slice_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::harness_dogfood_vertical_slice_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::extension_slot_containment_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::extension_slot_containment_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::foundational_proof_simulation_evidence_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::foundational_proof_simulation_evidence_suite_run(
                 dogfood, coverage,
             ),
         ),
         executed(
-            S45AcceptanceSuiteExecutionProof::s5_simulation_harness_readiness_suite_run(
+            SimulationHarnessAcceptanceSuiteExecutionProof::physical_isolation_simulation_harness_readiness_suite_run(
                 dogfood, coverage,
             ),
         ),
@@ -188,9 +197,12 @@ pub(crate) fn executed_acceptance_suites(
 }
 
 fn executed(
-    proof: Result<S45AcceptanceSuiteExecutionProof, PhysicalSimulationHarnessCloseoutDenial>,
-) -> S45ExecutedAcceptanceSuiteEvidence {
-    S45ExecutedAcceptanceSuiteEvidence::from_execution_proof(proof.unwrap())
+    proof: Result<
+        SimulationHarnessAcceptanceSuiteExecutionProof,
+        PhysicalSimulationHarnessCloseoutDenial,
+    >,
+) -> ExecutedSimulationHarnessAcceptanceSuiteEvidence {
+    ExecutedSimulationHarnessAcceptanceSuiteEvidence::from_execution_proof(proof.unwrap())
 }
 
 pub(crate) fn complete_shortcut_report() -> SyntheticHarnessShortcutRejectionReport {
@@ -246,8 +258,8 @@ fn complete_registry_for(
     scenario: &forge_store_physical_certification::CertifiedPhysicalScenario,
     plan: &PhysicalSimulationPlan,
     replay: &SimulationReplayBundle,
-) -> Roadmap2CoverageRegistry {
-    Roadmap2CoverageRegistry::for_sequence(Roadmap2HarnessSequence::S45)
+) -> PhysicalCoverageRegistry {
+    PhysicalCoverageRegistry::for_sequence(HarnessCoverageStage::SimulationAdmission)
         .register_scenario(scenario)
         .unwrap()
         .register_plan(plan)
@@ -270,7 +282,7 @@ fn complete_registry_for(
 
 fn mutation_evidence(replay: &SimulationReplayBundle) -> PhysicalMutationCoverageEvidence {
     PhysicalMutationCoverageEvidence::from_replay_private_mutation_denial(
-        Roadmap2HarnessSequence::S45,
+        HarnessCoverageStage::SimulationAdmission,
         replay,
         FaultDeliveryAttempt::private_mutation(),
     )
@@ -331,13 +343,13 @@ fn closeout_context(
     forge_store_physical_certification::SimulationPlanningContext::for_profile(profile)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
         .with_capabilities(
-            forge_store_physical_certification::PhysicalSimulationCapabilitySet::s5_readiness_shape_probe(),
+            forge_store_physical_certification::PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
         )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn production_fixture() -> ProductionBackedPhysicalFixture {
@@ -358,43 +370,7 @@ fn production_fixture() -> ProductionBackedPhysicalFixture {
         .unwrap()
 }
 
-fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialReceipt> {
-    vec![
-        shortcut_denial_from_evidence_bundle_denial(
-            forge_store_physical_certification::reject_loose_log_evidence_attempt().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_scenario_denial(
-            reject_raw_json_scenario_authority_attempt(r#"{"scenario":"fake"}"#).unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_terminal_projection_denial(
-            reject_terminal_json_evidence_attempt().unwrap_err(),
-        ),
-        shortcut_denial_from_evidence_bundle_denial(
-            reject_same_run_self_comparison_evidence_attempt().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_fault_delivery_denial(
-            FaultDeliveryAttempt::private_mutation()
-                .admit()
-                .unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_oracle_denial(fixture_label_oracle_attempt().unwrap_err()).unwrap(),
-        shortcut_denial_from_transcript_denial(
-            forge_store_physical_certification::reject_copied_transcript_fields().unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_plan_denial(
-            reject_unresolved_simulation_plan_recipe(Recipe::<Unresolved, _>::new(
-                coverage_support::shortcut_plan(),
-            ))
-            .unwrap_err(),
-        )
-        .unwrap(),
-        shortcut_denial_from_oracle_denial(test_support_oracle_verdict_attempt().unwrap_err())
-            .unwrap(),
-    ]
-}
+#[path = "support/shortcut_denials.rs"]
+mod shortcut_denials;
 
+use shortcut_denials::complete_shortcut_denial_receipts;

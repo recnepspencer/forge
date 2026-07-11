@@ -5,11 +5,11 @@ pub enum S5IsolationEvidenceRichness {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S5IsolationEvidenceProfile {
+pub struct PhysicalIsolationEvidenceProfile {
     richness: S5IsolationEvidenceRichness,
 }
 
-impl S5IsolationEvidenceProfile {
+impl PhysicalIsolationEvidenceProfile {
     pub const fn minimal_required() -> Self {
         Self {
             richness: S5IsolationEvidenceRichness::MinimalRequired,

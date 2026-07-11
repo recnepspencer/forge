@@ -12,7 +12,7 @@ use forge_store_physical_certification::{
 fn publication_only_compaction_observation_cannot_satisfy_reader_oracles() {
     let plan = support::lower_s5_plan();
     let trace = support::publication_only_trace(&plan);
-    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
 
     assert_oracle_denied(
         family.oracle(OldReaderSeesOldRootOracle),

@@ -1,7 +1,7 @@
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionDenial, BlobBackendResidueObservation,
 };
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use super::BlobPlacementCounterSnapshot;
 
@@ -25,7 +25,7 @@ pub enum BlobPlacementAdmissionDenial {
         counters: BlobPlacementCounterSnapshot,
     },
     ColdChunkUnavailable {
-        state: S7ColdPlacementState,
+        state: ColdPlacementState,
         counters: BlobPlacementCounterSnapshot,
     },
 }

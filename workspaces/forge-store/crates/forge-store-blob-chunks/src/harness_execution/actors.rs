@@ -12,7 +12,7 @@ use crate::import_readmission::{
     bridge_canonical_export_trust_boundary, BoundaryBridgedCanonicalExportArtifact,
 };
 use crate::BlobChunkRootPublication;
-use crate::S7ExecutedLifecycleEvidenceBundle;
+use crate::ExecutedBlobLifecycleEvidenceBundle;
 use forge_store_physical_backend::HeavyFixtureBackendProfile;
 
 use super::chunk_sequence::build_chunk_sequence;
@@ -62,7 +62,7 @@ pub struct BlobHarnessExecutedWitness {
     cross_scope_dedupe_denied: bool,
     heavy_fixture_evidence: Option<HeavyBlobFixtureExecutionEvidence>,
     bridged_export_artifact: BoundaryBridgedCanonicalExportArtifact,
-    closeout_evidence: S7ExecutedLifecycleEvidenceBundle,
+    closeout_evidence: ExecutedBlobLifecycleEvidenceBundle,
 }
 
 impl BlobHarnessExecutionInput {
@@ -153,16 +153,16 @@ impl BlobHarnessExecutedWitness {
         &self.bridged_export_artifact
     }
 
-    pub const fn closeout_evidence(&self) -> &S7ExecutedLifecycleEvidenceBundle {
+    pub const fn closeout_evidence(&self) -> &ExecutedBlobLifecycleEvidenceBundle {
         &self.closeout_evidence
     }
 
-    pub(crate) fn into_closeout_evidence(self) -> S7ExecutedLifecycleEvidenceBundle {
+    pub(crate) fn into_closeout_evidence(self) -> ExecutedBlobLifecycleEvidenceBundle {
         self.closeout_evidence
     }
 }
 
-pub fn execute_s7_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessExecutedWitness {
+pub fn execute_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessExecutedWitness {
     let case = request_identity(&input);
     let heavy_fixture_plan = canonical_heavy_fixture_plan(&input);
     let generated = build_chunk_sequence(
@@ -192,7 +192,7 @@ pub fn execute_s7_blob_harness(input: BlobHarnessExecutionInput) -> BlobHarnessE
         == generated.sequence.proof_frontier().ordered_leaves()[0].stored_digest();
     let cross_scope_dedupe_denied = observe_cross_scope_dedupe(&case, input.security_scope_class);
     let bridged_export_artifact = bridge_canonical_export_trust_boundary(&export_bundle);
-    let closeout_evidence = S7ExecutedLifecycleEvidenceBundle::from_harness_execution(
+    let closeout_evidence = ExecutedBlobLifecycleEvidenceBundle::from_harness_execution(
         input.security_scope_class,
         input.placement_class,
         input.access_mode,

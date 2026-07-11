@@ -3,12 +3,15 @@ mod coverage_support;
 
 use forge_store_physical_certification::{
     CounterContractKind, CoverageRowDimension, CoverageSurfaceKind, FixtureClassKind,
-    GeneratedCoverageMatrix, HarnessMaturityLevel, HarnessSubsystem, MutationValidationPosture,
-    ObserverKind, OracleFamilyKind, PhysicalDriverKind, PhysicalProofOracleKind,
-    PhysicalScenarioActorRole, PhysicalScenarioFaultKind, PhysicalSimulationProfile,
-    Roadmap2HarnessSequence, S5HarnessMaturityDependencyEvidence, S5ReadinessDependencySet,
+    GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityLevel, HarnessSubsystem,
+    MutationValidationPosture, ObserverKind, OracleFamilyKind, PhysicalDriverKind,
+    PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationReadinessDependencySet,
+    PhysicalProofOracleKind, PhysicalScenarioActorRole, PhysicalScenarioFaultKind,
+    PhysicalSimulationProfile,
 };
-use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5HarnessMaturityDependency};
+use forge_store_readiness::{
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationHarnessMaturityDependency,
+};
 
 #[test]
 fn coverage_matrix_is_generated_from_registered_execution_surfaces() {
@@ -18,7 +21,7 @@ fn coverage_matrix_is_generated_from_registered_execution_surfaces() {
         .generate_matrix()
         .unwrap();
 
-    assert_eq!(matrix.sequence(), Roadmap2HarnessSequence::S45);
+    assert_eq!(matrix.sequence(), HarnessCoverageStage::SimulationAdmission);
     assert_surface(&matrix, CoverageSurfaceKind::Scenario);
     assert_surface(&matrix, CoverageSurfaceKind::Plan);
     assert_surface(&matrix, CoverageSurfaceKind::YieldpointSchedule);
@@ -70,7 +73,7 @@ fn coverage_matrix_is_generated_from_registered_execution_surfaces() {
     assert_row_dimension(
         &matrix,
         CoverageSurfaceKind::Oracle,
-        CoverageRowDimension::AuthorityFamily(OracleFamilyKind::S5ReadinessShape),
+        CoverageRowDimension::AuthorityFamily(OracleFamilyKind::PhysicalIsolationReadinessShape),
     );
     assert_row_dimension(
         &matrix,
@@ -122,7 +125,7 @@ fn generated_maturity_maps_s5_ci_dependencies_without_s5_correctness_claim() {
     let maturity = matrix
         .derive_maturity()
         .require_subsystem_level(
-            S5ReadinessDependencySet::required_for_ci(),
+            PhysicalIsolationReadinessDependencySet::required_for_ci(),
             HarnessMaturityLevel::CiCertifiable,
         )
         .unwrap();
@@ -131,7 +134,9 @@ fn generated_maturity_maps_s5_ci_dependencies_without_s5_correctness_claim() {
         maturity.level_for(HarnessSubsystem::ReplayableTranscripts),
         Some(HarnessMaturityLevel::CiCertifiable)
     );
-    let dependency_evidence = maturity.s5_readiness_dependency_evidence().unwrap();
+    let dependency_evidence = maturity
+        .physical_isolation_readiness_dependency_evidence()
+        .unwrap();
     assert_eq!(
         dependency_pairs(&dependency_evidence),
         expected_dependencies,
@@ -139,7 +144,9 @@ fn generated_maturity_maps_s5_ci_dependencies_without_s5_correctness_claim() {
     );
 
     let readiness = maturity
-        .admit_s5_simulation_harness_readiness(S5CorrectnessNonClaimEvidence::shape_probe_only())
+        .admit_physical_isolation_simulation_harness_readiness(
+            PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
+        )
         .unwrap();
 
     assert_eq!(
@@ -149,15 +156,15 @@ fn generated_maturity_maps_s5_ci_dependencies_without_s5_correctness_claim() {
     );
     assert_eq!(
         readiness.non_claim(),
-        S5CorrectnessNonClaimEvidence::ShapeProbeOnly
+        PhysicalIsolationCorrectnessNonClaimEvidence::ShapeProbeOnly
     );
-    assert!(readiness.does_not_claim_s5_correctness());
+    assert!(readiness.does_not_claim_physical_isolation_correctness());
 }
 
 fn expected_dependency_evidence(
     matrix: &GeneratedCoverageMatrix,
-) -> Vec<(S5HarnessMaturityDependency, [u8; 32])> {
-    S5HarnessMaturityDependency::required_for_ci()
+) -> Vec<(PhysicalIsolationHarnessMaturityDependency, [u8; 32])> {
+    PhysicalIsolationHarnessMaturityDependency::required_for_ci()
         .into_iter()
         .map(|dependency| {
             let row = matrix
@@ -171,26 +178,40 @@ fn expected_dependency_evidence(
 }
 
 fn dependency_pairs(
-    evidence: &[S5HarnessMaturityDependencyEvidence],
-) -> Vec<(S5HarnessMaturityDependency, [u8; 32])> {
+    evidence: &[PhysicalIsolationHarnessMaturityDependencyEvidence],
+) -> Vec<(PhysicalIsolationHarnessMaturityDependency, [u8; 32])> {
     evidence
         .iter()
         .map(|evidence| (evidence.dependency(), *evidence.coverage_row_digest()))
         .collect()
 }
 
-fn surface_for_dependency(dependency: S5HarnessMaturityDependency) -> CoverageSurfaceKind {
+fn surface_for_dependency(
+    dependency: PhysicalIsolationHarnessMaturityDependency,
+) -> CoverageSurfaceKind {
     match dependency {
-        S5HarnessMaturityDependency::ScenarioDefinitions => CoverageSurfaceKind::Scenario,
-        S5HarnessMaturityDependency::DeterministicScheduler => {
+        PhysicalIsolationHarnessMaturityDependency::ScenarioDefinitions => {
+            CoverageSurfaceKind::Scenario
+        }
+        PhysicalIsolationHarnessMaturityDependency::DeterministicScheduler => {
             CoverageSurfaceKind::YieldpointSchedule
         }
-        S5HarnessMaturityDependency::ActorModel => CoverageSurfaceKind::Actor,
-        S5HarnessMaturityDependency::ProductionDriverContracts => CoverageSurfaceKind::Driver,
-        S5HarnessMaturityDependency::CertificationOracleFamilies => CoverageSurfaceKind::Oracle,
-        S5HarnessMaturityDependency::CounterStrengthContracts => CoverageSurfaceKind::Counter,
-        S5HarnessMaturityDependency::ReplayableTranscripts => CoverageSurfaceKind::Transcript,
-        S5HarnessMaturityDependency::MutationValidation => CoverageSurfaceKind::MutationResult,
+        PhysicalIsolationHarnessMaturityDependency::ActorModel => CoverageSurfaceKind::Actor,
+        PhysicalIsolationHarnessMaturityDependency::ProductionDriverContracts => {
+            CoverageSurfaceKind::Driver
+        }
+        PhysicalIsolationHarnessMaturityDependency::CertificationOracleFamilies => {
+            CoverageSurfaceKind::Oracle
+        }
+        PhysicalIsolationHarnessMaturityDependency::CounterStrengthContracts => {
+            CoverageSurfaceKind::Counter
+        }
+        PhysicalIsolationHarnessMaturityDependency::ReplayableTranscripts => {
+            CoverageSurfaceKind::Transcript
+        }
+        PhysicalIsolationHarnessMaturityDependency::MutationValidation => {
+            CoverageSurfaceKind::MutationResult
+        }
     }
 }
 

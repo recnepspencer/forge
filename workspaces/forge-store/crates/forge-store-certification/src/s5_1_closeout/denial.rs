@@ -3,8 +3,7 @@ use forge_foundational::{
     FoundationalCounterBackedPerformanceReceiptConstructionDenial,
 };
 use forge_store_physical_certification::{
-    S51SecurityScopeFailureKind, S51SecurityScopeHarnessSchedule,
-    S51SecurityScopeReplayMutationKind,
+    SecurityScopeFailureKind, SecurityScopeHarnessSchedule, SecurityScopeReplayMutationKind,
 };
 use forge_store_readiness::{
     FoundationalAdoptionDenial, FoundationalAdoptionFamily, PhysicalFoundationEvidenceField,
@@ -14,10 +13,10 @@ use crate::FoundationalBoundaryEvidenceDenial;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum S51CertificationCloseoutDenial {
-    MissingScenarioEvidence(S51SecurityScopeFailureKind),
+    MissingScenarioEvidence(SecurityScopeFailureKind),
     MissingReplayTranscript {
-        schedule: S51SecurityScopeHarnessSchedule,
-        mutation: S51SecurityScopeReplayMutationKind,
+        schedule: SecurityScopeHarnessSchedule,
+        mutation: SecurityScopeReplayMutationKind,
     },
     ReplayTranscriptNotSamePhysicalSchedule,
     ReplayTranscriptDidNotDenyBeforeLogicalDecode,

@@ -1,7 +1,7 @@
-use forge_store_physical_certification::S45SimulationHarnessEntry;
+use forge_store_physical_certification::SimulationHarnessEntry;
 
 fn main() {
-    let _ = S45SimulationHarnessEntry {
+    let _ = SimulationHarnessEntry {
         identity: todo!(),
         recovered_root: String::new(),
         admitted_page_lsn_frontier: None,

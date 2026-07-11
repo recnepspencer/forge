@@ -1,7 +1,7 @@
 use forge_store_blob_chunks::{BlobResumeReplayOutcome, BlobResumeUnfinishedState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S7BlobResumeCrashPoint {
+pub enum BlobResumeCrashPoint {
     AfterChunkWrite,
     AfterSessionCheckpoint,
     AfterChunkTreeNodeWrite,
@@ -9,7 +9,7 @@ pub enum S7BlobResumeCrashPoint {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum S7BlobResumeExpectedOutcome {
+pub enum BlobResumeExpectedOutcome {
     ResumesRootPublication {
         session_digest: String,
         chunk_tree_root_digest: String,
@@ -19,26 +19,26 @@ pub enum S7BlobResumeExpectedOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S7BlobResumeRecoveryScenario {
-    crash_point: S7BlobResumeCrashPoint,
-    expected: S7BlobResumeExpectedOutcome,
+pub struct BlobResumeRecoveryScenario {
+    crash_point: BlobResumeCrashPoint,
+    expected: BlobResumeExpectedOutcome,
 }
 
-impl S7BlobResumeRecoveryScenario {
+impl BlobResumeRecoveryScenario {
     pub fn from_replay_outcome(
-        crash_point: S7BlobResumeCrashPoint,
+        crash_point: BlobResumeCrashPoint,
         outcome: BlobResumeReplayOutcome,
     ) -> Self {
         let expected = match outcome {
             BlobResumeReplayOutcome::RootPublicationReady(ready) => {
-                S7BlobResumeExpectedOutcome::ResumesRootPublication {
+                BlobResumeExpectedOutcome::ResumesRootPublication {
                     session_digest: ready.session_digest().to_owned(),
                     chunk_tree_root_digest: ready.chunk_tree_root_digest().to_owned(),
                     logical_content_digest: ready.logical_content_digest().to_owned(),
                 }
             }
             BlobResumeReplayOutcome::Unfinished { state, .. } => {
-                S7BlobResumeExpectedOutcome::DeniesWithLocalizedUnfinishedState(state)
+                BlobResumeExpectedOutcome::DeniesWithLocalizedUnfinishedState(state)
             }
         };
         Self {
@@ -47,11 +47,11 @@ impl S7BlobResumeRecoveryScenario {
         }
     }
 
-    pub const fn crash_point(&self) -> S7BlobResumeCrashPoint {
+    pub const fn crash_point(&self) -> BlobResumeCrashPoint {
         self.crash_point
     }
 
-    pub const fn expected(&self) -> &S7BlobResumeExpectedOutcome {
+    pub const fn expected(&self) -> &BlobResumeExpectedOutcome {
         &self.expected
     }
 }

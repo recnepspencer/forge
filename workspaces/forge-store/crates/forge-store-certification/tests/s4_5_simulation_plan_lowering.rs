@@ -29,7 +29,7 @@ fn equivalent_scenarios_lower_into_same_admitted_plan_identity() {
 }
 
 #[test]
-fn s5_readiness_shape_plan_names_all_pre_execution_requirements() {
+fn physical_isolation_readiness_shape_plan_names_all_pre_execution_requirements() {
     let plan = lower_s5_plan(s5_scenario(false));
 
     assert!(plan
@@ -47,7 +47,7 @@ fn s5_readiness_shape_plan_names_all_pre_execution_requirements() {
         .contains(ObserverKind::IndependentPhysicalTrace));
     assert!(plan
         .oracle_families()
-        .contains(OracleFamilyKind::S5ReadinessShape));
+        .contains(OracleFamilyKind::PhysicalIsolationReadinessShape));
     assert!(plan
         .counter_contracts()
         .contains(CounterContractKind::ActorStepExact));
@@ -80,7 +80,8 @@ fn missing_capabilities_deny_before_plan_construction() {
         let denial = lower_physical_simulation_plan(
             s5_scenario(false),
             complete_context().with_capabilities(
-                PhysicalSimulationCapabilitySet::s5_readiness_shape_probe().without(missing),
+                PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe()
+                    .without(missing),
             ),
         )
         .expect_err("missing capability must deny before execution");
@@ -95,9 +96,11 @@ fn unsupported_profile_denies_before_execution() {
         s5_scenario(false),
         complete_context()
             .with_supported_profiles(PhysicalSimulationProfileSet::developer_smoke_only())
-            .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+            .with_capabilities(
+                PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+            )
             .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-            .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+            .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
             .for_release_certification_profile(),
     )
     .expect_err("unsupported profile must deny before execution");
@@ -149,7 +152,7 @@ fn mismatched_scenario_meaning_denies_instead_of_defaulting_to_s5_shape() {
         denial,
         SimulationPlanDenial::UnsupportedScenarioShape {
             family: PhysicalSimulationScenarioFamily::S4RecoveryDogfood,
-            expectation: forge_store_physical_certification::PhysicalScenarioExpectationKind::S5ReadinessShapeProbe,
+            expectation: forge_store_physical_certification::PhysicalScenarioExpectationKind::PhysicalIsolationReadinessShapeProbe,
         }
     );
 }
@@ -170,7 +173,7 @@ fn absent_or_incomplete_forbidden_shortcuts_deny_before_execution() {
     let missing_denial = lower_physical_simulation_plan(
         s5_scenario(false),
         complete_context().with_forbidden_shortcuts(
-            ForbiddenShortcutSet::roadmap2_baseline()
+            ForbiddenShortcutSet::physical_certification_baseline()
                 .without(ForbiddenShortcutKind::PrivateMutation),
         ),
     )
@@ -186,7 +189,7 @@ fn absent_or_incomplete_forbidden_shortcuts_deny_before_execution() {
 fn ambiguous_future_fault_scope_denies_before_execution() {
     let denial = lower_physical_simulation_plan(
         physical_scenario("store.physical.future.fault")
-            .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+            .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
             .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
             .fixture(
                 NativeStoreAspectFixture::segment_header("alpha", 7)
@@ -200,7 +203,7 @@ fn ambiguous_future_fault_scope_denies_before_execution() {
                 "root-publication-before-observe",
             ))
             .expectation(
-                PhysicalScenarioExpectation::non_claiming_s5_readiness_shape()
+                PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape()
                     .with_future_extension_non_claim(),
             )
             .certify_definition()
@@ -259,17 +262,21 @@ fn complete_context() -> SimulationPlanningContext {
 fn complete_context_for_profile(profile: PhysicalSimulationProfile) -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(profile)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 fn complete_context_without_forbidden_shortcuts() -> SimulationPlanningContext {
     SimulationPlanningContext::developer_smoke()
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
@@ -281,7 +288,7 @@ fn s5_scenario(
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let builder = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone());
     let builder = if reversed_actor_order {
@@ -297,7 +304,7 @@ fn s5_scenario(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }
@@ -334,7 +341,7 @@ fn mismatched_scenario() -> forge_store_physical_certification::CertifiedPhysica
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "fresh-runtime-replay-open",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }

@@ -1,4 +1,4 @@
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use crate::handoffs::BlobHarnessPlacementClass;
 use crate::{BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority, BlobPlacementIntent};
@@ -19,7 +19,7 @@ pub(super) fn admit_placement(
             BlobPlacementIntent::external(readiness, external_recovery(reachability))
         }
         BlobHarnessPlacementClass::ColdTierObserved => {
-            BlobPlacementIntent::cold(readiness, S7ColdPlacementState::ColdAvailable)
+            BlobPlacementIntent::cold(readiness, ColdPlacementState::ColdAvailable)
         }
     };
     authority.admit(reachability, intent).expect("placement")

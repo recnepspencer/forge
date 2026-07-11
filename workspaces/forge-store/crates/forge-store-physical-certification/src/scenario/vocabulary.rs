@@ -1,16 +1,16 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PhysicalSimulationScenarioFamily {
     S4RecoveryDogfood,
-    S5ReadinessShapeProbe,
-    S5StableReadPlanAdmission,
-    S5CompactionInterlock,
-    S5CheckpointPublicationInterlock,
-    S5ReclaimReachability,
-    S5TierMovementStability,
-    S5FutureChunkStability,
-    S5RestartDuringCutover,
-    S6IoPressureHarness,
-    S7BlobHarnessSeed,
+    PhysicalIsolationReadinessShapeProbe,
+    PhysicalIsolationStableReadPlanAdmission,
+    PhysicalIsolationCompactionInterlock,
+    PhysicalIsolationCheckpointPublicationInterlock,
+    PhysicalIsolationReclaimReachability,
+    PhysicalIsolationTierMovementStability,
+    PhysicalIsolationFutureChunkStability,
+    PhysicalIsolationRestartDuringCutover,
+    IoPressureHarness,
+    BlobHarnessSeed,
     ShortcutRejectionDogfood,
     FutureExtensionSlot,
 }
@@ -25,17 +25,17 @@ pub enum PhysicalScenarioIntent {
     StableReadPlanMissingReleaseMutant,
     StableReadPlanExecutionTimeDiscoveryMutant,
     StableReadPlanUnboundedFootprintMutant,
-    S5CompactionEarlyReclaimMutant,
-    S5CompactionStaleEpochReuseMutant,
-    S5CompactionInPlaceOverwriteMutant,
-    S5MixedRootReadMutant,
-    S5CheckpointPublicationInterlock,
-    S5ReclaimReachabilityBarrier,
-    S5TierMovementStabilityOnly,
-    S5FutureChunkStabilityOnly,
-    S5RestartDuringCutover,
-    S6IoPressureSimulation,
-    S7BlobHarnessSeed,
+    PhysicalIsolationCompactionEarlyReclaimMutant,
+    PhysicalIsolationCompactionStaleEpochReuseMutant,
+    PhysicalIsolationCompactionInPlaceOverwriteMutant,
+    MixedRootReadMutant,
+    PhysicalIsolationCheckpointPublicationInterlock,
+    PhysicalIsolationReclaimReachabilityBarrier,
+    PhysicalIsolationTierMovementStabilityOnly,
+    PhysicalIsolationFutureChunkStabilityOnly,
+    PhysicalIsolationRestartDuringCutover,
+    IoPressureSimulation,
+    BlobHarnessSeed,
     ForbiddenShortcutRejectionShape,
     FutureExtensionSlot,
 }
@@ -250,39 +250,39 @@ impl PhysicalScenarioFault {
         }
     }
 
-    pub const fn s6_backend_latency_injection() -> Self {
+    pub const fn io_pressure_backend_latency_injection() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6BackendLatencyInjection,
+            kind: PhysicalScenarioFaultKind::IoPressureBackendLatencyInjection,
         }
     }
 
-    pub const fn s6_queue_depth_saturation() -> Self {
+    pub const fn io_pressure_queue_depth_saturation() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6QueueDepthSaturation,
+            kind: PhysicalScenarioFaultKind::IoPressureQueueDepthSaturation,
         }
     }
 
-    pub const fn s6_bandwidth_throttle() -> Self {
+    pub const fn io_pressure_bandwidth_throttle() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6BandwidthThrottle,
+            kind: PhysicalScenarioFaultKind::IoPressureBandwidthThrottle,
         }
     }
 
-    pub const fn s6_delayed_sync() -> Self {
+    pub const fn io_pressure_delayed_sync() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6DelayedSync,
+            kind: PhysicalScenarioFaultKind::IoPressureDelayedSync,
         }
     }
 
-    pub const fn s6_page_cache_pressure() -> Self {
+    pub const fn io_pressure_page_cache_pressure() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6PageCachePressure,
+            kind: PhysicalScenarioFaultKind::IoPressurePageCachePressure,
         }
     }
 
-    pub const fn s6_background_pacing_late_yield() -> Self {
+    pub const fn io_pressure_background_pacing_late_yield() -> Self {
         Self {
-            kind: PhysicalScenarioFaultKind::S6BackgroundPacingLateYield,
+            kind: PhysicalScenarioFaultKind::IoPressureBackgroundPacingLateYield,
         }
     }
 
@@ -338,12 +338,12 @@ pub enum PhysicalScenarioFaultKind {
     StaleEpochReuse,
     InPlaceCompactionOverwrite,
     MixedRootRead,
-    S6BackendLatencyInjection,
-    S6QueueDepthSaturation,
-    S6BandwidthThrottle,
-    S6DelayedSync,
-    S6PageCachePressure,
-    S6BackgroundPacingLateYield,
+    IoPressureBackendLatencyInjection,
+    IoPressureQueueDepthSaturation,
+    IoPressureBandwidthThrottle,
+    IoPressureDelayedSync,
+    IoPressurePageCachePressure,
+    IoPressureBackgroundPacingLateYield,
     BlobCrashAfterChunkWrite,
     BlobCrashAfterSessionCheckpoint,
     BlobCrashAfterRootPublication,

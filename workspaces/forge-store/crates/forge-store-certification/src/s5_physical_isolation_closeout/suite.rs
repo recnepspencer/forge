@@ -1,14 +1,14 @@
 use super::S5CloseoutReservationSet;
 use crate::s6::verify_executed_closeout_handoff_admissible;
 use crate::{
-    s5_physical_isolation_required_mutation_rows, S5ExecutedIsolationEvidenceBundle,
-    S5PhysicalIsolationMutationEvidence, S6IoQosReadinessHandoffMaterializationDenial,
+    physical_isolation_required_mutation_rows, PhysicalIsolationMutationEvidence,
+    S5ExecutedIsolationEvidenceBundle, S6IoQosReadinessHandoffMaterializationDenial,
 };
 use forge_store_physical_certification::{
-    CertifiedPhysicalScenario, CoverageSurfaceKind, GeneratedCoverageMatrix,
+    CertifiedPhysicalScenario, CoverageSurfaceKind, GeneratedCoverageMatrix, HarnessCoverageStage,
     MutationValidationPosture, OracleFamilyKind, PhysicalCertificationEvidenceBundle,
-    PhysicalProofOracleKind, PhysicalProofOracleVerdictKind, PhysicalSimulationPlan,
-    PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence, S5HarnessReadinessReceipt,
+    PhysicalIsolationHarnessReadinessReceipt, PhysicalProofOracleKind,
+    PhysicalProofOracleVerdictKind, PhysicalSimulationPlan, PhysicalSimulationScenarioFamily,
 };
 use forge_store_physical_isolation::{
     ExecutedIsolationEvidence, ProjectionArtifactKind, StorePhysicalAuthoritySurface,
@@ -39,13 +39,13 @@ pub struct PhysicalIsolationCloseoutLaneEvidence {
     plan: PhysicalSimulationPlan,
     coverage: GeneratedCoverageMatrix,
     certification: PhysicalCertificationEvidenceBundle,
-    mutation: S5PhysicalIsolationMutationEvidence,
+    mutation: PhysicalIsolationMutationEvidence,
     executed: S5ExecutedIsolationEvidenceBundle,
 }
 
 #[derive(Debug, Clone)]
 pub struct PhysicalIsolationCloseoutSuite {
-    s45_readiness: S5HarnessReadinessReceipt,
+    s45_readiness: PhysicalIsolationHarnessReadinessReceipt,
     lanes: Vec<PhysicalIsolationCloseoutLaneEvidence>,
     reservations: S5CloseoutReservationSet,
 }
@@ -63,7 +63,7 @@ impl PhysicalIsolationCloseoutLaneEvidence {
         plan: PhysicalSimulationPlan,
         coverage: GeneratedCoverageMatrix,
         certification: PhysicalCertificationEvidenceBundle,
-        mutation: S5PhysicalIsolationMutationEvidence,
+        mutation: PhysicalIsolationMutationEvidence,
         executed: S5ExecutedIsolationEvidenceBundle,
     ) -> Result<Self, PhysicalIsolationCloseoutDenial> {
         let row = Self {
@@ -94,7 +94,7 @@ impl PhysicalIsolationCloseoutLaneEvidence {
         &self.certification
     }
 
-    pub const fn mutation(&self) -> &S5PhysicalIsolationMutationEvidence {
+    pub const fn mutation(&self) -> &PhysicalIsolationMutationEvidence {
         &self.mutation
     }
 
@@ -107,7 +107,7 @@ impl PhysicalIsolationCloseoutLaneEvidence {
     }
 
     fn require_complete(&self) -> Result<(), PhysicalIsolationCloseoutDenial> {
-        if self.coverage.sequence() != Roadmap2HarnessSequence::S45 {
+        if self.coverage.sequence() != HarnessCoverageStage::SimulationAdmission {
             return Err(PhysicalIsolationCloseoutDenial::WrongHarnessSequence);
         }
         if self.plan.profile()
@@ -130,8 +130,8 @@ impl PhysicalIsolationCloseoutLaneEvidence {
             .oracle_verdicts()
             .iter()
             .any(|verdict| {
-                verdict.family() == OracleFamilyKind::S5PhysicalIsolationInterleaving
-                    && verdict.oracle() == PhysicalProofOracleKind::S5PhysicalIsolationInterleaving
+                verdict.family() == OracleFamilyKind::PhysicalIsolationInterleaving
+                    && verdict.oracle() == PhysicalProofOracleKind::PhysicalIsolationInterleaving
                     && verdict.kind() == PhysicalProofOracleVerdictKind::Satisfied
             })
         {
@@ -215,7 +215,7 @@ impl PhysicalIsolationCloseoutLaneEvidence {
             return Err(PhysicalIsolationCloseoutDenial::MutationReplayBasisMismatch);
         }
         if self.mutation.required_rows()
-            != s5_physical_isolation_required_mutation_rows(replay.plan().scenario_family())
+            != physical_isolation_required_mutation_rows(replay.plan().scenario_family())
         {
             return Err(PhysicalIsolationCloseoutDenial::MutationRowsDoNotMatchFamily);
         }
@@ -258,7 +258,7 @@ impl PhysicalIsolationCloseoutLaneEvidence {
 
 impl PhysicalIsolationCloseoutSuite {
     pub fn from_s45_readiness(
-        s45_readiness: S5HarnessReadinessReceipt,
+        s45_readiness: PhysicalIsolationHarnessReadinessReceipt,
         lanes: Vec<PhysicalIsolationCloseoutLaneEvidence>,
     ) -> Result<Self, PhysicalIsolationCloseoutDenial> {
         let suite = Self {
@@ -286,7 +286,7 @@ impl PhysicalIsolationCloseoutSuite {
         &self.lanes
     }
 
-    pub const fn s45_readiness(&self) -> &S5HarnessReadinessReceipt {
+    pub const fn s45_readiness(&self) -> &PhysicalIsolationHarnessReadinessReceipt {
         &self.s45_readiness
     }
 
@@ -359,12 +359,12 @@ fn mutation_result_identity(posture: MutationValidationPosture) -> [u8; 32] {
 
 fn required_families() -> [PhysicalSimulationScenarioFamily; 6] {
     [
-        PhysicalSimulationScenarioFamily::S5CompactionInterlock,
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock,
-        PhysicalSimulationScenarioFamily::S5ReclaimReachability,
-        PhysicalSimulationScenarioFamily::S5TierMovementStability,
-        PhysicalSimulationScenarioFamily::S5FutureChunkStability,
-        PhysicalSimulationScenarioFamily::S5RestartDuringCutover,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover,
     ]
 }
 

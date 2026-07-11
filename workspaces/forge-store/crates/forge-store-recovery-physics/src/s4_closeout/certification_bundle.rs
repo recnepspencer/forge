@@ -33,7 +33,7 @@ impl RecoveryPhysicsCertificationBundle {
         &self.evidence
     }
 
-    pub fn publish_s5_readiness(&self) -> S5PhysicalIsolationRecoveryReadiness {
+    pub fn publish_physical_isolation_readiness(&self) -> S5PhysicalIsolationRecoveryReadiness {
         S5PhysicalIsolationRecoveryReadiness::from_closeout_bundle(
             &self.closeout_report,
             self.evidence.receipt().execution().clone(),

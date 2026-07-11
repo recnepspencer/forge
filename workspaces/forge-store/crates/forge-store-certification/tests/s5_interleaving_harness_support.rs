@@ -16,33 +16,35 @@ mod resources;
 mod shortcut_report;
 
 use forge_store_physical_certification::{
-    lower_physical_simulation_plan, register_s5_physical_isolation_certification_lane,
-    CheckpointInterlockObservation, IndependentVerifierObservation, OfflineVerifierBoundarySeam,
-    PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule, PhysicalSimulationPlan,
-    Roadmap2HarnessSequence, S5CompactionMutationObservationSet, S5CompactionMutationReplayBinding,
-    S5HarnessReadinessReceipt, S5PhysicalIsolationCertificationLaneRegistration,
-    SimulationPlanningContext,
+    lower_physical_simulation_plan,
+    register_physical_isolation_certification_lane,
+    CheckpointInterlockObservation, HarnessCoverageStage, IndependentVerifierObservation,
+    OfflineVerifierBoundarySeam, PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule,
+    PhysicalIsolationCertificationLaneRegistration,
+    PhysicalIsolationCompactionMutationObservationSet,
+    PhysicalIsolationCompactionMutationReplayBinding, PhysicalIsolationHarnessReadinessReceipt,
+    PhysicalSimulationPlan, SimulationPlanningContext,
 };
 use forge_store_physical_isolation::{
     admit_physical_isolation_entry, PhysicalIsolationEntryRequest,
 };
-use forge_store_readiness::S5CorrectnessNonClaimEvidence;
+use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
-    forge_store_certification::s5_physical_isolation_ci_certification_planning_context(
+    forge_store_certification::physical_isolation_physical_isolation_ci_certification_planning_context(
         s5_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
 pub(crate) fn context_without_s5_lane_registration() -> SimulationPlanningContext {
-    forge_store_certification::s5_physical_isolation_ci_certification_context_without_lane_registration(
+    forge_store_certification::physical_isolation_physical_isolation_ci_certification_context_without_lane_registration(
         compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
 pub(crate) fn developer_smoke_context() -> SimulationPlanningContext {
-    forge_store_certification::s5_physical_isolation_planning_context(
+    forge_store_certification::physical_isolation_physical_isolation_planning_context(
         s5_lane_registration(),
         compaction_mutation_support::compaction_mutation_origin(),
     )
@@ -53,7 +55,7 @@ pub(crate) fn replay_bundle(
     expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
 ) -> forge_store_physical_certification::SimulationReplayBundle {
     let schedule = schedule(plan);
-    let trace = forge_store_certification::observe_s5_physical_isolation_trace(
+    let trace = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
         plan,
         &schedule,
         trace_fixtures(plan, &schedule),
@@ -68,7 +70,7 @@ pub(crate) fn replay_bundle_from_trace(
     trace: forge_store_physical_certification::ObservedPhysicalTrace,
     expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
 ) -> forge_store_physical_certification::SimulationReplayBundle {
-    forge_store_certification::assemble_s5_physical_isolation_replay_bundle(
+    forge_store_certification::assemble_physical_isolation_physical_isolation_replay_bundle(
         plan,
         schedule,
         &resources::production_fixture(),
@@ -96,12 +98,15 @@ pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSch
 pub(crate) fn compaction_mutations(
     plan: &PhysicalSimulationPlan,
     schedule: &PhysicalInterleavingSchedule,
-) -> Result<S5CompactionMutationObservationSet, forge_store_physical_certification::CoverageGapDenial>
-{
-    let binding = S5CompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
+) -> Result<
+    PhysicalIsolationCompactionMutationObservationSet,
+    forge_store_physical_certification::CoverageGapDenial,
+> {
+    let binding =
+        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
     let lanes =
         compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(plan, schedule)?;
-    S5CompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
+    PhysicalIsolationCompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
 }
 
 pub(crate) fn compaction_interlock_observation(
@@ -122,27 +127,30 @@ pub(crate) fn independent_verifier_observation() -> IndependentVerifierObservati
     )
 }
 
-fn s5_lane_registration() -> S5PhysicalIsolationCertificationLaneRegistration {
+fn s5_lane_registration() -> PhysicalIsolationCertificationLaneRegistration {
     let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
         PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
-    register_s5_physical_isolation_certification_lane(&entry, s45_harness_readiness_receipt())
+    register_physical_isolation_certification_lane(
+        &entry,
+        s45_harness_readiness_receipt(),
+    )
 }
 
-pub(crate) fn s45_harness_readiness_receipt() -> S5HarnessReadinessReceipt {
+pub(crate) fn s45_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)
         .generate_matrix()
         .unwrap();
     let evidence = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay).unwrap();
-    S5HarnessReadinessReceipt::from_store_harness_evidence(
+    PhysicalIsolationHarnessReadinessReceipt::from_store_harness_evidence(
         &matrix,
         &evidence,
         &shortcut_report::complete_shortcut_report(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     )
     .unwrap()
 }
@@ -153,6 +161,6 @@ pub(crate) fn lower_lane(
     lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap()
 }
 
-pub(crate) const fn roadmap_sequence() -> Roadmap2HarnessSequence {
-    Roadmap2HarnessSequence::S45
+pub(crate) const fn roadmap_sequence() -> HarnessCoverageStage {
+    HarnessCoverageStage::SimulationAdmission
 }

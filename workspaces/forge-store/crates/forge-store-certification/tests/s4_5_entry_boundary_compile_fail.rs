@@ -1,6 +1,6 @@
 #[test]
-fn s45_entry_boundary_rejects_lower_authority_callers_at_compile_time() {
-    for fixture in s45_entry_boundary_fixtures() {
+fn simulation_harness_entry_boundary_rejects_lower_authority_callers_at_compile_time() {
+    for fixture in simulation_harness_entry_boundary_fixtures() {
         assert_compile_fails(fixture);
     }
 }
@@ -11,7 +11,7 @@ struct S45EntryBoundaryFixture {
     expected_stderr: &'static [&'static str],
 }
 
-fn s45_entry_boundary_fixtures() -> Vec<S45EntryBoundaryFixture> {
+fn simulation_harness_entry_boundary_fixtures() -> Vec<S45EntryBoundaryFixture> {
     vec![
         S45EntryBoundaryFixture {
             name: "copied_report_cannot_enter.rs",
@@ -19,15 +19,15 @@ fn s45_entry_boundary_fixtures() -> Vec<S45EntryBoundaryFixture> {
         },
         S45EntryBoundaryFixture {
             name: "raw_inventory_surface_cannot_be_minted.rs",
-            expected_stderr: &["S45ExistingHarnessSurface", "private"],
+            expected_stderr: &["ExistingSimulationHarnessSurface", "private"],
         },
         S45EntryBoundaryFixture {
             name: "entry_identity_cannot_be_minted.rs",
-            expected_stderr: &["S45SimulationHarnessEntryIdentity", "private"],
+            expected_stderr: &["SimulationHarnessEntryIdentity", "private"],
         },
         S45EntryBoundaryFixture {
             name: "entry_struct_literal_cannot_be_minted.rs",
-            expected_stderr: &["S45SimulationHarnessEntry", "private"],
+            expected_stderr: &["SimulationHarnessEntry", "private"],
         },
     ]
 }
@@ -107,7 +107,7 @@ fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBu
 
 fn fixture_manifest(repo_root: &std::path::Path) -> String {
     format!(
-        "[package]\nname = \"s45_entry_boundary_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\n",
+        "[package]\nname = \"simulation_harness_entry_boundary_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\n",
         manifest_path(
             &repo_root
                 .join("workspaces")

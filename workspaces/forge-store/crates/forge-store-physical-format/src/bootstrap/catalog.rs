@@ -84,7 +84,7 @@ impl PhysicalBootstrapCatalogAuthority {
     pub const fn s8_minimal() -> Self {
         Self {
             manifests: ManifestDiscoveryAuthority::s1(),
-            checksums: PhysicalChunkChecksumAuthority::s7_canonical(),
+            checksums: PhysicalChunkChecksumAuthority::canonical_blob_checksum(),
         }
     }
 

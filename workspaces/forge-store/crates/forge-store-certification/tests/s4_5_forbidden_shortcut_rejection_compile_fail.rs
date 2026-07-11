@@ -74,12 +74,12 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
         },
         CompileFailFixture {
             directory: "s4_5",
-            name: "s5_readiness_cannot_be_struct_literal.rs",
-            expected_stderr: &["S5SimulationHarnessReadiness", "private"],
+            name: "physical_isolation_readiness_cannot_be_struct_literal.rs",
+            expected_stderr: &["PhysicalIsolationHarnessReadiness", "private"],
         },
         CompileFailFixture {
             directory: "s4_5",
-            name: "s5_readiness_from_generated_maturity_is_private.rs",
+            name: "physical_isolation_readiness_from_generated_maturity_is_private.rs",
             expected_stderr: &["from_generated_maturity", "private"],
         },
         CompileFailFixture {
@@ -92,7 +92,7 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
             name: "executed_acceptance_suite_constructor_is_private.rs",
             expected_stderr: &[
                 "entry_boundary_suite_run",
-                "S45ExecutedAcceptanceSuiteEvidence",
+                "ExecutedSimulationHarnessAcceptanceSuiteEvidence",
             ],
         },
     ]

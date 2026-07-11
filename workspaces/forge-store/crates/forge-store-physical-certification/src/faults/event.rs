@@ -1,8 +1,8 @@
 use super::denial::{require_unambiguous_locus, FaultDeliveryDenial};
 use super::locus::PhysicalArtifactFaultLocus;
 use crate::{
-    FreshRuntimeCrashRecoveryEvidence, PhysicalBoundarySeam, PhysicalBoundaryYieldpoint,
-    S6IoPressureFaultKind,
+    FreshRuntimeCrashRecoveryEvidence, IoPressureFaultKind, PhysicalBoundarySeam,
+    PhysicalBoundaryYieldpoint,
 };
 use forge_store_physical_backend::ProductionStorageBoundarySeam;
 
@@ -101,7 +101,7 @@ pub struct UnboundedReadPlanFootprintEvent {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IoStallEvent {
-    s6_pressure_fault_kind: Option<S6IoPressureFaultKind>,
+    io_pressure_fault_kind: Option<IoPressureFaultKind>,
     locus: PhysicalArtifactFaultLocus,
 }
 
@@ -198,18 +198,18 @@ impl PhysicalFaultEvent {
     pub fn io_stall(locus: PhysicalArtifactFaultLocus) -> Result<Self, FaultDeliveryDenial> {
         require_unambiguous_locus(&locus)?;
         Ok(Self::IoStall(IoStallEvent {
-            s6_pressure_fault_kind: None,
+            io_pressure_fault_kind: None,
             locus,
         }))
     }
 
-    pub fn s6_io_pressure_stall(
-        fault_kind: S6IoPressureFaultKind,
+    pub fn io_pressure_stall(
+        fault_kind: IoPressureFaultKind,
         locus: PhysicalArtifactFaultLocus,
     ) -> Result<Self, FaultDeliveryDenial> {
         require_unambiguous_locus(&locus)?;
         Ok(Self::IoStall(IoStallEvent {
-            s6_pressure_fault_kind: Some(fault_kind),
+            io_pressure_fault_kind: Some(fault_kind),
             locus,
         }))
     }
@@ -285,8 +285,8 @@ impl PhysicalFaultEvent {
 }
 
 impl IoStallEvent {
-    pub const fn s6_pressure_fault_kind(&self) -> Option<S6IoPressureFaultKind> {
-        self.s6_pressure_fault_kind
+    pub const fn io_pressure_fault_kind(&self) -> Option<IoPressureFaultKind> {
+        self.io_pressure_fault_kind
     }
 
     pub const fn locus(&self) -> &PhysicalArtifactFaultLocus {

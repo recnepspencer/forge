@@ -1,5 +1,5 @@
-use forge_store_contracts::S6BackgroundPressureDeclaration;
+use forge_store_contracts::IoPressureBackgroundPressureDeclaration;
 
-pub const fn scrub_scan_scheduler_demand() -> S6BackgroundPressureDeclaration {
-    S6BackgroundPressureDeclaration::scrub_scan()
+pub const fn scrub_scan_scheduler_demand() -> IoPressureBackgroundPressureDeclaration {
+    IoPressureBackgroundPressureDeclaration::scrub_scan()
 }

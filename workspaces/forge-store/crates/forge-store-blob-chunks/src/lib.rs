@@ -43,7 +43,7 @@ mod streaming;
 #[cfg(test)]
 mod test_support;
 
-pub use closeout_bundle::S7ExecutedLifecycleEvidenceBundle;
+pub use closeout_bundle::ExecutedBlobLifecycleEvidenceBundle;
 #[cfg(test)]
 pub(crate) use compaction::test_support::{
     compacted_rewritten_publication as phase25_compacted_rewritten_publication,

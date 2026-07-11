@@ -14,14 +14,14 @@ pub struct S5PhysicalIsolationHarnessLane {
     expected_fault: PhysicalScenarioFaultKind,
 }
 
-pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
+pub fn physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
     vec![
         lane(
             "compaction-interlock",
-            PhysicalSimulationScenarioFamily::S5CompactionInterlock,
-            PhysicalScenarioIntent::S5CompactionEarlyReclaimMutant,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock,
+            PhysicalScenarioIntent::PhysicalIsolationCompactionEarlyReclaimMutant,
             PhysicalScenarioFault::early_reclaim(),
-            PhysicalScenarioExpectation::s5_physical_isolation_denial(),
+            PhysicalScenarioExpectation::physical_isolation_denial(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::compaction_driver("compactor"),
@@ -29,10 +29,10 @@ pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
         ),
         lane(
             "checkpoint-publication",
-            PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock,
-            PhysicalScenarioIntent::S5CheckpointPublicationInterlock,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock,
+            PhysicalScenarioIntent::PhysicalIsolationCheckpointPublicationInterlock,
             PhysicalScenarioFault::mixed_root_read(),
-            PhysicalScenarioExpectation::s5_physical_isolation_interleaving(),
+            PhysicalScenarioExpectation::physical_isolation_interleaving(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::checkpoint_driver("checkpoint"),
@@ -40,10 +40,10 @@ pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
         ),
         lane(
             "reclaim-reachability",
-            PhysicalSimulationScenarioFamily::S5ReclaimReachability,
-            PhysicalScenarioIntent::S5ReclaimReachabilityBarrier,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability,
+            PhysicalScenarioIntent::PhysicalIsolationReclaimReachabilityBarrier,
             PhysicalScenarioFault::early_reclaim(),
-            PhysicalScenarioExpectation::s5_physical_isolation_denial(),
+            PhysicalScenarioExpectation::physical_isolation_denial(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
@@ -51,10 +51,10 @@ pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
         ),
         lane(
             "tier-movement",
-            PhysicalSimulationScenarioFamily::S5TierMovementStability,
-            PhysicalScenarioIntent::S5TierMovementStabilityOnly,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability,
+            PhysicalScenarioIntent::PhysicalIsolationTierMovementStabilityOnly,
             PhysicalScenarioFault::no_fault(),
-            PhysicalScenarioExpectation::s5_physical_isolation_interleaving(),
+            PhysicalScenarioExpectation::physical_isolation_interleaving(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::maintenance_reclaimer("tier-movement"),
@@ -62,10 +62,10 @@ pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
         ),
         lane(
             "future-chunk-stability",
-            PhysicalSimulationScenarioFamily::S5FutureChunkStability,
-            PhysicalScenarioIntent::S5FutureChunkStabilityOnly,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability,
+            PhysicalScenarioIntent::PhysicalIsolationFutureChunkStabilityOnly,
             PhysicalScenarioFault::no_fault(),
-            PhysicalScenarioExpectation::s5_physical_isolation_interleaving(),
+            PhysicalScenarioExpectation::physical_isolation_interleaving(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::future_extension_slot("future-chunk"),
@@ -73,10 +73,10 @@ pub fn s5_physical_isolation_lanes() -> Vec<S5PhysicalIsolationHarnessLane> {
         ),
         lane(
             "restart-during-cutover",
-            PhysicalSimulationScenarioFamily::S5RestartDuringCutover,
-            PhysicalScenarioIntent::S5RestartDuringCutover,
+            PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover,
+            PhysicalScenarioIntent::PhysicalIsolationRestartDuringCutover,
             PhysicalScenarioFault::stale_epoch_reuse(),
-            PhysicalScenarioExpectation::s5_physical_isolation_interleaving(),
+            PhysicalScenarioExpectation::physical_isolation_interleaving(),
             [
                 PhysicalScenarioActor::foreground_reader("reader"),
                 PhysicalScenarioActor::foreground_writer("writer"),

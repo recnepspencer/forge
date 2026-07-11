@@ -25,7 +25,7 @@ impl ForbiddenShortcutSet {
         }
     }
 
-    pub fn roadmap2_baseline() -> Self {
+    pub fn physical_certification_baseline() -> Self {
         Self::from_shortcuts(ROADMAP_2_BASELINE_SHORTCUTS)
     }
 

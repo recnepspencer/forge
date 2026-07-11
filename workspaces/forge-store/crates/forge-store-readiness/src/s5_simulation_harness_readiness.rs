@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum S5CorrectnessNonClaimEvidence {
+pub enum PhysicalIsolationCorrectnessNonClaimEvidence {
     ShapeProbeOnly,
 }
 
-impl S5CorrectnessNonClaimEvidence {
+impl PhysicalIsolationCorrectnessNonClaimEvidence {
     pub const fn shape_probe_only() -> Self {
         Self::ShapeProbeOnly
     }

@@ -1,6 +1,6 @@
 use forge_store_certification::{
-    certify_s6_backend_qualification_matrix, S6CertificationMaterializationDenial,
-    S6IoPressureHarnessCloseoutEvidence, StoreOwnedS6CertificationMaterializationSources,
+    certify_io_pressure_backend_qualification_matrix, IoPressureHarnessCloseoutEvidence,
+    S6CertificationMaterializationDenial, StoreOwnedS6CertificationMaterializationSources,
 };
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_physical_backend::{
@@ -45,7 +45,7 @@ pub fn sources_with_empty_qualification_matrix(
         .unwrap();
     from_parts_with_qualification(
         super::backend_witness(),
-        certify_s6_backend_qualification_matrix(empty).unwrap(),
+        certify_io_pressure_backend_qualification_matrix(empty).unwrap(),
     )
 }
 
@@ -66,7 +66,7 @@ pub fn sources_with_amplified_required_residual_debt(
     let harness = super::harness_evidence();
     from_parts_with_qualification(
         witness.clone(),
-        certify_s6_backend_qualification_matrix(
+        certify_io_pressure_backend_qualification_matrix(
             super::qualification_residual_debt::matrix_with_amplified_required_residual_debt(
                 &witness, &harness,
             ),
@@ -102,9 +102,9 @@ fn from_parts_with_qualification(
 }
 
 fn qualification_for_harness(
-    harness: &forge_store_physical_certification::S6IoPressureHarnessEvidence,
+    harness: &forge_store_physical_certification::IoPressureHarnessEvidence,
 ) -> forge_store_certification::S6BackendQualificationMatrixCertification {
-    certify_s6_backend_qualification_matrix(
+    certify_io_pressure_backend_qualification_matrix(
         QualificationMatrixPublisher::from_executed_store_evidence()
             .with_executed_buffered_file_row(&super::backend_witness(), harness)
             .unwrap()
@@ -129,7 +129,7 @@ fn from_parts_full(
         super::secure_io_preservation(&security),
         access_rows,
         vec![super::durability_evidence::flush_row()],
-        S6IoPressureHarnessCloseoutEvidence::from_harness_evidence(harness),
+        IoPressureHarnessCloseoutEvidence::from_harness_evidence(harness),
         qualification,
         None,
     )

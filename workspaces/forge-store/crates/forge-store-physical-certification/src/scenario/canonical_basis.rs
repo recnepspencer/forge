@@ -183,12 +183,12 @@ fn canonical_non_claim_entries(
 fn canonical_blob_harness_entries(
     definition: &PhysicalSimulationScenarioDefinition,
 ) -> Vec<CanonicalBasisEntry> {
-    let Some(metadata) = definition.expectation().s7_blob_harness_metadata() else {
+    let Some(metadata) = definition.expectation().blob_harness_metadata() else {
         return Vec::new();
     };
     let topology = definition
         .expectation()
-        .s7_blob_harness_topology()
+        .blob_harness_topology()
         .expect("blob harness metadata must carry topology");
     vec![
         text_entry(

@@ -1,10 +1,12 @@
-use forge_store_contracts::{S6BackgroundPressureDeclaration, S6BackgroundPressureKind};
+use forge_store_contracts::{
+    IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
+};
 use forge_store_io_scheduler::{BackgroundIoPressureClass, BackgroundPacingCapability};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobCompactionS6Pacing {
     Admitted {
-        declaration: S6BackgroundPressureDeclaration,
+        declaration: IoPressureBackgroundPressureDeclaration,
         foreground_yields: u64,
         io_readmission_satisfied: bool,
     },
@@ -14,7 +16,7 @@ pub enum BlobCompactionS6Pacing {
 impl BlobCompactionS6Pacing {
     pub const fn admitted_compaction(foreground_yields: u64) -> Self {
         Self::Admitted {
-            declaration: S6BackgroundPressureDeclaration::compaction_rewrite(),
+            declaration: IoPressureBackgroundPressureDeclaration::compaction_rewrite(),
             foreground_yields,
             io_readmission_satisfied: true,
         }
@@ -28,7 +30,7 @@ impl BlobCompactionS6Pacing {
             return Self::Unsupported;
         }
         Self::Admitted {
-            declaration: S6BackgroundPressureDeclaration::compaction_rewrite(),
+            declaration: IoPressureBackgroundPressureDeclaration::compaction_rewrite(),
             foreground_yields,
             io_readmission_satisfied: true,
         }
@@ -44,7 +46,7 @@ impl BlobCompactionS6Pacing {
                 io_readmission_satisfied
                     && matches!(
                         declaration.kind(),
-                        S6BackgroundPressureKind::CompactionRewrite
+                        IoPressureBackgroundPressureKind::CompactionRewrite
                     )
             }
             Self::Unsupported => false,

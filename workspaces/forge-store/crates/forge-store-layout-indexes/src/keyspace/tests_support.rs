@@ -11,14 +11,14 @@ use forge_store_aspect_native::{
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_blob_chunks::{
     certification_test_authority::{
-        bridge_s7_export_trust_boundary, execute_s7_blob_harness,
-        materialize_s7_executed_lifecycle_evidence, BlobHarnessExecutedWitness,
+        bridge_blob_export_trust_boundary, execute_blob_harness,
+        materialize_blob_executed_lifecycle_evidence, BlobHarnessExecutedWitness,
         BlobHarnessExecutionInput,
     },
     BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
     BlobHarnessChunkTopology, BlobHarnessFailurePoint, BlobHarnessPlacementClass,
     BlobHarnessSecurityScopeClass, BlobHarnessSizeClass, BlobImportDeclaration,
-    S7ExecutedLifecycleEvidenceBundle,
+    ExecutedBlobLifecycleEvidenceBundle,
 };
 use forge_store_budgets::BlobHarnessEnvelopeProfile;
 use forge_store_contracts::DurableArtifactFamilyId;
@@ -94,19 +94,19 @@ pub(crate) fn alternate_blob_identity() -> S8BlobIdentityKeyBasis {
 }
 
 pub(crate) fn published_blob_import_declaration() -> BlobImportDeclaration {
-    bridge_s7_export_trust_boundary(&published_blob_harness_witness()).into_declaration()
+    bridge_blob_export_trust_boundary(&published_blob_harness_witness()).into_declaration()
 }
 
 pub(crate) fn alternate_blob_import_declaration() -> BlobImportDeclaration {
-    bridge_s7_export_trust_boundary(&alternate_blob_harness_witness()).into_declaration()
+    bridge_blob_export_trust_boundary(&alternate_blob_harness_witness()).into_declaration()
 }
 
-pub(crate) fn published_blob_evidence_bundle() -> S7ExecutedLifecycleEvidenceBundle {
-    materialize_s7_executed_lifecycle_evidence(published_blob_harness_witness())
+pub(crate) fn published_blob_evidence_bundle() -> ExecutedBlobLifecycleEvidenceBundle {
+    materialize_blob_executed_lifecycle_evidence(published_blob_harness_witness())
 }
 
-pub(crate) fn alternate_blob_evidence_bundle() -> S7ExecutedLifecycleEvidenceBundle {
-    materialize_s7_executed_lifecycle_evidence(alternate_blob_harness_witness())
+pub(crate) fn alternate_blob_evidence_bundle() -> ExecutedBlobLifecycleEvidenceBundle {
+    materialize_blob_executed_lifecycle_evidence(alternate_blob_harness_witness())
 }
 
 fn published_blob_harness_witness() -> BlobHarnessExecutedWitness {
@@ -132,7 +132,7 @@ fn blob_identity_harness_witness(
         BlobHarnessChunkSizeClass::Fixed64KiB,
     )
     .expect("blob topology should admit");
-    let witness = execute_s7_blob_harness(BlobHarnessExecutionInput::new(
+    let witness = execute_blob_harness(BlobHarnessExecutionInput::new(
         BlobHarnessEnvelopeProfile::Local,
         BlobHarnessSizeClass::LocalDeterministic,
         BlobHarnessPlacementClass::StoreLocal,

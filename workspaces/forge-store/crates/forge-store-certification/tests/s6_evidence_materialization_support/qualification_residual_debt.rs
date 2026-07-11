@@ -5,13 +5,13 @@ use forge_store_physical_backend::{
     BackendTargetProfile, CapabilityEvidenceClass, PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_certification::{
-    BackendQualificationMatrix, QualificationMatrixPublisher, QualificationResidualDebt,
-    S6IoPressureHarnessEvidence,
+    BackendQualificationMatrix, IoPressureHarnessEvidence, QualificationMatrixPublisher,
+    QualificationResidualDebt,
 };
 
 pub(super) fn matrix_with_required_residual_debt(
     witness: &AdmittedBackendCapabilityWitness,
-    harness: &S6IoPressureHarnessEvidence,
+    harness: &IoPressureHarnessEvidence,
 ) -> BackendQualificationMatrix {
     let rebind = BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend();
     QualificationMatrixPublisher::from_executed_store_evidence()
@@ -75,7 +75,7 @@ pub(super) fn matrix_with_required_residual_debt(
 
 pub(super) fn matrix_with_amplified_required_residual_debt(
     witness: &AdmittedBackendCapabilityWitness,
-    harness: &S6IoPressureHarnessEvidence,
+    harness: &IoPressureHarnessEvidence,
 ) -> BackendQualificationMatrix {
     let rebind = BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend();
     QualificationMatrixPublisher::from_executed_store_evidence()

@@ -18,13 +18,13 @@ use forge_store_recovery_physics::{
     FreshRuntimeRecoveryDriver, RecoveryOfflineVerifier, RecoveryProfileId,
     RecoveryRuntimeClassification, RuntimeRecoveryReport,
 };
-use forge_store_test_support::{
-    admitted_developer_smoke_driver_contracts, deterministic_s4_recovery_artifacts,
-    NativeStoreAspectFixture,
-};
 use forge_store_test_support::harness::test_authority::{
     io_pressure_fault_locus, observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
     observed_torn_frame_boundary, page_generation_fault_locus, wal_frame_payload_fault_locus,
+};
+use forge_store_test_support::{
+    admitted_developer_smoke_driver_contracts, deterministic_s4_recovery_artifacts,
+    NativeStoreAspectFixture,
 };
 
 #[derive(Clone)]
@@ -160,7 +160,7 @@ pub fn readiness_scenario_scheduled_at(
     yieldpoint: &str,
 ) -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase6.fault.delivery")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("fault-delivery", 6)
@@ -172,7 +172,7 @@ pub fn readiness_scenario_scheduled_at(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             yieldpoint,
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }
@@ -198,12 +198,14 @@ pub fn recovery_scenario() -> forge_store_physical_certification::CertifiedPhysi
 pub fn complete_context() -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(
+            PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe(),
+        )
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-        .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline())
+        .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline())
 }
 
 pub fn fresh_runtime_crash_evidence() -> FreshRuntimeCrashRecoveryEvidence {
@@ -305,7 +307,7 @@ fn scenario_for_yieldpoint(
 
 fn io_pressure_scenario() -> forge_store_physical_certification::CertifiedPhysicalScenario {
     physical_scenario("store.physical.s45.phase6.io-stall.delivery")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(
             NativeStoreAspectFixture::segment_header("fault-delivery", 6)
@@ -316,7 +318,7 @@ fn io_pressure_scenario() -> forge_store_physical_certification::CertifiedPhysic
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "io-pressure-boundary",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .unwrap()
 }

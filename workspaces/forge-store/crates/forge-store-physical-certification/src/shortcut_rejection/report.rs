@@ -24,14 +24,14 @@ impl SyntheticHarnessShortcutRejectionReport {
         if receipts.is_empty() {
             return Err(SyntheticHarnessShortcutRejectionDenial::EmptyShortcutDenialReport);
         }
-        Self { receipts }.require_all_roadmap2_shortcuts_denied()
+        Self { receipts }.require_all_certification_shortcuts_denied()
     }
 
-    pub fn require_all_roadmap2_shortcuts_denied(
+    pub fn require_all_certification_shortcuts_denied(
         self,
     ) -> Result<Self, SyntheticHarnessShortcutRejectionDenial> {
         let denied = self.denied_shortcut_set();
-        for required in ForbiddenShortcutSet::roadmap2_baseline().iter() {
+        for required in ForbiddenShortcutSet::physical_certification_baseline().iter() {
             if !denied.contains(&required) {
                 return Err(
                     SyntheticHarnessShortcutRejectionDenial::MissingRequiredShortcut(required),
@@ -55,7 +55,7 @@ impl SyntheticHarnessShortcutRejectionReport {
 
     pub fn all_required_shortcuts_denied(&self) -> bool {
         let denied = self.denied_shortcut_set();
-        let shortcuts_denied = ForbiddenShortcutSet::roadmap2_baseline()
+        let shortcuts_denied = ForbiddenShortcutSet::physical_certification_baseline()
             .iter()
             .all(|required| denied.contains(&required));
         shortcuts_denied && self.all_required_boundaries_denied()

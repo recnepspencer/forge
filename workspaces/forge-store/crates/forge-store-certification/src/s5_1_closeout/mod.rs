@@ -17,7 +17,7 @@ pub use evidence_bundle::S51CertificationCloseoutEvidence;
 pub use input::{S51CertificationCloseoutInput, S51CertificationEvidencePolicy};
 pub use performance_receipts::{S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows};
 
-pub fn certify_s5_1_security_scope_closeout(
+pub fn certify_security_scope_closeout(
     input: S51CertificationCloseoutInput,
 ) -> Result<S51CertificationCloseoutEvidence, S51CertificationCloseoutDenial> {
     let counter_matrix = S51CloseoutCounterMatrix::from_input(&input)?;

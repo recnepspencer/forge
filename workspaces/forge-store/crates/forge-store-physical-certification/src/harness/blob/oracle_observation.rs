@@ -8,10 +8,10 @@ use forge_store_blob_chunks::{BlobHarnessSecurityScopeClass, BlobHarnessSizeClas
 use forge_store_physical_backend::HeavyFixtureBackendProfile;
 
 #[cfg(any(test, feature = "certification-test-support"))]
-use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as S7BlobHarnessExecutedActorEvidence;
+use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as BlobHarnessExecutedActorEvidence;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S7BlobHarnessOracleObservation {
+pub struct BlobHarnessOracleObservation {
     byte_equality_verified: bool,
     chunk_ordering_verified: bool,
     digest_checksum_distinction_verified: bool,
@@ -24,13 +24,13 @@ pub struct S7BlobHarnessOracleObservation {
     heavy_pattern_lane_verified: bool,
 }
 
-impl S7BlobHarnessOracleObservation {
+impl BlobHarnessOracleObservation {
     #[cfg(any(test, feature = "certification-test-support"))]
     pub(crate) fn from_executed_witness(
         plan: &PhysicalSimulationPlan,
-        witness: &S7BlobHarnessExecutedActorEvidence,
+        witness: &BlobHarnessExecutedActorEvidence,
     ) -> Option<Self> {
-        let metadata = plan.s7_blob_harness_metadata()?;
+        let metadata = plan.blob_harness_metadata()?;
         let memory_envelope_requires_streaming = matches!(
             metadata.size_class(),
             BlobHarnessSizeClass::MemoryEnvelopeExceeding

@@ -98,12 +98,12 @@ impl SupportedOracleFamilySet {
     pub fn all_for_developer_smoke() -> Self {
         Self::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S5ReadinessShape,
-            OracleFamilyKind::S5PhysicalIsolationInterleaving,
-            OracleFamilyKind::S6IoPressureSimulation,
+            OracleFamilyKind::PhysicalIsolationReadinessShape,
+            OracleFamilyKind::PhysicalIsolationInterleaving,
+            OracleFamilyKind::IoPressureSimulation,
             OracleFamilyKind::S4RecoveryDogfood,
-            OracleFamilyKind::S7BlobHarnessEvidence,
-            OracleFamilyKind::S7BlobHeavyQualification,
+            OracleFamilyKind::BlobHarnessEvidence,
+            OracleFamilyKind::BlobHeavyQualification,
             OracleFamilyKind::ForbiddenShortcutRejection,
         ])
     }

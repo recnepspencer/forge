@@ -31,7 +31,7 @@ pub enum CoverageGapDenial {
         subsystem: HarnessSubsystem,
         actual: HarnessMaturityLevel,
     },
-    MissingS5CorrectnessNonClaim,
+    MissingPhysicalIsolationCorrectnessNonClaim,
     WrongSequenceMaturityEvidence,
     UnsupportedProfileMaturityEvidence,
 }

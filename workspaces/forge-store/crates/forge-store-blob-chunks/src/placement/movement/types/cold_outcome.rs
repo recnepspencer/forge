@@ -1,4 +1,4 @@
-use forge_store_tiering::{cold_posture_permits_movement, S7ColdPlacementState};
+use forge_store_tiering::{cold_posture_permits_movement, ColdPlacementState};
 
 use crate::placement::movement::classification::cold_lane_decision_table::{
     classify_cold_lane_outcome, map_classified_cold_lane_outcome, ClassifiedColdLaneOutcome,
@@ -6,7 +6,7 @@ use crate::placement::movement::classification::cold_lane_decision_table::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlobPlacementMovementColdOutcome {
-    state: S7ColdPlacementState,
+    state: ColdPlacementState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,11 +50,11 @@ pub enum BlobPlacementMovementColdMaterializationOutcome {
 }
 
 impl BlobPlacementMovementColdOutcome {
-    pub const fn from_state(state: S7ColdPlacementState) -> Self {
+    pub const fn from_state(state: ColdPlacementState) -> Self {
         Self { state }
     }
 
-    pub const fn state(self) -> S7ColdPlacementState {
+    pub const fn state(self) -> ColdPlacementState {
         self.state
     }
 
@@ -115,8 +115,8 @@ impl BlobPlacementMovementColdOutcome {
     }
 }
 
-impl From<S7ColdPlacementState> for BlobPlacementMovementColdOutcome {
-    fn from(state: S7ColdPlacementState) -> Self {
+impl From<ColdPlacementState> for BlobPlacementMovementColdOutcome {
+    fn from(state: ColdPlacementState) -> Self {
         Self::from_state(state)
     }
 }

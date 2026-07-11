@@ -1,5 +1,5 @@
-use forge_store_layout_indexes::certification_test_authority::bridge_s7_export_trust_boundary;
+use forge_store_layout_indexes::certification_test_authority::bridge_blob_export_trust_boundary;
 
 fn main() {
-    let _ = bridge_s7_export_trust_boundary;
+    let _ = bridge_blob_export_trust_boundary;
 }

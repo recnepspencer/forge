@@ -22,15 +22,18 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
             expected_stderr: &["GeneratedCoverageMatrix", "private"],
         },
         CompileFailFixture {
-            name: "s5_readiness_cannot_be_struct_literal.rs",
-            expected_stderr: &["S5SimulationHarnessReadiness", "private"],
+            name: "physical_isolation_readiness_cannot_be_struct_literal.rs",
+            expected_stderr: &["PhysicalIsolationHarnessReadiness", "private"],
         },
         CompileFailFixture {
             name: "s5_dependency_evidence_cannot_be_struct_literal.rs",
-            expected_stderr: &["S5HarnessMaturityDependencyEvidence", "private"],
+            expected_stderr: &[
+                "PhysicalIsolationHarnessMaturityDependencyEvidence",
+                "private",
+            ],
         },
         CompileFailFixture {
-            name: "s5_readiness_from_generated_maturity_is_private.rs",
+            name: "physical_isolation_readiness_from_generated_maturity_is_private.rs",
             expected_stderr: &["from_generated_maturity", "private"],
         },
         CompileFailFixture {

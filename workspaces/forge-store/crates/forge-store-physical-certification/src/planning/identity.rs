@@ -127,8 +127,8 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
             evidence_policy_token(parts.evidence_policy),
         ),
     ];
-    entries.extend(s5_compaction_mutation_origin_entries(parts));
-    entries.extend(s7_blob_harness_metadata_entries(parts));
+    entries.extend(physical_isolation_compaction_mutation_origin_entries(parts));
+    entries.extend(blob_harness_metadata_entries(parts));
     entries.extend(
         parts
             .required_capabilities
@@ -246,70 +246,71 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
     entries
 }
 
-fn s7_blob_harness_metadata_entries(
-    parts: &PhysicalSimulationPlanParts,
-) -> Vec<CanonicalBasisEntry> {
-    let Some(metadata) = parts.s7_blob_harness_metadata else {
-        return vec![text_entry("plan.s7_blob_harness.present", "false")];
+fn blob_harness_metadata_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalBasisEntry> {
+    let Some(metadata) = parts.blob_harness_metadata else {
+        return vec![text_entry("plan.blob_harness.present", "false")];
     };
     vec![
-        text_entry("plan.s7_blob_harness.present", "true"),
+        text_entry("plan.blob_harness.present", "true"),
         text_entry(
-            "plan.s7_blob_harness.size_class",
+            "plan.blob_harness.size_class",
             blob_harness_size_class_token(metadata.size_class()),
         ),
         text_entry(
-            "plan.s7_blob_harness.chunk_size_class",
+            "plan.blob_harness.chunk_size_class",
             blob_harness_chunk_size_class_token(metadata.chunk_size_class()),
         ),
         text_entry(
-            "plan.s7_blob_harness.placement_class",
+            "plan.blob_harness.placement_class",
             blob_harness_placement_class_token(metadata.placement_class()),
         ),
         text_entry(
-            "plan.s7_blob_harness.security_scope_class",
+            "plan.blob_harness.security_scope_class",
             blob_harness_security_scope_class_token(metadata.security_scope_class()),
         ),
         text_entry(
-            "plan.s7_blob_harness.access_mode",
+            "plan.blob_harness.access_mode",
             blob_harness_access_mode_token(metadata.access_mode()),
         ),
         text_entry(
-            "plan.s7_blob_harness.failure_point",
+            "plan.blob_harness.failure_point",
             blob_harness_failure_point_token(metadata.failure_point()),
         ),
         text_entry(
-            "plan.s7_blob_harness.actor_mix",
+            "plan.blob_harness.actor_mix",
             blob_harness_actor_mix_token(metadata.actor_mix()),
         ),
     ]
 }
 
-fn s5_compaction_mutation_origin_entries(
+fn physical_isolation_compaction_mutation_origin_entries(
     parts: &PhysicalSimulationPlanParts,
 ) -> Vec<CanonicalBasisEntry> {
-    match &parts.s5_compaction_mutation_origin {
+    match &parts.physical_isolation_compaction_mutation_origin {
         Some(origin) => vec![
-            text_entry("plan.s5_compaction_mutation_origin.present", "true"),
             text_entry(
-                "plan.s5_compaction_mutation_origin.source_epoch",
+                "plan.physical_isolation_compaction_mutation_origin.present",
+                "true",
+            ),
+            text_entry(
+                "plan.physical_isolation_compaction_mutation_origin.source_epoch",
                 origin.source_epoch().get().to_string(),
             ),
             text_entry(
-                "plan.s5_compaction_mutation_origin.target_epoch",
+                "plan.physical_isolation_compaction_mutation_origin.target_epoch",
                 origin.target_epoch().get().to_string(),
             ),
             text_entry(
-                "plan.s5_compaction_mutation_origin.protected",
+                "plan.physical_isolation_compaction_mutation_origin.protected",
                 format!("{:?}", origin.protected()),
             ),
             text_entry(
-                "plan.s5_compaction_mutation_origin.candidates",
+                "plan.physical_isolation_compaction_mutation_origin.candidates",
                 format!("{:?}", origin.candidates()),
             ),
         ],
         None => vec![text_entry(
-            "plan.s5_compaction_mutation_origin.present",
+            "plan.physical_isolation_compaction_mutation_origin.present",
             "false",
         )],
     }
@@ -335,20 +336,32 @@ fn plan_canonicalization_version() -> CanonicalizationRuleVersion {
 fn scenario_family_token(family: PhysicalSimulationScenarioFamily) -> &'static str {
     match family {
         PhysicalSimulationScenarioFamily::S4RecoveryDogfood => "s4-recovery-dogfood",
-        PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe => "s5-readiness-shape-probe",
-        PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe => {
+            "s5-readiness-shape-probe"
+        }
+        PhysicalSimulationScenarioFamily::PhysicalIsolationStableReadPlanAdmission => {
             "s5-stable-read-plan-admission"
         }
-        PhysicalSimulationScenarioFamily::S5CompactionInterlock => "s5-compaction-interlock",
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock => {
+            "s5-compaction-interlock"
+        }
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock => {
             "s5-checkpoint-publication-interlock"
         }
-        PhysicalSimulationScenarioFamily::S5ReclaimReachability => "s5-reclaim-reachability",
-        PhysicalSimulationScenarioFamily::S5TierMovementStability => "s5-tier-movement-stability",
-        PhysicalSimulationScenarioFamily::S5FutureChunkStability => "s5-future-chunk-stability",
-        PhysicalSimulationScenarioFamily::S5RestartDuringCutover => "s5-restart-during-cutover",
-        PhysicalSimulationScenarioFamily::S6IoPressureHarness => "s6-io-pressure-harness",
-        PhysicalSimulationScenarioFamily::S7BlobHarnessSeed => "s7-blob-harness-seed",
+        PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability => {
+            "s5-reclaim-reachability"
+        }
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability => {
+            "s5-tier-movement-stability"
+        }
+        PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability => {
+            "s5-future-chunk-stability"
+        }
+        PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
+            "s5-restart-during-cutover"
+        }
+        PhysicalSimulationScenarioFamily::IoPressureHarness => "s6-io-pressure-harness",
+        PhysicalSimulationScenarioFamily::BlobHarnessSeed => "s7-blob-harness-seed",
         PhysicalSimulationScenarioFamily::ShortcutRejectionDogfood => "shortcut-rejection-dogfood",
         PhysicalSimulationScenarioFamily::FutureExtensionSlot => "future-extension-slot",
     }

@@ -20,28 +20,27 @@ use forge_store_aspect_native::{
 };
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    certify_s5_1_security_scope_closeout, S51CertificationCloseoutDenial,
-    S51CertificationCloseoutInput, S51CertificationEvidencePolicy, S51CloseoutFoundationalLane,
+    certify_security_scope_closeout, S51CertificationCloseoutDenial, S51CertificationCloseoutInput,
+    S51CertificationEvidencePolicy, S51CloseoutFoundationalLane,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_physical_certification::{
-    S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessScenario,
-    S51SecurityScopeHarnessSchedule, S51SecurityScopeReplayMutationKind,
+    SecurityScopeHarnessEvidence, SecurityScopeHarnessScenario, SecurityScopeHarnessSchedule,
+    SecurityScopeReplayMutationKind,
 };
 use forge_store_readiness::PhysicalFoundationEvidenceField;
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
-    StoreSecurityScopeAdmissionCounterSnapshot,
-    StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
+    StoreSecurityScopeAdmissionCounterSnapshot, StoreSecurityScopeAdmissionExpectation,
+    StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 use forge_store_test_support::{
-    execute_s5_1_security_scope_harness_replay_with_physical_replay,
-    execute_s5_1_security_scope_harness_scenario, s5_1_security_scope_drift_scenario,
-    s5_1_security_scope_metadata_preservation_scenarios,
-    s5_1_security_scope_missing_authenticity_scenario,
-    s5_1_security_scope_replayed_custody_scenario, s5_1_security_scope_stale_key_scenario,
-    s5_1_security_scope_wrong_tenant_scenario,
+    execute_security_scope_harness_replay_with_physical_replay,
+    execute_security_scope_harness_scenario, security_scope_drift_scenario,
+    security_scope_metadata_preservation_scenarios, security_scope_missing_authenticity_scenario,
+    security_scope_replayed_custody_scenario, security_scope_stale_key_scenario,
+    security_scope_wrong_tenant_scenario,
 };
 use support::{physical_replay_for_scenario, replay_scenario};
 
@@ -51,7 +50,7 @@ fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() 
     let replay_transcripts = closeout_replay_transcripts();
     let security_scope = security_foundation_scope();
 
-    let closeout = certify_s5_1_security_scope_closeout(
+    let closeout = certify_security_scope_closeout(
         S51CertificationCloseoutInput::from_replay_and_security_scope(
             scenario_evidence,
             replay_transcripts,
@@ -204,12 +203,12 @@ fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() 
 fn phase_11_rejects_harness_evidence_with_mismatched_lower_store_counters() {
     let mut scenario_evidence = closeout_scenario_evidence();
     let first_evidence = scenario_evidence[0];
-    scenario_evidence[0] = S51SecurityScopeHarnessEvidence::from_observation_and_store_counters(
+    scenario_evidence[0] = SecurityScopeHarnessEvidence::from_observation_and_store_counters(
         first_evidence.observation(),
         StoreSecurityScopeAdmissionCounterSnapshot::default(),
     );
 
-    let denial = certify_s5_1_security_scope_closeout(
+    let denial = certify_security_scope_closeout(
         S51CertificationCloseoutInput::from_replay_and_security_scope(
             scenario_evidence,
             closeout_replay_transcripts(),
@@ -230,41 +229,41 @@ fn phase_11_rejects_harness_evidence_with_mismatched_lower_store_counters() {
 }
 
 fn closeout_scenario_evidence(
-) -> Vec<forge_store_physical_certification::S51SecurityScopeHarnessEvidence> {
+) -> Vec<forge_store_physical_certification::SecurityScopeHarnessEvidence> {
     let mut evidence = Vec::new();
-    for scenario in s5_1_security_scope_metadata_preservation_scenarios() {
-        evidence.push(execute_s5_1_security_scope_harness_scenario(scenario).evidence());
+    for scenario in security_scope_metadata_preservation_scenarios() {
+        evidence.push(execute_security_scope_harness_scenario(scenario).evidence());
     }
     for scenario in [
-        s5_1_security_scope_drift_scenario(),
-        s5_1_security_scope_stale_key_scenario(),
-        s5_1_security_scope_wrong_tenant_scenario(),
-        s5_1_security_scope_missing_authenticity_scenario(),
-        s5_1_security_scope_replayed_custody_scenario(),
+        security_scope_drift_scenario(),
+        security_scope_stale_key_scenario(),
+        security_scope_wrong_tenant_scenario(),
+        security_scope_missing_authenticity_scenario(),
+        security_scope_replayed_custody_scenario(),
     ] {
-        evidence.push(execute_s5_1_security_scope_harness_scenario(scenario).evidence());
+        evidence.push(execute_security_scope_harness_scenario(scenario).evidence());
     }
     evidence
 }
 
 fn closeout_replay_transcripts(
-) -> Vec<forge_store_physical_certification::S51SecurityScopeHarnessReplayTranscript> {
+) -> Vec<forge_store_physical_certification::SecurityScopeHarnessReplayTranscript> {
     let mut transcripts = Vec::new();
     for schedule in [
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
-        S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
-        S51SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
-        S51SecurityScopeHarnessSchedule::RepairReadAdmission,
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+        SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
+        SecurityScopeHarnessSchedule::RepairReadAdmission,
     ] {
         for mutation in [
-            S51SecurityScopeReplayMutationKind::ChangedTenantScope,
-            S51SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
-            S51SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
+            SecurityScopeReplayMutationKind::ChangedTenantScope,
+            SecurityScopeReplayMutationKind::ChangedKeyVersionPosture,
+            SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement,
         ] {
-            let execution = execute_s5_1_security_scope_harness_replay_with_physical_replay(
+            let execution = execute_security_scope_harness_replay_with_physical_replay(
                 schedule,
                 mutation,
-                physical_replay_for_scenario(S51SecurityScopeHarnessScenario::metadata_preserved(
+                physical_replay_for_scenario(SecurityScopeHarnessScenario::metadata_preserved(
                     schedule,
                 )),
                 physical_replay_for_scenario(replay_scenario(schedule, mutation)),

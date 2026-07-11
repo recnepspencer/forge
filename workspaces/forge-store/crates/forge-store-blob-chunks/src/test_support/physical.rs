@@ -7,7 +7,7 @@ use forge_store_physical_format::{
 };
 
 pub(crate) fn physical_payload_for_bytes(bytes: &[u8]) -> PhysicalChunkPayloadIntegrityWitness {
-    PhysicalChunkChecksumAuthority::s7_canonical()
+    PhysicalChunkChecksumAuthority::canonical_blob_checksum()
         .admit_store_payload(record_receipt(bytes))
         .expect("payload should admit")
 }

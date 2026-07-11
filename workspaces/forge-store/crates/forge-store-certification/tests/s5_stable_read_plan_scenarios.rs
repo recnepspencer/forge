@@ -4,19 +4,19 @@
 mod compaction_interlock_trace;
 
 use forge_store_physical_certification::{
-    admit_physical_counter_evidence, lower_physical_simulation_plan, physical_scenario,
-    s5_stable_read_plan_fault_event, CounterContractKind, CounterContractOracle,
-    ExecutedPhysicalSimulationObservation, ExecutedTranscriptParts, FixtureCapabilityDeclaration,
-    FixtureMutationBoundary, LargeStoreFixtureProfile, ObserverKind, OracleFamilyKind,
-    PhysicalCertificationEvidenceBundle, PhysicalDriverKind, PhysicalExecutedCounterEvidence,
-    PhysicalFaultEvent, PhysicalFaultEventKind, PhysicalFixtureBuilder,
-    PhysicalInterleavingSchedule, PhysicalScenarioActor, PhysicalScenarioExpectation,
-    PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioIntent,
-    PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet, PhysicalSimulationObserver,
-    PhysicalSimulationPlan, PhysicalSimulationProfile, PhysicalSimulationProfileSet,
-    PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript, ReusablePhysicalOracleFamily,
-    ShortcutRejectionObservation, SimulationEvidencePolicy, SimulationPlanningContext,
-    StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    admit_physical_counter_evidence, lower_physical_simulation_plan,
+    physical_isolation_stable_read_plan_fault_event, physical_scenario, CounterContractKind,
+    CounterContractOracle, ExecutedPhysicalSimulationObservation, ExecutedTranscriptParts,
+    FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile, ObserverKind,
+    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
+    PhysicalExecutedCounterEvidence, PhysicalFaultEvent, PhysicalFaultEventKind,
+    PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalScenarioActor,
+    PhysicalScenarioExpectation, PhysicalScenarioFault, PhysicalScenarioFaultKind,
+    PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
+    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationProfile,
+    PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily, PhysicalSimulationTranscript,
+    ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationEvidencePolicy,
+    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
 };
 use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, developer_smoke_replay_seed,
@@ -118,7 +118,7 @@ fn lane(
     let fixture = NativeStoreAspectFixture::segment_header(suffix, 7);
     let expected_fault = fault.kind();
     let scenario = physical_scenario(format!("store.physical.s5.stable-read-plan.{suffix}"))
-        .family(PhysicalSimulationScenarioFamily::S5StableReadPlanAdmission)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationStableReadPlanAdmission)
         .intent(intent)
         .fixture(fixture.boundary_fact().clone())
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
@@ -139,13 +139,13 @@ fn lane(
 fn complete_context() -> SimulationPlanningContext {
     SimulationPlanningContext::for_profile(PhysicalSimulationProfile::DeveloperSmoke)
         .with_supported_profiles(PhysicalSimulationProfileSet::all())
-        .with_capabilities(PhysicalSimulationCapabilitySet::s5_readiness_shape_probe())
+        .with_capabilities(PhysicalSimulationCapabilitySet::physical_isolation_readiness_shape_probe())
         .with_driver_contracts(admitted_developer_smoke_driver_contracts().unwrap())
         .with_supported_observers(SupportedObserverSet::all_for_developer_smoke())
         .with_supported_oracle_families(SupportedOracleFamilySet::all_for_developer_smoke())
         .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
         .with_forbidden_shortcuts(
-            forge_store_physical_certification::ForbiddenShortcutSet::roadmap2_baseline(),
+            forge_store_physical_certification::ForbiddenShortcutSet::physical_certification_baseline(),
         )
 }
 
@@ -172,7 +172,7 @@ fn executed_evidence_bundle(
     let executed_counters =
         PhysicalExecutedCounterEvidence::from_execution_sources(plan, sources).unwrap();
     let counter_receipt = admit_physical_counter_evidence(plan, executed_counters).unwrap();
-    let counter_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let counter_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(CounterContractOracle)
         .judge(plan, &trace)
         .unwrap();
@@ -199,7 +199,7 @@ fn executed_evidence_bundle(
 }
 
 fn s5_fault_events(expected_fault: PhysicalScenarioFaultKind) -> Vec<PhysicalFaultEvent> {
-    s5_stable_read_plan_fault_event(expected_fault)
+    physical_isolation_stable_read_plan_fault_event(expected_fault)
         .unwrap()
         .into_iter()
         .collect()
@@ -220,7 +220,7 @@ fn assert_fault_events_match_lane(
 }
 
 fn expected_fault_kind(fault: PhysicalScenarioFaultKind) -> Option<PhysicalFaultEventKind> {
-    s5_stable_read_plan_fault_event(fault)
+    physical_isolation_stable_read_plan_fault_event(fault)
         .unwrap()
         .map(|event| event.kind())
 }

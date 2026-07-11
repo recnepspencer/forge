@@ -1,14 +1,13 @@
 use forge_store_physical_certification::{
     admit_physical_counter_evidence, CertifiedPhysicalScenario, ExecutedTranscriptParts,
-    GeneratedCoverageMatrix, ObservedPhysicalTrace, PhysicalExecutedCounterEvidence,
-    PhysicalFaultEvent, PhysicalInterleavingSchedule, PhysicalProofOracleVerdict,
-    PhysicalSimulationPlan, PhysicalSimulationTranscript, ProductionBackedPhysicalFixture,
-    ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry, Roadmap2HarnessSequence,
-    S5PhysicalIsolationInterleavingOracle, S5PhysicalIsolationMutationEvidence,
-    SimulationReplayBundle,
+    GeneratedCoverageMatrix, HarnessCoverageStage, ObservedPhysicalTrace, PhysicalCoverageRegistry,
+    PhysicalExecutedCounterEvidence, PhysicalFaultEvent, PhysicalInterleavingSchedule,
+    PhysicalIsolationInterleavingOracle, PhysicalIsolationMutationEvidence,
+    PhysicalProofOracleVerdict, PhysicalSimulationPlan, PhysicalSimulationTranscript,
+    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, SimulationReplayBundle,
 };
 
-pub fn assemble_s5_physical_isolation_replay_bundle(
+pub fn assemble_physical_isolation_physical_isolation_replay_bundle(
     plan: &PhysicalSimulationPlan,
     schedule: PhysicalInterleavingSchedule,
     fixture: &ProductionBackedPhysicalFixture,
@@ -30,7 +29,7 @@ pub fn assemble_s5_physical_isolation_replay_bundle(
         ExecutedTranscriptParts::new(plan, schedule, fixture, trace.clone(), counter_receipt)
             .unwrap()
             .with_faults(s5_fault_events(expected_fault))
-            .with_oracle_verdict(s5_physical_isolation_verdict(plan, &trace))
+            .with_oracle_verdict(physical_isolation_physical_isolation_verdict(plan, &trace))
             .with_transcript_replay_verdict()
             .unwrap();
     let transcript = PhysicalSimulationTranscript::from_executed_parts(parts).unwrap();
@@ -39,13 +38,13 @@ pub fn assemble_s5_physical_isolation_replay_bundle(
         .unwrap()
 }
 
-pub fn s5_physical_isolation_coverage_matrix(
+pub fn physical_isolation_physical_isolation_coverage_matrix(
     scenario: &CertifiedPhysicalScenario,
     plan: &PhysicalSimulationPlan,
     replay: &SimulationReplayBundle,
-    mutation: &S5PhysicalIsolationMutationEvidence,
+    mutation: &PhysicalIsolationMutationEvidence,
 ) -> GeneratedCoverageMatrix {
-    Roadmap2CoverageRegistry::for_sequence(Roadmap2HarnessSequence::S45)
+    PhysicalCoverageRegistry::for_sequence(HarnessCoverageStage::SimulationAdmission)
         .register_scenario(scenario)
         .unwrap()
         .register_plan(plan)
@@ -68,12 +67,12 @@ pub fn s5_physical_isolation_coverage_matrix(
         .unwrap()
 }
 
-fn s5_physical_isolation_verdict(
+fn physical_isolation_physical_isolation_verdict(
     plan: &PhysicalSimulationPlan,
     trace: &ObservedPhysicalTrace,
 ) -> PhysicalProofOracleVerdict {
-    ReusablePhysicalOracleFamily::s5_physical_isolation_interleaving()
-        .oracle(S5PhysicalIsolationInterleavingOracle)
+    ReusablePhysicalOracleFamily::physical_isolation_interleaving()
+        .oracle(PhysicalIsolationInterleavingOracle)
         .judge(plan, trace)
         .unwrap()
 }
@@ -81,10 +80,12 @@ fn s5_physical_isolation_verdict(
 fn s5_fault_events(
     expected_fault: forge_store_physical_certification::PhysicalScenarioFaultKind,
 ) -> Vec<PhysicalFaultEvent> {
-    forge_store_physical_certification::s5_stable_read_plan_fault_event(expected_fault)
-        .unwrap()
-        .into_iter()
-        .collect()
+    forge_store_physical_certification::physical_isolation_stable_read_plan_fault_event(
+        expected_fault,
+    )
+    .unwrap()
+    .into_iter()
+    .collect()
 }
 
 fn buffer_pool_evidence(

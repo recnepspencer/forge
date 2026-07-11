@@ -32,7 +32,7 @@ pub(super) fn s4_recovery_shape(actor_step_count: u64) -> RequiredSimulationPlan
     }
 }
 
-pub(super) fn s5_checkpoint_publication_crash_replay_shape(
+pub(super) fn physical_isolation_checkpoint_publication_crash_replay_shape(
     actor_step_count: u64,
 ) -> RequiredSimulationPlanShape {
     RequiredSimulationPlanShape {
@@ -48,7 +48,7 @@ pub(super) fn s5_checkpoint_publication_crash_replay_shape(
         ]),
         oracle_families: RequiredOracleFamilySet::from_oracles([
             OracleFamilyKind::TranscriptReplayEvidence,
-            OracleFamilyKind::S5ReadinessShape,
+            OracleFamilyKind::PhysicalIsolationReadinessShape,
             OracleFamilyKind::S4RecoveryDogfood,
         ]),
         counter_contracts: RequiredCounterContractSet::from_contracts([

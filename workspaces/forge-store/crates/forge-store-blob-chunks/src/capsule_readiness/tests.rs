@@ -1,5 +1,5 @@
 use forge_store_security::StoreTenantScope;
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use crate::corruption::test_support::quarantined_read_corruption;
 use crate::placement::admission::test_support::admit_inline_placement;
@@ -80,7 +80,7 @@ fn hostile_rows_digest_only_scope_quarantine_and_cold_unavailable_deny_before_re
     }
 
     let mut cold_unavailable = lane.placement.clone();
-    cold_unavailable.cold_state = Some(S7ColdPlacementState::ColdUnavailable);
+    cold_unavailable.cold_state = Some(ColdPlacementState::ColdUnavailable);
     match authority.classify_slice_for_materialization(planned, &lane.scope, &cold_unavailable, &[])
     {
         Err(BlobCapsuleReadinessDenial::ColdPlacementUnavailable { .. }) => {}

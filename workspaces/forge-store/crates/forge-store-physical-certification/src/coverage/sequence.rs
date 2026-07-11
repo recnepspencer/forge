@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Roadmap2HarnessSequence {
-    S4,
-    S45,
-    S5,
+pub enum HarnessCoverageStage {
+    Recovery,
+    SimulationAdmission,
+    PhysicalIsolation,
     FutureSequence,
 }
 
@@ -19,11 +19,11 @@ pub enum HarnessSubsystem {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5ReadinessDependencySet {
+pub struct PhysicalIsolationReadinessDependencySet {
     required: Vec<HarnessSubsystem>,
 }
 
-impl S5ReadinessDependencySet {
+impl PhysicalIsolationReadinessDependencySet {
     pub fn required_for_ci() -> Self {
         Self {
             required: vec![

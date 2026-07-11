@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum S45AcceptanceSuiteName {
+pub enum SimulationHarnessAcceptanceSuiteName {
     EntryBoundary,
     AspectNativeScenarioDefinition,
     SimulationPlanLowering,
@@ -20,15 +20,15 @@ pub enum S45AcceptanceSuiteName {
     HarnessDogfoodVerticalSlice,
     ExtensionSlotContainment,
     FoundationalProofSimulationEvidence,
-    S5SimulationHarnessReadiness,
+    PhysicalIsolationHarnessReadiness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteEvidenceSource {
-    suite: S45AcceptanceSuiteName,
+pub struct SimulationHarnessAcceptanceSuiteEvidenceSource {
+    suite: SimulationHarnessAcceptanceSuiteName,
 }
 
-impl S45AcceptanceSuiteName {
+impl SimulationHarnessAcceptanceSuiteName {
     pub const fn ordinal(&self) -> u8 {
         match self {
             Self::EntryBoundary => 0,
@@ -51,7 +51,7 @@ impl S45AcceptanceSuiteName {
             Self::HarnessDogfoodVerticalSlice => 17,
             Self::ExtensionSlotContainment => 18,
             Self::FoundationalProofSimulationEvidence => 19,
-            Self::S5SimulationHarnessReadiness => 20,
+            Self::PhysicalIsolationHarnessReadiness => 20,
         }
     }
 
@@ -77,17 +77,17 @@ impl S45AcceptanceSuiteName {
             Self::HarnessDogfoodVerticalSlice,
             Self::ExtensionSlotContainment,
             Self::FoundationalProofSimulationEvidence,
-            Self::S5SimulationHarnessReadiness,
+            Self::PhysicalIsolationHarnessReadiness,
         ]
     }
 }
 
-impl S45AcceptanceSuiteEvidenceSource {
-    pub const fn suite(&self) -> S45AcceptanceSuiteName {
+impl SimulationHarnessAcceptanceSuiteEvidenceSource {
+    pub const fn suite(&self) -> SimulationHarnessAcceptanceSuiteName {
         self.suite
     }
 
-    pub(crate) const fn for_suite(suite: S45AcceptanceSuiteName) -> Self {
+    pub(crate) const fn for_suite(suite: SimulationHarnessAcceptanceSuiteName) -> Self {
         Self { suite }
     }
 }

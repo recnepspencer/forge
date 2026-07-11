@@ -12,19 +12,20 @@ use forge_foundational::{CanonicalBasisConstructionDenial, CanonicalDigestId};
 use forge_proof::TransitionOutcome;
 
 use super::{
-    S5ExecutedIsolationFinding, S5ExecutedIsolationRequiredCounters, S5ExecutedIsolationSourceBasis,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationRequiredCounters,
+    ExecutedPhysicalIsolationSourceBasis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S5FoundationalCanonicalBasis {
     digest: CanonicalDerivedDigest,
-    basis: S5ExecutedIsolationSourceBasis,
-    counters: S5ExecutedIsolationRequiredCounters,
+    basis: ExecutedPhysicalIsolationSourceBasis,
+    counters: ExecutedPhysicalIsolationRequiredCounters,
 }
 
 impl S5FoundationalCanonicalBasis {
     pub(crate) fn from_finding(
-        finding: &S5ExecutedIsolationFinding,
+        finding: &ExecutedPhysicalIsolationFinding,
     ) -> Result<Self, S5CanonicalMaterializationDenial> {
         let version = rule_version();
         let domain = domain();
@@ -62,11 +63,11 @@ impl S5FoundationalCanonicalBasis {
         &self.digest
     }
 
-    pub const fn basis(&self) -> &S5ExecutedIsolationSourceBasis {
+    pub const fn basis(&self) -> &ExecutedPhysicalIsolationSourceBasis {
         &self.basis
     }
 
-    pub const fn counters(&self) -> S5ExecutedIsolationRequiredCounters {
+    pub const fn counters(&self) -> ExecutedPhysicalIsolationRequiredCounters {
         self.counters
     }
 }
@@ -77,7 +78,7 @@ pub enum S5CanonicalMaterializationDenial {
     Digest(CanonicalDigestDerivationDenial),
 }
 
-fn canonical_entries(finding: &S5ExecutedIsolationFinding) -> Vec<CanonicalBasisEntry> {
+fn canonical_entries(finding: &ExecutedPhysicalIsolationFinding) -> Vec<CanonicalBasisEntry> {
     let basis = finding.basis();
     let counters = finding.counters();
     vec![

@@ -1,7 +1,7 @@
 use forge_store_physical_backend::{
     BlobBackendResidueObservation, StoreExternalPlacementRecoverabilityEvidence,
 };
-use forge_store_tiering::{S7ColdPlacementState, TierPlacementIoAdmission};
+use forge_store_tiering::{ColdPlacementState, TierPlacementIoAdmission};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobPlacementClass {
@@ -14,7 +14,7 @@ pub enum BlobPlacementClass {
 pub struct BlobPlacementIntent {
     class: BlobPlacementClass,
     readiness: TierPlacementIoAdmission,
-    cold_state: Option<S7ColdPlacementState>,
+    cold_state: Option<ColdPlacementState>,
     external_recoverability: Option<StoreExternalPlacementRecoverabilityEvidence>,
     external_sidecar_denial: Option<BlobBackendResidueObservation>,
 }
@@ -56,7 +56,7 @@ impl BlobPlacementIntent {
         }
     }
 
-    pub fn cold(readiness: TierPlacementIoAdmission, state: S7ColdPlacementState) -> Self {
+    pub fn cold(readiness: TierPlacementIoAdmission, state: ColdPlacementState) -> Self {
         Self {
             class: BlobPlacementClass::Cold,
             readiness,
@@ -74,7 +74,7 @@ impl BlobPlacementIntent {
         &self.readiness
     }
 
-    pub const fn cold_state(&self) -> Option<S7ColdPlacementState> {
+    pub const fn cold_state(&self) -> Option<ColdPlacementState> {
         self.cold_state
     }
 

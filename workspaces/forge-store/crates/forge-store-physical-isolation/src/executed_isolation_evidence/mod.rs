@@ -23,4 +23,4 @@ pub use interference_snapshot::{
     IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
     IsolationInterferenceSnapshotRow,
 };
-pub use profile::{S5IsolationEvidenceProfile, S5IsolationEvidenceRichness};
+pub use profile::{PhysicalIsolationEvidenceProfile, S5IsolationEvidenceRichness};

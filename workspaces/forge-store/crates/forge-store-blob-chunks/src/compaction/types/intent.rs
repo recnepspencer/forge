@@ -8,7 +8,7 @@ use crate::{
 };
 use forge_store_io_scheduler::BackgroundPacingCapability;
 use forge_store_physical_isolation::{CompactionReadInterlockDenial, CompactionReadInterlockPlan};
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 #[derive(Debug)]
 pub struct BlobCompactionIntent {
@@ -42,7 +42,7 @@ impl BlobCompactionIntent {
             quarantine_holds: Vec::new(),
             read_hold,
             pacing: BlobCompactionS6Pacing::admitted_compaction(0),
-            cold: BlobCompactionColdReadiness::Available(S7ColdPlacementState::HotAvailable),
+            cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
             physical: BlobCompactionPhysicalInterlock::Admitted(physical),
         }
     }
@@ -63,7 +63,7 @@ impl BlobCompactionIntent {
             quarantine_holds: Vec::new(),
             read_hold,
             pacing: BlobCompactionS6Pacing::admitted_compaction(0),
-            cold: BlobCompactionColdReadiness::Available(S7ColdPlacementState::HotAvailable),
+            cold: BlobCompactionColdReadiness::Available(ColdPlacementState::HotAvailable),
             physical: BlobCompactionPhysicalInterlock::Admitted(physical),
         }
     }

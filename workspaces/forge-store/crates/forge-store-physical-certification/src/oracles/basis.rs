@@ -1,10 +1,10 @@
-use crate::scenario::S7BlobHarnessScenarioMetadata;
+use crate::scenario::BlobHarnessScenarioMetadata;
 use crate::{
-    CheckpointInterlockObservation, CompactionInterlockObservation, IndependentVerifierObservation,
-    ObservedPhysicalTrace, ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
+    BlobHarnessOracleObservation, CheckpointInterlockObservation, CompactionInterlockObservation,
+    IndependentVerifierObservation, IoPressureOracleObservation, ObservedPhysicalTrace,
+    ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
     PhysicalSimulationPlanIdentity, PhysicalSimulationScenarioFamily, RecoveryOutcomeObservation,
-    S6IoPressureOracleObservation, S7BlobHarnessOracleObservation, ShortcutRejectionObservation,
-    ShortcutRejectionObservationKind,
+    ShortcutRejectionObservation, ShortcutRejectionObservationKind,
 };
 
 use super::OracleDenial;
@@ -20,9 +20,9 @@ pub struct OracleVerdictBasis {
     recovery_outcome: Option<RecoveryOutcomeObservation>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     compaction_interlock: Option<CompactionInterlockObservation>,
-    s6_io_pressure: Option<S6IoPressureOracleObservation>,
-    s7_blob_harness_metadata: Option<S7BlobHarnessScenarioMetadata>,
-    s7_blob_harness_observation: Option<S7BlobHarnessOracleObservation>,
+    io_pressure: Option<IoPressureOracleObservation>,
+    blob_harness_metadata: Option<BlobHarnessScenarioMetadata>,
+    blob_harness_observation: Option<BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -46,9 +46,9 @@ impl OracleVerdictBasis {
             recovery_outcome: trace.recovery_outcome().cloned(),
             checkpoint_interlock: trace.checkpoint_interlock(),
             compaction_interlock: trace.compaction_interlock(),
-            s6_io_pressure: trace.s6_io_pressure_observation(),
-            s7_blob_harness_metadata: plan.s7_blob_harness_metadata(),
-            s7_blob_harness_observation: trace.s7_blob_harness_observation(),
+            io_pressure: trace.io_pressure_observation(),
+            blob_harness_metadata: plan.blob_harness_metadata(),
+            blob_harness_observation: trace.blob_harness_observation(),
             shortcut_rejections: trace.shortcut_rejections().to_vec(),
         })
     }
@@ -101,16 +101,16 @@ impl OracleVerdictBasis {
         self.compaction_interlock
     }
 
-    pub const fn s6_io_pressure(&self) -> Option<S6IoPressureOracleObservation> {
-        self.s6_io_pressure
+    pub const fn io_pressure(&self) -> Option<IoPressureOracleObservation> {
+        self.io_pressure
     }
 
-    pub const fn s7_blob_harness_metadata(&self) -> Option<S7BlobHarnessScenarioMetadata> {
-        self.s7_blob_harness_metadata
+    pub const fn blob_harness_metadata(&self) -> Option<BlobHarnessScenarioMetadata> {
+        self.blob_harness_metadata
     }
 
-    pub const fn s7_blob_harness_observation(&self) -> Option<S7BlobHarnessOracleObservation> {
-        self.s7_blob_harness_observation
+    pub const fn blob_harness_observation(&self) -> Option<BlobHarnessOracleObservation> {
+        self.blob_harness_observation
     }
 
     pub fn has_shortcut_rejection(&self, kind: ShortcutRejectionObservationKind) -> bool {

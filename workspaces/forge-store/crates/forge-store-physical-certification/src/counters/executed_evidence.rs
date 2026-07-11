@@ -9,7 +9,7 @@ use crate::{
     PhysicalSimulationPlanIdentity,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
-use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as S7BlobHarnessExecutedActorEvidence;
+use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as BlobHarnessExecutedActorEvidence;
 
 use super::{
     evidence::{require_resource_observation_within_envelope, PhysicalResourceEnvelopeObservation},
@@ -57,11 +57,11 @@ impl PhysicalCounterExecutionSources {
             actor_step_count: schedule.actor_steps().len() as u64,
             shortcut_rejection_count: trace.shortcut_rejections().len() as u64,
             blob_chunk_count: plan
-                .s7_blob_harness_topology()
+                .blob_harness_topology()
                 .map(|topology| topology.chunk_count())
                 .unwrap_or(0),
             blob_logical_bytes: plan
-                .s7_blob_harness_topology()
+                .blob_harness_topology()
                 .map(|topology| topology.logical_bytes())
                 .unwrap_or(0),
             protected_ranges: compaction.protected_ranges(),
@@ -82,7 +82,7 @@ impl PhysicalCounterExecutionSources {
         plan: &PhysicalSimulationPlan,
         schedule: &PhysicalInterleavingSchedule,
         trace: &ObservedPhysicalTrace,
-        witness: &S7BlobHarnessExecutedActorEvidence,
+        witness: &BlobHarnessExecutedActorEvidence,
         buffer_pool: BufferPoolExecutedEvidenceSource,
         io_queue: IoQueueExecutedEvidenceSource,
     ) -> Result<Self, CounterMismatchEvidence> {

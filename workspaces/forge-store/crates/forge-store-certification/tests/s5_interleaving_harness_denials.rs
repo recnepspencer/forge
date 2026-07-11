@@ -4,8 +4,8 @@ mod s5_interleaving_harness_support;
 
 use forge_store_physical_certification::{
     lower_physical_simulation_plan, CoverageGapDenial, ExecutedPhysicalSimulationObservation,
-    OracleDenial, OracleFamilyKind, PhysicalSimulationObserver, PhysicalSimulationScenarioFamily,
-    ReusablePhysicalOracleFamily, S5PhysicalIsolationInterleavingOracle,
+    OracleDenial, OracleFamilyKind, PhysicalIsolationInterleavingOracle,
+    PhysicalSimulationObserver, PhysicalSimulationScenarioFamily, ReusablePhysicalOracleFamily,
     ShortcutRejectionObservation,
 };
 use s5_interleaving_harness_support::{
@@ -15,26 +15,26 @@ use s5_interleaving_harness_support::{
 
 #[test]
 fn s5_interleaving_oracle_rejects_wrong_family_observation_topology() {
-    for lane in forge_store_certification::s5_physical_isolation_lanes() {
+    for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
         let schedule = schedule(&plan);
         let fixtures = match plan.scenario_family() {
-            PhysicalSimulationScenarioFamily::S5CompactionInterlock
-            | PhysicalSimulationScenarioFamily::S5ReclaimReachability => {
+            PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability => {
                 trace_fixtures(&plan, &schedule).without_compaction_interlock()
             }
-            PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-            | PhysicalSimulationScenarioFamily::S5RestartDuringCutover => {
+            PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
                 trace_fixtures(&plan, &schedule).without_checkpoint_interlock()
             }
-            PhysicalSimulationScenarioFamily::S5TierMovementStability
-            | PhysicalSimulationScenarioFamily::S5FutureChunkStability => {
+            PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability => {
                 trace_fixtures(&plan, &schedule).without_independent_verifier()
             }
             other => panic!("unexpected S5 interleaving family {other:?}"),
         };
-        let trace = forge_store_certification::observe_s5_physical_isolation_trace(
+        let trace = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
             &plan, &schedule, fixtures,
         )
         .unwrap();
@@ -50,28 +50,30 @@ fn s5_interleaving_oracle_rejects_wrong_family_observation_topology() {
 
 #[test]
 fn s5_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
-    for lane in forge_store_certification::s5_physical_isolation_lanes() {
+    for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
         let schedule = schedule(&plan);
-        let result = forge_store_certification::observe_s5_physical_isolation_trace(
+        let result = forge_store_certification::observe_physical_isolation_physical_isolation_trace(
             &plan,
             &schedule,
             trace_fixtures(&plan, &schedule).without_compaction_mutations(),
         );
-        if plan.scenario_family() == PhysicalSimulationScenarioFamily::S5FutureChunkStability {
+        if plan.scenario_family()
+            == PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability
+        {
             let trace = result.unwrap();
             let replay = replay_bundle_from_trace(&plan, schedule, trace, lane.expected_fault());
             let mutation =
-                forge_store_certification::S5PhysicalIsolationMutationEvidence::try_from_replay(
+                forge_store_certification::PhysicalIsolationMutationEvidence::try_from_replay(
                     plan.scenario_family(),
                     &replay,
                 )
                 .unwrap();
             assert_eq!(
                 mutation.required_rows(),
-                forge_store_certification::s5_physical_isolation_required_mutation_rows(
-                    PhysicalSimulationScenarioFamily::S5FutureChunkStability,
+                forge_store_certification::physical_isolation_required_mutation_rows(
+                    PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability,
                 )
             );
         } else {
@@ -85,20 +87,21 @@ fn s5_observer_requires_scheduled_mutation_rows_for_mutation_bound_families() {
 
 #[test]
 fn s5_mutation_evidence_rejects_missing_or_wrong_family_rows() {
-    for lane in forge_store_certification::s5_physical_isolation_lanes() {
+    for lane in forge_store_certification::physical_isolation_lanes() {
         let plan =
             lower_physical_simulation_plan(lane.scenario().clone(), complete_context()).unwrap();
         let schedule = schedule(&plan);
-        let trace =
-            if plan.scenario_family() == PhysicalSimulationScenarioFamily::S5FutureChunkStability {
-                future_chunk_trace_polluted_with_compaction_mutations(&plan)
-            } else {
-                trace_without_compaction_mutation_rows(&plan)
-            };
+        let trace = if plan.scenario_family()
+            == PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability
+        {
+            future_chunk_trace_polluted_with_compaction_mutations(&plan)
+        } else {
+            trace_without_compaction_mutation_rows(&plan)
+        };
         let replay = replay_bundle_from_trace(&plan, schedule, trace, lane.expected_fault());
 
         assert_eq!(
-            forge_store_certification::S5PhysicalIsolationMutationEvidence::try_from_replay(
+            forge_store_certification::PhysicalIsolationMutationEvidence::try_from_replay(
                 plan.scenario_family(),
                 &replay,
             )
@@ -114,28 +117,28 @@ fn oracle_denial(
     plan: &forge_store_physical_certification::PhysicalSimulationPlan,
     trace: &forge_store_physical_certification::ObservedPhysicalTrace,
 ) -> OracleDenial {
-    ReusablePhysicalOracleFamily::s5_physical_isolation_interleaving()
-        .oracle(S5PhysicalIsolationInterleavingOracle)
+    ReusablePhysicalOracleFamily::physical_isolation_interleaving()
+        .oracle(PhysicalIsolationInterleavingOracle)
         .judge(plan, trace)
         .unwrap_err()
 }
 
 const fn expected_oracle_denial(family: PhysicalSimulationScenarioFamily) -> OracleDenial {
     match family {
-        PhysicalSimulationScenarioFamily::S5CompactionInterlock
-        | PhysicalSimulationScenarioFamily::S5ReclaimReachability => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability => {
             OracleDenial::MissingCompactionInterlockObservation
         }
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-        | PhysicalSimulationScenarioFamily::S5RestartDuringCutover => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
             OracleDenial::MissingCheckpointInterlockObservation
         }
-        PhysicalSimulationScenarioFamily::S5TierMovementStability
-        | PhysicalSimulationScenarioFamily::S5FutureChunkStability => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability => {
             OracleDenial::MissingIndependentVerifierObservation
         }
         _ => OracleDenial::OracleFamilyNotRequired {
-            family: OracleFamilyKind::S5PhysicalIsolationInterleaving,
+            family: OracleFamilyKind::PhysicalIsolationInterleaving,
         },
     }
 }
@@ -145,14 +148,14 @@ fn trace_without_compaction_mutation_rows(
 ) -> forge_store_physical_certification::ObservedPhysicalTrace {
     let builder = base_raw_trace_builder(plan);
     match plan.scenario_family() {
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-        | PhysicalSimulationScenarioFamily::S5RestartDuringCutover => builder
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => builder
             .with_checkpoint_interlock_observation(
                 s5_interleaving_harness_support::checkpoint_interlock_observation(),
             )
             .complete()
             .unwrap(),
-        PhysicalSimulationScenarioFamily::S5TierMovementStability => builder
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability => builder
             .with_independent_verifier_observation(independent_verifier_observation())
             .complete()
             .unwrap(),
@@ -163,11 +166,11 @@ fn trace_without_compaction_mutation_rows(
 fn future_chunk_trace_polluted_with_compaction_mutations(
     plan: &forge_store_physical_certification::PhysicalSimulationPlan,
 ) -> forge_store_physical_certification::ObservedPhysicalTrace {
-    let compaction_lane = forge_store_certification::s5_physical_isolation_lanes()
+    let compaction_lane = forge_store_certification::physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
             lane.scenario().definition().family()
-                == PhysicalSimulationScenarioFamily::S5CompactionInterlock
+                == PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
         })
         .unwrap();
     let compaction_plan =

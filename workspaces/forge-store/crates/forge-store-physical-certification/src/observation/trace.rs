@@ -1,11 +1,11 @@
 use super::{
     CheckpointCrashReplayObservation, CheckpointInterlockObservation,
-    CompactionInterlockObservation, S5CompactionMutationObservationSet,
+    CompactionInterlockObservation, PhysicalIsolationCompactionMutationObservationSet,
 };
 use crate::{
-    IndependentVerifierObservation, ObserverKind, PhysicalScenarioCanonicalIdentity,
-    PhysicalSimulationPlan, PhysicalSimulationPlanIdentity, ProductionBoundaryDriverTrace,
-    RecoveryOutcomeObservation, S6IoPressureOracleObservation, S7BlobHarnessOracleObservation,
+    BlobHarnessOracleObservation, IndependentVerifierObservation, IoPressureOracleObservation,
+    ObserverKind, PhysicalScenarioCanonicalIdentity, PhysicalSimulationPlan,
+    PhysicalSimulationPlanIdentity, ProductionBoundaryDriverTrace, RecoveryOutcomeObservation,
     ShortcutRejectionObservation,
 };
 
@@ -20,9 +20,9 @@ pub struct ObservedPhysicalTrace {
     checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     compaction_interlock: Option<CompactionInterlockObservation>,
-    compaction_mutations: Option<S5CompactionMutationObservationSet>,
-    s6_io_pressure: Option<S6IoPressureOracleObservation>,
-    s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
+    compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
+    io_pressure: Option<IoPressureOracleObservation>,
+    blob_harness: Option<BlobHarnessOracleObservation>,
     shortcut_rejections: Vec<ShortcutRejectionObservation>,
 }
 
@@ -36,9 +36,9 @@ impl ObservedPhysicalTrace {
         checkpoint_crash_replay: Option<CheckpointCrashReplayObservation>,
         checkpoint_interlock: Option<CheckpointInterlockObservation>,
         compaction_interlock: Option<CompactionInterlockObservation>,
-        compaction_mutations: Option<S5CompactionMutationObservationSet>,
-        s6_io_pressure: Option<S6IoPressureOracleObservation>,
-        s7_blob_harness: Option<S7BlobHarnessOracleObservation>,
+        compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
+        io_pressure: Option<IoPressureOracleObservation>,
+        blob_harness: Option<BlobHarnessOracleObservation>,
         shortcut_rejections: Vec<ShortcutRejectionObservation>,
     ) -> Self {
         Self {
@@ -52,8 +52,8 @@ impl ObservedPhysicalTrace {
             checkpoint_interlock,
             compaction_interlock,
             compaction_mutations,
-            s6_io_pressure,
-            s7_blob_harness,
+            io_pressure,
+            blob_harness,
             shortcut_rejections,
         }
     }
@@ -94,21 +94,23 @@ impl ObservedPhysicalTrace {
         self.compaction_interlock
     }
 
-    pub const fn compaction_mutations(&self) -> Option<&S5CompactionMutationObservationSet> {
+    pub const fn compaction_mutations(
+        &self,
+    ) -> Option<&PhysicalIsolationCompactionMutationObservationSet> {
         self.compaction_mutations.as_ref()
     }
 
-    pub const fn s6_io_pressure_observation(&self) -> Option<S6IoPressureOracleObservation> {
-        self.s6_io_pressure
+    pub const fn io_pressure_observation(&self) -> Option<IoPressureOracleObservation> {
+        self.io_pressure
     }
 
-    pub const fn s7_blob_harness_observation(&self) -> Option<S7BlobHarnessOracleObservation> {
-        self.s7_blob_harness
+    pub const fn blob_harness_observation(&self) -> Option<BlobHarnessOracleObservation> {
+        self.blob_harness
     }
 
     pub fn with_scheduled_compaction_mutation_lanes(
         mut self,
-        observations: S5CompactionMutationObservationSet,
+        observations: PhysicalIsolationCompactionMutationObservationSet,
     ) -> Self {
         self.compaction_mutations = Some(observations);
         self

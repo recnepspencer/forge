@@ -1,5 +1,5 @@
 #[test]
-fn s5_physical_isolation_entry_authority_cannot_be_forged_at_compile_time() {
+fn physical_isolation_physical_isolation_entry_authority_cannot_be_forged_at_compile_time() {
     for fixture in compile_fail_fixtures() {
         assert_compile_fails(fixture);
     }
@@ -46,23 +46,20 @@ fn compile_fail_fixtures() -> Vec<CompileFailFixture> {
             expected_stderr: &["PhysicalIsolationEntryRequest"],
         },
         CompileFailFixture {
-            name: "s5_readiness_alone_cannot_register_lane.rs",
-            expected_stderr: &["S5HarnessReadinessReceipt"],
+            name: "physical_isolation_readiness_alone_cannot_register_lane.rs",
+            expected_stderr: &["PhysicalIsolationHarnessReadinessReceipt"],
         },
         CompileFailFixture {
             name: "copied_s45_rows_cannot_register_lane.rs",
-            expected_stderr: &["S5HarnessReadinessReceipt"],
+            expected_stderr: &["PhysicalIsolationHarnessReadinessReceipt"],
         },
         CompileFailFixture {
             name: "entry_evidence_cannot_register_lane.rs",
-            expected_stderr: &["S5HarnessReadinessReceipt"],
+            expected_stderr: &["PhysicalIsolationHarnessReadinessReceipt"],
         },
         CompileFailFixture {
             name: "lane_registration_cannot_be_struct_literal.rs",
-            expected_stderr: &[
-                "S5PhysicalIsolationCertificationLaneRegistration",
-                "private",
-            ],
+            expected_stderr: &["PhysicalIsolationCertificationLaneRegistration", "private"],
         },
     ]
 }
@@ -98,7 +95,7 @@ fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
         manifest_dir
             .join("tests")
             .join("ui")
-            .join("s5_physical_isolation_entry")
+            .join("physical_isolation_physical_isolation_entry")
             .join(fixture_name),
         source_dir.join("main.rs"),
     )
@@ -138,7 +135,7 @@ fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBu
 
 fn fixture_manifest(repo_root: &std::path::Path) -> String {
     format!(
-        "[package]\nname = \"s5_physical_isolation_entry_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\nforge-store-physical-isolation = {{ path = \"{}\" }}\nforge-store-readiness = {{ path = \"{}\" }}\n",
+        "[package]\nname = \"physical_isolation_physical_isolation_entry_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-certification = {{ path = \"{}\" }}\nforge-store-physical-isolation = {{ path = \"{}\" }}\nforge-store-readiness = {{ path = \"{}\" }}\n",
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-physical-certification")),
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-physical-isolation")),
         manifest_path(&repo_root.join("workspaces/forge-store/crates/forge-store-readiness")),

@@ -1,58 +1,56 @@
 use forge_store_physical_certification::{
-    S51SecurityScopeHarnessScenario, S51SecurityScopeHarnessSchedule,
+    SecurityScopeHarnessScenario, SecurityScopeHarnessSchedule,
 };
 
-pub const fn s5_1_security_scope_metadata_preserved_scenario() -> S51SecurityScopeHarnessScenario {
-    S51SecurityScopeHarnessScenario::metadata_preserved(
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+pub const fn security_scope_metadata_preserved_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::metadata_preserved(
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
     )
 }
 
-pub const fn s5_1_security_scope_metadata_preservation_scenarios(
-) -> [S51SecurityScopeHarnessScenario; 4] {
+pub const fn security_scope_metadata_preservation_scenarios() -> [SecurityScopeHarnessScenario; 4] {
     [
-        S51SecurityScopeHarnessScenario::metadata_preserved(
-            S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+        SecurityScopeHarnessScenario::metadata_preserved(
+            SecurityScopeHarnessSchedule::StableReadPlanAdmission,
         ),
-        S51SecurityScopeHarnessScenario::metadata_preserved(
-            S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+        SecurityScopeHarnessScenario::metadata_preserved(
+            SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
         ),
-        S51SecurityScopeHarnessScenario::metadata_preserved(
-            S51SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
+        SecurityScopeHarnessScenario::metadata_preserved(
+            SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
         ),
-        S51SecurityScopeHarnessScenario::metadata_preserved(
-            S51SecurityScopeHarnessSchedule::RepairReadAdmission,
+        SecurityScopeHarnessScenario::metadata_preserved(
+            SecurityScopeHarnessSchedule::RepairReadAdmission,
         ),
     ]
 }
 
-pub const fn s5_1_security_scope_drift_scenario() -> S51SecurityScopeHarnessScenario {
-    S51SecurityScopeHarnessScenario::physical_scope_drift(
-        S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+pub const fn security_scope_drift_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::physical_scope_drift(
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
     )
 }
 
-pub const fn s5_1_security_scope_stale_key_scenario() -> S51SecurityScopeHarnessScenario {
-    S51SecurityScopeHarnessScenario::stale_key_posture(
-        S51SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
+pub const fn security_scope_stale_key_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::stale_key_posture(
+        SecurityScopeHarnessSchedule::CheckpointPublicationReplay,
     )
 }
 
-pub const fn s5_1_security_scope_wrong_tenant_scenario() -> S51SecurityScopeHarnessScenario {
-    S51SecurityScopeHarnessScenario::wrong_tenant_scope(
-        S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,
+pub const fn security_scope_wrong_tenant_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::wrong_tenant_scope(
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission,
     )
 }
 
-pub const fn s5_1_security_scope_missing_authenticity_scenario() -> S51SecurityScopeHarnessScenario
-{
-    S51SecurityScopeHarnessScenario::missing_authenticity_requirement(
-        S51SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
+pub const fn security_scope_missing_authenticity_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::missing_authenticity_requirement(
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode,
     )
 }
 
-pub const fn s5_1_security_scope_replayed_custody_scenario() -> S51SecurityScopeHarnessScenario {
-    S51SecurityScopeHarnessScenario::replayed_custody_posture(
-        S51SecurityScopeHarnessSchedule::RepairReadAdmission,
+pub const fn security_scope_replayed_custody_scenario() -> SecurityScopeHarnessScenario {
+    SecurityScopeHarnessScenario::replayed_custody_posture(
+        SecurityScopeHarnessSchedule::RepairReadAdmission,
     )
 }

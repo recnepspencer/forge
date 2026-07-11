@@ -114,7 +114,7 @@ pub(crate) fn active_read_hold() -> BlobCompactionReadHold {
 
 pub(crate) fn unavailable_cold() -> BlobCompactionColdReadiness {
     BlobCompactionColdReadiness::from_state(
-        forge_store_tiering::S7ColdPlacementState::ColdUnavailable,
+        forge_store_tiering::ColdPlacementState::ColdUnavailable,
     )
 }
 

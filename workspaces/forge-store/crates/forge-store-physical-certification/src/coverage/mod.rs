@@ -12,21 +12,23 @@ pub use denial::{
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
     CoverageGapDenial,
 };
-pub use matrix::{GeneratedCoverageMatrix, Roadmap2PhysicalCoverageMatrix};
+pub use matrix::{GeneratedCoverageMatrix, PhysicalCoverageMatrix};
 pub use maturity::{
     HarnessMaturityEvidence, HarnessMaturityLevel, HarnessSubsystemMaturity,
-    S5HarnessMaturityDependencyEvidence, S5SimulationHarnessReadiness,
+    PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationHarnessReadiness,
 };
 pub use mutation::{
-    PhysicalMutationCoverageEvidence, S5CompactionMutationCoverageRow, S5CompactionMutationKind,
-    S5PhysicalIsolationMutationKind,
+    PhysicalIsolationCompactionMutationCoverageRow, PhysicalIsolationCompactionMutationKind,
+    PhysicalIsolationMutationKind, PhysicalMutationCoverageEvidence,
 };
-pub use registration::Roadmap2CoverageRegistry;
-pub use report::Roadmap2HarnessReadinessReport;
+pub use registration::PhysicalCoverageRegistry;
+pub use report::PhysicalHarnessReadinessReport;
 pub use row::{
     CoverageRowDimension, CoverageRowSatisfiedReceipt, CoverageSurfaceKind,
     MutationResultCoverageRow, MutationValidationPosture, PhysicalCoverageMatrixRow,
     RegisteredCounterCoverageRow, RegisteredOracleCoverageRow, RegisteredScenarioCoverageRow,
     RegisteredTranscriptCoverageRow,
 };
-pub use sequence::{HarnessSubsystem, Roadmap2HarnessSequence, S5ReadinessDependencySet};
+pub use sequence::{
+    HarnessCoverageStage, HarnessSubsystem, PhysicalIsolationReadinessDependencySet,
+};

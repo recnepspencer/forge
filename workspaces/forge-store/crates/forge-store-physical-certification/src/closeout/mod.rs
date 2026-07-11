@@ -10,29 +10,36 @@ mod report;
 mod suite;
 mod vertical_slice;
 
-pub(crate) use acceptance::{lanes_from_closeout_evidence, required_s45_lanes};
+pub(crate) use acceptance::{lanes_from_closeout_evidence, required_simulation_harness_lanes};
 pub use acceptance::{
-    S45AcceptanceEvidenceLane, S45AcceptanceSuiteCoverage, S45AcceptanceSuiteEvidence,
-    S45AcceptanceSuiteMap, S45AcceptanceSuiteReceipt, S45AcceptanceSuiteReceiptSet,
+    SimulationHarnessAcceptanceEvidenceLane, SimulationHarnessAcceptanceSuiteCoverage,
+    SimulationHarnessAcceptanceSuiteEvidence, SimulationHarnessAcceptanceSuiteMap,
+    SimulationHarnessAcceptanceSuiteReceipt, SimulationHarnessAcceptanceSuiteReceiptSet,
 };
-pub use acceptance_catalog::{S45AcceptanceSuiteEvidenceSource, S45AcceptanceSuiteName};
+pub use acceptance_catalog::{
+    SimulationHarnessAcceptanceSuiteEvidenceSource, SimulationHarnessAcceptanceSuiteName,
+};
 pub use acceptance_run::{
-    S45AcceptanceSuiteExecutionProof, S45ExecutedAcceptanceSuiteEvidence,
-    S45ExecutedAcceptanceSuiteEvidenceSet,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidence,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet,
+    SimulationHarnessAcceptanceSuiteExecutionProof,
 };
 pub use bundle::PhysicalSimulationHarnessCertificationBundle;
 pub use denial::PhysicalSimulationHarnessCloseoutDenial;
 pub use dogfood::{
-    S45HarnessDogfoodReport, S4RecoveryDogfoodScenario, S5ReadinessShapeProbeScenario,
-    ShortcutRejectionDogfoodScenario,
+    PhysicalIsolationReadinessShapeProbeScenario, S4RecoveryDogfoodScenario,
+    ShortcutRejectionDogfoodScenario, SimulationHarnessDogfoodReport,
 };
 pub use future_slots::{
     FutureHarnessExtensionSlotInventory, FutureHarnessExtensionSlotReport,
     FuturePhysicalHarnessExtensionFamily,
 };
-pub use report::{PhysicalSimulationHarnessCloseoutReport, S45CloseoutCoverageReport};
+pub use report::{
+    PhysicalSimulationHarnessCloseoutReport, SimulationHarnessCloseoutCoverageReport,
+};
 pub use suite::PhysicalSimulationHarnessCloseoutSuite;
 pub use vertical_slice::{
-    S45DogfoodSliceKind, S45HarnessDogfoodEvidence, S4RecoveryDogfoodSliceEvidence,
-    S5ReadinessShapeProbeSliceEvidence, ShortcutRejectionDogfoodSliceEvidence,
+    PhysicalIsolationReadinessShapeProbeSliceEvidence, S4RecoveryDogfoodSliceEvidence,
+    ShortcutRejectionDogfoodSliceEvidence, SimulationHarnessDogfoodEvidence,
+    SimulationHarnessDogfoodSliceKind,
 };

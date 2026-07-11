@@ -8,7 +8,7 @@ use forge_proof::{
     Artifact, PhaseMarker, TransitionOutcome,
 };
 use forge_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass};
-use forge_store_physical_certification::S6PressureEvidenceMaturity;
+use forge_store_physical_certification::IoPressureEvidenceMaturity;
 use forge_store_readiness::S6ReadinessCertificationProofTopology;
 
 use super::S6CertificationEvidenceSources;
@@ -26,7 +26,7 @@ pub struct S6CertificationProofProgression {
     lane_binding_mask: u16,
     backend_profile: BackendTargetProfile,
     backend_evidence_class: CapabilityEvidenceClass,
-    harness_maturity: S6PressureEvidenceMaturity,
+    harness_maturity: IoPressureEvidenceMaturity,
     queue_replay_rows: usize,
     flush_rows: usize,
     qualification_rows: usize,
@@ -105,7 +105,7 @@ impl S6CertificationProofProgression {
         self.backend_evidence_class
     }
 
-    pub const fn harness_maturity(&self) -> S6PressureEvidenceMaturity {
+    pub const fn harness_maturity(&self) -> IoPressureEvidenceMaturity {
         self.harness_maturity
     }
 

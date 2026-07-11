@@ -1,9 +1,9 @@
-use forge_store_physical_certification::S5SimulationHarnessReadiness;
-use forge_store_readiness::S5CorrectnessNonClaimEvidence;
+use forge_store_physical_certification::PhysicalIsolationHarnessReadiness;
+use forge_store_readiness::PhysicalIsolationCorrectnessNonClaimEvidence;
 
 fn main() {
-    let _readiness = S5SimulationHarnessReadiness::from_generated_maturity(
+    let _readiness = PhysicalIsolationHarnessReadiness::from_generated_maturity(
         Vec::new(),
-        S5CorrectnessNonClaimEvidence::shape_probe_only(),
+        PhysicalIsolationCorrectnessNonClaimEvidence::shape_probe_only(),
     );
 }

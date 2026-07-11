@@ -2,8 +2,8 @@
 mod coverage_support;
 
 use forge_store_physical_certification::{
-    CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, Roadmap2HarnessSequence,
-    S5CompactionMutationKind,
+    CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, HarnessCoverageStage,
+    PhysicalIsolationCompactionMutationKind,
 };
 
 #[test]
@@ -12,7 +12,7 @@ fn compaction_mutation_coverage_requires_all_s5_interleaving_mutants() {
     let replay = coverage_support::replay_bundle(&plan);
     let evidence = coverage_support::compaction_mutation_evidence(&replay).unwrap();
 
-    assert_eq!(evidence.sequence(), Roadmap2HarnessSequence::S45);
+    assert_eq!(evidence.sequence(), HarnessCoverageStage::SimulationAdmission);
     assert_eq!(evidence.plan_identity(), plan.identity().digest_bytes());
     let observed = evidence
         .compaction_mutations()
@@ -21,7 +21,7 @@ fn compaction_mutation_coverage_requires_all_s5_interleaving_mutants() {
         .collect::<Vec<_>>();
     assert_eq!(
         observed.as_slice(),
-        S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.as_slice()
+        PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.as_slice()
     );
 }
 
@@ -40,7 +40,7 @@ fn compaction_mutation_coverage_rejects_replay_without_s5_interleaving_mutants()
 fn compaction_mutation_observation_rejects_each_missing_s5_interleaving_mutant() {
     let plan = coverage_support::lowered_ci_plan();
     let schedule = coverage_support::schedule(&plan);
-    for missing in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
+    for missing in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         let denial = coverage_support::compaction_mutation_lane_observation_set(
             &plan,
             &schedule,
@@ -63,7 +63,7 @@ fn compaction_mutation_lane_kind_is_derived_from_operation_receipt() {
 
     assert_eq!(
         observed.as_slice(),
-        S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.as_slice()
+        PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING.as_slice()
     );
 }
 
@@ -126,7 +126,7 @@ fn coverage_matrix_names_compaction_mutation_dimensions() {
         .generate_matrix()
         .unwrap();
 
-    for kind in S5CompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
+    for kind in PhysicalIsolationCompactionMutationKind::REQUIRED_FOR_S5_INTERLEAVING {
         assert!(matrix.rows().iter().any(|row| {
             row.surface() == CoverageSurfaceKind::MutationResult
                 && row.has_dimension(&CoverageRowDimension::CompactionMutation(kind))

@@ -10,5 +10,5 @@ fn main() {
         before: "digest-a",
         after: "digest-a",
     };
-    let _ = ReusablePhysicalOracleFamily::s5_readiness_shape().oracle(comparison);
+    let _ = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape().oracle(comparison);
 }

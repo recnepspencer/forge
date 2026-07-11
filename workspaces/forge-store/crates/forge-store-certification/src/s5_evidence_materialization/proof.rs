@@ -1,7 +1,8 @@
 use forge_proof::{Artifact, PhaseMarker};
 
 use super::{
-    S5ExecutedIsolationFinding, S5ExecutedIsolationRequiredCounters, S5ExecutedIsolationSourceBasis,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationRequiredCounters,
+    ExecutedPhysicalIsolationSourceBasis,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,8 +14,8 @@ pub type S5ProofProjectionArtifact =
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S5StableReadPlanProofProjection {
-    basis: S5ExecutedIsolationSourceBasis,
-    counters: S5ExecutedIsolationRequiredCounters,
+    basis: ExecutedPhysicalIsolationSourceBasis,
+    counters: ExecutedPhysicalIsolationRequiredCounters,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,24 +24,24 @@ pub struct S5PhysicalIsolationProofProgression {
 }
 
 impl S5StableReadPlanProofProjection {
-    fn from_finding(finding: &S5ExecutedIsolationFinding) -> Self {
+    fn from_finding(finding: &ExecutedPhysicalIsolationFinding) -> Self {
         Self {
             basis: finding.basis().clone(),
             counters: finding.counters(),
         }
     }
 
-    pub const fn basis(&self) -> &S5ExecutedIsolationSourceBasis {
+    pub const fn basis(&self) -> &ExecutedPhysicalIsolationSourceBasis {
         &self.basis
     }
 
-    pub const fn counters(&self) -> S5ExecutedIsolationRequiredCounters {
+    pub const fn counters(&self) -> ExecutedPhysicalIsolationRequiredCounters {
         self.counters
     }
 }
 
 impl S5PhysicalIsolationProofProgression {
-    fn checked_from_finding(finding: &S5ExecutedIsolationFinding) -> Self {
+    fn checked_from_finding(finding: &ExecutedPhysicalIsolationFinding) -> Self {
         Self {
             stable_read_projection: S5StableReadPlanProofProjection::from_finding(finding),
         }
@@ -57,7 +58,7 @@ pub struct S5PhysicalIsolationProofTrace {
 }
 
 impl S5PhysicalIsolationProofTrace {
-    pub(crate) fn from_finding(finding: &S5ExecutedIsolationFinding) -> Self {
+    pub(crate) fn from_finding(finding: &ExecutedPhysicalIsolationFinding) -> Self {
         let progression = S5PhysicalIsolationProofProgression::checked_from_finding(finding);
         Self {
             projection: Artifact::new(progression),

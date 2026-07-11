@@ -3,7 +3,7 @@ use forge_foundational::FoundationalCounterBackedPerformanceReceipt;
 
 use crate::courtroom::foundational::foundational_boundary_performance::counter_receipt;
 
-use super::{S5ExecutedIsolationFinding, S5ExecutedIsolationRequiredCounters};
+use super::{ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationRequiredCounters};
 
 type Receipt =
     FoundationalCounterBackedPerformanceReceipt<FoundationalAuthoritativePerformanceClaim>;
@@ -15,7 +15,7 @@ pub struct S5FoundationalPerformanceReceipts {
 
 impl S5FoundationalPerformanceReceipts {
     pub(crate) fn from_finding(
-        finding: &S5ExecutedIsolationFinding,
+        finding: &ExecutedPhysicalIsolationFinding,
     ) -> Result<Self, crate::FoundationalBoundaryEvidenceDenial> {
         let counters = finding.counters();
         let rows = [
@@ -50,7 +50,10 @@ impl S5FoundationalPerformanceReceipts {
         .all(|required| names.contains(&required))
     }
 
-    pub fn matches_required_counters(&self, required: S5ExecutedIsolationRequiredCounters) -> bool {
+    pub fn matches_required_counters(
+        &self,
+        required: ExecutedPhysicalIsolationRequiredCounters,
+    ) -> bool {
         [
             ("store.s5.isolation.outcome", required.outcome_count()),
             ("store.s5.isolation.retry", required.retry_count()),

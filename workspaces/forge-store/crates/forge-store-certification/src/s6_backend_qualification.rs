@@ -16,7 +16,7 @@ pub struct S6BackendQualificationRowOutcome {
         Result<CertifiedBackendQualificationSupport, BackendQualificationMatrixDenial>,
 }
 
-pub fn certify_s6_backend_qualification_matrix(
+pub fn certify_io_pressure_backend_qualification_matrix(
     matrix: BackendQualificationMatrix,
 ) -> Result<S6BackendQualificationMatrixCertification, BackendQualificationMatrixDenial> {
     Ok(S6BackendQualificationMatrixCertification {

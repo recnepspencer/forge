@@ -228,7 +228,7 @@ fn executed_parts_for_seed(
 ) -> ExecutedTranscriptParts {
     let trace = counter_support::observed_trace(plan);
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
-    let readiness_verdict = s5_readiness_verdict(plan, &trace);
+    let readiness_verdict = physical_isolation_readiness_verdict(plan, &trace);
     ExecutedTranscriptParts::new(
         plan,
         schedule(plan, seed),
@@ -246,7 +246,7 @@ fn executed_parts_for_seed_with_trace(
     trace: ObservedPhysicalTrace,
 ) -> ExecutedTranscriptParts {
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
-    let readiness_verdict = s5_readiness_verdict(plan, &trace);
+    let readiness_verdict = physical_isolation_readiness_verdict(plan, &trace);
     ExecutedTranscriptParts::new(
         plan,
         schedule(plan, seed),
@@ -258,11 +258,11 @@ fn executed_parts_for_seed_with_trace(
     .with_oracle_verdict(readiness_verdict)
 }
 
-fn s5_readiness_verdict(
+fn physical_isolation_readiness_verdict(
     plan: &PhysicalSimulationPlan,
     trace: &ObservedPhysicalTrace,
 ) -> PhysicalProofOracleVerdict {
-    ReusablePhysicalOracleFamily::s5_readiness_shape()
+    ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(CounterContractOracle)
         .judge(plan, trace)
         .unwrap()

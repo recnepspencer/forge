@@ -1,5 +1,5 @@
 use forge_store_io_scheduler::foreground_reservation::ReservationViolatedWithCause;
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use super::BlobPlacementMovementCounterSnapshot;
 
@@ -25,7 +25,7 @@ pub enum BlobPlacementMovementDenial {
         counters: BlobPlacementMovementCounterSnapshot,
     },
     ColdPlacementUnavailable {
-        state: S7ColdPlacementState,
+        state: ColdPlacementState,
         counters: BlobPlacementMovementCounterSnapshot,
     },
     MovementExecutionReceiptMismatch {

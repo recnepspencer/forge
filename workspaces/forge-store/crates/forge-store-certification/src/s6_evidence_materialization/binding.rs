@@ -2,11 +2,11 @@ use forge_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
-    S6AccessPolicyEvidenceRow, S6BackendCapabilityAdmissionCertificationEvidence,
-    S6BackendQualificationMatrixCertification, S6BackgroundPacingCertificationEvidence,
-    S6CertificationMaterializationDenial, S6CertifiedQueueExecutionEvidence,
-    S6FlushDurabilityEvidenceRow, S6ForegroundReservationCertificationEvidence,
-    S6IoPressureHarnessCloseoutEvidence, S6PostAdmissionViolationEvidenceRow,
+    IoPressureHarnessCloseoutEvidence, S6AccessPolicyEvidenceRow,
+    S6BackendCapabilityAdmissionCertificationEvidence, S6BackendQualificationMatrixCertification,
+    S6BackgroundPacingCertificationEvidence, S6CertificationMaterializationDenial,
+    S6CertifiedQueueExecutionEvidence, S6FlushDurabilityEvidenceRow,
+    S6ForegroundReservationCertificationEvidence, S6PostAdmissionViolationEvidenceRow,
 };
 
 use super::binding_identity::{evidence_class_tag, mix, post_admission_violation_tag, profile_tag};
@@ -85,7 +85,7 @@ impl S6StoreExecutionEvidenceBinding {
         access_policy_rows: &[S6AccessPolicyEvidenceRow],
         post_admission_violations: &[S6PostAdmissionViolationEvidenceRow],
         flush_durability: &[S6FlushDurabilityEvidenceRow],
-        harness_closeout: &S6IoPressureHarnessCloseoutEvidence,
+        harness_closeout: &IoPressureHarnessCloseoutEvidence,
         qualification_matrix: &S6BackendQualificationMatrixCertification,
     ) -> Result<Self, S6CertificationMaterializationDenial> {
         let required_lane_mask = observed_lane_mask(
@@ -157,7 +157,7 @@ fn observed_lane_mask(
     access_policy_rows: &[S6AccessPolicyEvidenceRow],
     post_admission_violations: &[S6PostAdmissionViolationEvidenceRow],
     flush_durability: &[S6FlushDurabilityEvidenceRow],
-    harness_closeout: &S6IoPressureHarnessCloseoutEvidence,
+    harness_closeout: &IoPressureHarnessCloseoutEvidence,
     qualification_matrix: &S6BackendQualificationMatrixCertification,
 ) -> u16 {
     lane_bit(S6StoreEvidenceLane::BackendAdmission)

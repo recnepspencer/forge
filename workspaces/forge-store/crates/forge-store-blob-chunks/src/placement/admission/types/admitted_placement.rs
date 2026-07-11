@@ -1,4 +1,4 @@
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use crate::{BlobChunkReachabilityProofSet, BlobChunkSecurityMetadataWitness, StoredChunkDigest};
 
@@ -13,7 +13,7 @@ pub struct AdmittedBlobPlacement {
     pub(crate) stored_digest: StoredChunkDigest,
     pub(crate) security_metadata: BlobChunkSecurityMetadataWitness,
     pub(crate) class: BlobPlacementClass,
-    pub(crate) cold_state: Option<S7ColdPlacementState>,
+    pub(crate) cold_state: Option<ColdPlacementState>,
     pub(crate) counters: BlobPlacementCounterSnapshot,
     pub(crate) non_claims: [BlobPlacementNonClaim; 3],
 }
@@ -38,7 +38,7 @@ impl AdmittedBlobPlacement {
         self.class
     }
 
-    pub const fn cold_state(&self) -> Option<S7ColdPlacementState> {
+    pub const fn cold_state(&self) -> Option<ColdPlacementState> {
         self.cold_state
     }
 

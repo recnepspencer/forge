@@ -1,4 +1,4 @@
-use forge_store_blob_chunks::S7ExecutedLifecycleEvidenceBundle;
+use forge_store_blob_chunks::ExecutedBlobLifecycleEvidenceBundle;
 
 use super::{BlobCloseoutProofSummary, BlobCloseoutProofTopology, BlobCloseoutSourceDenial};
 #[cfg(any(test, feature = "certification-test-support"))]
@@ -12,7 +12,7 @@ use forge_store_physical_certification::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobCloseoutSources {
-    lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
+    lifecycle_evidence: ExecutedBlobLifecycleEvidenceBundle,
     evidence_bundle: PhysicalCertificationEvidenceBundle,
     proof_summary: BlobCloseoutProofSummary,
 }
@@ -28,7 +28,7 @@ pub fn blob_harness_closeout_sources_for_certification(
 impl BlobCloseoutSources {
     pub fn from_replay_and_lifecycle(
         replay: SimulationReplayBundle,
-        lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
+        lifecycle_evidence: ExecutedBlobLifecycleEvidenceBundle,
     ) -> Result<Self, BlobCloseoutSourceDenial> {
         let evidence_bundle =
             PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone())?;
@@ -40,7 +40,7 @@ impl BlobCloseoutSources {
         })
     }
 
-    pub const fn lifecycle_evidence(&self) -> &S7ExecutedLifecycleEvidenceBundle {
+    pub const fn lifecycle_evidence(&self) -> &ExecutedBlobLifecycleEvidenceBundle {
         &self.lifecycle_evidence
     }
 
@@ -63,25 +63,23 @@ fn proof_summary(
     let has_blob_family = replay
         .oracle_verdicts()
         .iter()
-        .any(|verdict| verdict.family() == OracleFamilyKind::S7BlobHarnessEvidence);
+        .any(|verdict| verdict.family() == OracleFamilyKind::BlobHarnessEvidence);
     let has_heavy_family = replay
         .oracle_verdicts()
         .iter()
-        .any(|verdict| verdict.family() == OracleFamilyKind::S7BlobHeavyQualification);
+        .any(|verdict| verdict.family() == OracleFamilyKind::BlobHeavyQualification);
     if !has_blob_family {
         return Err(BlobCloseoutSourceDenial::MissingRequiredOracleFamily(
-            OracleFamilyKind::S7BlobHarnessEvidence,
+            OracleFamilyKind::BlobHarnessEvidence,
         ));
     }
     if !has_heavy_family {
         return Err(BlobCloseoutSourceDenial::MissingRequiredOracleFamily(
-            OracleFamilyKind::S7BlobHeavyQualification,
+            OracleFamilyKind::BlobHeavyQualification,
         ));
     }
     let trace = replay.trace();
-    let observation = trace
-        .s7_blob_harness_observation()
-        .expect("blob observation");
+    let observation = trace.blob_harness_observation().expect("blob observation");
     if !observation.heavy_evidence_verified() {
         return Err(BlobCloseoutSourceDenial::HeavyQualificationEvidenceMissing);
     }

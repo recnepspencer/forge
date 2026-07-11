@@ -13,15 +13,19 @@ mod trace;
 
 pub use checkpoint_interlock::CheckpointInterlockObservation;
 pub use checkpoint_publication_lane::{
-    CheckpointCrashReplayObservation, S5CheckpointPublicationCrashLaneOutput,
-    S5CheckpointPublicationLaneBinding, S5CheckpointPublicationRecoveryOutcomeLaneOutput,
-    S5CheckpointPublicationScheduledLaneOutput, S5CheckpointPublicationShortcutRejectionOutput,
+    CheckpointCrashReplayObservation, PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    PhysicalIsolationCheckpointPublicationLaneBinding,
+    PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput,
 };
-pub use checkpoint_publication_shortcut_denial::S5CheckpointPublicationShortcutDenialLaneOutput;
+pub use checkpoint_publication_shortcut_denial::PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput;
 pub use compaction_interlock::CompactionInterlockObservation;
 pub use compaction_mutation::{
-    S5CompactionMutationLaneExecution, S5CompactionMutationObservationSet,
-    S5CompactionMutationReplayBinding, S5CompactionMutationScheduledLaneOutput,
+    PhysicalIsolationCompactionMutationLaneExecution,
+    PhysicalIsolationCompactionMutationObservationSet,
+    PhysicalIsolationCompactionMutationReplayBinding,
+    PhysicalIsolationCompactionMutationScheduledLaneOutput,
 };
 pub use denial::ObservationDenial;
 pub use executed::ExecutedPhysicalSimulationObservation;

@@ -1,4 +1,4 @@
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ClassifiedColdLaneOutcome {
@@ -11,19 +11,19 @@ pub(crate) enum ClassifiedColdLaneOutcome {
 }
 
 pub(crate) const fn classify_cold_lane_outcome(
-    state: S7ColdPlacementState,
+    state: ColdPlacementState,
 ) -> ClassifiedColdLaneOutcome {
     match state {
-        S7ColdPlacementState::HotAvailable | S7ColdPlacementState::ColdAvailable => {
+        ColdPlacementState::HotAvailable | ColdPlacementState::ColdAvailable => {
             ClassifiedColdLaneOutcome::Allowed
         }
-        S7ColdPlacementState::ColdFetchRequired | S7ColdPlacementState::ColdFetchInProgress => {
+        ColdPlacementState::ColdFetchRequired | ColdPlacementState::ColdFetchInProgress => {
             ClassifiedColdLaneOutcome::Retry
         }
-        S7ColdPlacementState::ColdUnavailable => ClassifiedColdLaneOutcome::DeniedUnavailable,
-        S7ColdPlacementState::ColdStale => ClassifiedColdLaneOutcome::DeniedStale,
-        S7ColdPlacementState::ColdScopeDenied => ClassifiedColdLaneOutcome::DeniedScope,
-        S7ColdPlacementState::ColdRebindRequired => ClassifiedColdLaneOutcome::RebindRequired,
+        ColdPlacementState::ColdUnavailable => ClassifiedColdLaneOutcome::DeniedUnavailable,
+        ColdPlacementState::ColdStale => ClassifiedColdLaneOutcome::DeniedStale,
+        ColdPlacementState::ColdScopeDenied => ClassifiedColdLaneOutcome::DeniedScope,
+        ColdPlacementState::ColdRebindRequired => ClassifiedColdLaneOutcome::RebindRequired,
     }
 }
 

@@ -2,28 +2,31 @@
 mod fixture;
 
 use forge_store_physical_certification::{
-    admit_s45_simulation_harness_entry, S45ExistingHarnessInventory, S45HarnessBoundaryDenial,
-    S45HarnessSurfaceClassification, S45RegisteredHarnessSurface, S45RoadmapHarnessRequirement,
-    S45RoadmapHarnessRequirementSet,
+    admit_simulation_harness_entry, ExistingSimulationHarnessInventory,
+    RegisteredSimulationHarnessSurface, SimulationHarnessBoundaryDenial,
+    SimulationHarnessRoadmapRequirement, SimulationHarnessRoadmapRequirementSet,
+    SimulationHarnessSurfaceClassification,
 };
 
 #[test]
-fn s45_entry_identity_is_stable_across_independent_recovery_execution() {
+fn simulation_harness_entry_identity_is_stable_across_independent_recovery_execution() {
     let direct_recovery = fixture::executed_recovery_receipt();
     let repeated_recovery = fixture::executed_recovery_receipt();
 
-    let direct_entry = admit_s45_simulation_harness_entry(
+    let direct_entry = admit_simulation_harness_entry(
         &direct_recovery,
-        S45RoadmapHarnessRequirementSet::roadmap2_required(),
-        S45ExistingHarnessInventory::dedicated_workspace_baseline(),
+        SimulationHarnessRoadmapRequirementSet::certification_required(),
+        ExistingSimulationHarnessInventory::dedicated_workspace_baseline(),
     )
     .expect("direct closeout evidence admits");
-    let repeated_entry = admit_s45_simulation_harness_entry(
+    let repeated_entry = admit_simulation_harness_entry(
         &repeated_recovery,
-        S45RoadmapHarnessRequirementSet::from_requirements(
+        SimulationHarnessRoadmapRequirementSet::from_requirements(
             scrambled_duplicate_requirements_from_spec(),
         ),
-        S45ExistingHarnessInventory::from_registered_surfaces(scrambled_registered_surfaces()),
+        ExistingSimulationHarnessInventory::from_registered_surfaces(
+            scrambled_registered_surfaces(),
+        ),
     )
     .expect("repeated recovery evidence admits");
 
@@ -39,21 +42,21 @@ fn s45_entry_identity_is_stable_across_independent_recovery_execution() {
 }
 
 #[test]
-fn s45_entry_identity_changes_when_s4_recovered_outcome_changes() {
+fn simulation_harness_entry_identity_changes_when_s4_recovered_outcome_changes() {
     let first_recovery = fixture::executed_recovery_receipt();
     let second_recovery =
         fixture::executed_recovery_receipt_with_operation_digest("alternate-operation");
 
-    let first_entry = admit_s45_simulation_harness_entry(
+    let first_entry = admit_simulation_harness_entry(
         &first_recovery,
-        S45RoadmapHarnessRequirementSet::roadmap2_required(),
-        S45ExistingHarnessInventory::dedicated_workspace_baseline(),
+        SimulationHarnessRoadmapRequirementSet::certification_required(),
+        ExistingSimulationHarnessInventory::dedicated_workspace_baseline(),
     )
     .expect("first closeout admits");
-    let second_entry = admit_s45_simulation_harness_entry(
+    let second_entry = admit_simulation_harness_entry(
         &second_recovery,
-        S45RoadmapHarnessRequirementSet::roadmap2_required(),
-        S45ExistingHarnessInventory::dedicated_workspace_baseline(),
+        SimulationHarnessRoadmapRequirementSet::certification_required(),
+        ExistingSimulationHarnessInventory::dedicated_workspace_baseline(),
     )
     .expect("second closeout admits");
 
@@ -65,16 +68,16 @@ fn s45_entry_identity_changes_when_s4_recovered_outcome_changes() {
 }
 
 #[test]
-fn s45_entry_rejects_each_missing_roadmap_requirement() {
+fn simulation_harness_entry_rejects_each_missing_roadmap_requirement() {
     let recovery = fixture::executed_recovery_receipt();
 
     assert_eq!(
-        S45RoadmapHarnessRequirementSet::roadmap2_required().requirements(),
+        SimulationHarnessRoadmapRequirementSet::certification_required().requirements(),
         required_roadmap_requirements_from_spec()
     );
 
     for missing_requirement in required_roadmap_requirements_from_spec() {
-        let requirements = S45RoadmapHarnessRequirementSet::from_requirements(
+        let requirements = SimulationHarnessRoadmapRequirementSet::from_requirements(
             required_roadmap_requirements_from_spec()
                 .iter()
                 .copied()
@@ -82,23 +85,23 @@ fn s45_entry_rejects_each_missing_roadmap_requirement() {
                 .collect(),
         );
 
-        let denial = admit_s45_simulation_harness_entry(
+        let denial = admit_simulation_harness_entry(
             &recovery,
             requirements,
-            S45ExistingHarnessInventory::dedicated_workspace_baseline(),
+            ExistingSimulationHarnessInventory::dedicated_workspace_baseline(),
         )
         .expect_err("each missing Roadmap 2 requirement blocks entry");
 
         assert_eq!(
             denial,
-            S45HarnessBoundaryDenial::MissingRoadmapHarnessRequirement(*missing_requirement)
+            SimulationHarnessBoundaryDenial::MissingRoadmapHarnessRequirement(*missing_requirement)
         );
     }
 }
 
 #[test]
 fn s45_inventory_classifies_every_registered_surface_exactly() {
-    let inventory = S45ExistingHarnessInventory::dedicated_workspace_baseline();
+    let inventory = ExistingSimulationHarnessInventory::dedicated_workspace_baseline();
 
     for (surface, classification) in registered_surface_classifications_from_spec() {
         assert_eq!(&surface.classification(), classification);
@@ -112,93 +115,95 @@ fn s45_inventory_classifies_every_registered_surface_exactly() {
 #[test]
 fn s45_inventory_denies_missing_reusable_mechanics_surface() {
     let recovery = fixture::executed_recovery_receipt();
-    let inventory = S45ExistingHarnessInventory::from_registered_surfaces(vec![
-        S45RegisteredHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
-        S45RegisteredHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
-        S45RegisteredHarnessSurface::CertificationS4RecoveryHarness,
-        S45RegisteredHarnessSurface::ObsoleteSemanticHarness,
+    let inventory = ExistingSimulationHarnessInventory::from_registered_surfaces(vec![
+        RegisteredSimulationHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
+        RegisteredSimulationHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
+        RegisteredSimulationHarnessSurface::CertificationS4RecoveryHarness,
+        RegisteredSimulationHarnessSurface::ObsoleteSemanticHarness,
     ]);
 
-    let denial = admit_s45_simulation_harness_entry(
+    let denial = admit_simulation_harness_entry(
         &recovery,
-        S45RoadmapHarnessRequirementSet::roadmap2_required(),
+        SimulationHarnessRoadmapRequirementSet::certification_required(),
         inventory,
     )
     .expect_err("missing registered reusable mechanics surface cannot admit");
 
     assert_eq!(
         denial,
-        S45HarnessBoundaryDenial::MissingReusableMechanicsInventory
+        SimulationHarnessBoundaryDenial::MissingReusableMechanicsInventory
     );
 }
 
-fn required_roadmap_requirements_from_spec() -> &'static [S45RoadmapHarnessRequirement] {
+fn required_roadmap_requirements_from_spec() -> &'static [SimulationHarnessRoadmapRequirement] {
     &[
-        S45RoadmapHarnessRequirement::GoldenPathAuthoringApi,
-        S45RoadmapHarnessRequirement::AspectNativeScenarioDefinitions,
-        S45RoadmapHarnessRequirement::DeterministicScheduler,
-        S45RoadmapHarnessRequirement::NamedProductionBoundaryYieldpoints,
-        S45RoadmapHarnessRequirement::ProductionFacingDriverContracts,
-        S45RoadmapHarnessRequirement::ActorFaultCrashVocabulary,
-        S45RoadmapHarnessRequirement::ObserverOracleSeparation,
-        S45RoadmapHarnessRequirement::CertificationOwnedOracleFamilies,
-        S45RoadmapHarnessRequirement::CounterStrengthContracts,
-        S45RoadmapHarnessRequirement::ProductionBackedFixtureManifests,
-        S45RoadmapHarnessRequirement::ReplayableTranscriptsAndEvidence,
-        S45RoadmapHarnessRequirement::GeneratedCoverageMatrix,
-        S45RoadmapHarnessRequirement::HarnessMaturityLadder,
-        S45RoadmapHarnessRequirement::ForbiddenShortcutRejection,
-        S45RoadmapHarnessRequirement::S4RecoveryDogfoodSlice,
-        S45RoadmapHarnessRequirement::S5ReadinessShapeProbeNonClaim,
-        S45RoadmapHarnessRequirement::FutureExtensionSlotContainment,
-        S45RoadmapHarnessRequirement::MutationStyleHarnessValidation,
+        SimulationHarnessRoadmapRequirement::GoldenPathAuthoringApi,
+        SimulationHarnessRoadmapRequirement::AspectNativeScenarioDefinitions,
+        SimulationHarnessRoadmapRequirement::DeterministicScheduler,
+        SimulationHarnessRoadmapRequirement::NamedProductionBoundaryYieldpoints,
+        SimulationHarnessRoadmapRequirement::ProductionFacingDriverContracts,
+        SimulationHarnessRoadmapRequirement::ActorFaultCrashVocabulary,
+        SimulationHarnessRoadmapRequirement::ObserverOracleSeparation,
+        SimulationHarnessRoadmapRequirement::CertificationOwnedOracleFamilies,
+        SimulationHarnessRoadmapRequirement::CounterStrengthContracts,
+        SimulationHarnessRoadmapRequirement::ProductionBackedFixtureManifests,
+        SimulationHarnessRoadmapRequirement::ReplayableTranscriptsAndEvidence,
+        SimulationHarnessRoadmapRequirement::GeneratedCoverageMatrix,
+        SimulationHarnessRoadmapRequirement::HarnessMaturityLadder,
+        SimulationHarnessRoadmapRequirement::ForbiddenShortcutRejection,
+        SimulationHarnessRoadmapRequirement::S4RecoveryDogfoodSlice,
+        SimulationHarnessRoadmapRequirement::PhysicalIsolationReadinessShapeProbeNonClaim,
+        SimulationHarnessRoadmapRequirement::FutureExtensionSlotContainment,
+        SimulationHarnessRoadmapRequirement::MutationStyleHarnessValidation,
     ]
 }
 
-fn scrambled_duplicate_requirements_from_spec() -> Vec<S45RoadmapHarnessRequirement> {
+fn scrambled_duplicate_requirements_from_spec() -> Vec<SimulationHarnessRoadmapRequirement> {
     let mut requirements = required_roadmap_requirements_from_spec().to_vec();
     requirements.reverse();
-    requirements.push(S45RoadmapHarnessRequirement::GoldenPathAuthoringApi);
+    requirements.push(SimulationHarnessRoadmapRequirement::GoldenPathAuthoringApi);
     requirements
 }
 
-fn scrambled_registered_surfaces() -> Vec<S45RegisteredHarnessSurface> {
+fn scrambled_registered_surfaces() -> Vec<RegisteredSimulationHarnessSurface> {
     vec![
-        S45RegisteredHarnessSurface::ObsoleteSemanticHarness,
-        S45RegisteredHarnessSurface::CertificationS4RecoveryHarness,
-        S45RegisteredHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
-        S45RegisteredHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
-        S45RegisteredHarnessSurface::TestSupportNativeAspectFixtures,
-        S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
+        RegisteredSimulationHarnessSurface::ObsoleteSemanticHarness,
+        RegisteredSimulationHarnessSurface::CertificationS4RecoveryHarness,
+        RegisteredSimulationHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
+        RegisteredSimulationHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
+        RegisteredSimulationHarnessSurface::TestSupportNativeAspectFixtures,
+        RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,
     ]
 }
 
-fn registered_surface_classifications_from_spec(
-) -> &'static [(S45RegisteredHarnessSurface, S45HarnessSurfaceClassification)] {
+fn registered_surface_classifications_from_spec() -> &'static [(
+    RegisteredSimulationHarnessSurface,
+    SimulationHarnessSurfaceClassification,
+)] {
     &[
         (
-            S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
-            S45HarnessSurfaceClassification::ReusableMechanics,
+            RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,
+            SimulationHarnessSurfaceClassification::ReusableMechanics,
         ),
         (
-            S45RegisteredHarnessSurface::TestSupportNativeAspectFixtures,
-            S45HarnessSurfaceClassification::ReusableMechanics,
+            RegisteredSimulationHarnessSurface::TestSupportNativeAspectFixtures,
+            SimulationHarnessSurfaceClassification::ReusableMechanics,
         ),
         (
-            S45RegisteredHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
-            S45HarnessSurfaceClassification::MilestoneLocalMechanics,
+            RegisteredSimulationHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
+            SimulationHarnessSurfaceClassification::MilestoneLocalMechanics,
         ),
         (
-            S45RegisteredHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
-            S45HarnessSurfaceClassification::MilestoneLocalMechanics,
+            RegisteredSimulationHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
+            SimulationHarnessSurfaceClassification::MilestoneLocalMechanics,
         ),
         (
-            S45RegisteredHarnessSurface::CertificationS4RecoveryHarness,
-            S45HarnessSurfaceClassification::CertificationMeaning,
+            RegisteredSimulationHarnessSurface::CertificationS4RecoveryHarness,
+            SimulationHarnessSurfaceClassification::CertificationMeaning,
         ),
         (
-            S45RegisteredHarnessSurface::ObsoleteSemanticHarness,
-            S45HarnessSurfaceClassification::ObsoleteSemanticContext,
+            RegisteredSimulationHarnessSurface::ObsoleteSemanticHarness,
+            SimulationHarnessSurfaceClassification::ObsoleteSemanticContext,
         ),
     ]
 }

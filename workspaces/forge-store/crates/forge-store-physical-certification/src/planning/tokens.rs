@@ -51,12 +51,12 @@ pub(crate) fn observer_token(observer: ObserverKind) -> &'static str {
 pub(crate) fn oracle_family_token(oracle_family: OracleFamilyKind) -> &'static str {
     match oracle_family {
         OracleFamilyKind::TranscriptReplayEvidence => "transcript-replay-evidence",
-        OracleFamilyKind::S5ReadinessShape => "s5-readiness-shape",
-        OracleFamilyKind::S5PhysicalIsolationInterleaving => "s5-physical-isolation-interleaving",
-        OracleFamilyKind::S6IoPressureSimulation => "s6-io-pressure-simulation",
+        OracleFamilyKind::PhysicalIsolationReadinessShape => "s5-readiness-shape",
+        OracleFamilyKind::PhysicalIsolationInterleaving => "s5-physical-isolation-interleaving",
+        OracleFamilyKind::IoPressureSimulation => "s6-io-pressure-simulation",
         OracleFamilyKind::S4RecoveryDogfood => "s4-recovery-dogfood",
-        OracleFamilyKind::S7BlobHarnessEvidence => "s7-blob-harness-evidence",
-        OracleFamilyKind::S7BlobHeavyQualification => "s7-blob-heavy-qualification",
+        OracleFamilyKind::BlobHarnessEvidence => "s7-blob-harness-evidence",
+        OracleFamilyKind::BlobHeavyQualification => "s7-blob-heavy-qualification",
         OracleFamilyKind::ForbiddenShortcutRejection => "forbidden-shortcut-rejection",
         OracleFamilyKind::FutureExtensionNonClaim => "future-extension-non-claim",
     }

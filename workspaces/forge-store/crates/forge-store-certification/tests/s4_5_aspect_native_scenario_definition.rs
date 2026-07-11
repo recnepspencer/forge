@@ -9,8 +9,10 @@ use forge_store_test_support::NativeStoreAspectFixture;
 
 #[test]
 fn golden_path_authoring_lowers_into_canonical_native_scenario_identity() {
-    let first = s5_readiness_shape_scenario_with_actor_order(["reclaimer", "reader"]);
-    let second = s5_readiness_shape_scenario_with_actor_order(["reader", "reclaimer"]);
+    let first =
+        physical_isolation_readiness_shape_scenario_with_actor_order(["reclaimer", "reader"]);
+    let second =
+        physical_isolation_readiness_shape_scenario_with_actor_order(["reader", "reclaimer"]);
 
     assert_eq!(first.identity(), second.identity());
     assert_eq!(first.definition(), second.definition());
@@ -22,8 +24,8 @@ fn golden_path_authoring_lowers_into_canonical_native_scenario_identity() {
 
 #[test]
 fn authoring_label_does_not_participate_in_scenario_identity() {
-    let first = s5_readiness_shape_scenario_with_label("display.label.one");
-    let second = s5_readiness_shape_scenario_with_label("display.label.two");
+    let first = physical_isolation_readiness_shape_scenario_with_label("display.label.one");
+    let second = physical_isolation_readiness_shape_scenario_with_label("display.label.two");
 
     assert_eq!(first.identity(), second.identity());
     assert_ne!(first.definition().label(), second.definition().label());
@@ -34,8 +36,8 @@ fn scenario_identity_changes_when_native_fixture_identity_changes() {
     let first_fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let second_fixture = NativeStoreAspectFixture::segment_header("beta", 7);
 
-    let first = s5_readiness_shape_scenario(first_fixture);
-    let second = s5_readiness_shape_scenario(second_fixture);
+    let first = physical_isolation_readiness_shape_scenario(first_fixture);
+    let second = physical_isolation_readiness_shape_scenario(second_fixture);
 
     assert_ne!(first.identity(), second.identity());
 }
@@ -117,8 +119,9 @@ fn scenario_identity_changes_for_each_native_meaning_field() {
     assert_identity_differs(
         &baseline,
         scenario_from_parts(ScenarioParts {
-            expectation: PhysicalScenarioExpectation::non_claiming_s5_readiness_shape()
-                .with_future_extension_non_claim(),
+            expectation:
+                PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape()
+                    .with_future_extension_non_claim(),
             ..baseline_scenario_parts()
         }),
         "non-claim set",
@@ -130,11 +133,11 @@ fn fixture_set_order_does_not_participate_in_scenario_identity() {
     let alpha = NativeStoreAspectFixture::segment_header("alpha", 7);
     let beta = NativeStoreAspectFixture::segment_header("beta", 11);
 
-    let first = s5_readiness_shape_scenario_from_fixtures([
+    let first = physical_isolation_readiness_shape_scenario_from_fixtures([
         alpha.boundary_fact().clone(),
         beta.boundary_fact().clone(),
     ]);
-    let second = s5_readiness_shape_scenario_from_fixtures([
+    let second = physical_isolation_readiness_shape_scenario_from_fixtures([
         beta.boundary_fact().clone(),
         alpha.boundary_fact().clone(),
     ]);
@@ -147,7 +150,7 @@ fn fixture_set_order_does_not_participate_in_scenario_identity() {
 fn scenario_authoring_denies_duplicate_native_fixture_before_certification() {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let denial = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .fixture(fixture.boundary_fact().clone())
@@ -156,7 +159,7 @@ fn scenario_authoring_denies_duplicate_native_fixture_before_certification() {
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect_err("duplicate native fixture cannot certify");
 
@@ -170,13 +173,13 @@ fn scenario_authoring_denies_duplicate_native_fixture_before_certification() {
 fn scenario_authoring_denies_missing_actor_before_certification() {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let denial = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect_err("scenario without actor cannot certify");
 
@@ -187,14 +190,14 @@ fn scenario_authoring_denies_missing_actor_before_certification() {
 fn scenario_authoring_denies_unnamed_actor_before_certification() {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let denial = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .actor(PhysicalScenarioActor::foreground_reader("  "))
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect_err("scenario with unnamed actor cannot certify");
 
@@ -205,7 +208,7 @@ fn scenario_authoring_denies_unnamed_actor_before_certification() {
 fn scenario_authoring_denies_duplicate_actor_id_before_certification() {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let denial = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
@@ -213,7 +216,7 @@ fn scenario_authoring_denies_duplicate_actor_id_before_certification() {
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect_err("duplicate actor id cannot certify");
 
@@ -224,12 +227,12 @@ fn scenario_authoring_denies_duplicate_actor_id_before_certification() {
 fn scenario_authoring_denies_unnamed_yieldpoint_before_certification() {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
     let denial = physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(""))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect_err("scenario with unnamed yieldpoint cannot certify");
 
@@ -240,23 +243,24 @@ fn scenario_authoring_denies_unnamed_yieldpoint_before_certification() {
 }
 
 #[test]
-fn s5_readiness_shape_probe_carries_explicit_non_claim_evidence() {
-    let scenario =
-        s5_readiness_shape_scenario(NativeStoreAspectFixture::segment_header("alpha", 7));
+fn physical_isolation_readiness_shape_probe_carries_explicit_non_claim_evidence() {
+    let scenario = physical_isolation_readiness_shape_scenario(
+        NativeStoreAspectFixture::segment_header("alpha", 7),
+    );
 
     assert!(scenario
         .definition()
         .expectation()
         .non_claims()
-        .contains(&PhysicalScenarioNonClaim::NoS5PhysicalIsolationCorrectnessClaim));
+        .contains(&PhysicalScenarioNonClaim::NoPhysicalIsolationCorrectnessClaim));
 }
 
-fn s5_readiness_shape_scenario_from_fixtures(
+fn physical_isolation_readiness_shape_scenario_from_fixtures(
     fixtures: [StoreAspectBoundaryFact; 2],
 ) -> CertifiedPhysicalScenario {
     let [first_fixture, second_fixture] = fixtures;
     physical_scenario("store.physical.s5.readiness")
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(first_fixture)
         .fixture(second_fixture)
@@ -265,12 +269,12 @@ fn s5_readiness_shape_scenario_from_fixtures(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect("native scenario should certify")
 }
 
-fn s5_readiness_shape_scenario_with_actor_order(
+fn physical_isolation_readiness_shape_scenario_with_actor_order(
     actor_order: [&str; 2],
 ) -> CertifiedPhysicalScenario {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
@@ -278,7 +282,7 @@ fn s5_readiness_shape_scenario_with_actor_order(
         .into_iter()
         .fold(
             physical_scenario("store.physical.s5.readiness")
-                .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+                .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
                 .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
                 .fixture(fixture.boundary_fact().clone()),
             |builder, actor_id| {
@@ -293,26 +297,33 @@ fn s5_readiness_shape_scenario_with_actor_order(
             "root-publication-before-observe",
         ))
         .fault(PhysicalScenarioFault::no_fault())
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect("native scenario should certify")
 }
 
-fn s5_readiness_shape_scenario(fixture: NativeStoreAspectFixture) -> CertifiedPhysicalScenario {
-    s5_readiness_shape_scenario_from_label_and_fixture("store.physical.s5.readiness", fixture)
+fn physical_isolation_readiness_shape_scenario(
+    fixture: NativeStoreAspectFixture,
+) -> CertifiedPhysicalScenario {
+    physical_isolation_readiness_shape_scenario_from_label_and_fixture(
+        "store.physical.s5.readiness",
+        fixture,
+    )
 }
 
-fn s5_readiness_shape_scenario_with_label(label: &str) -> CertifiedPhysicalScenario {
+fn physical_isolation_readiness_shape_scenario_with_label(
+    label: &str,
+) -> CertifiedPhysicalScenario {
     let fixture = NativeStoreAspectFixture::segment_header("alpha", 7);
-    s5_readiness_shape_scenario_from_label_and_fixture(label, fixture)
+    physical_isolation_readiness_shape_scenario_from_label_and_fixture(label, fixture)
 }
 
-fn s5_readiness_shape_scenario_from_label_and_fixture(
+fn physical_isolation_readiness_shape_scenario_from_label_and_fixture(
     label: &str,
     fixture: NativeStoreAspectFixture,
 ) -> CertifiedPhysicalScenario {
     physical_scenario(label)
-        .family(PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe)
+        .family(PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe)
         .intent(PhysicalScenarioIntent::ProtectBeforeObserveShape)
         .fixture(fixture.boundary_fact().clone())
         .actor(PhysicalScenarioActor::maintenance_reclaimer("reclaimer"))
@@ -320,7 +331,7 @@ fn s5_readiness_shape_scenario_from_label_and_fixture(
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
             "root-publication-before-observe",
         ))
-        .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
+        .expectation(PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape())
         .certify_definition()
         .expect("native scenario should certify")
 }
@@ -340,7 +351,7 @@ struct ScenarioParts {
 fn baseline_scenario_parts() -> ScenarioParts {
     ScenarioParts {
         label: "store.physical.s5.readiness",
-        family: PhysicalSimulationScenarioFamily::S5ReadinessShapeProbe,
+        family: PhysicalSimulationScenarioFamily::PhysicalIsolationReadinessShapeProbe,
         intent: PhysicalScenarioIntent::ProtectBeforeObserveShape,
         fixture: NativeStoreAspectFixture::segment_header("alpha", 7),
         actors: [
@@ -349,7 +360,7 @@ fn baseline_scenario_parts() -> ScenarioParts {
         ],
         yieldpoint: "root-publication-before-observe",
         fault: PhysicalScenarioFault::no_fault(),
-        expectation: PhysicalScenarioExpectation::non_claiming_s5_readiness_shape(),
+        expectation: PhysicalScenarioExpectation::non_claiming_physical_isolation_readiness_shape(),
     }
 }
 

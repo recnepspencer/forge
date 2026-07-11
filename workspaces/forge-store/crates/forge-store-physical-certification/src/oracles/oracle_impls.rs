@@ -29,7 +29,7 @@ pub struct TranscriptReplayOracle;
 pub struct IndependentVerifierAgreementOracle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S6IoPressureSimulationOracle;
+pub struct IoPressureSimulationOracle;
 
 impl PhysicalProofOracle for CrashRecoversOldOrNewNeverMixedOracle {
     fn oracle_kind(&self) -> PhysicalProofOracleKind {
@@ -126,7 +126,7 @@ impl PhysicalProofOracle for CounterContractOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S5ReadinessShape
+        OracleFamilyKind::PhysicalIsolationReadinessShape
     }
 
     fn judge_basis(
@@ -137,7 +137,7 @@ impl PhysicalProofOracle for CounterContractOracle {
             self.family_kind(),
             self.oracle_kind(),
             basis,
-            [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
+            [PhysicalOracleNonClaim::PhysicalIsolationCorrectness],
         ))
     }
 }
@@ -170,7 +170,7 @@ impl PhysicalProofOracle for IndependentVerifierAgreementOracle {
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S5ReadinessShape
+        OracleFamilyKind::PhysicalIsolationReadinessShape
     }
 
     fn judge_basis(
@@ -188,7 +188,7 @@ impl PhysicalProofOracle for IndependentVerifierAgreementOracle {
                     self.family_kind(),
                     self.oracle_kind(),
                     basis,
-                    [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
+                    [PhysicalOracleNonClaim::PhysicalIsolationCorrectness],
                 ))
             }
             IndependentVerifierObservationKind::Disagreement => {
@@ -196,34 +196,34 @@ impl PhysicalProofOracle for IndependentVerifierAgreementOracle {
                     self.family_kind(),
                     self.oracle_kind(),
                     basis,
-                    [PhysicalOracleNonClaim::S5PhysicalIsolationCorrectness],
+                    [PhysicalOracleNonClaim::PhysicalIsolationCorrectness],
                 ))
             }
         }
     }
 }
 
-impl PhysicalProofOracle for S6IoPressureSimulationOracle {
+impl PhysicalProofOracle for IoPressureSimulationOracle {
     fn oracle_kind(&self) -> PhysicalProofOracleKind {
-        PhysicalProofOracleKind::S6IoPressureSimulation
+        PhysicalProofOracleKind::IoPressureSimulation
     }
 
     fn family_kind(&self) -> OracleFamilyKind {
-        OracleFamilyKind::S6IoPressureSimulation
+        OracleFamilyKind::IoPressureSimulation
     }
 
     fn judge_basis(
         &self,
         basis: OracleVerdictBasis,
     ) -> Result<PhysicalProofOracleVerdict, OracleDenial> {
-        if basis.scenario_family() != crate::PhysicalSimulationScenarioFamily::S6IoPressureHarness {
+        if basis.scenario_family() != crate::PhysicalSimulationScenarioFamily::IoPressureHarness {
             return Err(OracleDenial::PlanTraceIdentityMismatch);
         }
         let observation = basis
-            .s6_io_pressure()
-            .ok_or(OracleDenial::MissingS6IoPressureObservation)?;
+            .io_pressure()
+            .ok_or(OracleDenial::MissingIoPressureObservation)?;
         if !observation.attribution_complete() {
-            return Err(OracleDenial::IncompleteS6IoPressureAttribution);
+            return Err(OracleDenial::IncompleteIoPressureAttribution);
         }
         if observation.envelope_status() != LatencyEnvelopeAssessmentStatus::Held {
             return Ok(PhysicalProofOracleVerdict::failed(

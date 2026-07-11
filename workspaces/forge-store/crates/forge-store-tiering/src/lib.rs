@@ -8,7 +8,7 @@ mod io_readiness;
 
 pub use cold_state::{
     classify_cold_posture_permit, cold_posture_permits_compaction, cold_posture_permits_movement,
-    ColdPosturePermit, S7ColdPlacementState,
+    ColdPlacementState, ColdPosturePermit,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use cold_tier_posture::certification_test_support;

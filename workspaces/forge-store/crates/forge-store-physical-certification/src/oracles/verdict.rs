@@ -26,7 +26,7 @@ pub struct PhysicalOracleVerdictTopology {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalOracleNonClaim {
-    S5PhysicalIsolationCorrectness,
+    PhysicalIsolationCorrectness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,8 +51,8 @@ pub enum PhysicalProofOracleKind {
     BlobHeavyQualificationEvidence,
     BlobHeavyCleanup,
     BlobHeavyPatternLane,
-    S5PhysicalIsolationInterleaving,
-    S6IoPressureSimulation,
+    PhysicalIsolationInterleaving,
+    IoPressureSimulation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,11 +79,11 @@ pub enum OracleDenial {
     MissingRecoveryOutcomeObservation,
     MissingCheckpointInterlockObservation,
     MissingCompactionInterlockObservation,
-    MissingS6IoPressureObservation,
-    MissingS7BlobHarnessMetadata,
-    MissingS7BlobHarnessObservation,
-    IncompleteS6IoPressureAttribution,
-    S6IoPressureEnvelopeViolated,
+    MissingIoPressureObservation,
+    MissingBlobHarnessMetadata,
+    MissingBlobHarnessObservation,
+    IncompleteIoPressureAttribution,
+    IoPressureEnvelopeViolated,
     CheckpointInterlockObservationDenied {
         oracle: PhysicalProofOracleKind,
     },

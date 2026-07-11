@@ -27,8 +27,8 @@ pub fn lower_physical_simulation_plan(
     let forbidden_shortcuts = context
         .forbidden_shortcuts()
         .ok_or(SimulationPlanDenial::AbsentForbiddenShortcutSet)?;
-    require_roadmap2_forbidden_shortcuts(forbidden_shortcuts)?;
-    require_s5_lane_registration(&context, &required_shape)?;
+    require_certification_forbidden_shortcuts(forbidden_shortcuts)?;
+    require_physical_isolation_lane_registration(&context, &required_shape)?;
     let plan = PhysicalSimulationPlan::from_parts(PhysicalSimulationPlanParts {
         scenario_identity: scenario.identity().clone(),
         scenario_family: scenario.definition().family(),
@@ -45,29 +45,25 @@ pub fn lower_physical_simulation_plan(
         fixture_classes: required_shape.fixture_classes,
         evidence_policy,
         forbidden_shortcuts: forbidden_shortcuts.clone(),
-        s5_compaction_mutation_origin: context.s5_compaction_mutation_origin().cloned(),
-        s7_blob_harness_metadata: scenario
-            .definition()
-            .expectation()
-            .s7_blob_harness_metadata(),
-        s7_blob_harness_topology: scenario
-            .definition()
-            .expectation()
-            .s7_blob_harness_topology(),
+        physical_isolation_compaction_mutation_origin: context
+            .physical_isolation_compaction_mutation_origin()
+            .cloned(),
+        blob_harness_metadata: scenario.definition().expectation().blob_harness_metadata(),
+        blob_harness_topology: scenario.definition().expectation().blob_harness_topology(),
     })?;
     admit_simulation_plan(plan)
 }
 
-fn require_s5_lane_registration(
+fn require_physical_isolation_lane_registration(
     context: &SimulationPlanningContext,
     required_shape: &RequiredSimulationPlanShape,
 ) -> Result<(), SimulationPlanDenial> {
     if required_shape
         .oracle_families
-        .contains(OracleFamilyKind::S5PhysicalIsolationInterleaving)
-        && context.s5_physical_isolation_lane_registration().is_none()
+        .contains(OracleFamilyKind::PhysicalIsolationInterleaving)
+        && context.physical_isolation_lane_registration().is_none()
     {
-        return Err(SimulationPlanDenial::MissingS5PhysicalIsolationLaneRegistration);
+        return Err(SimulationPlanDenial::MissingPhysicalIsolationLaneRegistration);
     }
     Ok(())
 }
@@ -149,7 +145,7 @@ fn require_supported_plan_requirements(
     Ok((yieldpoint_binding, driver_contracts))
 }
 
-fn require_roadmap2_forbidden_shortcuts(
+fn require_certification_forbidden_shortcuts(
     forbidden_shortcuts: &ForbiddenShortcutSet,
 ) -> Result<(), SimulationPlanDenial> {
     for shortcut in ROADMAP_2_BASELINE_SHORTCUTS {

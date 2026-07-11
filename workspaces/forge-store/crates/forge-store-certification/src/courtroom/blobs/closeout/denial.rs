@@ -7,7 +7,7 @@ pub enum BlobCloseoutShortcutAttempt {
     CopiedReceipt,
     CopiedChunkRows,
     CopiedProofId,
-    S5FutureChunkPlaceholderOnly,
+    FutureChunkPlaceholderOnly,
     TerminalProjectionOnly,
     RawCountersOnly,
 }
@@ -70,9 +70,9 @@ pub(crate) fn shortcut_rejection(
                 "copied proof ids cannot mint blob closeout",
             )
         }
-        BlobCloseoutShortcutInput::S5FutureChunkPlaceholderOnly { .. } => {
+        BlobCloseoutShortcutInput::FutureChunkPlaceholderOnly { .. } => {
             BlobCloseoutShortcutRejectionReport::new(
-                BlobCloseoutShortcutAttempt::S5FutureChunkPlaceholderOnly,
+                BlobCloseoutShortcutAttempt::FutureChunkPlaceholderOnly,
                 "future chunk placeholders alone cannot mint blob closeout",
             )
         }

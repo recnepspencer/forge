@@ -1,14 +1,14 @@
 use forge_store_physical_certification::{
     CheckpointInterlockObservation, CompactionInterlockObservation, CoverageGapDenial,
     ExecutedPhysicalSimulationObservation, IndependentVerifierObservation, ObservedPhysicalTrace,
-    PhysicalInterleavingSchedule, PhysicalSimulationObserver, PhysicalSimulationPlan,
-    PhysicalSimulationScenarioFamily, S5CompactionMutationObservationSet,
+    PhysicalInterleavingSchedule, PhysicalIsolationCompactionMutationObservationSet,
+    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationScenarioFamily,
     ShortcutRejectionObservation,
 };
 
 pub struct S5PhysicalIsolationTraceFixtures {
     compaction_interlock: Option<CompactionInterlockObservation>,
-    compaction_mutations: Option<S5CompactionMutationObservationSet>,
+    compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     independent_verifier: Option<IndependentVerifierObservation>,
 }
@@ -16,7 +16,7 @@ pub struct S5PhysicalIsolationTraceFixtures {
 impl S5PhysicalIsolationTraceFixtures {
     pub const fn complete(
         compaction_interlock: CompactionInterlockObservation,
-        compaction_mutations: Option<S5CompactionMutationObservationSet>,
+        compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
         checkpoint_interlock: CheckpointInterlockObservation,
         independent_verifier: IndependentVerifierObservation,
     ) -> Self {
@@ -30,7 +30,7 @@ impl S5PhysicalIsolationTraceFixtures {
 
     pub const fn new(
         compaction_interlock: CompactionInterlockObservation,
-        compaction_mutations: Option<S5CompactionMutationObservationSet>,
+        compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
         checkpoint_interlock: CheckpointInterlockObservation,
         independent_verifier: IndependentVerifierObservation,
     ) -> Self {
@@ -63,7 +63,7 @@ impl S5PhysicalIsolationTraceFixtures {
     }
 }
 
-pub fn observe_s5_physical_isolation_trace(
+pub fn observe_physical_isolation_physical_isolation_trace(
     plan: &PhysicalSimulationPlan,
     _schedule: &PhysicalInterleavingSchedule,
     fixtures: S5PhysicalIsolationTraceFixtures,
@@ -90,8 +90,8 @@ pub fn observe_s5_physical_isolation_trace(
         builder
     };
     let trace = match plan.scenario_family() {
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-        | PhysicalSimulationScenarioFamily::S5RestartDuringCutover => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
             let builder = if let Some(observation) = fixtures.checkpoint_interlock {
                 builder.with_checkpoint_interlock_observation(observation)
             } else {
@@ -99,8 +99,8 @@ pub fn observe_s5_physical_isolation_trace(
             };
             builder.complete().unwrap()
         }
-        PhysicalSimulationScenarioFamily::S5TierMovementStability
-        | PhysicalSimulationScenarioFamily::S5FutureChunkStability => {
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
+        | PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability => {
             let builder = if let Some(observation) = fixtures.independent_verifier {
                 builder.with_independent_verifier_observation(observation)
             } else {
@@ -116,10 +116,10 @@ pub fn observe_s5_physical_isolation_trace(
 fn requires_compaction_mutation_observations(family: PhysicalSimulationScenarioFamily) -> bool {
     matches!(
         family,
-        PhysicalSimulationScenarioFamily::S5CompactionInterlock
-            | PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock
-            | PhysicalSimulationScenarioFamily::S5ReclaimReachability
-            | PhysicalSimulationScenarioFamily::S5TierMovementStability
-            | PhysicalSimulationScenarioFamily::S5RestartDuringCutover
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
+            | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover
     )
 }

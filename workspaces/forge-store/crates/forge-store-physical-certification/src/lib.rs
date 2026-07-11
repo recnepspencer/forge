@@ -5,8 +5,6 @@ pub mod layout_harness;
 
 mod actors;
 mod authoring;
-#[path = "harness/blob/mod.rs"]
-mod blob_harness;
 mod closeout;
 mod counters;
 mod coverage;
@@ -16,58 +14,15 @@ mod faults;
 mod fixtures;
 mod observation;
 mod oracles;
+mod physical_isolation_handoff;
 mod planning;
-mod s45_entry;
-mod s5_1_security_scope_harness;
-mod s5_executed_isolation_contract;
-mod s5_executed_isolation_source;
-mod s5_handoff;
-mod s5_physical_isolation_mutation;
-#[path = "harness/by_milestone/s6/s6_backend_qualification/mod.rs"]
-mod s6_backend_qualification;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_cross_backend_tests.rs"]
-mod s6_backend_qualification_cross_backend_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_matrix_surface_tests.rs"]
-mod s6_backend_qualification_matrix_surface_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_negative_tests.rs"]
-mod s6_backend_qualification_negative_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_residual_debt_tests.rs"]
-mod s6_backend_qualification_residual_debt_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_backend_qualification_tests.rs"]
-mod s6_backend_qualification_tests;
-#[path = "harness/by_milestone/s6/s6_io_pressure_coverage.rs"]
-mod s6_io_pressure_coverage;
-#[path = "harness/by_milestone/s6/s6_io_pressure_execution.rs"]
-mod s6_io_pressure_execution;
-#[path = "harness/by_milestone/s6/s6_io_pressure_harness.rs"]
-mod s6_io_pressure_harness;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_negative_tests.rs"]
-mod s6_io_pressure_harness_negative_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_io_pressure_harness_tests.rs"]
-mod s6_io_pressure_harness_tests;
-#[path = "harness/by_milestone/s6/s6_io_pressure_replay.rs"]
-mod s6_io_pressure_replay;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_io_pressure_replay_tests.rs"]
-mod s6_io_pressure_replay_tests;
-#[cfg(test)]
-#[path = "harness/by_milestone/s6/tests/s6_io_pressure_shortcut_tests.rs"]
-mod s6_io_pressure_shortcut_tests;
-#[cfg(any(test, feature = "certification-test-support"))]
-#[path = "harness/by_milestone/s6/s6_io_pressure_test_support/mod.rs"]
-mod s6_io_pressure_test_support;
-#[path = "harness/by_milestone/s6/s6_io_pressure_vocab.rs"]
-mod s6_io_pressure_vocab;
+mod pressure_harness;
+mod qualification;
 mod scenario;
 mod schedule;
+mod security_scope_harness;
 mod shortcut_rejection;
+mod simulation_admission;
 mod transcript;
 
 pub use forge_store_offline_verifier::OfflineVerifierBoundarySeam;
@@ -83,32 +38,22 @@ pub use authoring::{
     physical_scenario, PhysicalScenarioBuilder, ScenarioBuilderActorStep,
     ScenarioBuilderExpectationStep, ScenarioBuilderFixtureStep, ScenarioBuilderScheduleStep,
 };
-#[cfg(any(test, feature = "certification-test-support"))]
-pub use blob_harness::{
-    blob_harness_replay_artifacts_for_certification,
-    synthetic_blob_harness_coverage_matrix_for_test_support,
-    synthetic_blob_harness_replay_bundle_for_test_support,
-};
-pub use blob_harness::{
-    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
-    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
-    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
-    BlobHarnessShortcutDenial, S7BlobHarnessOracleObservation, S7BlobResumeCrashPoint,
-    S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
-};
 pub use closeout::{
-    FutureHarnessExtensionSlotInventory, FutureHarnessExtensionSlotReport,
-    FuturePhysicalHarnessExtensionFamily, PhysicalSimulationHarnessCertificationBundle,
-    PhysicalSimulationHarnessCloseoutDenial, PhysicalSimulationHarnessCloseoutReport,
-    PhysicalSimulationHarnessCloseoutSuite, S45AcceptanceEvidenceLane, S45AcceptanceSuiteCoverage,
-    S45AcceptanceSuiteEvidence, S45AcceptanceSuiteEvidenceSource, S45AcceptanceSuiteExecutionProof,
-    S45AcceptanceSuiteMap, S45AcceptanceSuiteName, S45AcceptanceSuiteReceipt,
-    S45AcceptanceSuiteReceiptSet, S45CloseoutCoverageReport, S45DogfoodSliceKind,
-    S45ExecutedAcceptanceSuiteEvidence, S45ExecutedAcceptanceSuiteEvidenceSet,
-    S45HarnessDogfoodEvidence, S45HarnessDogfoodReport, S4RecoveryDogfoodScenario,
-    S4RecoveryDogfoodSliceEvidence, S5ReadinessShapeProbeScenario,
-    S5ReadinessShapeProbeSliceEvidence, ShortcutRejectionDogfoodScenario,
-    ShortcutRejectionDogfoodSliceEvidence,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidence,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidenceSet, FutureHarnessExtensionSlotInventory,
+    FutureHarnessExtensionSlotReport, FuturePhysicalHarnessExtensionFamily,
+    PhysicalIsolationReadinessShapeProbeScenario,
+    PhysicalIsolationReadinessShapeProbeSliceEvidence,
+    PhysicalSimulationHarnessCertificationBundle, PhysicalSimulationHarnessCloseoutDenial,
+    PhysicalSimulationHarnessCloseoutReport, PhysicalSimulationHarnessCloseoutSuite,
+    S4RecoveryDogfoodScenario, S4RecoveryDogfoodSliceEvidence, ShortcutRejectionDogfoodScenario,
+    ShortcutRejectionDogfoodSliceEvidence, SimulationHarnessAcceptanceEvidenceLane,
+    SimulationHarnessAcceptanceSuiteCoverage, SimulationHarnessAcceptanceSuiteEvidence,
+    SimulationHarnessAcceptanceSuiteEvidenceSource, SimulationHarnessAcceptanceSuiteExecutionProof,
+    SimulationHarnessAcceptanceSuiteMap, SimulationHarnessAcceptanceSuiteName,
+    SimulationHarnessAcceptanceSuiteReceipt, SimulationHarnessAcceptanceSuiteReceiptSet,
+    SimulationHarnessCloseoutCoverageReport, SimulationHarnessDogfoodEvidence,
+    SimulationHarnessDogfoodReport, SimulationHarnessDogfoodSliceKind,
 };
 pub use counters::{
     admit_physical_counter_evidence, reject_hostile_counter_evidence_for_readmission,
@@ -123,14 +68,15 @@ pub use counters::{
 pub use coverage::{
     reject_edited_matrix_row, reject_manual_coverage_prose, reject_unchecked_maturity_claim,
     CoverageGapDenial, CoverageRowDimension, CoverageRowSatisfiedReceipt, CoverageSurfaceKind,
-    GeneratedCoverageMatrix, HarnessMaturityEvidence, HarnessMaturityLevel, HarnessSubsystem,
-    HarnessSubsystemMaturity, MutationResultCoverageRow, MutationValidationPosture,
-    PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence, RegisteredCounterCoverageRow,
-    RegisteredOracleCoverageRow, RegisteredScenarioCoverageRow, RegisteredTranscriptCoverageRow,
-    Roadmap2CoverageRegistry, Roadmap2HarnessReadinessReport, Roadmap2HarnessSequence,
-    Roadmap2PhysicalCoverageMatrix, S5CompactionMutationCoverageRow, S5CompactionMutationKind,
-    S5HarnessMaturityDependencyEvidence, S5PhysicalIsolationMutationKind, S5ReadinessDependencySet,
-    S5SimulationHarnessReadiness,
+    GeneratedCoverageMatrix, HarnessCoverageStage, HarnessMaturityEvidence, HarnessMaturityLevel,
+    HarnessSubsystem, HarnessSubsystemMaturity, MutationResultCoverageRow,
+    MutationValidationPosture, PhysicalCoverageMatrix, PhysicalCoverageMatrixRow,
+    PhysicalCoverageRegistry, PhysicalHarnessReadinessReport,
+    PhysicalIsolationCompactionMutationCoverageRow, PhysicalIsolationCompactionMutationKind,
+    PhysicalIsolationHarnessMaturityDependencyEvidence, PhysicalIsolationHarnessReadiness,
+    PhysicalIsolationMutationKind, PhysicalIsolationReadinessDependencySet,
+    PhysicalMutationCoverageEvidence, RegisteredCounterCoverageRow, RegisteredOracleCoverageRow,
+    RegisteredScenarioCoverageRow, RegisteredTranscriptCoverageRow,
 };
 pub use drivers::{
     private_mutation_driver_attempt, test_support_verdict_driver_attempt,
@@ -154,8 +100,8 @@ pub use evidence::{
     TerminalProjectionOnlyEvidenceDenied,
 };
 pub use faults::{
-    s5_stable_read_plan_fault_event, BlockedReclaimEvent, ByteCorruptionEvent, CrashEvent,
-    DelayedReleaseEvent, DroppedFlushEvent, ExecutedFaultDeliveryRecipe,
+    physical_isolation_stable_read_plan_fault_event, BlockedReclaimEvent, ByteCorruptionEvent,
+    CrashEvent, DelayedReleaseEvent, DroppedFlushEvent, ExecutedFaultDeliveryRecipe,
     ExecutionReadyFaultDeliveryRecipe, ExecutionTimeReferenceDiscoveryEvent,
     ExpectedFaultLocalization, FaultDeliveryAttempt, FaultDeliveryBoundaryProof,
     FaultDeliveryDenial, FaultDeliveryPlan, FaultDeliveryReceipt, FaultObservedBoundaryKind,
@@ -174,18 +120,35 @@ pub use fixtures::{
     ProductionBackedPhysicalFixture, ResolvedFixtureConstructionRecipe, StoreFixtureAuthority,
     SyntheticFixtureAuthorityDenied,
 };
+#[cfg(any(test, feature = "certification-test-support"))]
+pub use harness::blob::{
+    blob_harness_replay_artifacts_for_certification,
+    synthetic_blob_harness_coverage_matrix_for_test_support,
+    synthetic_blob_harness_replay_bundle_for_test_support,
+};
+pub use harness::blob::{
+    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
+    BlobHarnessMaterializedProfile, BlobHarnessOracleObservation, BlobHarnessProfile,
+    BlobHarnessProfileSet, BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder,
+    BlobHarnessShortcutAttempt, BlobHarnessShortcutDenial, BlobResumeCrashPoint,
+    BlobResumeExpectedOutcome, BlobResumeRecoveryScenario,
+};
 pub use observation::{
     CheckpointCrashReplayObservation, CheckpointInterlockObservation,
     CompactionInterlockObservation, ExecutedPhysicalSimulationObservation,
     IndependentVerifierObservation, IndependentVerifierObservationKind, ObservationDenial,
-    ObservedPhysicalTrace, PhysicalObservationBuilder, PhysicalSimulationObserver,
-    RecoveryOutcomeKind, RecoveryOutcomeObservation, S5CheckpointPublicationCrashLaneOutput,
-    S5CheckpointPublicationLaneBinding, S5CheckpointPublicationRecoveryOutcomeLaneOutput,
-    S5CheckpointPublicationScheduledLaneOutput, S5CheckpointPublicationShortcutDenialLaneOutput,
-    S5CheckpointPublicationShortcutRejectionOutput, S5CompactionMutationLaneExecution,
-    S5CompactionMutationObservationSet, S5CompactionMutationReplayBinding,
-    S5CompactionMutationScheduledLaneOutput, ShortcutRejectionObservation,
-    ShortcutRejectionObservationKind,
+    ObservedPhysicalTrace, PhysicalIsolationCheckpointPublicationCrashLaneOutput,
+    PhysicalIsolationCheckpointPublicationLaneBinding,
+    PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
+    PhysicalIsolationCheckpointPublicationScheduledLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
+    PhysicalIsolationCheckpointPublicationShortcutRejectionOutput,
+    PhysicalIsolationCompactionMutationLaneExecution,
+    PhysicalIsolationCompactionMutationObservationSet,
+    PhysicalIsolationCompactionMutationReplayBinding,
+    PhysicalIsolationCompactionMutationScheduledLaneOutput, PhysicalObservationBuilder,
+    PhysicalSimulationObserver, RecoveryOutcomeKind, RecoveryOutcomeObservation,
+    ShortcutRejectionObservation, ShortcutRejectionObservationKind,
 };
 pub use oracles::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
@@ -195,13 +158,35 @@ pub use oracles::{
     BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle,
     BlobNoSidecarPathOracle, BlobReachabilityOracle, BlockedReclaimUntilReleaseOracle,
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
-    IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoMixedRootOracle,
-    NoPrivateMutationOracle, OldReaderSeesOldRootOracle, OracleDenial, OracleVerdictBasis,
-    PhysicalOracleJudgment, PhysicalOracleNonClaim, PhysicalOracleVerdictTopology,
-    PhysicalOracleVerdictTopologyPosture, PhysicalProofOracle, PhysicalProofOracleKind,
-    PhysicalProofOracleVerdict, PhysicalProofOracleVerdictKind, PostSwapReaderSeesNewRootOracle,
-    ReusablePhysicalOracleFamily, S5PhysicalIsolationInterleavingOracle,
-    S6IoPressureSimulationOracle, TranscriptReplayOracle,
+    IndependentVerifierAgreementOracle, IoPressureSimulationOracle, NoJsonAuthorityOracle,
+    NoMixedRootOracle, NoPrivateMutationOracle, OldReaderSeesOldRootOracle, OracleDenial,
+    OracleVerdictBasis, PhysicalIsolationInterleavingOracle, PhysicalOracleJudgment,
+    PhysicalOracleNonClaim, PhysicalOracleVerdictTopology, PhysicalOracleVerdictTopologyPosture,
+    PhysicalProofOracle, PhysicalProofOracleKind, PhysicalProofOracleVerdict,
+    PhysicalProofOracleVerdictKind, PostSwapReaderSeesNewRootOracle, ReusablePhysicalOracleFamily,
+    TranscriptReplayOracle,
+};
+pub use physical_isolation_handoff::{
+    accept_store_owned_physical_isolation_harness_readiness,
+    physical_isolation_required_mutation_rows, register_physical_isolation_certification_lane,
+    reject_copied_simulation_harness_readiness_rows_as_physical_isolation_lane_registration,
+    reject_foundational_or_proof_projection_as_physical_isolation_harness_readiness,
+    reject_future_slot_as_physical_isolation_harness_readiness,
+    reject_generic_runner_as_physical_isolation_harness_readiness,
+    reject_generic_runner_as_physical_isolation_lane_registration,
+    reject_harness_projection_as_physical_isolation_lane_registration,
+    require_store_owned_physical_isolation_harness_receipt,
+    AcceptedPhysicalIsolationHarnessReadiness, ExecutedPhysicalIsolationEvidenceSource,
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationOutcome,
+    ExecutedPhysicalIsolationRequiredCounters, ExecutedPhysicalIsolationSourceBasis,
+    ExecutedPhysicalIsolationSourceDenial, PhysicalIsolationCertificationLaneRegistration,
+    PhysicalIsolationCounterContractReadiness, PhysicalIsolationEvidenceProfileCounterSet,
+    PhysicalIsolationHarnessFutureExtensionReservation,
+    PhysicalIsolationHarnessFutureExtensionSlot, PhysicalIsolationHarnessReadinessReceipt,
+    PhysicalIsolationInterleavingHarnessCapability, PhysicalIsolationLaneRegistrationDenial,
+    PhysicalIsolationMaintenanceActorCapability, PhysicalIsolationMutationEvidence,
+    PhysicalIsolationMutationReplayBasis, PhysicalIsolationProductionDriverCapability,
+    PhysicalIsolationRequiredYieldpoint, PhysicalIsolationReusableOracleReadiness,
 };
 pub use planning::{
     lower_physical_simulation_plan, reject_unresolved_simulation_plan_recipe,
@@ -214,50 +199,17 @@ pub use planning::{
     SimulationPlanningContext, SupportedObserverSet, SupportedOracleFamilySet,
     SupportedPhysicalDriverSet,
 };
-pub use s45_entry::{
-    admit_s45_simulation_harness_entry, reject_s45_copied_recovery_report,
-    reject_s45_foundational_projection_authority, reject_s45_log_output,
-    reject_s45_old_semantic_harness_label, reject_s45_s5_isolation_authority_attempt,
-    reject_s45_same_run_self_comparison, reject_s45_terminal_projection,
-    S45ExistingHarnessInventory, S45ExistingHarnessSurface, S45HarnessBoundaryDenial,
-    S45HarnessNonClaim, S45HarnessSurfaceClassification, S45RegisteredHarnessSurface,
-    S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
-    S45SimulationHarnessEntryIdentity,
+#[cfg(feature = "certification-test-support")]
+pub use pressure_harness::test_replay_bundle_for as io_pressure_test_replay_bundle_for;
+pub use pressure_harness::{
+    all_io_pressure_fault_evidence_classes, all_io_pressure_fault_kinds,
+    ExecutedIoPressureCoverageRows, IoPressureBackendSafetyQualificationDenial,
+    IoPressureEvidenceMaturity, IoPressureExecutionCounters, IoPressureFaultKind,
+    IoPressureHarnessEvidence, IoPressureHarnessEvidenceDenial, IoPressureHarnessScenario,
+    IoPressureHarnessSecureIoPosture, IoPressureOracleObservation, PhysicalFaultEvidenceClass,
+    RealBackendSafetyQualification,
 };
-pub use s5_1_security_scope_harness::{
-    S51SecurityScopeFailureKind, S51SecurityScopeHarnessCounterSnapshot,
-    S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessObservation,
-    S51SecurityScopeHarnessOutcomeKind, S51SecurityScopeHarnessReplayCounterSnapshot,
-    S51SecurityScopeHarnessReplayTranscript, S51SecurityScopeHarnessScenario,
-    S51SecurityScopeHarnessSchedule, S51SecurityScopeOracleVerdict,
-    S51SecurityScopePhysicalReplayDenial, S51SecurityScopePhysicalReplayEvidence,
-    S51SecurityScopePhysicalScheduleBinding, S51SecurityScopeReplayMutationKind,
-};
-pub use s5_executed_isolation_contract::{
-    S5EvidenceProfileCounterSet, S5ExecutedIsolationFinding, S5ExecutedIsolationOutcome,
-    S5ExecutedIsolationRequiredCounters, S5ExecutedIsolationSourceBasis,
-};
-pub use s5_executed_isolation_source::{
-    S5ExecutedIsolationEvidenceSource, S5ExecutedIsolationSourceDenial,
-};
-pub use s5_handoff::{
-    accept_store_owned_s5_harness_readiness, register_s5_physical_isolation_certification_lane,
-    reject_copied_s45_readiness_rows_as_s5_lane_registration,
-    reject_foundational_or_proof_projection_as_s5_harness_readiness,
-    reject_future_slot_as_s5_harness_readiness, reject_generic_runner_as_s5_harness_readiness,
-    reject_generic_runner_as_s5_lane_registration,
-    reject_harness_projection_as_s5_lane_registration, require_store_owned_s5_harness_receipt,
-    AcceptedS5SimulationHarnessReadiness, S5CounterContractReadiness,
-    S5HarnessFutureExtensionReservation, S5HarnessFutureExtensionSlot, S5HarnessReadinessReceipt,
-    S5InterleavingHarnessCapability, S5MaintenanceActorCapability,
-    S5PhysicalIsolationCertificationLaneRegistration, S5PhysicalIsolationLaneRegistrationDenial,
-    S5ProductionDriverCapability, S5RequiredYieldpoint, S5ReusableOracleReadiness,
-};
-pub use s5_physical_isolation_mutation::{
-    s5_physical_isolation_required_mutation_rows, S5MutationReplayBasis,
-    S5PhysicalIsolationMutationEvidence,
-};
-pub use s6_backend_qualification::{
+pub use qualification::{
     evaluate_row_rebind, reject_copied_backend_qualification_row,
     reject_environment_name_backend_qualification, reject_log_output_backend_qualification,
     reject_test_only_backend_label_qualification, require_profile_local_row,
@@ -269,27 +221,16 @@ pub use s6_backend_qualification::{
     QualificationMatrixPublisher, QualificationPublicationShortcut, QualificationRebindEvaluation,
     QualificationResidualDebt, QualificationResidualDebtReason,
 };
-pub use s6_io_pressure_coverage::S6ExecutedIoPressureCoverageRows;
-pub use s6_io_pressure_execution::S6IoPressureExecutionCounters;
-pub use s6_io_pressure_harness::{
-    PhysicalFaultEvidenceClass, S6BackendSafetyQualificationDenial, S6HarnessSecureIoPosture,
-    S6IoPressureFaultKind, S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
-    S6IoPressureOracleObservation, S6PressureEvidenceMaturity, S6RealBackendSafetyQualification,
-};
-pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
-#[cfg(feature = "certification-test-support")]
-pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
-pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
 pub use scenario::{
-    reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
-    FreshRuntimeCrashRecoveryEvidence, FreshRuntimeCrashRecoveryEvidenceDenial,
-    JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,
-    PhysicalScenarioActorSet, PhysicalScenarioAuthorityWitness, PhysicalScenarioCanonicalIdentity,
-    PhysicalScenarioDefinitionDenial, PhysicalScenarioExpectation, PhysicalScenarioExpectationKind,
-    PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioFixtureSet,
-    PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalScenarioSchedule,
-    PhysicalSimulationScenarioDefinition, PhysicalSimulationScenarioFamily, RecoveryCrashSeam,
-    S7BlobHarnessScenarioMetadata, TerminalProjectionScenarioDenied,
+    reject_raw_json_scenario_authority_attempt, BlobHarnessScenarioMetadata,
+    CertifiedPhysicalScenario, FreshRuntimeCrashRecoveryEvidence,
+    FreshRuntimeCrashRecoveryEvidenceDenial, JsonScenarioAuthorityDenied, PhysicalScenarioActor,
+    PhysicalScenarioActorRole, PhysicalScenarioActorSet, PhysicalScenarioAuthorityWitness,
+    PhysicalScenarioCanonicalIdentity, PhysicalScenarioDefinitionDenial,
+    PhysicalScenarioExpectation, PhysicalScenarioExpectationKind, PhysicalScenarioFault,
+    PhysicalScenarioFaultKind, PhysicalScenarioFixtureSet, PhysicalScenarioIntent,
+    PhysicalScenarioNonClaim, PhysicalScenarioSchedule, PhysicalSimulationScenarioDefinition,
+    PhysicalSimulationScenarioFamily, RecoveryCrashSeam, TerminalProjectionScenarioDenied,
 };
 pub use schedule::{
     AdmittedScheduleOrderingAuthority, CounterMismatchSummary, OracleVerdictKind,
@@ -299,6 +240,14 @@ pub use schedule::{
     ScheduleOrderingAuthorityKind, ScheduleReplayDenial, ScheduleReplayIdentity,
     ScheduleShrinkTrace, StateSpaceBudget,
 };
+pub use security_scope_harness::{
+    SecurityScopeFailureKind, SecurityScopeHarnessCounterSnapshot, SecurityScopeHarnessEvidence,
+    SecurityScopeHarnessObservation, SecurityScopeHarnessOutcomeKind,
+    SecurityScopeHarnessReplayCounterSnapshot, SecurityScopeHarnessReplayTranscript,
+    SecurityScopeHarnessScenario, SecurityScopeHarnessSchedule, SecurityScopeOracleVerdict,
+    SecurityScopePhysicalReplayDenial, SecurityScopePhysicalReplayEvidence,
+    SecurityScopePhysicalScheduleBinding, SecurityScopeReplayMutationKind,
+};
 pub use shortcut_rejection::{
     shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
     shortcut_denial_from_harness_boundary_denial, shortcut_denial_from_oracle_denial,
@@ -306,6 +255,18 @@ pub use shortcut_rejection::{
     shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
     ShortcutRejectionBoundary, SyntheticHarnessShortcutDenialReceipt,
     SyntheticHarnessShortcutRejectionDenial, SyntheticHarnessShortcutRejectionReport,
+};
+pub use simulation_admission::{
+    admit_simulation_harness_entry, reject_simulation_harness_copied_recovery_report,
+    reject_simulation_harness_foundational_projection_authority,
+    reject_simulation_harness_log_output, reject_simulation_harness_old_semantic_harness_label,
+    reject_simulation_harness_physical_isolation_authority_attempt,
+    reject_simulation_harness_same_run_self_comparison,
+    reject_simulation_harness_terminal_projection, ExistingSimulationHarnessInventory,
+    ExistingSimulationHarnessSurface, RegisteredSimulationHarnessSurface,
+    SimulationHarnessBoundaryDenial, SimulationHarnessEntry, SimulationHarnessEntryIdentity,
+    SimulationHarnessNonClaim, SimulationHarnessRoadmapRequirement,
+    SimulationHarnessRoadmapRequirementSet, SimulationHarnessSurfaceClassification,
 };
 pub use transcript::{
     reject_copied_transcript_fields, reject_loose_log_transcript_attempt,

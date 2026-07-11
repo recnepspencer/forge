@@ -3,8 +3,7 @@ mod blob_harness;
 mod family;
 mod forbidden_sources;
 mod oracle_impls;
-mod s5_physical_isolation;
-mod s5_readiness;
+mod physical_isolation;
 mod verdict;
 
 pub use basis::OracleVerdictBasis;
@@ -21,13 +20,12 @@ pub use forbidden_sources::{
 };
 pub use oracle_impls::{
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
-    IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
-    S6IoPressureSimulationOracle, TranscriptReplayOracle,
+    IndependentVerifierAgreementOracle, IoPressureSimulationOracle, NoJsonAuthorityOracle,
+    NoPrivateMutationOracle, TranscriptReplayOracle,
 };
-pub use s5_physical_isolation::S5PhysicalIsolationInterleavingOracle;
-pub use s5_readiness::{
+pub use physical_isolation::{
     BlockedReclaimUntilReleaseOracle, NoMixedRootOracle, OldReaderSeesOldRootOracle,
-    PostSwapReaderSeesNewRootOracle,
+    PhysicalIsolationInterleavingOracle, PostSwapReaderSeesNewRootOracle,
 };
 pub use verdict::{
     phase7_verdict_topology, OracleDenial, PhysicalOracleNonClaim, PhysicalOracleVerdictTopology,

@@ -13,18 +13,17 @@ mod source_precedence_fixture;
 #[path = "s5_epoch_scope_and_root_kind/support.rs"]
 mod support;
 
-use forge_store_io_scheduler::{
-    admit_store_published_isolation_capability,
-};
+use forge_store_io_scheduler::admit_store_published_isolation_capability;
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_from_executed_evidence;
 use forge_store_physical_isolation::{
     reject_copied_closeout_report_as_isolation_readiness,
     reject_log_or_terminal_projection_as_isolation_readiness,
     reject_missing_latch_counters_as_isolation_readiness,
     reject_missing_protected_byte_footprint_as_isolation_readiness,
-    reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
-    reject_synthetic_wait_label_as_isolation_readiness, ExecutedIsolationEvidence,
-    PhysicalStabilityAssumption, SchedulerIsolationCapability, IsolationReadinessDenial,
+    reject_missing_reclaim_counters_as_isolation_readiness,
+    reject_synthetic_wait_label_as_isolation_readiness,
+    reject_unsupported_qos_claim_as_isolation_readiness, ExecutedIsolationEvidence,
+    IsolationReadinessDenial, PhysicalStabilityAssumption, SchedulerIsolationCapability,
     UnsupportedQoSClaim,
 };
 
@@ -152,7 +151,7 @@ fn s6_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
     );
     let counters = readiness.counters();
     let scheduler_admission = admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler receives Store-published S6 readiness");
+        .expect("scheduler receives Store-published scheduler readiness");
 
     assert_eq!(
         readiness.assumptions(),

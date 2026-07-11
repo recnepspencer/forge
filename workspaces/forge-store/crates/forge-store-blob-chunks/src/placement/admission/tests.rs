@@ -9,9 +9,7 @@ use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
-use forge_store_tiering::{
-    admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission,
-};
+use forge_store_tiering::{admit_tier_placement_io, ColdPlacementState, TierPlacementIoAdmission};
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, root_publication,
@@ -47,7 +45,7 @@ fn placement_classes_preserve_blob_facts_with_distinct_counters() {
     let cold = authority
         .admit(
             reachability,
-            BlobPlacementIntent::cold(readiness(reachability), S7ColdPlacementState::ColdAvailable),
+            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdAvailable),
         )
         .expect("cold placement should admit");
 
@@ -174,13 +172,10 @@ fn unavailable_cold_chunks_deny_with_cold_state() {
     assert_eq!(
         authority.admit(
             reachability,
-            BlobPlacementIntent::cold(
-                readiness(reachability),
-                S7ColdPlacementState::ColdUnavailable
-            )
+            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdUnavailable)
         ),
         Err(BlobPlacementAdmissionDenial::ColdChunkUnavailable {
-            state: S7ColdPlacementState::ColdUnavailable,
+            state: ColdPlacementState::ColdUnavailable,
             counters: crate::BlobPlacementCounterSnapshot::for_class(BlobPlacementClass::Cold)
                 .record_unavailable_cold_chunk()
                 .record_tier_move_protected_denial()

@@ -5,39 +5,38 @@ mod support;
 
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    materialize_s5_executed_isolation_evidence, s5_physical_isolation_lanes,
-    S5ExecutedIsolationEvidenceBundle, S5ExecutedIsolationEvidenceSource,
-    S5ExecutedIsolationOutcome, S5ExecutedIsolationRequiredCounters,
-    S5ExecutedIsolationSourceDenial, S5PhysicalIsolationMutationEvidence,
+    materialize_s5_executed_isolation_evidence, physical_isolation_lanes,
+    ExecutedPhysicalIsolationEvidenceSource, ExecutedPhysicalIsolationOutcome,
+    ExecutedPhysicalIsolationRequiredCounters, ExecutedPhysicalIsolationSourceDenial,
+    PhysicalIsolationMutationEvidence, S5ExecutedIsolationEvidenceBundle,
 };
 use forge_store_physical_certification::{
     CounterContractKind, PhysicalSimulationScenarioFamily, SimulationReplayBundle,
 };
 use forge_store_physical_isolation::{
-    ProjectionArtifactKind, S5IsolationEvidenceProfile, StorePhysicalAuthoritySurface,
+    PhysicalIsolationEvidenceProfile, ProjectionArtifactKind, StorePhysicalAuthoritySurface,
 };
 
 #[test]
 fn executed_s5_replay_materializes_foundational_and_proof_projections() {
-    let lane = s5_physical_isolation_lanes()
+    let lane = physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
             lane.scenario().definition().family()
-                == PhysicalSimulationScenarioFamily::S5CompactionInterlock
+                == PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
         })
         .expect("compaction S5 lane exists");
     let plan = support::lower_lane(&lane);
     let replay = support::replay_bundle(&plan, lane.expected_fault());
-    let mutation =
-        S5PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
+    let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
     assert_mutation_evidence_is_bound_to_replay(&mutation, &replay);
     let replay_counter_rows = replay.counter_receipt().rows().len() as u64;
     let expected_epoch_retries = counter_count(&replay, CounterContractKind::EpochRetries);
-    let source = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+    let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
         s5_source_authority(),
         replay,
         mutation,
-        S5IsolationEvidenceProfile::minimal_required(),
+        PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .expect("executed S5 replay admits materialization source");
 
@@ -46,7 +45,7 @@ fn executed_s5_replay_materializes_foundational_and_proof_projections() {
 
     assert_eq!(
         bundle.source_finding().outcome(),
-        S5ExecutedIsolationOutcome::DeniedMutation
+        ExecutedPhysicalIsolationOutcome::DeniedMutation
     );
     assert_eq!(bundle.source_finding().counters().outcome_count(), 1);
     assert_ne!(
@@ -65,23 +64,22 @@ fn executed_s5_replay_materializes_foundational_and_proof_projections() {
 
 #[test]
 fn forensic_profile_keeps_required_counters_while_adding_rich_rows() {
-    let lane = s5_physical_isolation_lanes()
+    let lane = physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
             lane.scenario().definition().family()
-                == PhysicalSimulationScenarioFamily::S5FutureChunkStability
+                == PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability
         })
         .expect("future chunk S5 lane exists");
     let plan = support::lower_lane(&lane);
     let replay = support::replay_bundle(&plan, lane.expected_fault());
-    let mutation =
-        S5PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
+    let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
     assert_mutation_evidence_is_bound_to_replay(&mutation, &replay);
-    let source = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+    let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
         s5_source_authority(),
         replay,
         mutation,
-        S5IsolationEvidenceProfile::forensic(),
+        PhysicalIsolationEvidenceProfile::forensic(),
     )
     .expect("future chunk replay admits materialization source");
 
@@ -90,7 +88,7 @@ fn forensic_profile_keeps_required_counters_while_adding_rich_rows() {
 
     assert_eq!(
         bundle.source_finding().outcome(),
-        S5ExecutedIsolationOutcome::NonClaimStabilityOnly
+        ExecutedPhysicalIsolationOutcome::NonClaimStabilityOnly
     );
     assert_eq!(bundle.diagnostics().report().rows().len(), 3);
     assert_required_counter_values(&bundle);
@@ -113,42 +111,43 @@ fn foundational_and_proof_projections_cannot_mint_store_authority() {
 
 #[test]
 fn mutation_evidence_must_belong_to_the_replay_being_materialized() {
-    let compaction = lane_for(PhysicalSimulationScenarioFamily::S5CompactionInterlock);
-    let future_chunk = lane_for(PhysicalSimulationScenarioFamily::S5FutureChunkStability);
+    let compaction =
+        lane_for(PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock);
+    let future_chunk =
+        lane_for(PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability);
     let compaction_plan = support::lower_lane(&compaction);
     let future_plan = support::lower_lane(&future_chunk);
     let compaction_replay = support::replay_bundle(&compaction_plan, compaction.expected_fault());
     let future_replay = support::replay_bundle(&future_plan, future_chunk.expected_fault());
-    let future_mutation = S5PhysicalIsolationMutationEvidence::from_replay(
+    let future_mutation = PhysicalIsolationMutationEvidence::from_replay(
         future_plan.scenario_family(),
         &future_replay,
     );
 
-    let denial = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+    let denial = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
         s5_source_authority(),
         compaction_replay,
         future_mutation,
-        S5IsolationEvidenceProfile::minimal_required(),
+        PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .expect_err("mutation evidence from another replay cannot materialize this replay");
 
     assert_eq!(
         denial,
-        S5ExecutedIsolationSourceDenial::MutationReplayBasisMismatch
+        ExecutedPhysicalIsolationSourceDenial::MutationReplayBasisMismatch
     );
 }
 
 fn executed_compaction_bundle() -> S5ExecutedIsolationEvidenceBundle {
-    let lane = lane_for(PhysicalSimulationScenarioFamily::S5CompactionInterlock);
+    let lane = lane_for(PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock);
     let plan = support::lower_lane(&lane);
     let replay = support::replay_bundle(&plan, lane.expected_fault());
-    let mutation =
-        S5PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-    let source = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+    let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
+    let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
         s5_source_authority(),
         replay,
         mutation,
-        S5IsolationEvidenceProfile::minimal_required(),
+        PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .expect("executed S5 replay admits materialization source");
     materialize_s5_executed_isolation_evidence(source)
@@ -181,7 +180,7 @@ fn assert_required_counter_values(bundle: &S5ExecutedIsolationEvidenceBundle) {
 
 fn assert_performance_counter_rows(
     bundle: &S5ExecutedIsolationEvidenceBundle,
-    counters: S5ExecutedIsolationRequiredCounters,
+    counters: ExecutedPhysicalIsolationRequiredCounters,
 ) {
     let rows = bundle
         .performance()
@@ -241,7 +240,7 @@ fn all_store_authority_surfaces() -> [StorePhysicalAuthoritySurface; 4] {
 }
 
 fn assert_mutation_evidence_is_bound_to_replay(
-    mutation: &S5PhysicalIsolationMutationEvidence,
+    mutation: &PhysicalIsolationMutationEvidence,
     replay: &SimulationReplayBundle,
 ) {
     assert_eq!(
@@ -275,7 +274,7 @@ fn counter_count(replay: &SimulationReplayBundle, kind: CounterContractKind) -> 
 fn lane_for(
     family: PhysicalSimulationScenarioFamily,
 ) -> forge_store_certification::S5PhysicalIsolationHarnessLane {
-    s5_physical_isolation_lanes()
+    physical_isolation_lanes()
         .into_iter()
         .find(|lane| lane.scenario().definition().family() == family)
         .expect("requested S5 lane exists")

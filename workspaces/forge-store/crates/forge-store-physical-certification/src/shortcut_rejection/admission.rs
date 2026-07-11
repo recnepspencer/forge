@@ -1,6 +1,6 @@
 use crate::{
     FaultDeliveryDenial, ForbiddenShortcutKind, OracleDenial, PhysicalEvidenceBundleDenial,
-    PhysicalScenarioDefinitionDenial, S45HarnessBoundaryDenial, SimulationPlanDenial,
+    PhysicalScenarioDefinitionDenial, SimulationHarnessBoundaryDenial, SimulationPlanDenial,
     TerminalProjectionOnlyEvidenceDenied, TranscriptReplayDenial,
 };
 
@@ -160,30 +160,30 @@ pub fn shortcut_denial_from_plan_denial(
 }
 
 pub fn shortcut_denial_from_harness_boundary_denial(
-    denial: S45HarnessBoundaryDenial,
+    denial: SimulationHarnessBoundaryDenial,
 ) -> Option<SyntheticHarnessShortcutDenialReceipt> {
     let (shortcut, boundary) = match denial {
-        S45HarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry => (
+        SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry => (
             ForbiddenShortcutKind::CopiedDigestAuthority,
             ShortcutRejectionBoundary::HarnessBoundaryCopiedS4Report,
         ),
-        S45HarnessBoundaryDenial::LogOutputCannotAdmitEntry => (
+        SimulationHarnessBoundaryDenial::LogOutputCannotAdmitEntry => (
             ForbiddenShortcutKind::LogsAsProof,
             ShortcutRejectionBoundary::HarnessBoundaryLogOutput,
         ),
-        S45HarnessBoundaryDenial::SameRunSelfComparisonCannotAdmitEntry => (
+        SimulationHarnessBoundaryDenial::SameRunSelfComparisonCannotAdmitEntry => (
             ForbiddenShortcutKind::SameRunSelfComparison,
             ShortcutRejectionBoundary::HarnessBoundarySameRunSelfComparison,
         ),
-        S45HarnessBoundaryDenial::TerminalProjectionCannotAdmitEntry => (
+        SimulationHarnessBoundaryDenial::TerminalProjectionCannotAdmitEntry => (
             ForbiddenShortcutKind::TerminalProjectionAuthority,
             ShortcutRejectionBoundary::HarnessBoundaryTerminalProjection,
         ),
-        S45HarnessBoundaryDenial::TestSupportMechanicsCannotOwnCertificationMeaning => (
+        SimulationHarnessBoundaryDenial::TestSupportMechanicsCannotOwnCertificationMeaning => (
             ForbiddenShortcutKind::TestSupportVerdictAuthority,
             ShortcutRejectionBoundary::HarnessBoundaryTestSupportMeaning,
         ),
-        S45HarnessBoundaryDenial::ProofProgressionSkipped => (
+        SimulationHarnessBoundaryDenial::ProofProgressionSkipped => (
             ForbiddenShortcutKind::SkippedProofProgression,
             ShortcutRejectionBoundary::HarnessBoundaryProofProgressionSkipped,
         ),

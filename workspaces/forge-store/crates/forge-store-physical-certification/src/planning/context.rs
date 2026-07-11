@@ -4,8 +4,8 @@ use super::{
     SupportedOracleFamilySet, SupportedPhysicalDriverSet,
 };
 use crate::{
-    AdmittedDriverContractSet, PhysicalResourceEnvelope,
-    S5PhysicalIsolationCertificationLaneRegistration,
+    AdmittedDriverContractSet, PhysicalIsolationCertificationLaneRegistration,
+    PhysicalResourceEnvelope,
 };
 use forge_store_physical_isolation::CompactionMutationLaneOrigin;
 
@@ -21,8 +21,8 @@ pub struct SimulationPlanningContext {
     supported_oracle_families: SupportedOracleFamilySet,
     evidence_policy: Option<SimulationEvidencePolicy>,
     forbidden_shortcuts: Option<ForbiddenShortcutSet>,
-    s5_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
-    s5_physical_isolation_lane: Option<S5PhysicalIsolationCertificationLaneRegistration>,
+    physical_isolation_compaction_mutation_origin: Option<CompactionMutationLaneOrigin>,
+    physical_isolation_lane: Option<PhysicalIsolationCertificationLaneRegistration>,
 }
 
 impl SimulationPlanningContext {
@@ -42,8 +42,8 @@ impl SimulationPlanningContext {
             supported_oracle_families: SupportedOracleFamilySet::empty(),
             evidence_policy: None,
             forbidden_shortcuts: None,
-            s5_compaction_mutation_origin: None,
-            s5_physical_isolation_lane: None,
+            physical_isolation_compaction_mutation_origin: None,
+            physical_isolation_lane: None,
         }
     }
 
@@ -98,19 +98,19 @@ impl SimulationPlanningContext {
         self
     }
 
-    pub fn with_s5_compaction_mutation_origin(
+    pub fn with_physical_isolation_compaction_mutation_origin(
         mut self,
         origin: CompactionMutationLaneOrigin,
     ) -> Self {
-        self.s5_compaction_mutation_origin = Some(origin);
+        self.physical_isolation_compaction_mutation_origin = Some(origin);
         self
     }
 
-    pub fn with_s5_physical_isolation_lane_registration(
+    pub fn with_physical_isolation_lane_registration(
         mut self,
-        registration: S5PhysicalIsolationCertificationLaneRegistration,
+        registration: PhysicalIsolationCertificationLaneRegistration,
     ) -> Self {
-        self.s5_physical_isolation_lane = Some(registration);
+        self.physical_isolation_lane = Some(registration);
         self
     }
 
@@ -154,13 +154,15 @@ impl SimulationPlanningContext {
         &self.supported_profiles
     }
 
-    pub const fn s5_compaction_mutation_origin(&self) -> Option<&CompactionMutationLaneOrigin> {
-        self.s5_compaction_mutation_origin.as_ref()
+    pub const fn physical_isolation_compaction_mutation_origin(
+        &self,
+    ) -> Option<&CompactionMutationLaneOrigin> {
+        self.physical_isolation_compaction_mutation_origin.as_ref()
     }
 
-    pub const fn s5_physical_isolation_lane_registration(
+    pub const fn physical_isolation_lane_registration(
         &self,
-    ) -> Option<&S5PhysicalIsolationCertificationLaneRegistration> {
-        self.s5_physical_isolation_lane.as_ref()
+    ) -> Option<&PhysicalIsolationCertificationLaneRegistration> {
+        self.physical_isolation_lane.as_ref()
     }
 }

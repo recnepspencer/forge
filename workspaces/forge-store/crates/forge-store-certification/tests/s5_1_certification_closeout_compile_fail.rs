@@ -23,7 +23,7 @@ fn fixtures() -> [Fixture; 3] {
             name: "performance_rows_cannot_satisfy_closeout_input.rs",
             expected: &[
                 "from_replay_and_security_scope",
-                "S51SecurityScopeHarnessEvidence",
+                "SecurityScopeHarnessEvidence",
                 "S51CloseoutPerformanceRows",
             ],
         },

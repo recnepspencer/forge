@@ -1,6 +1,6 @@
 use forge_store_blob_chunks::{
     admit_canonical_phase23_qualification_lane,
-    certification_test_authority::{execute_s7_blob_harness, BlobHarnessExecutionInput},
+    certification_test_authority::{execute_blob_harness, BlobHarnessExecutionInput},
     deny_ambient_chaos_corpus_as_canonical, deny_generated_expected_byte_artifact,
     deny_hidden_temporary_sidecar, deny_logical_size_only_heavy_qualification,
     deny_sparse_only_heavy_qualification, deny_whole_object_expected_buffer,
@@ -40,14 +40,14 @@ fn lowered_plan_requires_heavy_qualification_oracle_family() {
     assert!(lowered
         .plan()
         .oracle_families()
-        .contains(OracleFamilyKind::S7BlobHeavyQualification));
+        .contains(OracleFamilyKind::BlobHeavyQualification));
 }
 
 #[test]
 fn canonical_pattern_profiles_execute_with_shared_evidence_schema() {
     let seed = local_scenario_seed();
     for pattern in DeterministicBytePatternProfile::canonical_phase23_patterns() {
-        let witness = execute_s7_blob_harness(
+        let witness = execute_blob_harness(
             BlobHarnessExecutionInput::new(
                 seed.profile().envelope().profile(),
                 seed.size_class(),
@@ -77,7 +77,7 @@ fn canonical_pattern_profiles_execute_with_shared_evidence_schema() {
 fn chaos_corpus_lane_is_explicitly_non_canonical() {
     let stress_plan = non_canonical_chaos_stress_plan_for_seed(&heavy_multi_gb_scenario_seed());
     let local_seed = local_scenario_seed();
-    let witness = execute_s7_blob_harness(
+    let witness = execute_blob_harness(
         BlobHarnessExecutionInput::new(
             local_seed.profile().envelope().profile(),
             local_seed.size_class(),

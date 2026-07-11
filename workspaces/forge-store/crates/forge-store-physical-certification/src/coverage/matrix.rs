@@ -1,33 +1,33 @@
 use std::collections::BTreeSet;
 
 use super::{
-    CoverageGapDenial, CoverageSurfaceKind, HarnessMaturityEvidence, PhysicalCoverageMatrixRow,
-    Roadmap2HarnessSequence,
+    CoverageGapDenial, CoverageSurfaceKind, HarnessCoverageStage, HarnessMaturityEvidence,
+    PhysicalCoverageMatrixRow,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Roadmap2PhysicalCoverageMatrix {
-    sequence: Roadmap2HarnessSequence,
+pub struct PhysicalCoverageMatrix {
+    sequence: HarnessCoverageStage,
     rows: Vec<PhysicalCoverageMatrixRow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeneratedCoverageMatrix {
-    matrix: Roadmap2PhysicalCoverageMatrix,
+    matrix: PhysicalCoverageMatrix,
 }
 
-impl Roadmap2PhysicalCoverageMatrix {
+impl PhysicalCoverageMatrix {
     pub(crate) fn generated(
-        sequence: Roadmap2HarnessSequence,
+        sequence: HarnessCoverageStage,
         mut rows: Vec<PhysicalCoverageMatrixRow>,
     ) -> Result<Self, CoverageGapDenial> {
         rows.sort_by_key(|row| (row.subsystem(), row.surface(), *row.source_identity()));
         let matrix = Self { sequence, rows };
-        matrix.require_required_s45_surfaces()?;
+        matrix.require_required_simulation_harness_surfaces()?;
         Ok(matrix)
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.sequence
     }
 
@@ -35,12 +35,12 @@ impl Roadmap2PhysicalCoverageMatrix {
         &self.rows
     }
 
-    fn require_required_s45_surfaces(&self) -> Result<(), CoverageGapDenial> {
-        if self.sequence != Roadmap2HarnessSequence::S45 {
+    fn require_required_simulation_harness_surfaces(&self) -> Result<(), CoverageGapDenial> {
+        if self.sequence != HarnessCoverageStage::SimulationAdmission {
             return Ok(());
         }
         let covered = self.rows.iter().map(|row| row.surface()).collect();
-        for surface in required_s45_surfaces() {
+        for surface in required_simulation_harness_surfaces() {
             require_surface(&covered, surface)?;
         }
         Ok(())
@@ -48,15 +48,15 @@ impl Roadmap2PhysicalCoverageMatrix {
 }
 
 impl GeneratedCoverageMatrix {
-    pub(crate) const fn from_matrix(matrix: Roadmap2PhysicalCoverageMatrix) -> Self {
+    pub(crate) const fn from_matrix(matrix: PhysicalCoverageMatrix) -> Self {
         Self { matrix }
     }
 
-    pub const fn sequence(&self) -> Roadmap2HarnessSequence {
+    pub const fn sequence(&self) -> HarnessCoverageStage {
         self.matrix.sequence()
     }
 
-    pub const fn matrix(&self) -> &Roadmap2PhysicalCoverageMatrix {
+    pub const fn matrix(&self) -> &PhysicalCoverageMatrix {
         &self.matrix
     }
 
@@ -80,7 +80,7 @@ fn require_surface(
     }
 }
 
-fn required_s45_surfaces() -> [CoverageSurfaceKind; 9] {
+fn required_simulation_harness_surfaces() -> [CoverageSurfaceKind; 9] {
     [
         CoverageSurfaceKind::Scenario,
         CoverageSurfaceKind::Plan,

@@ -5,12 +5,13 @@
 //! synthetic courtroom-only witnesses and shortcut attempts that exist only to
 //! falsify production topology.
 
+mod blob;
 pub mod fixtures;
 mod lsm_execution_fixture;
-mod milestone;
 mod physical_isolation;
 pub mod physical_reference;
 pub mod physical_simulation;
+mod pressure;
 pub mod production_facade;
 mod recovery;
 mod security_scope;

@@ -1,11 +1,11 @@
-use super::Roadmap2CoverageRegistry;
+use super::PhysicalCoverageRegistry;
 
 use super::super::{
     CoverageGapDenial, CoverageRowDimension, CoverageSurfaceKind, MutationValidationPosture,
     PhysicalCoverageMatrixRow, PhysicalMutationCoverageEvidence,
 };
 
-impl Roadmap2CoverageRegistry {
+impl PhysicalCoverageRegistry {
     pub fn register_mutation_result(
         mut self,
         mutation: &PhysicalMutationCoverageEvidence,
@@ -35,10 +35,10 @@ impl Roadmap2CoverageRegistry {
         );
         dimensions.extend(
             mutation
-                .s5_physical_isolation_mutations()
+                .physical_isolation_mutations()
                 .iter()
                 .copied()
-                .map(CoverageRowDimension::S5PhysicalIsolationMutation),
+                .map(CoverageRowDimension::PhysicalIsolationMutation),
         );
         self.rows.push(PhysicalCoverageMatrixRow::generated(
             self.sequence,

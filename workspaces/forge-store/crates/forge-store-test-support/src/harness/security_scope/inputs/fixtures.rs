@@ -3,12 +3,12 @@ use forge_store_authority::{require_current_store_authority, StoreCurrentAuthori
 use crate::NativeStoreAspectFixture;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct S51SecurityScopeNativeHarnessFixture {
+pub(crate) struct SecurityScopeNativeHarnessFixture {
     current_authority: StoreCurrentAuthorityWitness,
     drifted_authority: StoreCurrentAuthorityWitness,
 }
 
-impl S51SecurityScopeNativeHarnessFixture {
+impl SecurityScopeNativeHarnessFixture {
     pub(crate) fn new() -> Self {
         let current = NativeStoreAspectFixture::scalar_string("s5.1-security-current");
         let drifted =

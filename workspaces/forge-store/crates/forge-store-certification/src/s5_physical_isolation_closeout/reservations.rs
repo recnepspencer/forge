@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum S5CloseoutReservedScope {
     S6IoQosIsolation,
-    S7BlobLifecycle,
+    BlobLifecycle,
     S8Layout,
     S10Repair,
     S11Security,
@@ -18,7 +18,7 @@ impl S5CloseoutReservationSet {
         Self {
             scopes: [
                 S5CloseoutReservedScope::S6IoQosIsolation,
-                S5CloseoutReservedScope::S7BlobLifecycle,
+                S5CloseoutReservedScope::BlobLifecycle,
                 S5CloseoutReservedScope::S8Layout,
                 S5CloseoutReservedScope::S10Repair,
                 S5CloseoutReservedScope::S11Security,
@@ -38,7 +38,7 @@ impl S5CloseoutReservationSet {
     pub fn reserves_only_future_work(&self) -> bool {
         self.scopes.len() == 6
             && self.contains(S5CloseoutReservedScope::S6IoQosIsolation)
-            && self.contains(S5CloseoutReservedScope::S7BlobLifecycle)
+            && self.contains(S5CloseoutReservedScope::BlobLifecycle)
             && self.contains(S5CloseoutReservedScope::S8Layout)
             && self.contains(S5CloseoutReservedScope::S10Repair)
             && self.contains(S5CloseoutReservedScope::S11Security)

@@ -1,8 +1,8 @@
 use crate::{
     CheckpointInterlockObservation, ObservationDenial, ObservedPhysicalTrace, ObserverKind,
-    PhysicalInterleavingSchedule, PhysicalScenarioActorRole, PhysicalSimulationPlan,
-    RecoveryOutcomeKind, RecoveryOutcomeObservation,
-    S5CheckpointPublicationShortcutDenialLaneOutput, ShortcutRejectionObservation,
+    PhysicalInterleavingSchedule, PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
+    PhysicalScenarioActorRole, PhysicalSimulationPlan, RecoveryOutcomeKind,
+    RecoveryOutcomeObservation, ShortcutRejectionObservation,
 };
 use forge_store_physical_isolation::{
     CheckpointInterlockEvidenceOrigin, CheckpointInterlockFoundationalEvidence,
@@ -11,14 +11,14 @@ use forge_store_physical_isolation::{
 const FRESH_RUNTIME_RECOVERY_YIELDPOINT: &str = "fresh-runtime-replay-open";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationLaneBinding {
+pub struct PhysicalIsolationCheckpointPublicationLaneBinding {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     checkpoint_actor_step_index: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationScheduledLaneOutput {
+pub struct PhysicalIsolationCheckpointPublicationScheduledLaneOutput {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     checkpoint_actor_step_index: usize,
@@ -36,7 +36,7 @@ pub struct CheckpointCrashReplayObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationRecoveryOutcomeLaneOutput {
+pub struct PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput {
     checkpoint_plan_identity: [u8; 32],
     checkpoint_schedule_identity: [u8; 32],
     checkpoint_origin: CheckpointInterlockEvidenceOrigin,
@@ -47,7 +47,7 @@ pub struct S5CheckpointPublicationRecoveryOutcomeLaneOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationCrashLaneOutput {
+pub struct PhysicalIsolationCheckpointPublicationCrashLaneOutput {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     checkpoint_actor_step_index: usize,
@@ -56,7 +56,7 @@ pub struct S5CheckpointPublicationCrashLaneOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationShortcutRejectionOutput {
+pub struct PhysicalIsolationCheckpointPublicationShortcutRejectionOutput {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     checkpoint_actor_step_index: usize,
@@ -64,7 +64,7 @@ pub struct S5CheckpointPublicationShortcutRejectionOutput {
     observation: ShortcutRejectionObservation,
 }
 
-impl S5CheckpointPublicationLaneBinding {
+impl PhysicalIsolationCheckpointPublicationLaneBinding {
     pub fn from_plan_and_schedule(
         plan: &PhysicalSimulationPlan,
         schedule: &PhysicalInterleavingSchedule,
@@ -116,9 +116,9 @@ impl CheckpointCrashReplayObservation {
     }
 }
 
-impl S5CheckpointPublicationScheduledLaneOutput {
+impl PhysicalIsolationCheckpointPublicationScheduledLaneOutput {
     pub fn from_schedule_step_evidence(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         schedule: &PhysicalInterleavingSchedule,
         actor_step_index: usize,
         expected_origin: &CheckpointInterlockEvidenceOrigin,
@@ -137,7 +137,7 @@ impl S5CheckpointPublicationScheduledLaneOutput {
     }
 
     pub fn reject_copied_checkpoint_report_attempt(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         schedule: &PhysicalInterleavingSchedule,
         actor_step_index: usize,
         expected_origin: &CheckpointInterlockEvidenceOrigin,
@@ -167,9 +167,9 @@ impl S5CheckpointPublicationScheduledLaneOutput {
     }
 }
 
-impl S5CheckpointPublicationRecoveryOutcomeLaneOutput {
+impl PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput {
     pub fn from_fresh_runtime_recovery_trace(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         checkpoint_schedule: &PhysicalInterleavingSchedule,
         recovery_plan: &PhysicalSimulationPlan,
         recovery_schedule: &PhysicalInterleavingSchedule,
@@ -218,14 +218,14 @@ impl S5CheckpointPublicationRecoveryOutcomeLaneOutput {
     }
 }
 
-impl S5CheckpointPublicationCrashLaneOutput {
+impl PhysicalIsolationCheckpointPublicationCrashLaneOutput {
     pub fn from_schedule_step_recovery(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         schedule: &PhysicalInterleavingSchedule,
         checkpoint_actor_step_index: usize,
         expected_origin: &CheckpointInterlockEvidenceOrigin,
         evidence: CheckpointInterlockFoundationalEvidence,
-        recovery_output: &S5CheckpointPublicationRecoveryOutcomeLaneOutput,
+        recovery_output: &PhysicalIsolationCheckpointPublicationRecoveryOutcomeLaneOutput,
     ) -> Result<Self, ObservationDenial> {
         require_schedule_step_matches_binding(binding, schedule, checkpoint_actor_step_index)?;
         require_evidence_origin_matches(expected_origin, evidence.origin())?;
@@ -277,14 +277,14 @@ impl S5CheckpointPublicationCrashLaneOutput {
     }
 }
 
-impl S5CheckpointPublicationShortcutRejectionOutput {
+impl PhysicalIsolationCheckpointPublicationShortcutRejectionOutput {
     pub fn from_scheduled_same_run_denial(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         schedule: &PhysicalInterleavingSchedule,
         checkpoint_actor_step_index: usize,
         expected_origin: &CheckpointInterlockEvidenceOrigin,
         evidence: CheckpointInterlockFoundationalEvidence,
-        receipt: S5CheckpointPublicationShortcutDenialLaneOutput,
+        receipt: PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput,
     ) -> Result<Self, ObservationDenial> {
         require_schedule_step_matches_binding(binding, schedule, checkpoint_actor_step_index)?;
         require_evidence_origin_matches(expected_origin, evidence.origin())?;
@@ -369,7 +369,7 @@ fn require_schedule_matches_checkpoint_plan(
 }
 
 fn require_schedule_step_matches_binding(
-    binding: &S5CheckpointPublicationLaneBinding,
+    binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
     schedule: &PhysicalInterleavingSchedule,
     actor_step_index: usize,
 ) -> Result<(), ObservationDenial> {

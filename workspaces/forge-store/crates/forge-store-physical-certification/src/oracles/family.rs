@@ -3,9 +3,9 @@ use crate::{
     BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
     BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
     BlobReachabilityOracle, CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
-    IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
-    ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan,
-    S5PhysicalIsolationInterleavingOracle, S6IoPressureSimulationOracle, TranscriptReplayOracle,
+    IndependentVerifierAgreementOracle, IoPressureSimulationOracle, NoJsonAuthorityOracle,
+    NoPrivateMutationOracle, ObservedPhysicalTrace, OracleFamilyKind,
+    PhysicalIsolationInterleavingOracle, PhysicalSimulationPlan, TranscriptReplayOracle,
 };
 
 use super::{
@@ -35,15 +35,15 @@ pub trait PhysicalProofOracle: sealed::CertificationOwnedOracle {
 }
 
 impl ReusablePhysicalOracleFamily {
-    pub const fn s5_readiness_shape() -> Self {
+    pub const fn physical_isolation_readiness_shape() -> Self {
         Self {
-            kind: OracleFamilyKind::S5ReadinessShape,
+            kind: OracleFamilyKind::PhysicalIsolationReadinessShape,
         }
     }
 
-    pub const fn s5_physical_isolation_interleaving() -> Self {
+    pub const fn physical_isolation_interleaving() -> Self {
         Self {
-            kind: OracleFamilyKind::S5PhysicalIsolationInterleaving,
+            kind: OracleFamilyKind::PhysicalIsolationInterleaving,
         }
     }
 
@@ -65,21 +65,21 @@ impl ReusablePhysicalOracleFamily {
         }
     }
 
-    pub const fn s6_io_pressure_simulation() -> Self {
+    pub const fn io_pressure_simulation() -> Self {
         Self {
-            kind: OracleFamilyKind::S6IoPressureSimulation,
+            kind: OracleFamilyKind::IoPressureSimulation,
         }
     }
 
-    pub const fn s7_blob_harness_evidence() -> Self {
+    pub const fn blob_harness_evidence() -> Self {
         Self {
-            kind: OracleFamilyKind::S7BlobHarnessEvidence,
+            kind: OracleFamilyKind::BlobHarnessEvidence,
         }
     }
 
-    pub const fn s7_blob_heavy_qualification() -> Self {
+    pub const fn blob_heavy_qualification() -> Self {
         Self {
-            kind: OracleFamilyKind::S7BlobHeavyQualification,
+            kind: OracleFamilyKind::BlobHeavyQualification,
         }
     }
 
@@ -111,8 +111,8 @@ impl CertificationOwnedOracle for NoJsonAuthorityOracle {}
 impl CertificationOwnedOracle for CounterContractOracle {}
 impl CertificationOwnedOracle for TranscriptReplayOracle {}
 impl CertificationOwnedOracle for IndependentVerifierAgreementOracle {}
-impl CertificationOwnedOracle for S5PhysicalIsolationInterleavingOracle {}
-impl CertificationOwnedOracle for S6IoPressureSimulationOracle {}
+impl CertificationOwnedOracle for PhysicalIsolationInterleavingOracle {}
+impl CertificationOwnedOracle for IoPressureSimulationOracle {}
 impl CertificationOwnedOracle for BlobByteEqualityOracle {}
 impl CertificationOwnedOracle for BlobChunkOrderingOracle {}
 impl CertificationOwnedOracle for BlobDigestChecksumDistinctionOracle {}

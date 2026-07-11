@@ -26,9 +26,9 @@ pub(in crate::harness_execution) fn placement_readiness(
     security_scope: StoreSecurityScopeIdentity,
 ) -> forge_store_tiering::TierPlacementIoAdmission {
     let published_readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("published S6 readiness");
+        .expect("published scheduler readiness");
     let scheduler_readiness = admit_store_published_isolation_capability(&published_readiness)
-        .expect("scheduler S6 readiness");
+        .expect("scheduler readiness");
     admit_tier_placement_io(
         scheduler_readiness,
         forge_store_tiering::ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
@@ -78,10 +78,10 @@ fn lower_s5_reclaim_reachability_for_region(
             .expect("current generation reference");
     let removal_receipt = ReclaimEligibilityProof::for_certification_reference(current_generation)
         .admit_reachability_removal()
-        .expect("S5 reclaim reachability removal");
+        .expect("reclaim reachability removal");
     let evidence = removal_receipt
         .lower_for_s6_reclaim_policy(region)
-        .expect("S6 reclaim policy evidence");
+        .expect("reclaim policy evidence");
     ReclaimPolicyReachabilityProof::from_s5_reclaim_reachability_removal(evidence, region)
         .expect("reclaim reachability proof")
 }

@@ -1,6 +1,5 @@
 use crate::scenario::{
-    certify_scenario_definition, PhysicalSimulationScenarioDefinition,
-    S7BlobHarnessScenarioMetadata,
+    certify_scenario_definition, BlobHarnessScenarioMetadata, PhysicalSimulationScenarioDefinition,
 };
 use crate::{
     lower_physical_simulation_plan, AdmittedDriverContractSet, CertifiedPhysicalScenario,
@@ -70,13 +69,13 @@ fn certify_blob_seed_scenario(
 ) -> Result<CertifiedPhysicalScenario, BlobHarnessLoweringDenial> {
     let definition = PhysicalSimulationScenarioDefinition::from_native_parts(
         "s7.blob-harness.seed".to_owned(),
-        PhysicalSimulationScenarioFamily::S7BlobHarnessSeed,
-        PhysicalScenarioIntent::S7BlobHarnessSeed,
+        PhysicalSimulationScenarioFamily::BlobHarnessSeed,
+        PhysicalScenarioIntent::BlobHarnessSeed,
         vec![blob_harness_seed_fixture(seed, materialized_profile)],
         blob_seed_actors(seed),
         blob_seed_schedule(seed),
         blob_seed_fault(seed),
-        PhysicalScenarioExpectation::non_claiming_s7_blob_harness_seed(
+        PhysicalScenarioExpectation::non_claiming_blob_harness_seed(
             seed.topology(),
             blob_seed_metadata(seed),
         ),
@@ -99,12 +98,12 @@ fn blob_harness_planning_context(
             .with_supported_observers(SupportedObserverSet::all_for_ci_certification())
             .with_supported_oracle_families(blob_supported_oracle_families())
             .with_evidence_policy(SimulationEvidencePolicy::minimal_replayable())
-            .with_forbidden_shortcuts(ForbiddenShortcutSet::roadmap2_baseline()),
+            .with_forbidden_shortcuts(ForbiddenShortcutSet::physical_certification_baseline()),
     )
 }
 
-fn blob_seed_metadata(seed: &BlobHarnessScenarioSeed) -> S7BlobHarnessScenarioMetadata {
-    S7BlobHarnessScenarioMetadata::new(
+fn blob_seed_metadata(seed: &BlobHarnessScenarioSeed) -> BlobHarnessScenarioMetadata {
+    BlobHarnessScenarioMetadata::new(
         seed.size_class(),
         seed.chunk_size_class(),
         seed.placement_class(),
@@ -195,7 +194,7 @@ fn blob_seed_fault(seed: &BlobHarnessScenarioSeed) -> PhysicalScenarioFault {
 
 fn blob_supported_oracle_families() -> SupportedOracleFamilySet {
     SupportedOracleFamilySet::all_for_ci_certification().with_added([
-        OracleFamilyKind::S7BlobHarnessEvidence,
-        OracleFamilyKind::S7BlobHeavyQualification,
+        OracleFamilyKind::BlobHarnessEvidence,
+        OracleFamilyKind::BlobHeavyQualification,
     ])
 }

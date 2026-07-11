@@ -3,12 +3,13 @@ use std::collections::BTreeSet;
 use crate::{CoverageRowDimension, CoverageSurfaceKind};
 
 use super::{
-    PhysicalSimulationHarnessCloseoutDenial, S45AcceptanceSuiteEvidenceSource,
-    S45AcceptanceSuiteName, S45ExecutedAcceptanceSuiteEvidence, S45HarnessDogfoodEvidence,
+    ExecutedSimulationHarnessAcceptanceSuiteEvidence, PhysicalSimulationHarnessCloseoutDenial,
+    SimulationHarnessAcceptanceSuiteEvidenceSource, SimulationHarnessAcceptanceSuiteName,
+    SimulationHarnessDogfoodEvidence,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum S45AcceptanceEvidenceLane {
+pub enum SimulationHarnessAcceptanceEvidenceLane {
     Scenario,
     Plan,
     Schedule,
@@ -26,55 +27,55 @@ pub enum S45AcceptanceEvidenceLane {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteReceipt {
-    suite: S45AcceptanceSuiteName,
-    source: S45AcceptanceSuiteEvidenceSource,
-    lanes: Vec<S45AcceptanceEvidenceLane>,
+pub struct SimulationHarnessAcceptanceSuiteReceipt {
+    suite: SimulationHarnessAcceptanceSuiteName,
+    source: SimulationHarnessAcceptanceSuiteEvidenceSource,
+    lanes: Vec<SimulationHarnessAcceptanceEvidenceLane>,
     slice_scenario_digests: [[u8; 32]; 3],
     slice_transcript_digests: [[u8; 32]; 3],
     execution_basis_digest: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteEvidence {
-    executed: S45ExecutedAcceptanceSuiteEvidence,
+pub struct SimulationHarnessAcceptanceSuiteEvidence {
+    executed: ExecutedSimulationHarnessAcceptanceSuiteEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteReceiptSet {
-    receipts: Vec<S45AcceptanceSuiteReceipt>,
+pub struct SimulationHarnessAcceptanceSuiteReceiptSet {
+    receipts: Vec<SimulationHarnessAcceptanceSuiteReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteMap {
-    suites: Vec<S45AcceptanceSuiteCoverage>,
+pub struct SimulationHarnessAcceptanceSuiteMap {
+    suites: Vec<SimulationHarnessAcceptanceSuiteCoverage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S45AcceptanceSuiteCoverage {
-    suite: S45AcceptanceSuiteName,
-    source: S45AcceptanceSuiteEvidenceSource,
-    lanes: Vec<S45AcceptanceEvidenceLane>,
+pub struct SimulationHarnessAcceptanceSuiteCoverage {
+    suite: SimulationHarnessAcceptanceSuiteName,
+    source: SimulationHarnessAcceptanceSuiteEvidenceSource,
+    lanes: Vec<SimulationHarnessAcceptanceEvidenceLane>,
     execution_basis_digest: [u8; 32],
 }
 
-impl S45AcceptanceSuiteEvidence {
-    pub fn from_executed_suite(executed: S45ExecutedAcceptanceSuiteEvidence) -> Self {
+impl SimulationHarnessAcceptanceSuiteEvidence {
+    pub fn from_executed_suite(executed: ExecutedSimulationHarnessAcceptanceSuiteEvidence) -> Self {
         Self { executed }
     }
 
-    pub const fn suite(&self) -> S45AcceptanceSuiteName {
+    pub const fn suite(&self) -> SimulationHarnessAcceptanceSuiteName {
         self.executed.suite()
     }
 
-    pub const fn source(&self) -> S45AcceptanceSuiteEvidenceSource {
+    pub const fn source(&self) -> SimulationHarnessAcceptanceSuiteEvidenceSource {
         self.executed.source()
     }
 }
 
-impl S45AcceptanceSuiteReceipt {
+impl SimulationHarnessAcceptanceSuiteReceipt {
     pub fn from_suite_evidence(
-        evidence: S45AcceptanceSuiteEvidence,
+        evidence: SimulationHarnessAcceptanceSuiteEvidence,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         let slice_scenario_digests = *evidence.executed.slice_scenario_digests();
         let slice_transcript_digests = *evidence.executed.slice_transcript_digests();
@@ -87,19 +88,19 @@ impl S45AcceptanceSuiteReceipt {
             slice_transcript_digests,
             execution_basis_digest,
         };
-        receipt.require_all_required_s45_lanes()?;
+        receipt.require_all_required_simulation_harness_lanes()?;
         Ok(receipt)
     }
 
-    pub const fn suite(&self) -> S45AcceptanceSuiteName {
+    pub const fn suite(&self) -> SimulationHarnessAcceptanceSuiteName {
         self.suite
     }
 
-    pub fn lanes(&self) -> &[S45AcceptanceEvidenceLane] {
+    pub fn lanes(&self) -> &[SimulationHarnessAcceptanceEvidenceLane] {
         &self.lanes
     }
 
-    pub const fn source(&self) -> S45AcceptanceSuiteEvidenceSource {
+    pub const fn source(&self) -> SimulationHarnessAcceptanceSuiteEvidenceSource {
         self.source
     }
 
@@ -107,19 +108,19 @@ impl S45AcceptanceSuiteReceipt {
         &self.execution_basis_digest
     }
 
-    fn contains(&self, lane: S45AcceptanceEvidenceLane) -> bool {
+    fn contains(&self, lane: SimulationHarnessAcceptanceEvidenceLane) -> bool {
         self.lanes.contains(&lane)
     }
 
-    fn is_bound_to(&self, dogfood: &S45HarnessDogfoodEvidence) -> bool {
+    fn is_bound_to(&self, dogfood: &SimulationHarnessDogfoodEvidence) -> bool {
         self.slice_scenario_digests == dogfood_slice_scenario_digests(dogfood)
             && self.slice_transcript_digests == dogfood_slice_transcript_digests(dogfood)
     }
 
-    fn require_all_required_s45_lanes(
+    fn require_all_required_simulation_harness_lanes(
         &self,
     ) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
-        for lane in required_s45_lanes() {
+        for lane in required_simulation_harness_lanes() {
             if !self.contains(lane) {
                 return Err(
                     PhysicalSimulationHarnessCloseoutDenial::MissingAcceptanceSuiteLane {
@@ -133,9 +134,9 @@ impl S45AcceptanceSuiteReceipt {
     }
 }
 
-impl S45AcceptanceSuiteReceiptSet {
+impl SimulationHarnessAcceptanceSuiteReceiptSet {
     pub fn from_receipts(
-        receipts: Vec<S45AcceptanceSuiteReceipt>,
+        receipts: Vec<SimulationHarnessAcceptanceSuiteReceipt>,
     ) -> Result<Self, PhysicalSimulationHarnessCloseoutDenial> {
         let set = Self { receipts };
         set.require_no_duplicate_suites()?;
@@ -145,26 +146,26 @@ impl S45AcceptanceSuiteReceiptSet {
         Ok(set)
     }
 
-    pub fn receipts(&self) -> &[S45AcceptanceSuiteReceipt] {
+    pub fn receipts(&self) -> &[SimulationHarnessAcceptanceSuiteReceipt] {
         &self.receipts
     }
 
     pub(crate) fn into_suite_map_bound_to(
         self,
-        dogfood: &S45HarnessDogfoodEvidence,
-    ) -> Result<S45AcceptanceSuiteMap, PhysicalSimulationHarnessCloseoutDenial> {
+        dogfood: &SimulationHarnessDogfoodEvidence,
+    ) -> Result<SimulationHarnessAcceptanceSuiteMap, PhysicalSimulationHarnessCloseoutDenial> {
         self.require_receipts_bound_to(dogfood)?;
         let suites = self
             .receipts
             .into_iter()
-            .map(|receipt| S45AcceptanceSuiteCoverage {
+            .map(|receipt| SimulationHarnessAcceptanceSuiteCoverage {
                 suite: receipt.suite,
                 source: receipt.source,
                 lanes: receipt.lanes,
                 execution_basis_digest: receipt.execution_basis_digest,
             })
             .collect();
-        Ok(S45AcceptanceSuiteMap { suites })
+        Ok(SimulationHarnessAcceptanceSuiteMap { suites })
     }
 
     fn require_no_duplicate_suites(&self) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
@@ -198,7 +199,7 @@ impl S45AcceptanceSuiteReceiptSet {
     }
 
     fn require_all_required_suites(&self) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
-        for suite in S45AcceptanceSuiteName::required_s45() {
+        for suite in SimulationHarnessAcceptanceSuiteName::required_s45() {
             if !self.receipts.iter().any(|receipt| receipt.suite() == suite) {
                 return Err(
                     PhysicalSimulationHarnessCloseoutDenial::MissingAcceptanceSuiteReceipt {
@@ -212,14 +213,14 @@ impl S45AcceptanceSuiteReceiptSet {
 
     fn require_all_receipt_lanes(&self) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
         for receipt in self.receipts.iter() {
-            receipt.require_all_required_s45_lanes()?;
+            receipt.require_all_required_simulation_harness_lanes()?;
         }
         Ok(())
     }
 
     fn require_receipts_bound_to(
         &self,
-        dogfood: &S45HarnessDogfoodEvidence,
+        dogfood: &SimulationHarnessDogfoodEvidence,
     ) -> Result<(), PhysicalSimulationHarnessCloseoutDenial> {
         for receipt in self.receipts.iter() {
             if !receipt.is_bound_to(dogfood) {
@@ -234,30 +235,30 @@ impl S45AcceptanceSuiteReceiptSet {
     }
 }
 
-impl S45AcceptanceSuiteMap {
-    pub fn suites(&self) -> &[S45AcceptanceSuiteCoverage] {
+impl SimulationHarnessAcceptanceSuiteMap {
+    pub fn suites(&self) -> &[SimulationHarnessAcceptanceSuiteCoverage] {
         &self.suites
     }
 
-    pub fn all_required_s45_lanes_are_satisfied(&self) -> bool {
+    pub fn all_required_simulation_harness_lanes_are_satisfied(&self) -> bool {
         self.suites.iter().all(|suite| {
-            required_s45_lanes()
+            required_simulation_harness_lanes()
                 .into_iter()
                 .all(|lane| suite.contains(lane))
         })
     }
 }
 
-impl S45AcceptanceSuiteCoverage {
-    pub const fn suite(&self) -> S45AcceptanceSuiteName {
+impl SimulationHarnessAcceptanceSuiteCoverage {
+    pub const fn suite(&self) -> SimulationHarnessAcceptanceSuiteName {
         self.suite
     }
 
-    pub fn lanes(&self) -> &[S45AcceptanceEvidenceLane] {
+    pub fn lanes(&self) -> &[SimulationHarnessAcceptanceEvidenceLane] {
         &self.lanes
     }
 
-    pub const fn source(&self) -> S45AcceptanceSuiteEvidenceSource {
+    pub const fn source(&self) -> SimulationHarnessAcceptanceSuiteEvidenceSource {
         self.source
     }
 
@@ -265,48 +266,48 @@ impl S45AcceptanceSuiteCoverage {
         &self.execution_basis_digest
     }
 
-    pub fn contains(&self, lane: S45AcceptanceEvidenceLane) -> bool {
+    pub fn contains(&self, lane: SimulationHarnessAcceptanceEvidenceLane) -> bool {
         self.lanes.contains(&lane)
     }
 }
 
 pub(crate) fn lanes_from_closeout_evidence(
-    coverage: &super::S45CloseoutCoverageReport,
-) -> Vec<S45AcceptanceEvidenceLane> {
+    coverage: &super::SimulationHarnessCloseoutCoverageReport,
+) -> Vec<SimulationHarnessAcceptanceEvidenceLane> {
     let mut lanes = BTreeSet::new();
     for matrix in coverage.matrices() {
         for row in matrix.rows() {
             match row.surface() {
                 CoverageSurfaceKind::Scenario => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Scenario);
-                    lanes.insert(S45AcceptanceEvidenceLane::Positive);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Scenario);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Positive);
                 }
                 CoverageSurfaceKind::Plan => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Plan);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Plan);
                 }
                 CoverageSurfaceKind::YieldpointSchedule => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Schedule);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Schedule);
                 }
                 CoverageSurfaceKind::Actor => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Actors);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Actors);
                 }
                 CoverageSurfaceKind::Driver => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Drivers);
-                    lanes.insert(S45AcceptanceEvidenceLane::Hostile);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Drivers);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Hostile);
                 }
                 CoverageSurfaceKind::Oracle => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Oracles);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Oracles);
                 }
                 CoverageSurfaceKind::Counter => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Counters);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Counters);
                 }
                 CoverageSurfaceKind::Transcript => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Transcripts);
-                    lanes.insert(S45AcceptanceEvidenceLane::Replay);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Transcripts);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Replay);
                 }
                 CoverageSurfaceKind::MutationResult => {
-                    lanes.insert(S45AcceptanceEvidenceLane::Mutation);
-                    lanes.insert(S45AcceptanceEvidenceLane::Shortcut);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Mutation);
+                    lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Shortcut);
                 }
             }
             if row
@@ -314,33 +315,33 @@ pub(crate) fn lanes_from_closeout_evidence(
                 .iter()
                 .any(|dimension| matches!(dimension, CoverageRowDimension::OfflineVerifier(_)))
             {
-                lanes.insert(S45AcceptanceEvidenceLane::Observers);
+                lanes.insert(SimulationHarnessAcceptanceEvidenceLane::Observers);
             }
         }
     }
     lanes.into_iter().collect()
 }
 
-pub(crate) fn required_s45_lanes() -> [S45AcceptanceEvidenceLane; 14] {
+pub(crate) fn required_simulation_harness_lanes() -> [SimulationHarnessAcceptanceEvidenceLane; 14] {
     [
-        S45AcceptanceEvidenceLane::Scenario,
-        S45AcceptanceEvidenceLane::Plan,
-        S45AcceptanceEvidenceLane::Schedule,
-        S45AcceptanceEvidenceLane::Actors,
-        S45AcceptanceEvidenceLane::Drivers,
-        S45AcceptanceEvidenceLane::Observers,
-        S45AcceptanceEvidenceLane::Oracles,
-        S45AcceptanceEvidenceLane::Transcripts,
-        S45AcceptanceEvidenceLane::Counters,
-        S45AcceptanceEvidenceLane::Positive,
-        S45AcceptanceEvidenceLane::Hostile,
-        S45AcceptanceEvidenceLane::Shortcut,
-        S45AcceptanceEvidenceLane::Replay,
-        S45AcceptanceEvidenceLane::Mutation,
+        SimulationHarnessAcceptanceEvidenceLane::Scenario,
+        SimulationHarnessAcceptanceEvidenceLane::Plan,
+        SimulationHarnessAcceptanceEvidenceLane::Schedule,
+        SimulationHarnessAcceptanceEvidenceLane::Actors,
+        SimulationHarnessAcceptanceEvidenceLane::Drivers,
+        SimulationHarnessAcceptanceEvidenceLane::Observers,
+        SimulationHarnessAcceptanceEvidenceLane::Oracles,
+        SimulationHarnessAcceptanceEvidenceLane::Transcripts,
+        SimulationHarnessAcceptanceEvidenceLane::Counters,
+        SimulationHarnessAcceptanceEvidenceLane::Positive,
+        SimulationHarnessAcceptanceEvidenceLane::Hostile,
+        SimulationHarnessAcceptanceEvidenceLane::Shortcut,
+        SimulationHarnessAcceptanceEvidenceLane::Replay,
+        SimulationHarnessAcceptanceEvidenceLane::Mutation,
     ]
 }
 
-fn dogfood_slice_scenario_digests(dogfood: &S45HarnessDogfoodEvidence) -> [[u8; 32]; 3] {
+fn dogfood_slice_scenario_digests(dogfood: &SimulationHarnessDogfoodEvidence) -> [[u8; 32]; 3] {
     [
         *dogfood
             .s4_recovery()
@@ -355,7 +356,7 @@ fn dogfood_slice_scenario_digests(dogfood: &S45HarnessDogfoodEvidence) -> [[u8; 
             .identity()
             .digest_bytes(),
         *dogfood
-            .s5_readiness_shape_probe()
+            .physical_isolation_readiness_shape_probe()
             .scenario()
             .scenario()
             .identity()
@@ -363,7 +364,7 @@ fn dogfood_slice_scenario_digests(dogfood: &S45HarnessDogfoodEvidence) -> [[u8; 
     ]
 }
 
-fn dogfood_slice_transcript_digests(dogfood: &S45HarnessDogfoodEvidence) -> [[u8; 32]; 3] {
+fn dogfood_slice_transcript_digests(dogfood: &SimulationHarnessDogfoodEvidence) -> [[u8; 32]; 3] {
     [
         *dogfood
             .s4_recovery()
@@ -376,7 +377,7 @@ fn dogfood_slice_transcript_digests(dogfood: &S45HarnessDogfoodEvidence) -> [[u8
             .primary()
             .transcript_digest(),
         *dogfood
-            .s5_readiness_shape_probe()
+            .physical_isolation_readiness_shape_probe()
             .evidence()
             .primary()
             .transcript_digest(),

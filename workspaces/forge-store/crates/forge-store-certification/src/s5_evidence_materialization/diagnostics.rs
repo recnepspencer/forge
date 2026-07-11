@@ -17,17 +17,20 @@ use forge_foundational::{
 };
 use forge_store_physical_isolation::S5IsolationEvidenceRichness;
 
-use super::{S5EvidenceProfileCounterSet, S5ExecutedIsolationFinding, S5ExecutedIsolationOutcome};
+use super::{
+    ExecutedPhysicalIsolationFinding, ExecutedPhysicalIsolationOutcome,
+    PhysicalIsolationEvidenceProfileCounterSet,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S5FoundationalDiagnostics {
     report: FoundationalDiagnosticSupportReport,
-    required_counter_fields: S5EvidenceProfileCounterSet,
+    required_counter_fields: PhysicalIsolationEvidenceProfileCounterSet,
 }
 
 impl S5FoundationalDiagnostics {
     pub(crate) fn from_finding(
-        finding: &S5ExecutedIsolationFinding,
+        finding: &ExecutedPhysicalIsolationFinding,
     ) -> Result<Self, FoundationalDiagnosticMaterializationDenial> {
         let report = materialize_diagnostic_support_report(
             support_input(finding),
@@ -44,12 +47,12 @@ impl S5FoundationalDiagnostics {
         &self.report
     }
 
-    pub const fn required_counter_fields(&self) -> S5EvidenceProfileCounterSet {
+    pub const fn required_counter_fields(&self) -> PhysicalIsolationEvidenceProfileCounterSet {
         self.required_counter_fields
     }
 }
 
-fn support_input(finding: &S5ExecutedIsolationFinding) -> FoundationalDiagnosticSupportInput {
+fn support_input(finding: &ExecutedPhysicalIsolationFinding) -> FoundationalDiagnosticSupportInput {
     let subject = diagnostic_subject(finding);
     let locator = foundational_diagnostic_locator_boundary_artifact(BoundaryArtifactLocator::new(
         artifact_id(finding),
@@ -104,21 +107,21 @@ fn support_row(
     ))
 }
 
-fn diagnostic_subject(finding: &S5ExecutedIsolationFinding) -> FoundationalDiagnosticSubject {
+fn diagnostic_subject(finding: &ExecutedPhysicalIsolationFinding) -> FoundationalDiagnosticSubject {
     foundational_diagnostic_boundary_artifact_subject(
         artifact_id(finding),
         BoundaryArtifactField::Proofs,
     )
 }
 
-fn artifact_id(finding: &S5ExecutedIsolationFinding) -> BoundaryArtifactId {
+fn artifact_id(finding: &ExecutedPhysicalIsolationFinding) -> BoundaryArtifactId {
     let mut bytes = [0_u8; 8];
     bytes.copy_from_slice(&finding.basis().plan_digest()[..8]);
     BoundaryArtifactId::new(u64::from_le_bytes(bytes))
 }
 
 fn diagnostic_counter_snapshot(
-    finding: &S5ExecutedIsolationFinding,
+    finding: &ExecutedPhysicalIsolationFinding,
 ) -> FoundationalDiagnosticCounterSnapshot {
     let retained = if finding.profile().includes_optional_forensics() {
         3
@@ -128,7 +131,7 @@ fn diagnostic_counter_snapshot(
     FoundationalDiagnosticCounterSnapshot::new(retained, 0, 0, 0, 0, 0)
 }
 
-fn profile_set(finding: &S5ExecutedIsolationFinding) -> FoundationalProfileSet {
+fn profile_set(finding: &ExecutedPhysicalIsolationFinding) -> FoundationalProfileSet {
     let diagnostic_richness = match finding.profile().richness() {
         S5IsolationEvidenceRichness::MinimalRequired => {
             DiagnosticRichnessProfile::OperationalMinimal
@@ -146,11 +149,13 @@ fn profile_set(finding: &S5ExecutedIsolationFinding) -> FoundationalProfileSet {
     .expect("S5 diagnostic profile is evidence-backed and retained")
 }
 
-fn outcome_kind(outcome: S5ExecutedIsolationOutcome) -> FoundationalDiagnosticOutcomeKind {
+fn outcome_kind(outcome: ExecutedPhysicalIsolationOutcome) -> FoundationalDiagnosticOutcomeKind {
     match outcome {
-        S5ExecutedIsolationOutcome::Satisfied => FoundationalDiagnosticOutcomeKind::Accepted,
-        S5ExecutedIsolationOutcome::DeniedMutation => FoundationalDiagnosticOutcomeKind::Denied,
-        S5ExecutedIsolationOutcome::NonClaimStabilityOnly => {
+        ExecutedPhysicalIsolationOutcome::Satisfied => FoundationalDiagnosticOutcomeKind::Accepted,
+        ExecutedPhysicalIsolationOutcome::DeniedMutation => {
+            FoundationalDiagnosticOutcomeKind::Denied
+        }
+        ExecutedPhysicalIsolationOutcome::NonClaimStabilityOnly => {
             FoundationalDiagnosticOutcomeKind::Advisory
         }
     }

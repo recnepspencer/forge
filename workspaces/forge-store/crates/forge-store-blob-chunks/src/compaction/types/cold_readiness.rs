@@ -1,13 +1,13 @@
-use forge_store_tiering::{cold_posture_permits_compaction, S7ColdPlacementState};
+use forge_store_tiering::{cold_posture_permits_compaction, ColdPlacementState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobCompactionColdReadiness {
-    Available(S7ColdPlacementState),
-    Unavailable(S7ColdPlacementState),
+    Available(ColdPlacementState),
+    Unavailable(ColdPlacementState),
 }
 
 impl BlobCompactionColdReadiness {
-    pub const fn from_state(state: S7ColdPlacementState) -> Self {
+    pub const fn from_state(state: ColdPlacementState) -> Self {
         if cold_posture_permits_compaction(state) {
             Self::Available(state)
         } else {
@@ -19,7 +19,7 @@ impl BlobCompactionColdReadiness {
         matches!(self, Self::Available(_))
     }
 
-    pub const fn state(self) -> S7ColdPlacementState {
+    pub const fn state(self) -> ColdPlacementState {
         match self {
             Self::Available(state) | Self::Unavailable(state) => state,
         }

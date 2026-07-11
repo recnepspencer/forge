@@ -23,4 +23,4 @@ pub use locus::{
     ExpectedFaultLocalization, PhysicalArtifactFaultLocus, PhysicalArtifactKind,
     PhysicalFaultFieldKind, PhysicalFaultOffset,
 };
-pub use scenario_fault::s5_stable_read_plan_fault_event;
+pub use scenario_fault::physical_isolation_stable_read_plan_fault_event;

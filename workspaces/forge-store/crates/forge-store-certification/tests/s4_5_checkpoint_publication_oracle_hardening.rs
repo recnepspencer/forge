@@ -23,7 +23,7 @@ use forge_store_physical_certification::{
 fn checkpoint_publication_observation_satisfies_s5_reader_oracles() {
     let plan = lower_checkpoint_plan();
     let trace = checkpoint_trace(&plan);
-    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
 
     for verdict in [
         family
@@ -47,7 +47,7 @@ fn checkpoint_publication_observation_satisfies_s5_reader_oracles() {
 fn checkpoint_publication_observation_is_carried_by_replay_transcript() {
     let plan = lower_checkpoint_plan();
     let trace = checkpoint_trace(&plan);
-    let no_mixed_root_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let no_mixed_root_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -82,7 +82,7 @@ fn checkpoint_interlock_observation_changes_replay_basis_identity() {
     let plan = lower_checkpoint_plan();
     let checkpoint_trace = checkpoint_trace(&plan);
     let trace_without_checkpoint = support::observed_trace(&plan);
-    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
     let checkpoint_verdict = family
         .oracle(NoMixedRootOracle)
         .judge(&plan, &checkpoint_trace)
@@ -128,7 +128,7 @@ fn checkpoint_interlock_observation_changes_replay_basis_identity() {
 fn checkpoint_publication_lane_is_paired_with_s4_crash_replay_proof() {
     let plan = lower_checkpoint_crash_replay_plan();
     let trace = checkpoint_crash_replay_trace(&plan);
-    let no_mixed_root_verdict = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let no_mixed_root_verdict = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .unwrap();
@@ -181,7 +181,7 @@ fn support_attached_recovery_outcome_does_not_carry_checkpoint_crash_lane() {
     let plan = lower_checkpoint_crash_replay_plan();
     let scheduled_trace = checkpoint_crash_replay_trace(&plan);
     let support_attached_trace = checkpoint_crash_replay_trace_without_crash_lane(&plan);
-    let family = ReusablePhysicalOracleFamily::s5_readiness_shape();
+    let family = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape();
     let scheduled_verdict = family
         .oracle(NoMixedRootOracle)
         .judge(&plan, &scheduled_trace)
@@ -248,7 +248,7 @@ fn missing_checkpoint_or_compaction_observation_cannot_satisfy_reader_oracle() {
         .complete()
         .unwrap();
 
-    let denial = ReusablePhysicalOracleFamily::s5_readiness_shape()
+    let denial = ReusablePhysicalOracleFamily::physical_isolation_readiness_shape()
         .oracle(NoMixedRootOracle)
         .judge(&plan, &trace)
         .unwrap_err();

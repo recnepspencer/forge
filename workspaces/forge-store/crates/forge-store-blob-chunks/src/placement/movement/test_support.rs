@@ -14,7 +14,7 @@ use forge_store_physical_isolation::{
     FutureChunkStabilityBasis, PhysicalChunkStabilityPlaceholder,
     PhysicalPlacementMovementExecutionReceipt, StablePhysicalReadReceipt,
 };
-use forge_store_tiering::S7ColdPlacementState;
+use forge_store_tiering::ColdPlacementState;
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, lifecycle_receipt_for_publication_with_bytes,
@@ -58,7 +58,7 @@ pub(crate) fn movement_case(case: &str) -> MovementCase {
             read_target,
             read_hold,
             read_reservation.into(),
-            BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+            BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
             BlobPlacementMovementFreshness::Current,
         ))
         .expect("movement case should admit read basis");
@@ -110,7 +110,7 @@ pub(crate) fn plan_current(
         case.target,
         movement_read_hold(),
         reservation.into(),
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
         BlobPlacementMovementFreshness::Current,
     ))
 }
@@ -123,7 +123,7 @@ pub(crate) fn stale_request(case: MovementCase) -> BlobPlacementMovementRequest 
         case.target,
         movement_read_hold(),
         reservation.into(),
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
         BlobPlacementMovementFreshness::Stale,
     )
 }
@@ -135,7 +135,7 @@ pub(crate) fn missing_read_hold_request(case: MovementCase) -> BlobPlacementMove
         case.source,
         case.target,
         reservation.into(),
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
         BlobPlacementMovementFreshness::Current,
     )
 }
@@ -148,7 +148,7 @@ pub(crate) fn unavailable_cold_request(case: MovementCase) -> BlobPlacementMovem
         case.target,
         movement_read_hold(),
         reservation.into(),
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::ColdUnavailable),
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::ColdUnavailable),
         BlobPlacementMovementFreshness::Current,
     )
 }
@@ -161,7 +161,7 @@ pub(crate) fn violated_reservation_request(case: MovementCase) -> BlobPlacementM
         case.target,
         movement_read_hold(),
         BlobPlacementMovementForegroundReservation::from(violated),
-        BlobPlacementMovementColdOutcome::from_state(S7ColdPlacementState::HotAvailable),
+        BlobPlacementMovementColdOutcome::from_state(ColdPlacementState::HotAvailable),
         BlobPlacementMovementFreshness::Current,
     )
 }

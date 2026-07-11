@@ -1,5 +1,5 @@
-use forge_store_physical_certification::S45ExecutedAcceptanceSuiteEvidence;
+use forge_store_physical_certification::ExecutedSimulationHarnessAcceptanceSuiteEvidence;
 
 fn main() {
-    let _ = S45ExecutedAcceptanceSuiteEvidence::entry_boundary_suite_run(todo!(), todo!());
+    let _ = ExecutedSimulationHarnessAcceptanceSuiteEvidence::entry_boundary_suite_run(todo!(), todo!());
 }

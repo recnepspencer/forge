@@ -17,18 +17,18 @@ mod support;
 
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use forge_store_certification::{
-    materialize_s5_executed_isolation_evidence, s5_physical_isolation_coverage_matrix,
-    s5_physical_isolation_lanes, PhysicalIsolationCloseoutLaneEvidence,
-    PhysicalIsolationCloseoutSuite, S5CloseoutReservedScope, S5ExecutedIsolationEvidenceSource,
-    S5PhysicalIsolationMutationEvidence,
+    materialize_s5_executed_isolation_evidence, physical_isolation_lanes,
+    physical_isolation_physical_isolation_coverage_matrix, ExecutedPhysicalIsolationEvidenceSource,
+    PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
+    PhysicalIsolationMutationEvidence, S5CloseoutReservedScope,
 };
 use forge_store_physical_certification::{
-    CoverageSurfaceKind, PhysicalCertificationEvidenceBundle, PhysicalSimulationProfile,
-    PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence,
+    CoverageSurfaceKind, HarnessCoverageStage, PhysicalCertificationEvidenceBundle,
+    PhysicalSimulationProfile, PhysicalSimulationScenarioFamily,
 };
 use forge_store_physical_isolation::{
-    publish_scheduler_isolation_capability_from_executed_evidence, PhysicalStabilityAssumption,
-    S5IsolationEvidenceProfile, UnsupportedQoSClaim,
+    publish_scheduler_isolation_capability_from_executed_evidence,
+    PhysicalIsolationEvidenceProfile, PhysicalStabilityAssumption, UnsupportedQoSClaim,
 };
 
 #[test]
@@ -42,7 +42,7 @@ fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
         .contains(S5CloseoutReservedScope::S6IoQosIsolation));
     assert!(suite
         .reservations()
-        .contains(S5CloseoutReservedScope::S7BlobLifecycle));
+        .contains(S5CloseoutReservedScope::BlobLifecycle));
     assert!(suite
         .reservations()
         .contains(S5CloseoutReservedScope::S8Layout));
@@ -62,7 +62,10 @@ fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
             .iter()
             .find(|lane| lane.family() == family)
             .expect("required S5 family is closed");
-        assert_eq!(lane.coverage().sequence(), Roadmap2HarnessSequence::S45);
+        assert_eq!(
+            lane.coverage().sequence(),
+            HarnessCoverageStage::SimulationAdmission
+        );
         assert_eq!(
             lane.plan().profile(),
             PhysicalSimulationProfile::CiCertification
@@ -74,7 +77,7 @@ fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
         assert_required_surfaces(lane);
         assert_eq!(
             lane.mutation().required_rows(),
-            forge_store_certification::s5_physical_isolation_required_mutation_rows(family)
+            forge_store_certification::physical_isolation_required_mutation_rows(family)
         );
         assert!(lane
             .executed()
@@ -85,7 +88,7 @@ fn phase15_closeout_aggregates_all_s5_hostile_lanes_with_machine_evidence() {
 
 #[test]
 fn phase15_closeout_denies_smoke_profile_lane_evidence() {
-    let mut lanes = s5_physical_isolation_lanes();
+    let mut lanes = physical_isolation_lanes();
     let lane = lanes.remove(0);
     let plan = forge_store_physical_certification::lower_physical_simulation_plan(
         lane.scenario().clone(),
@@ -93,17 +96,20 @@ fn phase15_closeout_denies_smoke_profile_lane_evidence() {
     )
     .unwrap();
     let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
-    let mutation =
-        S5PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-    let coverage =
-        s5_physical_isolation_coverage_matrix(lane.scenario(), &plan, &replay, &mutation);
+    let mutation = PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
+    let coverage = physical_isolation_physical_isolation_coverage_matrix(
+        lane.scenario(),
+        &plan,
+        &replay,
+        &mutation,
+    );
     let certification =
         PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
-    let source = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+    let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
         s5_source_authority(),
         replay,
         mutation.clone(),
-        S5IsolationEvidenceProfile::minimal_required(),
+        PhysicalIsolationEvidenceProfile::minimal_required(),
     )
     .unwrap();
     let executed = materialize_s5_executed_isolation_evidence(source).unwrap();
@@ -224,27 +230,31 @@ fn closeout_suite() -> PhysicalIsolationCloseoutSuite {
         .expect("complete S5 physical isolation closeout suite admits")
 }
 
-fn s45_readiness() -> forge_store_physical_certification::S5HarnessReadinessReceipt {
+fn s45_readiness() -> forge_store_physical_certification::PhysicalIsolationHarnessReadinessReceipt {
     harness_support::s45_harness_readiness_receipt()
 }
 
 fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
-    s5_physical_isolation_lanes()
+    physical_isolation_lanes()
         .into_iter()
         .map(|lane| {
             let plan = harness_support::lower_lane(&lane);
             let replay = harness_support::replay_bundle(&plan, lane.expected_fault());
             let mutation =
-                S5PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
-            let coverage =
-                s5_physical_isolation_coverage_matrix(lane.scenario(), &plan, &replay, &mutation);
+                PhysicalIsolationMutationEvidence::from_replay(plan.scenario_family(), &replay);
+            let coverage = physical_isolation_physical_isolation_coverage_matrix(
+                lane.scenario(),
+                &plan,
+                &replay,
+                &mutation,
+            );
             let certification =
                 PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone()).unwrap();
-            let source = S5ExecutedIsolationEvidenceSource::from_executed_replay(
+            let source = ExecutedPhysicalIsolationEvidenceSource::from_executed_replay(
                 s5_source_authority(),
                 replay,
                 mutation.clone(),
-                S5IsolationEvidenceProfile::minimal_required(),
+                PhysicalIsolationEvidenceProfile::minimal_required(),
             )
             .unwrap();
             let executed = materialize_s5_executed_isolation_evidence(source).unwrap();
@@ -289,12 +299,12 @@ fn required_surfaces() -> [CoverageSurfaceKind; 9] {
 
 fn required_families() -> [PhysicalSimulationScenarioFamily; 6] {
     [
-        PhysicalSimulationScenarioFamily::S5CompactionInterlock,
-        PhysicalSimulationScenarioFamily::S5CheckpointPublicationInterlock,
-        PhysicalSimulationScenarioFamily::S5ReclaimReachability,
-        PhysicalSimulationScenarioFamily::S5TierMovementStability,
-        PhysicalSimulationScenarioFamily::S5FutureChunkStability,
-        PhysicalSimulationScenarioFamily::S5RestartDuringCutover,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationFutureChunkStability,
+        PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover,
     ]
 }
 

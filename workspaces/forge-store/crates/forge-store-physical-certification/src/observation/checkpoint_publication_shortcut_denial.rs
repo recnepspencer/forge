@@ -1,14 +1,14 @@
 use crate::{
     ForbiddenShortcutKind, ObservationDenial, PhysicalInterleavingSchedule,
-    PhysicalScenarioActorRole, S5CheckpointPublicationLaneBinding, ShortcutRejectionBoundary,
-    ShortcutRejectionObservation, SyntheticHarnessShortcutDenialReceipt,
+    PhysicalIsolationCheckpointPublicationLaneBinding, PhysicalScenarioActorRole,
+    ShortcutRejectionBoundary, ShortcutRejectionObservation, SyntheticHarnessShortcutDenialReceipt,
 };
 use forge_store_physical_isolation::{
     CheckpointInterlockEvidenceOrigin, CheckpointInterlockFoundationalEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct S5CheckpointPublicationShortcutDenialLaneOutput {
+pub struct PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput {
     plan_identity: [u8; 32],
     schedule_identity: [u8; 32],
     checkpoint_origin: CheckpointInterlockEvidenceOrigin,
@@ -16,9 +16,9 @@ pub struct S5CheckpointPublicationShortcutDenialLaneOutput {
     observation: ShortcutRejectionObservation,
 }
 
-impl S5CheckpointPublicationShortcutDenialLaneOutput {
+impl PhysicalIsolationCheckpointPublicationShortcutDenialLaneOutput {
     pub fn from_denial_receipt(
-        binding: &S5CheckpointPublicationLaneBinding,
+        binding: &PhysicalIsolationCheckpointPublicationLaneBinding,
         schedule: &PhysicalInterleavingSchedule,
         shortcut_actor_step_index: usize,
         expected_origin: &CheckpointInterlockEvidenceOrigin,

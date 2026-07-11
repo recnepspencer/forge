@@ -1,10 +1,10 @@
 use forge_store_physical_certification::{
-    CoverageSurfaceKind, HarnessSubsystem, PhysicalCoverageMatrixRow, Roadmap2HarnessSequence,
+    CoverageSurfaceKind, HarnessSubsystem, PhysicalCoverageMatrixRow, HarnessCoverageStage,
 };
 
 fn main() {
     let _row = PhysicalCoverageMatrixRow {
-        sequence: Roadmap2HarnessSequence::S45,
+        sequence: HarnessCoverageStage::SimulationAdmission,
         subsystem: HarnessSubsystem::ScenarioDefinitions,
         surface: CoverageSurfaceKind::Scenario,
         source_identity: [0; 32],

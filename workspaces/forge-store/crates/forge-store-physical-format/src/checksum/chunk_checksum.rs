@@ -153,7 +153,7 @@ pub struct PhysicalChunkChecksumAuthority {
 }
 
 impl PhysicalChunkChecksumAuthority {
-    pub const fn s7_canonical() -> Self {
+    pub const fn canonical_blob_checksum() -> Self {
         Self {
             algorithm: PhysicalChunkChecksumAlgorithm::S7CanonicalFnv64,
         }
@@ -224,7 +224,7 @@ mod tests {
     #[test]
     fn store_payload_admission_requires_executed_physical_record_view() {
         let receipt = record_receipt(b"chunk").unwrap();
-        let payload = PhysicalChunkChecksumAuthority::s7_canonical()
+        let payload = PhysicalChunkChecksumAuthority::canonical_blob_checksum()
             .admit_store_payload(receipt)
             .unwrap();
 

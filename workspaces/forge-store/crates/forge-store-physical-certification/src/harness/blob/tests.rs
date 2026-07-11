@@ -15,8 +15,8 @@ use forge_store_blob_chunks::{
 };
 use forge_store_budgets::BlobHarnessEnvelopeProfile;
 use forge_store_test_support::{
-    execute_s7_blob_harness_real_multi_gb_temp_file_fixture,
-    execute_s7_blob_harness_temp_file_fixture_smoke,
+    execute_blob_harness_real_multi_gb_temp_file_fixture,
+    execute_blob_harness_temp_file_fixture_smoke,
 };
 
 use super::{
@@ -26,7 +26,7 @@ use super::{
 };
 
 #[test]
-fn seed_blob_scenario_lowers_to_stable_s45_plan_identity() {
+fn seed_blob_scenario_lowers_to_stable_simulation_harness_plan_identity() {
     let seed = BlobHarnessScenarioSeed::builder()
         .profile(BlobHarnessProfile::ci_memory_envelope_exceeding())
         .placement_external()
@@ -47,7 +47,7 @@ fn seed_blob_scenario_lowers_to_stable_s45_plan_identity() {
     );
     assert_eq!(
         first.plan().scenario_family(),
-        PhysicalSimulationScenarioFamily::S7BlobHarnessSeed
+        PhysicalSimulationScenarioFamily::BlobHarnessSeed
     );
     assert!(first
         .plan()
@@ -60,7 +60,7 @@ fn seed_blob_scenario_lowers_to_stable_s45_plan_identity() {
 }
 
 #[test]
-fn seed_blob_scenario_shape_is_gated_by_ordinary_s45_lowerer() {
+fn seed_blob_scenario_shape_is_gated_by_ordinary_simulation_harness_lowerer() {
     let seed = BlobHarnessScenarioSeed::builder()
         .profile(BlobHarnessProfile::local())
         .placement_external()
@@ -303,7 +303,7 @@ fn canonical_heavy_fixture_identity_binds_phase23_basis() {
 
 #[test]
 fn temp_file_materialization_keeps_schema_and_emits_cleanup_receipt() {
-    let witness = execute_s7_blob_harness_temp_file_fixture_smoke();
+    let witness = execute_blob_harness_temp_file_fixture_smoke();
     let evidence = witness
         .heavy_fixture_evidence()
         .expect("temp file fixture evidence");
@@ -352,7 +352,7 @@ fn hostile_phase23_lanes_are_typed_denials() {
 
 #[test]
 fn real_multi_gb_temp_file_fixture_emits_heavy_topology_evidence() {
-    let witness = execute_s7_blob_harness_real_multi_gb_temp_file_fixture();
+    let witness = execute_blob_harness_real_multi_gb_temp_file_fixture();
     let evidence = witness
         .heavy_fixture_evidence()
         .expect("heavy fixture evidence");

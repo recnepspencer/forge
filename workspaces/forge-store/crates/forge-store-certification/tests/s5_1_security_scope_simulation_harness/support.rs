@@ -1,8 +1,8 @@
 use forge_store_physical_certification::{
-    S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessOutcomeKind,
-    S51SecurityScopeHarnessScenario, S51SecurityScopeHarnessSchedule,
-    S51SecurityScopePhysicalReplayDenial, S51SecurityScopePhysicalReplayEvidence,
-    S51SecurityScopePhysicalScheduleBinding, S51SecurityScopeReplayMutationKind,
+    SecurityScopeHarnessEvidence, SecurityScopeHarnessOutcomeKind, SecurityScopeHarnessScenario,
+    SecurityScopeHarnessSchedule, SecurityScopePhysicalReplayDenial,
+    SecurityScopePhysicalReplayEvidence, SecurityScopePhysicalScheduleBinding,
+    SecurityScopeReplayMutationKind,
 };
 use forge_store_security::StoreSecurityScopeAdmissionCounterSnapshot;
 
@@ -73,8 +73,8 @@ impl ExpectedTypedCounters {
 }
 
 pub(crate) fn assert_security_scope_harness_evidence(
-    evidence: S51SecurityScopeHarnessEvidence,
-    expected_outcome: S51SecurityScopeHarnessOutcomeKind,
+    evidence: SecurityScopeHarnessEvidence,
+    expected_outcome: SecurityScopeHarnessOutcomeKind,
     expected_readiness_acceptances: u64,
     expected_denied_before_decode: u64,
 ) {
@@ -95,7 +95,7 @@ pub(crate) fn assert_security_scope_harness_evidence(
 }
 
 pub(crate) fn assert_security_scope_typed_counters(
-    evidence: S51SecurityScopeHarnessEvidence,
+    evidence: SecurityScopeHarnessEvidence,
     expected: ExpectedTypedCounters,
 ) {
     let counters = evidence.counters();
@@ -117,7 +117,7 @@ pub(crate) fn assert_security_scope_typed_counters(
 }
 
 pub(crate) fn assert_lower_store_counter_crosscheck(
-    evidence: S51SecurityScopeHarnessEvidence,
+    evidence: SecurityScopeHarnessEvidence,
     expected: ExpectedTypedCounters,
 ) {
     let lower = evidence.lower_store_admission_counters();
@@ -156,91 +156,88 @@ pub(crate) fn assert_lower_store_counter_crosscheck(
 }
 
 pub(crate) fn replay_scenario(
-    schedule: S51SecurityScopeHarnessSchedule,
-    mutation: S51SecurityScopeReplayMutationKind,
-) -> S51SecurityScopeHarnessScenario {
+    schedule: SecurityScopeHarnessSchedule,
+    mutation: SecurityScopeReplayMutationKind,
+) -> SecurityScopeHarnessScenario {
     match mutation {
-        S51SecurityScopeReplayMutationKind::ChangedTenantScope => {
-            S51SecurityScopeHarnessScenario::wrong_tenant_scope(schedule)
+        SecurityScopeReplayMutationKind::ChangedTenantScope => {
+            SecurityScopeHarnessScenario::wrong_tenant_scope(schedule)
         }
-        S51SecurityScopeReplayMutationKind::ChangedKeyVersionPosture => {
-            S51SecurityScopeHarnessScenario::stale_key_posture(schedule)
+        SecurityScopeReplayMutationKind::ChangedKeyVersionPosture => {
+            SecurityScopeHarnessScenario::stale_key_posture(schedule)
         }
-        S51SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement => {
-            S51SecurityScopeHarnessScenario::missing_authenticity_requirement(schedule)
+        SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement => {
+            SecurityScopeHarnessScenario::missing_authenticity_requirement(schedule)
         }
     }
 }
 
 pub(crate) fn expected_counters_for_mutation(
-    mutation: S51SecurityScopeReplayMutationKind,
+    mutation: SecurityScopeReplayMutationKind,
 ) -> ExpectedTypedCounters {
     match mutation {
-        S51SecurityScopeReplayMutationKind::ChangedTenantScope => {
+        SecurityScopeReplayMutationKind::ChangedTenantScope => {
             ExpectedTypedCounters::wrong_tenant_scope()
         }
-        S51SecurityScopeReplayMutationKind::ChangedKeyVersionPosture => {
+        SecurityScopeReplayMutationKind::ChangedKeyVersionPosture => {
             ExpectedTypedCounters::stale_key_posture()
         }
-        S51SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement => {
+        SecurityScopeReplayMutationKind::ChangedAuthenticityRequirement => {
             ExpectedTypedCounters::missing_authenticity_requirement()
         }
     }
 }
 
 pub(crate) fn physical_replay_for_scenario(
-    scenario: S51SecurityScopeHarnessScenario,
-) -> S51SecurityScopePhysicalReplayEvidence {
+    scenario: SecurityScopeHarnessScenario,
+) -> SecurityScopePhysicalReplayEvidence {
     let binding = scenario.schedule().physical_replay_binding();
     physical_replay_for_scenario_with_binding(scenario, binding)
         .expect("Phase 10 scenario must bind to its S5 replay lane")
 }
 
 pub(crate) fn physical_replay_for_scenario_with_binding(
-    scenario: S51SecurityScopeHarnessScenario,
-    binding: S51SecurityScopePhysicalScheduleBinding,
-) -> Result<S51SecurityScopePhysicalReplayEvidence, S51SecurityScopePhysicalReplayDenial> {
+    scenario: SecurityScopeHarnessScenario,
+    binding: SecurityScopePhysicalScheduleBinding,
+) -> Result<SecurityScopePhysicalReplayEvidence, SecurityScopePhysicalReplayDenial> {
     let lane = physical_lane_for_binding(binding);
     let plan = s5_interleaving_harness_support::lower_lane(&lane);
     let replay = s5_interleaving_harness_support::replay_bundle(&plan, lane.expected_fault());
-    S51SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(replay, scenario, binding)
+    SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(replay, scenario, binding)
 }
 
 pub(crate) fn physical_replay_for_scenario_with_replay_binding(
-    scenario: S51SecurityScopeHarnessScenario,
-    scenario_binding: S51SecurityScopePhysicalScheduleBinding,
-    replay_binding: S51SecurityScopePhysicalScheduleBinding,
-) -> Result<S51SecurityScopePhysicalReplayEvidence, S51SecurityScopePhysicalReplayDenial> {
+    scenario: SecurityScopeHarnessScenario,
+    scenario_binding: SecurityScopePhysicalScheduleBinding,
+    replay_binding: SecurityScopePhysicalScheduleBinding,
+) -> Result<SecurityScopePhysicalReplayEvidence, SecurityScopePhysicalReplayDenial> {
     let lane = physical_lane_for_binding(replay_binding);
     let plan = s5_interleaving_harness_support::lower_lane(&lane);
     let replay = s5_interleaving_harness_support::replay_bundle(&plan, lane.expected_fault());
-    S51SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(
-        replay,
-        scenario,
-        scenario_binding,
-    )
+    SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(replay, scenario, scenario_binding)
 }
 
 pub(crate) fn physical_lane_for_binding(
-    binding: S51SecurityScopePhysicalScheduleBinding,
+    binding: SecurityScopePhysicalScheduleBinding,
 ) -> forge_store_certification::S5PhysicalIsolationHarnessLane {
-    forge_store_certification::s5_physical_isolation_lanes()
+    forge_store_certification::physical_isolation_lanes()
         .into_iter()
         .find(|lane| {
-            lane.name() == binding.s5_lane_name()
-                && lane.scenario().definition().family() == binding.s5_scenario_family()
+            lane.name() == binding.physical_isolation_lane_name()
+                && lane.scenario().definition().family()
+                    == binding.physical_isolation_scenario_family()
         })
         .expect("Phase 10 binding must map to an S5 physical harness lane")
 }
 
 pub(crate) fn assert_physical_binding_matches_replay(
-    physical_replay: &S51SecurityScopePhysicalReplayEvidence,
+    physical_replay: &SecurityScopePhysicalReplayEvidence,
 ) {
     let binding = physical_replay.binding();
     assert_eq!(physical_replay.scenario().schedule(), binding.schedule());
     assert_eq!(
         physical_replay.replay_bundle().plan().scenario_family(),
-        binding.s5_scenario_family()
+        binding.physical_isolation_scenario_family()
     );
     assert_eq!(
         physical_replay

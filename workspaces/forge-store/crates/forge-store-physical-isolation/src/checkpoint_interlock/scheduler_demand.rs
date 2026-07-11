@@ -1,5 +1,5 @@
-use forge_store_contracts::S6BackgroundPressureDeclaration;
+use forge_store_contracts::IoPressureBackgroundPressureDeclaration;
 
-pub const fn checkpoint_flush_scheduler_demand() -> S6BackgroundPressureDeclaration {
-    S6BackgroundPressureDeclaration::checkpoint_flush()
+pub const fn checkpoint_flush_scheduler_demand() -> IoPressureBackgroundPressureDeclaration {
+    IoPressureBackgroundPressureDeclaration::checkpoint_flush()
 }

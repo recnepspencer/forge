@@ -1,9 +1,9 @@
-use forge_store_physical_certification::S5HarnessMaturityDependencyEvidence;
-use forge_store_readiness::S5HarnessMaturityDependency;
+use forge_store_physical_certification::PhysicalIsolationHarnessMaturityDependencyEvidence;
+use forge_store_readiness::PhysicalIsolationHarnessMaturityDependency;
 
 fn main() {
-    let _evidence = S5HarnessMaturityDependencyEvidence {
-        dependency: S5HarnessMaturityDependency::MutationValidation,
+    let _evidence = PhysicalIsolationHarnessMaturityDependencyEvidence {
+        dependency: PhysicalIsolationHarnessMaturityDependency::MutationValidation,
         coverage_row_digest: [0; 32],
     };
 }
