@@ -37,7 +37,7 @@ fn schedule_with_no_admitted_yieldpoint_binding_denies_before_execution() {
 
     assert_eq!(
         denial,
-        SimulationPlanDenial::UnboundYieldpointSchedule("wal-append-before-flush".to_owned())
+        SimulationPlanDenial::UnboundYieldpointSchedule("unregistered-yieldpoint".to_owned())
     );
 }
 
@@ -269,7 +269,7 @@ fn unbound_schedule_scenario() -> forge_store_physical_certification::CertifiedP
         .actor(PhysicalScenarioActor::maintenance_reclaimer("reclaimer"))
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
         .schedule(PhysicalScenarioSchedule::named_boundary_yieldpoint(
-            "wal-append-before-flush",
+            "unregistered-yieldpoint",
         ))
         .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
         .certify_definition()

@@ -2,7 +2,7 @@ use forge_foundational::{
     FoundationalAuthoritativePerformanceClaim, FoundationalCounterBackedPerformanceReceipt,
 };
 
-use crate::foundational_boundary_performance::counter_receipt;
+use crate::courtroom::foundational::foundational_boundary_performance::counter_receipt;
 
 use super::S6CertificationEvidenceSources;
 

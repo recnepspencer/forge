@@ -1,4 +1,4 @@
-use crate::physical_integrity_closeout_harness_runner::{
+use crate::scenario::physical_integrity::physical_integrity_closeout_harness_runner::{
     run_s3_closeout_harness, s3_closeout_suite_plan_and_transcript,
 };
 use crate::{

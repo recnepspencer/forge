@@ -12,7 +12,6 @@ fn main() {
         flush_durability: Vec::new(),
         harness_closeout: todo!(),
         qualification_matrix: todo!(),
-        later_handoffs: todo!(),
         latency_interference: None,
     };
 }

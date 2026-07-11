@@ -7,7 +7,7 @@ use crate::{
         validation, with_checked_frame, with_checked_page,
     },
     courtroom::harness::test_support::s3_integrity_readiness_test_support::s3_integrity_readiness,
-    derived_index_damage_tests::inspect_with_damaged_authority,
+    courtroom::layout::derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
@@ -21,11 +21,11 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    BoundedInspectionEnvelopeEvidence, IntegrityVettedCheckpointRecord,
-    IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
-    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineSummary,
-    IntegrityHandoffAdmission, RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
-    IntegrityHandoffDenialKind, IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
+    BoundedInspectionEnvelopeEvidence, IntegrityHandoffAdmission, IntegrityHandoffDenialKind,
+    IntegrityHandoffPayload, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
+    IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
+    IntegrityVettedWalFrame, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
+    RecoveryIntegrityHandoffReceipt, S4RecoveryPhysicsIntegrityReadiness,
 };
 
 pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadiness {

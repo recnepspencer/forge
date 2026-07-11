@@ -16,31 +16,23 @@ pub use crate::authority::{
     StoreJsonResidueOccurrence, StoreJsonResidueTokenKind, StoreJsonResidueZone,
 };
 // --- evidence: substrate evidence families ---
-pub use crate::bounded_memory_closeout::{
-    BoundedMemoryCloseoutDenial, BoundedMemoryCloseoutReport,
-};
-pub use crate::bounded_memory_harness_closeout::{
-    HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
-};
-pub use crate::bounded_memory_residency_suite::{
-    BoundedMemoryOperationKind, BoundedMemoryResidencySuite, BoundedMemoryResidencySuiteDenial,
-    BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, S2BoundaryDenialKind,
-};
-pub use crate::buffer_pool_certification_bundle::{
-    BufferPoolCertificationBundle, BufferPoolCertificationBundleDenial,
-};
-pub use crate::buffer_pool_scenario_definitions::{
-    LargeStoreMemoryPressureScenario, LargeStoreScenarioDenial,
-};
-pub use crate::buffer_pool_scenario_plans::{BufferPoolScenarioPlan, BufferPoolScenarioPlanDenial};
-pub use crate::buffer_pool_transcripts::BufferPoolPressureTranscriptIdentity;
-pub use crate::canonical_basis_source_inventory::{
+pub use crate::courtroom::cross_cutting::certification_matrix::S1CertificationRow;
+pub use crate::courtroom::foundational::canonical_basis_source_inventory::{
     certify_scanned_store_canonical_basis_source_inventory,
     certify_store_canonical_basis_source_inventory, certify_store_canonical_basis_source_rows,
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
 };
-pub use crate::certification_matrix::S1CertificationRow;
+pub use crate::courtroom::memory::bounded_memory_closeout::{
+    BoundedMemoryCloseoutDenial, BoundedMemoryCloseoutReport,
+};
+pub use crate::courtroom::memory::bounded_memory_residency_suite::{
+    BoundedMemoryOperationKind, BoundedMemoryResidencySuite, BoundedMemoryResidencySuiteDenial,
+    BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, S2BoundaryDenialKind,
+};
+pub use crate::courtroom::memory::buffer_pool_certification_bundle::{
+    BufferPoolCertificationBundle, BufferPoolCertificationBundleDenial,
+};
 pub use crate::evidence::by_substrate::{
     certify_s0_handoff_gate_proof_evidence, offline_observer_requires_physical_references,
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
@@ -78,19 +70,31 @@ pub use crate::evidence::by_substrate::{
     S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial,
     SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow, ZeroCopyLayoutPostureReport,
 };
+pub use crate::scenario::memory::bounded_memory_harness_closeout::{
+    HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
+};
+pub use crate::scenario::memory::buffer_pool_scenario_definitions::{
+    LargeStoreMemoryPressureScenario, LargeStoreScenarioDenial,
+};
+pub use crate::scenario::memory::buffer_pool_scenario_plans::{
+    BufferPoolScenarioPlan, BufferPoolScenarioPlanDenial,
+};
+pub use crate::scenario::memory::buffer_pool_transcripts::BufferPoolPressureTranscriptIdentity;
 // --- closeout: milestone certification bundles and handoff evidence ---
 pub use crate::courtroom::closeout::{
     adopt_materialized_s6_certification_evidence_for_closeout,
-    assemble_s5_physical_isolation_replay_bundle, certify_s5_1_security_scope_closeout,
-    certify_native_blob_store_closeout,
-    close_s3_physical_integrity_from_executed_evidence, evaluate_blob_closeout_request,
-    materialize_s5_executed_isolation_evidence, materialize_s6_certification_evidence,
-    observe_s5_physical_isolation_trace,
+    assemble_s5_physical_isolation_replay_bundle, certify_native_blob_store_closeout,
+    certify_s5_1_security_scope_closeout, close_s3_physical_integrity_from_executed_evidence,
+    evaluate_blob_closeout_request, materialize_s5_executed_isolation_evidence,
+    materialize_s6_certification_evidence, observe_s5_physical_isolation_trace,
     s5_physical_isolation_ci_certification_context_without_lane_registration,
     s5_physical_isolation_ci_certification_planning_context,
     s5_physical_isolation_context_without_lane_registration, s5_physical_isolation_coverage_matrix,
     s5_physical_isolation_lanes, s5_physical_isolation_planning_context,
-    s5_physical_isolation_required_mutation_rows, PhysicalIntegrityCertificationBundle,
+    s5_physical_isolation_required_mutation_rows, BlobCloseoutCertificationInput,
+    BlobCloseoutDenial, BlobCloseoutEvidencePolicy, BlobCloseoutRequest,
+    BlobCloseoutShortcutAttempt, BlobCloseoutShortcutInput, BlobCloseoutShortcutRejectionReport,
+    BlobStoreCloseoutCertificate, PhysicalIntegrityCertificationBundle,
     PhysicalIntegrityCloseoutDenial, PhysicalIntegrityCloseoutReport,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence,
     PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutHandoffEvidence,
@@ -113,18 +117,14 @@ pub use crate::courtroom::closeout::{
     RecoveryPhysicsScenarioDefinitionDenial, RecoveryPhysicsScenarioDrivers,
     RecoveryPhysicsScenarioPlan, RecoveryPhysicsScenarioPlanDenial, RecoveryPhysicsShortcutAttempt,
     RecoveryPhysicsShortcutDenialBoundary, RecoveryPhysicsShortcutDenialReason,
-    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript,
-    BlobCloseoutCertificationInput, BlobCloseoutDenial, BlobCloseoutEvidencePolicy,
-    BlobCloseoutRequest, BlobCloseoutShortcutAttempt, BlobCloseoutShortcutInput,
-    BlobCloseoutShortcutRejectionReport, BlobStoreCloseoutCertificate,
-    S3AcceptanceSuiteKind, S3CloseoutDenialBoundary,
-    S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
-    S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary, S3CorruptionLocalizationBoundary,
-    S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
-    S3HarnessTranscriptEvidence, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
-    S3OwnedCloseoutFileEvidence, S3S4HandoffCloseoutEvidence, S51CertificationCloseoutDenial,
-    S51CertificationCloseoutEvidence, S51CertificationCloseoutInput,
-    S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
+    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript, S3AcceptanceSuiteKind,
+    S3CloseoutDenialBoundary, S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind,
+    S3CloseoutHarnessExecutionEvidence, S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary,
+    S3CorruptionLocalizationBoundary, S3ExecutedBoundaryDenialEvidence,
+    S3ExecutedCorruptionLocalizationEvidence, S3HarnessTranscriptEvidence,
+    S3LineCapCompositionEvidence, S3LineCapModuleEvidence, S3OwnedCloseoutFileEvidence,
+    S3S4HandoffCloseoutEvidence, S51CertificationCloseoutDenial, S51CertificationCloseoutEvidence,
+    S51CertificationCloseoutInput, S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
     S51CloseoutBoundaryEvidencePublication, S51CloseoutCounterMatrix,
     S51CloseoutFoundationalBoundaryPackage, S51CloseoutFoundationalLane,
     S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows, S5CloseoutReservationSet,
@@ -153,17 +153,17 @@ pub use crate::courtroom::closeout::s6::{
     S6CanonicalEvidenceBasis, S6CanonicalMaterializationDenial,
     S6CertificationMaterializationDenial, S6CertificationProofTrace,
     S6CertificationRuntimeAuthorityDenial, S6CertifiedQueueExecutionEvidence,
-    S6CounterStrengthDeclaration, S6CounterStrengthFamily,
-    S6FlushDurabilityEvidenceRow, S6ForegroundReservationCertificationDenial,
-    S6ForegroundReservationCertificationEvidence, S6FoundationalAuthorityBoundary,
-    S6FoundationalPerformanceReceipts, S6FoundationalProfileEvidence,
-    S6IoPressureHarnessCloseoutDenial, S6IoPressureHarnessCloseoutEvidence,
-    S6IoQosReadinessHandoffMaterializationDenial, S6LatencyInterferenceCertificationDenial,
-    S6LatencyInterferenceEvidence, S6MaterializedCertificationEvidenceBundle,
-    S6MaterializedCounterStrength, S6PostAdmissionViolationCause,
-    S6PostAdmissionViolationEvidenceRow, S6PostAdmissionViolationFamily, S6ProofProjectionArtifact,
-    S6QueueExecutionCertificationDenial, S6ReclaimPolicyEvidenceOutcomeKind,
-    S6ReclaimPolicyEvidenceRow, StoreOwnedS6CertificationMaterializationSources,
+    S6CounterStrengthDeclaration, S6CounterStrengthFamily, S6FlushDurabilityEvidenceRow,
+    S6ForegroundReservationCertificationDenial, S6ForegroundReservationCertificationEvidence,
+    S6FoundationalAuthorityBoundary, S6FoundationalPerformanceReceipts,
+    S6FoundationalProfileEvidence, S6IoPressureHarnessCloseoutDenial,
+    S6IoPressureHarnessCloseoutEvidence, S6IoQosReadinessHandoffMaterializationDenial,
+    S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
+    S6MaterializedCertificationEvidenceBundle, S6MaterializedCounterStrength,
+    S6PostAdmissionViolationCause, S6PostAdmissionViolationEvidenceRow,
+    S6PostAdmissionViolationFamily, S6ProofProjectionArtifact, S6QueueExecutionCertificationDenial,
+    S6ReclaimPolicyEvidenceOutcomeKind, S6ReclaimPolicyEvidenceRow,
+    StoreOwnedS6CertificationMaterializationSources,
 };
 // --- harness: scenario quality and oracle surfaces ---
 pub use crate::courtroom::harness::{
@@ -198,5 +198,7 @@ pub use crate::courtroom::scenario::{
     S8LayoutScenarioCertificate, ScenarioLane, StorageBoundaryCrossing, WorkloadScale,
 };
 // --- lanes: substrate lane vocabulary ---
-pub use crate::lanes::{LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily};
+pub use crate::courtroom::cross_cutting::lanes::{
+    LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily,
+};
 pub use crate::s2_acceptance_suite_transcript::S2AcceptanceSuiteKind;

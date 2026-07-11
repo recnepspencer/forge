@@ -1,4 +1,4 @@
-pub(crate) use crate::bounded_memory_closeout_pressure_support::{
+pub(crate) use crate::courtroom::memory::bounded_memory_closeout_pressure_support::{
     harness_evidence, harness_evidence_for_class, harness_evidence_without_acceptance_suite,
     pressure_bundles, synthetic_rejections,
 };

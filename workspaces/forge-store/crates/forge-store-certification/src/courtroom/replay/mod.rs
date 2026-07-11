@@ -2,31 +2,31 @@
 
 pub mod s8_layout;
 
-pub use crate::layout_observers::{
-    OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
-    PhysicalLayoutParityReport, RuntimeLayoutObserver,
-};
-pub use crate::observed_trace::{
+pub use crate::courtroom::cross_cutting::observed_trace::{
     FixtureAdversaryPosture, FixtureAdversaryReport, LargeStorePressureClass,
     ObservedPhysicalTrace, PhysicalCounterExpectationKind, RuntimeVerifierParityTrace,
     RuntimeVerifierRelationship, ScenarioCounterExpectation, ScenarioCounterObservation,
     ScenarioCounterTrace, ScenarioDenialBoundary, ScenarioDenialTrace, ShortcutRejectionTrace,
 };
-pub use crate::observer_trace::ScenarioObserverTrace;
-pub use crate::runtime_verifier_comparison::{
+pub use crate::courtroom::cross_cutting::observer_trace::ScenarioObserverTrace;
+pub use crate::courtroom::cross_cutting::runtime_verifier_comparison::{
     PhysicalRuntimeVerifierComparison, RuntimeVerifierComparisonClassification,
     RuntimeVerifierComparisonDenial, RuntimeVerifierComparisonReport,
 };
-pub use crate::runtime_verifier_diagnostics::{
+pub use crate::courtroom::cross_cutting::runtime_verifier_diagnostics::{
     RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport,
 };
-pub use crate::runtime_verifier_support::{
+pub use crate::courtroom::cross_cutting::runtime_verifier_support::{
     RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport,
 };
-pub use crate::scale_fixture::{
+pub use crate::courtroom::cross_cutting::scale_property::PhysicalScalePropertyEvidence;
+pub use crate::courtroom::layout::layout_observers::{
+    OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
+    PhysicalLayoutParityReport, RuntimeLayoutObserver,
+};
+pub use crate::scenario::cross_cutting::scale_fixture::{
     PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
 };
-pub use crate::scale_property::PhysicalScalePropertyEvidence;
-pub use crate::story_transcript::PhysicalStoryTranscript;
+pub use crate::scenario::cross_cutting::story_transcript::PhysicalStoryTranscript;
 pub use s8_layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};

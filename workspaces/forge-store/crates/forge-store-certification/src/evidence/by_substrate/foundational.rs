@@ -1,13 +1,13 @@
 //! Foundational substrate evidence re-exports.
 
-pub use crate::foundational_boundary_evidence::{
+pub use crate::evidence::foundational::foundational_boundary_evidence::{
     AllocationEnvelopePerformanceReceipt, BufferPoolProvenanceAttachment,
     CompletedResidencyBoundaryReceipt, CopyMaterializationPerformanceReceipt,
     FoundationalBoundaryAuthorityResult, FoundationalBoundaryEvidenceDenial,
     FoundationalEvidenceProfile, FoundationalEvidenceRichness, MaterializationProfileReport,
     ResidentMemoryPerformanceReceipt, ZeroCopyLayoutPostureReport,
 };
-pub use crate::physical_foundation_evidence::{
+pub use crate::evidence::physical_integrity::physical_foundation_evidence::{
     PhysicalFoundationEvidenceBundle, PhysicalFoundationEvidenceBundleBuilder,
     PhysicalFoundationEvidenceDenial, PhysicalFoundationEvidenceEntry,
     PhysicalFoundationEvidenceIdentity,

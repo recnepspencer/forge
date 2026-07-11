@@ -15,8 +15,8 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    IntegrityVettedWalFrame, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
-    RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenialKind,
+    IntegrityHandoffDenialKind, IntegrityVettedWalFrame, QuarantineSummary,
+    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
 };
 
 #[test]

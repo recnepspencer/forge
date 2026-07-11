@@ -13,8 +13,8 @@ use forge_store_buffer_pool::{
     AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest,
     BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
 };
-use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_contracts::PhysicalAuthorityRecap;
+use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_recovery_physics::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope, RecoveryEntryAdmission,
     RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryReplayEntryGate,

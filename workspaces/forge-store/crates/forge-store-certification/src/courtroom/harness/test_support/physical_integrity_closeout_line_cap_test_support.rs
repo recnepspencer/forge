@@ -1,4 +1,5 @@
 use crate::{
+    courtroom::source_tree::{certification_source, store_crate_source},
     S3CloseoutModuleKind, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
     S3OwnedCloseoutFileEvidence,
 };
@@ -17,42 +18,42 @@ pub(crate) fn line_cap_module_evidence() -> Vec<S3LineCapModuleEvidence> {
     vec![
         checked_module(
             S3CloseoutModuleKind::Checksum,
-            physical_integrity("checksum_algorithm.rs"),
+            physical_integrity("checksums/checksum_algorithm.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::Scrub,
-            physical_integrity("scrub_execution.rs"),
+            physical_integrity("scrub/scrub_execution.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::Quarantine,
-            physical_integrity("quarantine_authority.rs"),
+            physical_integrity("quarantine/quarantine_authority.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::Evidence,
-            certification("physical_integrity_closeout_proof.rs"),
+            certification_courtroom("physical_integrity_closeout_proof.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::Handoff,
-            recovery_physics("integrity_handoff.rs"),
+            recovery_physics("integrity_handoff/mod.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::CloseoutSuite,
-            certification("physical_integrity_closeout_suite.rs"),
+            certification_courtroom("physical_integrity_closeout_suite.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::CloseoutReport,
-            certification("physical_integrity_closeout_report.rs"),
+            certification_courtroom("physical_integrity_closeout_report.rs"),
             cap,
         ),
         checked_module(
             S3CloseoutModuleKind::CloseoutTest,
-            certification("physical_integrity_closeout_tests.rs"),
+            certification_courtroom("physical_integrity_closeout_tests.rs"),
             cap,
         ),
     ]
@@ -60,8 +61,9 @@ pub(crate) fn line_cap_module_evidence() -> Vec<S3LineCapModuleEvidence> {
 
 pub(crate) fn s3_owned_closeout_file_evidence() -> Vec<S3OwnedCloseoutFileEvidence> {
     let cap = 400;
-    fs::read_dir(certification_src())
-        .unwrap()
+    [certification_courtroom_dir(), certification_scenario_dir()]
+        .into_iter()
+        .flat_map(|directory| fs::read_dir(directory).unwrap())
         .map(|entry| entry.unwrap().path())
         .filter(|path| {
             path.file_name()
@@ -98,26 +100,22 @@ fn line_count(path: PathBuf) -> u32 {
         .unwrap()
 }
 
-fn certification(file: &str) -> PathBuf {
-    certification_src().join(file)
+fn certification_courtroom(file: &str) -> PathBuf {
+    certification_courtroom_dir().join(file)
 }
 
-fn certification_src() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
+fn certification_courtroom_dir() -> PathBuf {
+    certification_source("courtroom/physical_integrity")
+}
+
+fn certification_scenario_dir() -> PathBuf {
+    certification_source("scenario/physical_integrity")
 }
 
 fn physical_integrity(file: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("forge-store-physical-integrity")
-        .join("src")
-        .join(file)
+    store_crate_source("forge-store-physical-integrity").join(file)
 }
 
 fn recovery_physics(file: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("forge-store-recovery-physics")
-        .join("src")
-        .join(file)
+    store_crate_source("forge-store-recovery-physics").join(file)
 }

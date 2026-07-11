@@ -5,7 +5,7 @@ use super::support::{
 };
 use forge_store_buffer_pool::{BackgroundEnvelopeAdmission, BackgroundWorkClass};
 use forge_store_recovery_physics::{
-    RecoveryEntryAdmission, RecoveryEntryAdmissionDecision, IntegrityHandoffPayload,
+    IntegrityHandoffPayload, RecoveryEntryAdmission, RecoveryEntryAdmissionDecision,
 };
 
 #[test]

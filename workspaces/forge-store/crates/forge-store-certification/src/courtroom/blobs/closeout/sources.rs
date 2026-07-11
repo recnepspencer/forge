@@ -1,5 +1,6 @@
 use forge_store_blob_chunks::S7ExecutedLifecycleEvidenceBundle;
 
+use super::{BlobCloseoutProofSummary, BlobCloseoutProofTopology, BlobCloseoutSourceDenial};
 #[cfg(any(test, feature = "certification-test-support"))]
 use forge_store_physical_certification::{
     blob_harness_replay_artifacts_for_certification, BlobHarnessScenarioSeed,
@@ -8,7 +9,6 @@ use forge_store_physical_certification::{
     OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalProofOracleKind,
     SimulationReplayBundle,
 };
-use super::{BlobCloseoutProofSummary, BlobCloseoutProofTopology, BlobCloseoutSourceDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobCloseoutSources {
@@ -22,10 +22,7 @@ pub fn blob_harness_closeout_sources_for_certification(
     seed: BlobHarnessScenarioSeed,
 ) -> Result<BlobCloseoutSources, BlobCloseoutSourceDenial> {
     let artifacts = blob_harness_replay_artifacts_for_certification(seed);
-    BlobCloseoutSources::from_replay_and_lifecycle(
-        artifacts.replay,
-        artifacts.lifecycle_evidence,
-    )
+    BlobCloseoutSources::from_replay_and_lifecycle(artifacts.replay, artifacts.lifecycle_evidence)
 }
 
 impl BlobCloseoutSources {

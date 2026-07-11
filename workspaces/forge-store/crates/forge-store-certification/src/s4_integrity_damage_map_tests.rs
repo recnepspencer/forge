@@ -2,7 +2,7 @@ use crate::{
     courtroom::harness::test_support::physical_scope_admission_test_support::{
         root_with_slot, scope_membership, validation, with_checked_frame,
     },
-    derived_index_damage_tests::inspect_with_damaged_authority,
+    courtroom::layout::derived_index_damage_tests::inspect_with_damaged_authority,
 };
 use forge_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
@@ -14,7 +14,7 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, IntegrityHandoffDenialKind,
+    IntegrityDamageMap, IntegrityHandoffDenialKind, RecoveryBlockedByIntegrityDamage,
 };
 
 #[test]

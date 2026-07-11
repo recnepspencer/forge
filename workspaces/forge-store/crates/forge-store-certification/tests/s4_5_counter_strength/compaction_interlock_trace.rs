@@ -38,8 +38,7 @@ pub(crate) fn publication_only_compaction_observation() -> CompactionInterlockOb
 }
 
 fn compaction_interlock_evidence() -> CompactionInterlockFoundationalEvidence {
-    let old_authority = physical_authority_from_complete_closeout();
-    let new_authority = physical_authority_from_operation_digest_closeout();
+    let (old_authority, new_authority) = ordered_compaction_authorities();
     let old_root = current_root_from_authority(&old_authority);
     let new_root = current_root_from_authority(&new_authority);
     let protected_reference = current_generation_page_reference(901);
@@ -124,8 +123,7 @@ fn compaction_interlock_evidence() -> CompactionInterlockFoundationalEvidence {
 }
 
 fn publication_only_evidence() -> CompactionInterlockFoundationalEvidence {
-    let old_authority = physical_authority_from_complete_closeout();
-    let new_authority = physical_authority_from_operation_digest_closeout();
+    let (old_authority, new_authority) = ordered_compaction_authorities();
     let old_root = current_root_from_authority(&old_authority);
     let new_root = current_root_from_authority(&new_authority);
     let protected_reference = current_generation_page_reference(901);
@@ -285,11 +283,28 @@ fn physical_authority_from_complete_closeout(
     physical_authority_from_completion(closeout_fixture::recovery_completion())
 }
 
-fn physical_authority_from_operation_digest_closeout(
-) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(
-        closeout_fixture::recovery_completion_with_operation_digest("s5-phase8-counter-trace"),
-    )
+fn ordered_compaction_authorities() -> (
+    forge_store_physical_isolation::PhysicalReadStabilityAuthority,
+    forge_store_physical_isolation::PhysicalReadStabilityAuthority,
+) {
+    let current = physical_authority_from_complete_closeout();
+    let current_root = current_root_from_authority(&current);
+
+    for ordinal in 0..256 {
+        let successor = physical_authority_from_completion(
+            closeout_fixture::recovery_completion_with_operation_digest(&format!(
+                "s5-compaction-successor-{ordinal}"
+            )),
+        );
+        let successor_root = current_root_from_authority(&successor);
+        if successor_root.epoch().get() > current_root.epoch().get()
+            && successor_root.manifest_epoch().get() > current_root.manifest_epoch().get()
+        {
+            return (current, successor);
+        }
+    }
+
+    panic!("failed to derive a compaction successor with an advancing epoch vector")
 }
 
 fn physical_authority_from_completion(

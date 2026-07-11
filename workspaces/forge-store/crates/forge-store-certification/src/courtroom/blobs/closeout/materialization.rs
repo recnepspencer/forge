@@ -1,7 +1,7 @@
+use super::{BlobCloseoutProofSummary, BlobCloseoutSources};
 use forge_store_physical_certification::{
     FoundationalPhysicalCertificationEvidenceBundle, PhysicalCertificationEvidenceBundle,
 };
-use super::{BlobCloseoutProofSummary, BlobCloseoutSources};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobCloseoutEvidenceBundle {

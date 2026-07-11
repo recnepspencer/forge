@@ -1,5 +1,6 @@
 use super::{
-    denial::shortcut_rejection, BlobCloseoutCertificationInput, BlobCloseoutDenial, BlobCloseoutRequest,
+    denial::shortcut_rejection, BlobCloseoutCertificationInput, BlobCloseoutDenial,
+    BlobCloseoutRequest,
 };
 
 #[derive(Debug)]

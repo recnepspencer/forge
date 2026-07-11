@@ -14,19 +14,11 @@ pub struct BlobCloseoutCertificationInput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobCloseoutShortcutInput {
     CopiedReceipt,
-    CopiedChunkRows {
-        row_count: usize,
-    },
-    CopiedProofId {
-        proof_id: String,
-    },
-    S5FutureChunkPlaceholderOnly {
-        label: String,
-    },
+    CopiedChunkRows { row_count: usize },
+    CopiedProofId { proof_id: String },
+    S5FutureChunkPlaceholderOnly { label: String },
     TerminalProjectionOnly,
-    RawCountersOnly {
-        row_count: usize,
-    },
+    RawCountersOnly { row_count: usize },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

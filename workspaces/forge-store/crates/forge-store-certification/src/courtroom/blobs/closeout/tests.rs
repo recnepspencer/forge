@@ -16,7 +16,10 @@ fn blob_closeout_binds_executed_harness_evidence() {
     ))
     .unwrap();
 
-    assert!(closeout.materialized_evidence().proof_summary().checked_execution());
+    assert!(closeout
+        .materialized_evidence()
+        .proof_summary()
+        .checked_execution());
     assert!(!closeout.binding_tag().is_empty());
     assert!(closeout.declared_chunk_count() > 0);
 }

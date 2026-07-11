@@ -15,7 +15,7 @@ fn s45_entry_boundary_fixtures() -> Vec<S45EntryBoundaryFixture> {
     vec![
         S45EntryBoundaryFixture {
             name: "copied_report_cannot_enter.rs",
-            expected_stderr: &["RecoveryPhysicsCertificationBundle", "&str"],
+            expected_stderr: &["BoundedRecoveryReceipt", "&str"],
         },
         S45EntryBoundaryFixture {
             name: "raw_inventory_surface_cannot_be_minted.rs",

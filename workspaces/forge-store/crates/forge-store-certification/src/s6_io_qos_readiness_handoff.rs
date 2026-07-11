@@ -15,7 +15,8 @@ pub(crate) fn verify_executed_closeout_handoff_admissible(
     let readiness = publish_scheduler_isolation_capability_from_executed_evidence(closeout)
         .map_err(S6IoQosReadinessHandoffMaterializationDenial::S6)?;
     if readiness.unsupported_qos_claims().iter().any(|claim| {
-        forge_store_physical_isolation::reject_unsupported_qos_claim_as_isolation_readiness(*claim).is_ok()
+        forge_store_physical_isolation::reject_unsupported_qos_claim_as_isolation_readiness(*claim)
+            .is_ok()
     }) {
         return Err(S6IoQosReadinessHandoffMaterializationDenial::S6(
             IsolationReadinessDenial::UnsupportedQoSClaimRequested(

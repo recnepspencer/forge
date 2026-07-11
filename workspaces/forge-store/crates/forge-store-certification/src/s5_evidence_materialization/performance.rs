@@ -1,7 +1,7 @@
 use forge_foundational::FoundationalAuthoritativePerformanceClaim;
 use forge_foundational::FoundationalCounterBackedPerformanceReceipt;
 
-use crate::foundational_boundary_performance::counter_receipt;
+use crate::courtroom::foundational::foundational_boundary_performance::counter_receipt;
 
 use super::{S5ExecutedIsolationFinding, S5ExecutedIsolationRequiredCounters};
 

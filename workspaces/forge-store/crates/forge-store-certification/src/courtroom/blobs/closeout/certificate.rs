@@ -1,5 +1,5 @@
+use super::{verifier::VerifiedBlobCloseoutRequest, BlobCloseoutEvidenceBundle};
 use forge_store_blob_chunks::{BlobObjectId, ChunkTreeRoot};
-use super::{BlobCloseoutEvidenceBundle, verifier::VerifiedBlobCloseoutRequest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobStoreCloseoutCertificate {

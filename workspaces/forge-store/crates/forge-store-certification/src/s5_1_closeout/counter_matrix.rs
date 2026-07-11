@@ -93,11 +93,7 @@ impl S51CloseoutCounterMatrix {
         let scope_counters = input.security_scope().receipt().counters();
         matrix.handoff_attempts = scope_counters.requests();
         matrix.handoff_admitted = scope_counters.witnesses_issued();
-        expect(
-            "s5_1.closeout.handoff.denied",
-            0,
-            scope_counters.denials(),
-        )?;
+        expect("s5_1.closeout.handoff.denied", 0, scope_counters.denials())?;
         expect(
             "s5_1.closeout.handoff.unsupported",
             0,

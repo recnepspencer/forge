@@ -6,19 +6,24 @@ mod materialization;
 mod proof;
 mod source_denial;
 mod sources;
-mod verifier;
 #[cfg(test)]
 mod tests;
+mod verifier;
 
 pub use certificate::BlobStoreCloseoutCertificate;
-pub use denial::{BlobCloseoutDenial, BlobCloseoutShortcutAttempt, BlobCloseoutShortcutRejectionReport};
-pub use input::{BlobCloseoutCertificationInput, BlobCloseoutEvidencePolicy, BlobCloseoutRequest, BlobCloseoutShortcutInput};
+pub use denial::{
+    BlobCloseoutDenial, BlobCloseoutShortcutAttempt, BlobCloseoutShortcutRejectionReport,
+};
+pub use input::{
+    BlobCloseoutCertificationInput, BlobCloseoutEvidencePolicy, BlobCloseoutRequest,
+    BlobCloseoutShortcutInput,
+};
 pub use materialization::{materialize_blob_closeout_evidence, BlobCloseoutEvidenceBundle};
 pub use proof::{BlobCloseoutProofSummary, BlobCloseoutProofTopology};
 pub use source_denial::BlobCloseoutSourceDenial;
-pub use sources::BlobCloseoutSources;
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use sources::blob_harness_closeout_sources_for_certification;
+pub use sources::BlobCloseoutSources;
 
 use certificate::build_closeout_certificate;
 use classifier::classify_blob_closeout_request;

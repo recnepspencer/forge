@@ -17,10 +17,12 @@ use super::{
     },
 };
 use crate::{
-    chunk_integrity_without_blob_lifecycle_tests::inspect_chunk_denial,
-    derived_index_damage_tests::{damaged_authority_denial, inspect_with_damaged_authority},
-    scrub_execution_tests::resident_memory_over_budget_scrub_denial,
-    wal_frame_integrity_tests::{inspect_denial, wal_payload},
+    courtroom::blobs::chunk_integrity_without_blob_lifecycle_tests::inspect_chunk_denial,
+    courtroom::durability::wal_frame_integrity_tests::{inspect_denial, wal_payload},
+    courtroom::layout::derived_index_damage_tests::{
+        damaged_authority_denial, inspect_with_damaged_authority,
+    },
+    courtroom::physical_integrity::scrub_execution_tests::resident_memory_over_budget_scrub_denial,
     BoundedMemoryCloseoutReport, BoundedMemoryResidencySuite, BufferPoolCertificationBundle,
     PhysicalIntegrityCloseoutSuite, PhysicalIntegrityCloseoutSuiteEvidence, S2BoundaryDenialKind,
     S3AcceptanceSuiteKind, S3CloseoutHarnessExecutionEvidence, S3ExecutedBoundaryDenialEvidence,

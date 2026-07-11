@@ -253,8 +253,8 @@ fn publication_inputs() -> PublicationInputs {
 
 fn publication_inputs_for_new_digest(digest: &str) -> PublicationInputs {
     let old_authority = physical_authority_from_complete_closeout();
-    let new_authority = physical_authority_from_operation_digest_closeout_with_digest(digest);
     let old_root = current_root_from_authority(&old_authority);
+    let new_authority = advancing_authority_for_digest(old_root, digest);
     let new_root = current_root_from_authority(&new_authority);
     let old_validation = root_publication_validation(old_root.scope(), 1);
     let new_validation = root_publication_validation(new_root.scope(), 2);
@@ -280,6 +280,25 @@ fn publication_inputs_for_new_digest(digest: &str) -> PublicationInputs {
         old_reachability,
         new_validation,
     }
+}
+
+fn advancing_authority_for_digest(
+    current_root: CurrentPhysicalRoot,
+    digest: &str,
+) -> PhysicalReadStabilityAuthority {
+    for ordinal in 0..256 {
+        let candidate = physical_authority_from_operation_digest_closeout_with_digest(&format!(
+            "{digest}-{ordinal}"
+        ));
+        let candidate_root = current_root_from_authority(&candidate);
+        if candidate_root.epoch().get() > current_root.epoch().get()
+            && candidate_root.manifest_epoch().get() > current_root.manifest_epoch().get()
+        {
+            return candidate;
+        }
+    }
+
+    panic!("failed to derive a compaction successor with an advancing epoch vector")
 }
 
 fn publish_copy_on_write(
@@ -331,10 +350,6 @@ fn execute_read(
 
 fn physical_authority_from_complete_closeout() -> PhysicalReadStabilityAuthority {
     physical_authority_from_completion(closeout_fixture::recovery_completion())
-}
-
-fn physical_authority_from_operation_digest_closeout() -> PhysicalReadStabilityAuthority {
-    physical_authority_from_operation_digest_closeout_with_digest("phase8-compaction-mutant")
 }
 
 fn physical_authority_from_operation_digest_closeout_with_digest(

@@ -5,14 +5,16 @@ use forge_foundational::{
     FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
     FoundationalPerformanceWorkClass,
 };
-use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
+use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_security_scope_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
-    admit_background_pacing, admit_store_published_isolation_capability,
+    admit_background_pacing, admit_security_scope_for_scheduler,
+    admit_secure_io_scope_for_scheduler, admit_store_published_isolation_capability,
     BackgroundCapacityAdmissionRequest, BackgroundDebtKind, BackgroundIdleCapacityLeaseRequest,
     BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundPacingProgressionDrift,
     BackgroundPacingProgressionEvidence, BackgroundResourceBudget,
-    IoSchedulerBackendCapabilityRequirement, QueueSlot,
+    IoSchedulerBackendCapabilityRequirement, QueueSlot, SecureIoOperation,
+    SecureIoPreservationRequest,
 };
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
@@ -20,6 +22,7 @@ use forge_store_physical_backend::{
     PhysicalBackendCapabilityAdmissionAuthority,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
+use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
     certify_s6_background_pacing, S6BackgroundPacingCertificationDenial,
@@ -235,11 +238,20 @@ fn request_with(
     debt_limit: BackgroundResourceBudget,
     progression: BackgroundPacingProgressionEvidence,
 ) -> BackgroundIdleCapacityLeaseRequest {
+    let security = Box::leak(Box::new(s6_security_scope_admission()));
     let foreground = Box::leak(Box::new(
-        admitted_point_read_reservation_for_certification_test(),
+        admitted_point_read_reservation_for_security_scope_for_certification_test(
+            security.permission().identity(),
+        ),
     ));
     let backend = Box::leak(Box::new(backend_admission()));
     let readiness = Box::leak(Box::new(s6_readiness()));
+    let secure_io = admit_secure_io_scope_for_scheduler(SecureIoPreservationRequest::new(
+        SecureIoOperation::RepairScan,
+        security,
+        backend,
+    ))
+    .expect("repair pressure secure I/O should admit");
     let capacity = admit_background_capacity(
         BackgroundCapacityAdmissionRequest::new(
             pressure,
@@ -251,7 +263,8 @@ fn request_with(
         .with_idle_available(idle_available)
         .with_policy_admitted(policy_admitted)
         .with_debt_limit(debt_limit)
-        .with_progression_evidence(progression),
+        .with_progression_evidence(progression)
+        .with_secure_io_scope(secure_io),
     )
     .expect("background capacity should admit");
     BackgroundIdleCapacityLeaseRequest::new(capacity)
@@ -338,6 +351,12 @@ fn s6_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
         .expect("S.5 closeout should publish S.6 readiness");
     admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit readiness")
+}
+
+fn s6_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
+    let security_scope = admitted_store_internal_security_scope_for_s6_test();
+    admit_security_scope_for_scheduler(&security_scope)
+        .expect("Store security scope should admit for scheduler use")
 }
 
 fn policy_receipt(

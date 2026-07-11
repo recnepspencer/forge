@@ -58,27 +58,35 @@ pub(crate) fn shortcut_rejection(
             BlobCloseoutShortcutAttempt::CopiedReceipt,
             "copied receipts cannot mint blob closeout",
         ),
-        BlobCloseoutShortcutInput::CopiedChunkRows { .. } => BlobCloseoutShortcutRejectionReport::new(
-            BlobCloseoutShortcutAttempt::CopiedChunkRows,
-            "copied chunk rows cannot mint blob closeout",
-        ),
-        BlobCloseoutShortcutInput::CopiedProofId { .. } => BlobCloseoutShortcutRejectionReport::new(
-            BlobCloseoutShortcutAttempt::CopiedProofId,
-            "copied proof ids cannot mint blob closeout",
-        ),
+        BlobCloseoutShortcutInput::CopiedChunkRows { .. } => {
+            BlobCloseoutShortcutRejectionReport::new(
+                BlobCloseoutShortcutAttempt::CopiedChunkRows,
+                "copied chunk rows cannot mint blob closeout",
+            )
+        }
+        BlobCloseoutShortcutInput::CopiedProofId { .. } => {
+            BlobCloseoutShortcutRejectionReport::new(
+                BlobCloseoutShortcutAttempt::CopiedProofId,
+                "copied proof ids cannot mint blob closeout",
+            )
+        }
         BlobCloseoutShortcutInput::S5FutureChunkPlaceholderOnly { .. } => {
             BlobCloseoutShortcutRejectionReport::new(
                 BlobCloseoutShortcutAttempt::S5FutureChunkPlaceholderOnly,
                 "future chunk placeholders alone cannot mint blob closeout",
             )
         }
-        BlobCloseoutShortcutInput::TerminalProjectionOnly => BlobCloseoutShortcutRejectionReport::new(
-            BlobCloseoutShortcutAttempt::TerminalProjectionOnly,
-            "terminal projections cannot mint blob closeout",
-        ),
-        BlobCloseoutShortcutInput::RawCountersOnly { .. } => BlobCloseoutShortcutRejectionReport::new(
-            BlobCloseoutShortcutAttempt::RawCountersOnly,
-            "raw counters cannot mint blob closeout",
-        ),
+        BlobCloseoutShortcutInput::TerminalProjectionOnly => {
+            BlobCloseoutShortcutRejectionReport::new(
+                BlobCloseoutShortcutAttempt::TerminalProjectionOnly,
+                "terminal projections cannot mint blob closeout",
+            )
+        }
+        BlobCloseoutShortcutInput::RawCountersOnly { .. } => {
+            BlobCloseoutShortcutRejectionReport::new(
+                BlobCloseoutShortcutAttempt::RawCountersOnly,
+                "raw counters cannot mint blob closeout",
+            )
+        }
     }
 }
