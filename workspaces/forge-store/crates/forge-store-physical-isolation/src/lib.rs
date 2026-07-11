@@ -226,8 +226,8 @@ pub use root_protocol::{
     RecoveryRootBasis, RootKindMismatchDenial,
 };
 pub use security_scope_propagation::{
-    preserve_s6_secure_io_stable_read_scope, LogicalDecodeSecurityScopeEntry,
-    S6SecureIoStableReadDenial, S6SecureIoStableReadPreservation, StableReadObservedSecurityScope,
+    preserve_secure_io_stable_read_scope, LogicalDecodeSecurityScopeEntry,
+    SecureIoStableReadDenial, SecureIoStableReadPreservation, StableReadObservedSecurityScope,
     StableReadSecurityScopeCarrierBasis, StableReadSecurityScopePropagation,
     StableReadSecurityScopePropagationCounters, StableReadSecurityScopePropagationDenial,
     StableReadSecurityScopePropagationInput,
