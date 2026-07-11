@@ -1,18 +1,10 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use super::grammar::PhysicalLayoutAccessFamily;
-use super::page_family::locate_page_record;
+use super::page::locate_page_record;
 use crate::{
     FramedRecordView, PhysicalReference, PhysicalReferenceAuthority, PlatformPhysicalFacade,
     PlatformPhysicalFacadeDenial,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FrameLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FrameLayoutFamilyAdmission {
-    family: PhysicalLayoutAccessFamily,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalFrameLayoutReport<'a> {
@@ -21,42 +13,15 @@ pub struct PhysicalFrameLayoutReport<'a> {
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl FrameLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<FrameLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(FrameLayoutFamilyAdmission {
-            family: PhysicalLayoutAccessFamily::Frame,
-        })
-    }
-}
-
-impl FrameLayoutFamilyAdmission {
-    pub const fn family(self) -> PhysicalLayoutAccessFamily {
-        self.family
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedFrameLayoutFamily<'a> {
+pub struct FrameAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    admission: FrameLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedFrameLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: FrameLayoutFamilyAdmission,
-    ) -> Self {
-        Self { facade, admission }
+impl<'a> FrameAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
-
-    pub const fn family(&self) -> PhysicalLayoutAccessFamily {
-        self.admission.family()
-    }
-
     pub fn read_frame(
         &mut self,
         reference: PhysicalReference,

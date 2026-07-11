@@ -1,16 +1,10 @@
-use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::PhysicalLayoutAccessFamily;
-use super::root_discovery_family::canonical_root_manifest;
+use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
+use crate::access::grammar::PhysicalLayoutAccessFamily;
+use crate::access::manifest::root_discovery::canonical_root_manifest;
 use crate::{
     PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy, PlatformPhysicalFacade,
     PlatformPhysicalFacadeDenial,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FragmentationLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FragmentationLayoutFamilyAdmission;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FragmentationLayoutReport {
@@ -18,33 +12,14 @@ pub struct FragmentationLayoutReport {
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl FragmentationLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        &self,
-    ) -> Result<FragmentationLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(FragmentationLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedFragmentationLayoutFamily<'a> {
+pub struct FragmentationAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: FragmentationLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedFragmentationLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: FragmentationLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> FragmentationAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn pressure(

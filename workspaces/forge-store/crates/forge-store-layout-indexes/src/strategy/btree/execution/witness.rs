@@ -27,7 +27,7 @@ impl BaselineBTreeExecutionWitness {
         replay_artifact: PlatformPhysicalReplayArtifact,
     ) -> Result<Self, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(readiness.clone(), &replay_artifact)?;
-        let mut page_access = facade.page_layout()?;
+        let mut page_access = facade.page_access();
         let root = page_access.read_record(root_reference)?;
         decode_root_record(root.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
@@ -81,7 +81,7 @@ impl BaselineBTreeExecutionWitness {
         shape: BaselineBTreeReadShape,
     ) -> Result<BaselineBTreeLookupExecution, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
-        let mut root_access = facade.page_layout()?;
+        let mut root_access = facade.page_access();
         let root = root_access.read_record(self.root_reference)?;
         let node = decode_root_record(root.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
@@ -94,8 +94,8 @@ impl BaselineBTreeExecutionWitness {
         let selected_reference = PhysicalReferenceAuthority::s1()
             .admit_page_slot(selected_cell)
             .reference();
-        facade.page_layout()?.locate_record(selected_reference)?;
-        let mut leaf_access = facade.page_layout()?;
+        facade.page_access().locate_record(selected_reference)?;
+        let mut leaf_access = facade.page_access();
         let selected_leaf = leaf_access.read_record(selected_reference)?;
         let leaf = decode_leaf_record(selected_leaf.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidLeafNode)?;
@@ -161,7 +161,7 @@ impl BaselineBTreeExecutionWitness {
         plan_binding: S8PreExecutionPlanBinding,
     ) -> Result<BaselineBTreeReplayRecoveryExecution, BaselineBTreeExecutionDenial> {
         let mut facade = reopen_facade(self.readiness.clone(), &self.replay_artifact)?;
-        let mut root_access = facade.page_layout()?;
+        let mut root_access = facade.page_access();
         let root = root_access.read_record(self.root_reference)?;
         let node = decode_root_record(root.record_view().payload().as_bytes())
             .ok_or(BaselineBTreeExecutionDenial::InvalidRootNode)?;
@@ -232,7 +232,7 @@ fn read_leaf(
     let reference = PhysicalReferenceAuthority::s1()
         .admit_page_slot(cell)
         .reference();
-    let mut page_access = facade.page_layout()?;
+    let mut page_access = facade.page_access();
     let leaf = page_access.read_record(reference)?;
     decode_leaf_record(leaf.record_view().payload().as_bytes())
         .ok_or(BaselineBTreeExecutionDenial::InvalidLeafNode)

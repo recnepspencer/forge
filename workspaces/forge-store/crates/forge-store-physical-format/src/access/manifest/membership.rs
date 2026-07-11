@@ -1,6 +1,6 @@
-use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::PhysicalLayoutAccessFamily;
-use super::root_discovery_family::canonical_root_manifest;
+use super::root_discovery::canonical_root_manifest;
+use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
+use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     ManifestDiscoveryAuthority, PhysicalReference, PhysicalReferenceAdmissionWitness,
     PhysicalReferenceAuthority, PhysicalReferenceKind, PlatformPhysicalFacade,
@@ -8,42 +8,19 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ManifestLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ManifestLayoutFamilyAdmission;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ManifestMembershipLayoutReport {
     reference: PhysicalReference,
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl ManifestLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<ManifestLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(ManifestLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedManifestLayoutFamily<'a> {
+pub struct ManifestAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: ManifestLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedManifestLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: ManifestLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> ManifestAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn validate_membership(

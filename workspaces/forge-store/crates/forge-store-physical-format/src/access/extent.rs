@@ -5,37 +5,14 @@ use crate::{
     PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExtentLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExtentLayoutFamilyAdmission;
-
-impl ExtentLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<ExtentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(ExtentLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedExtentLayoutFamily<'a> {
+pub struct ExtentAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: ExtentLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedExtentLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: ExtentLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> ExtentAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn locate_record(
@@ -69,11 +46,11 @@ impl<'a> AdmittedExtentLayoutFamily<'a> {
     pub fn access_counters(
         report: ExtentRecordLocateReport<'_>,
     ) -> PhysicalLayoutAccessCounterSnapshot {
-        extent_layout_access_counters(report)
+        extent_access_counters(report)
     }
 }
 
-pub fn extent_layout_access_counters(
+pub fn extent_access_counters(
     report: ExtentRecordLocateReport<'_>,
 ) -> PhysicalLayoutAccessCounterSnapshot {
     let counters = report.counters();
@@ -91,7 +68,7 @@ pub(crate) fn locate_extent_record<'a>(
     reference: PhysicalReference,
 ) -> Result<ExtentRecordLocateReport<'a>, PlatformPhysicalFacadeDenial> {
     let extent = storage.extent_for_reference(reference)?;
-    let extent_cell = super::record_family::extent_cell_from_reference(reference)?;
+    let extent_cell = super::reference::extent_cell_from_reference(reference)?;
     let admission = references.admit_extent(extent_cell);
     let validation = references
         .validate_extent(admission, extent_cell)

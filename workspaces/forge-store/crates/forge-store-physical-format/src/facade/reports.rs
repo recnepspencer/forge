@@ -1,5 +1,5 @@
 use crate::{
-    layout_access::counters::PhysicalLayoutAccessCounterSnapshot, ExtentBackedRecordView,
+    access::counters::PhysicalLayoutAccessCounterSnapshot, ExtentBackedRecordView,
     ManifestTraversalReport, MinimalManifestVerifierReport, PersistedPhysicalLayout,
     PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness, PhysicalHeaderAuthority,
     PhysicalReference, PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeEvidence,

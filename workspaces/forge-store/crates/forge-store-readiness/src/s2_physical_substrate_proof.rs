@@ -70,13 +70,11 @@ fn prove_s1_physical_handoff_evidence(
         ))
         .map_err(|_| proof_rejected())?;
     facade
-        .page_layout()
-        .map_err(|_| proof_rejected())?
+        .page_access()
         .locate_record(page_append.reference())
         .map_err(|_| proof_rejected())?;
     facade
-        .extent_layout()
-        .map_err(|_| proof_rejected())?
+        .extent_access()
         .read_record(extent_append.reference())
         .map_err(|_| proof_rejected())?;
     let published = facade
@@ -92,8 +90,7 @@ fn prove_s1_physical_handoff_evidence(
     )
     .map_err(|_| proof_rejected())?;
     reopened
-        .page_layout()
-        .map_err(|_| proof_rejected())?
+        .page_access()
         .locate_record(page_append.reference())
         .map_err(|_| proof_rejected())?;
     let shortcut_counters = rejected_shortcut_counters(&mut facade)?;

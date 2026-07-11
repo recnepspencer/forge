@@ -1,13 +1,7 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
 use super::grammar::PhysicalLayoutAccessFamily;
-use super::root_discovery_family::canonical_root_manifest;
+use super::manifest::root_discovery::canonical_root_manifest;
 use crate::{AllocationClassKind, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AllocationLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AllocationLayoutFamilyAdmission;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AllocationLayoutReport {
@@ -15,31 +9,14 @@ pub struct AllocationLayoutReport {
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl AllocationLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<AllocationLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(AllocationLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedAllocationLayoutFamily<'a> {
+pub struct AllocationAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: AllocationLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedAllocationLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: AllocationLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> AllocationAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn allocation_classes(

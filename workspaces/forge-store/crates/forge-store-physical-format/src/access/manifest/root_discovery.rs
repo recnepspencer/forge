@@ -1,5 +1,5 @@
-use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::PhysicalLayoutAccessFamily;
+use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
+use crate::access::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot, ManifestDiscoveryReport,
     OfflineManifestCodec, OfflineVerifierCounterSnapshot, PhysicalBootstrapCatalogDenial,
@@ -7,12 +7,6 @@ use crate::{
     PhysicalRootReference, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
     PlatformPhysicalFacadeDenialKind,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RootDiscoveryLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RootDiscoveryLayoutFamilyAdmission;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RootManifestLayoutReport {
@@ -26,39 +20,20 @@ pub struct RootManifestLayoutReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct CanonicalRootManifestAccess {
+pub(in crate::access) struct CanonicalRootManifestAccess {
     root: PhysicalRootManifest,
     manifest_counters: ManifestDiscoveryCounterSnapshot,
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl RootDiscoveryLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        &self,
-    ) -> Result<RootDiscoveryLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(RootDiscoveryLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedRootDiscoveryLayoutFamily<'a> {
+pub struct RootDiscoveryAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: RootDiscoveryLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedRootDiscoveryLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: RootDiscoveryLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> RootDiscoveryAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn current_root_manifest(
@@ -113,19 +88,21 @@ impl RootManifestLayoutReport {
 }
 
 impl CanonicalRootManifestAccess {
-    pub(super) const fn root(&self) -> &PhysicalRootManifest {
+    pub(in crate::access) const fn root(&self) -> &PhysicalRootManifest {
         &self.root
     }
 
-    pub(super) const fn counters(&self) -> PhysicalLayoutAccessCounterSnapshot {
+    pub(in crate::access) const fn counters(&self) -> PhysicalLayoutAccessCounterSnapshot {
         self.counters
     }
 
-    pub(super) fn manifest_report(&self) -> ManifestDiscoveryReport<'_> {
+    pub(in crate::access) fn manifest_report(&self) -> ManifestDiscoveryReport<'_> {
         ManifestDiscoveryReport::new(&self.root, self.manifest_counters)
     }
 
-    pub(super) fn manifest_lookup_counters(&self) -> PhysicalLayoutAccessCounterSnapshot {
+    pub(in crate::access) fn manifest_lookup_counters(
+        &self,
+    ) -> PhysicalLayoutAccessCounterSnapshot {
         exact_manifest_counters(
             self.counters.bytes_read(),
             self.counters.page_touches(),
@@ -134,7 +111,7 @@ impl CanonicalRootManifestAccess {
         )
     }
 
-    pub(super) fn manifest_traversal_counters(
+    pub(in crate::access) fn manifest_traversal_counters(
         &self,
         extra_range_steps: u32,
     ) -> PhysicalLayoutAccessCounterSnapshot {
@@ -147,7 +124,7 @@ impl CanonicalRootManifestAccess {
     }
 }
 
-pub(super) fn canonical_root_manifest(
+pub(in crate::access) fn canonical_root_manifest(
     facade: &PlatformPhysicalFacade,
 ) -> Result<CanonicalRootManifestAccess, PlatformPhysicalFacadeDenial> {
     let witness = facade

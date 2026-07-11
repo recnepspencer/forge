@@ -4,7 +4,7 @@
 //! and the internal `compile_fail` module tree.
 #![forbid(unsafe_code)]
 
-pub mod layout_access;
+pub mod access;
 
 mod binary_format;
 mod blob_manifest;
@@ -27,6 +27,11 @@ mod reference;
 mod security_metadata;
 
 // Lifecycle-ordered public exports (≤12 groups).
+pub use access::counters::PhysicalLayoutAccessCounterSnapshot;
+pub use access::grammar::{
+    PhysicalLayoutAccessConstraint, PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
+    UnsupportedPhysicalLayoutAccess,
+};
 pub use binary_format::{
     AllocationClassKind, FreeSpaceMapVocabulary, PhysicalAlgorithmReviewConclusion,
     PhysicalAlgorithmReviewEvidence, PhysicalAlignmentClass, PhysicalAlignmentSite,
@@ -108,11 +113,6 @@ pub use header::{
     PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport, PhysicalHeaderDecodeWitness,
     PhysicalHeaderKind, PhysicalHeaderReservedField, PhysicalHeaderReservedFields,
     PhysicalPageHeader, PhysicalPageKind, PhysicalPublicationState, PHYSICAL_HEADER_LENGTH,
-};
-pub use layout_access::counters::PhysicalLayoutAccessCounterSnapshot;
-pub use layout_access::grammar::{
-    PhysicalLayoutAccessConstraint, PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
-    UnsupportedPhysicalLayoutAccess,
 };
 pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,

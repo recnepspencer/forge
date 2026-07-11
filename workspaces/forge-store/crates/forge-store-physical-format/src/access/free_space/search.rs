@@ -1,16 +1,10 @@
-use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::PhysicalLayoutAccessFamily;
-use super::root_discovery_family::canonical_root_manifest;
+use crate::access::counters::PhysicalLayoutAccessCounterSnapshot;
+use crate::access::grammar::PhysicalLayoutAccessFamily;
+use crate::access::manifest::root_discovery::canonical_root_manifest;
 use crate::{
     FreeSpaceReuseCell, PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
     PlatformPhysicalFacade, PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FreeSpaceLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FreeSpaceLayoutFamilyAdmission;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FreeSpaceLayoutReport {
@@ -19,31 +13,14 @@ pub struct FreeSpaceLayoutReport {
     bounded: PhysicalForegroundBoundednessOutcome,
 }
 
-impl FreeSpaceLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<FreeSpaceLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(FreeSpaceLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedFreeSpaceLayoutFamily<'a> {
+pub struct FreeSpaceAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: FreeSpaceLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedFreeSpaceLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: FreeSpaceLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> FreeSpaceAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn bounded_candidates(

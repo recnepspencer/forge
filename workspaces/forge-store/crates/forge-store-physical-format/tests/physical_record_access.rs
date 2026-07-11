@@ -2,9 +2,7 @@ use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_physical_format::{
-    layout_access::{
-        extent_family::extent_layout_access_counters, page_family::page_layout_access_counters,
-    },
+    access::{extent::extent_access_counters, page::page_access_counters},
     PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
     PlatformPhysicalOpenRequest,
@@ -19,15 +17,13 @@ fn page_and_frame_operations_use_public_physical_access() {
             b"frame-backed",
         ))
         .expect("page append through public facade");
-    let mut page_layout = facade.page_layout().expect("public page layout admission");
+    let mut page_layout = facade.page_access();
     let located = page_layout
         .read_record(append.reference())
         .expect("public page read");
     assert_eq!(located.record_view().payload().as_bytes(), b"frame-backed");
 
-    let mut frame_layout = facade
-        .frame_layout()
-        .expect("public frame layout admission");
+    let mut frame_layout = facade.frame_access();
     let framed = frame_layout
         .read_frame(append.reference())
         .expect("public frame read");
@@ -50,9 +46,7 @@ fn extent_and_reopen_follow_public_physical_evidence() {
             b"root-page",
         ))
         .expect("page append before publish");
-    let mut extent_layout = facade
-        .extent_layout()
-        .expect("public extent layout admission");
+    let mut extent_layout = facade.extent_access();
     let extent = extent_layout
         .read_record(append.reference())
         .expect("public extent read");
@@ -65,9 +59,7 @@ fn extent_and_reopen_follow_public_physical_evidence() {
         published.replay_artifact(),
     )
     .expect("public replay reopen");
-    let mut reopened_page_layout = reopened
-        .page_layout()
-        .expect("public page layout admission after reopen");
+    let mut reopened_page_layout = reopened.page_access();
     let reopened_page = reopened_page_layout
         .locate_record(page_append.reference())
         .expect("public page locate after reopen");
@@ -93,8 +85,7 @@ fn segment_access_uses_maintained_segment_occupancy() {
         ))
         .expect("extent append");
     let report = facade
-        .segment_layout()
-        .expect("public segment layout admission")
+        .segment_access()
         .read_segment(segment(1))
         .expect("public segment read");
 
@@ -130,20 +121,18 @@ fn point_counters_do_not_scale_with_storage_cardinality() {
         .reference();
 
     let page_counters = {
-        let mut page_layout = facade.page_layout().expect("public page layout admission");
+        let mut page_layout = facade.page_access();
         let report = page_layout
             .read_record(page_reference)
             .expect("public page read");
-        page_layout_access_counters(report)
+        page_access_counters(report)
     };
     let extent_counters = {
-        let mut extent_layout = facade
-            .extent_layout()
-            .expect("public extent layout admission");
+        let mut extent_layout = facade.extent_access();
         let report = extent_layout
             .read_record(extent_reference)
             .expect("public extent read");
-        extent_layout_access_counters(report)
+        extent_access_counters(report)
     };
 
     assert_eq!(page_counters.point_lookups(), 1);

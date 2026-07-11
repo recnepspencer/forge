@@ -26,8 +26,7 @@ fn root_manifest_and_manifest_index_use_public_physical_access() {
     facade.publish_physical_root().expect("root publish");
 
     let root_report = facade
-        .root_manifest_layout()
-        .expect("root manifest admission")
+        .root_manifest_access()
         .current_root_manifest()
         .expect("discover current root");
     assert_eq!(root_report.segment_count(), 1);
@@ -37,8 +36,7 @@ fn root_manifest_and_manifest_index_use_public_physical_access() {
     assert!(root_report.counters().bytes_read() > 0);
 
     let manifest_report = facade
-        .manifest_index_layout()
-        .expect("manifest admission")
+        .manifest_index_access()
         .validate_membership(page_append.reference())
         .expect("page membership");
     assert_eq!(manifest_report.reference(), page_append.reference());
@@ -73,14 +71,12 @@ fn allocation_free_space_and_fragmentation_stay_family_local() {
 
     let policy = PhysicalFreeSpaceSearchPolicy::foreground_bounded(4, 4);
     let root_report = facade
-        .root_manifest_layout()
-        .expect("root manifest admission")
+        .root_manifest_access()
         .current_root_manifest()
         .expect("discover current root");
 
     let allocation = facade
-        .allocation_layout()
-        .expect("allocation admission")
+        .allocation_access()
         .allocation_classes()
         .expect("allocation classes");
     assert!(allocation
@@ -98,8 +94,7 @@ fn allocation_free_space_and_fragmentation_stay_family_local() {
     assert!(allocation.counters().bytes_read() > 0);
 
     let free_space = facade
-        .free_space_layout()
-        .expect("free-space admission")
+        .free_space_access()
         .bounded_candidates(policy)
         .expect("bounded free-space read");
     assert!(free_space.entries().is_empty());
@@ -112,8 +107,7 @@ fn allocation_free_space_and_fragmentation_stay_family_local() {
     assert!(free_space.counters().bytes_read() > 0);
 
     let fragmentation = facade
-        .fragmentation_layout()
-        .expect("fragmentation admission")
+        .fragmentation_access()
         .pressure(policy)
         .expect("fragmentation report");
     assert_eq!(fragmentation.pressure().candidate_classes(), 2);
@@ -137,8 +131,7 @@ fn reopen_discovers_same_root_manifest_family_truth() {
         .expect("page append");
     let published = facade.publish_physical_root().expect("root publish");
     let original = facade
-        .root_manifest_layout()
-        .expect("root manifest admission")
+        .root_manifest_access()
         .current_root_manifest()
         .expect("discover original root");
     let mut reopened = PlatformPhysicalFacade::reopen_s1(
@@ -148,8 +141,7 @@ fn reopen_discovers_same_root_manifest_family_truth() {
     )
     .expect("public replay reopen");
     let reopened_root = reopened
-        .root_manifest_layout()
-        .expect("reopened root manifest admission")
+        .root_manifest_access()
         .current_root_manifest()
         .expect("discover reopened root");
 
@@ -167,8 +159,7 @@ fn manifest_membership_rejects_unpublished_runtime_append() {
         ))
         .expect("page append");
     let denial = facade
-        .manifest_index_layout()
-        .expect("manifest admission")
+        .manifest_index_access()
         .validate_membership(page_append.reference())
         .expect_err("unpublished append must not be manifest-admitted");
 
@@ -184,18 +175,15 @@ fn allocation_free_space_and_fragmentation_require_published_root_truth() {
     let policy = PhysicalFreeSpaceSearchPolicy::foreground_bounded(4, 4);
 
     let allocation_denial = facade
-        .allocation_layout()
-        .expect("allocation admission")
+        .allocation_access()
         .allocation_classes()
         .expect_err("allocation must require published root");
     let free_space_denial = facade
-        .free_space_layout()
-        .expect("free-space admission")
+        .free_space_access()
         .bounded_candidates(policy)
         .expect_err("free-space must require published root");
     let fragmentation_denial = facade
-        .fragmentation_layout()
-        .expect("fragmentation admission")
+        .fragmentation_access()
         .pressure(policy)
         .expect_err("fragmentation must require published root");
 

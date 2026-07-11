@@ -6,44 +6,14 @@ use crate::{
     PlatformPhysicalFacadeDenialKind,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PageLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PageLayoutFamilyAdmission {
-    family: PhysicalLayoutAccessFamily,
-}
-
-impl PageLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<PageLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(PageLayoutFamilyAdmission {
-            family: PhysicalLayoutAccessFamily::Page,
-        })
-    }
-}
-
-impl PageLayoutFamilyAdmission {
-    pub const fn family(self) -> PhysicalLayoutAccessFamily {
-        self.family
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedPageLayoutFamily<'a> {
+pub struct PageAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    admission: PageLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedPageLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: PageLayoutFamilyAdmission,
-    ) -> Self {
-        Self { facade, admission }
+impl<'a> PageAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn locate_record(
@@ -75,13 +45,11 @@ impl<'a> AdmittedPageLayoutFamily<'a> {
     }
 
     pub fn access_counters(report: RecordLocateReport<'_>) -> PhysicalLayoutAccessCounterSnapshot {
-        page_layout_access_counters(report)
+        page_access_counters(report)
     }
 }
 
-pub fn page_layout_access_counters(
-    report: RecordLocateReport<'_>,
-) -> PhysicalLayoutAccessCounterSnapshot {
+pub fn page_access_counters(report: RecordLocateReport<'_>) -> PhysicalLayoutAccessCounterSnapshot {
     let counters = report.counters();
     PhysicalLayoutAccessCounterSnapshot::point(
         counters.page_read_count() as u64 * 4_096,
@@ -97,7 +65,7 @@ pub(crate) fn locate_page_record<'a>(
     reference: PhysicalReference,
 ) -> Result<RecordLocateReport<'a>, PlatformPhysicalFacadeDenial> {
     let page = storage.page_for_reference(reference)?;
-    let slot_cell = super::record_family::slot_cell_from_reference(reference)?;
+    let slot_cell = super::reference::slot_cell_from_reference(reference)?;
     let admission = references.admit_page_slot(slot_cell);
     let validation = references
         .validate_page_slot(admission, slot_cell)

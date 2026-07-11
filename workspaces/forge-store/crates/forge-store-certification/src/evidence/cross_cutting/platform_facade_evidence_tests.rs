@@ -21,8 +21,7 @@ fn facade_scan_evidence_materializes_runtime_verifier_parity() {
         ))
         .expect("append through facade");
     facade
-        .page_layout()
-        .expect("admitted page layout")
+        .page_access()
         .locate_record(append.reference())
         .expect("locate through facade");
     facade

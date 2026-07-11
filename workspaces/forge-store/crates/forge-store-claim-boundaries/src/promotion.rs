@@ -56,8 +56,7 @@ mod tests {
             ))
             .expect("facade append");
         facade
-            .page_layout()
-            .expect("admitted page layout")
+            .page_access()
             .locate_record(append.reference())
             .expect("facade locate");
         facade.publish_physical_root().expect("facade root publish");

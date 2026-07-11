@@ -37,13 +37,11 @@ impl PhysicalSubstrateCertificationScan {
             ))
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .page_layout()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
+            .page_access()
             .locate_record(page_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .extent_layout()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
+            .extent_access()
             .read_record(extent_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         let published = facade
@@ -59,8 +57,7 @@ impl PhysicalSubstrateCertificationScan {
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         reopened
-            .page_layout()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
+            .page_access()
             .locate_record(page_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         if facade.reject_full_store_heap_materialization().is_ok()
@@ -93,8 +90,7 @@ impl PhysicalSubstrateCertificationScan {
             ))
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .page_layout()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
+            .page_access()
             .locate_record(
                 PhysicalReferenceAuthority::s1()
                     .admit_page_slot(slot_cell(9)?)

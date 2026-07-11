@@ -6,12 +6,6 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SegmentLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SegmentLayoutFamilyAdmission;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalSegmentLayoutReport {
     segment_id: PhysicalSegmentId,
     page_slots: u32,
@@ -19,31 +13,14 @@ pub struct PhysicalSegmentLayoutReport {
     counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
-impl SegmentLayoutFamilyHome {
-    pub const fn physical() -> Self {
-        Self
-    }
-
-    pub fn admit(&self) -> Result<SegmentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
-        Ok(SegmentLayoutFamilyAdmission)
-    }
-}
-
 #[derive(Debug)]
-pub struct AdmittedSegmentLayoutFamily<'a> {
+pub struct SegmentAccess<'a> {
     facade: &'a mut PlatformPhysicalFacade,
-    _admission: SegmentLayoutFamilyAdmission,
 }
 
-impl<'a> AdmittedSegmentLayoutFamily<'a> {
-    pub(crate) fn new(
-        facade: &'a mut PlatformPhysicalFacade,
-        admission: SegmentLayoutFamilyAdmission,
-    ) -> Self {
-        Self {
-            facade,
-            _admission: admission,
-        }
+impl<'a> SegmentAccess<'a> {
+    pub(crate) fn new(facade: &'a mut PlatformPhysicalFacade) -> Self {
+        Self { facade }
     }
 
     pub fn read_segment(
