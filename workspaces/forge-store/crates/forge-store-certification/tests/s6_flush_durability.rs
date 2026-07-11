@@ -2,12 +2,10 @@ use forge_store_certification::S6FlushDurabilityEvidenceRow;
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
     BackendCapabilitySupportPosture, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
-    BackendRebindTriggers, BackendTargetProfile, CapabilityEvidenceClass,
-    PhysicalBackendCapabilityAdmissionAuthority, PhysicalStoreDurabilityExecutor,
-    StoreDurabilityAdmission, StoreDurabilityDenialKind, StoreDurabilityExecutionObservation,
-    StoreDurabilityExecutionRequest, StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind,
-    StoreDurabilityPublicationKind, StoreDurabilityRequirement, StoreDurabilityState,
-    StoreOwnedDurabilityExecution, WalDurabilityBarrier, WalDurabilityBarrierSet,
+    BackendRebindTriggers, BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
+    StoreDurabilityAdmission, StoreDurabilityDenialKind, StoreDurabilityRequirement,
+    StoreDurabilityRuntime, StoreDurabilityState, WalDurabilityBarrier,
+    WalDurabilityBarrierSet,
 };
 use forge_store_recovery_physics::{
     DurabilityReplayKind, DurableCheckpointPublication, DurableManifestPublication,
@@ -31,24 +29,9 @@ fn certification_materializes_checkpoint_durability_without_minting_authority() 
             .unwrap(),
         )
         .backend_accepted();
-    let mut backend = RequestAssertingDurabilityBackend {
-        expected_scope: accepted.scope().clone(),
-        expected_requirement: requirement,
-        expected_publication: StoreDurabilityPublicationKind::Checkpoint,
-        observation: StoreDurabilityExecutionObservation::new(
-            requirement.required_barriers(),
-            StoreDurabilityFileSyncKind::Fsync,
-        )
-        .with_directory_sync_completed()
-        .with_rename_completed()
-        .with_ordering_barrier_completed(),
-    };
-    let proof = StoreDurabilityExecutionSession::for_store_backend(
-        &mut backend,
-        StoreOwnedDurabilityExecution::for_certification_test_authority(),
-    )
-    .execute(&accepted)
-    .unwrap();
+    let proof = StoreDurabilityRuntime::new()
+        .persist_and_execute(&std::env::temp_dir(), b"checkpoint-certification-write", &accepted)
+        .unwrap();
     let receipt = accepted
         .reach_durability_boundary(proof)
         .unwrap()
@@ -92,24 +75,9 @@ fn certification_materializes_manifest_durability_evidence() {
             .unwrap(),
         )
         .backend_accepted();
-    let mut backend = RequestAssertingDurabilityBackend {
-        expected_scope: accepted.scope().clone(),
-        expected_requirement: requirement,
-        expected_publication: StoreDurabilityPublicationKind::Manifest,
-        observation: StoreDurabilityExecutionObservation::new(
-            requirement.required_barriers(),
-            StoreDurabilityFileSyncKind::Fsync,
-        )
-        .with_directory_sync_completed()
-        .with_rename_completed()
-        .with_ordering_barrier_completed(),
-    };
-    let proof = StoreDurabilityExecutionSession::for_store_backend(
-        &mut backend,
-        StoreOwnedDurabilityExecution::for_certification_test_authority(),
-    )
-    .execute(&accepted)
-    .unwrap();
+    let proof = StoreDurabilityRuntime::new()
+        .persist_and_execute(&std::env::temp_dir(), b"manifest-certification-write", &accepted)
+        .unwrap();
     let receipt = accepted
         .reach_durability_boundary(proof)
         .unwrap()
@@ -178,39 +146,4 @@ fn admitted(requirement: StoreDurabilityRequirement) -> StoreDurabilityAdmission
         ))
         .unwrap();
     StoreDurabilityAdmission::admit(requirement, &witness).unwrap()
-}
-
-struct RequestAssertingDurabilityBackend<S> {
-    expected_scope: S,
-    expected_requirement: StoreDurabilityRequirement,
-    expected_publication: StoreDurabilityPublicationKind,
-    observation: StoreDurabilityExecutionObservation,
-}
-
-impl<S> PhysicalStoreDurabilityExecutor<S> for RequestAssertingDurabilityBackend<S>
-where
-    S: Eq + core::fmt::Debug,
-{
-    type Error = ();
-
-    fn execute_durability(
-        &mut self,
-        request: StoreDurabilityExecutionRequest<S>,
-    ) -> Result<StoreDurabilityExecutionObservation, Self::Error> {
-        assert_eq!(request.scope(), &self.expected_scope);
-        assert_eq!(
-            request.profile(),
-            BackendTargetProfile::PosixFileFsyncDirSync
-        );
-        assert_eq!(
-            request.evidence_class(),
-            CapabilityEvidenceClass::CertifiedBackendProfile
-        );
-        assert_eq!(request.requirement(), self.expected_requirement);
-        assert_eq!(
-            request.requirement().publication(),
-            self.expected_publication
-        );
-        Ok(self.observation)
-    }
 }

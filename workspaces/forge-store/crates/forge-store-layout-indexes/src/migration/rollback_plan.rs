@@ -22,7 +22,7 @@ impl LayoutRollbackRequest {
         }
     }
 
-    pub fn try_resolve_ready(
+    pub(crate) fn try_resolve_ready(
         self,
     ) -> TransitionOutcome<ResolvedLayoutRollbackRequest, LayoutEvolutionDenial> {
         let declared_family = self.declaration.family().declaration();
@@ -53,7 +53,7 @@ pub struct ResolvedLayoutRollbackRequest {
 }
 
 impl ResolvedLayoutRollbackRequest {
-    pub fn try_lower_ready(
+    pub(crate) fn try_lower_ready(
         self,
         current_store_authority: &StoreCurrentAuthorityWitness,
     ) -> TransitionOutcome<
@@ -84,7 +84,7 @@ pub struct LoweredLayoutRollbackPlan {
 }
 
 impl LoweredLayoutRollbackPlan {
-    pub fn try_ready_now(
+    pub(crate) fn try_ready_now(
         self,
     ) -> TransitionOutcome<
         LayoutRollbackPlan,

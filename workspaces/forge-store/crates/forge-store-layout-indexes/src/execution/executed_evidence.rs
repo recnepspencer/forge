@@ -5,12 +5,12 @@ use forge_store_budgets::CounterEvidenceStrength;
 
 use super::admitted_counters::S8AdmittedExecutedCounters;
 use super::amplification_receipt::S8AccessPathAmplificationReceipt;
+use super::attempt_cost::S8AccessAttemptCostReceipt;
 use super::lowered_plan::{S8AccessLoweringBasis, S8LoweredAccessPayload};
 use super::observed_counters::S8ObservedAccessPathCounters;
 use super::performance_receipt::S8StoreLayoutPerformanceReceipt;
 use super::planned_vs_observed::S8PlannedVsObservedCounterReceipt;
 use super::ready_plan::S8ExecutionReadyAccessReceipt;
-use super::attempt_cost::S8AccessAttemptCostReceipt;
 
 type ExecutedAccessRecipe = ExecutedRecipe<
     S8LoweredAccessPayload,

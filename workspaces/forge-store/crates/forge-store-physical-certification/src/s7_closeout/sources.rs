@@ -1,11 +1,12 @@
 use forge_store_blob_chunks::S7ExecutedLifecycleEvidenceBundle;
 
-use crate::{
-    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalProofOracleKind,
-    S7CloseoutProofSummary, S7CloseoutProofTopology, S7CloseoutSourceDenial, SimulationReplayBundle,
-};
 #[cfg(any(test, feature = "certification-test-support"))]
 use crate::s7_blob_harness::{execute_replay_artifacts_for_seed, BlobHarnessScenarioSeed};
+use crate::{
+    OracleFamilyKind, PhysicalCertificationEvidenceBundle, PhysicalProofOracleKind,
+    S7CloseoutProofSummary, S7CloseoutProofTopology, S7CloseoutSourceDenial,
+    SimulationReplayBundle,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S7ExecutedCloseoutSources {
@@ -19,7 +20,10 @@ pub fn s7_blob_harness_closeout_sources_for_seed(
     seed: BlobHarnessScenarioSeed,
 ) -> Result<S7ExecutedCloseoutSources, S7CloseoutSourceDenial> {
     let artifacts = execute_replay_artifacts_for_seed(seed);
-    S7ExecutedCloseoutSources::from_replay_and_lifecycle(artifacts.replay, artifacts.lifecycle_evidence)
+    S7ExecutedCloseoutSources::from_replay_and_lifecycle(
+        artifacts.replay,
+        artifacts.lifecycle_evidence,
+    )
 }
 
 impl S7ExecutedCloseoutSources {
@@ -27,7 +31,8 @@ impl S7ExecutedCloseoutSources {
         replay: SimulationReplayBundle,
         lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
     ) -> Result<Self, S7CloseoutSourceDenial> {
-        let evidence_bundle = PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone())?;
+        let evidence_bundle =
+            PhysicalCertificationEvidenceBundle::from_replay_bundle(replay.clone())?;
         let proof_summary = proof_summary(&replay)?;
         Ok(Self {
             lifecycle_evidence,
@@ -75,7 +80,9 @@ fn proof_summary(
         ));
     }
     let trace = replay.trace();
-    let observation = trace.s7_blob_harness_observation().expect("blob observation");
+    let observation = trace
+        .s7_blob_harness_observation()
+        .expect("blob observation");
     if !observation.heavy_evidence_verified() {
         return Err(S7CloseoutSourceDenial::HeavyQualificationEvidenceMissing);
     }
@@ -85,7 +92,12 @@ fn proof_summary(
     if !observation.heavy_pattern_lane_verified() {
         return Err(S7CloseoutSourceDenial::HeavyPatternLaneEvidenceMissing);
     }
-    let topology = S7CloseoutProofTopology::new(true, has_transcript_replay, has_blob_family, has_heavy_family);
+    let topology = S7CloseoutProofTopology::new(
+        true,
+        has_transcript_replay,
+        has_blob_family,
+        has_heavy_family,
+    );
     Ok(S7CloseoutProofSummary::new(
         topology.checked_execution(),
         replay.oracle_verdicts().len(),

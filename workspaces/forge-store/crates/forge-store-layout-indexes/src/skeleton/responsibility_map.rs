@@ -29,7 +29,7 @@ const RESPONSIBILITY_ROWS: &[S8CrateResponsibilityRow] = &[
         "S.8 layout/access grammar and sealed progression witnesses",
         "Store family authority declarations",
         S8ProjectionOutputPosture::ProductionBoundaryEvidence,
-        "forge_store_layout_indexes::{layout_declarations,layout_customization_boundary,access_planning,layout_readmission,layout_closeout}",
+        "forge_store_layout_indexes::{layout_families,layout_strategy_admission,access_planning,access_lowering,access_execution,layout_rebuild,layout_migration,layout_counters,layout_readmission,layout_customization,layout_closeout,layout_certification}",
         PHASE_ZERO_ONLY,
     ),
     S8CrateResponsibilityRow::new(
@@ -227,7 +227,7 @@ const RESPONSIBILITY_ROWS: &[S8CrateResponsibilityRow] = &[
         "courtroom simulation evidence",
         "production witnesses and executed evidence",
         S8ProjectionOutputPosture::CourtroomOnlyEvidence,
-        "forge_store_physical_certification::harness::by_milestone::s8_layout_access",
+        "forge_store_physical_certification::layout_harness",
         PHASE_ZERO_ONLY,
     ),
     S8CrateResponsibilityRow::new(
@@ -245,7 +245,7 @@ const RESPONSIBILITY_ROWS: &[S8CrateResponsibilityRow] = &[
         "non-authority fixture support",
         "production facades",
         S8ProjectionOutputPosture::NonAuthorityFixture,
-        "forge_store_test_support::harness::milestone::s8_layout_access",
+        "forge_store_test_support::harness::production_facade::s8_layout_access",
         PHASE_ZERO_ONLY,
     ),
 ];

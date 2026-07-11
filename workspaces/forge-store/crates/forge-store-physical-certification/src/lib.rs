@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod harness;
+pub mod layout_harness;
 
 mod actors;
 mod authoring;
@@ -15,7 +16,6 @@ mod observation;
 mod oracles;
 mod planning;
 mod s45_entry;
-mod s7_closeout;
 mod s5_1_security_scope_harness;
 mod s5_executed_isolation_contract;
 mod s5_executed_isolation_source;
@@ -65,6 +65,7 @@ mod s6_io_pressure_test_support;
 mod s6_io_pressure_vocab;
 #[path = "harness/by_milestone/s7_blob_harness/mod.rs"]
 mod s7_blob_harness;
+mod s7_closeout;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -179,9 +180,8 @@ pub use oracles::{
     phase7_verdict_topology, same_run_self_comparison_oracle_attempt,
     test_support_oracle_verdict_attempt, BlobByteEqualityOracle, BlobChunkOrderingOracle,
     BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle,
-    BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle,
-    BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle, BlobReachabilityOracle,
-    BlockedReclaimUntilReleaseOracle,
+    BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle,
+    BlobNoSidecarPathOracle, BlobReachabilityOracle, BlockedReclaimUntilReleaseOracle,
     CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoMixedRootOracle,
     NoPrivateMutationOracle, OldReaderSeesOldRootOracle, OracleDenial, OracleVerdictBasis,
@@ -212,12 +212,6 @@ pub use s45_entry::{
     S45RoadmapHarnessRequirement, S45RoadmapHarnessRequirementSet, S45SimulationHarnessEntry,
     S45SimulationHarnessEntryIdentity,
 };
-pub use s7_closeout::{
-    materialize_s7_closeout_evidence, S7CloseoutProofSummary, S7CloseoutProofTopology,
-    S7CloseoutSourceDenial, S7ExecutedCloseoutSources, S7MaterializedCloseoutEvidenceBundle,
-};
-#[cfg(any(test, feature = "certification-test-support"))]
-pub use s7_closeout::s7_blob_harness_closeout_sources_for_seed;
 pub use s5_1_security_scope_harness::{
     S51SecurityScopeFailureKind, S51SecurityScopeHarnessCounterSnapshot,
     S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessObservation,
@@ -285,6 +279,12 @@ pub use s7_blob_harness::{
 pub use s7_blob_harness::{
     synthetic_blob_harness_coverage_matrix_for_test_support,
     synthetic_blob_harness_replay_bundle_for_test_support,
+};
+#[cfg(any(test, feature = "certification-test-support"))]
+pub use s7_closeout::s7_blob_harness_closeout_sources_for_seed;
+pub use s7_closeout::{
+    materialize_s7_closeout_evidence, S7CloseoutProofSummary, S7CloseoutProofTopology,
+    S7CloseoutSourceDenial, S7ExecutedCloseoutSources, S7MaterializedCloseoutEvidenceBundle,
 };
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,

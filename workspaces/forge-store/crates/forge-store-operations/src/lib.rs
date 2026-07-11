@@ -27,7 +27,7 @@
 //! use forge_store_readiness::S51AdmittedSecurityScopeReadiness;
 //!
 //! let readiness: S51AdmittedSecurityScopeReadiness = todo!();
-//! let _custody = BackupExportCustodyReadiness::from_s5_1_readiness(readiness);
+//! let _custody = BackupExportCustodyReadiness::from_admitted_readiness(readiness, None, todo!());
 //! ```
 //!
 //! S.5.1 security-scope readiness still cannot bypass custody preparation:
@@ -87,7 +87,8 @@ mod backup_export_custody_denial;
 mod backup_export_custody_emission;
 mod backup_export_custody_handoff;
 mod backup_export_custody_readiness;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg_attr(feature = "certification-test-authority", allow(dead_code))]
 mod backup_export_custody_test_support;
 #[cfg(test)]
 mod backup_export_custody_tests;
@@ -95,6 +96,7 @@ mod backup_import_readmission;
 mod backup_import_source_custody;
 mod capsule_chunk_availability;
 mod import_placement_plan;
+pub mod layout_access;
 mod repair_blast_radius_counters;
 mod repair_blast_radius_declaration;
 mod repair_blast_radius_denial;
@@ -110,13 +112,11 @@ mod repair_quarantine_readiness;
 mod repair_quarantine_readiness_tests;
 mod s10_later_io_readiness;
 mod s6_background_pressure;
-pub mod layout_access;
+mod s8_runtime_receipt;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
 pub use backup_export_custody_counters::BackupExportCustodyCounterSnapshot;
-pub use backup_export_custody_declaration::{
-    BackupExportCustodyDeclaration, BackupExportCustodyMode,
-};
+pub use backup_export_custody_declaration::BackupExportCustodyDeclaration;
 pub use backup_export_custody_denial::BackupExportCustodyDenial;
 pub use backup_export_custody_emission::{
     BackupExportCapsuleEmission, BackupExportTerminalProjectionPreparation,
@@ -133,9 +133,16 @@ pub use backup_import_source_custody::{
 pub use capsule_chunk_availability::{
     classify_capsule_chunk_availability, CapsuleChunkAvailabilityPosture,
 };
+pub use forge_store_operations_vocabulary::BackupExportCustodyMode;
 pub use import_placement_plan::{
     ImportPlacementDisposition, ImportPlacementPlan, ImportPlacementSource,
 };
+pub use layout_access::backup_family::BackupLayoutEvidenceReport;
+pub use layout_access::capsule_operation_family::CapsuleOperationLayoutReport;
+pub use layout_access::export_family::ExportLayoutEvidenceReport;
+pub use layout_access::import_family::ImportLayoutEvidenceReport;
+pub use layout_access::operations_layout_closeout::OperationsLayoutCloseout;
+pub use layout_access::restore_family::RestoreLayoutEvidenceReport;
 pub use repair_blast_radius_counters::RepairBlastRadiusCounterSnapshot;
 pub use repair_blast_radius_declaration::{RepairBlastRadiusDeclaration, RepairPhysicalRegion};
 pub use repair_blast_radius_denial::RepairBlastRadiusDenial;
@@ -155,6 +162,9 @@ pub use s6_background_pressure::{
     repair_background_pressure_shape, replication_prep_background_pressure_shape,
     OperationsBackgroundPressureKind,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use s8_runtime_receipt::s8_security_custody_export_runtime_receipt_for_certification_test;
+pub use s8_runtime_receipt::S8SecurityCustodyExportRuntimeReceipt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperationalRecoveryPosture {

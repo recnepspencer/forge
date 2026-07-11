@@ -6,11 +6,17 @@ license.workspace = true
 description = "Roadmap 1 tiering and durable working-set intelligence."
 
 [features]
-certification-test-authority = []
+certification-test-authority = [
+    "forge-store-io-scheduler/certification-test-authority",
+    "forge-store-physical-backend/certification-test-authority",
+    "forge-store-reclaim-policy/certification-test-authority",
+    "forge-store-security/certification-test-authority",
+]
 
 [dependencies]
 forge-store-contracts.workspace = true
 forge-store-io-scheduler.workspace = true
+forge-store-layout-indexes.workspace = true
 forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-physical-isolation.workspace = true

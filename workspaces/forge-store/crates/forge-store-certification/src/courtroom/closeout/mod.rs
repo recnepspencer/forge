@@ -1,6 +1,7 @@
 //! Milestone closeout surfaces: physical integrity, late milestones, and synthetic rejection.
 
 pub mod s6;
+pub mod s8_layout;
 
 pub use crate::physical_integrity_closeout_bundle::{
     close_s3_physical_integrity_from_executed_evidence, PhysicalIntegrityCertificationBundle,
@@ -104,4 +105,11 @@ pub use forge_store_physical_certification::{
 pub use s6::{
     adopt_materialized_s6_certification_evidence_for_closeout,
     materialize_s6_certification_evidence, S6CertificationEvidenceAdoptionReceipt,
+};
+pub use s8_layout::{
+    certify_s8_layout_closeout, certify_s8_layout_closeout_suite,
+    classify_s8_layout_closeout_sources, project_s8_layout_handoff_grammar,
+    s8_layout_closeout_sources, verify_s8_layout_closeout, S8LayoutCloseoutCertificate,
+    S8LayoutCloseoutClassification, S8LayoutCloseoutDenial, S8LayoutCloseoutSources,
+    S8LayoutCloseoutSuiteCertificate, S8LayoutCloseoutVerifier, S8LayoutCourtroomGrammar,
 };

@@ -17,12 +17,13 @@ impl ExecutionFreshnessFacade {
         key_domain: PhysicalKeyDomainWitness,
         coverage: S8LayoutCoverageWitness,
     ) -> Result<S8ExecutionReadmissionWitness, S8AccessLoweringDenied> {
-        let exact_coverage = coverage
-            .require_exact()
-            .map_err(|denial| S8AccessLoweringDenied::CoverageDenied {
-                basis: stale.basis(),
-                denial,
-            })?;
+        let exact_coverage =
+            coverage
+                .require_exact()
+                .map_err(|denial| S8AccessLoweringDenied::CoverageDenied {
+                    basis: stale.basis(),
+                    denial,
+                })?;
         let expected_coverage = stale
             .selected()
             .access_shape()
@@ -70,12 +71,13 @@ impl ExecutionFreshnessFacade {
         key_domain: PhysicalKeyDomainWitness,
         coverage: S8LayoutCoverageWitness,
     ) -> Result<S8ExecutionRebindWitness, S8AccessLoweringDenied> {
-        let exact_coverage = coverage
-            .require_exact()
-            .map_err(|denial| S8AccessLoweringDenied::CoverageDenied {
-                basis: rebind.basis(),
-                denial,
-            })?;
+        let exact_coverage =
+            coverage
+                .require_exact()
+                .map_err(|denial| S8AccessLoweringDenied::CoverageDenied {
+                    basis: rebind.basis(),
+                    denial,
+                })?;
         let expected_coverage = rebind
             .selected()
             .access_shape()

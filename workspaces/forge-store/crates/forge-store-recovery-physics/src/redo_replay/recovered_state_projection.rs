@@ -40,6 +40,7 @@ impl<'a> RecoveredStateProjection<'a> {
         RecoveredPhysicalState::from_projected_parts(
             self.recovered_physical_root(),
             self.page_lsn_frontier(),
+            self.source_trace.replay_basis().clone(),
             self.source_decision_digest(),
             self.applied_frame_count,
             self.skipped_frame_count,

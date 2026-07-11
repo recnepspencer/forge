@@ -1,4 +1,7 @@
-use crate::{AdmittedRecoverySource, LogSequenceNumber, WalLsnRange, WalSegmentGeneration};
+use crate::{
+    AdmittedRecoverySource, LogSequenceNumber, RecoveryLayoutAccess, WalLsnRange,
+    WalSegmentGeneration,
+};
 
 use super::{
     MiddleWalCorruptionDenial, MissingAcknowledgedWalRangeDenial, RedoPlanningDenial,
@@ -36,14 +39,15 @@ impl WalValidPrefix {
         acknowledged_range: WalLsnRange,
         scan: WalPrefixObservationScan,
     ) -> Result<Self, RedoPlanningDenial> {
-        let wal_tail = selected_wal_tail(source)?;
-        let source_range = wal_tail.lsn_range();
-        if !range_contains_range(source_range, acknowledged_range) {
-            return Err(missing_acknowledged_range(
-                acknowledged_range,
-                acknowledged_range,
-            ));
-        }
+        let replay_index = RecoveryLayoutAccess::s8()
+            .phase22_replay_index_family()
+            .admit_recovery_source_replay_index(source)
+            .map_err(|_| RedoPlanningDenial::new(RedoPlanningDenialKind::NoAdmittedWalTail))?;
+        let source_range = replay_index.replay_frontier();
+        RecoveryLayoutAccess::s8()
+            .phase22_bounded_wal_tail_family()
+            .lookup_tail_range(&replay_index, acknowledged_range)
+            .map_err(|_| missing_acknowledged_range(acknowledged_range, acknowledged_range))?;
         Self::from_observed_frames(
             source_range,
             expected_generation,
@@ -175,21 +179,6 @@ impl WalValidPrefixCounters {
     }
 }
 
-fn selected_wal_tail(
-    source: &AdmittedRecoverySource,
-) -> Result<&crate::WalTailRedoSource, RedoPlanningDenial> {
-    match source {
-        AdmittedRecoverySource::RecoveryBlocked { damage, .. } => Err(RedoPlanningDenial::new(
-            RedoPlanningDenialKind::RecoveryBlocked {
-                damage: damage.clone(),
-            },
-        )),
-        _ => source
-            .selected_wal_tail()
-            .ok_or_else(|| RedoPlanningDenial::new(RedoPlanningDenialKind::NoAdmittedWalTail)),
-    }
-}
-
 fn missing_from_gap(
     expected_lsn: u64,
     observed_lsn: LogSequenceNumber,
@@ -208,11 +197,6 @@ fn missing_acknowledged_range(
     RedoPlanningDenial::new(RedoPlanningDenialKind::MissingAcknowledgedWalRange(
         MissingAcknowledgedWalRangeDenial::new(missing_range, acknowledged_range),
     ))
-}
-
-fn range_contains_range(outer: WalLsnRange, inner: WalLsnRange) -> bool {
-    outer.start().get() <= inner.start().get()
-        && inner.end_exclusive().get() <= outer.end_exclusive().get()
 }
 
 fn range_from_values(start: u64, end_exclusive: u64) -> WalLsnRange {

@@ -5,6 +5,11 @@ version.workspace = true
 license.workspace = true
 description = "Roadmap 2 S.1 physical page, segment, extent, frame, and reference format."
 
+[features]
+certification-test-authority = []
+phase19-layout-rule-construction = []
+phase20-layout-rule-construction = []
+
 [dependencies]
 forge-store-contracts.workspace = true
 forge-store-budgets.workspace = true

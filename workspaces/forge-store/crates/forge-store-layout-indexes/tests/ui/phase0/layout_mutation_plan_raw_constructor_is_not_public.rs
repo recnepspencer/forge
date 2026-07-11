@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::S8LayoutMutationPlan;
+use forge_store_layout_indexes::layout_rebuild::S8LayoutMutationPlan;
 
 fn main() {
     let _ = S8LayoutMutationPlan {

@@ -1,6 +1,6 @@
 use forge_store_blob_chunks::certification_test_authority::{
-    execute_s7_blob_harness, materialize_s7_executed_lifecycle_evidence,
-    BlobHarnessExecutionInput, S7ExecutedLifecycleEvidenceBundle,
+    execute_s7_blob_harness, materialize_s7_executed_lifecycle_evidence, BlobHarnessExecutionInput,
+    S7ExecutedLifecycleEvidenceBundle,
 };
 use forge_store_buffer_pool::{
     streaming_window_allocation_receipt, AllocationAdmission, BufferPoolExecutedEvidenceSource,
@@ -10,16 +10,16 @@ use crate::{
     admit_physical_counter_evidence, BlobByteEqualityOracle, BlobChunkOrderingOracle,
     BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHarnessLoweredSeedPlan,
     BlobHarnessScenarioSeed, BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
-    BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle,
-    BlobNoSidecarPathOracle, BlobReachabilityOracle, DetachedSimulationReplayParts,
-    ExecutedTranscriptParts, FaultDeliveryAttempt, FixtureCapabilityDeclaration, FixtureMutationBoundary,
+    BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
+    BlobReachabilityOracle, DetachedSimulationReplayParts, ExecutedTranscriptParts,
+    FaultDeliveryAttempt, FixtureCapabilityDeclaration, FixtureMutationBoundary,
     GeneratedCoverageMatrix, LargeStoreFixtureProfile, NoJsonAuthorityOracle,
     NoPrivateMutationOracle, PhysicalCounterExecutionSources, PhysicalExecutedCounterEvidence,
-    PhysicalMutationCoverageEvidence,
-    PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalSimulationDriver,
-    PhysicalSimulationObserver, ProductionBackedFixtureMaterialization, ReplaySeed,
-    ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry, Roadmap2HarnessSequence,
-    S7BlobHarnessOracleObservation, ShortcutRejectionObservation, SimulationReplayBundle, StateSpaceBudget,
+    PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalMutationCoverageEvidence,
+    PhysicalSimulationDriver, PhysicalSimulationObserver, ProductionBackedFixtureMaterialization,
+    ReplaySeed, ReusablePhysicalOracleFamily, Roadmap2CoverageRegistry, Roadmap2HarnessSequence,
+    S7BlobHarnessOracleObservation, ShortcutRejectionObservation, SimulationReplayBundle,
+    StateSpaceBudget,
 };
 
 use super::lower_blob_simulation_seed_plan;
@@ -123,8 +123,9 @@ fn buffer_pool_evidence(
 fn io_queue_evidence(
     plan: &crate::PhysicalSimulationPlan,
 ) -> forge_store_io_scheduler::IoQueueExecutedEvidenceSource {
-    let recorder =
-        forge_store_io_scheduler::IoQueueExecutionRecorder::from_envelope(plan.resource_envelope().io_queue());
+    let recorder = forge_store_io_scheduler::IoQueueExecutionRecorder::from_envelope(
+        plan.resource_envelope().io_queue(),
+    );
     recorder.executed_evidence().unwrap()
 }
 
@@ -235,9 +236,7 @@ const fn yielded_name(yieldpoint: S7BlobHarnessObservedYieldpoint) -> &'static s
     }
 }
 
-const fn uses_production_boundary_yieldpoint(
-    yieldpoint: S7BlobHarnessObservedYieldpoint,
-) -> bool {
+const fn uses_production_boundary_yieldpoint(yieldpoint: S7BlobHarnessObservedYieldpoint) -> bool {
     matches!(
         yieldpoint,
         S7BlobHarnessObservedYieldpoint::WalAppendBeforeFlush

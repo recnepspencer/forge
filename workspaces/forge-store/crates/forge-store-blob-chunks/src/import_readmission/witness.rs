@@ -1,4 +1,4 @@
-use forge_store_operations::ImportPlacementPlan;
+use forge_store_operations_vocabulary::ImportPlacementPlan;
 
 use crate::{
     BlobChunkIdentity, BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectId,

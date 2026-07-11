@@ -1,10 +1,10 @@
 use forge_proof::TransitionOutcome;
+use forge_store_layout_indexes::layout_strategy_admission::phase22_crash_boundary_rule;
 use forge_store_physical_backend::SimulatedStrictDurableProfile;
 use forge_store_recovery_physics::{
-    LogSequenceNumber, PartialPublicationClassification, PartialPublicationCrashEdge,
-    PartialPublicationEvidence, PartialPublicationReplayedCrashEdge,
-    RecoveryCheckpointRecordSecurityMetadataEnvelope,
-    RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
+    CrashBoundaryLayoutReport, LogSequenceNumber, PartialPublicationCrashEdge,
+    PartialPublicationReplayedCrashEdge, RecoveryCheckpointRecordSecurityMetadataEnvelope,
+    RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission, RecoveryLayoutAccess,
     RecoveryReplayEntryGate, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoveryWalRecordSecurityMetadataEnvelope,
     RecoveryWalRecordSecurityMetadataIdentity, WalAppendPlan, WalLsnRange, WalSegmentGeneration,
@@ -27,9 +27,7 @@ pub(crate) fn durable_wal_publication(frame_digest: &str) -> DurablePublicationD
     DurablePublicationDeclaration::wal_frame(scope)
 }
 
-pub(crate) fn replayable_wal_classification(
-    frame_digest: &str,
-) -> PartialPublicationClassification {
+pub(crate) fn replayable_wal_classification(frame_digest: &str) -> CrashBoundaryLayoutReport {
     let plan = WalAppendPlan::<SimulatedStrictDurableProfile>::new(
         WalSegmentId::new(7).unwrap(),
         WalSegmentGeneration::new(1).unwrap(),
@@ -42,11 +40,13 @@ pub(crate) fn replayable_wal_classification(
         .record_written_bytes(64)
         .finish()
         .expect("wal append receipt should finish");
-    PartialPublicationClassification::classify(
-        PartialPublicationEvidence::from_persisted_crash_edge(
-            PartialPublicationCrashEdge::after_durability_before_ack(receipt),
-        ),
-    )
+    RecoveryLayoutAccess::s8()
+        .crash_boundary_layout(&phase22_crash_boundary_rule().expect("phase-22 crash rule"))
+        .expect("phase-22 crash family")
+        .admit_crash_edge(PartialPublicationCrashEdge::after_durability_before_ack(
+            receipt,
+        ))
+        .expect("phase-22 crash report should admit replayable WAL evidence")
 }
 
 pub(crate) fn pre_wal_replay_edge(

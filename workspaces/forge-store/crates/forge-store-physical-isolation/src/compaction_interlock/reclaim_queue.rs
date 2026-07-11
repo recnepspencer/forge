@@ -16,6 +16,14 @@ pub struct DrainedCompactionReclaim {
 }
 
 impl CompactionDeferredReclaimQueue {
+    pub const fn cutover_state(&self) -> super::CompactionCutoverState {
+        super::CompactionCutoverState::ReclaimDeferred
+    }
+
+    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
+        super::CompactionCutoverTransitionKind::DeferReclaim.transition()
+    }
+
     pub fn admit(
         publication: CompactionRewritePublication,
     ) -> Result<Self, CompactionReadInterlockDenial> {
@@ -84,6 +92,14 @@ impl CompactionDeferredReclaimQueue {
 }
 
 impl DrainedCompactionReclaim {
+    pub const fn cutover_state(&self) -> super::CompactionCutoverState {
+        super::CompactionCutoverState::Reclaimed
+    }
+
+    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
+        super::CompactionCutoverTransitionKind::DrainReclaimAfterReadRelease.transition()
+    }
+
     pub const fn released(&self) -> ReleasedOldReachability {
         self.released
     }

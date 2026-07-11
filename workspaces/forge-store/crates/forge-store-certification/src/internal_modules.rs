@@ -203,6 +203,8 @@ mod s6_phase;
 mod s7_closeout;
 #[cfg(test)]
 mod s7_closeout_tests;
+#[cfg(test)]
+mod s8_layout_closeout_tests;
 
 mod scale_fixture;
 mod scale_property;

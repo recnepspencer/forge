@@ -28,7 +28,10 @@ impl S8LayoutReadinessNonClaim {
 
 impl S10BackupRepairReadinessNonClaim {
     pub const fn required() -> [Self; 2] {
-        [Self::BackupRestoreCorrectness, Self::RepairWorkflowCorrectness]
+        [
+            Self::BackupRestoreCorrectness,
+            Self::RepairWorkflowCorrectness,
+        ]
     }
 }
 

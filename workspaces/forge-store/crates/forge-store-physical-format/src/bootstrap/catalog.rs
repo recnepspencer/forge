@@ -1,8 +1,8 @@
 use crate::{
     CurrentRootManifestAdmission, ManifestDiscoveryAuthority, ManifestDiscoveryDenial,
     OfflineManifestCodec, OfflineVerifierCounterSnapshot, OfflineVerifierDenial,
-    PhysicalChunkChecksumAuthority, PhysicalChunkChecksumDenial, PhysicalChunkPayloadIntegrityWitness,
-    PhysicalFormatVersion, PhysicalRootManifest,
+    PhysicalChunkChecksumAuthority, PhysicalChunkChecksumDenial,
+    PhysicalChunkPayloadIntegrityWitness, PhysicalFormatVersion, PhysicalRootManifest,
 };
 
 use super::{
@@ -147,7 +147,8 @@ impl PhysicalBootstrapCatalogAuthority {
             ));
         }
         Err(PhysicalBootstrapCatalogDenial::ManifestDecodeDenied(
-            decode_denial.expect("bootstrap open witness always carries at least one root candidate"),
+            decode_denial
+                .expect("bootstrap open witness always carries at least one root candidate"),
         ))
     }
 }

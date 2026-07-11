@@ -1,0 +1,15 @@
+pub use crate::maintenance::{
+    layout_rebuild, LayoutCorruptionClassification, S8DerivedIndexCostEnvelopeParity,
+    S8DerivedIndexCounterShapeParity, S8DerivedIndexCoverageParity, S8DerivedIndexIdentityParity,
+    S8DerivedIndexOrderingParity, S8DerivedIndexParityBasis, S8DerivedIndexParityOutcome,
+    S8DerivedIndexParityRow, S8DerivedIndexParityWitness, S8DerivedIndexPartialKeySpace,
+    S8DerivedIndexRebuildDenied, S8DerivedIndexRebuildOutcome, S8DerivedIndexRebuildPlan,
+    S8DerivedIndexRebuildReceipt, S8DerivedIndexRebuildRequest, S8DerivedIndexRebuildScope,
+    S8DerivedIndexRebuildSourceInput, S8DerivedIndexResultIdentity,
+    S8ExactPublicationAuthoritySource, S8IndexLagOutcome, S8IndexLagWitness,
+    S8IndexMaintenanceFailureOutcome, S8IndexMaintenanceMode, S8IndexMaintenanceTransitionOutcome,
+    S8IndexPublicationProtocol, S8LagReason, S8LayoutMutationAdmissionOutcome,
+    S8LayoutMutationPlan, S8LayoutRebuildFacade, S8LiveExactMaintenanceWitness,
+    S8LiveMaintenanceRequest, S8LoweredMaintenanceProtocol, S8MutationProofRequirement,
+    S8PhysicalMutationShape, S8PublicationProofRequirement,
+};

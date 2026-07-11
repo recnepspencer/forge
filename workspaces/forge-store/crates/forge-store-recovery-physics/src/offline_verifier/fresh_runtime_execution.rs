@@ -28,6 +28,25 @@ pub struct FreshRuntimeRecoveryExecution {
 }
 
 impl FreshRuntimeRecoveryExecution {
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn from_certification_runtime_evidence(
+        artifact_digest: PersistedRecoveryArtifactDigest,
+        recovery_profile: RecoveryProfileId,
+        recovered_state: RecoveredPhysicalState,
+        counters: RecoveryCounterSnapshot,
+        fresh_runtime_constructions: u32,
+        runtime_cache_reads: u32,
+    ) -> Self {
+        Self {
+            artifact_digest,
+            recovery_profile,
+            recovered_state,
+            counters,
+            fresh_runtime_constructions,
+            runtime_cache_reads,
+        }
+    }
+
     pub(crate) fn from_store_recovery_execution(
         admission: &ReopenedRecoveryArtifactAdmission,
         transcript: &ReopenedRuntimeBoundaryTranscript,

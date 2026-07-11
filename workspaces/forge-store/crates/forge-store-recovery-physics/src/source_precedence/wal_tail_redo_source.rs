@@ -1,7 +1,7 @@
 use super::{RecoveryCandidateDiscoveryTrace, WalTailIntegrityQuarantineHandoff};
 use crate::{
-    CheckpointCutoverReceipt, CheckpointId, ContiguousWalTailProof, IntegrityVettedWalFrame,
-    ReplayCursor, WalLsnRange,
+    AdmittedReplayTailCursor, CheckpointCutoverReceipt, CheckpointId, ContiguousWalTailProof,
+    IntegrityVettedWalFrame, WalLsnRange,
 };
 use forge_store_physical_integrity::{WalFrameIntegrityInputIdentity, WalTailIntegrityPosture};
 
@@ -16,7 +16,7 @@ pub struct WalOnlyTailProof {
 impl WalOnlyTailProof {
     pub fn from_vetted_wal_frame(
         record: &IntegrityVettedWalFrame,
-        replay_cursor: &ReplayCursor,
+        replay_cursor: &AdmittedReplayTailCursor,
     ) -> Result<Self, WalOnlyTailProofDenial> {
         Self::admit_intact_tail(
             record.input_identity(),
@@ -27,7 +27,7 @@ impl WalOnlyTailProof {
 
     pub fn from_quarantined_wal_tail(
         handoff: &WalTailIntegrityQuarantineHandoff,
-        replay_cursor: &ReplayCursor,
+        replay_cursor: &AdmittedReplayTailCursor,
     ) -> Result<Self, WalOnlyTailProofDenial> {
         Self::admit_intact_tail(
             handoff.input_identity(),
@@ -55,7 +55,7 @@ impl WalOnlyTailProof {
     fn admit_intact_tail(
         input_identity: WalFrameIntegrityInputIdentity,
         tail_posture: WalTailIntegrityPosture,
-        replay_cursor: &ReplayCursor,
+        replay_cursor: &AdmittedReplayTailCursor,
     ) -> Result<Self, WalOnlyTailProofDenial> {
         if tail_posture != WalTailIntegrityPosture::IntactTail {
             return Err(WalOnlyTailProofDenial::BlockedByWalTailIntegrity {

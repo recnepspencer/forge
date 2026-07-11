@@ -160,6 +160,13 @@ pub struct ManifestDiscoveryReport<'a> {
 }
 
 impl<'a> ManifestDiscoveryReport<'a> {
+    pub(crate) const fn new(
+        root: &'a PhysicalRootManifest,
+        counters: ManifestDiscoveryCounterSnapshot,
+    ) -> Self {
+        Self { root, counters }
+    }
+
     pub const fn root(self) -> &'a PhysicalRootManifest {
         self.root
     }

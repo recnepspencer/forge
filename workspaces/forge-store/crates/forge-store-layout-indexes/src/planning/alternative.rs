@@ -7,16 +7,16 @@ use crate::artifact_family::{
 use crate::key_domain::PhysicalKeyDomainWitness;
 use crate::strategy::S8LayoutStrategyFamily;
 use crate::strategy_registry::{
-    layout_admission_registry, S8LayoutAdmissionDeferred, S8LayoutAdmissionDenial,
+    layout_admission_registry, S8LayoutAdmissionDenial, S8LayoutAdmissionOutcome,
     S8LayoutAdmissionRequest, S8LayoutRequestedCapability, S8LayoutStrategyRegistrySnapshot,
 };
-use forge_proof::TransitionOutcome;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8SelectionCandidateAudit {
     family: S8LayoutStrategyFamily,
     authority_role: AuthorityRole,
     outcome: S8SelectionCandidateOutcome,
+    layout_admission_transition: Option<crate::production_transition::S8LayoutProductionTransition>,
 }
 
 impl S8SelectionCandidateAudit {
@@ -24,11 +24,15 @@ impl S8SelectionCandidateAudit {
         family: S8LayoutStrategyFamily,
         authority_role: AuthorityRole,
         outcome: S8SelectionCandidateOutcome,
+        layout_admission_transition: Option<
+            crate::production_transition::S8LayoutProductionTransition,
+        >,
     ) -> Self {
         Self {
             family,
             authority_role,
             outcome,
+            layout_admission_transition,
         }
     }
 
@@ -42,6 +46,14 @@ impl S8SelectionCandidateAudit {
 
     pub const fn outcome(self) -> S8SelectionCandidateOutcome {
         self.outcome
+    }
+
+    /// The owner-emitted layout-admission fact consumed while deriving this
+    /// candidate. Explicit degraded scans have no layout-strategy admission.
+    pub const fn layout_admission_transition(
+        self,
+    ) -> Option<crate::production_transition::S8LayoutProductionTransition> {
+        self.layout_admission_transition
     }
 }
 
@@ -130,8 +142,10 @@ fn derive_candidate(
     authority_role: AuthorityRole,
 ) -> (Option<S8PlanningAlternative>, S8SelectionCandidateAudit) {
     let request = build_request(lifecycle, key_domain, shape, family);
-    match layout_admission_registry().admit_with(request) {
-        TransitionOutcome::Success(snapshot) => {
+    let admission = layout_admission_registry().admit(request);
+    let admission_transition = admission.production_transition();
+    match admission.into_result() {
+        Ok(snapshot) => {
             let planned_counter_envelope = crate::strategy::planned_counter_envelope_for(
                 snapshot.admitted_strategy().family(),
                 shape.detail(),
@@ -145,6 +159,7 @@ fn derive_candidate(
                         S8SelectionCandidateOutcome::Rejected(
                             S8SelectionCandidateRejection::MissingPlannedCounterEnvelope,
                         ),
+                        Some(admission_transition),
                     ),
                 );
             }
@@ -158,28 +173,19 @@ fn derive_candidate(
                             .expect("eligible alternatives declare planned envelopes"),
                     },
                 ),
+                Some(admission_transition),
             );
             (Some(S8PlanningAlternative { snapshot, audit }), audit)
         }
-        TransitionOutcome::Denied(denial) => (
+        Err(denial) => (
             None,
             S8SelectionCandidateAudit::new(
                 family,
                 authority_role,
                 S8SelectionCandidateOutcome::Rejected(map_denial(denial)),
+                Some(admission_transition),
             ),
         ),
-        TransitionOutcome::Deferred(deferred) => (
-            None,
-            S8SelectionCandidateAudit::new(
-                family,
-                authority_role,
-                S8SelectionCandidateOutcome::Rejected(map_deferred(deferred)),
-            ),
-        ),
-        TransitionOutcome::Stale(stale) => match stale {},
-        TransitionOutcome::RebindRequired(rebind) => match rebind {},
-        TransitionOutcome::Failed(failed) => match failed {},
     }
 }
 
@@ -275,14 +281,5 @@ const fn map_denial(denial: S8LayoutAdmissionDenial) -> S8SelectionCandidateReje
             S8SelectionCandidateRejection::MaterializationInexact
         }
         _ => S8SelectionCandidateRejection::StrategyUnsupported,
-    }
-}
-
-const fn map_deferred(deferred: S8LayoutAdmissionDeferred) -> S8SelectionCandidateRejection {
-    match deferred {
-        S8LayoutAdmissionDeferred::ExactCoverageEvidenceRequired { .. }
-        | S8LayoutAdmissionDeferred::LiveExactMaintenanceWitnessRequired { .. } => {
-            S8SelectionCandidateRejection::MaterializationRequired
-        }
     }
 }

@@ -9,13 +9,24 @@ description = "Roadmap 1 WAL-coordinated durable mode and semantic write-path co
 forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-modes.workspace = true
+forge-store-physical-backend.workspace = true
 forge-store-physical-format.workspace = true
 forge-store-security.workspace = true
+
+[features]
+default = []
+certification-authority = [
+    "forge-store-physical-backend/certification-test-authority",
+    "forge-store-security/certification-test-authority",
+]
 
 [dev-dependencies]
 forge-foundational = { path = "../../../../crates/forge-foundational" }
 forge-proof = { path = "../../../../crates/forge-proof" }
 forge-store-aspect-native.workspace = true
+forge-store-layout-indexes = { path = "../forge-store-layout-indexes" }
+forge-store-physical-backend = { path = "../forge-store-physical-backend", features = ["certification-test-authority"] }
+forge-store-security = { path = "../forge-store-security", features = ["certification-test-authority"] }
 
 [lints]
 workspace = true

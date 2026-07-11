@@ -1,2 +1,1 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutObservers;
+pub use crate::layout_harness::observers::S8LayoutObserverLane;

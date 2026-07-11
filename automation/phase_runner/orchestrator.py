@@ -556,7 +556,7 @@ def pending_recovery_reason(
         if event_type == "turn_outcome_recorded":
             return None
         if event_type == "prompt_selected":
-            return candidate_reason
+            return candidate_reason or "prior agent turn was interrupted before completion"
         if event_type == "runner_fault":
             reason = event.get("payload", {}).get("reason")
             candidate_reason = reason if isinstance(reason, str) and reason else "runner fault"

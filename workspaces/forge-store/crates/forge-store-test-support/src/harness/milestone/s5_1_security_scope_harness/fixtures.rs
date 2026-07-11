@@ -1,4 +1,4 @@
-use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
+use forge_store_authority::{StoreCurrentAuthorityWitness, require_current_store_authority};
 
 use crate::NativeStoreAspectFixture;
 

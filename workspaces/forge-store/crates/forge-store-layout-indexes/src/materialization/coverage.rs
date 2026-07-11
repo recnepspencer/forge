@@ -116,15 +116,16 @@ impl S8LayoutCoverageWitness {
             }
         }
 
-        match layout_corruption().classify(S8LayoutCorruptionInput::Materialization(self)) {
-            S8LayoutCorruptionOutcome::Clean { coverage } => Ok(coverage),
-            S8LayoutCorruptionOutcome::StaleBinding { coverage } => {
+        let outcome = layout_corruption().classify(S8LayoutCorruptionInput::Materialization(self));
+        match outcome.view() {
+            crate::S8LayoutCorruptionView::Clean(coverage) => Ok(*coverage),
+            crate::S8LayoutCorruptionView::StaleBinding(coverage) => {
                 Err(S8MaterializationDenial::LayoutCoverageIsStale {
                     family: coverage.family(),
                     basis_kind: coverage.upper_bound().basis_kind(),
                 })
             }
-            S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(quarantine) => {
+            crate::S8LayoutCorruptionView::Quarantined(quarantine) => {
                 let coverage = quarantine
                     .coverage()
                     .expect("materialization-backed quarantine retains its coverage");
@@ -138,37 +139,37 @@ impl S8LayoutCoverageWitness {
                 });
                 Err(S8MaterializationDenial::LayoutRangeIsQuarantined { gap })
             }
-            S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired { classification: _ } => {
+            crate::S8LayoutCorruptionView::RebuildRequired(_) => {
                 Err(S8MaterializationDenial::LayoutRequiresRebuild {
                     family: self.family,
                 })
             }
-            S8LayoutCorruptionOutcome::MigrationRequired { family } => {
-                Err(S8MaterializationDenial::LayoutIsMigrating { family })
+            crate::S8LayoutCorruptionView::MigrationRequired(family) => {
+                Err(S8MaterializationDenial::LayoutIsMigrating { family: *family })
             }
-            S8LayoutCorruptionOutcome::Unsupported { family, state }
-                if state == S8MaterializationStateClass::Lagged =>
+            crate::S8LayoutCorruptionView::Unsupported(unsupported)
+                if unsupported.state() == S8MaterializationStateClass::Lagged =>
             {
                 Err(S8MaterializationDenial::LayoutCoverageIsLagged {
-                    family,
+                    family: unsupported.family(),
                     basis_kind: self.upper_bound.basis_kind(),
                 })
             }
-            S8LayoutCorruptionOutcome::NotFound { family } => Err(
+            crate::S8LayoutCorruptionView::NotFound(family) => Err(
                 S8MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
-                    family,
+                    family: *family,
                     state: S8MaterializationStateClass::Absent,
                 },
             ),
-            S8LayoutCorruptionOutcome::Unsupported { family, state } => Err(
+            crate::S8LayoutCorruptionView::Unsupported(unsupported) => Err(
                 S8MaterializationDenial::MaterializationStateDoesNotSupportExactAccess {
-                    family,
-                    state,
+                    family: unsupported.family(),
+                    state: unsupported.state(),
                 },
             ),
-            S8LayoutCorruptionOutcome::QuarantineReadmissionRequired { .. }
-            | S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired { .. }
-            | S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired { .. } => {
+            crate::S8LayoutCorruptionView::QuarantineReadmissionRequired(_)
+            | crate::S8LayoutCorruptionView::OfflineReadmissionRequired(_)
+            | crate::S8LayoutCorruptionView::ImportReadmissionRequired(_) => {
                 unreachable!("materialization classification does not emit readmission outcomes")
             }
         }

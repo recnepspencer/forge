@@ -97,13 +97,11 @@ impl S8LayoutRebuildFacade {
         plan: S8DerivedIndexRebuildPlan,
         rebuilt_basis: S8DerivedIndexParityBasis,
     ) -> S8DerivedIndexRebuildOutcome {
-        if let S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(quarantine) =
-            plan.corruption()
-        {
-            return S8DerivedIndexRebuildOutcome::Quarantined(quarantine.clone());
+        if let crate::S8LayoutCorruptionView::Quarantined(quarantine) = plan.corruption().view() {
+            return S8DerivedIndexRebuildOutcome::quarantined(quarantine.clone());
         }
         if rebuilt_basis.coverage() != plan.rebuild_scope().authority_coverage() {
-            return S8DerivedIndexRebuildOutcome::Denied(
+            return S8DerivedIndexRebuildOutcome::denied(
                 S8DerivedIndexRebuildDenied::ParityCoverageMismatch {
                     expected: plan.rebuild_scope().authority_coverage(),
                     actual: rebuilt_basis.coverage(),
@@ -116,11 +114,11 @@ impl S8LayoutRebuildFacade {
             plan.request().key_domain(),
             plan.request().strategy_family(),
         ) {
-            Ok(admitted_strategy) => S8DerivedIndexRebuildOutcome::Rebuilt(
+            Ok(admitted_strategy) => S8DerivedIndexRebuildOutcome::rebuilt(
                 S8DerivedIndexRebuildReceipt::new(plan, admitted_strategy, rebuilt_basis),
             ),
             Err(denial) => {
-                S8DerivedIndexRebuildOutcome::Denied(S8DerivedIndexRebuildDenied::StrategyDenied {
+                S8DerivedIndexRebuildOutcome::denied(S8DerivedIndexRebuildDenied::StrategyDenied {
                     denial,
                 })
             }
@@ -132,8 +130,8 @@ impl S8LayoutRebuildFacade {
         receipt: S8DerivedIndexRebuildReceipt,
     ) -> S8DerivedIndexParityOutcome {
         match verify_parity(receipt) {
-            Ok(witness) => S8DerivedIndexParityOutcome::Verified(witness),
-            Err(denial) => S8DerivedIndexParityOutcome::Denied(denial),
+            Ok(witness) => S8DerivedIndexParityOutcome::verified(witness),
+            Err(denial) => S8DerivedIndexParityOutcome::denied(denial),
         }
     }
 }

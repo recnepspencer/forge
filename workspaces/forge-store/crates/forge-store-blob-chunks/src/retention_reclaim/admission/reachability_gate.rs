@@ -24,9 +24,9 @@ pub(crate) fn admit_via_reachability_gate(
 ) -> Result<BlobRetentionReclaimAdmission, BlobRetentionReclaimDenial> {
     verify_no_live_reachability_holds(reachability)?;
     let release = collect_reachability_release(reachability, chunk_identity)?;
-    verify_s6_posture_matches_release(&release, s6_posture)?;
+    verify_s6_posture_matches_release(&release, &s6_posture)?;
     let physical_claim =
-        BlobRetentionPhysicalOrphanClaim::from_admitted_s6_posture(&release, s6_posture)?;
+        BlobRetentionPhysicalOrphanClaim::from_admitted_s6_posture(&release, &s6_posture)?;
     let eligibility = match resume_barrier {
         None => RetentionReclaimEligibilityCase::EligibleReachabilityOrphan,
         Some(barrier) => {

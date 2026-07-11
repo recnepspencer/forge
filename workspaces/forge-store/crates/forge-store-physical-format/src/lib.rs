@@ -7,8 +7,8 @@
 pub mod layout_access;
 
 mod binary_format;
-mod bootstrap;
 mod blob_manifest;
+mod bootstrap;
 mod checksum;
 mod compile_fail;
 mod denial;
@@ -41,14 +41,14 @@ pub use binary_format::{
     PhysicalOperationEvidenceRequirement, PhysicalOperationKind, PhysicalPageSizeClass,
     PhysicalReservedFieldPolicy, PhysicalReservedFieldPolicyDeclaration,
 };
+pub use blob_manifest::{
+    BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
+    BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
+};
 pub use bootstrap::{
     physical_bootstrap_catalog, PhysicalBootstrapCatalogAuthority, PhysicalBootstrapCatalogDenial,
     PhysicalBootstrapCatalogIdentity, PhysicalBootstrapCatalogOpenWitness,
     PhysicalBootstrapCatalogWitness,
-};
-pub use blob_manifest::{
-    BlobPhysicalManifestDenial, BlobPhysicalManifestDenialKind, BlobPhysicalManifestRow,
-    BlobPhysicalManifestRowKind, BlobPhysicalManifestValidation,
 };
 pub use checksum::{
     s1_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
@@ -71,13 +71,18 @@ pub use extent_record::{
     PhysicalExtentRecordAuthority,
 };
 pub use facade::{
-    PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest,
+    PlatformPhysicalDegradedExactScanReceipt, PlatformPhysicalFacade,
     PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeDenial,
     PlatformPhysicalFacadeDenialKind, PlatformPhysicalFacadeEvidence,
     PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary,
-    PlatformPhysicalFramedRecord, PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest,
-    PlatformPhysicalRecordTarget, PlatformPhysicalReplayArtifact, PlatformPhysicalRootPublicationReport,
-    PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalScanReport,
+    PlatformPhysicalFramedRecord, PlatformPhysicalHiddenScanDenialReceipt,
+    PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
+    PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest, PlatformPhysicalRecordTarget,
+    PlatformPhysicalReplayArtifact, PlatformPhysicalRootPublicationReport,
+    PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalRuntimeOperation,
+    PlatformPhysicalRuntimeReceipt, PlatformPhysicalRuntimeReceiptDenial,
+    PlatformPhysicalRuntimeStrategy, PlatformPhysicalScanReport,
 };
 pub use format_identity::{
     PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,
@@ -98,6 +103,13 @@ pub use header::{
     PhysicalHeaderDecodeDenialKind, PhysicalHeaderDecodeReport, PhysicalHeaderDecodeWitness,
     PhysicalHeaderKind, PhysicalHeaderReservedField, PhysicalHeaderReservedFields,
     PhysicalPageHeader, PhysicalPageKind, PhysicalPublicationState, PHYSICAL_HEADER_LENGTH,
+};
+pub use layout_access::counters::PhysicalLayoutAccessCounterSnapshot;
+pub use layout_access::grammar::{
+    AdmittedAllocationLayoutRule, AdmittedExtentLayoutRule, AdmittedFragmentationLayoutRule,
+    AdmittedFrameLayoutRule, AdmittedFreeSpaceLayoutRule, AdmittedManifestIndexLayoutRule,
+    AdmittedPageLayoutRule, AdmittedRootManifestLayoutRule, AdmittedSegmentLayoutRule,
+    PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
 };
 pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,

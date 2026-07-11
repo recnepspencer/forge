@@ -1,18 +1,18 @@
-use forge_store_layout_indexes::{
-    bootstrap_catalog, layout_declarations, S8BootstrapOnlyAccessDenied,
-    S8BootstrapOnlyAccessPath,
+use forge_store_contracts::{
+    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_physical_format::{
-    physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+use forge_store_layout_indexes::{
+    bootstrap_catalog, layout_families::layout_declarations, S8BootstrapOnlyAccessDenied,
+    S8BootstrapOnlyAccessPath,
 };
 use forge_store_physical_certification::{
     FixtureCapabilityDeclaration, FixtureMutationBoundary, LargeStoreFixtureProfile,
     PhysicalFixtureBuilder, ProductionBackedFixtureMaterialization,
 };
-use forge_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+use forge_store_physical_format::{
+    physical_bootstrap_catalog, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
+    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
 };
 
 #[test]
@@ -53,8 +53,14 @@ fn bootstrap_catalog_admits_minimal_root_discovery_and_typed_read_access() {
     assert_eq!(catalog.free_space_count(), 0);
     assert_eq!(catalog.layout_entry_count(), 5);
 
-    assert_eq!(admission.physical_format_version(), catalog.physical_format_version());
-    assert_eq!(admission.root_owner(), physical_catalog.current_root().root_owner());
+    assert_eq!(
+        admission.physical_format_version(),
+        catalog.physical_format_version()
+    );
+    assert_eq!(
+        admission.root_owner(),
+        physical_catalog.current_root().root_owner()
+    );
 }
 
 #[test]
@@ -157,12 +163,13 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
             published_physical_catalog.current_root(),
         )
         .expect("published bootstrap catalog should admit");
-    let certification_materialization = ProductionBackedFixtureMaterialization::from_replay_artifact(
-        LargeStoreFixtureProfile::CheckpointHeavy,
-        published_physical_catalog.root_reference().get(),
-        published.replay_artifact(),
-    )
-    .expect("published layout should materialize for certification replay");
+    let certification_materialization =
+        ProductionBackedFixtureMaterialization::from_replay_artifact(
+            LargeStoreFixtureProfile::CheckpointHeavy,
+            published_physical_catalog.root_reference().get(),
+            published.replay_artifact(),
+        )
+        .expect("published layout should materialize for certification replay");
     let fixture = PhysicalFixtureBuilder::production_backed("phase18-bootstrap-certification")
         .materialize_with(certification_materialization)
         .capability(FixtureCapabilityDeclaration::for_mutation_boundary(
@@ -209,11 +216,9 @@ fn bootstrap_catalog_replays_stably_across_certification_replay() {
 }
 
 fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_s1(
-        readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
-    )
-    .expect("open S.1 facade");
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::s1();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -231,15 +236,15 @@ fn published_layout() -> forge_store_physical_format::PlatformPhysicalRootPublic
             b"large",
         ))
         .expect("append extent-backed record");
-    facade.publish_physical_root().expect("publish physical root")
+    facade
+        .publish_physical_root()
+        .expect("publish physical root")
 }
 
 fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_s1(
-        readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
-    )
-    .expect("open S.1 facade");
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::s1();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -268,7 +273,9 @@ fn republished_layout() -> forge_store_physical_format::PlatformPhysicalRootPubl
             b"second",
         ))
         .expect("append second page-backed record");
-    facade.publish_physical_root().expect("republish physical root")
+    facade
+        .publish_physical_root()
+        .expect("republish physical root")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

@@ -1,5 +1,6 @@
 use super::tests_support::{admit_phase_four_scope, admitted_scope, page_id, segment_id};
-use crate::{layout_declarations, ArtifactFamilyDenial};
+use crate::layout_families::layout_declarations;
+use crate::ArtifactFamilyDenial;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,

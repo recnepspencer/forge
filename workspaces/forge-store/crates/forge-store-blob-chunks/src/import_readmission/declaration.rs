@@ -1,4 +1,4 @@
-use forge_store_operations::ImportPlacementSource;
+use forge_store_operations_vocabulary::ImportPlacementSource;
 use forge_store_security::{
     StoreCustodyPosture, StoreRawSecurityScopeDeclaration, StoreSecurityScopeIdentity,
 };

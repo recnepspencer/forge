@@ -60,13 +60,15 @@ pub use compaction_interlock::compaction_read_interlock_plan_for_certification_t
 pub use compaction_interlock::{
     compaction_cutover_evidence_for_certification_plan,
     compaction_cutover_evidence_for_certification_rewrite_manifest,
-    CompactionCutoverEvidenceForCertification,
+    execute_baseline_lsm_compaction_for_certification,
+    publish_compaction_rewrite_for_certification, CompactionCutoverEvidenceForCertification,
 };
 pub use compaction_interlock::{
-    execute_read_during_compaction_cutover, CompactionCandidateRangeSet, CompactionCutoverDelta,
-    CompactionCutoverStabilityProof, CompactionDeferredReclaimQueue,
-    CompactionInterlockFoundationalEvidence, CompactionMutationLaneOrigin,
-    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
+    compaction_cutover_outcome_facts, execute_read_during_compaction_cutover,
+    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
+    CompactionCutoverState, CompactionCutoverTransition, CompactionCutoverTransitionKind,
+    CompactionDeferredReclaimQueue, CompactionInterlockFoundationalEvidence,
+    CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
     CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
@@ -122,6 +124,10 @@ pub use latch::{
     LatchWaitForGraphAdmissionDenial, LatchWaitForGraphDenial, PhysicalLatchClass,
     PhysicalLatchDeadlockPolicy, PhysicalLatchFamilyDeadlockPolicy, PhysicalLatchKey,
     PhysicalLatchMode, PhysicalLatchWaitEdge,
+};
+pub use layout_access::movable_stability_family::{
+    AdmittedPlacementLayoutFamily, AdmittedPlacementLayoutRule, MovableStabilityLayoutFamilyHome,
+    PlacementLayoutFamilyAdmission, PlacementLayoutReport, PlacementResidencyMapState,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use movable_stability::physical_placement_movement_execution_for_certification_test;

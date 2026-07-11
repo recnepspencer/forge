@@ -1,2 +1,1 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutActors;
+pub use crate::layout_harness::actors::S8LayoutActorLane;

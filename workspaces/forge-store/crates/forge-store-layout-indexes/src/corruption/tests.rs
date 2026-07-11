@@ -1,6 +1,7 @@
 use crate::corruption::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
+use crate::layout_families::layout_declarations;
 use crate::materialization::{S8LayoutCoverageWitness, S8LayoutMaterializationState};
-use crate::{layout_declarations, LayoutCorruptionClassification, S8PhysicalCoverageBasis};
+use crate::{LayoutCorruptionClassification, S8PhysicalCoverageBasis};
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{
@@ -129,6 +130,23 @@ fn terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes() {
         witness: super::readmission_tests::import_witness(family(), "terminal-import"),
     });
 
+    assert_eq!(
+        offline.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::OfflineEvidenceReadmissionRequired
+    );
+    assert_eq!(
+        terminal.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::TerminalImportReadmissionRequired
+    );
+    for outcome in [&offline, &terminal] {
+        assert!(
+            crate::production_transition::S8LayoutMachineContract::for_machine(
+                crate::production_transition::S8LayoutStateMachine::CorruptionQuarantine,
+            )
+            .contains(outcome.production_transition())
+        );
+    }
+
     assert!(matches!(
         offline,
         S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired { family: actual_family, .. } if actual_family == family()
@@ -137,6 +155,16 @@ fn terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes() {
         terminal,
         S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired { family: actual_family, .. } if actual_family == family()
     ));
+}
+
+pub(crate) fn exercise_classification_cases() {
+    materialization_states_keep_not_found_stale_and_quarantine_distinct();
+    rebuild_classification_keeps_derived_and_authoritative_corruption_distinct();
+    terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes();
+}
+
+pub(crate) fn assert_owner_transition_handoff_equivalence() {
+    terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes();
 }
 
 pub(super) fn other_family() -> crate::PhysicalArtifactFamily {

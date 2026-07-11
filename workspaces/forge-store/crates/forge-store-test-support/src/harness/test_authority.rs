@@ -7,7 +7,7 @@ pub use super::milestone::s7_blob_harness_execution::{
     execute_s7_blob_harness_scenario, synthetic_s7_blob_harness_coverage_matrix,
     synthetic_s7_blob_harness_replay_bundle,
 };
-pub use super::physical_reference::{harness_physical_reference, HarnessPhysicalReference};
+pub use super::physical_reference::{HarnessPhysicalReference, harness_physical_reference};
 pub use super::physical_simulation::{
     ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
     crash_recovery_fault_locus, fake_in_memory_only_driver_attempt, io_pressure_fault_locus,
@@ -18,3 +18,9 @@ pub use super::physical_simulation::{
     sleep_based_scheduling_driver_attempt, test_support_verdict_driver_attempt_fixture,
     wal_frame_payload_fault_locus,
 };
+
+pub mod s8_layout_access {
+    pub use super::super::milestone::s8_layout_access::{
+        S8LayoutAdversarialInputs, s8_layout_adversarial_inputs,
+    };
+}

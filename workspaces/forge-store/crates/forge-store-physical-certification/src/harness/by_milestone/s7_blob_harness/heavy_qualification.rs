@@ -1,7 +1,5 @@
 #[cfg(test)]
-use forge_store_blob_chunks::{
-    DeterministicBytePatternProfile, HeavyBlobFixturePlan,
-};
+use forge_store_blob_chunks::{DeterministicBytePatternProfile, HeavyBlobFixturePlan};
 
 #[cfg(test)]
 use super::scenario_seed::BlobHarnessScenarioSeed;

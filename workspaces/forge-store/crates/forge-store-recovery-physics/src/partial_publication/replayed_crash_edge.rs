@@ -31,11 +31,11 @@ impl PartialPublicationReplayedCrashEdge {
     }
 
     pub fn outcome(&self) -> UnacknowledgedPublicationOutcome {
-        self.witness.classification().outcome()
+        self.witness.crash_report().outcome()
     }
 
     pub fn classification_digest(&self) -> &str {
-        self.witness.classification().classification_digest()
+        self.witness.crash_report().classification_digest()
     }
 
     pub fn before_wal_append_operation_digest(&self) -> Option<&str> {

@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod layout_access;
+pub mod wal_topology;
 
 mod blob_records;
 mod durable_publication;
@@ -26,6 +27,15 @@ pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
     WalFrameDurablePublicationScope,
 };
+pub use layout_access::{
+    AdmittedCheckpointLayoutFamily, AdmittedCheckpointLayoutRule,
+    AdmittedCheckpointPublicationReceipt, AdmittedDurableMutationLayoutFamily,
+    AdmittedReplayTailCursor, AdmittedReplayTailLayoutFamily, AdmittedWalAppendLayoutRule,
+    AdmittedWalAppendReceipt, AdmittedWalTailLayoutRule, CheckpointLayoutFamilyHome,
+    CheckpointPublicationLayoutReport, DurableMutationLayoutFamilyHome, ReplayTailLayoutFamilyHome,
+    WalAppendLayoutReport, WalLayoutAccess, WalLayoutAccessDenial, WalLayoutAccessDenialKind,
+    WalReplayTailCursorReport, WalReplayTailRecordReport,
+};
 pub use s6_queue_work::{
     WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope,
 };
@@ -33,4 +43,9 @@ pub use security_metadata::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
     StoreWalRecordIdentity, WalRecordSecurityMetadataEnvelope, WalSecurityMetadataCarrier,
     WalSecurityMetadataEnvelope,
+};
+pub use wal_topology::{
+    LogSequenceNumber, ReplayCursor, ReplayCursorSegment, WalFrameOrderingProof, WalLsnRange,
+    WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord, WalTopologyDenial,
+    WalTopologyDenialKind, WalTopologyScan,
 };

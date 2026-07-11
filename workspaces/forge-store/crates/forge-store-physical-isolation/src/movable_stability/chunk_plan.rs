@@ -1,9 +1,8 @@
 use super::evidence::resolve_future_chunk_stability_recipe;
 use super::{
     FoundationalTierMovementNonClaimEvidence, FutureBlobMigrationNonClaimReport,
-    FutureChunkStabilityRecipe, PhysicalChunkStabilityPlaceholder,
-    TierMovementReadInterlockPlan, TierMovementStabilityCounterSnapshot,
-    TierMovementStabilityDenial,
+    FutureChunkStabilityRecipe, PhysicalChunkStabilityPlaceholder, TierMovementReadInterlockPlan,
+    TierMovementStabilityCounterSnapshot, TierMovementStabilityDenial,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

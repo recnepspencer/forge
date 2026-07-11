@@ -1,6 +1,8 @@
 use super::FutureLayoutTarget;
-use forge_store_layout_indexes::PhysicalKeyDomainWitness;
-use forge_store_layout_indexes::{S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope};
+use forge_store_layout_indexes::layout_customization::{
+    S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope,
+};
+use forge_store_layout_indexes::layout_strategy_admission::PhysicalKeyDomainWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExtensionFamilyPosture {

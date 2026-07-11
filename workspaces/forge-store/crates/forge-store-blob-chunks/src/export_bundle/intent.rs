@@ -1,4 +1,4 @@
-use forge_store_operations::BackupExportCustodyReadiness;
+use forge_store_operations_vocabulary::BackupExportCustodyReadiness;
 
 use crate::{AdmittedBlobPlacement, LifecycleReceipt};
 

@@ -1,5 +1,6 @@
 use crate::artifact_family::PhysicalArtifactFamily;
 use crate::materialization::{S8LayoutCoverageWitness, S8MaterializationDenial};
+use crate::production_transition::define_owner_outcome;
 use crate::strategy::{
     S8LayoutStrategyFamily, S8StrategyDenial, S8StrategyRebuildSourceRequirement,
 };
@@ -54,15 +55,45 @@ pub enum S8DerivedIndexRebuildDenied {
     ParityCounterShapeMismatch,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum S8DerivedIndexRebuildOutcome {
-    Rebuilt(S8DerivedIndexRebuildReceipt),
-    Quarantined(S8LayoutQuarantineWitness),
-    Denied(S8DerivedIndexRebuildDenied),
+define_owner_outcome!(
+    pub S8DerivedIndexRebuildOutcome,
+    pub S8DerivedIndexRebuildView,
+    S8DerivedIndexRebuildCase,
+    DerivedRebuildParity,
+    RebuildDerivedIndex,
+    [
+        rebuilt => Rebuilt(S8DerivedIndexRebuildReceipt): Declared => Rebuild => Rebuilt,
+        quarantined => Quarantined(S8LayoutQuarantineWitness): Declared => Quarantine => Quarantined,
+        denied => Denied(S8DerivedIndexRebuildDenied): Declared => Deny => Denied
+    ]
+);
+
+impl S8DerivedIndexRebuildOutcome {
+    pub fn into_rebuilt(self) -> Result<S8DerivedIndexRebuildReceipt, Self> {
+        match self.into_owner_payload() {
+            S8DerivedIndexRebuildCase::Rebuilt(value) => Ok(value),
+            case => Err(Self::from_owner_payload(case)),
+        }
+    }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum S8DerivedIndexParityOutcome {
-    Verified(S8DerivedIndexParityWitness),
-    Denied(S8DerivedIndexRebuildDenied),
+define_owner_outcome!(
+    pub S8DerivedIndexParityOutcome,
+    pub S8DerivedIndexParityView,
+    S8DerivedIndexParityCase,
+    DerivedRebuildParity,
+    VerifyDerivedParity,
+    [
+        verified => Verified(S8DerivedIndexParityWitness): Rebuilt => VerifyParity => ParityVerified,
+        denied => Denied(S8DerivedIndexRebuildDenied): Rebuilt => Deny => Denied
+    ]
+);
+
+impl S8DerivedIndexParityOutcome {
+    pub fn into_verified(self) -> Result<S8DerivedIndexParityWitness, Self> {
+        match self.into_owner_payload() {
+            S8DerivedIndexParityCase::Verified(value) => Ok(value),
+            case => Err(Self::from_owner_payload(case)),
+        }
+    }
 }

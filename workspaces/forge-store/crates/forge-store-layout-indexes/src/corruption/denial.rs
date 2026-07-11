@@ -21,6 +21,6 @@ pub enum S8CorruptionDenial {
     },
     UnexpectedOfflineReadmissionClass {
         family: crate::PhysicalArtifactFamily,
-        class: forge_store_recovery_physics::layout_access::readmission_family::RecoveryLayoutReadmissionClass,
+        class: forge_store_recovery_physics::RecoveryLayoutReadmissionClass,
     },
 }

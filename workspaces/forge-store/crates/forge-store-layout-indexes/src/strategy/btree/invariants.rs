@@ -90,16 +90,18 @@ impl S8BTreeInvariantSuite {
         self.rebuild_migration
     }
 
-    pub fn verify_baseline_lookup(self) -> Result<S8BTreeLookupBranch, S8StrategyDenial> {
+    pub fn verify_baseline_lookup(self) -> super::S8BTreeSearchOutcome<S8BTreeLookupBranch> {
         let proof = prove_baseline_btree_invariants().lookup();
-        self.search_path
+        let result = self
+            .search_path
             .verify_search_and_insertion_path_from_observation(
                 proof.probe_precedes_separator(),
                 proof.left_max_precedes_separator(),
                 proof.separator_precedes_right_min(),
                 map_lookup_branch(proof.branch()),
-            )?;
-        Ok(map_lookup_branch(proof.branch()))
+            )
+            .map(|()| map_lookup_branch(proof.branch()));
+        super::S8BTreeSearchOutcome::issue(result)
     }
 
     pub fn verify_baseline_mutation_and_integrity(

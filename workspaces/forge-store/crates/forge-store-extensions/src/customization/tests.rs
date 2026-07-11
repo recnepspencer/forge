@@ -14,8 +14,8 @@ use forge_store_contracts::{
     DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
 };
 use forge_store_layout_indexes::{
-    layout_declarations, ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness,
-    S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope,
+    layout_families::layout_declarations, ArtifactFamilyLifecycleAdmission,
+    PhysicalKeyDomainWitness, S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope,
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,

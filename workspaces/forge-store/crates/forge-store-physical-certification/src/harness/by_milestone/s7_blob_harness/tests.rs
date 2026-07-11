@@ -6,12 +6,12 @@ use crate::{
     SimulationPlanningContext,
 };
 use forge_store_blob_chunks::{
-    BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
-    BlobHarnessChunkTopology, BlobHarnessFailurePoint, BlobHarnessPlacementClass,
-    BlobHarnessSecurityScopeClass, BlobHarnessSizeClass, BlobHarnessTopologyDenial,
-    HeavyBlobFixtureMaterializationMode, deny_ambient_chaos_corpus_as_canonical,
-    deny_hidden_temporary_sidecar, deny_logical_size_only_heavy_qualification,
-    deny_sparse_only_heavy_qualification, deny_whole_object_expected_buffer,
+    deny_ambient_chaos_corpus_as_canonical, deny_hidden_temporary_sidecar,
+    deny_logical_size_only_heavy_qualification, deny_sparse_only_heavy_qualification,
+    deny_whole_object_expected_buffer, BlobHarnessAccessMode, BlobHarnessActorMix,
+    BlobHarnessChunkSizeClass, BlobHarnessChunkTopology, BlobHarnessFailurePoint,
+    BlobHarnessPlacementClass, BlobHarnessSecurityScopeClass, BlobHarnessSizeClass,
+    BlobHarnessTopologyDenial, HeavyBlobFixtureMaterializationMode,
 };
 use forge_store_budgets::BlobHarnessEnvelopeProfile;
 use forge_store_test_support::{
@@ -282,9 +282,15 @@ fn canonical_heavy_fixture_identity_binds_phase23_basis() {
     let digest_basis = plan.expected_digest_basis();
 
     assert_eq!(digest_basis.seed(), 22);
-    assert_eq!(digest_basis.logical_bytes(), seed.topology().logical_bytes());
+    assert_eq!(
+        digest_basis.logical_bytes(),
+        seed.topology().logical_bytes()
+    );
     assert_eq!(digest_basis.chunk_bytes(), seed.topology().chunk_bytes());
-    assert_eq!(digest_basis.expected_chunk_count(), seed.topology().chunk_count());
+    assert_eq!(
+        digest_basis.expected_chunk_count(),
+        seed.topology().chunk_count()
+    );
     assert_eq!(
         plan.materialization_mode(),
         HeavyBlobFixtureMaterializationMode::StreamOnly
@@ -311,7 +317,10 @@ fn temp_file_materialization_keeps_schema_and_emits_cleanup_receipt() {
         HeavyBlobFixtureMaterializationMode::TempFile
     );
     assert!(evidence.temporary_file_bytes() > 0);
-    assert_eq!(evidence.temporary_file_bytes(), evidence.disk_bytes_written());
+    assert_eq!(
+        evidence.temporary_file_bytes(),
+        evidence.disk_bytes_written()
+    );
     assert!(preflight.available_bytes() >= preflight.required_bytes());
     assert!(cleanup.completed());
     assert!(!cleanup.path().exists());
@@ -357,7 +366,10 @@ fn real_multi_gb_temp_file_fixture_emits_heavy_topology_evidence() {
         witness.executed_topology().chunk_count()
     );
     assert!(evidence.peak_allocation_count() > 0);
-    assert_eq!(evidence.temporary_file_bytes(), evidence.disk_bytes_written());
+    assert_eq!(
+        evidence.temporary_file_bytes(),
+        evidence.disk_bytes_written()
+    );
     assert!(evidence.cleanup_receipt().expect("cleanup").completed());
 }
 

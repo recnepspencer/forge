@@ -1,32 +1,35 @@
+use forge_store_wal::layout_access::baseline_lsm_counter_observation::BaselineLsmCompactionPublicationReceipt;
+
 use crate::strategy::S8StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LsmCompactionOrderingLaw;
+pub(crate) struct S8LsmCompactionOrderingLaw;
 
 impl S8LsmCompactionOrderingLaw {
     pub(crate) const fn baseline() -> Self {
         Self
     }
 
-    pub fn verify_compaction(
+    /// Checks the complete fixed-shape run set carried by the WAL-owned
+    /// receipt. No raw generation list can be admitted into compaction proof.
+    pub(crate) fn verify_owner_receipt(
         self,
-        input_generations: &[u64],
-        output_generation: u64,
-        stale_runs_retired: bool,
+        receipt: &BaselineLsmCompactionPublicationReceipt,
     ) -> Result<(), S8StrategyDenial> {
-        if input_generations.is_empty() || !stale_runs_retired {
-            return Err(S8StrategyDenial::CompactionOrderingViolation);
-        }
+        let inputs = receipt.input_runs();
+        let generations_are_strict = inputs
+            .windows(2)
+            .all(|pair| pair[0].generation() < pair[1].generation());
+        let roots_are_distinct = inputs[0].root_record() != inputs[1].root_record()
+            && inputs[1].root_record() != inputs[2].root_record()
+            && inputs[0].root_record() != inputs[2].root_record();
+        let output_follows_inputs = receipt.output_generation() > inputs[2].generation();
 
-        let mut previous = 0;
-        for generation in input_generations {
-            if *generation <= previous {
-                return Err(S8StrategyDenial::CompactionOrderingViolation);
-            }
-            previous = *generation;
-        }
-
-        if output_generation > previous {
+        if generations_are_strict
+            && roots_are_distinct
+            && output_follows_inputs
+            && receipt.stale_runs_retired()
+        {
             return Ok(());
         }
         Err(S8StrategyDenial::CompactionOrderingViolation)

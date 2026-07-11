@@ -300,3 +300,4 @@ crates/forge-query/src/runtime/tests/mutation/graph_composition_edge_split.rs
 # Owner: forge-query aspect-native live builder field-key migration.
 # Removal trigger: split naming mutation scenarios by rename, conflict, batch, and preview family.
 crates/forge-query/src/runtime/tests/mutation/naming.rs
+workspaces/forge-store/crates/forge-store-layout-indexes/src/artifact_family/inventory.rs

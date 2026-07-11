@@ -1,11 +1,9 @@
 use crate::skeleton::S8CrateResponsibilityMap;
 
-const LAYOUT_INDEXES_HOMES: &[&str] = &[
+const LAYOUT_INDEXES_INTERNAL_HOMES: &[&str] = &[
     "artifact_family",
     "key_domain",
     "strategy",
-    "strategy/btree",
-    "strategy/lsm",
     "strategy_registry",
     "materialization",
     "access_shape",
@@ -15,13 +13,30 @@ const LAYOUT_INDEXES_HOMES: &[&str] = &[
     "maintenance",
     "migration",
     "corruption",
+    "customization",
     "bootstrap",
     "degraded_access",
     "legacy_disposition",
     "skeleton",
+    "production_transition",
     "handoff",
     "facade",
     "compile_fail",
+];
+
+const LAYOUT_INDEXES_PUBLIC_FACADES: &[&str] = &[
+    "layout_families.rs",
+    "layout_strategy_admission.rs",
+    "access_planning.rs",
+    "access_lowering.rs",
+    "access_execution.rs",
+    "layout_rebuild.rs",
+    "layout_migration.rs",
+    "layout_counters.rs",
+    "layout_readmission.rs",
+    "layout_customization.rs",
+    "layout_closeout.rs",
+    "layout_certification.rs",
 ];
 
 const FAMILY_HOMES: &[&str] = &[
@@ -38,118 +53,28 @@ const FAMILY_HOMES: &[&str] = &[
 ];
 
 const COURTROOM_HOMES: &[&str] = &[
-    "forge-store-physical-certification::harness::by_milestone::s8_layout_access",
+    "forge-store-physical-certification::layout_harness",
     "forge-store-certification::s8_layout_closeout",
-    "forge-store-test-support::harness::milestone::s8_layout_access",
+    "forge-store-test-support::harness::production_facade::s8_layout_access",
 ];
 
 const FAMILY_REQUIRED_FILES: &[&str] = &[
     "crates/forge-store-physical-format/src/layout_access/mod.rs",
-    "crates/forge-store-physical-format/src/layout_access/page_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/frame_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/segment_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/extent_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/record_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/manifest_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/root_discovery_family.rs",
-    "crates/forge-store-physical-format/src/layout_access/format_family_closeout.rs",
     "crates/forge-store-wal/src/layout_access/mod.rs",
-    "crates/forge-store-wal/src/layout_access/wal_record_family.rs",
-    "crates/forge-store-wal/src/layout_access/wal_segment_family.rs",
-    "crates/forge-store-wal/src/layout_access/checkpoint_family.rs",
-    "crates/forge-store-wal/src/layout_access/durable_mutation_family.rs",
-    "crates/forge-store-wal/src/layout_access/replay_tail_family.rs",
-    "crates/forge-store-wal/src/layout_access/wal_layout_closeout.rs",
     "crates/forge-store-recovery-physics/src/layout_access/mod.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/recovery_source_family.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/replay_index_family.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/crash_boundary_family.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/checkpoint_cutover_family.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/readmission_family.rs",
-    "crates/forge-store-recovery-physics/src/layout_access/recovery_layout_closeout.rs",
     "crates/forge-store-buffer-pool/src/layout_access/mod.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/resident_frame_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/page_lease_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/dirty_state_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/zero_copy_view_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/read_ahead_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/write_behind_family.rs",
-    "crates/forge-store-buffer-pool/src/layout_access/buffer_pool_layout_closeout.rs",
     "crates/forge-store-physical-integrity/src/layout_access/mod.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/checksum_family.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/pre_decode_family.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/scrub_family.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/damage_map_family.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/quarantine_family.rs",
-    "crates/forge-store-physical-integrity/src/layout_access/integrity_layout_closeout.rs",
     "crates/forge-store-physical-isolation/src/layout_access/mod.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/stable_read_family.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/reclaim_barrier_family.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/compaction_interlock_family.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/movable_stability_family.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/orphan_reclaim_family.rs",
-    "crates/forge-store-physical-isolation/src/layout_access/isolation_layout_closeout.rs",
     "crates/forge-store-io-scheduler/src/layout_access/mod.rs",
-    "crates/forge-store-io-scheduler/src/layout_access/foreground_admission_family.rs",
-    "crates/forge-store-io-scheduler/src/layout_access/background_reservation_family.rs",
-    "crates/forge-store-io-scheduler/src/layout_access/queue_execution_family.rs",
-    "crates/forge-store-io-scheduler/src/layout_access/pacing_family.rs",
-    "crates/forge-store-io-scheduler/src/layout_access/io_layout_closeout.rs",
     "crates/forge-store-blob-chunks/src/layout_access/mod.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/blob_object_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/chunk_tree_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/streaming_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/dedupe_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/reachability_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/retention_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/reclaim_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/compaction_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/export_import_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/capsule_family.rs",
-    "crates/forge-store-blob-chunks/src/layout_access/blob_layout_closeout.rs",
     "crates/forge-store-security/src/layout_access/mod.rs",
-    "crates/forge-store-security/src/layout_access/tenant_scope_family.rs",
-    "crates/forge-store-security/src/layout_access/key_scope_family.rs",
-    "crates/forge-store-security/src/layout_access/custody_family.rs",
-    "crates/forge-store-security/src/layout_access/authenticity_family.rs",
-    "crates/forge-store-security/src/layout_access/repair_blast_radius_family.rs",
-    "crates/forge-store-security/src/layout_access/security_layout_closeout.rs",
     "crates/forge-store-operations/src/layout_access/mod.rs",
-    "crates/forge-store-operations/src/layout_access/backup_family.rs",
-    "crates/forge-store-operations/src/layout_access/restore_family.rs",
-    "crates/forge-store-operations/src/layout_access/import_family.rs",
-    "crates/forge-store-operations/src/layout_access/export_family.rs",
-    "crates/forge-store-operations/src/layout_access/repair_family.rs",
-    "crates/forge-store-operations/src/layout_access/capsule_operation_family.rs",
-    "crates/forge-store-operations/src/layout_access/operations_layout_closeout.rs",
 ];
 
 const COURTROOM_REQUIRED_FILES: &[&str] = &[
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/mod.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/scenario.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/actors.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/drivers.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/faults.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/observers.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/oracles.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/coverage.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/transcript.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/simulation.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/shortcut_denials.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/heavy_blob_profile.rs",
-    "crates/forge-store-physical-certification/src/harness/by_milestone/s8_layout_access/tests.rs",
+    "crates/forge-store-physical-certification/src/layout_harness/mod.rs",
     "crates/forge-store-certification/src/s8_layout_closeout/mod.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/sources.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/classifier.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/verifier.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/certificate.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/handoffs.rs",
-    "crates/forge-store-certification/src/s8_layout_closeout/denial.rs",
-    "crates/forge-store-test-support/src/harness/milestone/s8_layout_access/mod.rs",
-    "crates/forge-store-test-support/src/harness/milestone/s8_layout_access/fixtures.rs",
-    "crates/forge-store-test-support/src/harness/milestone/s8_layout_access/family_builders.rs",
-    "crates/forge-store-test-support/src/harness/milestone/s8_layout_access/scenario_builders.rs",
-    "crates/forge-store-test-support/src/harness/milestone/s8_layout_access/adversarial_inputs.rs",
+    "crates/forge-store-test-support/src/harness/production_facade.rs",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,7 +101,11 @@ impl S8SubsystemTopologyCloseout {
     }
 
     pub const fn layout_indexes_homes(&self) -> &'static [&'static str] {
-        LAYOUT_INDEXES_HOMES
+        LAYOUT_INDEXES_INTERNAL_HOMES
+    }
+
+    pub const fn layout_indexes_public_facades(&self) -> &'static [&'static str] {
+        LAYOUT_INDEXES_PUBLIC_FACADES
     }
 
     pub const fn family_homes(&self) -> &'static [&'static str] {

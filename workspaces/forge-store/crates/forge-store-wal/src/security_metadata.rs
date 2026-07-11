@@ -64,6 +64,14 @@ impl WalSecurityMetadataCarrier {
     pub const fn physical_metadata(self) -> StorePhysicalSecurityMetadataCarrier {
         self.physical_metadata
     }
+
+    pub const fn key_scope(self) -> forge_store_security::StoreKeyScope {
+        self.physical_metadata.key_scope()
+    }
+
+    pub const fn tenant_scope(self) -> forge_store_security::StoreTenantScope {
+        self.physical_metadata.tenant_scope()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

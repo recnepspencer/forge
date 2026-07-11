@@ -18,16 +18,35 @@ impl S8BTreeSearchPathLaw {
         separator: &CanonicalKeyBytes,
         right_min: &CanonicalKeyBytes,
         chosen_branch: S8BTreeLookupBranch,
+    ) -> super::S8BTreeSearchOutcome<()> {
+        let result = self.verify_search_and_insertion_path_result(
+            probe,
+            left_max,
+            separator,
+            right_min,
+            chosen_branch,
+        );
+        super::S8BTreeSearchOutcome::issue(result)
+    }
+
+    fn verify_search_and_insertion_path_result(
+        self,
+        probe: &CanonicalKeyBytes,
+        left_max: &CanonicalKeyBytes,
+        separator: &CanonicalKeyBytes,
+        right_min: &CanonicalKeyBytes,
+        chosen_branch: S8BTreeLookupBranch,
     ) -> Result<(), S8StrategyDenial> {
         self.separator
             .verify_separator_partition(left_max, separator, right_min)?;
         if self.separator.route_lookup(probe, separator)? == chosen_branch {
-            return Ok(());
+            Ok(())
+        } else {
+            Err(S8StrategyDenial::SearchPathViolation)
         }
-        Err(S8StrategyDenial::SearchPathViolation)
     }
 
-    pub fn verify_search_and_insertion_path_from_observation(
+    pub(crate) fn verify_search_and_insertion_path_from_observation(
         self,
         probe_precedes_separator: bool,
         left_max_precedes_separator: bool,

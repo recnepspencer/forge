@@ -1,0 +1,118 @@
+use super::super::{S8AccessLoweringDenied, S8AdmittedExecutedCounters};
+use crate::production_transition::define_owner_outcome;
+
+define_owner_outcome!(
+    pub S8IndexedCounterAdmissionOutcome,
+    pub S8IndexedCounterAdmissionView,
+    S8IndexedCounterAdmissionPayload,
+    ExecutedEvidence,
+    AdmitCountersAndExecute,
+    [
+        admitted => Admitted(S8AdmittedExecutedCounters): Ready => AdmitExactCounters => ExactCountersObserved,
+        denied => Denied(S8AccessLoweringDenied): Ready => Deny => Denied,
+    ]
+);
+
+define_owner_outcome!(
+    pub S8DegradedCounterAdmissionOutcome,
+    pub S8DegradedCounterAdmissionView,
+    S8DegradedCounterAdmissionPayload,
+    DegradedExactScan,
+    ExecuteBudgetedDegradedExactScan,
+    [
+        admitted => DegradedAdmitted(S8AdmittedExecutedCounters): Ready => AdmitExactCounters => ExactCountersObserved,
+        denied => DegradedDenied(S8AccessLoweringDenied): Ready => Deny => Denied,
+    ]
+);
+
+#[derive(Debug, PartialEq, Eq)]
+enum CounterAdmissionOwnerOutcome {
+    Indexed(S8IndexedCounterAdmissionOutcome),
+    Degraded(S8DegradedCounterAdmissionOutcome),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8ExecutedCounterAdmissionOutcome {
+    owner: CounterAdmissionOwnerOutcome,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8ExecutedCounterAdmissionView<'a> {
+    Admitted(&'a S8AdmittedExecutedCounters),
+    Denied(&'a S8AccessLoweringDenied),
+}
+
+impl S8ExecutedCounterAdmissionOutcome {
+    pub(crate) fn issue(
+        degraded: bool,
+        result: Result<S8AdmittedExecutedCounters, S8AccessLoweringDenied>,
+    ) -> Self {
+        let owner = match (degraded, result) {
+            (false, Ok(value)) => CounterAdmissionOwnerOutcome::Indexed(
+                S8IndexedCounterAdmissionOutcome::admitted(value),
+            ),
+            (false, Err(denial)) => CounterAdmissionOwnerOutcome::Indexed(
+                S8IndexedCounterAdmissionOutcome::denied(denial),
+            ),
+            (true, Ok(value)) => CounterAdmissionOwnerOutcome::Degraded(
+                S8DegradedCounterAdmissionOutcome::admitted(value),
+            ),
+            (true, Err(denial)) => CounterAdmissionOwnerOutcome::Degraded(
+                S8DegradedCounterAdmissionOutcome::denied(denial),
+            ),
+        };
+        Self { owner }
+    }
+    pub fn view(&self) -> S8ExecutedCounterAdmissionView<'_> {
+        match &self.owner {
+            CounterAdmissionOwnerOutcome::Indexed(value) => match value.view() {
+                S8IndexedCounterAdmissionView::Admitted(value) => {
+                    S8ExecutedCounterAdmissionView::Admitted(value)
+                }
+                S8IndexedCounterAdmissionView::Denied(denial) => {
+                    S8ExecutedCounterAdmissionView::Denied(denial)
+                }
+            },
+            CounterAdmissionOwnerOutcome::Degraded(value) => match value.view() {
+                S8DegradedCounterAdmissionView::DegradedAdmitted(value) => {
+                    S8ExecutedCounterAdmissionView::Admitted(value)
+                }
+                S8DegradedCounterAdmissionView::DegradedDenied(denial) => {
+                    S8ExecutedCounterAdmissionView::Denied(denial)
+                }
+            },
+        }
+    }
+    pub fn into_result(self) -> Result<S8AdmittedExecutedCounters, S8AccessLoweringDenied> {
+        match self.owner {
+            CounterAdmissionOwnerOutcome::Indexed(value) => match value.into_owner_payload() {
+                S8IndexedCounterAdmissionPayload::Admitted(value) => Ok(value),
+                S8IndexedCounterAdmissionPayload::Denied(denial) => Err(denial),
+            },
+            CounterAdmissionOwnerOutcome::Degraded(value) => match value.into_owner_payload() {
+                S8DegradedCounterAdmissionPayload::DegradedAdmitted(value) => Ok(value),
+                S8DegradedCounterAdmissionPayload::DegradedDenied(denial) => Err(denial),
+            },
+        }
+    }
+    pub fn expect(self, message: &str) -> S8AdmittedExecutedCounters {
+        self.into_result().expect(message)
+    }
+    pub fn expect_err(self, message: &str) -> S8AccessLoweringDenied {
+        self.into_result().expect_err(message)
+    }
+    pub const fn production_transition(
+        &self,
+    ) -> crate::production_transition::S8LayoutProductionTransition {
+        match &self.owner {
+            CounterAdmissionOwnerOutcome::Indexed(value) => value.production_transition(),
+            CounterAdmissionOwnerOutcome::Degraded(value) => value.production_transition(),
+        }
+    }
+    pub(crate) fn indexed_contract() -> crate::production_transition::S8OwnerTransitionContract {
+        S8IndexedCounterAdmissionOutcome::owner_transition_contract()
+    }
+    pub(crate) fn degraded_contract() -> crate::production_transition::S8OwnerTransitionContract {
+        S8DegradedCounterAdmissionOutcome::owner_transition_contract()
+    }
+}

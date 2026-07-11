@@ -1,2 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutScenario;
+pub use crate::layout_harness::scenario::{
+    all_s8_layout_scenarios, layout_scenario, S8LayoutProductionApi, S8LayoutScenarioDefinition,
+    S8LayoutScenarioKind, S8LayoutTransitionState,
+};

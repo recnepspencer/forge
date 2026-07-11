@@ -1,4 +1,7 @@
-use crate::{AdmittedRecoverySource, RecoverySourceCandidate, RecoverySourcePrecedenceGraph};
+use crate::{
+    source_precedence::RecoverySourcePrecedenceGraph, AdmittedRecoverySource, RecoveryLayoutAccess,
+    RecoverySourceCandidate, RecoverySourceLayoutReport,
+};
 
 use super::{RecoveryBudget, RecoveryBudgetDenial, RecoveryBudgetDenialKind};
 
@@ -43,8 +46,13 @@ impl BoundedRecoverySourcePrecedenceGraph {
     }
 
     pub fn admit_sources(self) -> BoundedRecoverySourceAdmission {
+        let source = self.graph.admit_sources();
+        let layout_report = RecoveryLayoutAccess::s8()
+            .phase22_recovery_source_family()
+            .source_report(&source);
         BoundedRecoverySourceAdmission {
-            source: self.graph.admit_sources(),
+            source,
+            layout_report,
             evidence: self.evidence,
         }
     }
@@ -87,12 +95,17 @@ impl ForbiddenFullStoreScanRejection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedRecoverySourceAdmission {
     source: AdmittedRecoverySource,
+    layout_report: RecoverySourceLayoutReport,
     evidence: RecoveryWorkBudgetEvidence,
 }
 
 impl BoundedRecoverySourceAdmission {
     pub const fn source(&self) -> &AdmittedRecoverySource {
         &self.source
+    }
+
+    pub const fn layout_report(&self) -> &RecoverySourceLayoutReport {
+        &self.layout_report
     }
 
     pub(crate) fn into_parts(self) -> (AdmittedRecoverySource, RecoveryWorkBudgetEvidence) {

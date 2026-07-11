@@ -26,6 +26,7 @@ forge-store-physical-integrity.workspace = true
 forge-store-physical-certification.workspace = true
 forge-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 forge-store-io-scheduler.workspace = true
+forge-store-layout-indexes.workspace = true
 forge-store-readiness.workspace = true
 forge-store-reclaim-policy.workspace = true
 forge-store-recovery-physics.workspace = true

@@ -62,6 +62,10 @@ pub(crate) fn declare_derived_accuracy_class(
             | DurableArtifactFamilyId::PlacementSnapshotFamily
             | DurableArtifactFamilyId::PlacementBranchDeltaFamily
             | DurableArtifactFamilyId::PlacementMilestone6LayoutFamily
+            | DurableArtifactFamilyId::SchedulerReservationIndex
+            | DurableArtifactFamilyId::TierPlacementManifest
+            | DurableArtifactFamilyId::ColdRecallQueue
+            | DurableArtifactFamilyId::RecallAmplificationIndex
             | DurableArtifactFamilyId::SupportSchema
             | DurableArtifactFamilyId::SupportLineage
             | DurableArtifactFamilyId::SupportCursor
@@ -81,7 +85,10 @@ pub(crate) fn declare_derived_accuracy_class(
             DurableArtifactFamilyId::MaintenanceSnapshot
             | DurableArtifactFamilyId::MaintenanceCompaction
             | DurableArtifactFamilyId::MaintenanceReclaim
-            | DurableArtifactFamilyId::MaintenanceCapsule => DerivedAccuracyClass::Heuristic,
+            | DurableArtifactFamilyId::MaintenanceCapsule
+            | DurableArtifactFamilyId::MaintenanceQueueDeclaration => {
+                DerivedAccuracyClass::Heuristic
+            }
             _ => DerivedAccuracyClass::Advisory,
         },
     };

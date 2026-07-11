@@ -6,9 +6,18 @@ license.workspace = true
 description = "Roadmap 1 immutable snapshots and point-in-time restore contracts."
 
 [dependencies]
-forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
+forge-store-layout-indexes.workspace = true
 forge-store-physical-backend.workspace = true
+
+[features]
+default = []
+phase23-layout-rule-construction = []
+
+[dev-dependencies]
+forge-store-aspect-native.workspace = true
+forge-store-budgets.workspace = true
+forge-store-test-support.workspace = true
 
 [lints]
 workspace = true

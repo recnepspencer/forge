@@ -1,6 +1,6 @@
 use super::declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
 use crate::artifact_family::ArtifactFamilyDenial;
-use forge_store_blob_chunks::{BlobGeneration, BlobObjectId};
+use crate::blob_basis::S8BlobIdentityKeyBasis;
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::{
     PhysicalExtentId, PhysicalPageId, PhysicalReference, PhysicalReferenceAdmissionWitness,
@@ -33,8 +33,7 @@ enum ConcretePhysicalKey {
         sequence: StoreWalRecordIdentity,
     },
     BlobIdentity {
-        object_id: BlobObjectId,
-        generation: BlobGeneration,
+        identity: S8BlobIdentityKeyBasis,
     },
 }
 
@@ -111,12 +110,9 @@ impl ConcretePhysicalKeyWitness {
         }
     }
 
-    pub fn blob_identity(&self) -> Option<(BlobObjectId, BlobGeneration)> {
+    pub fn blob_identity(&self) -> Option<&S8BlobIdentityKeyBasis> {
         match &self.key {
-            ConcretePhysicalKey::BlobIdentity {
-                object_id,
-                generation,
-            } => Some((object_id.clone(), *generation)),
+            ConcretePhysicalKey::BlobIdentity { identity } => Some(identity),
             _ => None,
         }
     }
@@ -211,16 +207,12 @@ pub(crate) fn admit_wal_record_key(
 
 pub(crate) fn admit_blob_identity_key(
     domain: PhysicalKeyDomainWitness,
-    object_id: BlobObjectId,
-    generation: BlobGeneration,
+    identity: S8BlobIdentityKeyBasis,
 ) -> Result<ConcretePhysicalKeyWitness, ArtifactFamilyDenial> {
     match domain.domain() {
         PhysicalKeyDomain::BlobIdentityKey => Ok(ConcretePhysicalKeyWitness::new(
             domain,
-            ConcretePhysicalKey::BlobIdentity {
-                object_id,
-                generation,
-            },
+            ConcretePhysicalKey::BlobIdentity { identity },
         )),
         _ => Err(ArtifactFamilyDenial::ConcreteKeyKindDoesNotMatchPhysicalKeyDomain),
     }

@@ -1,5 +1,5 @@
 use forge_store_budgets::CounterEvidenceStrength;
-use forge_store_operations::{
+use forge_store_operations_vocabulary::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
 };
 use forge_store_security::{StoreKeyVersionPosture, StoreTenantScope};

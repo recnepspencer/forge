@@ -120,6 +120,10 @@ impl StoreRepairPhysicalRegionWitness {
         self.identity
     }
 
+    pub const fn admitted_scope(&self) -> &StoreAdmittedSecurityScope {
+        &self.admitted_scope
+    }
+
     pub fn into_admitted_scope(self) -> StoreAdmittedSecurityScope {
         self.admitted_scope
     }

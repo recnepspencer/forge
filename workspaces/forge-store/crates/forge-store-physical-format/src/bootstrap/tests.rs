@@ -1,8 +1,9 @@
 use crate::{
-    physical_bootstrap_catalog, PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness,
-    PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId,
-    PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalOpenRequest,
+    physical_bootstrap_catalog, PhysicalBootstrapCatalogDenial,
+    PhysicalBootstrapCatalogOpenWitness, PhysicalExtentId, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalRootReference,
+    PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
+    PlatformPhysicalOpenRequest,
 };
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
@@ -19,7 +20,10 @@ fn bootstrap_catalog_discovery_is_tiny_fixed_versioned_and_checksummed() {
         .expect("bootstrap catalog should derive from current root");
 
     assert_eq!(catalog.root_reference(), root_ref(1));
-    assert_eq!(catalog.physical_format_version(), crate::PhysicalFormatVersion::s1_initial());
+    assert_eq!(
+        catalog.physical_format_version(),
+        crate::PhysicalFormatVersion::s1_initial()
+    );
     assert_eq!(catalog.root_entry_count(), 4);
     assert_eq!(catalog.segment_count(), 1);
     assert_eq!(catalog.page_slot_count(), 1);
@@ -96,11 +100,9 @@ fn bootstrap_identity_replays_stably_across_publish_and_reopen() {
 
 #[test]
 fn bootstrap_identity_replays_stably_across_crash_recovery() {
-    let mut facade = PlatformPhysicalFacade::open_s1(
-        readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
-    )
-    .expect("open S.1 facade");
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::s1();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -118,7 +120,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
             b"large",
         ))
         .expect("append extent-backed record");
-    let durable = facade.publish_physical_root().expect("publish durable root");
+    let durable = facade
+        .publish_physical_root()
+        .expect("publish durable root");
     let durable_catalog = physical_bootstrap_catalog()
         .discover_catalog(
             &durable
@@ -157,11 +161,9 @@ fn bootstrap_identity_replays_stably_across_crash_recovery() {
 }
 
 fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
-    let mut facade = PlatformPhysicalFacade::open_s1(
-        readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
-    )
-    .expect("open S.1 facade");
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open S.1 facade");
     let generations = PhysicalGenerationAuthority::s1();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -179,7 +181,9 @@ fn published_layout() -> crate::PlatformPhysicalRootPublicationReport {
             b"large",
         ))
         .expect("append extent-backed record");
-    facade.publish_physical_root().expect("publish physical root")
+    facade
+        .publish_physical_root()
+        .expect("publish physical root")
 }
 
 fn readiness() -> AcceptedHandoffReadiness {

@@ -118,7 +118,7 @@ fn checkpoint_and_blob_generation_coverages_are_first_class_public_lanes() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            blob_bundle.export_generation(),
+            crate::S8BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
         )
         .expect("blob generation coverage should admit");
     let blob_absence = access_planning()
@@ -181,7 +181,9 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            blob_bundle.lifecycle_declaration().generation(),
+            crate::S8BlobGenerationBasis::from_sequence(
+                blob_bundle.lifecycle_declaration().generation().sequence(),
+            ),
         )
         .expect("lifecycle blob generation should admit");
     let blob_from_export = access_planning()
@@ -189,7 +191,7 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            blob_bundle.export_generation(),
+            crate::S8BlobGenerationBasis::from_sequence(blob_bundle.export_generation().sequence()),
         )
         .expect("export blob generation should admit");
     let blob_from_replay = access_planning()
@@ -197,7 +199,7 @@ fn coverage_basis_witnesses_survive_reopen_and_certification_replay() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            import_declaration.generation(),
+            crate::S8BlobGenerationBasis::from_sequence(import_declaration.generation().sequence()),
         )
         .expect("replayed blob generation should admit");
 
@@ -326,4 +328,10 @@ fn reversed_lagged_intervals_are_denied_at_admission() {
             upper_bound: 40,
         })
     );
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    exact_absence_requires_exact_coverage();
+    partial_coverage_localizes_gap();
+    bounded_scan_absence_is_separate_from_exact_index_absence();
 }

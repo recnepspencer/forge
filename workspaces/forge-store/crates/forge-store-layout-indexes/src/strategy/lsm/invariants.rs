@@ -4,9 +4,12 @@ use super::{
 };
 use crate::key_domain::{declare_comparator_law, require_canonical_key_encoding};
 use crate::strategy::{S8StrategyDeclaration, S8StrategyDenial};
-use forge_store_wal::layout_access::baseline_lsm_counter_observation::BaselineLsmLookupDisposition;
+use forge_store_wal::layout_access::baseline_lsm_counter_observation::{
+    BaselineLsmCompactionPublicationReceipt, BaselineLsmLookupDisposition,
+};
 use forge_store_wal::layout_access::baseline_lsm_invariant_proof::{
-    prove_baseline_lsm_invariants, BaselineLsmLookupInvariantProof,
+    BaselineLsmLookupInvariantProof, BaselineLsmPublicationInvariantProof,
+    BaselineLsmRecoveryInvariantProof,
 };
 use forge_store_wal::BlobWalRecordKind;
 
@@ -120,12 +123,10 @@ impl S8LsmInvariantSuite {
         Err(S8StrategyDenial::SearchPathViolation)
     }
 
-    pub fn verify_baseline_lookup(self) -> Result<S8LsmLookupDisposition, S8StrategyDenial> {
-        self.verify_lookup_proof(prove_baseline_lsm_invariants().lookup())
-    }
-
-    pub fn verify_baseline_publication(self) -> Result<(), S8StrategyDenial> {
-        let proof = prove_baseline_lsm_invariants().publication();
+    pub fn verify_publication_proof(
+        self,
+        proof: BaselineLsmPublicationInvariantProof,
+    ) -> Result<(), S8StrategyDenial> {
         self.run_publication.verify_manifest_publication_progress(
             proof.manifest_sequence_advanced(),
             proof.published_run_count(),
@@ -138,8 +139,10 @@ impl S8LsmInvariantSuite {
             .verify_filter_posture(proof.advisory_filter_present())
     }
 
-    pub fn verify_baseline_recovery(self) -> Result<(), S8StrategyDenial> {
-        let proof = prove_baseline_lsm_invariants().recovery();
+    pub fn verify_recovery_proof(
+        self,
+        proof: BaselineLsmRecoveryInvariantProof,
+    ) -> Result<(), S8StrategyDenial> {
         self.memtable_wal
             .verify_recovery_replay_progress(proof.replay_monotonic())?;
         if proof.replay_tail()[1] != BlobWalRecordKind::GenerationPublication {
@@ -152,26 +155,20 @@ impl S8LsmInvariantSuite {
         )
     }
 
-    pub fn verify_baseline_mutation_and_compaction(self) -> Result<(), S8StrategyDenial> {
-        let proof = prove_baseline_lsm_invariants().compaction();
-        self.tombstone.verify_shadowing(
-            proof.tombstone_newer_sequence(),
-            proof.tombstone_older_sequence(),
-            proof.tombstone_blocks_older(),
-        )?;
+    pub fn verify_owner_mutation_and_compaction(
+        self,
+        receipt: &BaselineLsmCompactionPublicationReceipt,
+    ) -> Result<(), S8StrategyDenial> {
+        self.tombstone.verify_owner_receipt(&receipt)?;
+        self.compaction.verify_owner_receipt(&receipt)?;
         self.run_publication.verify_merge_order_boundary(
-            proof.older_precedes_newer_start(),
-            proof.newer_precedence_preserved(),
-        )?;
-        self.compaction.verify_compaction(
-            &proof.input_generations(),
-            proof.output_generation(),
-            proof.stale_runs_retired(),
+            receipt.older_precedes_newer_start(),
+            receipt.newer_precedence_preserved(),
         )?;
         self.write_amplification.verify_accounting(
-            proof.bytes_in(),
-            proof.bytes_out(),
-            proof.rewritten_runs(),
+            receipt.bytes_in(),
+            receipt.bytes_out(),
+            receipt.rewritten_runs(),
         )
     }
 }

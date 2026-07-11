@@ -52,14 +52,7 @@ pub fn compaction_cutover_evidence_for_certification_rewrite_manifest(
     rewritten_manifest_epoch: u64,
 ) -> CompactionCutoverEvidenceForCertification {
     let old_root = plan.protected().root();
-    let new_root = CurrentPhysicalRoot::from_s5_entry(
-        CurrentPhysicalRootBasis::new(
-            plan.target_epoch(),
-            ManifestEpoch::from_admitted_physical_basis(rewritten_manifest_epoch),
-        ),
-        PhysicalOrderingContract::root_swap_acquire_release(),
-    )
-    .expect("certification target root should admit");
+    let new_root = rewritten_root_for_certification_plan(plan, rewritten_manifest_epoch);
     let old_validation = root_validation_for_certification_root(old_root);
     let new_validation = root_validation_for_certification_root(new_root);
     let old_candidate = PublicationRootCandidate::admit(old_root, old_validation)
@@ -91,10 +84,11 @@ pub fn compaction_cutover_evidence_for_certification_rewrite_manifest(
     .expect("publication should swap")
     .receipt()
     .clone();
-    let publication = CompactionRewritePublication::publish(
+    let publication = super::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan.clone(), new_root)
             .expect("compaction cutover delta should lower"),
         publication_receipt,
+        super::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .expect("compaction rewrite publication should admit");
     CompactionCutoverEvidenceForCertification {
@@ -112,6 +106,20 @@ pub fn compaction_cutover_evidence_for_certification_rewrite_manifest(
             plan.protected().footprint_basis(),
         ),
     }
+}
+
+pub(super) fn rewritten_root_for_certification_plan(
+    plan: &CompactionReadInterlockPlan,
+    rewritten_manifest_epoch: u64,
+) -> CurrentPhysicalRoot {
+    CurrentPhysicalRoot::from_s5_entry(
+        CurrentPhysicalRootBasis::new(
+            plan.target_epoch(),
+            ManifestEpoch::from_admitted_physical_basis(rewritten_manifest_epoch),
+        ),
+        PhysicalOrderingContract::root_swap_acquire_release(),
+    )
+    .expect("certification target root should admit")
 }
 
 fn root_validation_for_certification_root(

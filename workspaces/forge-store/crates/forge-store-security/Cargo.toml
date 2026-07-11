@@ -7,6 +7,7 @@ description = "Roadmap 2 S.11 security, compliance, tenant boundaries, and audit
 
 [features]
 certification-test-authority = []
+phase27-layout-rule-construction = []
 
 [dependencies]
 forge-foundational = { path = "../../../../crates/forge-foundational" }

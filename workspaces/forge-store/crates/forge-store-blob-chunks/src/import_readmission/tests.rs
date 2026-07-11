@@ -1,5 +1,4 @@
-use forge_store_operations::ImportPlacementDisposition;
-use forge_store_operations::ImportPlacementSource;
+use forge_store_operations_vocabulary::{ImportPlacementDisposition, ImportPlacementSource};
 use forge_store_security::{StoreKeyVersionPosture, StoreTrustBoundaryCrossing};
 
 use super::test_support::{collect_current_chunks, import_lane, readmission_trigger};

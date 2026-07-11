@@ -10,9 +10,9 @@ mod verdict;
 pub use basis::OracleVerdictBasis;
 pub use blob_harness::{
     BlobByteEqualityOracle, BlobChunkOrderingOracle, BlobConstantMemoryOracle,
-    BlobDigestChecksumDistinctionOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
-    BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
-    BlobHeavyQualificationEvidenceOracle, BlobReachabilityOracle,
+    BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
+    BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
+    BlobReachabilityOracle,
 };
 pub use family::{PhysicalOracleJudgment, PhysicalProofOracle, ReusablePhysicalOracleFamily};
 pub use forbidden_sources::{

@@ -32,7 +32,7 @@ impl BackupExportCapsuleEmission {
 }
 
 impl BackupExportTerminalProjectionPreparation {
-    pub fn prepare(readiness: BackupExportCustodyReadiness) -> Self {
+    pub(crate) fn prepare(readiness: BackupExportCustodyReadiness) -> Self {
         Self {
             security_scope: readiness.identity(),
             counters: readiness.counters().prepared_terminal_projection(),

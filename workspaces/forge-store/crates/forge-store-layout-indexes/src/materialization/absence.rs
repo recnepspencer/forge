@@ -13,7 +13,9 @@ pub struct S8PhysicalAbsenceProof {
 }
 
 impl S8PhysicalAbsenceProof {
-    pub fn exact_index(coverage: S8LayoutCoverageWitness) -> Result<Self, S8MaterializationDenial> {
+    pub(crate) fn exact_index(
+        coverage: S8LayoutCoverageWitness,
+    ) -> Result<Self, S8MaterializationDenial> {
         Ok(Self {
             coverage: coverage.require_exact()?,
             authority_class: S8AbsenceAuthorityClass::ExactIndex,

@@ -3,7 +3,8 @@ use super::tests_support::{
     alternate_blob_identity, alternate_blob_import_declaration, page_slot_reference_admission,
     published_blob_evidence_bundle, published_blob_identity, published_blob_import_declaration,
 };
-use crate::{layout_declarations, ArtifactFamilyDenial, PhysicalKeyDomain};
+use crate::layout_families::layout_declarations;
+use crate::{ArtifactFamilyDenial, PhysicalKeyDomain};
 use forge_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -99,16 +100,16 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
     let certification_bundle = alternate_blob_evidence_bundle();
     let replay_import_declaration = published_blob_import_declaration();
     let certification_import_declaration = alternate_blob_import_declaration();
-    let (blob_object_id, blob_generation) = published_blob_identity();
+    let blob_identity = published_blob_identity();
     let blob_key = layout_declarations()
-        .admit_blob_identity_key(blob_domain, blob_object_id.clone(), blob_generation)
+        .admit_blob_identity_key(blob_domain, blob_identity.clone())
         .unwrap();
     let blob_same = layout_declarations()
-        .admit_blob_identity_key(blob_domain, blob_object_id.clone(), blob_generation)
+        .admit_blob_identity_key(blob_domain, blob_identity.clone())
         .unwrap();
-    let (other_blob_object_id, other_blob_generation) = alternate_blob_identity();
+    let other_blob_identity = alternate_blob_identity();
     let blob_other = layout_declarations()
-        .admit_blob_identity_key(blob_domain, other_blob_object_id, other_blob_generation)
+        .admit_blob_identity_key(blob_domain, other_blob_identity)
         .unwrap();
 
     let prefix_bytes = layout_declarations()
@@ -125,7 +126,7 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
         prefix_bytes.as_bytes(),
         [
             vec![0x40, 0x02, 0x06],
-            blob_object_id.digest().as_str().as_bytes().to_vec(),
+            blob_identity.object_digest().as_str().as_bytes().to_vec(),
         ]
         .concat()
         .as_slice()
@@ -142,46 +143,84 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
     let replay_lifecycle_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            replay_bundle.lifecycle_declaration().object_id().clone(),
-            replay_bundle.lifecycle_declaration().generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                replay_bundle
+                    .lifecycle_declaration()
+                    .object_id()
+                    .digest()
+                    .clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    replay_bundle
+                        .lifecycle_declaration()
+                        .generation()
+                        .sequence(),
+                ),
+            ),
         )
         .unwrap();
     let replay_import_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            replay_import_declaration.object_id().clone(),
-            replay_import_declaration.generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                replay_import_declaration.object_id().digest().clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    replay_import_declaration.generation().sequence(),
+                ),
+            ),
         )
         .unwrap();
     let replay_export_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            replay_bundle.export_object_id().clone(),
-            replay_bundle.export_generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                replay_bundle.export_object_id().digest().clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    replay_bundle.export_generation().sequence(),
+                ),
+            ),
         )
         .unwrap();
     let certification_export_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            certification_bundle.export_object_id().clone(),
-            certification_bundle.export_generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                certification_bundle.export_object_id().digest().clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    certification_bundle.export_generation().sequence(),
+                ),
+            ),
         )
         .unwrap();
     let certification_import_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            certification_import_declaration.object_id().clone(),
-            certification_import_declaration.generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                certification_import_declaration
+                    .object_id()
+                    .digest()
+                    .clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    certification_import_declaration.generation().sequence(),
+                ),
+            ),
         )
         .unwrap();
     let certification_lifecycle_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            certification_bundle
-                .lifecycle_declaration()
-                .object_id()
-                .clone(),
-            certification_bundle.lifecycle_declaration().generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                certification_bundle
+                    .lifecycle_declaration()
+                    .object_id()
+                    .digest()
+                    .clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    certification_bundle
+                        .lifecycle_declaration()
+                        .generation()
+                        .sequence(),
+                ),
+            ),
         )
         .unwrap();
 
@@ -245,8 +284,19 @@ fn phase_four_wal_blob_and_physical_reference_domains_prove_real_hash_and_replay
     let replay_surface_rederived_key = layout_declarations()
         .admit_blob_identity_key(
             blob_domain,
-            replay_bundle.lifecycle_declaration().object_id().clone(),
-            replay_bundle.lifecycle_declaration().generation(),
+            crate::S8BlobIdentityKeyBasis::new(
+                replay_bundle
+                    .lifecycle_declaration()
+                    .object_id()
+                    .digest()
+                    .clone(),
+                crate::S8BlobGenerationBasis::from_sequence(
+                    replay_bundle
+                        .lifecycle_declaration()
+                        .generation()
+                        .sequence(),
+                ),
+            ),
         )
         .unwrap();
     let replay_lifecycle_order = layout_declarations()

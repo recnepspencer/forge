@@ -22,9 +22,12 @@ forge-store-wal.workspace = true
 [features]
 default = []
 certification-test-authority = ["forge-store-physical-backend/certification-test-authority"]
+phase21-layout-rule-construction = []
+phase22-layout-rule-construction = []
 
 [dev-dependencies]
 forge-store-authority.workspace = true
+forge-store-layout-indexes = { path = "../forge-store-layout-indexes" }
 forge-store-readiness.workspace = true
 
 [lints]

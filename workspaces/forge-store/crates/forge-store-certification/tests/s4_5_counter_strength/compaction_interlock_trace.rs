@@ -89,9 +89,10 @@ fn compaction_interlock_evidence() -> CompactionInterlockFoundationalEvidence {
         ),
         root_publication_validation(new_root.scope(), 2),
     );
-    let publication = CompactionRewritePublication::publish(
+    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(
@@ -174,9 +175,10 @@ fn publication_only_evidence() -> CompactionInterlockFoundationalEvidence {
         ),
         root_publication_validation(new_root.scope(), 2),
     );
-    CompactionRewritePublication::publish(
+    forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .unwrap()
     .foundational_evidence()

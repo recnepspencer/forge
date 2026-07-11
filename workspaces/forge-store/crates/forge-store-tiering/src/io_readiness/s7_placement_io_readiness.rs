@@ -24,8 +24,8 @@ impl S7PlacementIoReadinessSeed {
         &self.handoff
     }
 
-    pub const fn cold_tier_posture(&self) -> S6ColdTierIoPosture {
-        self.cold_tier_posture
+    pub const fn cold_tier_posture(&self) -> &S6ColdTierIoPosture {
+        &self.cold_tier_posture
     }
 
     pub const fn non_claims(&self) -> &[S7PlacementReadinessNonClaim; 3] {

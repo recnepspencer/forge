@@ -1,4 +1,6 @@
-use forge_store_operations::{BackupExportCustodyReadiness, S10BackupExportCustodyHandoff};
+use forge_store_operations_vocabulary::{
+    BackupExportCustodyReadiness, S10BackupExportCustodyHandoff,
+};
 use forge_store_physical_isolation::{ReadDuringCheckpointVerdict, StablePhysicalReadPlan};
 
 use crate::reachability::receipt_construction::proof_set::{

@@ -81,6 +81,20 @@ pub use authority_source::{
 pub use layout_access::scope_partition_basis::{
     admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
 };
+pub use layout_access::{
+    authenticity_family::AuthenticityLayoutReport,
+    custody_family::CustodyLayoutReport,
+    key_scope_family::KeyScopeLayoutReport,
+    phase27_lookup_rule::{
+        AdmittedAuthenticityLayoutRule, AdmittedCustodyLayoutRule, AdmittedKeyScopeLayoutRule,
+        AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
+        SecurityCustodyLookupAccessShape,
+    },
+    repair_blast_radius_family::{
+        RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
+    },
+    tenant_scope_family::TenantScopeLayoutReport,
+};
 pub use physical_security_metadata::{
     admit_store_physical_security_metadata, StoreAllocationClassSecurityMetadataEnvelope,
     StoreExtentSecurityMetadataEnvelope, StoreFreeSpaceSecurityMetadataEnvelope,
@@ -160,6 +174,7 @@ pub use security_scope_test_authority::{
     admitted_tenant_page_export_prepared_scope_for_layout_access_test,
     admitted_tenant_page_security_scope_for_layout_access_test,
     admitted_tenant_page_without_authenticity_for_layout_access_test,
+    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test,
     admitted_wrong_s6_io_qos_security_scope_for_test,
 };
 pub use security_scope_witnesses::{

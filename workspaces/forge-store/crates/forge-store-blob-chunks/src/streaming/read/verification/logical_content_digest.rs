@@ -23,27 +23,22 @@ pub(crate) fn finalize_logical_content_digest(
     total_bytes: u64,
     chunk_count: u64,
 ) -> LogicalContentDigest {
-    LogicalContentDigest::from_declared_digest(accumulated_digest(
+    let _ = chunk_count;
+    LogicalContentDigest::from_declared_digest(accumulated_logical_digest(
         "logical-content",
         basis,
         total_bytes,
-        chunk_count,
     ))
 }
 
-fn accumulated_digest(
-    lane: &str,
-    accumulator: u64,
-    total_bytes: u64,
-    chunk_count: u64,
-) -> StableDigest {
-    let evidence = format!("{accumulator:016x}:{total_bytes}:{chunk_count}");
+fn accumulated_logical_digest(lane: &str, accumulator: u64, total_bytes: u64) -> StableDigest {
+    let evidence = format!("{accumulator:016x}:{total_bytes}");
     stable_digest_for_read(
         lane,
-        "s7.sequence.v1",
+        "s7.sequence.logical.v1",
         BlobChunkOrdinal::first(),
-        BlobChunkByteRange::new(chunk_count, evidence.len() as u64)
-            .expect("finalized read sequence has nonempty evidence"),
+        BlobChunkByteRange::new(1, evidence.len() as u64)
+            .expect("finalized logical evidence has nonempty evidence"),
         &evidence,
     )
 }

@@ -16,9 +16,16 @@ forge-store-physical-format.workspace = true
 forge-store-physical-integrity.workspace = true
 forge-store-recovery-physics.workspace = true
 forge-store-security.workspace = true
+forge-store-wal.workspace = true
 
 [features]
-certification-authority = ["forge-store-recovery-physics/certification-test-authority"]
+certification-authority = ["forge-store-recovery-physics/certification-test-authority", "forge-store-wal/certification-authority"]
+phase20-layout-rule-construction = []
+
+[dev-dependencies]
+forge-store-layout-indexes = { path = "../forge-store-layout-indexes" }
+forge-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+forge-store-wal = { workspace = true, features = ["certification-authority"] }
 
 [lints]
 workspace = true

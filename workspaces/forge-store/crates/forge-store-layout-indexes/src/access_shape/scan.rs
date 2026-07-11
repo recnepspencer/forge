@@ -6,6 +6,56 @@ use super::detail::{
 use super::lane::S8AccessLaneClassification;
 use super::shape::S8AccessShape;
 use crate::materialization::S8LayoutCoverageWitness;
+use crate::production_transition::define_owner_outcome;
+
+define_owner_outcome!(
+    pub S8FullDeclaredScanOutcome,
+    pub S8FullDeclaredScanView,
+    S8FullDeclaredScanCase,
+    FullDeclaredScanAdmission,
+    AdmitFullDeclaredScan,
+    [
+        admitted => Success(S8AccessShapeContract): SelectionRequested => Admit => Admitted,
+        hidden_denied => HiddenDenied(S8AccessShapeUnsupportedDenial): SelectionRequested => Deny => Denied,
+        denied => Denied(S8AccessShapeUnsupportedDenial): SelectionRequested => Deny => Denied,
+    ]
+);
+
+impl S8FullDeclaredScanOutcome {
+    pub fn into_result(self) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+        match self.into_owner_payload() {
+            S8FullDeclaredScanCase::Success(value) => Ok(value),
+            S8FullDeclaredScanCase::HiddenDenied(denial)
+            | S8FullDeclaredScanCase::Denied(denial) => Err(denial),
+        }
+    }
+
+    pub fn unwrap(self) -> S8AccessShapeContract {
+        self.into_result().unwrap()
+    }
+    pub fn expect(self, message: &str) -> S8AccessShapeContract {
+        self.into_result().expect(message)
+    }
+    pub fn unwrap_err(self) -> S8AccessShapeUnsupportedDenial {
+        self.into_result().unwrap_err()
+    }
+    pub fn expect_err(self, message: &str) -> S8AccessShapeUnsupportedDenial {
+        self.into_result().expect_err(message)
+    }
+}
+
+impl PartialEq<Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial>>
+    for S8FullDeclaredScanOutcome
+{
+    fn eq(&self, other: &Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial>) -> bool {
+        match (self.view(), other) {
+            (S8FullDeclaredScanView::Success(left), Ok(right)) => left == right,
+            (S8FullDeclaredScanView::HiddenDenied(left), Err(right))
+            | (S8FullDeclaredScanView::Denied(left), Err(right)) => left == right,
+            _ => false,
+        }
+    }
+}
 
 pub(crate) fn bounded_scan(
     coverage: S8LayoutCoverageWitness,
@@ -26,23 +76,31 @@ pub(crate) fn full_declared_scan(
     coverage: S8LayoutCoverageWitness,
     lane: S8AccessLaneClassification,
     basis: S8FullDeclaredScanBasis,
-) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+) -> S8FullDeclaredScanOutcome {
     match lane {
         S8AccessLaneClassification::Verifier | S8AccessLaneClassification::Terminal => {}
         _ => {
-            return Err(S8AccessShapeUnsupportedDenial::HiddenBroadScan {
-                requested_shape: S8AccessShape::FullDeclaredScan,
-            });
+            return S8FullDeclaredScanOutcome::hidden_denied(
+                S8AccessShapeUnsupportedDenial::HiddenBroadScan {
+                    requested_shape: S8AccessShape::FullDeclaredScan,
+                },
+            );
         }
     }
 
-    Ok(S8AccessShapeContract::exact_read(
+    let exact = match coverage.require_exact() {
+        Ok(exact) => exact,
+        Err(denial) => {
+            return S8FullDeclaredScanOutcome::denied(
+                S8AccessShapeUnsupportedDenial::MaterializationDenied(denial),
+            );
+        }
+    };
+    S8FullDeclaredScanOutcome::admitted(S8AccessShapeContract::exact_read(
         S8AccessShapeDetail::FullDeclaredScan(basis),
         lane,
         S8ExpectedCounterClass::FullDeclaredScan,
-        coverage
-            .require_exact()
-            .map_err(S8AccessShapeUnsupportedDenial::MaterializationDenied)?,
+        exact,
     ))
 }
 

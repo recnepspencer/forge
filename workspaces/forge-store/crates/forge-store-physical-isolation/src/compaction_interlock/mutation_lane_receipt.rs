@@ -22,15 +22,31 @@ pub struct CompactionMutationLaneOrigin {
     target_epoch: RootEpoch,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum CompactionMutationLaneReceiptKind {
-    InPlaceOverwriteDenied,
-    EarlyReclaimDenied,
-    StaleEpochReuseDenied,
-    BackendResidueCandidateSelectionDenied,
-    LatchHierarchyInversionDenied,
-    MixedRootReadDenied,
+macro_rules! define_compaction_mutation_outcomes {
+    ($( $variant:ident => $fact:ident ),+ $(,)?) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub enum CompactionMutationLaneReceiptKind {
+            $($variant),+
+        }
+
+        impl CompactionMutationLaneReceiptKind {
+            const fn production_transition(self) -> super::CompactionCutoverTransition {
+                match self {
+                    $(Self::$variant => super::CompactionCutoverTransitionKind::$fact.transition()),+
+                }
+            }
+        }
+    };
 }
+
+define_compaction_mutation_outcomes!(
+    InPlaceOverwriteDenied => DenyInPlaceOverwrite,
+    EarlyReclaimDenied => DenyEarlyReclaim,
+    StaleEpochReuseDenied => DenyStaleEpochReuse,
+    BackendResidueCandidateSelectionDenied => DenyBackendResidue,
+    LatchHierarchyInversionDenied => DenyLatchHierarchyInversion,
+    MixedRootReadDenied => DenyMixedRootRead,
+);
 
 impl CompactionMutationLaneReceipt {
     pub fn from_in_place_overwrite_denial(
@@ -131,6 +147,33 @@ impl CompactionMutationLaneReceipt {
 
     pub const fn kind(&self) -> CompactionMutationLaneReceiptKind {
         self.kind
+    }
+
+    pub const fn cutover_transition_kind(&self) -> super::CompactionCutoverTransitionKind {
+        match self.kind {
+            CompactionMutationLaneReceiptKind::InPlaceOverwriteDenied => {
+                super::CompactionCutoverTransitionKind::DenyInPlaceOverwrite
+            }
+            CompactionMutationLaneReceiptKind::EarlyReclaimDenied => {
+                super::CompactionCutoverTransitionKind::DenyEarlyReclaim
+            }
+            CompactionMutationLaneReceiptKind::StaleEpochReuseDenied => {
+                super::CompactionCutoverTransitionKind::DenyStaleEpochReuse
+            }
+            CompactionMutationLaneReceiptKind::BackendResidueCandidateSelectionDenied => {
+                super::CompactionCutoverTransitionKind::DenyBackendResidue
+            }
+            CompactionMutationLaneReceiptKind::LatchHierarchyInversionDenied => {
+                super::CompactionCutoverTransitionKind::DenyLatchHierarchyInversion
+            }
+            CompactionMutationLaneReceiptKind::MixedRootReadDenied => {
+                super::CompactionCutoverTransitionKind::DenyMixedRootRead
+            }
+        }
+    }
+
+    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
+        self.kind.production_transition()
     }
 
     pub const fn denial(&self) -> CompactionReadInterlockDenial {

@@ -4,6 +4,7 @@ use super::counter_path::derive_strategy_counter_evidence;
 use super::declaration::S8StrategyDeclaration;
 use super::lsm::{declare_lsm_invariant_suite, S8LsmInvariantSuite};
 use super::{S8LayoutStrategyFamily, S8StrategyDenial};
+use crate::production_transition::define_owner_outcome;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8StrategyLookupInvariant {
@@ -100,8 +101,58 @@ pub struct S8StrategyInvariantSuite {
     specific: StrategySpecificInvariantSuite,
 }
 
+define_owner_outcome!(
+    pub(crate) S8StrategyInvariantAdmissionOutcome,
+    pub(crate) S8StrategyInvariantAdmissionView,
+    S8StrategyInvariantAdmissionCase,
+    StrategyInvariantAdmission,
+    AdmitStrategyInvariantSuite,
+    [
+        admitted => Success(S8StrategyInvariantSuite): Declared => Admit => Admitted,
+        denied => Denied(S8StrategyDenial): Declared => Deny => Denied,
+    ]
+);
+
+impl S8StrategyInvariantAdmissionOutcome {
+    pub(crate) fn into_admitted(self) -> Result<S8AdmittedStrategyInvariants, S8StrategyDenial> {
+        let transition = self.production_transition();
+        match self.into_owner_payload() {
+            S8StrategyInvariantAdmissionCase::Success(suite) => {
+                Ok(S8AdmittedStrategyInvariants { suite, transition })
+            }
+            S8StrategyInvariantAdmissionCase::Denied(denial) => Err(denial),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct S8AdmittedStrategyInvariants {
+    suite: S8StrategyInvariantSuite,
+    transition: crate::production_transition::S8LayoutProductionTransition,
+}
+
+impl S8AdmittedStrategyInvariants {
+    pub(crate) const fn suite(self) -> S8StrategyInvariantSuite {
+        self.suite
+    }
+    pub(crate) const fn production_transition(
+        self,
+    ) -> crate::production_transition::S8LayoutProductionTransition {
+        self.transition
+    }
+}
+
 impl S8StrategyInvariantSuite {
-    pub(crate) fn declare(declaration: S8StrategyDeclaration) -> Result<Self, S8StrategyDenial> {
+    pub(crate) fn declare(
+        declaration: S8StrategyDeclaration,
+    ) -> S8StrategyInvariantAdmissionOutcome {
+        match Self::declare_result(declaration) {
+            Ok(suite) => S8StrategyInvariantAdmissionOutcome::admitted(suite),
+            Err(denial) => S8StrategyInvariantAdmissionOutcome::denied(denial),
+        }
+    }
+
+    fn declare_result(declaration: S8StrategyDeclaration) -> Result<Self, S8StrategyDenial> {
         match declaration.family() {
             S8LayoutStrategyFamily::BaselineBTreeRange => Ok(Self {
                 declaration,

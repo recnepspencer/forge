@@ -1,3 +1,4 @@
+use crate::source_precedence::RecoverySourceReplayBasis;
 use crate::{LogSequenceNumber, PageLsn, RecoveredPhysicalState};
 
 use super::decoded_s4_recovery_record_set::DecodedS4RecoveryRecords;
@@ -16,6 +17,7 @@ pub(super) fn project_s4_recovered_physical_state(
             wal_frame.idempotence_digest
         ),
         Some(PageLsn::from_lsn(LogSequenceNumber::new(wal_frame.lsn))),
+        RecoverySourceReplayBasis::empty(),
         format!(
             "CheckpointPlusWalTail:{}:{}",
             checkpoint.source_profile, checkpoint.source_candidate_count

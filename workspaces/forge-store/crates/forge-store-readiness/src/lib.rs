@@ -209,8 +209,9 @@ mod s6_later_milestone_non_claims;
 mod s6_materialized_certification_closeout;
 mod s6_production_readiness_closeout;
 mod s6_s7_placement_admission;
-mod s7_closeout_handoffs;
 mod s7_capsule_readiness_handoff;
+mod s7_closeout_handoffs;
+mod s8_layout_handoff_readiness;
 
 pub use adoption_denial::FoundationalAdoptionDenial;
 pub use aspect_native_vocabulary_readiness::{
@@ -288,10 +289,13 @@ pub use s6_production_readiness_closeout::{
 pub use s6_s7_placement_admission::{
     admit_s6_s7_placement_handoff, S6S7PlacementAdmissionAuthority,
 };
+pub use s7_capsule_readiness_handoff::{
+    admit_s7_capsule_readiness_handoff, S7CapsuleReadinessHandoff,
+};
 pub use s7_closeout_handoffs::{
     S10BackupRepairReadinessNonClaim, S11KeyLifecycleReadinessNonClaim,
     S12FullCertificationNonClaim, S8LayoutReadinessNonClaim,
 };
-pub use s7_capsule_readiness_handoff::{
-    admit_s7_capsule_readiness_handoff, S7CapsuleReadinessHandoff,
+pub use s8_layout_handoff_readiness::{
+    admit_s8_layout_handoff_readiness, S8LayoutHandoffReadiness, S8LayoutHandoffReadinessDenial,
 };

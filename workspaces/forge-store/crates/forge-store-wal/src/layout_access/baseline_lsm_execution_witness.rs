@@ -1,27 +1,110 @@
-use super::baseline_lsm_compaction_execution::BaselineLsmCompactionExecution;
-use super::baseline_lsm_counter_support::{
-    seeded_compaction_state, seeded_manifest_publication, seeded_memtable_records,
-    seeded_replay_tail, seeded_sorted_run_records, seeded_wal_publication,
+use super::baseline_lsm_compaction_execution::{
+    BaselineLsmCompactionExecutionEffects, BaselineLsmCompactionPublicationReceipt,
+    BaselineLsmCompactionRecordKind,
 };
 use super::{
-    BaselineLsmCounterObservation, BaselineLsmExecutionWitness, BaselineLsmLookupDisposition,
+    BaselineLsmCounterObservation, BaselineLsmExecutionAdmissionDenial,
+    BaselineLsmExecutionRequest, BaselineLsmExecutionWitness, BaselineLsmLookupDisposition,
     BaselineLsmLookupExecution, BaselineLsmManifestPublicationExecution,
     BaselineLsmReplayExecution,
 };
 use crate::{
     record_kind_admits_recovery_replay, BlobWalRecordEnvelope, BlobWalRecordIdentity,
-    DurablePublicationDeclaration, DurablePublicationScope,
+    BlobWalRecordKind, DurablePublicationDeclaration, DurablePublicationScope,
 };
 
 impl BaselineLsmExecutionWitness {
-    pub fn seeded() -> Self {
-        Self {
-            memtable_records: seeded_memtable_records(),
-            sorted_run_records: seeded_sorted_run_records(),
-            wal_publication: seeded_wal_publication(),
-            manifest_publication: seeded_manifest_publication(),
-            replay_tail: seeded_replay_tail(),
+    #[cfg(test)]
+    pub(crate) fn seeded() -> Self {
+        crate::layout_access::execute_baseline_lsm_persisted_fixture(
+            super::BaselineLsmPhysicalPublicationBinding::new(2, 2, 2)
+                .expect("test physical binding"),
+        )
+    }
+
+    pub(crate) fn execute(
+        request: BaselineLsmExecutionRequest,
+        session: &mut super::BaselineLsmWalIndexSession,
+    ) -> Result<Self, BaselineLsmExecutionAdmissionDenial> {
+        let identities = request.identities();
+        let memtable_records = [identities[2]];
+        let sorted_run_records = [identities[0], identities[1]];
+        let replay_tail = std::array::from_fn(|index| request.replay_tail()[index].clone());
+        if request.records().iter().any(|record| {
+            record.tenant_scope() != request.tenant_scope()
+                || record.key_scope() != request.key_scope()
+                || record.canonical_key_bytes() != request.canonical_key_bytes()
+        }) {
+            return Err(BaselineLsmExecutionAdmissionDenial::RecordKeyScopeMismatch);
         }
+        if sorted_run_records[0].sequence() >= sorted_run_records[1].sequence() {
+            return Err(BaselineLsmExecutionAdmissionDenial::SortedRunsNotCanonical);
+        }
+        if memtable_records[0].sequence() <= sorted_run_records[1].sequence() {
+            return Err(BaselineLsmExecutionAdmissionDenial::MemtableDoesNotFollowSortedRuns);
+        }
+        if !(replay_tail[0].identity().sequence() < replay_tail[1].identity().sequence()
+            && replay_tail[1].identity().sequence() < replay_tail[2].identity().sequence())
+        {
+            return Err(BaselineLsmExecutionAdmissionDenial::ReplayTailNotCanonical);
+        }
+        if replay_tail[0].identity() != sorted_run_records[0]
+            || replay_tail[1].identity() != sorted_run_records[1]
+            || replay_tail[2].identity() != memtable_records[0]
+        {
+            return Err(BaselineLsmExecutionAdmissionDenial::ReplayBindingMismatch);
+        }
+        if replay_tail[0].identity().kind() != BlobWalRecordKind::LsmValue {
+            return Err(BaselineLsmExecutionAdmissionDenial::ValueRecordRequired);
+        }
+        if replay_tail[2].identity().kind() != BlobWalRecordKind::LsmTombstone {
+            return Err(BaselineLsmExecutionAdmissionDenial::TombstoneRecordRequired);
+        }
+        if request.canonical_key_bytes() == [0; 8] {
+            return Err(BaselineLsmExecutionAdmissionDenial::CanonicalKeyRequired);
+        }
+        if !matches!(
+            request.manifest_publication().scope(),
+            DurablePublicationScope::Manifest(_)
+        ) {
+            return Err(BaselineLsmExecutionAdmissionDenial::ManifestPublicationRequired);
+        }
+        let expected_output_generation = replay_tail[2]
+            .identity()
+            .sequence()
+            .checked_add(1)
+            .ok_or(BaselineLsmExecutionAdmissionDenial::OutputGenerationOverflow)?;
+        require_manifest_covers_execution(&request, expected_output_generation)?;
+        let manifest_publication = request.manifest_publication();
+        let DurablePublicationScope::Manifest(_manifest_scope) = manifest_publication.scope()
+        else {
+            return Err(BaselineLsmExecutionAdmissionDenial::ManifestPublicationRequired);
+        };
+        let output_publication = BlobWalRecordEnvelope::new(
+            BlobWalRecordIdentity::new(
+                expected_output_generation,
+                BlobWalRecordKind::GenerationPublication,
+            )
+            .expect("checked nonzero generation"),
+            DurablePublicationDeclaration::wal_frame(request.output_scope().clone()),
+            request.output_scope().frame_digest().to_owned(),
+        )
+        .map_err(|_| BaselineLsmExecutionAdmissionDenial::OutputPublicationMismatch)?;
+        let compaction = execute_compaction(
+            &request,
+            session,
+            expected_output_generation,
+            output_publication.clone(),
+            manifest_publication.clone(),
+        )?;
+        Ok(Self {
+            memtable_records,
+            sorted_run_records,
+            wal_publication: output_publication,
+            manifest_publication,
+            replay_tail,
+            compaction,
+        })
     }
 
     pub fn execute_lookup_latest_visible_record(
@@ -113,25 +196,8 @@ impl BaselineLsmExecutionWitness {
         )
     }
 
-    pub fn execute_compaction_ordering(&self) -> BaselineLsmCompactionExecution {
-        let state = seeded_compaction_state();
-        BaselineLsmCompactionExecution::new(
-            state.older_generation,
-            state.newer_generation,
-            true,
-            state.older_generation < state.newer_generation,
-            state.newer_generation > state.middle_generation,
-            [
-                state.older_generation,
-                state.middle_generation,
-                state.newer_generation,
-            ],
-            state.output_generation,
-            state.stale_runs_retired,
-            state.bytes_in,
-            state.bytes_out,
-            state.rewritten_runs,
-        )
+    pub const fn compaction_publication_receipt(&self) -> &BaselineLsmCompactionPublicationReceipt {
+        &self.compaction
     }
 
     pub fn lookup_disposition_for(&self, probe_sequence: u64) -> BaselineLsmLookupDisposition {
@@ -167,4 +233,86 @@ impl BaselineLsmExecutionWitness {
     pub const fn replay_tail(&self) -> &[BlobWalRecordEnvelope; 3] {
         &self.replay_tail
     }
+}
+
+fn require_manifest_covers_execution(
+    request: &BaselineLsmExecutionRequest,
+    output_generation: u64,
+) -> Result<(), BaselineLsmExecutionAdmissionDenial> {
+    let manifest = request.manifest_publication();
+    let DurablePublicationScope::Manifest(scope) = manifest.scope() else {
+        return Err(BaselineLsmExecutionAdmissionDenial::ManifestPublicationRequired);
+    };
+    let oldest = request.replay_tail()[0].identity().sequence();
+    if scope.covered_lsn_start() > oldest || scope.covered_lsn_end() < output_generation {
+        return Err(BaselineLsmExecutionAdmissionDenial::ManifestDoesNotCoverCompaction);
+    }
+    let output_scope = request.output_scope();
+    if output_scope.lsn_start() > output_generation
+        || output_scope.lsn_end() < output_generation
+        || output_scope.expected_bytes() == 0
+    {
+        return Err(BaselineLsmExecutionAdmissionDenial::OutputPublicationMismatch);
+    }
+    Ok(())
+}
+
+fn execute_compaction(
+    request: &BaselineLsmExecutionRequest,
+    session: &mut super::BaselineLsmWalIndexSession,
+    output_generation: u64,
+    output_publication: BlobWalRecordEnvelope,
+    manifest_publication: DurablePublicationDeclaration,
+) -> Result<BaselineLsmCompactionPublicationReceipt, BaselineLsmExecutionAdmissionDenial> {
+    let replay = request.replay_tail();
+    let key = BaselineLsmCompactionPublicationReceipt::admitted_key(
+        request.tenant_scope(),
+        request.key_scope(),
+        request.canonical_key_bytes(),
+    );
+    let input_runs = std::array::from_fn(|index| {
+        BaselineLsmCompactionPublicationReceipt::run(
+            replay[index].identity().sequence(),
+            replay[index].identity(),
+        )
+    });
+    let (retired_runs, counters) = request.retire_persisted_inputs(session)?;
+    let effects =
+        BaselineLsmCompactionExecutionEffects::from_persisted_execution(retired_runs, counters);
+    let bytes_in = replay.iter().map(|record| wal_frame_bytes(record)).sum();
+    let bytes_out = wal_frame_bytes(&output_publication);
+    Ok(BaselineLsmCompactionPublicationReceipt::new(
+        key,
+        input_runs,
+        BaselineLsmCompactionPublicationReceipt::run(
+            output_generation,
+            output_publication.identity(),
+        ),
+        output_publication,
+        BaselineLsmCompactionPublicationReceipt::record(
+            key,
+            replay[2].identity(),
+            input_runs[2],
+            BaselineLsmCompactionRecordKind::Tombstone,
+        ),
+        BaselineLsmCompactionPublicationReceipt::record(
+            key,
+            replay[0].identity(),
+            input_runs[0],
+            BaselineLsmCompactionRecordKind::Value,
+        ),
+        manifest_publication,
+        std::array::from_fn(|index| replay[index].identity()),
+        bytes_in,
+        bytes_out,
+        effects,
+        request.physical_publication(),
+    ))
+}
+
+fn wal_frame_bytes(record: &BlobWalRecordEnvelope) -> u64 {
+    let DurablePublicationScope::WalFrame(scope) = record.durable_publication().scope() else {
+        unreachable!("BlobWalRecordEnvelope admits only WAL-frame publication")
+    };
+    scope.expected_bytes()
 }

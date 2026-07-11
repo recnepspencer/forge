@@ -9,23 +9,56 @@ fn courtroom_test_authority_cannot_satisfy_production_surfaces() {
 struct CompileFailFixture {
     name: &'static str,
     expected_stderr: &'static [&'static str],
+    include_physical_certification: bool,
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 2] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 8] {
     [
         CompileFailFixture {
             name: "harness_reference_is_not_physical_reference.rs",
             expected_stderr: &["PhysicalReference", "HarnessPhysicalReference"],
+            include_physical_certification: true,
         },
         CompileFailFixture {
             name: "harness_reference_cannot_expose_private_reference_lane.rs",
             expected_stderr: &["as_physical_reference", "private"],
+            include_physical_certification: true,
+        },
+        CompileFailFixture {
+            name: "copied_s8_runtime_fact_cannot_satisfy_matrix.rs",
+            expected_stderr: &["S8RuntimeEvidence", "S8RuntimeOwnerFact"],
+            include_physical_certification: true,
+        },
+        CompileFailFixture {
+            name: "platform_physical_runtime_receipt_cannot_be_minted.rs",
+            expected_stderr: &["PlatformPhysicalRuntimeReceipt", "private fields"],
+            include_physical_certification: true,
+        },
+        CompileFailFixture {
+            name: "platform_physical_runtime_denial_receipt_requires_certification_authority.rs",
+            expected_stderr: &["from_append_hidden_scan_denial", "not found"],
+            include_physical_certification: false,
+        },
+        CompileFailFixture {
+            name: "s8_layout_runtime_receipt_is_not_public.rs",
+            expected_stderr: &["s8_layout_access", "could not find"],
+            include_physical_certification: true,
+        },
+        CompileFailFixture {
+            name: "fixtures_cannot_satisfy_production_execution.rs",
+            expected_stderr: &["execute_s8_layout_scenario", "S8LayoutFixtures"],
+            include_physical_certification: true,
+        },
+        CompileFailFixture {
+            name: "adversarial_inputs_cannot_satisfy_production_execution.rs",
+            expected_stderr: &["S8RuntimeEvidence", "S8LayoutAdversarialInputs"],
+            include_physical_certification: true,
         },
     ]
 }
 
 fn assert_compile_fails(fixture: CompileFailFixture) {
-    let case_dir = prepare_compile_fail_case(fixture.name);
+    let case_dir = prepare_compile_fail_case(fixture);
     let output = run_compile_fail_case(&case_dir);
 
     assert!(
@@ -44,21 +77,25 @@ fn assert_compile_fails(fixture: CompileFailFixture) {
     }
 }
 
-fn prepare_compile_fail_case(fixture_name: &str) -> std::path::PathBuf {
+fn prepare_compile_fail_case(fixture: CompileFailFixture) -> std::path::PathBuf {
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repo_root = manifest_dir
         .ancestors()
         .nth(4)
         .expect("test-support crate lives under workspaces/forge-store/crates");
-    let case_dir = compile_fail_case_dir(fixture_name);
+    let case_dir = compile_fail_case_dir(fixture.name);
     let source_dir = case_dir.join("src");
     std::fs::create_dir_all(&source_dir).unwrap();
     std::fs::copy(
-        fixture_path(&manifest_dir, fixture_name),
+        fixture_path(&manifest_dir, fixture.name),
         source_dir.join("main.rs"),
     )
     .unwrap();
-    std::fs::write(case_dir.join("Cargo.toml"), fixture_manifest(repo_root)).unwrap();
+    std::fs::write(
+        case_dir.join("Cargo.toml"),
+        fixture_manifest(repo_root, fixture.include_physical_certification),
+    )
+    .unwrap();
     case_dir
 }
 
@@ -99,9 +136,16 @@ fn compile_fail_case_target_dir(case_dir: &std::path::Path) -> std::path::PathBu
         .join("target")
 }
 
-fn fixture_manifest(repo_root: &std::path::Path) -> String {
-    format!(
-        "[package]\nname = \"forge_store_test_support_harness_authority_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-physical-format = {{ path = \"{}\" }}\nforge-store-test-support = {{ path = \"{}\" }}\n",
+fn fixture_manifest(repo_root: &std::path::Path, include_physical_certification: bool) -> String {
+    let mut manifest = format!(
+        "[package]\nname = \"forge_store_test_support_harness_authority_ui\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n\n[dependencies]\nforge-store-contracts = {{ path = \"{}\" }}\nforge-store-physical-format = {{ path = \"{}\" }}\nforge-store-test-support = {{ path = \"{}\" }}\nforge-store-physical-certification = {{ path = \"{}\" }}\n",
+        manifest_path(
+            &repo_root
+                .join("workspaces")
+                .join("forge-store")
+                .join("crates")
+                .join("forge-store-contracts")
+        ),
         manifest_path(
             &repo_root
                 .join("workspaces")
@@ -116,7 +160,43 @@ fn fixture_manifest(repo_root: &std::path::Path) -> String {
                 .join("crates")
                 .join("forge-store-test-support")
         ),
-    )
+        manifest_path(
+            &repo_root
+                .join("workspaces")
+                .join("forge-store")
+                .join("crates")
+                .join("forge-store-physical-certification")
+        ),
+    );
+    if !include_physical_certification {
+        manifest = manifest.replace(
+            &format!(
+                "forge-store-test-support = {{ path = \"{}\" }}\n",
+                manifest_path(
+                    &repo_root
+                        .join("workspaces")
+                        .join("forge-store")
+                        .join("crates")
+                        .join("forge-store-test-support")
+                )
+            ),
+            "",
+        );
+        manifest = manifest.replace(
+            &format!(
+                "forge-store-physical-certification = {{ path = \"{}\" }}\n",
+                manifest_path(
+                    &repo_root
+                        .join("workspaces")
+                        .join("forge-store")
+                        .join("crates")
+                        .join("forge-store-physical-certification")
+                )
+            ),
+            "",
+        );
+    }
+    manifest
 }
 
 fn manifest_path(path: &std::path::Path) -> String {

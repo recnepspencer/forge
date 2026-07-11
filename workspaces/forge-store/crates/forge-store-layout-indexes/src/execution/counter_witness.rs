@@ -85,7 +85,9 @@ pub(crate) fn admit_execution_witness<W: S8ExecutedCounterWitness>(
         CounterEvidenceStrength::Exact,
     );
 
-    if witness.plan_binding() == expected_plan_binding && observed.basis().path_kind() == basis.path_kind() {
+    if witness.plan_binding() == expected_plan_binding
+        && observed.basis().path_kind() == basis.path_kind()
+    {
         Ok(observed)
     } else {
         Err(observed)

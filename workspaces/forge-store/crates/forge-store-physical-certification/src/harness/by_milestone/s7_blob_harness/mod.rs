@@ -1,6 +1,8 @@
 mod fixture;
 mod foundational_profile;
 mod heavy_qualification;
+#[cfg(test)]
+mod heavy_qualification_tests;
 mod lowering;
 mod oracle_observation;
 mod profile;
@@ -9,8 +11,6 @@ mod replay;
 mod resume_recovery;
 mod scenario_seed;
 mod shortcut_denial;
-#[cfg(test)]
-mod heavy_qualification_tests;
 #[cfg(test)]
 mod tests;
 

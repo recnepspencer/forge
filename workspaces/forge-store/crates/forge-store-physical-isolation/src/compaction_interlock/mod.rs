@@ -12,12 +12,16 @@ mod counters;
 mod cutover_delta;
 mod denial;
 mod foundational_evidence;
+mod lsm_cutover;
 mod mutation_lane_receipt;
 mod plan;
 mod protected_set;
 mod publication;
 mod reclaim_queue;
 mod stability_proof;
+mod state_machine_contract;
+#[cfg(test)]
+mod state_machine_contract_tests;
 #[cfg(any(test, feature = "certification-authority"))]
 mod test_authority;
 mod verdict;
@@ -27,6 +31,9 @@ pub use counters::CompactionReadInterlockCounters;
 pub use cutover_delta::CompactionCutoverDelta;
 pub use denial::CompactionReadInterlockDenial;
 pub use foundational_evidence::CompactionInterlockFoundationalEvidence;
+#[cfg(any(test, feature = "certification-authority"))]
+pub use lsm_cutover::execute_baseline_lsm_compaction_for_certification;
+pub use lsm_cutover::{LsmCompactionCutoverAdmission, LsmCompactionCutoverDelta};
 pub use mutation_lane_receipt::{
     CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
 };
@@ -34,9 +41,15 @@ pub use mutation_lane_receipt::{
 pub use plan::compaction_read_interlock_plan_for_certification_test;
 pub use plan::{CompactionReadInterlockPlan, CompactionSourceIntegrityEvidence};
 pub use protected_set::CompactionProtectedReferenceSet;
+#[cfg(any(test, feature = "certification-authority"))]
+pub use publication::publish_compaction_rewrite_for_certification;
 pub use publication::CompactionRewritePublication;
 pub use reclaim_queue::{CompactionDeferredReclaimQueue, DrainedCompactionReclaim};
 pub use stability_proof::CompactionCutoverStabilityProof;
+pub use state_machine_contract::{
+    compaction_cutover_outcome_facts, CompactionCutoverState, CompactionCutoverTransition,
+    CompactionCutoverTransitionKind,
+};
 #[cfg(any(test, feature = "certification-authority"))]
 pub use test_authority::{
     compaction_cutover_evidence_for_certification_plan,

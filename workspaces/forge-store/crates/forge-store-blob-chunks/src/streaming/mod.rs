@@ -23,6 +23,8 @@ pub use ingest::{
     LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial,
 };
 pub use operation_counters::BlobChunkStreamingCounterSnapshot;
+#[cfg(test)]
+pub(crate) use read::test_support::phase24_layout_runtime_case;
 pub use read::{
     reject_full_blob_vec_as_streaming_read, BlobStreamingReadAdmission,
     BlobStreamingReadCounterBackedPerformanceReceipt, BlobStreamingReadCounterSnapshot,

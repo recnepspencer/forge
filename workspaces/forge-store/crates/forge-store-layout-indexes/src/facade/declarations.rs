@@ -8,6 +8,7 @@ use crate::{
         ExistingArtifactFamilySurface, PhysicalArtifactFamilyDeclaration,
         S8ArtifactFamilyInventory,
     },
+    blob_basis::S8BlobIdentityKeyBasis,
     key_domain::{
         admit_blob_identity_key, admit_extent_address_key, admit_page_address_key,
         admit_physical_reference_key, admit_root_manifest_key, admit_segment_address_key,
@@ -22,7 +23,6 @@ use crate::{
         PhysicalKeyDomainWitness, PrefixLawWitness, RangeBoundLawWitness, TenantScopedKeyDomain,
     },
 };
-use forge_store_blob_chunks::{BlobGeneration, BlobObjectId};
 use forge_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
 use forge_store_physical_format::{
     PhysicalExtentId, PhysicalPageId, PhysicalReferenceAdmissionWitness, PhysicalRootReference,
@@ -107,8 +107,8 @@ impl LayoutDeclarationsFacade {
     pub fn declare_physical_key_domain(
         &self,
         scope: ArtifactScopePartitionWitness,
-    ) -> Result<PhysicalKeyDomainWitness, ArtifactFamilyDenial> {
-        declare_physical_key_domain(scope)
+    ) -> crate::S8KeyDomainAdmissionOutcome {
+        crate::key_domain::issue_key_domain_admission(declare_physical_key_domain(scope))
     }
 
     pub fn require_canonical_key_encoding(
@@ -215,10 +215,9 @@ impl LayoutDeclarationsFacade {
     pub fn admit_blob_identity_key(
         &self,
         domain: PhysicalKeyDomainWitness,
-        object_id: BlobObjectId,
-        generation: BlobGeneration,
+        identity: S8BlobIdentityKeyBasis,
     ) -> Result<ConcretePhysicalKeyWitness, ArtifactFamilyDenial> {
-        admit_blob_identity_key(domain, object_id, generation)
+        admit_blob_identity_key(domain, identity)
     }
 
     pub fn canonical_key_bytes(

@@ -19,7 +19,7 @@ impl LayoutMaintenanceFacade {
             match admit_strategy(request.lifecycle(), request.key_domain(), request.family()) {
                 Ok(admitted) => admitted,
                 Err(denial) => {
-                    return S8LayoutMutationAdmissionOutcome::Denied(
+                    return S8LayoutMutationAdmissionOutcome::denied(
                         S8IndexMaintenanceFailureOutcome::StrategyDenied { denial },
                     );
                 }
@@ -29,7 +29,7 @@ impl LayoutMaintenanceFacade {
             .maintenance_mode()
             .supports_lane(request.requested_lane())
         {
-            return S8LayoutMutationAdmissionOutcome::Denied(
+            return S8LayoutMutationAdmissionOutcome::denied(
                 S8IndexMaintenanceFailureOutcome::MaintenanceModeIncompatibleWithRequestedLane {
                     family: admitted_strategy.family(),
                     maintenance_mode: request.maintenance_mode(),
@@ -40,7 +40,7 @@ impl LayoutMaintenanceFacade {
 
         if let Some(required_posture) = request.required_migration_posture() {
             if admitted_strategy.migration_posture() != required_posture {
-                return S8LayoutMutationAdmissionOutcome::Denied(
+                return S8LayoutMutationAdmissionOutcome::denied(
                     S8IndexMaintenanceFailureOutcome::MigrationPostureIncompatibleWithStrategy {
                         family: admitted_strategy.family(),
                         required_migration_posture: required_posture,
@@ -51,7 +51,7 @@ impl LayoutMaintenanceFacade {
         }
 
         if !mutation_shape_is_compatible(admitted_strategy.family(), request.mutation_shape()) {
-            return S8LayoutMutationAdmissionOutcome::Denied(
+            return S8LayoutMutationAdmissionOutcome::denied(
                 S8IndexMaintenanceFailureOutcome::MutationShapeIncompatibleWithStrategy {
                     family: admitted_strategy.family(),
                     mutation_shape: request.mutation_shape(),
@@ -66,7 +66,7 @@ impl LayoutMaintenanceFacade {
                 .publication_protocol()
                 .matches_invariant(admitted_strategy.invariant_suite().publication_invariant())
         {
-            return S8LayoutMutationAdmissionOutcome::Denied(
+            return S8LayoutMutationAdmissionOutcome::denied(
                 S8IndexMaintenanceFailureOutcome::PublicationProtocolIncompatibleWithStrategy {
                     family: admitted_strategy.family(),
                     publication_protocol: request.publication_protocol(),
@@ -76,7 +76,7 @@ impl LayoutMaintenanceFacade {
 
         if request.maintenance_mode().permits_exact_answers() {
             let Some(coverage) = request.exact_coverage() else {
-                return S8LayoutMutationAdmissionOutcome::Denied(
+                return S8LayoutMutationAdmissionOutcome::denied(
                     S8IndexMaintenanceFailureOutcome::ExactCoverageRequired {
                         family: admitted_strategy.family(),
                         maintenance_mode: request.maintenance_mode(),
@@ -85,7 +85,7 @@ impl LayoutMaintenanceFacade {
             };
 
             if coverage.family() != admitted_strategy.lifecycle().declaration().family() {
-                return S8LayoutMutationAdmissionOutcome::Denied(
+                return S8LayoutMutationAdmissionOutcome::denied(
                     S8IndexMaintenanceFailureOutcome::CoverageFamilyDoesNotMatchStrategy {
                         coverage_family: coverage.family(),
                         strategy_family: admitted_strategy.lifecycle().declaration().family(),
@@ -99,7 +99,7 @@ impl LayoutMaintenanceFacade {
             ) {
                 ExactPublicationRequirement::Admitted(authority) => {
                     if authority.publication_protocol() != request.publication_protocol() {
-                        return S8LayoutMutationAdmissionOutcome::Denied(
+                        return S8LayoutMutationAdmissionOutcome::denied(
                             S8IndexMaintenanceFailureOutcome::ExactPublicationAuthorityRequired {
                                 family: admitted_strategy.family(),
                                 publication_protocol: request.publication_protocol(),
@@ -107,7 +107,7 @@ impl LayoutMaintenanceFacade {
                         );
                     }
                     if !authority.supports_exact_coverage(coverage) {
-                        return S8LayoutMutationAdmissionOutcome::Denied(
+                        return S8LayoutMutationAdmissionOutcome::denied(
                             S8IndexMaintenanceFailureOutcome::PublicationAuthorityDoesNotMatchExactCoverage {
                                 publication_protocol: request.publication_protocol(),
                                 coverage,
@@ -116,7 +116,7 @@ impl LayoutMaintenanceFacade {
                     }
                 }
                 ExactPublicationRequirement::RequiredButMissing => {
-                    return S8LayoutMutationAdmissionOutcome::Denied(
+                    return S8LayoutMutationAdmissionOutcome::denied(
                         S8IndexMaintenanceFailureOutcome::ExactPublicationAuthorityRequired {
                             family: admitted_strategy.family(),
                             publication_protocol: request.publication_protocol(),
@@ -124,7 +124,7 @@ impl LayoutMaintenanceFacade {
                     );
                 }
                 ExactPublicationRequirement::Unsupported(missing) => {
-                    return S8LayoutMutationAdmissionOutcome::Denied(
+                    return S8LayoutMutationAdmissionOutcome::denied(
                         S8IndexMaintenanceFailureOutcome::LowerPublicationCapabilityRequired {
                             family: admitted_strategy.family(),
                             publication_protocol: request.publication_protocol(),
@@ -135,7 +135,7 @@ impl LayoutMaintenanceFacade {
             }
 
             if request.lag_witness().is_some() {
-                return S8LayoutMutationAdmissionOutcome::Denied(
+                return S8LayoutMutationAdmissionOutcome::denied(
                     S8IndexMaintenanceFailureOutcome::LagWitnessUnexpected {
                         family: admitted_strategy.family(),
                         maintenance_mode: request.maintenance_mode(),
@@ -144,7 +144,7 @@ impl LayoutMaintenanceFacade {
             }
         } else if request.maintenance_mode().requires_lag_witness() {
             let Some(witness) = request.lag_witness() else {
-                return S8LayoutMutationAdmissionOutcome::Denied(
+                return S8LayoutMutationAdmissionOutcome::denied(
                     S8IndexMaintenanceFailureOutcome::LagWitnessRequired {
                         family: admitted_strategy.family(),
                         maintenance_mode: request.maintenance_mode(),
@@ -154,7 +154,7 @@ impl LayoutMaintenanceFacade {
 
             if let Some(coverage) = request.exact_coverage() {
                 if witness.coverage() != coverage {
-                    return S8LayoutMutationAdmissionOutcome::Denied(
+                    return S8LayoutMutationAdmissionOutcome::denied(
                         S8IndexMaintenanceFailureOutcome::LagCoverageDoesNotMatchRequest {
                             expected: coverage,
                             actual: witness.coverage(),
@@ -165,7 +165,7 @@ impl LayoutMaintenanceFacade {
         }
 
         if let Some(missing) = missing_lower_mutation_capability(request.mutation_shape()) {
-            return S8LayoutMutationAdmissionOutcome::Denied(
+            return S8LayoutMutationAdmissionOutcome::denied(
                 S8IndexMaintenanceFailureOutcome::LowerMutationCapabilityRequired {
                     family: admitted_strategy.family(),
                     mutation_shape: request.mutation_shape(),
@@ -177,17 +177,17 @@ impl LayoutMaintenanceFacade {
         let plan = S8LayoutMutationPlan::new(admitted_strategy, request);
         match request.maintenance_mode() {
             S8IndexMaintenanceMode::SynchronousExact => {
-                S8LayoutMutationAdmissionOutcome::Ready(plan)
+                S8LayoutMutationAdmissionOutcome::ready(plan)
             }
             S8IndexMaintenanceMode::AsynchronousLagged => {
-                S8LayoutMutationAdmissionOutcome::Lagged(plan, request.lag_witness().unwrap())
+                S8LayoutMutationAdmissionOutcome::lagged((plan, request.lag_witness().unwrap()))
             }
             S8IndexMaintenanceMode::RebuildOnly
             | S8IndexMaintenanceMode::LazyMaterializedOnDemand
             | S8IndexMaintenanceMode::AdvisoryOnly
             | S8IndexMaintenanceMode::VerifierOnly
             | S8IndexMaintenanceMode::MigrationOnly => {
-                S8LayoutMutationAdmissionOutcome::Deferred(plan, request.lag_witness().unwrap())
+                S8LayoutMutationAdmissionOutcome::deferred((plan, request.lag_witness().unwrap()))
             }
         }
     }
@@ -199,25 +199,25 @@ impl LayoutMaintenanceFacade {
         let lowered = S8LoweredMaintenanceProtocol::new(plan);
         match plan.maintenance_mode() {
             S8IndexMaintenanceMode::SynchronousExact => {
-                S8IndexMaintenanceTransitionOutcome::ReadyExact(lowered)
+                S8IndexMaintenanceTransitionOutcome::ready_exact(lowered)
             }
             S8IndexMaintenanceMode::AsynchronousLagged => {
-                S8IndexMaintenanceTransitionOutcome::Lagged(lowered)
+                S8IndexMaintenanceTransitionOutcome::lagged(lowered)
             }
             S8IndexMaintenanceMode::RebuildOnly => {
-                S8IndexMaintenanceTransitionOutcome::RebuildOnly(lowered)
+                S8IndexMaintenanceTransitionOutcome::rebuild_only(lowered)
             }
             S8IndexMaintenanceMode::LazyMaterializedOnDemand => {
-                S8IndexMaintenanceTransitionOutcome::Deferred(lowered)
+                S8IndexMaintenanceTransitionOutcome::deferred(lowered)
             }
             S8IndexMaintenanceMode::AdvisoryOnly => {
-                S8IndexMaintenanceTransitionOutcome::AdvisoryOnly(lowered)
+                S8IndexMaintenanceTransitionOutcome::advisory_only(lowered)
             }
             S8IndexMaintenanceMode::VerifierOnly => {
-                S8IndexMaintenanceTransitionOutcome::VerifierOnly(lowered)
+                S8IndexMaintenanceTransitionOutcome::verifier_only(lowered)
             }
             S8IndexMaintenanceMode::MigrationOnly => {
-                S8IndexMaintenanceTransitionOutcome::MigrationOnly(lowered)
+                S8IndexMaintenanceTransitionOutcome::migration_only(lowered)
             }
         }
     }

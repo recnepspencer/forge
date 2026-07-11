@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::PartialPublicationClassification;
+use forge_store_recovery_physics::CrashBoundaryLayoutReport;
 use forge_store_wal::DurablePublicationDeclaration;
 
 use super::super::types::reachability_staging::BlobReachabilityStaging;
@@ -10,14 +10,14 @@ pub(crate) fn from_replayable_wal_record(
     staged: BlobReachabilityStaging,
     payload: BlobPublicationWalPayload,
     durable_publication: DurablePublicationDeclaration,
-    replay_classification: &PartialPublicationClassification,
+    replay_report: &CrashBoundaryLayoutReport,
 ) -> Result<BlobPublicationWalCommit, BlobPublicationDenial> {
     let (intent, staging_identity, security_metadata) = staged.into_parts();
     let counters = intent.counters();
     wal_replay_identity::verify_staging_payload_match(&payload, &staging_identity, counters)?;
     let wal_scope =
         wal_replay_identity::verify_wal_frame_scope(&durable_publication, intent.counters())?;
-    let durable_wal = replayable_wal::replayable_durable_wal(replay_classification).ok_or(
+    let durable_wal = replayable_wal::replayable_durable_wal(replay_report).ok_or(
         BlobPublicationDenial::WalReplayEvidenceRequired {
             counters: intent.counters(),
         },
@@ -31,8 +31,8 @@ pub(crate) fn from_replayable_wal_record(
     Ok(BlobPublicationWalCommit {
         intent,
         durable_publication,
-        replay_classification_digest: replay_classification.classification_digest().to_owned(),
-        replay_counters: replay_classification.counters(),
+        replay_classification_digest: replay_report.classification_digest().to_owned(),
+        replay_counters: replay_report.counters(),
         staging_identity,
         security_metadata,
     })

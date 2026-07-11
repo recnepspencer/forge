@@ -115,7 +115,7 @@ impl S8AccessShapesFacade {
         coverage: S8LayoutCoverageWitness,
         lane: S8AccessLaneClassification,
         basis: S8FullDeclaredScanBasis,
-    ) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    ) -> super::scan::S8FullDeclaredScanOutcome {
         full_declared_scan(coverage, lane, basis)
     }
 

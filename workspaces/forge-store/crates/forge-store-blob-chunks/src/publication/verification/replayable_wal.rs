@@ -1,16 +1,11 @@
-use forge_store_recovery_physics::{
-    PartialPublicationClassification, RecoveredOrRejectedPartialPublication,
-};
+use forge_store_recovery_physics::CrashBoundaryLayoutReport;
 
 use super::super::{BlobPublicationCounterSnapshot, BlobPublicationDenial};
 
-pub(crate) fn verify_replayable_classification(
-    classification: &PartialPublicationClassification,
+pub(crate) fn verify_replayable_report(
+    report: &CrashBoundaryLayoutReport,
 ) -> Result<(), BlobPublicationDenial> {
-    if matches!(
-        classification.recovered_or_rejected(),
-        RecoveredOrRejectedPartialPublication::ReplayableUnacknowledgedWal { .. }
-    ) {
+    if report.replayable_durable_wal().is_some() {
         Ok(())
     } else {
         Err(BlobPublicationDenial::WalReplayEvidenceRequired {
@@ -20,9 +15,7 @@ pub(crate) fn verify_replayable_classification(
 }
 
 pub(crate) fn replayable_durable_wal<'a>(
-    classification: &'a PartialPublicationClassification,
+    report: &'a CrashBoundaryLayoutReport,
 ) -> Option<&'a forge_store_recovery_physics::UnacknowledgedDurableWal> {
-    classification
-        .recovered_or_rejected()
-        .replayable_durable_wal()
+    report.replayable_durable_wal()
 }

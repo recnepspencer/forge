@@ -13,10 +13,7 @@ pub struct PhysicalPlacementMovementExecutionReceipt<ExecutionIntent> {
     counters: TierMovementStabilityCounterSnapshot,
 }
 
-#[cfg_attr(
-    not(any(test, feature = "certification-authority")),
-    allow(dead_code)
-)]
+#[cfg_attr(not(any(test, feature = "certification-authority")), allow(dead_code))]
 pub(crate) fn construct_physical_execution_receipt<ExecutionIntent>(
     intent: ExecutionIntent,
     movement_interlock: ChunkMigrationReadInterlockPlan,

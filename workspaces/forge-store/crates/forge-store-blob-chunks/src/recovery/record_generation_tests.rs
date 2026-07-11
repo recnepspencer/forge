@@ -1,12 +1,10 @@
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
-    BlobPhysicalManifestObservation, BlobPhysicalManifestValidation, CapabilityEvidenceClass,
-    PhysicalBackendCapabilityAdmissionAuthority, PhysicalStoreDurabilityExecutor,
-    StoreDurabilityAdmission, StoreDurabilityExecutionObservation, StoreDurabilityExecutionRequest,
-    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityPublicationKind,
-    StoreDurabilityRequirement, StoreOwnedDurabilityExecution, WalDurabilityBarrier,
-    WalDurabilityBarrierSet,
+    BlobPhysicalManifestObservation, BlobPhysicalManifestValidation,
+    PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
+    StoreDurabilityPublicationKind, StoreDurabilityRequirement, StoreDurabilityRuntime,
+    WalDurabilityBarrier, WalDurabilityBarrierSet,
 };
 use forge_store_recovery_physics::{
     BlobReplaySourceAdmission, DurableCheckpointPublication, DurableManifestPublication,
@@ -198,7 +196,7 @@ fn replay_fixture_from_candidate(
     )
     .expect("publication wal commit should admit");
     let wal_record = BlobPublicationWalRecord::append(wal_commit);
-    let wal_source = BlobReplaySourceAdmission::from_replayable_wal_classification(&classification)
+    let wal_source = BlobReplaySourceAdmission::from_replayable_wal_report(&classification)
         .expect("wal replay source should admit");
     let checkpoint_source = checkpoint_source(case);
     let manifest_source = manifest_source(case);
@@ -213,7 +211,7 @@ fn replay_fixture_from_candidate(
     let publication = BlobGenerationPublicationRecord::from_replayed_wal_record(
         root.clone(),
         wal_record,
-        BlobReplaySourceAdmission::from_replayable_wal_classification(&classification)
+        BlobReplaySourceAdmission::from_replayable_wal_report(&classification)
             .expect("publication wal source should admit"),
     )
     .expect("replayed wal publication should admit");
@@ -296,25 +294,9 @@ fn durable_publication_receipt(
         CheckpointDurablePublicationScope::new(StoreCheckpointRecordIdentity::new(7), digest, 1, 2)
             .expect("checkpoint publication scope should admit");
     let accepted = admission.submit_write(scope.clone()).backend_accepted();
-    let observation = StoreDurabilityExecutionObservation::new(
-        accepted.requirement().required_barriers(),
-        StoreDurabilityFileSyncKind::Fsync,
-    )
-    .with_directory_sync_completed()
-    .with_rename_completed()
-    .with_ordering_barrier_completed();
-    let mut backend = ManifestDurabilityBackend {
-        expected_scope: scope,
-        expected_requirement: requirement,
-        expected_publication: kind,
-        observation,
-    };
-    let proof = StoreDurabilityExecutionSession::for_store_backend(
-        &mut backend,
-        StoreOwnedDurabilityExecution::for_certification_test_authority(),
-    )
-    .execute(&accepted)
-    .expect("durability execution should succeed");
+    let proof = StoreDurabilityRuntime::new()
+        .persist_and_execute(&std::env::temp_dir(), b"blob-generation-durable-write", &accepted)
+        .expect("durability execution should succeed");
     accepted
         .reach_durability_boundary(proof)
         .expect("durability boundary should admit")
@@ -341,38 +323,4 @@ fn durability_witness() -> forge_store_physical_backend::AdmittedBackendCapabili
             BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
         ))
         .expect("backend capability should admit")
-}
-
-struct ManifestDurabilityBackend {
-    expected_scope: CheckpointDurablePublicationScope,
-    expected_requirement: StoreDurabilityRequirement,
-    expected_publication: StoreDurabilityPublicationKind,
-    observation: StoreDurabilityExecutionObservation,
-}
-
-impl PhysicalStoreDurabilityExecutor<CheckpointDurablePublicationScope>
-    for ManifestDurabilityBackend
-{
-    type Error = ();
-
-    fn execute_durability(
-        &mut self,
-        request: StoreDurabilityExecutionRequest<CheckpointDurablePublicationScope>,
-    ) -> Result<StoreDurabilityExecutionObservation, Self::Error> {
-        assert_eq!(request.scope(), &self.expected_scope);
-        assert_eq!(
-            request.profile(),
-            BackendTargetProfile::PosixFileFsyncDirSync
-        );
-        assert_eq!(
-            request.evidence_class(),
-            CapabilityEvidenceClass::CertifiedBackendProfile
-        );
-        assert_eq!(request.requirement(), self.expected_requirement);
-        assert_eq!(
-            request.requirement().publication(),
-            self.expected_publication
-        );
-        Ok(self.observation)
-    }
 }

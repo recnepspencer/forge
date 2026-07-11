@@ -179,8 +179,10 @@ impl BaselineLsmInvariantWitness {
     }
 }
 
-pub fn collect_baseline_lsm_invariant_witness() -> BaselineLsmInvariantWitness {
-    let transcript = execute_baseline_lsm_transcript();
+pub fn collect_baseline_lsm_invariant_witness(
+    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+) -> BaselineLsmInvariantWitness {
+    let transcript = execute_baseline_lsm_transcript(execution);
     let newest_run = transcript.newest_lookup();
     let older_run = transcript.older_lookup();
     let tombstone_blocked = transcript.tombstone_blocked_lookup();
@@ -251,7 +253,9 @@ mod tests {
 
     #[test]
     fn baseline_lsm_invariant_witness_carries_execution_owned_facts() {
-        let witness = collect_baseline_lsm_invariant_witness();
+        let execution =
+            super::super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness::seeded();
+        let witness = collect_baseline_lsm_invariant_witness(&execution);
         assert_eq!(
             witness.lookup().newest_run().disposition(),
             BaselineLsmLookupDisposition::Memtable

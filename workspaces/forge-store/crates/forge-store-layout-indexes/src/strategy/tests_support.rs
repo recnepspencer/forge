@@ -1,6 +1,7 @@
 use crate::strategy::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
 use crate::strategy_registry::{
-    layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+    layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
+    S8LayoutRequestedCapability,
 };
 use crate::{
     layout_declarations, ArtifactFamilyAccessLane, ArtifactFamilyLifecycleAdmission,
@@ -49,9 +50,14 @@ pub(crate) fn admit_phase_five_scope(
             security_scope.witnesses(),
         )
         .unwrap();
-    let key_domain = layout_declarations()
-        .declare_physical_key_domain(scope)
-        .unwrap();
+    let key_domain_outcome = layout_declarations().declare_physical_key_domain(scope);
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::KeyDomainAdmission,
+        )
+        .contains(key_domain_outcome.production_transition())
+    );
+    let key_domain = key_domain_outcome.unwrap();
     (lifecycle, key_domain)
 }
 
@@ -65,16 +71,20 @@ pub(crate) fn admit_btree_page_strategy() -> S8AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+    let outcome = layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
         lifecycle,
         key_domain,
         S8LayoutStrategyFamily::BaselineBTreeRange,
         S8LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
-    )) {
-        TransitionOutcome::Success(admitted) => admitted,
-        outcome => panic!("btree strategy admission should succeed: {outcome:?}"),
-    }
+    ));
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::LayoutAdmission,
+        )
+        .contains(outcome.production_transition())
+    );
+    outcome.unwrap().admitted_strategy()
 }
 
 pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
@@ -87,16 +97,20 @@ pub(crate) fn admit_lsm_wal_strategy() -> S8AdmittedLayoutStrategy {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
+    let outcome = layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
         lifecycle,
         key_domain,
         S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
         S8LayoutRequestedCapability::point_lookup(),
         ArtifactFamilyAccessLane::HotPath,
-    )) {
-        TransitionOutcome::Success(admitted) => admitted,
-        outcome => panic!("lsm strategy admission should succeed: {outcome:?}"),
-    }
+    ));
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::LayoutAdmission,
+        )
+        .contains(outcome.production_transition())
+    );
+    outcome.unwrap().admitted_strategy()
 }
 
 pub(crate) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBytes {

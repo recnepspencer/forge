@@ -8,6 +8,38 @@ use super::{
 };
 use forge_store_compatibility::ArtifactFormatVersion;
 
+pub(crate) fn assert_owner_transition_handoff_equivalence() {
+    let current = current_authority("store.s8.transition-equivalence", "current");
+    let contract = crate::production_transition::S8LayoutMachineContract::for_machine(
+        crate::production_transition::S8LayoutStateMachine::MigrationRollbackPlanning,
+    );
+    let admitted = layout_migration().plan_migration(
+        super::LayoutMigrationRequest::new(
+            declaration(),
+            binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+        ),
+        &current,
+    );
+    assert!(contract.contains(admitted.production_transition()));
+    assert!(matches!(
+        admitted.into_transition_outcome(),
+        TransitionOutcome::Success(_)
+    ));
+
+    let denied = layout_migration().plan_migration(
+        super::LayoutMigrationRequest::new(
+            declaration(),
+            other_family_binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+        ),
+        &current,
+    );
+    assert!(contract.contains(denied.production_transition()));
+    assert!(matches!(
+        denied.into_transition_outcome(),
+        TransitionOutcome::Denied(_)
+    ));
+}
+
 #[test]
 fn compatible_old_layout_reads_through_explicit_compatibility_lane() {
     let declaration = declaration();
@@ -48,13 +80,16 @@ fn same_format_with_undeclared_semantic_version_does_not_count_as_compatible_rea
 #[test]
 fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
     let current = current_authority("store.s8.migration", "current");
-    let plan = match layout_migration().plan_migration(
-        super::LayoutMigrationRequest::new(
-            declaration(),
-            binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
-        ),
-        &current,
-    ) {
+    let plan = match layout_migration()
+        .plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+            ),
+            &current,
+        )
+        .into_transition_outcome()
+    {
         TransitionOutcome::Success(plan) => plan,
         outcome => panic!("migration plan should be ready: {outcome:?}"),
     };
@@ -85,13 +120,16 @@ fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
         declaration().rollback_target(),
         LayoutInterruptionPolicy::RollbackDeclaredMigration,
     );
-    let rollback_plan = match layout_migration().plan_migration(
-        super::LayoutMigrationRequest::new(
-            rollback_decl,
-            binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
-        ),
-        &current,
-    ) {
+    let rollback_plan = match layout_migration()
+        .plan_migration(
+            super::LayoutMigrationRequest::new(
+                rollback_decl,
+                binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+            ),
+            &current,
+        )
+        .into_transition_outcome()
+    {
         TransitionOutcome::Success(plan) => plan,
         outcome => panic!("rollback-interrupt plan should be ready: {outcome:?}"),
     };
@@ -108,13 +146,16 @@ fn interrupted_migration_resumes_or_rolls_back_according_to_declaration() {
 #[test]
 fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
     let current = current_authority("store.s8.migration.drift", "current");
-    let base_plan = match layout_migration().plan_migration(
-        super::LayoutMigrationRequest::new(
-            declaration(),
-            binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
-        ),
-        &current,
-    ) {
+    let base_plan = match layout_migration()
+        .plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+            ),
+            &current,
+        )
+        .into_transition_outcome()
+    {
         TransitionOutcome::Success(plan) => plan,
         outcome => panic!("base migration plan should be ready: {outcome:?}"),
     };
@@ -129,13 +170,16 @@ fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
         version(4, 8, 0),
         LayoutInterruptionPolicy::RollbackDeclaredMigration,
     );
-    let drifted_plan = match layout_migration().plan_migration(
-        super::LayoutMigrationRequest::new(
-            drifted_decl,
-            binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
-        ),
-        &current,
-    ) {
+    let drifted_plan = match layout_migration()
+        .plan_migration(
+            super::LayoutMigrationRequest::new(
+                drifted_decl,
+                binding(version(5, 1, 0), version(5, 1, 0), current.clone()),
+            ),
+            &current,
+        )
+        .into_transition_outcome()
+    {
         TransitionOutcome::Success(plan) => plan,
         outcome => panic!("drifted migration plan should be ready: {outcome:?}"),
     };
@@ -143,9 +187,9 @@ fn interruption_state_rejects_declaration_drift_with_same_migration_pair() {
     let replay = drifted_plan.resume_or_rollback(base_plan.interruption_state());
     assert!(matches!(
         replay,
-        TransitionOutcome::Denied(super::LayoutEvolutionDenial::InterruptStateDoesNotMatchPlan {
-            ..
-        })
+        TransitionOutcome::Denied(
+            super::LayoutEvolutionDenial::InterruptStateDoesNotMatchPlan { .. }
+        )
     ));
 }
 
@@ -157,7 +201,10 @@ fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
         binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
     );
 
-    let plan = match layout_migration().plan_rollback(request, &current) {
+    let plan = match layout_migration()
+        .plan_rollback(request, &current)
+        .into_transition_outcome()
+    {
         TransitionOutcome::Success(plan) => plan,
         outcome => panic!("rollback plan should be ready: {outcome:?}"),
     };
@@ -169,7 +216,9 @@ fn rollback_preserves_authority_and_rejects_stale_projection_truth() {
         declaration(),
         binding(version(6, 9, 9), version(7, 2, 1), current.clone()),
     );
-    let stale = layout_migration().plan_rollback(stale_request, &current);
+    let stale = layout_migration()
+        .plan_rollback(stale_request, &current)
+        .into_transition_outcome();
     assert!(matches!(stale, TransitionOutcome::Stale(_)));
 }
 
@@ -181,7 +230,9 @@ fn rollback_rejects_binding_from_wrong_family_even_when_versions_match() {
         other_family_binding(version(7, 2, 1), version(7, 2, 1), current.clone()),
     );
 
-    let outcome = layout_migration().plan_rollback(request, &current);
+    let outcome = layout_migration()
+        .plan_rollback(request, &current)
+        .into_transition_outcome();
     assert!(matches!(
         outcome,
         TransitionOutcome::Denied(super::LayoutEvolutionDenial::FamilyMismatch { .. })
@@ -193,13 +244,25 @@ fn migration_requires_rebind_when_current_authority_changes() {
     let bound = current_authority("store.s8.rebind", "bound");
     let current = current_authority("store.s8.rebind.current", "current");
 
-    let outcome = layout_migration().plan_migration(
-        super::LayoutMigrationRequest::new(
-            declaration(),
-            binding(version(5, 1, 0), version(5, 1, 0), bound),
-        ),
-        &current,
-    );
+    let outcome = layout_migration()
+        .plan_migration(
+            super::LayoutMigrationRequest::new(
+                declaration(),
+                binding(version(5, 1, 0), version(5, 1, 0), bound),
+            ),
+            &current,
+        )
+        .into_transition_outcome();
 
     assert!(matches!(outcome, TransitionOutcome::RebindRequired(_)));
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    assert_owner_transition_handoff_equivalence();
+    incompatible_layouts_deny_with_typed_reason();
+    interrupted_migration_resumes_or_rolls_back_according_to_declaration();
+    interruption_state_rejects_declaration_drift_with_same_migration_pair();
+    rollback_preserves_authority_and_rejects_stale_projection_truth();
+    rollback_rejects_binding_from_wrong_family_even_when_versions_match();
+    migration_requires_rebind_when_current_authority_changes();
 }

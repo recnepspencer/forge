@@ -1,8 +1,8 @@
 use forge_foundational::{
-    aspects, AspectContract, AspectKey, AspectLocator, AspectValue, AspectValueLocator,
+    AspectContract, AspectKey, AspectLocator, AspectValue, AspectValueLocator,
     AuthoritativeRecordAspectPatch, AuthoritativeRecordAspectStateArtifact,
     ContractValidatedAspectArtifact, ContractValidationInput, InternedString, LocatorAuthority,
-    ScalarAspectType, StructAspectValue,
+    ScalarAspectType, StructAspectValue, aspects,
 };
 use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
@@ -11,9 +11,9 @@ use forge_store_aspect_native::{
     StoreAspectPatchBoundaryFact, StoreAspectValueBoundaryLocator, StorePhysicalBoundaryWitness,
 };
 use forge_store_contracts::{
-    PhysicalAuthorityBoundaryInstance, StorePhysicalAuthorityWitness,
-    ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY,
-    ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
+    PhysicalAuthorityBoundaryInstance, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
+    ROADMAP_2_PRIMARY_PHYSICAL_BOUNDARY, ROADMAP_2_REPLAY_PHYSICAL_BOUNDARY,
+    StorePhysicalAuthorityWitness,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

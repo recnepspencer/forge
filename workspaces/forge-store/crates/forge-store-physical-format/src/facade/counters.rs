@@ -139,4 +139,20 @@ impl PlatformPhysicalFacadeCounterSnapshot {
     pub const fn backend_residue_guess_rejections(self) -> u32 {
         self.backend_residue_guess_rejections
     }
+
+    pub const fn is_exact_hidden_scan_denial_delta_from(self, before: Self) -> bool {
+        self.opens == before.opens
+            && self.appends == before.appends
+            && self.reads == before.reads
+            && self.locates == before.locates
+            && self.scans == before.scans
+            && self.root_publications == before.root_publications
+            && self.reopens == before.reopens
+            && self.writes == before.writes
+            && self.flushes == before.flushes
+            && self.renames == before.renames
+            && self.full_store_materialization_rejections
+                == before.full_store_materialization_rejections + 1
+            && self.backend_residue_guess_rejections == before.backend_residue_guess_rejections
+    }
 }

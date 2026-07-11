@@ -1,16 +1,17 @@
 #![forbid(unsafe_code)]
 
 mod backend_capability;
-pub mod layout_access;
 pub mod background_pacing;
 mod execution;
 pub mod foreground_reservation;
 mod interference_accounting;
+pub mod layout_access;
 pub mod queue_execution;
 mod resource_envelope;
 mod resource_units;
 mod s6_later_readiness_handoff;
 mod s6_readiness;
+mod s8_runtime_receipt;
 mod security_scope_io;
 
 #[cfg(test)]
@@ -61,6 +62,16 @@ pub use interference_accounting::{
     InterferenceCounterClaim, InterferenceCounterDenial, InterferenceCounterName,
     InterferenceCounterRequirement, InterferenceCounterRow, InterferenceReplayScope,
     LatencyEnvelopeAssessment, LatencyEnvelopeAssessmentStatus, LatencyEnvelopeClaim,
+};
+pub use layout_access::foreground_interference_family::{
+    ForegroundInterferenceAccessBudget, ForegroundInterferenceLayoutReport,
+    ForegroundInterferencePosture,
+};
+pub use layout_access::pacing_family::{
+    BackgroundPacingInterferencePosture, BackgroundPacingLayoutReport,
+};
+pub use layout_access::scheduler_reservation_family::{
+    SchedulerReservationInterferencePosture, SchedulerReservationLayoutReport,
 };
 pub use queue_execution::{
     admit_queue_execution_plan, execute_grouped_ready_queue_plans, execute_ready_queue_plan,
@@ -113,6 +124,9 @@ pub use s6_readiness::{
     IoSchedulerS6SecurityScopeAdmission, IoSchedulerUnsupportedQosNonClaim,
     S6IoQosSecurityScopeHandoff, S6IoQosSecurityScopePermission,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use s8_runtime_receipt::s8_maintenance_io_runtime_receipt_for_certification_test;
+pub use s8_runtime_receipt::S8MaintenanceIoRuntimeReceipt;
 pub use security_scope_io::{
     admit_secure_io_scope_for_scheduler, reject_lower_authority_secure_io_scope_source,
     SecureIoCounterStrength, SecureIoOperation, SecureIoPosture, SecureIoPostureRequirement,

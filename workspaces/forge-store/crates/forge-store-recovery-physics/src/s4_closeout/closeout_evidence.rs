@@ -85,18 +85,12 @@ impl RecoveryPhysicsCloseoutEvidence {
     fn require_source_trace_matches_recovered_state(
         &self,
     ) -> Result<(), RecoveryPhysicsCloseoutDenial> {
-        let expected = format!(
-            "{:?}:{}:{}",
-            self.source_trace.kind(),
-            self.source_trace.profile(),
-            self.source_trace.candidate_count()
-        );
-        if expected
-            == self
-                .receipt
-                .execution()
-                .recovered_state()
-                .source_decision_digest()
+        if self
+            .receipt
+            .execution()
+            .recovered_state()
+            .source_replay_basis()
+            == self.source_trace.replay_basis()
         {
             return Ok(());
         }
@@ -197,18 +191,12 @@ impl RecoveryPhysicsCloseoutCollector {
     fn require_source_trace_matches_recovered_state(
         &self,
     ) -> Result<(), RecoveryPhysicsCloseoutDenial> {
-        let expected = format!(
-            "{:?}:{}:{}",
-            self.source_trace.kind(),
-            self.source_trace.profile(),
-            self.source_trace.candidate_count()
-        );
-        if expected
-            == self
-                .receipt
-                .execution()
-                .recovered_state()
-                .source_decision_digest()
+        if self
+            .receipt
+            .execution()
+            .recovered_state()
+            .source_replay_basis()
+            == self.source_trace.replay_basis()
         {
             return Ok(());
         }

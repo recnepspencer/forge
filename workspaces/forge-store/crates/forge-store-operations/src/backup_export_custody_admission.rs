@@ -49,7 +49,7 @@ impl BackupExportCustodyAdmission {
         self.counters
     }
 
-    pub(crate) fn into_readiness(self) -> S51AdmittedSecurityScopeReadiness {
+    pub fn into_readiness(self) -> S51AdmittedSecurityScopeReadiness {
         self.readiness
     }
 }

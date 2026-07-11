@@ -15,7 +15,7 @@ pub struct BlobStreamingVerifiedRead {
 }
 
 impl BlobStreamingVerifiedRead {
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(crate) fn for_movement_certification_test(
         object_id: BlobObjectId,
         generation: BlobGeneration,

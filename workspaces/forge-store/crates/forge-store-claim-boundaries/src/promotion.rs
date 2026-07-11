@@ -36,6 +36,7 @@ mod tests {
     use forge_store_contracts::{
         AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
     };
+    use forge_store_layout_indexes::layout_strategy_admission::phase19_page_rule;
     use forge_store_physical_format::{
         PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
         PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
@@ -55,8 +56,11 @@ mod tests {
                 b"claim",
             ))
             .expect("facade append");
+        let page_rule = phase19_page_rule().expect("phase-19 page rule");
         facade
-            .locate_physical_record(append.reference())
+            .page_layout(&page_rule)
+            .expect("admitted page layout")
+            .locate_record(append.reference())
             .expect("facade locate");
         facade.publish_physical_root().expect("facade root publish");
         let scan = facade.scan_physical_layout().expect("facade verifier scan");

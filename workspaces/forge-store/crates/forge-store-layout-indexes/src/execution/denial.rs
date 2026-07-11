@@ -1,7 +1,8 @@
 use crate::{
     artifact_family::PhysicalArtifactFamily,
     execution::{
-        attempt_cost::S8AccessAttemptCostReceipt, S8AccessLoweringBasis, S8AccessPathCounterSnapshot,
+        attempt_cost::S8AccessAttemptCostReceipt, S8AccessLoweringBasis,
+        S8AccessPathCounterSnapshot,
     },
     key_domain::PhysicalKeyDomain,
     materialization::{S8LayoutCoverageWitness, S8MaterializationDenial},
@@ -44,6 +45,16 @@ pub enum S8AccessLoweringDenied {
         expected: S8LayoutCoverageWitness,
         actual: S8LayoutCoverageWitness,
     },
+    RebindCurrentCoverageMismatch {
+        basis: S8AccessLoweringBasis,
+        expected: S8LayoutCoverageWitness,
+        actual: S8LayoutCoverageWitness,
+    },
+    ReadmissionCurrentCoverageMismatch {
+        basis: S8AccessLoweringBasis,
+        expected: S8LayoutCoverageWitness,
+        actual: S8LayoutCoverageWitness,
+    },
     ExecutedCounterWitnessPathMismatch {
         expected: S8AccessLoweringBasis,
         actual_path_kind: crate::execution::S8AccessPathKind,
@@ -64,9 +75,7 @@ pub enum S8AccessLoweringDenied {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8AccessLoweringDeferred {
-    RuntimeLeaseRequired {
-        basis: S8AccessLoweringBasis,
-    },
+    RuntimeLeaseRequired { basis: S8AccessLoweringBasis },
 }
 
 impl S8AccessLoweringDenied {
@@ -79,7 +88,11 @@ impl S8AccessLoweringDenied {
             | Self::LifecycleFamilyMismatch { basis, .. }
             | Self::KeyDomainMismatch { basis, .. }
             | Self::CurrentCoverageMismatch { basis, .. }
-            | Self::ExecutedCounterWitnessPlanBindingMismatch { expected: basis, .. } => basis,
+            | Self::RebindCurrentCoverageMismatch { basis, .. }
+            | Self::ReadmissionCurrentCoverageMismatch { basis, .. }
+            | Self::ExecutedCounterWitnessPlanBindingMismatch {
+                expected: basis, ..
+            } => basis,
             Self::ExecutedCounterWitnessPathMismatch { expected, .. }
             | Self::ObservedCounterBasisMismatch { expected, .. } => expected,
         }
@@ -96,12 +109,14 @@ impl S8AccessLoweringDenied {
                     counter_strength: observed.strength(),
                 }
             }
-            Self::ObservedCounterBasisMismatch { observed, .. } => S8AccessAttemptCostReceipt::DeniedObservedExecutionCost {
-                fingerprint: observed.basis().fingerprint(),
-                path_kind: observed.basis().path_kind(),
-                observed: observed.snapshot(),
-                counter_strength: observed.strength(),
-            },
+            Self::ObservedCounterBasisMismatch { observed, .. } => {
+                S8AccessAttemptCostReceipt::DeniedObservedExecutionCost {
+                    fingerprint: observed.basis().fingerprint(),
+                    path_kind: observed.basis().path_kind(),
+                    observed: observed.snapshot(),
+                    counter_strength: observed.strength(),
+                }
+            }
             denial => {
                 let basis = denial.basis();
                 S8AccessAttemptCostReceipt::NoExecutionCountersSpent {

@@ -147,7 +147,7 @@ fn subset_without_basis_cross_scope_and_reachability_drift_produce_distinct_outc
     }
 }
 
-fn materialize_readiness(
+pub(crate) fn materialize_readiness(
     authority: &BlobCapsuleMaterializationAuthority,
     lane: &CapsuleLane,
     declaration: BlobCapsuleSliceDeclaration,
@@ -173,23 +173,23 @@ fn materialize_readiness(
         .expect("readiness")
 }
 
-struct CapsuleLane {
-    published: crate::BlobGenerationPublished,
-    visible: crate::BlobVisibleGeneration,
-    generation: crate::BlobGeneration,
-    object_id: BlobObjectId,
-    ordered_leaves: &'static [crate::BlobChunkProofLeaf],
-    reachability: crate::BlobChunkReachabilityProofSet,
-    changed_reachability: crate::BlobChunkReachabilityProofSet,
-    placement: crate::AdmittedBlobPlacement,
-    scope: crate::BlobChunkSecurityScope,
-    verified_read: BlobStreamingVerifiedRead,
-    observations: Vec<BlobStreamingReadObservation>,
-    registry: &'static BlobGenerationRegistry,
+pub(crate) struct CapsuleLane {
+    pub(crate) published: crate::BlobGenerationPublished,
+    pub(crate) visible: crate::BlobVisibleGeneration,
+    pub(crate) generation: crate::BlobGeneration,
+    pub(crate) object_id: BlobObjectId,
+    pub(crate) ordered_leaves: &'static [crate::BlobChunkProofLeaf],
+    pub(crate) reachability: crate::BlobChunkReachabilityProofSet,
+    pub(crate) changed_reachability: crate::BlobChunkReachabilityProofSet,
+    pub(crate) placement: crate::AdmittedBlobPlacement,
+    pub(crate) scope: crate::BlobChunkSecurityScope,
+    pub(crate) verified_read: BlobStreamingVerifiedRead,
+    pub(crate) observations: Vec<BlobStreamingReadObservation>,
+    pub(crate) registry: &'static BlobGenerationRegistry,
 }
 
 impl CapsuleLane {
-    fn authority(&self) -> BlobCapsuleMaterializationAuthority {
+    pub(crate) fn authority(&self) -> BlobCapsuleMaterializationAuthority {
         let observation = self
             .registry
             .observe_registered_generation(&self.object_id, self.generation)
@@ -202,7 +202,7 @@ impl CapsuleLane {
     }
 }
 
-fn capsule_lane(case: &str, bytes: &'static [u8], chunk_size: u64) -> CapsuleLane {
+pub(crate) fn capsule_lane(case: &str, bytes: &'static [u8], chunk_size: u64) -> CapsuleLane {
     let scope = blob_scope(case, StoreTenantScope::TenantPhysicalBoundary);
     let sequence = admitted_multichunk_sequence_for_scope(
         blob_scope(case, StoreTenantScope::TenantPhysicalBoundary),

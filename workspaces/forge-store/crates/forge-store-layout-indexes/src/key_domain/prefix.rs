@@ -98,10 +98,10 @@ pub(crate) fn prefix_bytes_for_key(
             bytes
         }
         PrefixBoundaryBehavior::BlobGenerationSuccessor => {
-            let (object_id, _) = key
+            let identity = key
                 .blob_identity()
                 .ok_or(ArtifactFamilyDenial::ConcreteKeyKindDoesNotMatchPhysicalKeyDomain)?;
-            encode_blob_identity_prefix(law.encoding(), &object_id)
+            encode_blob_identity_prefix(law.encoding(), identity)
                 .as_bytes()
                 .to_vec()
         }

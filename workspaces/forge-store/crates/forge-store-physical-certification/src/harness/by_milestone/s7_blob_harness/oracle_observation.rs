@@ -1,15 +1,14 @@
 #[cfg(any(test, feature = "certification-test-support"))]
 use crate::PhysicalSimulationPlan;
 #[cfg(any(test, feature = "certification-test-support"))]
-use forge_store_blob_chunks::{BlobHarnessSecurityScopeClass, BlobHarnessSizeClass};
-#[cfg(any(test, feature = "certification-test-support"))]
 use forge_store_blob_chunks::HeavyBlobFixtureMaterializationMode;
+#[cfg(any(test, feature = "certification-test-support"))]
+use forge_store_blob_chunks::{BlobHarnessSecurityScopeClass, BlobHarnessSizeClass};
 #[cfg(any(test, feature = "certification-test-support"))]
 use forge_store_physical_backend::HeavyFixtureBackendProfile;
 
 #[cfg(any(test, feature = "certification-test-support"))]
-use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness
-    as S7BlobHarnessExecutedActorEvidence;
+use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as S7BlobHarnessExecutedActorEvidence;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S7BlobHarnessOracleObservation {
@@ -63,7 +62,10 @@ impl S7BlobHarnessOracleObservation {
             .map(|evidence| {
                 if evidence.materialization_mode() == HeavyBlobFixtureMaterializationMode::TempFile
                 {
-                    evidence.cleanup_receipt().map(|receipt| receipt.completed()).unwrap_or(false)
+                    evidence
+                        .cleanup_receipt()
+                        .map(|receipt| receipt.completed())
+                        .unwrap_or(false)
                         && evidence.temporary_file_bytes() == evidence.disk_bytes_written()
                 } else {
                     evidence.temporary_file_bytes() == 0
@@ -85,9 +87,11 @@ impl S7BlobHarnessOracleObservation {
                 && witness.export_declared_total_bytes() == logical_bytes,
             chunk_ordering_verified: witness.export_declared_chunk_count()
                 == witness.executed_topology().chunk_count(),
-            digest_checksum_distinction_verified: witness.export_checksum_distinct_from_stored_digest(),
+            digest_checksum_distinction_verified: witness
+                .export_checksum_distinct_from_stored_digest(),
             reachability_verified: witness.reachability_stored_digest_matches_lifecycle()
-                && witness.reachability_reference_edges() >= witness.executed_topology().chunk_count(),
+                && witness.reachability_reference_edges()
+                    >= witness.executed_topology().chunk_count(),
             cross_scope_dedupe_guarded: !matches!(
                 metadata.security_scope_class(),
                 BlobHarnessSecurityScopeClass::CrossScopeDenied

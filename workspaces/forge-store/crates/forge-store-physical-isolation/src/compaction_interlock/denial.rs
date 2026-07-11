@@ -30,4 +30,8 @@ pub enum CompactionReadInterlockDenial {
     MixedRootDuringCompaction,
     PreCutoverReadReceiptMismatch,
     PostCutoverReadReceiptMismatch,
+    LsmTombstoneRetentionMissing,
+    LsmPublicationBindingMissing,
+    LsmCounterBindingMismatch,
+    LsmPhysicalTargetMismatch,
 }

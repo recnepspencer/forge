@@ -10,7 +10,7 @@ mod tombstone;
 mod write_amplification;
 
 pub use advisory_filter::S8LsmAdvisoryFilterLaw;
-pub use compaction_ordering::S8LsmCompactionOrderingLaw;
+pub(crate) use compaction_ordering::S8LsmCompactionOrderingLaw;
 pub(crate) use invariants::declare_lsm_invariant_suite;
 pub use invariants::{S8LsmInvariantSuite, S8LsmLookupDisposition};
 pub use memtable_wal::S8LsmMemtableWalLaw;

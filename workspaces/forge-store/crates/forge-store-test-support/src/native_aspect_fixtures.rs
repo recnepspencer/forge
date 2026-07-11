@@ -16,8 +16,8 @@ use forge_store_physical_isolation::{
 };
 
 use crate::native_aspect_fixture_authoring::{
-    authored_replay_boundary_scalar_string_fixture, authored_scalar_string_fixture,
-    authored_segment_header_fixture, AuthoredNativeStoreAspectFixture,
+    AuthoredNativeStoreAspectFixture, authored_replay_boundary_scalar_string_fixture,
+    authored_scalar_string_fixture, authored_segment_header_fixture,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

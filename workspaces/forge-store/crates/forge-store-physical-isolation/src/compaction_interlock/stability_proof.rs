@@ -11,6 +11,14 @@ pub struct CompactionCutoverStabilityProof {
 }
 
 impl CompactionCutoverStabilityProof {
+    pub const fn cutover_state(&self) -> super::CompactionCutoverState {
+        super::CompactionCutoverState::RecoveryVisibilityAdmitted
+    }
+
+    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
+        super::CompactionCutoverTransitionKind::AdmitRecoveryVisibility.transition()
+    }
+
     pub fn admit(
         publication: CompactionRewritePublication,
         recovery_posture: CompactionCutoverRecoveryPosture,

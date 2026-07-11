@@ -90,9 +90,9 @@ impl BlobPublicationRecoveryEvidence {
     }
 
     pub fn publication_record_replayable(
-        classification: &forge_store_recovery_physics::PartialPublicationClassification,
+        report: &forge_store_recovery_physics::CrashBoundaryLayoutReport,
     ) -> Result<Self, BlobPublicationDenial> {
-        super::super::transitions::recovery_evidence::publication_record_replayable(classification)
+        super::super::transitions::recovery_evidence::publication_record_replayable(report)
     }
 
     pub fn session_closed(closeout: &BlobPublicationSessionCloseout) -> Self {

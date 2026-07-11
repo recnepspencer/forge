@@ -4,7 +4,8 @@ fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declarati
     use crate::strategy::S8LayoutStrategyFamily;
     use crate::strategy_registry::S8LayoutAdmissionDenial;
     use crate::strategy_registry::{
-        layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+        layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
+        S8LayoutRequestedCapability,
     };
     use crate::{ArtifactFamilyAccessLane, S8StrategyDenial};
     use forge_proof::TransitionOutcome;
@@ -25,64 +26,68 @@ fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declarati
     );
     let (root_lifecycle, root_domain) = root_manifest_scope();
     assert_eq!(
-        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-            page_lifecycle,
-            page_domain,
-            S8LayoutStrategyFamily::StreamingCursorIndex,
-            S8LayoutRequestedCapability::point_lookup(),
-            ArtifactFamilyAccessLane::HotPath,
-        )),
-        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
-            S8StrategyDenial::UnsupportedFamily,
-        ))
+        layout_admission_registry()
+            .admit(S8LayoutAdmissionRequest::new(
+                page_lifecycle,
+                page_domain,
+                S8LayoutStrategyFamily::StreamingCursorIndex,
+                S8LayoutRequestedCapability::point_lookup(),
+                ArtifactFamilyAccessLane::HotPath,
+            ))
+            .unwrap_err(),
+        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
     );
     assert_eq!(
-        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-            root_lifecycle,
-            root_domain,
-            S8LayoutStrategyFamily::BaselineBTreeRange,
-            S8LayoutRequestedCapability::point_lookup(),
-            ArtifactFamilyAccessLane::MaintenancePath,
-        )),
-        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+        layout_admission_registry()
+            .admit(S8LayoutAdmissionRequest::new(
+                root_lifecycle,
+                root_domain,
+                S8LayoutStrategyFamily::BaselineBTreeRange,
+                S8LayoutRequestedCapability::point_lookup(),
+                ArtifactFamilyAccessLane::MaintenancePath,
+            ))
+            .unwrap_err(),
+        S8LayoutAdmissionDenial::StrategyVocabularyDenied(
             S8StrategyDenial::PhysicalKeyDomainDoesNotSupportBaselineBTree,
-        ))
+        )
     );
     assert_eq!(
-        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-            page_lifecycle,
-            root_domain,
-            S8LayoutStrategyFamily::BaselineBTreeRange,
-            S8LayoutRequestedCapability::point_lookup(),
-            ArtifactFamilyAccessLane::HotPath,
-        )),
-        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
+        layout_admission_registry()
+            .admit(S8LayoutAdmissionRequest::new(
+                page_lifecycle,
+                root_domain,
+                S8LayoutStrategyFamily::BaselineBTreeRange,
+                S8LayoutRequestedCapability::point_lookup(),
+                ArtifactFamilyAccessLane::HotPath,
+            ))
+            .unwrap_err(),
+        S8LayoutAdmissionDenial::StrategyVocabularyDenied(
             S8StrategyDenial::FamilyDoesNotMatchKeyDomain,
-        ))
+        )
     );
     assert_eq!(
-        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-            page_lifecycle,
-            page_domain,
-            S8LayoutStrategyFamily::ExactScan,
-            S8LayoutRequestedCapability::exact_scan(),
-            ArtifactFamilyAccessLane::HotPath,
-        )),
-        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
-            S8StrategyDenial::UnsupportedFamily,
-        ))
+        layout_admission_registry()
+            .admit(S8LayoutAdmissionRequest::new(
+                page_lifecycle,
+                page_domain,
+                S8LayoutStrategyFamily::ExactScan,
+                S8LayoutRequestedCapability::exact_scan(),
+                ArtifactFamilyAccessLane::HotPath,
+            ))
+            .unwrap_err(),
+        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
     );
     assert_eq!(
-        layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-            page_lifecycle,
-            page_domain,
-            S8LayoutStrategyFamily::ManifestTable,
-            S8LayoutRequestedCapability::point_lookup(),
-            ArtifactFamilyAccessLane::HotPath,
-        )),
-        TransitionOutcome::Denied(S8LayoutAdmissionDenial::StrategyVocabularyDenied(
-            S8StrategyDenial::UnsupportedFamily,
-        ))
+        layout_admission_registry()
+            .admit(S8LayoutAdmissionRequest::new(
+                page_lifecycle,
+                page_domain,
+                S8LayoutStrategyFamily::ManifestTable,
+                S8LayoutRequestedCapability::point_lookup(),
+                ArtifactFamilyAccessLane::HotPath,
+            ))
+            .unwrap_err(),
+        S8LayoutAdmissionDenial::StrategyVocabularyDenied(S8StrategyDenial::UnsupportedFamily,)
     );
 }
 
@@ -152,10 +157,7 @@ fn phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families
     assert!(lsm.comparator_law().is_some());
     assert!(lsm.prefix_law().is_none());
     assert!(lsm.range_bound_law().is_none());
-    assert_eq!(
-        btree.planned_counter_envelope(),
-        None
-    );
+    assert_eq!(btree.planned_counter_envelope(), None);
     assert_eq!(
         lsm.planned_counter_envelope()
             .expect("lsm strategy should declare planned counters")
@@ -285,26 +287,26 @@ fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
         StoreCustodyPosture::InternalStoreCustody,
     );
 
-    let page = match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-        page_lifecycle,
-        page_domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::point_lookup(),
-        ArtifactFamilyAccessLane::HotPath,
-    )) {
-        TransitionOutcome::Success(admitted) => admitted,
-        outcome => panic!("page strategy should admit: {outcome:?}"),
-    };
-    let segment = match layout_admission_registry().admit(S8LayoutAdmissionRequest::new(
-        segment_lifecycle,
-        segment_domain,
-        S8LayoutStrategyFamily::BaselineBTreeRange,
-        S8LayoutRequestedCapability::point_lookup(),
-        ArtifactFamilyAccessLane::HotPath,
-    )) {
-        TransitionOutcome::Success(admitted) => admitted,
-        outcome => panic!("segment strategy should admit: {outcome:?}"),
-    };
+    let page = layout_admission_registry()
+        .admit(S8LayoutAdmissionRequest::new(
+            page_lifecycle,
+            page_domain,
+            S8LayoutStrategyFamily::BaselineBTreeRange,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        ))
+        .unwrap()
+        .admitted_strategy();
+    let segment = layout_admission_registry()
+        .admit(S8LayoutAdmissionRequest::new(
+            segment_lifecycle,
+            segment_domain,
+            S8LayoutStrategyFamily::BaselineBTreeRange,
+            S8LayoutRequestedCapability::point_lookup(),
+            ArtifactFamilyAccessLane::HotPath,
+        ))
+        .unwrap()
+        .admitted_strategy();
 
     assert_ne!(page.key_domain(), segment.key_domain());
     assert_eq!(page.family(), segment.family());
@@ -352,4 +354,9 @@ fn phase_seventeen_btree_strategy_counter_surface_requires_shape_specific_lookup
         evidence.aggregate_profile(),
         crate::S8StrategyCounterProfile::new(1, 1, 0, 1, 1)
     );
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declaration();
+    phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families();
 }

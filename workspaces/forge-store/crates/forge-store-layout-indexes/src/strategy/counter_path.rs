@@ -1,8 +1,6 @@
 use super::counter_evidence::S8StrategyCounterEvidence;
 use super::declaration::S8StrategyDeclaration;
-use crate::access_shape::{
-    S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis,
-};
+use crate::access_shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 
 pub(super) fn derive_strategy_counter_evidence(
     declaration: S8StrategyDeclaration,
@@ -25,7 +23,9 @@ pub(super) fn derive_strategy_counter_evidence(
     let aggregate = declaration
         .planned_counter_envelope()
         .map(|envelope| envelope.aggregate_profile())
-        .or_else(|| derive_shape_specific_aggregate_profile(point_lookup, range_lookup, prefix_lookup))
+        .or_else(|| {
+            derive_shape_specific_aggregate_profile(point_lookup, range_lookup, prefix_lookup)
+        })
         .unwrap_or_else(zero_counter_profile);
 
     S8StrategyCounterEvidence::new(
@@ -69,7 +69,11 @@ const fn max_counter_profile(
             range.range_lookups(),
             prefix.range_lookups(),
         ),
-        max3(point.wal_replays(), range.wal_replays(), prefix.wal_replays()),
+        max3(
+            point.wal_replays(),
+            range.wal_replays(),
+            prefix.wal_replays(),
+        ),
         max3(
             point.publications(),
             range.publications(),

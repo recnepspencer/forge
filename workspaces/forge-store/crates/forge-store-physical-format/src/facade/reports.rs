@@ -1,8 +1,9 @@
 use crate::{
-    ExtentBackedRecordView, ManifestTraversalReport, MinimalManifestVerifierReport,
-    PersistedPhysicalLayout, PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness,
-    PhysicalHeaderAuthority, PhysicalReference, PlatformPhysicalFacadeCounterSnapshot,
-    PlatformPhysicalFacadeEvidence, RecordAppendReport, RecordLocateReport,
+    layout_access::counters::PhysicalLayoutAccessCounterSnapshot, ExtentBackedRecordView,
+    ManifestTraversalReport, MinimalManifestVerifierReport, PersistedPhysicalLayout,
+    PhysicalBootstrapCatalogDenial, PhysicalBootstrapCatalogOpenWitness, PhysicalHeaderAuthority,
+    PhysicalReference, PlatformPhysicalFacadeCounterSnapshot, PlatformPhysicalFacadeEvidence,
+    RecordAppendReport, RecordLocateReport,
 };
 use forge_store_contracts::RoadmapScope;
 
@@ -52,6 +53,7 @@ pub struct PlatformPhysicalLocateReport<'a> {
     reference: PhysicalReference,
     framed_record: PlatformPhysicalFramedRecord<'a>,
     counters: PlatformPhysicalFacadeCounterSnapshot,
+    layout_counters: PhysicalLayoutAccessCounterSnapshot,
 }
 
 impl<'a> PlatformPhysicalLocateReport<'a> {
@@ -59,11 +61,13 @@ impl<'a> PlatformPhysicalLocateReport<'a> {
         reference: PhysicalReference,
         framed_record: PlatformPhysicalFramedRecord<'a>,
         counters: PlatformPhysicalFacadeCounterSnapshot,
+        layout_counters: PhysicalLayoutAccessCounterSnapshot,
     ) -> Self {
         Self {
             reference,
             framed_record,
             counters,
+            layout_counters,
         }
     }
 
@@ -77,6 +81,10 @@ impl<'a> PlatformPhysicalLocateReport<'a> {
 
     pub const fn counters(self) -> PlatformPhysicalFacadeCounterSnapshot {
         self.counters
+    }
+
+    pub const fn layout_counters(self) -> PhysicalLayoutAccessCounterSnapshot {
+        self.layout_counters
     }
 }
 

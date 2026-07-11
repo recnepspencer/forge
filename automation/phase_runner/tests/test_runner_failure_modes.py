@@ -30,7 +30,7 @@ from runtime_paths import clear_stop_requested, mark_stop_requested, stop_reques
 
 class DurableRunnerTests(unittest.TestCase):
     def test_real_config_validates(self) -> None:
-        config_path = RUNNER_DIR / "config" / "worth-ui-milestone-3.3.json"
+        config_path = RUNNER_DIR / "config" / "forge-store-s8.json"
         config = load_config(config_path)
         self.assertEqual(validate_config(config, config_path), [])
 
@@ -346,6 +346,17 @@ class DurableRunnerTests(unittest.TestCase):
         self.assertEqual(
             pending_recovery_reason(events, current, "review-1"),
             "prior agent turn completed but outcome was not recorded",
+        )
+
+    def test_pending_recovery_reason_detects_orphaned_prompt(self) -> None:
+        current = {"phase": 1, "turn": "implement"}
+        events = [
+            event("run_started", 1),
+            event("prompt_selected", 2, 1, "implement", {"turn_instance_id": "impl-1"}),
+        ]
+        self.assertEqual(
+            pending_recovery_reason(events, current, "impl-1"),
+            "prior agent turn was interrupted before completion",
         )
 
     def test_pending_recovery_reason_ignores_stale_same_turn_from_prior_attempt(self) -> None:

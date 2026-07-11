@@ -1,7 +1,8 @@
-use forge_store_layout_indexes::{
-    layout_declarations, S8CoverageBasisKind, S8CoverageGapWitness, S8LayoutCoverageWitness,
+use forge_store_layout_indexes::access_planning::{
+    S8CoverageBasisKind, S8CoverageGapWitness, S8LayoutCoverageWitness,
     S8LayoutMaterializationState, S8LayoutWatermark,
 };
+use forge_store_layout_indexes::layout_families::layout_declarations;
 
 fn main() {
     let family = layout_declarations().seed_family().family();

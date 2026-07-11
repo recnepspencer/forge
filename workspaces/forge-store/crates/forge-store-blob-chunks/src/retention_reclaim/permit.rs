@@ -1,6 +1,6 @@
 use forge_store_contracts::StableDigest;
 
-use crate::{BlobChunkIdentity, S6BlobReclaimNonClaimHandoff};
+use crate::{BlobChunkIdentity, BlobReachabilityReclaimRelease, S6BlobReclaimNonClaimHandoff};
 
 use super::{
     candidate::BlobRetentionOrphanCandidate, counters::BlobRetentionReclaimCounterSnapshot,
@@ -10,7 +10,7 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobRetentionReclaimPermit {
     identity: StableDigest,
-    chunk_identity: BlobChunkIdentity,
+    candidate: BlobRetentionOrphanCandidate,
     s6_posture: S6BlobReclaimNonClaimHandoff,
     residue: BlobLocalizedReclaimResidue,
     counters: BlobRetentionReclaimCounterSnapshot,
@@ -38,7 +38,7 @@ impl BlobRetentionReclaimPermit {
         .expect("retention reclaim permit identity is nonempty");
         Self {
             identity,
-            chunk_identity: candidate.chunk_identity().clone(),
+            candidate,
             s6_posture,
             residue,
             counters,
@@ -49,12 +49,20 @@ impl BlobRetentionReclaimPermit {
         &self.identity
     }
 
-    pub const fn chunk_identity(&self) -> &BlobChunkIdentity {
-        &self.chunk_identity
+    pub const fn candidate(&self) -> &BlobRetentionOrphanCandidate {
+        &self.candidate
     }
 
-    pub const fn s6_posture(&self) -> S6BlobReclaimNonClaimHandoff {
-        self.s6_posture
+    pub const fn chunk_identity(&self) -> &BlobChunkIdentity {
+        self.candidate.chunk_identity()
+    }
+
+    pub const fn reclaim_release(&self) -> &BlobReachabilityReclaimRelease {
+        self.candidate.release()
+    }
+
+    pub const fn s6_posture(&self) -> &S6BlobReclaimNonClaimHandoff {
+        &self.s6_posture
     }
 
     pub const fn residue_report(&self) -> &BlobLocalizedReclaimResidue {
@@ -67,7 +75,7 @@ impl BlobRetentionReclaimPermit {
 
     pub fn retention_receipt(&self) -> BlobRetentionReclaimReceipt {
         BlobRetentionReclaimReceipt {
-            chunk_identity: self.chunk_identity.clone(),
+            chunk_identity: self.chunk_identity().clone(),
             permit_identity: self.identity.clone(),
             counters: self.counters,
         }

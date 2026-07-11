@@ -1,8 +1,6 @@
 use crate::facade::{access_planning, deterministic_plan_selection, layout_execution_freshness};
 use crate::strategy::tests_support::admit_phase_five_scope;
-use crate::{
-    access_lowering, S8AccessLoweringDenied, S8AccessLoweringOutcome, S8DegradedExactScanRequest,
-};
+use crate::{access_lowering, S8AccessLoweringDenied, S8DegradedExactScanRequest};
 use forge_store_budgets::S8PreExecutionBudgetEnvelope;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_format::PhysicalEpoch;
@@ -33,20 +31,16 @@ fn lowering_progression_defers_lsm_point_paths_until_runtime_lease() {
             S8PreExecutionBudgetEnvelope::foreground_default(),
         )
         .unwrap();
-    let lowered = match access_lowering().lower_selected(selected) {
-        S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-        other => panic!("expected lowered outcome, got {other:?}"),
-    };
+    let lowered = access_lowering().lower_selected(selected).into_lowered();
 
     let deferred = access_lowering().admit_ready(lowered);
-    assert!(matches!(deferred, S8AccessLoweringOutcome::Deferred(_)));
-
-    if let S8AccessLoweringOutcome::Deferred(reason) = deferred {
-        assert!(matches!(
-            reason.spent_cost_receipt(),
-            crate::S8AccessAttemptCostReceipt::NoExecutionCountersSpent { .. }
-        ));
-    }
+    let reason = deferred
+        .into_deferred()
+        .expect("LSM point path should defer");
+    assert!(matches!(
+        reason.spent_cost_receipt(),
+        crate::S8AccessAttemptCostReceipt::NoExecutionCountersSpent { .. }
+    ));
 }
 
 #[test]
@@ -73,22 +67,37 @@ fn lowering_progression_surfaces_stale_and_readmitted_outcomes_for_degraded_scan
             S8PreExecutionBudgetEnvelope::terminal_default(),
         )
         .unwrap();
-    let lowered = match access_lowering().lower_selected(selected) {
-        S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-        other => panic!("expected lowered outcome, got {other:?}"),
-    };
-    let stale = match access_lowering().admit_ready(lowered) {
-        S8AccessLoweringOutcome::Stale(stale) => stale,
-        other => panic!("expected stale outcome, got {other:?}"),
-    };
+    let lowered = access_lowering().lower_selected(selected).into_lowered();
+    let stale_outcome = access_lowering().admit_ready(lowered);
+    assert_eq!(
+        stale_outcome.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::Stale
+    );
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::ExecutionReadiness,
+        )
+        .contains(stale_outcome.production_transition())
+    );
+    let stale = stale_outcome
+        .into_stale()
+        .expect("degraded scan should be stale");
 
     let witness = layout_execution_freshness()
         .admit_current_for_stale(&stale, lifecycle, key_domain, coverage)
         .unwrap();
-    assert!(matches!(
-        access_lowering().readmit_stale(stale, witness),
-        S8AccessLoweringOutcome::Readmitted(_)
-    ));
+    let readmitted = access_lowering().readmit_stale(stale, witness);
+    assert_eq!(
+        readmitted.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::Readmitted
+    );
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::StaleRebindReadmission,
+        )
+        .contains(readmitted.production_transition())
+    );
+    assert!(readmitted.into_readmitted().is_ok());
 }
 
 #[test]
@@ -130,32 +139,33 @@ fn lowering_progression_denies_mismatched_readmission_witnesses() {
         )
         .unwrap();
 
-    let stale = match access_lowering().admit_ready(
-        match access_lowering().lower_selected(first_selected) {
-            S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-            other => panic!("expected lowered outcome, got {other:?}"),
-        },
-    ) {
-        S8AccessLoweringOutcome::Stale(stale) => stale,
-        other => panic!("expected stale outcome, got {other:?}"),
-    };
-    let wrong_stale = match access_lowering().admit_ready(
-        match access_lowering().lower_selected(second_selected) {
-            S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-            other => panic!("expected lowered outcome, got {other:?}"),
-        },
-    ) {
-        S8AccessLoweringOutcome::Stale(stale) => stale,
-        other => panic!("expected stale outcome, got {other:?}"),
-    };
+    let stale = access_lowering()
+        .admit_ready(
+            access_lowering()
+                .lower_selected(first_selected)
+                .into_lowered(),
+        )
+        .into_stale()
+        .expect("first degraded scan should be stale");
+    let wrong_stale = access_lowering()
+        .admit_ready(
+            access_lowering()
+                .lower_selected(second_selected)
+                .into_lowered(),
+        )
+        .into_stale()
+        .expect("second degraded scan should be stale");
 
     let wrong_witness = layout_execution_freshness()
         .admit_current_for_stale(&wrong_stale, lifecycle, key_domain, coverage)
         .unwrap();
-    let denial = access_lowering().readmit_stale(stale, wrong_witness);
+    let denial = access_lowering()
+        .readmit_stale(stale, wrong_witness)
+        .into_denial()
+        .expect("mismatched witness must deny");
     assert!(matches!(
         denial,
-        S8AccessLoweringOutcome::Denied(S8AccessLoweringDenied::ReadmissionWitnessMismatch { .. })
+        S8AccessLoweringDenied::ReadmissionWitnessMismatch { .. }
     ));
 }
 
@@ -180,28 +190,46 @@ fn lowering_progression_supports_explicit_rebind_boundary() {
             S8PreExecutionBudgetEnvelope::foreground_default(),
         )
         .unwrap();
-    let lowered = match access_lowering().lower_selected(selected) {
-        S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-        other => panic!("expected lowered outcome, got {other:?}"),
-    };
-    let rebound = match access_lowering().require_rebind(lowered) {
-        S8AccessLoweringOutcome::RebindRequired(rebind) => rebind,
-        other => panic!("expected rebind outcome, got {other:?}"),
-    };
+    let lowered = access_lowering().lower_selected(selected).into_lowered();
+    let rebind_outcome = access_lowering().require_rebind(lowered);
+    assert_eq!(
+        rebind_outcome.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::RebindRequired
+    );
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::StaleRebindReadmission,
+        )
+        .contains(rebind_outcome.production_transition())
+    );
+    let rebound = rebind_outcome
+        .into_required()
+        .expect("rebind should be required");
     let witness = layout_execution_freshness()
         .admit_rebind_for_execution(&rebound, lifecycle, key_domain, coverage)
         .unwrap();
 
-    assert!(matches!(
-        access_lowering().rebind_for_execution(rebound, witness),
-        S8AccessLoweringOutcome::Lowered(_)
-    ));
+    let rebound = access_lowering().rebind_for_execution(rebound, witness);
+    assert_eq!(
+        rebound.production_transition().edge().to(),
+        crate::production_transition::S8LayoutMachineState::Lowered
+    );
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::StaleRebindReadmission,
+        )
+        .contains(rebound.production_transition())
+    );
+    assert!(rebound.into_rebound().is_ok());
 }
 
 #[test]
 fn lowering_progression_requires_exact_coverage_for_readmission_capability() {
     let denial = super::tests_support::expect_readmission_coverage_denial();
-    assert!(matches!(denial, S8AccessLoweringDenied::CoverageDenied { .. }));
+    assert!(matches!(
+        denial,
+        S8AccessLoweringDenied::CoverageDenied { .. }
+    ));
 }
 
 #[test]
@@ -237,14 +265,10 @@ fn lowering_progression_denies_exact_but_wrong_current_coverage_for_readmission(
             S8PreExecutionBudgetEnvelope::terminal_default(),
         )
         .unwrap();
-    let stale =
-        match access_lowering().admit_ready(match access_lowering().lower_selected(selected) {
-            S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-            other => panic!("expected lowered outcome, got {other:?}"),
-        }) {
-            S8AccessLoweringOutcome::Stale(stale) => stale,
-            other => panic!("expected stale outcome, got {other:?}"),
-        };
+    let stale = access_lowering()
+        .admit_ready(access_lowering().lower_selected(selected).into_lowered())
+        .into_stale()
+        .expect("degraded scan should be stale");
 
     assert!(matches!(
         layout_execution_freshness().admit_current_for_stale(
@@ -286,14 +310,10 @@ fn lowering_progression_denies_exact_but_wrong_current_coverage_for_rebind() {
             S8PreExecutionBudgetEnvelope::foreground_default(),
         )
         .unwrap();
-    let rebind =
-        match access_lowering().require_rebind(match access_lowering().lower_selected(selected) {
-            S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-            other => panic!("expected lowered outcome, got {other:?}"),
-        }) {
-            S8AccessLoweringOutcome::RebindRequired(rebind) => rebind,
-            other => panic!("expected rebind outcome, got {other:?}"),
-        };
+    let rebind = access_lowering()
+        .require_rebind(access_lowering().lower_selected(selected).into_lowered())
+        .into_required()
+        .expect("rebind should be required");
 
     assert!(matches!(
         layout_execution_freshness().admit_rebind_for_execution(
@@ -304,6 +324,11 @@ fn lowering_progression_denies_exact_but_wrong_current_coverage_for_rebind() {
         ),
         Err(S8AccessLoweringDenied::CurrentCoverageMismatch { .. })
     ));
+}
+
+pub(crate) fn assert_owner_transition_handoff_equivalence() {
+    lowering_progression_surfaces_stale_and_readmitted_outcomes_for_degraded_scan();
+    lowering_progression_supports_explicit_rebind_boundary();
 }
 
 fn admit_page_scope() -> (
@@ -334,4 +359,14 @@ fn admit_wal_scope() -> (
         ),
         StoreCustodyPosture::InternalStoreCustody,
     )
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    lowering_progression_defers_lsm_point_paths_until_runtime_lease();
+    lowering_progression_surfaces_stale_and_readmitted_outcomes_for_degraded_scan();
+    lowering_progression_denies_mismatched_readmission_witnesses();
+    lowering_progression_supports_explicit_rebind_boundary();
+    lowering_progression_requires_exact_coverage_for_readmission_capability();
+    lowering_progression_denies_exact_but_wrong_current_coverage_for_readmission();
+    lowering_progression_denies_exact_but_wrong_current_coverage_for_rebind();
 }

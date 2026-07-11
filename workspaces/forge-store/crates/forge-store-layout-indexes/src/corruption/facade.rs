@@ -2,20 +2,23 @@ use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_physical_integrity::layout_access::quarantine_family::{
     quarantine_layout_family, LayoutQuarantineAuthorityClass,
 };
-use forge_store_recovery_physics::layout_access::readmission_family::{
-    recovery_readmission_layout_family, RecoveryLayoutReadmissionAdmissionDenial,
-    RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
-    RecoveryLayoutReadmissionWitness,
+use forge_store_recovery_physics::{
+    RecoveryLayoutAccess, RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
+    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
 };
 
 use crate::materialization::S8MaterializationStateClass;
-use crate::{LayoutCorruptionClassification, S8LayoutCoverageWitness};
+use crate::{phase22_readmission_rule, LayoutCorruptionClassification, S8LayoutCoverageWitness};
 
 use super::denial::S8CorruptionDenial;
 use super::input::S8LayoutCorruptionInput;
-use super::outcome::{S8LayoutCorruptionOutcome, S8LayoutReadmissionOutcome};
+use super::outcome::{
+    S8LayoutCorruptionOutcome, S8LayoutReadmissionOutcome, S8QuarantineReadmissionRequirement,
+    S8ReadmissionRequirement, S8RequiredReadmission, S8UnsupportedCorruptionState,
+};
 use super::quarantine::S8LayoutQuarantineWitness;
 use super::readmission::S8NativeReadmissionInput;
+use super::S8LayoutReadmissionSource;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayoutCorruptionFacade;
@@ -32,15 +35,14 @@ impl LayoutCorruptionFacade {
             S8LayoutCorruptionInput::AuthoritativeQuarantine { family, record } => {
                 match quarantine_layout_family().authority_class(&record) {
                     LayoutQuarantineAuthorityClass::DerivedProjectionDamage => {
-                        S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired {
-                            classification:
-                                LayoutCorruptionClassification::DerivedProjectionRebuildToParity,
-                        }
+                        S8LayoutCorruptionOutcome::rebuild_required(
+                            LayoutCorruptionClassification::DerivedProjectionRebuildToParity,
+                        )
                     }
                     LayoutQuarantineAuthorityClass::AuthoritativeQuarantineRequired => {
-                        S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(
-                            S8LayoutQuarantineWitness::new(family, record),
-                        )
+                        S8LayoutCorruptionOutcome::quarantined(S8LayoutQuarantineWitness::new(
+                            family, record,
+                        ))
                     }
                 }
             }
@@ -51,7 +53,7 @@ impl LayoutCorruptionFacade {
                 classify_terminal_import(witness)
             }
             S8LayoutCorruptionInput::MigrationRequired { family } => {
-                S8LayoutCorruptionOutcome::MigrationRequired { family }
+                S8LayoutCorruptionOutcome::migration_required(family)
             }
         }
     }
@@ -61,11 +63,9 @@ impl LayoutCorruptionFacade {
         required: S8LayoutCorruptionOutcome,
         current_store_authority: &StoreCurrentAuthorityWitness,
     ) -> Result<S8LayoutCorruptionOutcome, S8CorruptionDenial> {
-        match required {
-            S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(quarantine) => {
-                require_quarantine_readmission(quarantine, current_store_authority)
-            }
-            other => Err(
+        match required.into_quarantined() {
+            Ok(quarantine) => require_quarantine_readmission(quarantine, current_store_authority),
+            Err(other) => Err(
                 S8CorruptionDenial::ReadmissionInputDoesNotMatchRequiredOutcome {
                     required: other.class(),
                 },
@@ -78,23 +78,22 @@ impl LayoutCorruptionFacade {
         required: S8LayoutCorruptionOutcome,
         input: S8NativeReadmissionInput,
     ) -> S8LayoutReadmissionOutcome {
-        match (required, input) {
+        let source = required_readmission_source(&required);
+        match (required.into_readmission_requirement(), input) {
             (
-                S8LayoutCorruptionOutcome::QuarantineReadmissionRequired {
-                    quarantine,
-                    identity,
-                },
+                Ok(S8RequiredReadmission::Quarantine(required)),
                 S8NativeReadmissionInput::RecoveryWitness { witness },
-            ) => readmit_quarantine(quarantine, identity, witness),
+            ) => readmit_quarantine(required.quarantine, required.identity, witness),
             (
-                S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired { family, identity },
+                Ok(S8RequiredReadmission::Offline(required)),
                 S8NativeReadmissionInput::RecoveryWitness { witness },
-            ) => readmit_offline(family, identity, witness),
+            ) => readmit_offline(required.family, required.identity, witness),
             (
-                S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired { family, identity },
+                Ok(S8RequiredReadmission::Import(required)),
                 S8NativeReadmissionInput::RecoveryWitness { witness },
-            ) => readmit_terminal_import(family, identity, witness),
-            (required, _) => S8LayoutReadmissionOutcome::Denied(
+            ) => readmit_terminal_import(required.family, required.identity, witness),
+            (Err(required), _) => S8LayoutReadmissionOutcome::denied(
+                source,
                 S8CorruptionDenial::ReadmissionInputDoesNotMatchRequiredOutcome {
                     required: required.class(),
                 },
@@ -105,42 +104,40 @@ impl LayoutCorruptionFacade {
 
 fn classify_materialization(coverage: S8LayoutCoverageWitness) -> S8LayoutCorruptionOutcome {
     match coverage.state().class() {
-        S8MaterializationStateClass::Absent => S8LayoutCorruptionOutcome::NotFound {
-            family: coverage.family(),
-        },
+        S8MaterializationStateClass::Absent => {
+            S8LayoutCorruptionOutcome::not_found(coverage.family())
+        }
         S8MaterializationStateClass::Exact
         | S8MaterializationStateClass::ExactThroughPhysicalBasis
         | S8MaterializationStateClass::EmptyInitialized => {
-            S8LayoutCorruptionOutcome::Clean { coverage }
+            S8LayoutCorruptionOutcome::clean(coverage)
         }
-        S8MaterializationStateClass::Stale => S8LayoutCorruptionOutcome::StaleBinding { coverage },
+        S8MaterializationStateClass::Stale => S8LayoutCorruptionOutcome::stale_binding(coverage),
         S8MaterializationStateClass::RebuildRequired => {
-            S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired {
-                classification: LayoutCorruptionClassification::DerivedProjectionRebuildToParity,
-            }
-        }
-        S8MaterializationStateClass::Migrating => S8LayoutCorruptionOutcome::MigrationRequired {
-            family: coverage.family(),
-        },
-        S8MaterializationStateClass::Quarantined => {
-            S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(
-                S8LayoutQuarantineWitness::from_materialization(coverage),
+            S8LayoutCorruptionOutcome::rebuild_required(
+                LayoutCorruptionClassification::DerivedProjectionRebuildToParity,
             )
         }
-        state => S8LayoutCorruptionOutcome::Unsupported {
-            family: coverage.family(),
+        S8MaterializationStateClass::Migrating => {
+            S8LayoutCorruptionOutcome::migration_required(coverage.family())
+        }
+        S8MaterializationStateClass::Quarantined => S8LayoutCorruptionOutcome::quarantined(
+            S8LayoutQuarantineWitness::from_materialization(coverage),
+        ),
+        state => S8LayoutCorruptionOutcome::unsupported(S8UnsupportedCorruptionState::new(
+            coverage.family(),
             state,
-        },
+        )),
     }
 }
 
 fn classify_rebuild(classification: LayoutCorruptionClassification) -> S8LayoutCorruptionOutcome {
     match classification {
         LayoutCorruptionClassification::DerivedProjectionRebuildToParity => {
-            S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired { classification }
+            S8LayoutCorruptionOutcome::rebuild_required(classification)
         }
         LayoutCorruptionClassification::AuthoritativeSourceQuarantineRequired { family } => {
-            S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(
+            S8LayoutCorruptionOutcome::quarantined(
                 S8LayoutQuarantineWitness::for_authoritative_family(family),
             )
         }
@@ -151,17 +148,18 @@ fn classify_offline_evidence(
     family: crate::PhysicalArtifactFamily,
     admission: &forge_store_recovery_physics::ReopenedRecoveryArtifactAdmission,
 ) -> S8LayoutCorruptionOutcome {
-    match recovery_readmission_layout_family().admit_offline_witness(family.id(), admission) {
-        Ok(witness) => S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired {
-            family,
-            identity: witness.identity().clone(),
-        },
-        Err(_) => S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired {
-            family,
-            identity: RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
-                admission.artifact_digest().clone(),
-            ),
-        },
+    match phase22_readmission_family().admit_offline_witness(family.id(), admission) {
+        Ok(witness) => S8LayoutCorruptionOutcome::offline_readmission_required(
+            S8ReadmissionRequirement::new(family, witness.identity().clone()),
+        ),
+        Err(_) => {
+            S8LayoutCorruptionOutcome::offline_readmission_required(S8ReadmissionRequirement::new(
+                family,
+                RecoveryLayoutReadmissionIdentity::OfflineArtifactDigest(
+                    admission.artifact_digest().clone(),
+                ),
+            ))
+        }
     }
 }
 
@@ -172,10 +170,10 @@ fn classify_terminal_import(
         .declaration(witness.family_id())
         .expect("layout readmission witness should target a declared family")
         .family();
-    S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired {
+    S8LayoutCorruptionOutcome::import_readmission_required(S8ReadmissionRequirement::new(
         family,
-        identity: witness.identity().clone(),
-    }
+        witness.identity().clone(),
+    ))
 }
 
 fn require_quarantine_readmission(
@@ -188,17 +186,16 @@ fn require_quarantine_readmission(
             S8CorruptionDenial::QuarantineRecordBackedReadmissionEvidenceRequired { family },
         );
     };
-    match recovery_readmission_layout_family().admit_record_backed_witness(
+    match phase22_readmission_family().admit_record_backed_witness(
         family.id(),
         record,
         current_store_authority,
     ) {
         Ok(witness) => match witness.class() {
             RecoveryLayoutReadmissionClass::QuarantineRecovery => {
-                Ok(S8LayoutCorruptionOutcome::QuarantineReadmissionRequired {
-                    identity: witness.identity().clone(),
-                    quarantine,
-                })
+                Ok(S8LayoutCorruptionOutcome::quarantine_readmission_required(
+                    S8QuarantineReadmissionRequirement::new(quarantine, witness.identity().clone()),
+                ))
             }
             RecoveryLayoutReadmissionClass::ImportBoundaryReadmission => {
                 Err(S8CorruptionDenial::ImportReadmissionRequired { family })
@@ -227,13 +224,14 @@ fn readmit_quarantine(
     match witness.class() {
         RecoveryLayoutReadmissionClass::QuarantineRecovery => {
             if matches_identity(quarantine.family(), &identity, &witness) {
-                S8LayoutReadmissionOutcome::Readmitted(
+                S8LayoutReadmissionOutcome::readmitted(
                     super::readmission::S8LayoutReadmissionWitness::quarantine_recovery(
                         quarantine.family(),
                     ),
                 )
             } else {
-                S8LayoutReadmissionOutcome::Denied(
+                S8LayoutReadmissionOutcome::denied(
+                    S8LayoutReadmissionSource::QuarantineRecovery,
                     S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                         family: quarantine.family(),
                         source:
@@ -243,12 +241,16 @@ fn readmit_quarantine(
             }
         }
         RecoveryLayoutReadmissionClass::ImportBoundaryReadmission => {
-            S8LayoutReadmissionOutcome::Denied(S8CorruptionDenial::ImportReadmissionRequired {
-                family: quarantine.family(),
-            })
+            S8LayoutReadmissionOutcome::denied(
+                S8LayoutReadmissionSource::QuarantineRecovery,
+                S8CorruptionDenial::ImportReadmissionRequired {
+                    family: quarantine.family(),
+                },
+            )
         }
         RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact => {
-            S8LayoutReadmissionOutcome::Denied(
+            S8LayoutReadmissionOutcome::denied(
+                S8LayoutReadmissionSource::QuarantineRecovery,
                 S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                     family: quarantine.family(),
                     source: super::classification::S8LayoutReadmissionSource::QuarantineRecovery,
@@ -256,9 +258,12 @@ fn readmit_quarantine(
             )
         }
         RecoveryLayoutReadmissionClass::NoForegroundAuthority => {
-            S8LayoutReadmissionOutcome::Denied(S8CorruptionDenial::NoForegroundReadAuthority {
-                family: quarantine.family(),
-            })
+            S8LayoutReadmissionOutcome::denied(
+                S8LayoutReadmissionSource::QuarantineRecovery,
+                S8CorruptionDenial::NoForegroundReadAuthority {
+                    family: quarantine.family(),
+                },
+            )
         }
     }
 }
@@ -271,11 +276,12 @@ fn readmit_offline(
     match witness.class() {
         RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact => {
             if matches_identity(family, &identity, &witness) {
-                S8LayoutReadmissionOutcome::Readmitted(
+                S8LayoutReadmissionOutcome::readmitted(
                     super::readmission::S8LayoutReadmissionWitness::offline_evidence(family),
                 )
             } else {
-                S8LayoutReadmissionOutcome::Denied(
+                S8LayoutReadmissionOutcome::denied(
+                    S8LayoutReadmissionSource::OfflineRecoveryEvidence,
                     S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                         family,
                         source:
@@ -284,7 +290,8 @@ fn readmit_offline(
                 )
             }
         }
-        other => S8LayoutReadmissionOutcome::Denied(
+        other => S8LayoutReadmissionOutcome::denied(
+            S8LayoutReadmissionSource::OfflineRecoveryEvidence,
             S8CorruptionDenial::UnexpectedOfflineReadmissionClass {
                 family,
                 class: other,
@@ -301,11 +308,12 @@ fn readmit_terminal_import(
     match witness.class() {
         RecoveryLayoutReadmissionClass::ImportBoundaryReadmission => {
             if matches_identity(family, &identity, &witness) {
-                S8LayoutReadmissionOutcome::Readmitted(
+                S8LayoutReadmissionOutcome::readmitted(
                     super::readmission::S8LayoutReadmissionWitness::terminal_import(family),
                 )
             } else {
-                S8LayoutReadmissionOutcome::Denied(
+                S8LayoutReadmissionOutcome::denied(
+                    S8LayoutReadmissionSource::TerminalImport,
                     S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                         family,
                         source: super::classification::S8LayoutReadmissionSource::TerminalImport,
@@ -313,13 +321,13 @@ fn readmit_terminal_import(
                 )
             }
         }
-        RecoveryLayoutReadmissionClass::QuarantineRecovery => {
-            S8LayoutReadmissionOutcome::Denied(S8CorruptionDenial::QuarantineReadmissionRequired {
-                family,
-            })
-        }
+        RecoveryLayoutReadmissionClass::QuarantineRecovery => S8LayoutReadmissionOutcome::denied(
+            S8LayoutReadmissionSource::TerminalImport,
+            S8CorruptionDenial::QuarantineReadmissionRequired { family },
+        ),
         RecoveryLayoutReadmissionClass::OfflineVerifiedArtifact => {
-            S8LayoutReadmissionOutcome::Denied(
+            S8LayoutReadmissionOutcome::denied(
+                S8LayoutReadmissionSource::TerminalImport,
                 S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                     family,
                     source: super::classification::S8LayoutReadmissionSource::TerminalImport,
@@ -327,10 +335,26 @@ fn readmit_terminal_import(
             )
         }
         RecoveryLayoutReadmissionClass::NoForegroundAuthority => {
-            S8LayoutReadmissionOutcome::Denied(S8CorruptionDenial::NoForegroundReadAuthority {
-                family,
-            })
+            S8LayoutReadmissionOutcome::denied(
+                S8LayoutReadmissionSource::TerminalImport,
+                S8CorruptionDenial::NoForegroundReadAuthority { family },
+            )
         }
+    }
+}
+
+fn required_readmission_source(required: &S8LayoutCorruptionOutcome) -> S8LayoutReadmissionSource {
+    match required.view() {
+        super::S8LayoutCorruptionView::QuarantineReadmissionRequired(_) => {
+            S8LayoutReadmissionSource::QuarantineRecovery
+        }
+        super::S8LayoutCorruptionView::OfflineReadmissionRequired(_) => {
+            S8LayoutReadmissionSource::OfflineRecoveryEvidence
+        }
+        super::S8LayoutCorruptionView::ImportReadmissionRequired(_) => {
+            S8LayoutReadmissionSource::TerminalImport
+        }
+        _ => S8LayoutReadmissionSource::QuarantineRecovery,
     }
 }
 
@@ -340,6 +364,12 @@ fn matches_identity(
     witness: &RecoveryLayoutReadmissionWitness,
 ) -> bool {
     witness.family_id() == family.id() && witness.identity() == expected_identity
+}
+
+fn phase22_readmission_family() -> forge_store_recovery_physics::AdmittedReadmissionLayoutFamily {
+    RecoveryLayoutAccess::s8()
+        .readmission_layout(&phase22_readmission_rule().expect("phase-22 readmission rule"))
+        .expect("phase-22 readmission family")
 }
 
 pub const fn layout_corruption() -> LayoutCorruptionFacade {

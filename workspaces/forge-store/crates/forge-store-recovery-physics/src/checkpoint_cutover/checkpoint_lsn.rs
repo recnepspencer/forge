@@ -1,6 +1,6 @@
 use forge_store_physical_format::PageGenerationCell;
 
-use crate::{LogSequenceNumber, PageLsn, WalLsnRange, WalTopologyDenial};
+use crate::{wal_topology::WalTopologyDenial, LogSequenceNumber, PageLsn, WalLsnRange};
 
 use super::{
     CheckpointRecoveryCounterSnapshot, CheckpointValidationDenial, CheckpointValidationDenialKind,

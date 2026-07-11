@@ -1,5 +1,4 @@
 mod advisory_aid;
-mod cache_hit;
 mod denial;
 mod ephemeral_aid;
 mod exact_scan;

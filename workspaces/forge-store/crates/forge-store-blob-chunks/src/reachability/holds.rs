@@ -1,5 +1,5 @@
 use forge_store_contracts::StableDigest;
-use forge_store_operations::{
+use forge_store_operations_vocabulary::{
     BackupExportCustodyMode, BackupExportCustodyReadiness, S10BackupExportCustodyHandoff,
 };
 use forge_store_physical_isolation::{ReadDuringCheckpointVerdict, StablePhysicalReadPlan};

@@ -55,9 +55,7 @@ const fn family_posture(kind: CompatibilityFamilyKind) -> FamilyPosture {
         | CompatibilityFamilyKind::Milestone9BulkRecord
         | CompatibilityFamilyKind::Milestone10RetentionRebuildRecord
         | CompatibilityFamilyKind::Milestone11MaintenanceRecord
-        | CompatibilityFamilyKind::Milestone13TieringRecord => {
-            FamilyPosture::derived(kind.label())
-        }
+        | CompatibilityFamilyKind::Milestone13TieringRecord => FamilyPosture::derived(kind.label()),
     }
 }
 

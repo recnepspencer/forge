@@ -17,6 +17,13 @@ struct StoreDurabilityReceiptCore<S> {
     rename_completed: bool,
     ordering_barrier_completed: bool,
     counters: StoreDurabilityCounterSnapshot,
+    persisted_artifact: Option<StoreDurabilityPersistedArtifact>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoreDurabilityPersistedArtifact {
+    path: std::path::PathBuf,
+    bytes: u64,
 }
 
 impl<S> StoreDurabilityReceiptCore<S> {
@@ -41,6 +48,7 @@ impl<S> StoreDurabilityReceiptCore<S> {
             rename_completed,
             ordering_barrier_completed,
             counters,
+            persisted_artifact: None,
         }
     }
 }
@@ -182,6 +190,10 @@ where
                 rename_completed: execution.rename_completed(),
                 ordering_barrier_completed: execution.ordering_barrier_completed(),
                 counters: execution.apply_boundary_counters(self.core.counters),
+                persisted_artifact: Some(StoreDurabilityPersistedArtifact {
+                    path: execution.persisted_path().to_path_buf(),
+                    bytes: execution.persisted_bytes(),
+                }),
                 ..self.core
             },
         })
@@ -365,45 +377,24 @@ impl<S> StoreDurabilityOrderingBarrierDurable<S> {
     pub const fn state(&self) -> StoreDurabilityState {
         StoreDurabilityState::OrderingBarrierDurable
     }
+
+    pub fn persisted_artifact(&self) -> &StoreDurabilityPersistedArtifact {
+        self.core
+            .persisted_artifact
+            .as_ref()
+            .expect("ordering-barrier durability retains the executed artifact")
+    }
 }
 
-macro_rules! impl_receipt_accessors {
-    ($type:ident) => {
-        impl<S> $type<S> {
-            pub const fn profile(&self) -> BackendTargetProfile {
-                self.core.profile
-            }
+impl StoreDurabilityPersistedArtifact {
+    pub fn path(&self) -> &std::path::Path {
+        &self.path
+    }
 
-            pub const fn evidence_class(&self) -> CapabilityEvidenceClass {
-                self.core.evidence_class
-            }
-
-            pub const fn requirement(&self) -> StoreDurabilityRequirement {
-                self.core.requirement
-            }
-
-            pub const fn publication(&self) -> StoreDurabilityPublicationKind {
-                self.core.requirement.publication()
-            }
-
-            pub const fn completed_barriers(&self) -> WalDurabilityBarrierSet {
-                self.core.completed_barriers
-            }
-
-            pub const fn counters(&self) -> StoreDurabilityCounterSnapshot {
-                self.core.counters
-            }
-
-            pub const fn scope(&self) -> &S {
-                &self.core.scope
-            }
-        }
-    };
+    pub const fn bytes(&self) -> u64 {
+        self.bytes
+    }
 }
 
-impl_receipt_accessors!(StoreDurabilityWriteSubmitted);
-impl_receipt_accessors!(StoreDurabilityWriteAccepted);
-impl_receipt_accessors!(StoreDurabilityBoundaryReached);
-impl_receipt_accessors!(StoreDurabilityParentNamespaceDurable);
-impl_receipt_accessors!(StoreDurabilityRenameDurable);
-impl_receipt_accessors!(StoreDurabilityOrderingBarrierDurable);
+#[path = "receipt_accessors.rs"]
+mod accessors;

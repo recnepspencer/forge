@@ -1,5 +1,7 @@
 //! Replay traces, layout observers, and runtime verifier comparison.
 
+pub mod s8_layout;
+
 pub use crate::layout_observers::{
     OfflineVerifierObserver, PhysicalLayoutParity, PhysicalLayoutParityDenial,
     PhysicalLayoutParityReport, RuntimeLayoutObserver,
@@ -27,3 +29,4 @@ pub use crate::scale_fixture::{
 };
 pub use crate::scale_property::PhysicalScalePropertyEvidence;
 pub use crate::story_transcript::PhysicalStoryTranscript;
+pub use s8_layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};

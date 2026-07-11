@@ -10,7 +10,10 @@ use crate::reclaim_reachability::ReclaimEligibilityProof;
 use crate::stable_read_execution::StablePhysicalReadReceipt;
 
 use super::basis::S6FoundationalCounterReceipt;
-use super::{PhysicalIsolationCounterSnapshot, S5PhysicalIsolationCloseoutBasis, S6IoQosIsolationReadinessDenial};
+use super::{
+    PhysicalIsolationCounterSnapshot, S5PhysicalIsolationCloseoutBasis,
+    S6IoQosIsolationReadinessDenial,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedS5IsolationCloseout {

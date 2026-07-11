@@ -4,7 +4,7 @@ mod denial;
 mod materialization;
 mod readiness;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 pub use counters::BlobCapsuleReadinessCounters;
 pub use declaration::{

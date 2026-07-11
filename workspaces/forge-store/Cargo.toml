@@ -23,6 +23,7 @@ members = [
     "crates/forge-store-modes",
     "crates/forge-store-offline-verifier",
     "crates/forge-store-operations",
+    "crates/forge-store-operations-vocabulary",
     "crates/forge-store-physical-backend",
     "crates/forge-store-physical-certification",
     "crates/forge-store-physical-format",
@@ -71,6 +72,7 @@ forge-store-maintenance = { path = "crates/forge-store-maintenance" }
 forge-store-modes = { path = "crates/forge-store-modes" }
 forge-store-offline-verifier = { path = "crates/forge-store-offline-verifier" }
 forge-store-operations = { path = "crates/forge-store-operations" }
+forge-store-operations-vocabulary = { path = "crates/forge-store-operations-vocabulary" }
 forge-store-physical-backend = { path = "crates/forge-store-physical-backend" }
 forge-store-physical-certification = { path = "crates/forge-store-physical-certification" }
 forge-store-physical-format = { path = "crates/forge-store-physical-format" }

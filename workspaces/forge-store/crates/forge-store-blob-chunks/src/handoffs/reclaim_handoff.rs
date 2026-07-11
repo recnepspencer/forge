@@ -5,12 +5,10 @@ use forge_store_reclaim_policy::{
 
 use crate::BlobChunkSecurityMetadataWitness;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S6BlobReclaimNonClaimHandoff {
-    region: PhysicalReclaimRegion,
-    interpretation: ReclaimedByteInterpretation,
+    receipt: ReclaimPolicyExecutionReceipt,
     security_metadata: BlobChunkSecurityMetadataWitness,
-    counters: ReclaimPolicyCounterSnapshot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,44 +37,44 @@ impl S6BlobReclaimNonClaimHandoff {
         }
 
         Ok(Self {
-            region: policy.region(),
-            interpretation: receipt.observed_interpretation(),
+            receipt,
             security_metadata: metadata,
-            counters: receipt.counters(),
         })
     }
 
-    pub const fn region(self) -> PhysicalReclaimRegion {
-        self.region
+    pub fn receipt(&self) -> &ReclaimPolicyExecutionReceipt {
+        &self.receipt
     }
 
-    pub const fn interpretation(self) -> ReclaimedByteInterpretation {
-        self.interpretation
+    pub fn region(&self) -> PhysicalReclaimRegion {
+        self.receipt.policy().region()
     }
 
-    pub const fn security_metadata(self) -> BlobChunkSecurityMetadataWitness {
+    pub fn interpretation(&self) -> ReclaimedByteInterpretation {
+        self.receipt.observed_interpretation()
+    }
+
+    pub const fn security_metadata(&self) -> BlobChunkSecurityMetadataWitness {
         self.security_metadata
     }
 
-    pub const fn security_scope(self) -> forge_store_security::StoreSecurityScopeIdentity {
+    pub const fn security_scope(&self) -> forge_store_security::StoreSecurityScopeIdentity {
         self.security_metadata.identity()
     }
 
-    pub const fn counters(self) -> ReclaimPolicyCounterSnapshot {
-        self.counters
+    pub fn counters(&self) -> ReclaimPolicyCounterSnapshot {
+        self.receipt.counters()
     }
 
-    pub const fn carries_blob_lifecycle_claim(self) -> bool {
+    pub const fn carries_blob_lifecycle_claim(&self) -> bool {
         false
     }
 
-    pub const fn can_satisfy_blob_lifecycle_receipt(self) -> bool {
+    pub const fn can_satisfy_blob_lifecycle_receipt(&self) -> bool {
         false
     }
 
-    pub const fn source_operation(
-        receipt: ReclaimPolicyExecutionReceipt,
-    ) -> ReclaimPolicyOperation {
+    pub fn source_operation(receipt: &ReclaimPolicyExecutionReceipt) -> ReclaimPolicyOperation {
         receipt.policy().posture().operation()
     }
 }

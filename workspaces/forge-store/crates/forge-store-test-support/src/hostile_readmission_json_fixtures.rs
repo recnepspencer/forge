@@ -2,9 +2,9 @@ use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::StoreAspectIdentity;
 
 use crate::{
-    json_fixture_boundary::require_hostile_readmission_boundary,
     StoreHostileReadmissionJsonFixtureBoundaryOutcome,
     StoreHostileReadmissionJsonFixtureBoundaryWitness,
+    json_fixture_boundary::require_hostile_readmission_boundary,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

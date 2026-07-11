@@ -3,5 +3,7 @@ pub mod capsule_operation_family;
 pub mod export_family;
 pub mod import_family;
 pub mod operations_layout_closeout;
+#[cfg(test)]
+mod phase28_tests;
 pub mod repair_family;
 pub mod restore_family;

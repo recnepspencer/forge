@@ -8,6 +8,14 @@ pub struct CompactionCutoverDelta {
 }
 
 impl CompactionCutoverDelta {
+    pub const fn cutover_state(&self) -> super::CompactionCutoverState {
+        super::CompactionCutoverState::RewriteLowered
+    }
+
+    pub const fn cutover_transition(&self) -> super::CompactionCutoverTransition {
+        super::CompactionCutoverTransitionKind::LowerRewrite.transition()
+    }
+
     pub fn lower(
         plan: CompactionReadInterlockPlan,
         rewritten_root: CurrentPhysicalRoot,

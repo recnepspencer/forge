@@ -15,7 +15,7 @@ mod scan;
 mod shape;
 mod streaming;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 mod verifier;
 
 pub use contract::{
@@ -32,5 +32,7 @@ pub use detail::{
     S8StreamingContinuationBasis, S8StreamingReadBasis,
 };
 pub use facade::access_shapes;
+pub(crate) use facade::S8AccessShapesFacade;
 pub use lane::S8AccessLaneClassification;
+pub use scan::{S8FullDeclaredScanOutcome, S8FullDeclaredScanView};
 pub use shape::S8AccessShape;

@@ -54,7 +54,7 @@ impl BlobRetentionPhysicalOrphanIdentity {
 impl BlobRetentionPhysicalOrphanClaim {
     pub(crate) fn from_admitted_s6_posture(
         release: &BlobReachabilityReclaimRelease,
-        s6_posture: S6BlobReclaimNonClaimHandoff,
+        s6_posture: &S6BlobReclaimNonClaimHandoff,
     ) -> Result<Self, BlobRetentionReclaimDenial> {
         let durable_bytes = u64::from(s6_posture.region().byte_len());
         if durable_bytes == 0 {

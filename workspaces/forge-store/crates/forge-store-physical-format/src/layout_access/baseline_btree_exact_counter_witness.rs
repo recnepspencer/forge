@@ -60,21 +60,55 @@ impl BaselineBTreeExactCounterWitness {
         }
     }
 
-    pub const fn point_lookups(self) -> u16 { self.point_lookups }
-    pub const fn range_lookups(self) -> u16 { self.range_lookups }
-    pub const fn wal_replays(self) -> u16 { self.wal_replays }
-    pub const fn publications(self) -> u16 { self.publications }
-    pub const fn maintenance_reads(self) -> u16 { self.maintenance_reads }
-    pub const fn page_touches(self) -> u16 { self.page_touches }
-    pub const fn index_probes(self) -> u16 { self.index_probes }
-    pub const fn key_comparisons(self) -> u16 { self.key_comparisons }
-    pub const fn range_steps(self) -> u16 { self.range_steps }
-    pub const fn prefix_steps(self) -> u16 { self.prefix_steps }
-    pub const fn chunk_tree_node_reads(self) -> u16 { self.chunk_tree_node_reads }
-    pub const fn manifest_reads(self) -> u16 { self.manifest_reads }
-    pub const fn bytes_read(self) -> u64 { self.bytes_read }
-    pub const fn bytes_written(self) -> u64 { self.bytes_written }
-    pub const fn write_fanout(self) -> u16 { self.write_fanout }
-    pub const fn read_amplification(self) -> u16 { self.read_amplification }
-    pub const fn write_amplification(self) -> u16 { self.write_amplification }
+    pub const fn point_lookups(self) -> u16 {
+        self.point_lookups
+    }
+    pub const fn range_lookups(self) -> u16 {
+        self.range_lookups
+    }
+    pub const fn wal_replays(self) -> u16 {
+        self.wal_replays
+    }
+    pub const fn publications(self) -> u16 {
+        self.publications
+    }
+    pub const fn maintenance_reads(self) -> u16 {
+        self.maintenance_reads
+    }
+    pub const fn page_touches(self) -> u16 {
+        self.page_touches
+    }
+    pub const fn index_probes(self) -> u16 {
+        self.index_probes
+    }
+    pub const fn key_comparisons(self) -> u16 {
+        self.key_comparisons
+    }
+    pub const fn range_steps(self) -> u16 {
+        self.range_steps
+    }
+    pub const fn prefix_steps(self) -> u16 {
+        self.prefix_steps
+    }
+    pub const fn chunk_tree_node_reads(self) -> u16 {
+        self.chunk_tree_node_reads
+    }
+    pub const fn manifest_reads(self) -> u16 {
+        self.manifest_reads
+    }
+    pub const fn bytes_read(self) -> u64 {
+        self.bytes_read
+    }
+    pub const fn bytes_written(self) -> u64 {
+        self.bytes_written
+    }
+    pub const fn write_fanout(self) -> u16 {
+        self.write_fanout
+    }
+    pub const fn read_amplification(self) -> u16 {
+        self.read_amplification
+    }
+    pub const fn write_amplification(self) -> u16 {
+        self.write_amplification
+    }
 }

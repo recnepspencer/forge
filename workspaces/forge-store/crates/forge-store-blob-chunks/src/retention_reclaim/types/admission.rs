@@ -12,8 +12,8 @@ impl BlobRetentionReclaimAdmission {
         &self.candidate
     }
 
-    pub const fn s6_posture(&self) -> S6BlobReclaimNonClaimHandoff {
-        self.s6_posture
+    pub const fn s6_posture(&self) -> &S6BlobReclaimNonClaimHandoff {
+        &self.s6_posture
     }
 
     pub(crate) fn into_parts(self) -> (BlobRetentionOrphanCandidate, S6BlobReclaimNonClaimHandoff) {

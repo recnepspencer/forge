@@ -10,6 +10,19 @@ pub use crate::skeleton::{
 pub struct LayoutCloseoutFacade;
 
 impl LayoutCloseoutFacade {
+    /// Admits only the complete explicit S.9 grammar. Actual proof-lane
+    /// completion is certified separately by each lane's real producer.
+    pub fn admit_s9_layout_handoff(
+        &self,
+    ) -> Result<StorageFoundationS9LayoutHandoff, crate::handoff::S9LayoutHandoffDenial> {
+        crate::handoff::admit_s9_layout_handoff(S8LayoutHazardInventory::canonical())
+    }
+    /// Grammar inspection is deliberately distinct from the admitted S.9
+    /// handoff. This facade cannot promote a catalogue or copied counters into
+    /// lower-owner proof authority.
+    pub(crate) const fn hazard_grammar(&self) -> S8LayoutHazardInventory {
+        S8LayoutHazardInventory::canonical()
+    }
     pub const fn responsibility_map(&self) -> S8CrateResponsibilityMap {
         S8CrateResponsibilityMap::current()
     }

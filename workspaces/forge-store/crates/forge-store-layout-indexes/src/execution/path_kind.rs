@@ -11,3 +11,9 @@ pub enum S8AccessPathKind {
     BaselineLsmManifestPublication,
     BaselineLsmWalReplay,
 }
+
+impl S8AccessPathKind {
+    pub(crate) const fn is_degraded_exact_scan(self) -> bool {
+        matches!(self, Self::ExactDegradedScan(_))
+    }
+}

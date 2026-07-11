@@ -34,6 +34,7 @@ mod s4_integrity_handoff_denial;
 mod s4_integrity_handoff_payload;
 mod s4_recovery_physics_integrity_readiness;
 mod s5_publication_recovery;
+mod s8_runtime_receipt;
 mod security_metadata_admission;
 #[cfg(test)]
 mod security_metadata_tests;
@@ -77,6 +78,7 @@ pub use durable_publication::{
     StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
 pub use forge_store_contracts::CorruptionHandoffDamageCase;
+pub use forge_store_wal::AdmittedReplayTailCursor;
 pub use integrity_damage_map::{
     classify_recovery_blocking_damage, IntegrityDamageMap, QuarantineSummary,
 };
@@ -87,10 +89,21 @@ pub use integrity_vetted_records::{
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
     IntegrityVettedWalFrame,
 };
-pub use layout_access::readmission_family::{
-    recovery_readmission_layout_family, RecoveryLayoutReadmissionAdmissionDenial,
-    RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
-    RecoveryLayoutReadmissionWitness,
+pub use layout_access::{
+    AdmittedBoundedWalTailLayoutFamily, AdmittedBoundedWalTailLayoutRule,
+    AdmittedCheckpointCutoverLayoutFamily, AdmittedCrashBoundaryLayoutFamily,
+    AdmittedCrashBoundaryLayoutRule, AdmittedReadmissionLayoutFamily,
+    AdmittedReadmissionLayoutRule, AdmittedRecoveryManifestLayoutRule,
+    AdmittedRecoverySourceLayoutFamily, AdmittedRecoverySourceLayoutRule,
+    AdmittedReplayIndexLayoutFamily, AdmittedReplayIndexLayoutRule, BoundedWalTailLayoutFamilyHome,
+    BoundedWalTailLayoutReport, CheckpointCutoverLayoutFamilyHome, CheckpointCutoverLayoutReport,
+    CheckpointRecoveryManifestLayoutReport, CrashBoundaryLayoutFamilyHome,
+    CrashBoundaryLayoutReport, ReadmissionLayoutFamilyHome, RecoveryLayoutAccess,
+    RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind,
+    RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
+    RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
+    RecoveryReadmissionLayoutReport, RecoverySourceLayoutFamilyHome, RecoverySourceLayoutReport,
+    ReplayIndexLayoutCounters, ReplayIndexLayoutFamilyHome, ReplayIndexLayoutReport,
 };
 pub use memory_envelope::{RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial};
 pub use offline_verifier::{
@@ -117,11 +130,13 @@ pub use page_lsn_publication::{
     StalePageRecoveryClassificationKind, UnadmittedDirtyPagePublicationDenial,
     UnadmittedDirtyPagePublicationDenialKind, WalBeforeDataOrderingProof,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use partial_publication::PartialPublicationClassification;
 pub use partial_publication::{
     AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
     NonAuthoritativePublicationDenial, NonAuthoritativePublicationSource,
-    PartialPublicationBeforeWalReplayRead, PartialPublicationClassification,
-    PartialPublicationCounterSnapshot, PartialPublicationCrashEdge, PartialPublicationEvidence,
+    PartialPublicationBeforeWalReplayRead, PartialPublicationCounterSnapshot,
+    PartialPublicationCrashEdge, PartialPublicationEvidence,
     PartialPublicationObservationAdmission, PartialPublicationObservationSet,
     PartialPublicationObservedSource, PartialPublicationPersistedBytes,
     PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,
@@ -203,6 +218,9 @@ pub use s5_publication_recovery::{
     S5PublicationRecoveryReplayInput, S5RecoveredPublicationStructure,
     S5RecoveredPublicationStructureKind,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use s8_runtime_receipt::s8_recovery_runtime_receipt_for_certification_test;
+pub use s8_runtime_receipt::{S8RecoveryRuntimeReceipt, S8RecoveryRuntimeStrategy};
 pub use security_metadata_admission::RecoveryRootSecurityMetadataAdmission;
 pub use security_scope_propagation::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope,
@@ -211,6 +229,8 @@ pub use security_scope_propagation::{
     RecoverySecurityScopePropagationDenial, RecoverySecurityScopePropagationInput,
     RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use source_precedence::RecoverySourcePrecedenceGraph;
 pub use source_precedence::{
     AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord, AdmittedRecoverySource,
     BackendResidueKind, BackendResidueRejection, CheckpointBaseAdmission,
@@ -220,8 +240,7 @@ pub use source_precedence::{
     PageLsnSkipApplyDecision, RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
     RecoverySourceApplicationRole, RecoverySourceCandidate, RecoverySourceDecisionKind,
     RecoverySourceDecisionOutcome, RecoverySourceDecisionRow, RecoverySourceDecisionTrace,
-    RecoverySourcePrecedenceGraph, WalOnlyTailProof, WalOnlyTailProofDenial,
-    WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
+    WalOnlyTailProof, WalOnlyTailProofDenial, WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
 };
 pub use wal_durability::{
     AcknowledgmentPrecondition, DurableAckBasis, DurableAckReceipt, IllegalAcknowledgmentDenial,
@@ -229,11 +248,7 @@ pub use wal_durability::{
     WalAppendReceipt, WalDurabilityCrashBasis, WalDurabilityCrashPosture, WalDurabilityCrashRecord,
     WalDurabilityObservation, WalDurabilityObservationSequence, WalFrameDigest,
 };
-pub use wal_topology::{
-    LogSequenceNumber, ReplayCursor, ReplayCursorSegment, WalFrameOrderingProof, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord, WalTopologyDenial,
-    WalTopologyDenialKind, WalTopologyScan,
-};
+pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalRecoverySource {

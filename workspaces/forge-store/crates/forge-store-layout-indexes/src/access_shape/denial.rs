@@ -6,6 +6,7 @@ use crate::materialization::S8MaterializationDenial;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8AccessShapeUnsupportedDenial {
     MaterializationDenied(S8MaterializationDenial),
+    #[non_exhaustive]
     HiddenBroadScan {
         requested_shape: S8AccessShape,
     },

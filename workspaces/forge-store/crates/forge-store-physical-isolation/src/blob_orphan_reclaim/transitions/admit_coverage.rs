@@ -14,11 +14,9 @@ pub(crate) fn assemble_coverage_or_denial(
     case: OrphanReclaimCase,
 ) -> Result<BlobOrphanReclaimCoverage, BlobOrphanReclaimDenial> {
     match case {
-        OrphanReclaimCase::CoverageAdmitted { receipt } => Ok(construct_coverage(
-            barrier,
-            identity,
-            &receipt,
-        )),
+        OrphanReclaimCase::CoverageAdmitted { receipt } => {
+            Ok(construct_coverage(barrier, identity, &receipt))
+        }
         OrphanReclaimCase::DeniedMissingRemovalEvidence
         | OrphanReclaimCase::DeniedIdentityNotCovered => {
             Err(BlobOrphanReclaimDenial::MissingS7ReclaimBarrier)

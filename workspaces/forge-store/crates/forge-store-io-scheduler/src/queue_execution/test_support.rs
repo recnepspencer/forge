@@ -23,6 +23,9 @@ use crate::{
     QueueWritebackPolicy, ReadAheadWindow, S6IoQosSecurityScopeHandoff, S6QueueDurabilityClass,
     SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
 };
+use forge_store_security::{
+    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
+};
 
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
     admitted_plan_for_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
@@ -77,8 +80,8 @@ fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperati
 }
 
 fn s6_security_scope_admission() -> crate::IoSchedulerS6SecurityScopeAdmission {
-    let readiness = forge_store_readiness::accept_s5_1_admitted_security_scope_readiness(
-        forge_store_readiness::S51SecurityScopeReadinessReservation::io_qos(),
+    let readiness = accept_s5_1_admitted_security_scope_readiness(
+        S51SecurityScopeReadinessReservation::io_qos(),
         forge_store_security::admitted_store_internal_security_scope_for_s6_test(),
     );
     let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)

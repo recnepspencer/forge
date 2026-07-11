@@ -35,7 +35,9 @@ impl ProductionBackedPhysicalFixture {
         &self.authority_receipt
     }
 
-    pub const fn reopened_persisted_layout(&self) -> &forge_store_physical_format::PersistedPhysicalLayout {
+    pub const fn reopened_persisted_layout(
+        &self,
+    ) -> &forge_store_physical_format::PersistedPhysicalLayout {
         &self.reopened_layout
     }
 

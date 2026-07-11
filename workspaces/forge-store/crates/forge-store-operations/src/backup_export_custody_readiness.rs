@@ -28,7 +28,13 @@ impl BackupExportCustodyReadiness {
     }
 
     pub fn from_s10_handoff(handoff: S10BackupExportCustodyHandoff) -> Self {
-        handoff.into_readiness()
+        let readiness = handoff.into_readiness();
+        Self {
+            mode: readiness.mode(),
+            identity: readiness.identity(),
+            receipt: readiness.receipt(),
+            counters: readiness.counters(),
+        }
     }
 
     pub(crate) fn from_admitted_readiness(

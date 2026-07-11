@@ -11,14 +11,18 @@ use forge_store_contracts::{
     StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE, ROADMAP_2_S1_SCOPE,
 };
 use forge_store_layout_indexes::{
-    access_lowering, access_planning, deterministic_plan_selection, layout_declarations,
-    ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness, S8AccessLoweringOutcome,
+    access_lowering::{access_lowering, S8ExecutionReadyAccessReceipt},
+    access_planning::{access_planning, deterministic_plan_selection},
+    bootstrap_catalog,
+    layout_families::{layout_declarations, ArtifactFamilyLifecycleAdmission},
+    layout_strategy_admission::PhysicalKeyDomainWitness,
+    S8BootstrapOnlyAccessPath,
 };
 use forge_store_physical_format::{
     layout_access::baseline_btree_counter_observation::BaselineBTreeExecutionWitness,
-    PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
-    PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
-    PlatformPhysicalOpenRequest, SlotGenerationCell,
+    physical_bootstrap_catalog, PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority,
+    PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId, PlatformPhysicalAppendRequest,
+    PlatformPhysicalFacade, PlatformPhysicalOpenRequest, SlotGenerationCell,
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
@@ -34,18 +38,14 @@ fn phase17_success_receipt_comes_from_real_physical_format_execution_witness() {
         seed_baseline_btree_layout(),
     )
     .expect("seeded published layout should admit as a lower-family execution witness")
-    .execute_separator_directed_lookup(
-        ready.selected().budget_receipt().plan_binding(),
-        slot(11),
-    );
+    .execute_separator_directed_lookup(ready.selected().budget_receipt().plan_binding(), slot(11));
     let observed = access_lowering()
         .admit_executed_counters(&ready, &witness)
         .expect("real lower-family executed witness should admit");
 
-    let executed = match access_lowering().execute_ready(ready, observed) {
-        S8AccessLoweringOutcome::Executed(executed) => executed,
-        other => panic!("expected executed outcome, got {other:?}"),
-    };
+    let executed = access_lowering()
+        .execute_ready(ready, observed)
+        .expect("admitted physical counters should execute");
 
     assert_eq!(executed.amplification_receipt().page_touches(), 2);
     assert_eq!(executed.amplification_receipt().index_probes(), 2);
@@ -55,7 +55,10 @@ fn phase17_success_receipt_comes_from_real_physical_format_execution_witness() {
     assert_eq!(executed.planned_vs_observed().observed().point_lookups(), 1);
     assert_eq!(executed.planned_vs_observed().planned().range_lookups(), 0);
     assert_eq!(executed.planned_vs_observed().observed().range_lookups(), 0);
-    assert_eq!(executed.planned_vs_observed().fingerprint(), executed.selected().fingerprint());
+    assert_eq!(
+        executed.planned_vs_observed().fingerprint(),
+        executed.selected().fingerprint()
+    );
     assert!(executed.planned_vs_observed().parity_holds());
     assert_eq!(
         executed.performance_receipt().counter_strength(),
@@ -63,27 +66,64 @@ fn phase17_success_receipt_comes_from_real_physical_format_execution_witness() {
     );
 }
 
-fn ready_exact_point_plan(epoch: u64) -> forge_store_layout_indexes::S8ExecutionReadyAccessReceipt {
+fn ready_exact_point_plan(epoch: u64) -> S8ExecutionReadyAccessReceipt {
     let (lifecycle, key_domain) = admit_page_scope();
     let coverage = access_planning()
-        .exact_root_epoch_coverage(lifecycle.declaration(), PhysicalEpoch::from_raw(epoch).unwrap())
+        .exact_root_epoch_coverage(
+            bootstrap_exact_materialization(lifecycle.declaration().family()),
+            PhysicalEpoch::from_raw(epoch).unwrap(),
+        )
         .unwrap();
     let selected = deterministic_plan_selection()
         .select_with_budget(
             lifecycle,
             key_domain,
-            access_planning().require_exact_point_access(coverage).unwrap(),
+            access_planning()
+                .require_exact_point_access(coverage)
+                .unwrap(),
             S8PreExecutionBudgetEnvelope::foreground_default(),
         )
         .unwrap();
-    let lowered = match access_lowering().lower_selected(selected) {
-        S8AccessLoweringOutcome::Lowered(lowered) => lowered,
-        other => panic!("expected lowered outcome, got {other:?}"),
-    };
-    match access_lowering().admit_ready(lowered) {
-        S8AccessLoweringOutcome::Ready(ready) => ready,
-        other => panic!("expected ready outcome, got {other:?}"),
-    }
+    let lowered = access_lowering().lower_selected(selected).into_lowered();
+    access_lowering()
+        .admit_ready(lowered)
+        .into_ready()
+        .expect("exact point plan should be ready")
+}
+
+fn bootstrap_exact_materialization(
+    family: forge_store_layout_indexes::layout_families::PhysicalArtifactFamily,
+) -> forge_store_layout_indexes::access_planning::S8LayoutMaterializationState {
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open bootstrap fixture");
+    facade
+        .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
+            root_slot_cell(),
+            b"bootstrap-materialization",
+        ))
+        .expect("append bootstrap fixture");
+    let published = facade
+        .publish_physical_root()
+        .expect("publish bootstrap fixture");
+    let open = published
+        .admit_bootstrap_open_witness()
+        .expect("admit bootstrap open witness");
+    let physical = physical_bootstrap_catalog()
+        .discover_catalog(&open)
+        .expect("discover physical catalog");
+    let current_root = physical_bootstrap_catalog()
+        .discover_catalog(&open)
+        .expect("replay physical catalog")
+        .current_root();
+    let (_, admission) = bootstrap_catalog()
+        .read_catalog(
+            S8BootstrapOnlyAccessPath::s8_fixed(),
+            physical,
+            current_root,
+        )
+        .expect("admit Store bootstrap catalog");
+    admission.exact_materialization_for(family)
 }
 
 fn admit_page_scope() -> (ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness) {
@@ -200,11 +240,9 @@ fn physical_witness() -> StorePhysicalBoundaryWitness {
 }
 
 fn seed_baseline_btree_layout() -> forge_store_physical_format::PersistedPhysicalLayout {
-    let mut facade = PlatformPhysicalFacade::open_s1(
-        readiness(),
-        PlatformPhysicalOpenRequest::s1_canonical(),
-    )
-    .expect("open S.1 physical facade");
+    let mut facade =
+        PlatformPhysicalFacade::open_s1(readiness(), PlatformPhysicalOpenRequest::s1_canonical())
+            .expect("open S.1 physical facade");
     let _left = facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
             left_slot_cell(),

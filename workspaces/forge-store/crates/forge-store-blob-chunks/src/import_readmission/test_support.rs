@@ -6,7 +6,7 @@ use forge_store_aspect_native::{
     StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
 };
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use forge_store_operations::{
+use forge_store_operations_vocabulary::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
 };
 use forge_store_security::{
@@ -34,15 +34,15 @@ use crate::{
     BlobLifecycleStoreAuthority, BlobObjectId, ScopedBlobChunk,
 };
 
-pub(super) struct ImportLane<'a> {
-    pub(super) bundle: BlobExportPublishedBundle,
-    pub(super) ordered_leaves: Vec<BlobChunkProofLeaf>,
-    pub(super) bytes: &'a [u8],
-    pub(super) placement: crate::AdmittedBlobPlacement,
-    pub(super) reachability: crate::BlobChunkReachabilityProofSet,
+pub(crate) struct ImportLane<'a> {
+    pub(crate) bundle: BlobExportPublishedBundle,
+    pub(crate) ordered_leaves: Vec<BlobChunkProofLeaf>,
+    pub(crate) bytes: &'a [u8],
+    pub(crate) placement: crate::AdmittedBlobPlacement,
+    pub(crate) reachability: crate::BlobChunkReachabilityProofSet,
 }
 
-pub(super) fn import_lane(
+pub(crate) fn import_lane(
     case: &str,
     bytes: &'static [u8],
     chunk_size: u64,
@@ -160,7 +160,7 @@ pub(super) fn import_lane(
     }
 }
 
-pub(super) fn collect_current_chunks<'a>(
+pub(crate) fn collect_current_chunks<'a>(
     authority: &BlobImportReadmissionAuthority,
     lane: &'a ImportLane<'a>,
 ) -> Vec<BlobImportedChunkEvidence<'a>> {
@@ -183,7 +183,7 @@ pub(super) fn collect_current_chunks<'a>(
         .collect()
 }
 
-pub(super) fn readmission_trigger(
+pub(crate) fn readmission_trigger(
     crossing: StoreTrustBoundaryCrossing,
     declaration: StoreRawSecurityScopeDeclaration,
     case: &str,
@@ -298,7 +298,7 @@ pub(super) fn blob_import_expectation() -> StoreSecurityScopeAdmissionExpectatio
     )
 }
 
-pub(super) fn export_readiness(case: &str) -> BackupExportCustodyReadiness {
+pub(crate) fn export_readiness(case: &str) -> BackupExportCustodyReadiness {
     let authority = current_authority(case, "export");
     let admission = BackupExportCustodyDeclaration::native(
         &authority,

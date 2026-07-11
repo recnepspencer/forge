@@ -22,6 +22,7 @@ pub struct PartialPublicationClassification {
 }
 
 impl PartialPublicationClassification {
+    #[cfg(feature = "certification-test-authority")]
     pub fn classify_observations(observations: PartialPublicationObservationSet) -> Self {
         Self::classify(
             PartialPublicationObservationAdmission::admit_observations(observations)
@@ -29,7 +30,56 @@ impl PartialPublicationClassification {
         )
     }
 
+    #[cfg(not(feature = "certification-test-authority"))]
+    pub(crate) fn classify_observations(observations: PartialPublicationObservationSet) -> Self {
+        Self::classify(
+            PartialPublicationObservationAdmission::admit_observations(observations)
+                .into_evidence(),
+        )
+    }
+
+    #[cfg(feature = "certification-test-authority")]
     pub fn classify(evidence: PartialPublicationEvidence) -> Self {
+        match evidence.kind() {
+            PartialPublicationEvidenceKind::PersistedCrashEdge(edge) => {
+                classify_persisted_crash_edge(edge, evidence.persisted_digest())
+            }
+            PartialPublicationEvidenceKind::BackendResidueOnly { .. } => {
+                reject_non_authoritative_promotion(
+                    UnacknowledgedPublicationOutcome::RejectedNonAuthoritativePromotion,
+                    NonAuthoritativePublicationSource::BackendResidue,
+                    PartialPublicationCounterSnapshot::default().with_rejected_residue_promotion(),
+                    evidence.persisted_digest(),
+                )
+            }
+            PartialPublicationEvidenceKind::LiveAcknowledgmentMemoryOnly => {
+                reject_non_authoritative_promotion(
+                    UnacknowledgedPublicationOutcome::RejectedNonAuthoritativePromotion,
+                    NonAuthoritativePublicationSource::LiveAcknowledgmentMemory,
+                    PartialPublicationCounterSnapshot::default().with_rejected_live_ack_promotion(),
+                    evidence.persisted_digest(),
+                )
+            }
+            PartialPublicationEvidenceKind::LogOnly => reject_non_authoritative_promotion(
+                UnacknowledgedPublicationOutcome::RejectedNonAuthoritativePromotion,
+                NonAuthoritativePublicationSource::LogOnly,
+                PartialPublicationCounterSnapshot::default().with_rejected_log_only_promotion(),
+                evidence.persisted_digest(),
+            ),
+            PartialPublicationEvidenceKind::TornPublication(denial) => {
+                reject_torn_publication(denial.clone(), evidence.persisted_digest())
+            }
+            PartialPublicationEvidenceKind::NoUndoHazard(classification) => {
+                reject_no_undo_hazard(classification.clone(), evidence.persisted_digest())
+            }
+            PartialPublicationEvidenceKind::InsufficientPersistedEvidence { ambiguity_digest } => {
+                classify_ambiguity(ambiguity_digest)
+            }
+        }
+    }
+
+    #[cfg(not(feature = "certification-test-authority"))]
+    pub(crate) fn classify(evidence: PartialPublicationEvidence) -> Self {
         match evidence.kind() {
             PartialPublicationEvidenceKind::PersistedCrashEdge(edge) => {
                 classify_persisted_crash_edge(edge, evidence.persisted_digest())

@@ -15,7 +15,7 @@ const OBLIGATIONS: &[S8PhaseSkeletonObligationRow] = &[
         0,
         "forge-store-layout-indexes",
         "forge_store_layout_indexes",
-        "forge_store_layout_indexes::{layout_declarations,layout_customization_boundary,access_planning,layout_readmission,layout_closeout}",
+        "forge_store_layout_indexes::{layout_families,layout_strategy_admission,access_planning,access_lowering,access_execution,layout_rebuild,layout_migration,layout_counters,layout_readmission,layout_customization,layout_closeout,layout_certification}",
         "existing Store family authority",
         "S.8 topology, responsibility, facade, and witness contract",
         "certification/test-support/offline/foundational/terminal surfaces cannot mint production authority",

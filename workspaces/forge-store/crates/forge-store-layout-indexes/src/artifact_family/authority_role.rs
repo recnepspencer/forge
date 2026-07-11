@@ -79,7 +79,10 @@ pub(crate) fn declare_authority_role(
             | DurableArtifactFamilyId::BranchDeltaArtifact => AuthorityRole::RecoveryAuthority,
             DurableArtifactFamilyId::SecurityCustodyLookup
             | DurableArtifactFamilyId::ImportBundle => AuthorityRole::CustodyEvidenceAuthority,
-            DurableArtifactFamilyId::ReclaimReceipt | DurableArtifactFamilyId::ResidencyRecord => {
+            DurableArtifactFamilyId::ReclaimReceipt
+            | DurableArtifactFamilyId::ResidencyRecord
+            | DurableArtifactFamilyId::BackgroundPacingRecord
+            | DurableArtifactFamilyId::ForegroundInterferenceRecord => {
                 AuthorityRole::PerformanceEvidenceAuthority
             }
             DurableArtifactFamilyId::ExportBundle | DurableArtifactFamilyId::CapsuleArtifact => {

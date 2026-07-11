@@ -288,13 +288,13 @@
 //! let _forged = StoreOwnedAccessPolicyExecution { _private: () };
 //! ```
 mod access_policy;
-mod placement_observation;
 mod durability_ordering;
 mod durability_profile;
 pub mod external_recovery_compile_fail;
 mod heavy_fixture;
 mod io_capability;
 mod operation_boundary;
+mod placement_observation;
 mod s6_queue_execution;
 mod s6_queue_execution_session;
 mod s6_queue_execution_ticket;
@@ -313,36 +313,15 @@ pub use access_policy::{
     PageCachePolicyProof, PhysicalStoreAccessPolicyExecutor, StoreAccessMode, StoreAccessOperation,
     StoreAccessPolicyProofAuthority, StoreOwnedAccessPolicyExecution,
 };
-pub use placement_observation::{
-    BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
-    BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
-    BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
-    BlobBackendResidueScanSession, BlobPhysicalManifestObservation,
-    BlobPhysicalManifestObservationDenial, BlobPhysicalManifestTraversalObservation,
-    BlobPhysicalManifestTraversalRequest, BlobPhysicalManifestTraversalSession,
-    BlobPhysicalManifestValidation, ExternalPlacementCleanupExecutionError,
-    ExternalPlacementCleanupObservation, ExternalPlacementCleanupReceipt,
-    ExternalPlacementCleanupRequest, ExternalPlacementCleanupSession,
-    ExternalPlacementMissingDenial, ExternalPlacementOrphanScanReceipt,
-    ExternalPlacementRecoverabilityDenial, ExternalPlacementRecoveryProbe,
-    ExternalPlacementRecoveryProbeExecutionError, ExternalPlacementRecoveryProbeObservation,
-    ExternalPlacementRecoveryProbeRequest, ExternalPlacementRecoveryProbeSession,
-    PhysicalStoreBlobManifestTraverser, PhysicalStoreBlobResidueScanner,
-    PhysicalStoreExternalPlacementCleanupExecutor, PhysicalStoreExternalPlacementRecoveryProber,
-    StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
-    StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
-    StoreOwnedExternalPlacementRecoveryProbe,
-};
 pub use durability_ordering::{
-    PhysicalStoreDurabilityExecutor, StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome,
-    StoreDurabilityBoundaryReached, StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength,
-    StoreDurabilityDenial, StoreDurabilityDenialKind, StoreDurabilityExecutionObservation,
-    StoreDurabilityExecutionProof, StoreDurabilityExecutionRequest,
-    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityOperation,
-    StoreDurabilityOrderingBarrierDurable, StoreDurabilityParentNamespaceDurable,
+    StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome, StoreDurabilityBoundaryReached,
+    StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength, StoreDurabilityDenial,
+    StoreDurabilityDenialKind, StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind,
+    StoreDurabilityOperation, StoreDurabilityOrderingBarrierDurable,
+    StoreDurabilityParentNamespaceDurable, StoreDurabilityPersistedArtifact,
     StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
-    StoreDurabilityState, StoreDurabilityWriteAccepted, StoreDurabilityWriteSubmitted,
-    StoreOwnedDurabilityExecution,
+    StoreDurabilityRuntime, StoreDurabilityState, StoreDurabilityWriteAccepted,
+    StoreDurabilityWriteSubmitted,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use durability_profile::{
@@ -376,6 +355,26 @@ pub use io_capability::{
     CapabilityEvidenceClass, CapabilityResidualRisk, PhysicalBackendCapabilityAdmissionAuthority,
 };
 pub use operation_boundary::ProductionStorageBoundarySeam;
+pub use placement_observation::{
+    BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
+    BlobBackendChunkWriteSession, BlobBackendResidueObservation, BlobBackendResidueObservationKind,
+    BlobBackendResidueScanObservation, BlobBackendResidueScanRequest,
+    BlobBackendResidueScanSession, BlobPhysicalManifestObservation,
+    BlobPhysicalManifestObservationDenial, BlobPhysicalManifestTraversalObservation,
+    BlobPhysicalManifestTraversalRequest, BlobPhysicalManifestTraversalSession,
+    BlobPhysicalManifestValidation, ExternalPlacementCleanupExecutionError,
+    ExternalPlacementCleanupObservation, ExternalPlacementCleanupReceipt,
+    ExternalPlacementCleanupRequest, ExternalPlacementCleanupSession,
+    ExternalPlacementMissingDenial, ExternalPlacementOrphanScanReceipt,
+    ExternalPlacementRecoverabilityDenial, ExternalPlacementRecoveryProbe,
+    ExternalPlacementRecoveryProbeExecutionError, ExternalPlacementRecoveryProbeObservation,
+    ExternalPlacementRecoveryProbeRequest, ExternalPlacementRecoveryProbeSession,
+    PhysicalStoreBlobManifestTraverser, PhysicalStoreBlobResidueScanner,
+    PhysicalStoreExternalPlacementCleanupExecutor, PhysicalStoreExternalPlacementRecoveryProber,
+    StoreExternalPlacementRecoverabilityEvidence, StoreOwnedBlobBackendResidueScan,
+    StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
+    StoreOwnedExternalPlacementRecoveryProbe,
+};
 pub use s6_queue_execution::{
     BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
     BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,

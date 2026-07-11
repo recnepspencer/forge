@@ -53,7 +53,7 @@ impl LayoutMigrationRequest {
         }
     }
 
-    pub fn try_resolve_ready(
+    pub(crate) fn try_resolve_ready(
         self,
     ) -> TransitionOutcome<ResolvedLayoutMigrationRequest, LayoutEvolutionDenial> {
         let declared_family = self.declaration.family().declaration();
@@ -107,7 +107,7 @@ pub struct ResolvedLayoutMigrationRequest {
 }
 
 impl ResolvedLayoutMigrationRequest {
-    pub fn try_lower_ready(
+    pub(crate) fn try_lower_ready(
         self,
         current_store_authority: &StoreCurrentAuthorityWitness,
     ) -> TransitionOutcome<
@@ -137,7 +137,7 @@ pub struct LoweredLayoutMigrationPlan {
 }
 
 impl LoweredLayoutMigrationPlan {
-    pub fn try_ready_now(
+    pub(crate) fn try_ready_now(
         self,
     ) -> TransitionOutcome<
         LayoutMigrationPlan,

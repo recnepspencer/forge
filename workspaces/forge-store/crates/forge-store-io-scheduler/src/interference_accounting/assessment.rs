@@ -28,6 +28,7 @@ pub struct LatencyEnvelopeAssessment {
     status: LatencyEnvelopeAssessmentStatus,
     replay_identity: QueueExecutionReplayIdentity,
     replay_scope: InterferenceReplayScope,
+    max_interference_events: Option<u64>,
     counter_rows: Vec<InterferenceCounterRow>,
 }
 
@@ -55,6 +56,7 @@ pub fn assess_queue_latency_envelope(
         status,
         replay_identity,
         replay_scope: InterferenceReplayScope::deterministic_policy_counter_and_proof_scope(),
+        max_interference_events: claim.max_interference_events(),
         counter_rows: rows,
     })
 }
@@ -74,6 +76,10 @@ impl LatencyEnvelopeAssessment {
 
     pub fn counter_rows(&self) -> &[InterferenceCounterRow] {
         &self.counter_rows
+    }
+
+    pub const fn max_interference_events(&self) -> Option<u64> {
+        self.max_interference_events
     }
 }
 

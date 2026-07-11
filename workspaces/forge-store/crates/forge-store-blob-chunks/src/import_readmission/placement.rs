@@ -1,4 +1,4 @@
-use forge_store_operations::{ImportPlacementPlan, ImportPlacementSource};
+use forge_store_operations_vocabulary::{ImportPlacementPlan, ImportPlacementSource};
 
 use super::counters::BlobImportReadmissionCounters;
 use super::denial::BlobImportReadmissionDenial;

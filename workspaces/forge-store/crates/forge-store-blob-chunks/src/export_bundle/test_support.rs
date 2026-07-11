@@ -1,6 +1,6 @@
 use forge_proof::TransitionOutcome;
 use forge_store_offline_verifier::{OfflineExportChunkDeclaration, OfflineExportDigestEvidence};
-use forge_store_operations::{
+use forge_store_operations_vocabulary::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
 };
 use forge_store_security::{StoreKeyVersionPosture, StoreTenantScope};

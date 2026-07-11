@@ -1,8 +1,9 @@
+use super::blob_identity::blob_identity_digest_bytes;
 use super::composite::{declare_composite_key_ordering, CompositeKeyOrderingLaw};
 use super::declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
 use super::value::ConcretePhysicalKeyWitness;
 use crate::artifact_family::ArtifactFamilyDenial;
-use forge_store_blob_chunks::BlobObjectId;
+use crate::S8BlobIdentityKeyBasis;
 use forge_store_contracts::WalRecordFamily;
 use forge_store_physical_format::PhysicalReferenceKind;
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
@@ -180,9 +181,9 @@ pub(crate) fn encode_concrete_physical_key(
         return Ok(CanonicalKeyBytes::new(encoding, bytes));
     }
 
-    if let Some((digest, generation)) = key.blob_identity() {
-        bytes.extend_from_slice(digest.digest().as_str().as_bytes());
-        bytes.extend_from_slice(&generation.sequence().to_be_bytes());
+    if let Some(identity) = key.blob_identity() {
+        bytes.extend_from_slice(blob_identity_digest_bytes(identity));
+        bytes.extend_from_slice(&identity.generation().sequence().to_be_bytes());
         return Ok(CanonicalKeyBytes::new(encoding, bytes));
     }
 
@@ -201,7 +202,7 @@ pub(crate) fn encode_scope_prefix(
 
 pub(crate) fn encode_blob_identity_prefix(
     encoding: CanonicalKeyEncoding,
-    object_id: &BlobObjectId,
+    identity: &S8BlobIdentityKeyBasis,
 ) -> CanonicalKeyBytes {
     let mut bytes = vec![encoding.version_byte()];
     push_tenant_scope(
@@ -209,7 +210,7 @@ pub(crate) fn encode_blob_identity_prefix(
         encoding.domain().scope().admitted_tenant_scope(),
     );
     push_key_scope(&mut bytes, encoding.domain().scope().admitted_key_scope());
-    bytes.extend_from_slice(object_id.digest().as_str().as_bytes());
+    bytes.extend_from_slice(blob_identity_digest_bytes(identity));
     CanonicalKeyBytes::new(encoding, bytes)
 }
 

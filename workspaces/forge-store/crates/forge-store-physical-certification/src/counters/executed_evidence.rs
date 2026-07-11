@@ -9,8 +9,7 @@ use crate::{
     PhysicalSimulationPlanIdentity,
 };
 #[cfg(any(test, feature = "certification-test-support"))]
-use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness
-    as S7BlobHarnessExecutedActorEvidence;
+use forge_store_blob_chunks::certification_test_authority::BlobHarnessExecutedWitness as S7BlobHarnessExecutedActorEvidence;
 
 use super::{
     evidence::{require_resource_observation_within_envelope, PhysicalResourceEnvelopeObservation},

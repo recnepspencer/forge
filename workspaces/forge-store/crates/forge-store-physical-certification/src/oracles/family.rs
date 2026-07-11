@@ -1,7 +1,7 @@
 use crate::{
     BlobByteEqualityOracle, BlobChunkOrderingOracle, BlobConstantMemoryOracle,
-    BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle, BlobHeavyQualificationEvidenceOracle,
-    BlobDigestChecksumDistinctionOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
+    BlobDigestChecksumDistinctionOracle, BlobHeavyCleanupOracle, BlobHeavyPatternLaneOracle,
+    BlobHeavyQualificationEvidenceOracle, BlobNoCrossScopeDedupeOracle, BlobNoSidecarPathOracle,
     BlobReachabilityOracle, CounterContractOracle, CrashRecoversOldOrNewNeverMixedOracle,
     IndependentVerifierAgreementOracle, NoJsonAuthorityOracle, NoPrivateMutationOracle,
     ObservedPhysicalTrace, OracleFamilyKind, PhysicalSimulationPlan,

@@ -1,11 +1,11 @@
 use forge_store_physical_format::{
     AllocationClassKind, FreeSpaceManifestEntry, OfflineManifestCodec, PersistedExtentBytes,
-    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness,
-    PhysicalByteOrder, PhysicalExtentId, PhysicalFormatVersion, PhysicalFrameKind,
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId,
-    PhysicalPageKind, PhysicalPageRecordAuthority, PhysicalPublicationState,
-    PhysicalRecordSlot, PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalReplayArtifact,
-    SlotAppendRequest, PHYSICAL_HEADER_LENGTH,
+    PersistedPageBytes, PersistedPhysicalLayout, PhysicalBinaryEncodingWitness, PhysicalByteOrder,
+    PhysicalExtentId, PhysicalFormatVersion, PhysicalFrameKind, PhysicalGeneration,
+    PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPageKind,
+    PhysicalPageRecordAuthority, PhysicalPublicationState, PhysicalRecordSlot,
+    PhysicalRootReference, PhysicalSegmentId, PlatformPhysicalReplayArtifact, SlotAppendRequest,
+    PHYSICAL_HEADER_LENGTH,
 };
 
 use super::{FixtureScaleDeclaration, LargeStoreFixtureProfile, SyntheticFixtureAuthorityDenied};

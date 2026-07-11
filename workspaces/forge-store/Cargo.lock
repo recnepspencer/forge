@@ -253,14 +253,16 @@ dependencies = [
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-offline-verifier",
- "forge-store-operations",
+ "forge-store-operations-vocabulary",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-physical-isolation",
  "forge-store-reclaim-policy",
  "forge-store-recovery-physics",
+ "forge-store-retention",
  "forge-store-security",
  "forge-store-test-support",
  "forge-store-tiering",
@@ -271,9 +273,12 @@ dependencies = [
 name = "forge-store-branch-deltas"
 version = "0.1.0"
 dependencies = [
- "forge-store-authority",
+ "forge-store-aspect-native",
+ "forge-store-budgets",
  "forge-store-contracts",
  "forge-store-layout-indexes",
+ "forge-store-live-query",
+ "forge-store-test-support",
 ]
 
 [[package]]
@@ -319,6 +324,7 @@ dependencies = [
  "forge-store-compatibility",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-maintenance",
  "forge-store-offline-verifier",
  "forge-store-operations",
@@ -345,6 +351,7 @@ name = "forge-store-claim-boundaries"
 version = "0.1.0"
 dependencies = [
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-physical-format",
 ]
 
@@ -394,11 +401,11 @@ dependencies = [
  "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-offline-verifier",
  "forge-store-operations",
  "forge-store-physical-backend",
  "forge-store-physical-isolation",
- "forge-store-readiness",
  "forge-store-security",
  "forge-store-wal",
 ]
@@ -409,6 +416,7 @@ version = "0.1.0"
 dependencies = [
  "forge-foundational",
  "forge-proof",
+ "forge-store",
  "forge-store-aspect-native",
  "forge-store-authority",
  "forge-store-blob-chunks",
@@ -421,6 +429,7 @@ dependencies = [
  "forge-store-physical-certification",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
+ "forge-store-physical-isolation",
  "forge-store-recovery-physics",
  "forge-store-security",
  "forge-store-test-support",
@@ -442,6 +451,7 @@ dependencies = [
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-physical-integrity",
  "forge-store-retention",
 ]
@@ -475,12 +485,25 @@ dependencies = [
  "forge-proof",
  "forge-store-aspect-native",
  "forge-store-authority",
+ "forge-store-blob-chunks",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-offline-verifier",
+ "forge-store-operations-vocabulary",
  "forge-store-physical-integrity",
  "forge-store-readiness",
  "forge-store-recovery-physics",
+ "forge-store-security",
+ "forge-store-tiering",
+]
+
+[[package]]
+name = "forge-store-operations-vocabulary"
+version = "0.1.0"
+dependencies = [
+ "forge-proof",
+ "forge-store-authority",
  "forge-store-security",
  "forge-store-tiering",
 ]
@@ -513,6 +536,7 @@ dependencies = [
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-offline-verifier",
  "forge-store-operations",
  "forge-store-physical-backend",
@@ -566,10 +590,12 @@ dependencies = [
  "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
  "forge-store-recovery-physics",
  "forge-store-security",
+ "forge-store-wal",
 ]
 
 [[package]]
@@ -582,6 +608,7 @@ dependencies = [
  "forge-store-authority",
  "forge-store-blob-chunks",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-physical-format",
  "forge-store-s0-reclassification",
  "forge-store-security",
@@ -610,6 +637,7 @@ dependencies = [
  "forge-store-budgets",
  "forge-store-buffer-pool",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-integrity",
@@ -670,9 +698,12 @@ dependencies = [
 name = "forge-store-snapshots"
 version = "0.1.0"
 dependencies = [
- "forge-store-authority",
+ "forge-store-aspect-native",
+ "forge-store-budgets",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-physical-backend",
+ "forge-store-test-support",
 ]
 
 [[package]]
@@ -699,6 +730,7 @@ dependencies = [
  "forge-store-buffer-pool",
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-physical-backend",
  "forge-store-physical-certification",
  "forge-store-physical-format",
@@ -715,6 +747,7 @@ version = "0.1.0"
 dependencies = [
  "forge-store-contracts",
  "forge-store-io-scheduler",
+ "forge-store-layout-indexes",
  "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-physical-isolation",
@@ -731,7 +764,9 @@ dependencies = [
  "forge-store-aspect-native",
  "forge-store-authority",
  "forge-store-contracts",
+ "forge-store-layout-indexes",
  "forge-store-modes",
+ "forge-store-physical-backend",
  "forge-store-physical-format",
  "forge-store-security",
 ]

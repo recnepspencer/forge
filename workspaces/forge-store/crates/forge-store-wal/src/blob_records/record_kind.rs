@@ -3,6 +3,8 @@ use crate::{DurablePublicationDeclaration, DurablePublicationScope};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobWalRecordKind {
     ChunkAppend,
+    LsmValue,
+    LsmTombstone,
     RootCandidate,
     GenerationPublication,
     SessionCheckpoint,

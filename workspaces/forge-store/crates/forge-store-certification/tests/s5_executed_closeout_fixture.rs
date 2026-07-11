@@ -113,9 +113,12 @@ fn admitted_compaction_surfaces() -> (
         inputs.new_validation,
         None,
     );
-    let publication = CompactionRewritePublication::publish(
+    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+            inputs.new_root,
+        ),
     )
     .unwrap();
     let publication_receipt = publication.publication().clone();

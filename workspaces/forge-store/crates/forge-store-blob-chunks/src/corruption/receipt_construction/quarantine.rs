@@ -71,4 +71,8 @@ impl BlobChunkQuarantine {
     pub const fn counters(&self) -> BlobCorruptionCounterSnapshot {
         self.counters
     }
+
+    pub fn repair_capability(&self) -> crate::BlobQuarantineRepairCapability {
+        crate::corruption::receipt_construction::repair_capability::classify_repair_capability_from_quarantine(self)
+    }
 }

@@ -4,8 +4,7 @@ use forge_store_blob_chunks::{
     deny_ambient_chaos_corpus_as_canonical, deny_generated_expected_byte_artifact,
     deny_hidden_temporary_sidecar, deny_logical_size_only_heavy_qualification,
     deny_sparse_only_heavy_qualification, deny_whole_object_expected_buffer,
-    DeterministicBytePatternProfile,
-    HeavyBlobFixtureMaterializationMode,
+    DeterministicBytePatternProfile, HeavyBlobFixtureMaterializationMode,
 };
 
 use super::heavy_qualification::{
@@ -18,7 +17,8 @@ use crate::{
 
 #[test]
 fn heavy_replay_bundle_carries_phase23_evidence_oracles() {
-    let replay = synthetic_blob_harness_replay_bundle_for_test_support(heavy_multi_gb_scenario_seed());
+    let replay =
+        synthetic_blob_harness_replay_bundle_for_test_support(heavy_multi_gb_scenario_seed());
 
     assert!(replay.oracle_verdicts().iter().any(|verdict| {
         verdict.oracle() == PhysicalProofOracleKind::BlobHeavyQualificationEvidence
@@ -64,7 +64,10 @@ fn canonical_pattern_profiles_execute_with_shared_evidence_schema() {
         let evidence = witness
             .heavy_fixture_evidence()
             .expect("pattern lane heavy evidence");
-        assert_eq!(evidence.expected_digest_basis().byte_pattern_profile(), pattern);
+        assert_eq!(
+            evidence.expected_digest_basis().byte_pattern_profile(),
+            pattern
+        );
         assert!(evidence.peak_allocation_count() > 0);
         assert!(evidence.cleanup_receipt().expect("cleanup").completed());
     }

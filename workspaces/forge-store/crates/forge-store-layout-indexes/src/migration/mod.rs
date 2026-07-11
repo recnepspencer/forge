@@ -7,9 +7,10 @@ mod migration_plan;
 mod rollback_plan;
 mod stale_rebind;
 #[cfg(test)]
-mod test_support;
+pub(crate) mod test_support;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
+mod transition_outcome;
 mod version;
 
 pub use compatibility_window::{
@@ -26,4 +27,8 @@ pub use migration_plan::{
 };
 pub use rollback_plan::{LayoutRollbackOutcome, LayoutRollbackPlan, LayoutRollbackRequest};
 pub use stale_rebind::{S8LayoutRebindRequired, S8LayoutStaleBinding};
+pub use transition_outcome::{
+    S8MigrationPlanningOutcome, S8MigrationPlanningView, S8RollbackPlanningOutcome,
+    S8RollbackPlanningView,
+};
 pub use version::LayoutVersion;

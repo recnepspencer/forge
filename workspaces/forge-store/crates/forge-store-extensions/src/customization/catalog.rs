@@ -1,9 +1,13 @@
 use super::{ExtensionFamilyPosture, FutureLayoutTarget, FutureLayoutTargetDeclaration};
 use forge_proof::TransitionOutcome;
 use forge_store_layout_indexes::{
-    layout_customization_boundary, ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness,
-    S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
-    S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
+    layout_customization::{
+        layout_customization_boundary, S8FutureLayoutCustomizationAdmission,
+        S8FutureLayoutCustomizationDeferred, S8FutureLayoutCustomizationDenial,
+        S8FutureLayoutCustomizationRequest,
+    },
+    layout_families::ArtifactFamilyLifecycleAdmission,
+    layout_strategy_admission::PhysicalKeyDomainWitness,
 };
 
 pub type FutureLayoutCustomizationOutcome = TransitionOutcome<

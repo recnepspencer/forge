@@ -1,9 +1,9 @@
 #[path = "baseline_btree_counter_support.rs"]
 mod baseline_btree_counter_support;
-#[path = "baseline_btree_execution_witness.rs"]
-mod baseline_btree_execution_witness;
 #[path = "baseline_btree_exact_counter_witness.rs"]
 mod baseline_btree_exact_counter_witness;
+#[path = "baseline_btree_execution_witness.rs"]
+mod baseline_btree_execution_witness;
 
 use self::baseline_btree_counter_support::readiness;
 pub use self::baseline_btree_exact_counter_witness::BaselineBTreeExactCounterWitness;
@@ -137,7 +137,6 @@ impl BaselineBTreeLookupExecution {
     pub const fn exact_counters(self) -> BaselineBTreeExactCounterWitness {
         self.exact_counters
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -210,7 +209,6 @@ impl BaselineBTreeRootPublicationExecution {
     pub const fn exact_counters(&self) -> BaselineBTreeExactCounterWitness {
         self.exact_counters
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -284,7 +282,6 @@ impl BaselineBTreeReplayRecoveryExecution {
     pub const fn exact_counters(&self) -> BaselineBTreeExactCounterWitness {
         self.exact_counters
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -331,7 +328,9 @@ fn reopen_facade(layout: PersistedPhysicalLayout) -> PlatformPhysicalFacade {
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
         crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
-            PlatformPhysicalOpenRequest::s1_canonical().headers().clone(),
+            PlatformPhysicalOpenRequest::s1_canonical()
+                .headers()
+                .clone(),
             layout,
         ),
     )

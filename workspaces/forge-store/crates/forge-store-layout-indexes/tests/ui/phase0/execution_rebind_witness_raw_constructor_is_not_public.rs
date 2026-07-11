@@ -1,4 +1,5 @@
-use forge_store_layout_indexes::{S8AccessLoweringBasis, S8ExecutionRebindWitness};
+use forge_store_layout_indexes::access_lowering::S8AccessLoweringBasis;
+use forge_store_layout_indexes::layout_readmission::S8ExecutionRebindWitness;
 
 fn main() {
     let basis = unsafe { core::mem::MaybeUninit::<S8AccessLoweringBasis>::zeroed().assume_init() };

@@ -5,9 +5,8 @@ use forge_proof::{
 use forge_store_authority::StoreCurrentAuthorityWitness;
 
 use crate::{
-    DurabilityReplayIdentity, DurabilityReplayKind, DurableCheckpointPublication,
-    DurableManifestPublication, PartialPublicationClassification,
-    RecoveredOrRejectedPartialPublication,
+    CrashBoundaryLayoutReport, DurabilityReplayIdentity, DurabilityReplayKind,
+    DurableCheckpointPublication, DurableManifestPublication,
 };
 
 use super::{BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind};
@@ -48,21 +47,24 @@ impl PhaseMarker for BlobResumeReplayReadmissionPhase {}
 impl AuthorityMarker for BlobResumeReplayReadmissionAuthority {}
 
 impl BlobReplaySourceAdmission {
-    pub fn from_replayable_wal_classification(
-        classification: &PartialPublicationClassification,
+    pub fn from_replayable_wal_report(
+        report: &CrashBoundaryLayoutReport,
     ) -> Result<Self, BlobReplayAdmissionDenial> {
-        if !matches!(
-            classification.recovered_or_rejected(),
-            RecoveredOrRejectedPartialPublication::ReplayableUnacknowledgedWal { .. }
-        ) {
+        if !report.replayable() {
             return Err(BlobReplayAdmissionDenial::new(
                 BlobReplayAdmissionDenialKind::MissingWalSource,
-                Some(classification.classification_digest().to_owned()),
+                Some(report.classification_digest().to_owned()),
+            ));
+        }
+        if report.replayable_durable_wal().is_none() {
+            return Err(BlobReplayAdmissionDenial::new(
+                BlobReplayAdmissionDenialKind::MissingWalSource,
+                Some(report.classification_digest().to_owned()),
             ));
         }
         admit_replay_source(
             BlobReplaySourceKind::Wal,
-            classification.classification_digest(),
+            report.classification_digest(),
             BlobReplayAdmissionDenialKind::MissingWalSource,
         )
     }

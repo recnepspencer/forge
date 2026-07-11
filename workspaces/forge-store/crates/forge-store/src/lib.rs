@@ -35,6 +35,14 @@ pub mod certification {
     };
 }
 
+pub mod layout_boundary {
+    pub use forge_store_layout_indexes::layout_closeout::{
+        LegacyAccessPathBypass, LegacyAccessPathBypassInventory, LegacySurfaceDisposition,
+        LegacySurfaceDispositionAndDedicatedWorkspaceBoundary, LegacySurfaceInventoryRow,
+        LegacySurfaceOwner, LegacySurfaceStage,
+    };
+}
+
 pub mod contracts {
     pub use forge_store_contracts::{
         DerivedAccuracyClass, DurableArtifactClass, RoadmapScope, StableArtifactId, StableDigest,

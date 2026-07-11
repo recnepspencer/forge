@@ -1,0 +1,83 @@
+mod phase22_fixture;
+
+use forge_store_layout_indexes::layout_strategy_admission::{
+    phase22_crash_boundary_rule, phase22_recovery_source_rule,
+};
+use forge_store_recovery_physics::{
+    PartialPublicationCrashEdge, PartialPublicationObservationSet, RecoveryLayoutAccess,
+    RecoveryLayoutAccessDenialKind, UnacknowledgedPublicationOutcome,
+};
+
+#[test]
+fn phase22_recovery_source_and_crash_boundary_families_deny_residue_and_rollback_shortcuts() {
+    let source = phase22_fixture::admitted_source_with_residue();
+    let access = RecoveryLayoutAccess::s8();
+
+    let source_family = access
+        .recovery_source_layout(&phase22_recovery_source_rule().unwrap())
+        .expect("source family");
+    let report = source_family.source_report(&source);
+    assert_eq!(report.candidate_count(), 3);
+    assert_eq!(report.residue_rejection_count(), 1);
+    assert!(report.selected_checkpoint_id().is_some());
+    assert_eq!(
+        report.selected_wal_range(),
+        Some(phase22_fixture::wal_range(30, 45))
+    );
+
+    let denial = source_family
+        .reject_decision_row(&source.trace().decision_rows()[0])
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        RecoveryLayoutAccessDenialKind::RecoverySourceRowCannotStandInForRecoveryAuthority
+    );
+
+    let crash_family = access
+        .crash_boundary_layout(&phase22_crash_boundary_rule().unwrap())
+        .expect("crash family");
+    let report = crash_family
+        .admit_observations(
+            PartialPublicationObservationSet::new().with_persisted_crash_edge(
+                PartialPublicationCrashEdge::before_wal_append("sha256:op"),
+            ),
+        )
+        .expect("crash report");
+    assert_eq!(
+        report.outcome(),
+        UnacknowledgedPublicationOutcome::NoWalAppendObserved
+    );
+
+    let denial = crash_family
+        .admit_observations(
+            PartialPublicationObservationSet::new().with_backend_residue(
+                forge_store_recovery_physics::BackendResidueKind::BackendDirectoryResidue,
+                "sha256:residue",
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        RecoveryLayoutAccessDenialKind::BackendResidueCannotStandInForCrashBoundaryAuthority
+    );
+
+    let denial = crash_family
+        .admit_observations(
+            PartialPublicationObservationSet::new().with_persisted_crash_edge(
+                PartialPublicationCrashEdge::during_checkpoint_cutover("sha256:checkpoint"),
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        RecoveryLayoutAccessDenialKind::AmbiguousResidueCannotStandInForCrashBoundaryAuthority
+    );
+
+    let denial = crash_family
+        .reject_derived_rollback_outcome(UnacknowledgedPublicationOutcome::RollbackImageProtected)
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        RecoveryLayoutAccessDenialKind::DerivedRollbackCannotStandInForCrashBoundaryAuthority
+    );
+}

@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod layout_access;
+
 mod cold_state;
 mod cold_tier_posture;
 mod io_readiness;
@@ -10,6 +12,12 @@ pub use cold_state::{
 };
 pub use cold_tier_posture::{S6ColdTierIoPosture, S6ColdTierIoPostureDenial};
 pub use io_readiness::{admit_s7_placement_io_readiness_seed, S7PlacementIoReadinessSeed};
+pub use layout_access::{
+    ColdRecallAccessBudget, ColdRecallInterferencePosture, ColdRecallLayoutReport,
+    RecallAmplificationAccessBudget, RecallAmplificationInterferencePosture,
+    RecallAmplificationLayoutReport, TierPlacementAccessBudget, TierPlacementInterferencePosture,
+    TierPlacementLayoutReport,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TierResidenceClass {

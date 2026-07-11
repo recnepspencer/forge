@@ -85,7 +85,7 @@ fn require_deterministic_crash_recovery(
     if evidence.crash_observations().iter().all(|row| {
         row.recovered_root() == state.recovered_physical_root()
             && row.page_lsn_frontier() == state.page_lsn_frontier()
-            && row.source_decision_digest() == state.source_decision_digest()
+            && row.source_replay_basis() == state.source_replay_basis()
             && row.counters() == evidence.receipt().counters()
     }) {
         return Ok(());

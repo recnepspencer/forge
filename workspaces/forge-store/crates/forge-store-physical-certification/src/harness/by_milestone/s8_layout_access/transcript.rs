@@ -1,2 +1,1 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutTranscript;
+pub use crate::layout_harness::transcripts::S8LayoutTranscriptKind;

@@ -2,7 +2,9 @@ use super::{
     S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
     S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
 };
-use crate::strategy_registry::{layout_admission_registry, S8LayoutAdmissionRequest};
+use crate::strategy_registry::{
+    layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
+};
 use forge_proof::TransitionOutcome;
 
 pub type S8FutureLayoutCustomizationOutcome = TransitionOutcome<
@@ -70,19 +72,19 @@ impl LayoutCustomizationBoundaryFacade {
             request.workload_envelope().admitted_lane(),
         );
 
-        match layout_admission_registry().admit_with(layout_request) {
-            TransitionOutcome::Success(snapshot) => TransitionOutcome::success(
-                S8FutureLayoutCustomizationAdmission::new(request, snapshot),
-            ),
-            TransitionOutcome::Denied(denial) => TransitionOutcome::denied(
-                S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(denial),
-            ),
-            TransitionOutcome::Deferred(deferred) => TransitionOutcome::deferred(
-                S8FutureLayoutCustomizationDeferred::StoreAdmissionDeferred(deferred),
-            ),
-            TransitionOutcome::Stale(stale) => match stale {},
-            TransitionOutcome::RebindRequired(rebind) => match rebind {},
-            TransitionOutcome::Failed(failed) => match failed {},
+        let admission = layout_admission_registry().admit(layout_request);
+        let admission_transition = admission.production_transition();
+        match admission.into_result() {
+            Ok(snapshot) => TransitionOutcome::success(S8FutureLayoutCustomizationAdmission::new(
+                request,
+                snapshot,
+                admission_transition,
+            )),
+            Err(denial) => {
+                TransitionOutcome::denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+                    super::S8LayoutAdmissionDenialProjection::new(denial, admission_transition),
+                ))
+            }
         }
     }
 }

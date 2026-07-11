@@ -1,7 +1,5 @@
 use crate::PhysicalArtifactFamily;
-use forge_store_physical_format::{
-    CurrentRootManifestAdmission, PhysicalBootstrapCatalogWitness,
-};
+use forge_store_physical_format::{CurrentRootManifestAdmission, PhysicalBootstrapCatalogWitness};
 
 use super::{
     bootstrap_only_path::S8BootstrapOnlyAccessPath, catalog::S8BootstrapLayoutCatalog,
@@ -22,21 +20,22 @@ impl BootstrapCatalogFacade {
         path: S8BootstrapOnlyAccessPath,
         catalog: PhysicalBootstrapCatalogWitness,
         current_root: CurrentRootManifestAdmission,
-    ) -> Result<
-        (S8BootstrapLayoutCatalog, S8BootstrapCatalogReadAdmission),
-        S8BootstrapOnlyAccessDenied,
-    > {
+    ) -> super::S8BootstrapCatalogReadOutcome {
         if path.physical_format_version() != catalog.identity().physical_format_version() {
-            return Err(S8BootstrapOnlyAccessDenied::BootstrapPathVersionMismatch {
-                expected: catalog.identity().physical_format_version(),
-                actual: path.physical_format_version(),
-            });
+            return super::issue_catalog_read(Err(
+                S8BootstrapOnlyAccessDenied::BootstrapPathVersionMismatch {
+                    expected: catalog.identity().physical_format_version(),
+                    actual: path.physical_format_version(),
+                },
+            ));
         }
         if current_root.root_owner() != catalog.identity().root_owner() {
-            return Err(S8BootstrapOnlyAccessDenied::CurrentRootReadmissionRequired {
-                expected: catalog.identity().root_owner(),
-                actual: current_root.root_owner(),
-            });
+            return super::issue_catalog_read(Err(
+                S8BootstrapOnlyAccessDenied::CurrentRootReadmissionRequired {
+                    expected: catalog.identity().root_owner(),
+                    actual: current_root.root_owner(),
+                },
+            ));
         }
 
         let discovery = S8MinimalRootDiscoveryLayout::new(
@@ -56,16 +55,14 @@ impl BootstrapCatalogFacade {
             catalog.allocation_class_count(),
             catalog.free_space_count(),
         );
-        Ok((layout_catalog, admission))
+        super::issue_catalog_read(Ok((layout_catalog, admission)))
     }
 
     pub fn deny_ordinary_family_access(
         &self,
         family: PhysicalArtifactFamily,
     ) -> Result<(), S8BootstrapOnlyAccessDenied> {
-        Err(S8BootstrapOnlyAccessDenied::OrdinaryFamilyAccessForbidden {
-            family,
-        })
+        Err(S8BootstrapOnlyAccessDenied::OrdinaryFamilyAccessForbidden { family })
     }
 }
 

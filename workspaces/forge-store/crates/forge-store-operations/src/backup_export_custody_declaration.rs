@@ -10,14 +10,8 @@ use forge_store_security::{
 
 use crate::{
     BackupExportCustodyAdmission, BackupExportCustodyCounterSnapshot, BackupExportCustodyDenial,
+    BackupExportCustodyMode,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BackupExportCustodyMode {
-    Backup,
-    PointInTimeRecovery,
-    Export,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackupExportCustodyDeclaration {
@@ -110,7 +104,7 @@ impl BackupExportCustodyDeclaration {
     }
 }
 
-pub(crate) const fn backup_capsule_authenticity() -> StoreAuthenticityRequirement {
+pub const fn backup_capsule_authenticity() -> StoreAuthenticityRequirement {
     StoreAuthenticityRequirement::required(
         StoreAuthenticityRequirementClass::AuthenticatedBackupCapsule,
     )

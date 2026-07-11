@@ -254,9 +254,7 @@ impl Roadmap2CoverageRegistry {
         Ok(self)
     }
 
-    pub fn register_counter_contracts_from_plan(
-        mut self,
-    ) -> Result<Self, CoverageGapDenial> {
+    pub fn register_counter_contracts_from_plan(mut self) -> Result<Self, CoverageGapDenial> {
         self.require_surface_not_registered(CoverageSurfaceKind::Counter)?;
         let plan =
             self.plan
@@ -301,9 +299,7 @@ impl Roadmap2CoverageRegistry {
         Ok(self)
     }
 
-    pub fn register_transcript_surface_from_plan(
-        mut self,
-    ) -> Result<Self, CoverageGapDenial> {
+    pub fn register_transcript_surface_from_plan(mut self) -> Result<Self, CoverageGapDenial> {
         self.require_surface_not_registered(CoverageSurfaceKind::Transcript)?;
         let plan =
             self.plan

@@ -20,6 +20,30 @@ impl CompactionPlanningMemoryEnvelope {
         self.envelope.allocation_scope()
     }
 
+    pub const fn resident_frames(self) -> u32 {
+        self.envelope.resident_frames()
+    }
+
+    pub const fn resident_bytes(self) -> u64 {
+        self.envelope.resident_bytes()
+    }
+
+    pub const fn pinned_pages(self) -> u32 {
+        self.envelope.pinned_pages()
+    }
+
+    pub const fn allocation_bytes(self) -> u64 {
+        self.envelope.allocation_bytes()
+    }
+
+    pub const fn copied_bytes(self) -> u64 {
+        self.envelope.copied_bytes()
+    }
+
+    pub const fn streaming_window_bytes(self) -> u64 {
+        self.envelope.streaming_window_bytes()
+    }
+
     pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {
         self.envelope.counters()
     }
@@ -47,6 +71,30 @@ impl ImportExportMemoryEnvelope {
 
     pub const fn allocation_scope(self) -> AllocationScope {
         self.envelope.allocation_scope()
+    }
+
+    pub const fn resident_frames(self) -> u32 {
+        self.envelope.resident_frames()
+    }
+
+    pub const fn resident_bytes(self) -> u64 {
+        self.envelope.resident_bytes()
+    }
+
+    pub const fn pinned_pages(self) -> u32 {
+        self.envelope.pinned_pages()
+    }
+
+    pub const fn allocation_bytes(self) -> u64 {
+        self.envelope.allocation_bytes()
+    }
+
+    pub const fn copied_bytes(self) -> u64 {
+        self.envelope.copied_bytes()
+    }
+
+    pub const fn streaming_window_bytes(self) -> u64 {
+        self.envelope.streaming_window_bytes()
     }
 
     pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {

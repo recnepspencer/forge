@@ -1,3 +1,5 @@
+mod admission_outcome;
+mod blob_identity;
 #[cfg(test)]
 mod blob_replay_tests;
 mod comparator;
@@ -12,7 +14,7 @@ mod range;
 mod replay_tests;
 mod tenant_partition;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 #[cfg(test)]
 pub(crate) mod tests_support;
 mod value;
@@ -38,6 +40,8 @@ pub(crate) use value::{
     admit_wal_record_key,
 };
 
+pub(super) use admission_outcome::issue_key_domain_admission;
+pub use admission_outcome::{S8KeyDomainAdmissionOutcome, S8KeyDomainAdmissionView};
 pub use comparator::{ComparatorBehavior, ComparatorLaw};
 pub use composite::{CompositeKeyField, CompositeKeyOrderingLaw};
 pub use declaration::{PhysicalKeyDomain, PhysicalKeyDomainWitness};

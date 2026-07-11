@@ -18,7 +18,7 @@ struct CompileFailFixture {
     extern_crates: &'static [&'static str],
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 36] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 39] {
     [
         fixture(
             "raw_struct_cannot_construct_admitted_layout_strategy.rs",
@@ -175,7 +175,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 36] {
         ),
         fixture(
             "layout_readmission_legacy_for_stale_surface_is_not_public.rs",
-            &["unresolved import", "layout_readmission"],
+            &["no `layout_readmission` in `layout_readmission`"],
             &[],
         ),
         fixture(
@@ -205,6 +205,24 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 36] {
             "derived_index_parity_witness_raw_constructor_is_not_public.rs",
             &["private field", "S8DerivedIndexParityWitness"],
             &[],
+        ),
+        fixture(
+            "derived_projection_cannot_satisfy_exact_access_admission.rs",
+            &["S8LayoutCoverageWitness", "S8DerivedIndexParityWitness"],
+            &[],
+        ),
+        fixture(
+            "derived_projection_cannot_bind_rollback_authority.rs",
+            &[
+                "StoreCurrentAuthorityWitness",
+                "S8DerivedIndexParityWitness",
+            ],
+            &[],
+        ),
+        fixture(
+            "cache_hit_cannot_satisfy_execution_readiness.rs",
+            &["S8LoweredAccessReceipt", "ResidentFrameAdmission"],
+            &["forge_store_buffer_pool"],
         ),
         fixture(
             "layout_mutation_plan_raw_constructor_is_not_public.rs",

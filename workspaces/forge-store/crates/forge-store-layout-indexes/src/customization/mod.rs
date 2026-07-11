@@ -10,7 +10,7 @@ pub use admission::{layout_customization_boundary, S8FutureLayoutCustomizationOu
 pub use capability::S8FutureLayoutCapabilityRequest;
 pub use denial::{
     S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
-    S8FutureLayoutCustomizationDenial,
+    S8FutureLayoutCustomizationDenial, S8LayoutAdmissionDenialProjection,
 };
 pub use envelope::S8FutureLayoutWorkloadEnvelope;
 pub use request::S8FutureLayoutCustomizationRequest;

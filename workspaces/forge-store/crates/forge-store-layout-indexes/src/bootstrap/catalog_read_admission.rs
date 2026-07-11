@@ -21,4 +21,11 @@ impl S8BootstrapCatalogReadAdmission {
     pub fn physical_format_version(&self) -> PhysicalFormatVersion {
         self.identity().physical_format_version()
     }
+
+    pub fn exact_materialization_for(
+        &self,
+        family: crate::PhysicalArtifactFamily,
+    ) -> crate::access_planning::S8LayoutMaterializationState {
+        crate::materialization::S8LayoutMaterializationState::exact_through_physical_basis(family)
+    }
 }

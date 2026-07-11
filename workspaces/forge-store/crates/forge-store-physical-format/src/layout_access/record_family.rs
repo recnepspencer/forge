@@ -1,2 +1,29 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RecordLayoutFamilyHome;
+use crate::{
+    PhysicalGenerationAuthority, PhysicalReference, PlatformPhysicalFacadeDenial,
+    PlatformPhysicalFacadeDenialKind,
+};
+
+pub(crate) fn slot_cell_from_reference(
+    reference: PhysicalReference,
+) -> Result<crate::SlotGenerationCell, PlatformPhysicalFacadeDenial> {
+    let segment_id = reference.segment_id().ok_or_else(missing_record)?;
+    let page_id = reference.page_id().ok_or_else(missing_record)?;
+    let slot = reference.slot().ok_or_else(missing_record)?;
+    Ok(PhysicalGenerationAuthority::s1()
+        .slot_cell(segment_id, page_id, slot)
+        .with_slot_generation(reference.generation()))
+}
+
+pub(crate) fn extent_cell_from_reference(
+    reference: PhysicalReference,
+) -> Result<crate::ExtentGenerationCell, PlatformPhysicalFacadeDenial> {
+    let segment_id = reference.segment_id().ok_or_else(missing_record)?;
+    let extent_id = reference.extent_id().ok_or_else(missing_record)?;
+    Ok(PhysicalGenerationAuthority::s1()
+        .extent_cell(segment_id, extent_id)
+        .with_extent_generation(reference.generation()))
+}
+
+fn missing_record() -> PlatformPhysicalFacadeDenial {
+    PlatformPhysicalFacadeDenial::new(PlatformPhysicalFacadeDenialKind::MissingPhysicalRecord)
+}

@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::{
+use forge_store_layout_indexes::layout_rebuild::{
     S8IndexMaintenanceMode, S8IndexPublicationProtocol, S8LiveExactMaintenanceWitness,
 };
 

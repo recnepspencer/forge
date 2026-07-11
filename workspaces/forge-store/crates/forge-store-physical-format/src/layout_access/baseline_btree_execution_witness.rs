@@ -11,6 +11,7 @@ use super::{
     BaselineBTreeLookupExecution, BaselineBTreeReadShape, BaselineBTreeReplayRecoveryExecution,
     BaselineBTreeRootPublicationExecution,
 };
+use crate::layout_access::grammar::AdmittedPageLayoutRule;
 use crate::{PersistedPhysicalLayout, PhysicalReferenceAuthority, PlatformPhysicalAppendRequest};
 use forge_store_budgets::S8PreExecutionPlanBinding;
 
@@ -20,7 +21,9 @@ impl BaselineBTreeExecutionWitness {
         published_layout: PersistedPhysicalLayout,
     ) -> Result<Self, crate::PlatformPhysicalFacadeDenial> {
         let mut facade = reopen_facade(published_layout.clone());
-        let _ = facade.read_physical_record(root_reference)?;
+        let _ = facade
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())?
+            .read_record(root_reference)?;
         Ok(Self {
             root_reference,
             published_layout,
@@ -107,10 +110,13 @@ impl BaselineBTreeExecutionWitness {
         shape: BaselineBTreeReadShape,
     ) -> BaselineBTreeLookupExecution {
         let mut facade = reopen_facade(self.published_layout.clone());
-        let root = facade
-            .read_physical_record(self.root_reference)
+        let mut root_access = facade
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission");
+        let root = root_access
+            .read_record(self.root_reference)
             .expect("baseline B-tree root read");
-        let node = decode_root_record(root.framed_record().payload().as_bytes())
+        let node = decode_root_record(root.record_view().payload().as_bytes())
             .expect("baseline B-tree root payload");
         let branch = if probe_slot.get() < node.separator_slot.get() {
             BaselineBTreeLookupBranch::Left
@@ -125,12 +131,17 @@ impl BaselineBTreeExecutionWitness {
             .admit_page_slot(selected_cell)
             .reference();
         let _ = facade
-            .locate_physical_record(selected_reference)
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission")
+            .locate_record(selected_reference)
             .expect("baseline B-tree locate through selected branch");
-        let selected_leaf = facade
-            .read_physical_record(selected_reference)
+        let mut leaf_access = facade
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission");
+        let selected_leaf = leaf_access
+            .read_record(selected_reference)
             .expect("baseline B-tree read through selected branch");
-        let leaf = decode_leaf_record(selected_leaf.framed_record().payload().as_bytes())
+        let leaf = decode_leaf_record(selected_leaf.record_view().payload().as_bytes())
             .expect("baseline B-tree leaf payload");
         assert!(leaf.slots.iter().any(|slot| *slot == probe_slot));
         let root_page_touches = 1;
@@ -272,30 +283,37 @@ impl BaselineBTreeExecutionWitness {
         plan_binding: S8PreExecutionPlanBinding,
     ) -> BaselineBTreeReplayRecoveryExecution {
         let mut facade = reopen_facade(self.published_layout.clone());
-        let root = facade
-            .read_physical_record(self.root_reference)
+        let mut root_access = facade
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission");
+        let root = root_access
+            .read_record(self.root_reference)
             .expect("baseline B-tree replay root read");
-        let node = decode_root_record(root.framed_record().payload().as_bytes())
+        let node = decode_root_record(root.record_view().payload().as_bytes())
             .expect("baseline B-tree replay root payload");
         let left_payload = facade
-            .read_physical_record(
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission")
+            .read_record(
                 PhysicalReferenceAuthority::s1()
                     .admit_page_slot(node.left_child)
                     .reference(),
             )
             .expect("baseline B-tree replay left leaf")
-            .framed_record()
+            .record_view()
             .payload()
             .as_bytes()
             .to_vec();
         let right_payload = facade
-            .read_physical_record(
+            .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+            .expect("page family admission")
+            .read_record(
                 PhysicalReferenceAuthority::s1()
                     .admit_page_slot(node.right_child)
                     .reference(),
             )
             .expect("baseline B-tree replay right leaf")
-            .framed_record()
+            .record_view()
             .payload()
             .as_bytes()
             .to_vec();
@@ -335,7 +353,8 @@ impl BaselineBTreeExecutionWitness {
 pub(crate) fn execute_baseline_btree_point_lookup(
     plan_binding: S8PreExecutionPlanBinding,
 ) -> BaselineBTreeLookupExecution {
-    BaselineBTreeExecutionWitness::seeded().execute_separator_directed_lookup(plan_binding, slot(11))
+    BaselineBTreeExecutionWitness::seeded()
+        .execute_separator_directed_lookup(plan_binding, slot(11))
 }
 
 #[cfg(test)]

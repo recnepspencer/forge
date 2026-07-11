@@ -1,7 +1,7 @@
 use crate::failure::StoreError;
-pub use forge_store_contracts::WalRecordFamily;
 use forge_relational::facade::history::CommitId;
 use forge_relational::facade::replay::CanonicalCommitEnvelope;
+pub use forge_store_contracts::WalRecordFamily;
 use serde::{Deserialize, Serialize};
 
 pub const CURRENT_WAL_VERSION: u32 = 1;

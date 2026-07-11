@@ -1,3 +1,4 @@
+use crate::phase22_readmission_rule;
 use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
@@ -14,9 +15,7 @@ use forge_store_physical_integrity::{
     AuthorityDamageBoundary, ExecutedQuarantineFinding, PhysicalQuarantineAuthority,
     QuarantineRecord, QuarantineSealRequest,
 };
-use forge_store_recovery_physics::{
-    recovery_readmission_layout_family, RecoveryLayoutReadmissionWitness,
-};
+use forge_store_recovery_physics::{RecoveryLayoutAccess, RecoveryLayoutReadmissionWitness};
 
 pub(super) fn import_witness(
     family: crate::PhysicalArtifactFamily,
@@ -24,7 +23,7 @@ pub(super) fn import_witness(
 ) -> RecoveryLayoutReadmissionWitness {
     let record = unresolved_authority_record(seed);
     let authority = current_authority("store.s8.import", seed);
-    recovery_readmission_layout_family()
+    phase22_readmission_family()
         .admit_record_backed_witness(family.id(), &record, &authority)
         .expect("record-backed import witness should admit")
 }
@@ -43,7 +42,7 @@ pub(super) fn record_backed_witness(
     seed: &str,
 ) -> RecoveryLayoutReadmissionWitness {
     let authority = current_authority("store.s8.corruption", seed);
-    recovery_readmission_layout_family()
+    phase22_readmission_family()
         .admit_record_backed_witness(family.id(), record, &authority)
         .expect("record-backed quarantine witness should admit")
 }
@@ -53,9 +52,15 @@ pub(super) fn offline_witness(
     seed: &str,
 ) -> forge_store_recovery_physics::RecoveryLayoutReadmissionWitness {
     let admission = super::tests::offline_admission(seed);
-    recovery_readmission_layout_family()
+    phase22_readmission_family()
         .admit_offline_witness(family.id(), &admission)
         .expect("offline admission should mint a family-bound lower witness")
+}
+
+fn phase22_readmission_family() -> forge_store_recovery_physics::AdmittedReadmissionLayoutFamily {
+    RecoveryLayoutAccess::s8()
+        .readmission_layout(&phase22_readmission_rule().expect("phase-22 readmission rule"))
+        .expect("phase-22 readmission family")
 }
 
 pub(super) fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {

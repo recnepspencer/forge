@@ -4,7 +4,9 @@ use crate::{
 };
 use forge_store_contracts::AcceptedHandoffReadiness;
 
-use super::{reopen, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial, PlatformPhysicalOpenRequest};
+use super::{
+    reopen, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial, PlatformPhysicalOpenRequest,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformPhysicalReplayArtifact {

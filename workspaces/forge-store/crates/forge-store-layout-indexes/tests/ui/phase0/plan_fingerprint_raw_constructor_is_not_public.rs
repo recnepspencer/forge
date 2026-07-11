@@ -1,7 +1,8 @@
-use forge_store_layout_indexes::{
+use forge_store_layout_indexes::access_planning::{
     S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape, S8AccessStaleDisposition,
-    S8LayoutStrategyFamily, S8PlanFingerprint,
+    S8PlanFingerprint,
 };
+use forge_store_layout_indexes::layout_strategy_admission::S8LayoutStrategyFamily;
 
 fn main() {
     let _ = S8PlanFingerprint::new(

@@ -11,6 +11,7 @@ mod capsule_readiness_provenance;
 pub mod courtroom;
 pub mod evidence;
 pub mod s8_layout_closeout;
+pub mod s8_runtime_matrix;
 
 include!("internal_modules.rs");
 mod public_api;

@@ -195,8 +195,10 @@ fn lookup_case_proof(
     }
 }
 
-pub fn prove_baseline_lsm_invariants() -> BaselineLsmInvariantProof {
-    let witness = collect_baseline_lsm_invariant_witness();
+pub fn prove_baseline_lsm_invariants(
+    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+) -> BaselineLsmInvariantProof {
+    let witness = collect_baseline_lsm_invariant_witness(execution);
 
     BaselineLsmInvariantProof {
         lookup: lookup_case_proof(witness.lookup().newest_run()),
@@ -229,17 +231,21 @@ pub fn prove_baseline_lsm_invariants() -> BaselineLsmInvariantProof {
     }
 }
 
-pub fn prove_baseline_lsm_older_run_lookup() -> BaselineLsmLookupInvariantProof {
+pub fn prove_baseline_lsm_older_run_lookup(
+    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+) -> BaselineLsmLookupInvariantProof {
     lookup_case_proof(
-        collect_baseline_lsm_invariant_witness()
+        collect_baseline_lsm_invariant_witness(execution)
             .lookup()
             .older_run(),
     )
 }
 
-pub fn prove_baseline_lsm_tombstone_blocked_lookup() -> BaselineLsmLookupInvariantProof {
+pub fn prove_baseline_lsm_tombstone_blocked_lookup(
+    execution: &super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness,
+) -> BaselineLsmLookupInvariantProof {
     lookup_case_proof(
-        collect_baseline_lsm_invariant_witness()
+        collect_baseline_lsm_invariant_witness(execution)
             .lookup()
             .tombstone_blocked(),
     )
@@ -256,8 +262,10 @@ mod tests {
 
     #[test]
     fn baseline_lsm_invariant_proof_is_wal_owned() {
-        let proof = prove_baseline_lsm_invariants();
-        let witness = collect_baseline_lsm_invariant_witness();
+        let execution =
+            super::super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness::seeded();
+        let proof = prove_baseline_lsm_invariants(&execution);
+        let witness = collect_baseline_lsm_invariant_witness(&execution);
 
         assert_eq!(
             proof.lookup().disposition(),
@@ -282,13 +290,15 @@ mod tests {
             witness.compaction().input_generations()
         );
         assert!(proof.compaction().stale_runs_retired());
-        assert!(proof.compaction().bytes_out() >= proof.compaction().bytes_in());
+        assert!(proof.compaction().bytes_out() <= proof.compaction().bytes_in());
     }
 
     #[test]
     fn baseline_lsm_lookup_proofs_cover_older_run_and_tombstone_denial() {
-        let older = prove_baseline_lsm_older_run_lookup();
-        let denied = prove_baseline_lsm_tombstone_blocked_lookup();
+        let execution =
+            super::super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness::seeded();
+        let older = prove_baseline_lsm_older_run_lookup(&execution);
+        let denied = prove_baseline_lsm_tombstone_blocked_lookup(&execution);
 
         assert_eq!(older.disposition(), BaselineLsmLookupDisposition::SortedRun);
         assert!(older.probe_visible_in_older_run());

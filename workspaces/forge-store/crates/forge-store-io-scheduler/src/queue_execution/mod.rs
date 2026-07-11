@@ -50,7 +50,8 @@ pub use write_back::QueueWriteBackBasis;
 
 #[cfg(test)]
 pub(crate) use test_execution::execute_admitted_queue_plan;
-#[cfg(test)]
+#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg_attr(feature = "certification-test-authority", allow(dead_code))]
 pub(crate) mod test_support;
 #[cfg(test)]
 mod tests;

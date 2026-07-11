@@ -72,11 +72,11 @@ impl PhysicalArtifactFamilyDeclaration {
         self.owning_boundary
     }
 
-    pub(crate) const fn rebuild_posture(&self) -> DurableArtifactRebuildPosture {
+    pub const fn rebuild_posture(&self) -> DurableArtifactRebuildPosture {
         self.rebuild_posture
     }
 
-    pub(crate) const fn migration_posture(&self) -> DurableArtifactMigrationPosture {
+    pub const fn migration_posture(&self) -> DurableArtifactMigrationPosture {
         self.migration_posture
     }
 
@@ -84,5 +84,33 @@ impl PhysicalArtifactFamilyDeclaration {
         &self,
     ) -> &'static [DurableArtifactProjectionClass] {
         self.non_authority_projection_classes
+    }
+
+    pub const fn production_transition(
+        &self,
+    ) -> crate::production_transition::S8LayoutProductionTransition {
+        Self::declared_transition()
+    }
+
+    const fn declared_transition() -> crate::production_transition::S8LayoutProductionTransition {
+        crate::production_transition::owner_transition(
+            crate::production_transition::S8LayoutStateMachine::ArtifactDeclaration,
+            crate::production_transition::S8LayoutProductionOperation::DeclareArtifactFamily,
+            "Declared",
+            crate::production_transition::S8LayoutMachineState::Unclassified,
+            crate::production_transition::S8LayoutMachineTransition::Declare,
+            crate::production_transition::S8LayoutMachineState::Declared,
+        )
+    }
+
+    pub(crate) fn owner_transition_contract(
+    ) -> crate::production_transition::S8OwnerTransitionContract {
+        static FACTS: [crate::production_transition::S8LayoutProductionTransition; 1] =
+            [PhysicalArtifactFamilyDeclaration::declared_transition()];
+        crate::production_transition::S8OwnerTransitionContract::from_owner_outcomes(
+            crate::production_transition::S8LayoutStateMachine::ArtifactDeclaration,
+            crate::production_transition::S8LayoutProductionOperation::DeclareArtifactFamily,
+            &FACTS,
+        )
     }
 }

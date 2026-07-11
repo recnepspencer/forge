@@ -4,7 +4,7 @@ use forge_store_aspect_native::{
     StorePhysicalBoundaryWitness,
 };
 use forge_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use forge_store_operations::{
+use forge_store_operations_vocabulary::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
 };
 use forge_store_physical_backend::{

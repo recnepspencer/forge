@@ -52,8 +52,16 @@ impl S7CloseoutProofSummary {
         }
     }
 
-    pub const fn checked_execution(self) -> bool { self.checked_execution }
-    pub const fn oracle_verdict_count(self) -> usize { self.oracle_verdict_count }
-    pub const fn counter_row_count(self) -> usize { self.counter_row_count }
-    pub const fn topology(self) -> S7CloseoutProofTopology { self.topology }
+    pub const fn checked_execution(self) -> bool {
+        self.checked_execution
+    }
+    pub const fn oracle_verdict_count(self) -> usize {
+        self.oracle_verdict_count
+    }
+    pub const fn counter_row_count(self) -> usize {
+        self.counter_row_count
+    }
+    pub const fn topology(self) -> S7CloseoutProofTopology {
+        self.topology
+    }
 }

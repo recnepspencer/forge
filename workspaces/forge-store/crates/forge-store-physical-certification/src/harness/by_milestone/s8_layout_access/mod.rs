@@ -11,6 +11,3 @@ pub mod simulation;
 #[cfg(test)]
 pub mod tests;
 pub mod transcript;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LayoutAccessHarness;

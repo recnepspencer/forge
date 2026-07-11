@@ -1,4 +1,4 @@
-use forge_store_blob_chunks::BlobGeneration;
+use crate::blob_basis::S8BlobGenerationBasis;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
 
@@ -14,7 +14,7 @@ pub enum S8CoverageBasisKind {
 pub enum S8PhysicalCoverageBasis {
     WalLsn(LogSequenceNumber),
     RootEpoch(PhysicalEpoch),
-    BlobGeneration(BlobGeneration),
+    BlobGeneration(S8BlobGenerationBasis),
     CheckpointFrontier(CheckpointCoveredLsnRange),
 }
 
@@ -27,7 +27,7 @@ impl S8PhysicalCoverageBasis {
         Self::RootEpoch(epoch)
     }
 
-    pub const fn blob_generation(generation: BlobGeneration) -> Self {
+    pub const fn blob_generation(generation: S8BlobGenerationBasis) -> Self {
         Self::BlobGeneration(generation)
     }
 

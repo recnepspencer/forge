@@ -23,6 +23,10 @@ impl BackupImportCustodyReadmission {
         Self { observation }
     }
 
+    pub const fn observation(&self) -> &OfflineCustodyCapsuleObservation {
+        &self.observation
+    }
+
     pub fn readmit_with_current_authority(
         self,
         current_authority: &StoreCurrentAuthorityWitness,

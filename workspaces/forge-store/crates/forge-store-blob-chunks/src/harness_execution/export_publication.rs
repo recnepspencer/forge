@@ -1,4 +1,4 @@
-use forge_store_operations::BackupExportCustodyMode;
+use forge_store_operations_vocabulary::BackupExportCustodyMode;
 
 use crate::{BlobChunkRootPublication, BlobExportAuthority, BlobExportPublishedBundle};
 
@@ -36,7 +36,7 @@ pub(super) fn publish_export_bundle(
 
 fn publish_streamed_export_bundle(
     authority: &BlobExportAuthority,
-    custody: &forge_store_operations::BackupExportCustodyReadiness,
+    custody: &forge_store_operations_vocabulary::BackupExportCustodyReadiness,
     export_name: &str,
     lane: &ExecutedBlobLane,
     publication: &BlobChunkRootPublication,
@@ -129,7 +129,7 @@ fn publish_streamed_export_bundle(
 
 fn verify_streamed_export_common(
     export_name: &str,
-    custody: &forge_store_operations::BackupExportCustodyReadiness,
+    custody: &forge_store_operations_vocabulary::BackupExportCustodyReadiness,
     lane: &ExecutedBlobLane,
     publication: &BlobChunkRootPublication,
 ) -> Result<(), crate::BlobExportBundleDenial> {

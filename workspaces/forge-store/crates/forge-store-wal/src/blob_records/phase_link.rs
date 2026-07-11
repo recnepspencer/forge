@@ -5,9 +5,10 @@ use crate::{BlobWalRecordKind, DurablePublicationPhase};
 /// WAL records carry evidence; publication law remains in blob-chunks.
 pub const fn durable_phase_for_record_kind(kind: BlobWalRecordKind) -> DurablePublicationPhase {
     match kind {
-        BlobWalRecordKind::ChunkAppend | BlobWalRecordKind::RootCandidate => {
-            DurablePublicationPhase::Prepared
-        }
+        BlobWalRecordKind::ChunkAppend
+        | BlobWalRecordKind::LsmValue
+        | BlobWalRecordKind::LsmTombstone
+        | BlobWalRecordKind::RootCandidate => DurablePublicationPhase::Prepared,
         BlobWalRecordKind::GenerationPublication | BlobWalRecordKind::SessionCheckpoint => {
             DurablePublicationPhase::Logged
         }
@@ -18,6 +19,9 @@ pub const fn durable_phase_for_record_kind(kind: BlobWalRecordKind) -> DurablePu
 pub const fn record_kind_admits_recovery_replay(kind: BlobWalRecordKind) -> bool {
     matches!(
         kind,
-        BlobWalRecordKind::GenerationPublication | BlobWalRecordKind::SessionCloseout
+        BlobWalRecordKind::GenerationPublication
+            | BlobWalRecordKind::SessionCloseout
+            | BlobWalRecordKind::LsmValue
+            | BlobWalRecordKind::LsmTombstone
     )
 }

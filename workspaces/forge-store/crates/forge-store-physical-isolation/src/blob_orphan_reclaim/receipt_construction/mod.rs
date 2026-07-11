@@ -2,7 +2,7 @@ use crate::blob_orphan_reclaim::types::barrier::BlobOrphanReclaimBarrier;
 use crate::blob_orphan_reclaim::types::coverage::BlobOrphanReclaimCoverage;
 use crate::blob_orphan_reclaim::types::identity::BlobOrphanReclaimIdentity;
 use crate::blob_orphan_reclaim::types::proof::BlobOrphanReclaimProof;
-use crate::{ReclaimReachabilityRemovalReceipt};
+use crate::ReclaimReachabilityRemovalReceipt;
 
 pub(crate) fn construct_coverage(
     barrier: BlobOrphanReclaimBarrier,
@@ -17,7 +17,9 @@ pub(crate) fn construct_coverage(
     )
 }
 
-pub fn construct_proof_from_coverage(coverage: BlobOrphanReclaimCoverage) -> BlobOrphanReclaimProof {
+pub fn construct_proof_from_coverage(
+    coverage: BlobOrphanReclaimCoverage,
+) -> BlobOrphanReclaimProof {
     let (barrier, identity, reclaim_root_epoch, reclaim_candidate_ranges) =
         coverage.into_proof_parts();
     let counters = barrier.counters().with_proof();

@@ -4,14 +4,15 @@ use super::baseline_btree_counter_observation::{
 use super::baseline_btree_node_codec::{
     decode_leaf_record, decode_root_record, BaselineBTreeCorruptionMarker,
 };
+use crate::layout_access::grammar::AdmittedPageLayoutRule;
 use crate::{
     PersistedPhysicalLayout, PhysicalRecordSlot, PlatformPhysicalFacade,
     PlatformPhysicalOpenRequest,
 };
+use forge_store_budgets::S8PreExecutionPlanBinding;
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_budgets::S8PreExecutionPlanBinding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BaselineBTreeCorruptionObservation {
@@ -151,7 +152,8 @@ impl BaselineBTreeInvariantWitness {
 }
 
 pub fn collect_baseline_btree_invariant_witness() -> BaselineBTreeInvariantWitness {
-    let transcript = execute_baseline_btree_transcript(S8PreExecutionPlanBinding::new(1, 2, 3, 4, 0));
+    let transcript =
+        execute_baseline_btree_transcript(S8PreExecutionPlanBinding::new(1, 2, 3, 4, 0));
     let left_lookup = transcript.lookup();
     let publication = transcript.publication();
     let recovery = transcript.recovery();
@@ -216,10 +218,13 @@ fn read_root(
     root_reference: crate::PhysicalReference,
 ) -> DecodedRoot {
     let mut facade = reopen_facade(layout);
-    let root = facade
-        .read_physical_record(root_reference)
+    let mut page_access = facade
+        .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+        .expect("page family admission");
+    let root = page_access
+        .read_record(root_reference)
         .expect("read baseline root");
-    let payload = root.framed_record().payload().as_bytes().to_vec();
+    let payload = root.record_view().payload().as_bytes().to_vec();
     let decoded = decode_root_record(payload.as_slice()).expect("decode baseline root");
     DecodedRoot {
         separator_slot: decoded.separator_slot,
@@ -238,10 +243,13 @@ fn read_leaf_slots(
     let reference = crate::PhysicalReferenceAuthority::s1()
         .admit_page_slot(cell)
         .reference();
-    let leaf = facade
-        .read_physical_record(reference)
+    let mut page_access = facade
+        .page_layout(&AdmittedPageLayoutRule::internal_phase19())
+        .expect("page family admission");
+    let leaf = page_access
+        .read_record(reference)
         .expect("read baseline leaf");
-    decode_leaf_record(leaf.framed_record().payload().as_bytes()).expect("decode baseline leaf")
+    decode_leaf_record(leaf.record_view().payload().as_bytes()).expect("decode baseline leaf")
 }
 
 fn reopen_facade(layout: PersistedPhysicalLayout) -> PlatformPhysicalFacade {
@@ -249,7 +257,9 @@ fn reopen_facade(layout: PersistedPhysicalLayout) -> PlatformPhysicalFacade {
         readiness(),
         PlatformPhysicalOpenRequest::s1_canonical(),
         crate::PlatformPhysicalReplayArtifact::from_persisted_layout(
-            PlatformPhysicalOpenRequest::s1_canonical().headers().clone(),
+            PlatformPhysicalOpenRequest::s1_canonical()
+                .headers()
+                .clone(),
             layout,
         ),
     )

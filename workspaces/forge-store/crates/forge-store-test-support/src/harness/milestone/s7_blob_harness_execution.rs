@@ -1,13 +1,15 @@
 use forge_store_blob_chunks::certification_test_authority::{
-    execute_s7_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
+    BlobHarnessExecutedWitness, BlobHarnessExecutionInput, execute_s7_blob_harness,
 };
 use forge_store_physical_certification::{
+    BlobHarnessScenarioSeed, GeneratedCoverageMatrix, SimulationReplayBundle,
     synthetic_blob_harness_coverage_matrix_for_test_support,
-    synthetic_blob_harness_replay_bundle_for_test_support, BlobHarnessScenarioSeed,
-    GeneratedCoverageMatrix, SimulationReplayBundle,
+    synthetic_blob_harness_replay_bundle_for_test_support,
 };
 
-pub fn execute_s7_blob_harness_scenario(seed: BlobHarnessScenarioSeed) -> BlobHarnessExecutedWitness {
+pub fn execute_s7_blob_harness_scenario(
+    seed: BlobHarnessScenarioSeed,
+) -> BlobHarnessExecutedWitness {
     execute_s7_blob_harness(BlobHarnessExecutionInput::new(
         seed.profile().envelope().profile(),
         seed.size_class(),

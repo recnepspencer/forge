@@ -3,12 +3,12 @@ use crate::access_shape::{
     S8AccessShapeUnsupportedDenial, S8DegradedExactScanRequest, S8FullDeclaredScanBasis,
 };
 use crate::artifact_family::PhysicalArtifactFamilyDeclaration;
+use crate::blob_basis::S8BlobGenerationBasis;
 use crate::materialization::{
     S8CoverageGapWitness, S8LayoutCoverageWitness, S8LayoutMaterializationState,
     S8MaterializationDenial, S8PhysicalAbsenceProof, S8PhysicalCoverageBasis,
 };
 use crate::planning::S8AccessPlanSelection;
-use forge_store_blob_chunks::BlobGeneration;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
 
@@ -31,6 +31,17 @@ impl AccessPlanningFacade {
         )
     }
 
+    pub fn bootstrap_exact_root_epoch_coverage(
+        &self,
+        declaration: &'static PhysicalArtifactFamilyDeclaration,
+        epoch: PhysicalEpoch,
+    ) -> Result<S8LayoutCoverageWitness, S8MaterializationDenial> {
+        self.exact_root_epoch_coverage(
+            crate::bootstrap::test_support::bootstrap_exact_materialization(declaration.family()),
+            epoch,
+        )
+    }
+
     pub fn exact_wal_lsn_coverage(
         &self,
         materialization: S8LayoutMaterializationState,
@@ -45,7 +56,7 @@ impl AccessPlanningFacade {
     pub fn exact_blob_generation_coverage(
         &self,
         materialization: S8LayoutMaterializationState,
-        generation: BlobGeneration,
+        generation: S8BlobGenerationBasis,
     ) -> Result<S8LayoutCoverageWitness, S8MaterializationDenial> {
         S8LayoutCoverageWitness::exact_through(
             materialization,
@@ -156,8 +167,10 @@ impl AccessPlanningFacade {
     pub fn prove_exact_index_absence(
         &self,
         coverage: S8LayoutCoverageWitness,
-    ) -> Result<S8PhysicalAbsenceProof, S8MaterializationDenial> {
-        S8PhysicalAbsenceProof::exact_index(coverage)
+    ) -> crate::S8PhysicalAbsenceOutcome {
+        crate::materialization::issue_physical_absence(S8PhysicalAbsenceProof::exact_index(
+            coverage,
+        ))
     }
 
     pub fn prove_degraded_bounded_scan_absence(
@@ -178,7 +191,7 @@ impl AccessPlanningFacade {
         &self,
         coverage: S8LayoutCoverageWitness,
         lane: S8AccessLaneClassification,
-    ) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {
+    ) -> crate::access_shape::S8FullDeclaredScanOutcome {
         access_shapes().full_declared_scan(
             coverage,
             lane,

@@ -1,5 +1,7 @@
 //! Scenario definition, planning, and execution surfaces.
 
+pub mod s8_layout;
+
 pub use crate::scenario_definition::{
     PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
     PhysicalScenarioDefinitionDenial, PhysicalStoryStep, ScenarioLane,
@@ -11,3 +13,4 @@ pub use crate::scenario_plan::{
     PhysicalScenarioPlanIdentity, StorageBoundaryCrossing, WorkloadScale,
 };
 pub use crate::scenario_planned_work_evidence::PhysicalScenarioPlannedWorkBoundaryReport;
+pub use s8_layout::{certify_s8_layout_scenario, S8LayoutScenarioCertificate};

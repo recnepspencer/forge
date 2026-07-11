@@ -70,6 +70,10 @@ pub struct CompactionReadInterlockPlan {
 }
 
 impl CompactionReadInterlockPlan {
+    pub const fn cutover_state(&self) -> super::CompactionCutoverState {
+        super::CompactionCutoverState::PlanAdmitted
+    }
+
     pub fn admit(
         protected: CompactionProtectedReferenceSet,
         candidates: CompactionCandidateRangeSet,

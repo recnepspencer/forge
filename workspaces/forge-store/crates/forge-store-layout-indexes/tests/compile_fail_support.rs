@@ -5,7 +5,16 @@ pub struct CompileFailCasePaths {
 }
 
 pub fn assert_compile_fails(fixture_name: &str, expected_stderr: &[&str], extern_crates: &[&str]) {
-    let case_paths = prepare_compile_fail_case(fixture_name, extern_crates);
+    assert_compile_fails_in_ui_dir("phase0", fixture_name, expected_stderr, extern_crates);
+}
+
+pub fn assert_compile_fails_in_ui_dir(
+    ui_dir: &str,
+    fixture_name: &str,
+    expected_stderr: &[&str],
+    extern_crates: &[&str],
+) {
+    let case_paths = prepare_compile_fail_case_in_ui_dir(ui_dir, fixture_name, extern_crates);
     let output = run_compile_fail_case(
         &case_paths.source_path,
         extern_crates,
@@ -14,14 +23,14 @@ pub fn assert_compile_fails(fixture_name: &str, expected_stderr: &[&str], extern
 
     assert!(
         !output.status.success(),
-        "{fixture_name} unexpectedly compiled"
+        "{ui_dir}/{fixture_name} unexpectedly compiled"
     );
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     for expected in expected_stderr {
         assert!(
             stderr.contains(expected),
-            "{fixture_name} failed for the wrong reason; missing stderr fragment {expected:?}\nstderr:\n{stderr}",
+            "{ui_dir}/{fixture_name} failed for the wrong reason; missing stderr fragment {expected:?}\nstderr:\n{stderr}",
         );
     }
 }
@@ -29,11 +38,13 @@ pub fn assert_compile_fails(fixture_name: &str, expected_stderr: &[&str], extern
 pub fn compiled_dependency_dir() -> std::path::PathBuf {
     store_workspace_root(&std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")))
         .join("target")
+        .join("layout-indexes-ui-dependencies")
         .join("debug")
         .join("deps")
 }
 
 pub fn compiled_extern(crate_name: &str) -> std::path::PathBuf {
+    ensure_compiled_extern(crate_name);
     let crate_prefix = format!("{crate_name}-");
     let lib_prefix = format!("lib{crate_name}-");
     let mut matches = std::fs::read_dir(compiled_dependency_dir())
@@ -72,10 +83,49 @@ pub fn compiled_extern(crate_name: &str) -> std::path::PathBuf {
         .unwrap_or_else(|| panic!("missing compiled extern for {crate_name}"))
 }
 
-fn prepare_compile_fail_case(fixture_name: &str, extern_crates: &[&str]) -> CompileFailCasePaths {
+fn ensure_compiled_extern(crate_name: &str) {
+    static BUILD_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _guard = BUILD_LOCK.lock().unwrap();
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let case_dir = std::env::temp_dir()
-        .join("layout-indexes-phase0-ui")
+    let workspace_root = store_workspace_root(&manifest_dir);
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let mut command = std::process::Command::new(cargo);
+    command
+        .arg("build")
+        .arg("--quiet")
+        .arg("--manifest-path")
+        .arg(workspace_root.join("Cargo.toml"))
+        .arg("--target-dir")
+        .arg(
+            workspace_root
+                .join("target")
+                .join("layout-indexes-ui-dependencies"),
+        )
+        .arg("-p")
+        .arg("forge-store-layout-indexes");
+    if crate_name != "forge_store_layout_indexes" {
+        command.arg("-p").arg(crate_name.replace('_', "-"));
+    }
+    let status = command.status().unwrap();
+    assert!(
+        status.success(),
+        "failed to build UI dependency {crate_name}"
+    );
+}
+
+fn prepare_compile_fail_case(fixture_name: &str, extern_crates: &[&str]) -> CompileFailCasePaths {
+    prepare_compile_fail_case_in_ui_dir("phase0", fixture_name, extern_crates)
+}
+
+fn prepare_compile_fail_case_in_ui_dir(
+    ui_dir: &str,
+    fixture_name: &str,
+    extern_crates: &[&str],
+) -> CompileFailCasePaths {
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let case_dir = store_workspace_root(&manifest_dir)
+        .join("target")
+        .join(format!("layout-indexes-{ui_dir}-ui"))
         .join(std::process::id().to_string())
         .join("cases")
         .join(fixture_name.trim_end_matches(".rs"));
@@ -87,7 +137,7 @@ fn prepare_compile_fail_case(fixture_name: &str, extern_crates: &[&str]) -> Comp
         manifest_dir
             .join("tests")
             .join("ui")
-            .join("phase0")
+            .join(ui_dir)
             .join(fixture_name),
         &source_path,
     )
@@ -121,7 +171,11 @@ fn compile_fail_manifest_contents(
     }
 
     format!(
-        "[package]\nname = \"phase0-ui-case\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n{}\n",
+        "[package]\nname = \"phase0-ui-case\"\nversion = \"0.1.0\"\nedition = \"2021\"\nworkspace = \"{}\"\n\n[dependencies]\n{}\n",
+        store_workspace_root(manifest_dir)
+            .display()
+            .to_string()
+            .replace('\\', "/"),
         dependencies.join("\n")
     )
 }

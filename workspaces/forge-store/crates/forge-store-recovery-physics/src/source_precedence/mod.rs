@@ -22,6 +22,7 @@ pub use compaction_visibility::{
     CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
     RecoverableOldCompactionGeneration,
 };
+pub(crate) use decision_trace::RecoverySourceReplayBasis;
 pub use decision_trace::{
     RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,
     RecoverySourceDecisionTrace,
@@ -31,6 +32,9 @@ pub use page_lsn_skip_apply::PageLsnSkipApplyDecision;
 pub use source_admission::AdmittedRecoverySource;
 pub use source_application_role::RecoverySourceApplicationRole;
 pub use source_candidate::RecoverySourceCandidate;
+#[cfg(feature = "certification-test-authority")]
 pub use source_graph::RecoverySourcePrecedenceGraph;
+#[cfg(not(feature = "certification-test-authority"))]
+pub(crate) use source_graph::RecoverySourcePrecedenceGraph;
 pub use wal_tail_quarantine_handoff::WalTailIntegrityQuarantineHandoff;
 pub use wal_tail_redo_source::{WalOnlyTailProof, WalOnlyTailProofDenial, WalTailRedoSource};

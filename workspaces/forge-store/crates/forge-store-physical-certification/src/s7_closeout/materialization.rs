@@ -12,7 +12,8 @@ pub struct S7MaterializedCloseoutEvidenceBundle {
 pub fn materialize_s7_closeout_evidence(
     executed_sources: S7ExecutedCloseoutSources,
 ) -> S7MaterializedCloseoutEvidenceBundle {
-    let foundational_evidence = materialize_foundational_evidence(executed_sources.evidence_bundle());
+    let foundational_evidence =
+        materialize_foundational_evidence(executed_sources.evidence_bundle());
     S7MaterializedCloseoutEvidenceBundle {
         executed_sources,
         foundational_evidence,

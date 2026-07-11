@@ -44,8 +44,8 @@ pub fn duplicate_role_s4_recovery_artifacts() -> PersistedRecoveryArtifacts {
     ])
 }
 
-pub fn malformed_s4_recovery_record(
-) -> Result<RecoveryPersistedRecord, PersistedRecoveryArtifactDenial> {
+pub fn malformed_s4_recovery_record()
+-> Result<RecoveryPersistedRecord, PersistedRecoveryArtifactDenial> {
     RecoveryPersistedRecord::from_persisted_bytes(
         "malformed-wal-tail",
         b"wal:lsn=not-a-number;page=2;op=op-20;idem=idem-20".to_vec(),

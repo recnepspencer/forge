@@ -69,9 +69,12 @@ fn read_during_compaction_keeps_old_reader_and_new_reader_stable() {
         inputs.new_validation,
         None,
     );
-    let publication = CompactionRewritePublication::publish(
+    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+            inputs.new_root,
+        ),
     )
     .unwrap();
     assert_eq!(publication.counters().publication_swaps(), 1);
@@ -189,9 +192,12 @@ fn compaction_denies_quarantine_stale_epoch_in_place_and_backend_residue() {
         inputs.new_validation,
         None,
     );
-    let publication = CompactionRewritePublication::publish(
+    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+            inputs.new_root,
+        ),
     )
     .unwrap();
     let residue = CompactionCutoverRecoveryPosture::missing_generation_identity(
@@ -297,9 +303,12 @@ fn compaction_rejects_minted_source_and_publication_mismatches() {
     );
 
     assert!(matches!(
-        CompactionRewritePublication::publish(
+        forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
             receipt,
+            forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+                inputs.new_root
+            ),
         ),
         Err(CompactionReadInterlockDenial::PublicationReachabilityFootprintMismatch { .. })
     ));
@@ -337,9 +346,12 @@ fn read_during_compaction_verdict_rejects_unbound_read_receipts() {
         inputs.new_validation,
         None,
     );
-    let publication = CompactionRewritePublication::publish(
+    let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+            inputs.new_root,
+        ),
     )
     .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(

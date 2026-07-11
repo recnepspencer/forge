@@ -17,8 +17,8 @@ mod verify_extents;
 mod verify_free_space;
 mod verify_pages;
 
-pub use codec::OfflineManifestCodec;
 pub(crate) use codec::DecodedOfflineManifestSections;
+pub use codec::OfflineManifestCodec;
 pub use counters::*;
 pub use denials::*;
 pub use observation::*;

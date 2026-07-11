@@ -6,6 +6,7 @@ mod classification;
 mod declaration;
 mod denial;
 mod inventory;
+mod inventory_rows;
 mod lifecycle;
 #[cfg(test)]
 mod phase_three_tests;

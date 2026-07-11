@@ -4,15 +4,15 @@ use forge_store_buffer_pool::{
     BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
 };
 use forge_store_contracts::{
-    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
+    AcceptedHandoffReadiness, HandoffEvidenceDigestSet, ROADMAP_2_S1_SCOPE, StableDigest,
 };
 use forge_store_readiness::{
-    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
     BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
     ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
     S2DeniedBoundaryKind, S2NoMaterializationWitness, S2PhysicalSubstrateReadiness,
     S3PhysicalIntegrityReadiness, S3PhysicalIntegrityReadinessPayload,
     ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    close_s1_physical_substrate_readiness, prove_s2_physical_substrate_readiness,
 };
 use forge_store_recovery_physics::RecoveryMemoryEnvelope;
 

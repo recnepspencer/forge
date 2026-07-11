@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::PartialPublicationClassification;
+use forge_store_recovery_physics::CrashBoundaryLayoutReport;
 
 use crate::{ChunkTreeRoot, LogicalContentDigest};
 
@@ -112,12 +112,12 @@ pub(crate) fn reachability_staged(
 }
 
 pub(crate) fn publication_record_replayable(
-    classification: &PartialPublicationClassification,
+    report: &CrashBoundaryLayoutReport,
 ) -> Result<BlobPublicationRecoveryEvidence, BlobPublicationDenial> {
-    replayable_wal::verify_replayable_classification(classification)?;
+    replayable_wal::verify_replayable_report(report)?;
     Ok(BlobPublicationRecoveryEvidence::new(
         BlobPublicationCrashPoint::AfterPublicationRecordWrite,
-        classification.classification_digest(),
+        report.classification_digest(),
     ))
 }
 

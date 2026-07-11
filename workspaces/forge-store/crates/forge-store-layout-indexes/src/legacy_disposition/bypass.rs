@@ -1,2 +1,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct S8LegacyAccessPathBypass;
+pub enum LegacyAccessPathBypass {
+    Declaration,
+    Admission,
+    Selection,
+    Budget,
+    Lowering,
+    Readiness,
+    Execution,
+    Readmission,
+    DeepImportPrecedent,
+    CertificationShortcut,
+}

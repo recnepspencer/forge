@@ -8,8 +8,8 @@ pub const fn s5_1_security_scope_metadata_preserved_scenario() -> S51SecuritySco
     )
 }
 
-pub const fn s5_1_security_scope_metadata_preservation_scenarios(
-) -> [S51SecurityScopeHarnessScenario; 4] {
+pub const fn s5_1_security_scope_metadata_preservation_scenarios()
+-> [S51SecurityScopeHarnessScenario; 4] {
     [
         S51SecurityScopeHarnessScenario::metadata_preserved(
             S51SecurityScopeHarnessSchedule::StableReadPlanAdmission,

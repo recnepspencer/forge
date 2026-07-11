@@ -73,13 +73,13 @@ impl BlobPublicationWalCommit {
         staged: BlobReachabilityStaging,
         payload: BlobPublicationWalPayload,
         durable_publication: DurablePublicationDeclaration,
-        replay_classification: &forge_store_recovery_physics::PartialPublicationClassification,
+        replay_report: &forge_store_recovery_physics::CrashBoundaryLayoutReport,
     ) -> Result<Self, BlobPublicationDenial> {
         super::super::transitions::wal_commit::from_replayable_wal_record(
             staged,
             payload,
             durable_publication,
-            replay_classification,
+            replay_report,
         )
     }
 

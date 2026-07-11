@@ -31,22 +31,49 @@ mod handoffs;
 mod harness_execution;
 mod heavy_fixture;
 mod import_readmission;
-pub mod layout_access;
+mod layout_access;
 mod lifecycle;
 mod placement;
 mod publication;
 mod reachability;
 mod recovery;
 mod retention_reclaim;
+mod s8_runtime_receipt;
 mod streaming;
 #[cfg(test)]
 mod test_support;
 
 pub use closeout_bundle::S7ExecutedLifecycleEvidenceBundle;
 #[cfg(test)]
+pub(crate) use compaction::test_support::{
+    compacted_rewritten_publication as phase25_compacted_rewritten_publication,
+    intent as phase25_compaction_intent,
+    verified_read_for_rewritten as phase25_verified_read_for_rewritten,
+};
+#[cfg(test)]
 pub use exports::hostile_lane::*;
 pub use exports::*;
 pub use heavy_fixture::*;
+pub use layout_access::{
+    reject_chunk_tree_root_as_blob_object_layout_authority,
+    reject_full_blob_buffer_as_streaming_layout_authority,
+    reject_streaming_frontier_as_chunk_tree_layout_authority,
+    BlobGenerationPublicationLayoutReport, BlobLayoutAccessDenial, BlobLayoutAccessDenialKind,
+    BlobLayoutAccessPathEvidence, BlobLayoutCloseout, BlobLayoutCorruptionBehavior,
+    BlobLayoutScopeSafeAbsenceBehavior, BlobObjectLayoutReport, ChunkTreeLayoutReport,
+    CompactionLayoutReport, DedupeLayoutReport, ReachabilityLayoutReport, ReclaimLayoutReport,
+    RetentionLayoutReport, StoredChunkLookupLayoutReport, StreamingLayoutReport,
+    StreamingResumeLayoutReport,
+};
+#[cfg(test)]
+pub(crate) use publication::test_support::publish_generation_with_bytes_and_chunk_size;
+#[cfg(test)]
+pub(crate) use retention_reclaim::test_support::reclaim_fixture as phase25_reclaim_fixture;
+#[cfg(feature = "certification-test-authority")]
+pub use s8_runtime_receipt::s8_blob_runtime_receipt_for_certification_test;
+pub use s8_runtime_receipt::S8BlobRuntimeReceipt;
+#[cfg(test)]
+pub(crate) use streaming::phase24_layout_runtime_case;
 
 // --- Construction-boundary compile-fail evidence ---
 #[path = "compile_fail/capsule_readiness.rs"]

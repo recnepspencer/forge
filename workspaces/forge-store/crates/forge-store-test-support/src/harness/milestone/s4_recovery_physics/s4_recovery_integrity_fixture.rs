@@ -65,8 +65,8 @@ pub(super) fn inspect_manifest() -> forge_store_physical_integrity::ManifestInte
         .unwrap()
 }
 
-pub(super) fn inspect_checkpoint_record(
-) -> forge_store_physical_integrity::CheckpointRecordIntegrityReport {
+pub(super) fn inspect_checkpoint_record()
+-> forge_store_physical_integrity::CheckpointRecordIntegrityReport {
     let mut report = None;
     with_wal_input(CheckpointAdjacencyPosture::CheckpointAdjacent, |input| {
         let request = WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(input).unwrap();

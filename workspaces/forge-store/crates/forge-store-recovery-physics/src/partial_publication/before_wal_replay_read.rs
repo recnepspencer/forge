@@ -4,10 +4,14 @@ use super::{
     PartialPublicationClassification, PartialPublicationPersistedBytes,
     PartialPublicationReplayReadDenial, UnacknowledgedPublicationOutcome,
 };
+use crate::PartialPublicationReplayReadArtifact;
+use crate::{CrashBoundaryLayoutReport, RecoveryEntryIdentity, RecoveryLayoutAccess};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialPublicationBeforeWalReplayRead {
     persisted_bytes: PartialPublicationPersistedBytes,
+    classification: PartialPublicationClassification,
+    crash_report: CrashBoundaryLayoutReport,
     _seal: BeforeWalReplayReadSeal,
 }
 
@@ -24,7 +28,17 @@ impl PartialPublicationBeforeWalReplayRead {
             super::PartialPublicationObservationSet::new()
                 .with_persisted_bytes(persisted_bytes.clone()),
         );
-        if classification.outcome() != UnacknowledgedPublicationOutcome::NoWalAppendObserved {
+        let Ok(crash_report) = RecoveryLayoutAccess::s8()
+            .phase22_crash_boundary_family()
+            .admit_classification(&classification)
+        else {
+            return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
+                actual_operation_digest: classification
+                    .before_wal_append_operation_digest()
+                    .map(str::to_owned),
+            });
+        };
+        if crash_report.outcome() != UnacknowledgedPublicationOutcome::NoWalAppendObserved {
             return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                 actual_operation_digest: classification
                     .before_wal_append_operation_digest()
@@ -41,11 +55,21 @@ impl PartialPublicationBeforeWalReplayRead {
         }
         Ok(Self {
             persisted_bytes,
+            classification,
+            crash_report,
             _seal: BeforeWalReplayReadSeal,
         })
     }
 
-    pub(crate) fn into_persisted_bytes(self) -> PartialPublicationPersistedBytes {
-        self.persisted_bytes
+    pub(crate) fn into_replay_read_artifact(
+        self,
+        entry_identity: RecoveryEntryIdentity,
+    ) -> PartialPublicationReplayReadArtifact {
+        PartialPublicationReplayReadArtifact::from_admitted_before_wal_read(
+            entry_identity,
+            self.persisted_bytes,
+            self.classification,
+            self.crash_report,
+        )
     }
 }

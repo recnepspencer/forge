@@ -22,6 +22,8 @@ pub enum S8StrategyDenial {
     ManifestUpdateViolation,
     MergeOrderingViolation,
     TombstonePreservationViolation,
+    CompactionKeyIdentityMismatch,
+    CompactionPlanBindingViolation,
     CompactionOrderingViolation,
     AdvisoryFilterPostureViolation,
     StaleRunCleanupViolation,

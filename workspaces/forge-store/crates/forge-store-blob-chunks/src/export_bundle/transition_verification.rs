@@ -1,5 +1,5 @@
 use super::classification::BlobExportCanonicalClassification;
-use forge_store_operations::BackupExportCustodyMode;
+use forge_store_operations_vocabulary::BackupExportCustodyMode;
 
 use super::counters::BlobExportBundleCounters;
 use super::denial::BlobExportBundleDenial;

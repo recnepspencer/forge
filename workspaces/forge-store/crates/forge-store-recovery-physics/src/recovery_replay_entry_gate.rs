@@ -66,10 +66,10 @@ impl RecoveryReplayEntryGate {
     pub fn read_partial_publication_checkpoint_cutover(
         &self,
         checkpoint_digest: impl Into<String>,
-    ) -> PartialPublicationReplayReadRecord {
+    ) -> Result<PartialPublicationReplayReadRecord, PartialPublicationReplayReadDenial> {
         let bytes = PartialPublicationPersistedBytes::during_checkpoint_cutover(checkpoint_digest);
-        let artifact = PartialPublicationReplayReadArtifact::from_replay_entry_gate(self, bytes);
-        PartialPublicationReplayReadRecord::from_replay_read_artifact(artifact)
+        let artifact = PartialPublicationReplayReadArtifact::from_replay_entry_gate(self, bytes)?;
+        Ok(PartialPublicationReplayReadRecord::from_replay_read_artifact(artifact))
     }
 
     pub fn read_partial_publication_before_wal_append(
@@ -80,11 +80,6 @@ impl RecoveryReplayEntryGate {
                 actual_operation_digest: None,
             });
         };
-        Ok(
-            PartialPublicationReplayReadArtifact::from_replay_entry_gate(
-                self,
-                replay_read.into_persisted_bytes(),
-            ),
-        )
+        Ok(replay_read.into_replay_read_artifact(self.entry_identity().clone()))
     }
 }

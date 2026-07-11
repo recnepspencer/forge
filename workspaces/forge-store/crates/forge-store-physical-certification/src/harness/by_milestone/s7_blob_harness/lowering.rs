@@ -194,9 +194,8 @@ fn blob_seed_fault(seed: &BlobHarnessScenarioSeed) -> PhysicalScenarioFault {
 }
 
 fn blob_supported_oracle_families() -> SupportedOracleFamilySet {
-    SupportedOracleFamilySet::all_for_ci_certification()
-        .with_added([
-            OracleFamilyKind::S7BlobHarnessEvidence,
-            OracleFamilyKind::S7BlobHeavyQualification,
-        ])
+    SupportedOracleFamilySet::all_for_ci_certification().with_added([
+        OracleFamilyKind::S7BlobHarnessEvidence,
+        OracleFamilyKind::S7BlobHeavyQualification,
+    ])
 }

@@ -1,6 +1,6 @@
 use super::{
     AdmittedRecoverySource, CheckpointBaseAdmission, RecoverySourceDecisionKind,
-    RecoverySourceDecisionTrace, WalTailRedoSource,
+    RecoverySourceDecisionTrace, RecoverySourceReplayBasis, WalTailRedoSource,
 };
 
 use super::source_admission_accumulator::RecoverySourceSelectionInput;
@@ -27,6 +27,7 @@ pub(super) fn select_admitted_recovery_source(
             roles,
             residue_rejections,
             decision_rows,
+            RecoverySourceReplayBasis::empty(),
         );
         return AdmittedRecoverySource::RecoveryBlocked { damage, trace };
     }
@@ -57,6 +58,7 @@ pub(super) fn select_admitted_recovery_source(
             roles,
             residue_rejections,
             decision_rows,
+            RecoverySourceReplayBasis::wal_only(wal_tail.lsn_range()),
         );
         return AdmittedRecoverySource::WalOnly { wal_tail, trace };
     }
@@ -88,6 +90,10 @@ fn select_checkpoint_based_source(
             roles,
             residue_rejections,
             decision_rows,
+            RecoverySourceReplayBasis::checkpoint_plus_tail(
+                checkpoint.checkpoint_id().clone(),
+                wal_tail.lsn_range(),
+            ),
         );
         return AdmittedRecoverySource::CheckpointPlusWalTail {
             checkpoint,
@@ -119,6 +125,7 @@ fn no_valid_checkpoint(
         roles,
         residue_rejections,
         decision_rows,
+        RecoverySourceReplayBasis::empty(),
     );
     AdmittedRecoverySource::NoValidCheckpoint { trace }
 }

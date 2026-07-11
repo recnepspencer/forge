@@ -1,9 +1,3 @@
-use forge_foundational::{compare_canonical_exports, CanonicalExportComparisonOutcome};
-use forge_store_offline_verifier::{
-    inspect_offline_export_bundle, OfflineExportBundleObservationDenial,
-    OfflineExportChunkDeclaration, OfflineExportDigestEvidence,
-};
-
 use super::test_support::{
     export_lane, export_readiness, offline_declaration_digest, offline_declarations,
     offline_digest_evidence, ordered_multichunk_exported_chunks,
@@ -16,6 +10,11 @@ use super::{
 };
 use crate::test_support::current_authority;
 use crate::BlobChunkByteWindow;
+use forge_foundational::{compare_canonical_exports, CanonicalExportComparisonOutcome};
+use forge_store_offline_verifier::{
+    inspect_offline_export_bundle, OfflineExportBundleObservationDenial,
+    OfflineExportChunkDeclaration, OfflineExportDigestEvidence,
+};
 
 #[test]
 fn equivalent_current_evidence_produces_same_export_bundle_and_digest() {

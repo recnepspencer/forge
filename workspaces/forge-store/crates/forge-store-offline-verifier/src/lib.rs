@@ -49,7 +49,7 @@ pub struct OfflineLayoutReport {
 }
 
 impl OfflineLayoutReport {
-    pub fn new(discovered_records: Vec<PhysicalReference>) -> Self {
+    pub(crate) fn new(discovered_records: Vec<PhysicalReference>) -> Self {
         Self { discovered_records }
     }
 

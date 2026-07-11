@@ -200,10 +200,13 @@ fn compaction_publication_for(
         ),
         inputs.new_validation,
     );
-    CompactionRewritePublication::publish(
+    forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(admitted_compaction_plan_for(reference), inputs.new_root)
             .unwrap(),
         receipt,
+        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
+            inputs.new_root,
+        ),
     )
     .unwrap()
 }

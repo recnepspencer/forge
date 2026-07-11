@@ -15,15 +15,16 @@ forge-store-budgets.workspace = true
 forge-store-buffer-pool.workspace = true
 forge-store-contracts.workspace = true
 forge-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
+forge-store-layout-indexes.workspace = true
 forge-store-offline-verifier.workspace = true
-forge-store-operations.workspace = true
+forge-store-operations = { workspace = true, features = ["certification-test-authority"] }
 forge-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
-forge-store-physical-format.workspace = true
+forge-store-physical-format = { workspace = true, features = ["certification-test-authority"] }
 forge-store-physical-integrity.workspace = true
 forge-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 forge-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
 forge-store-readiness.workspace = true
-forge-store-recovery-physics.workspace = true
+forge-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 forge-store-security = { workspace = true, features = ["certification-test-authority"] }
 forge-store-tiering = { workspace = true, features = ["certification-test-authority"] }
 

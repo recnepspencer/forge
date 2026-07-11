@@ -1,6 +1,5 @@
-use crate::{
-    access_lowering, S8AccessLoweringOutcome, S8CostEnvelopeViolationOutcome,
-};
+use crate::access_lowering::access_lowering;
+use crate::S8CostEnvelopeViolationOutcome;
 use forge_store_budgets::S8PreExecutionPlanBinding;
 
 #[test]
@@ -19,10 +18,9 @@ fn observed_counters_above_admitted_envelope_produce_typed_violation() {
             .with_bytes_read(9 * 4_096),
     );
 
-    let executed = match access_lowering().execute_ready(ready, oversized) {
-        S8AccessLoweringOutcome::Executed(executed) => executed,
-        other => panic!("expected executed outcome, got {other:?}"),
-    };
+    let executed = access_lowering()
+        .execute_ready(ready, oversized)
+        .expect("matching observed counters should execute");
 
     let receipt = executed.planned_vs_observed();
     assert!(!receipt.parity_holds());
@@ -50,10 +48,9 @@ fn hidden_broad_scan_fails_exact_counter_contract() {
             .with_bytes_read(32 * 4_096),
     );
 
-    let executed = match access_lowering().execute_ready(ready, broad_scan) {
-        S8AccessLoweringOutcome::Executed(executed) => executed,
-        other => panic!("expected executed outcome, got {other:?}"),
-    };
+    let executed = access_lowering()
+        .execute_ready(ready, broad_scan)
+        .expect("matching observed counters should execute");
 
     assert!(matches!(
         executed.planned_vs_observed().violation_outcome(),
@@ -78,17 +75,17 @@ fn observed_counters_with_mismatched_ready_basis_are_denied() {
         .snapshot(),
     );
 
-    let denial = access_lowering().execute_ready(first_ready, observed);
+    let denial = access_lowering()
+        .execute_ready(first_ready, observed)
+        .expect_err("mismatched observed basis must be denied");
     assert!(matches!(
         denial,
-        S8AccessLoweringOutcome::Denied(crate::S8AccessLoweringDenied::ObservedCounterBasisMismatch { .. })
+        crate::S8AccessLoweringDenied::ObservedCounterBasisMismatch { .. }
     ));
-    if let S8AccessLoweringOutcome::Denied(denial) = denial {
-        assert!(matches!(
-            denial.spent_cost_receipt(),
-            crate::S8AccessAttemptCostReceipt::DeniedObservedExecutionCost { .. }
-        ));
-    }
+    assert!(matches!(
+        denial.spent_cost_receipt(),
+        crate::S8AccessAttemptCostReceipt::DeniedObservedExecutionCost { .. }
+    ));
 }
 
 #[test]
@@ -142,4 +139,12 @@ fn witness_admission_rejects_wrong_plan_binding_even_when_shape_matches() {
         denial.spent_cost_receipt(),
         crate::S8AccessAttemptCostReceipt::DeniedObservedExecutionCost { .. }
     ));
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    observed_counters_above_admitted_envelope_produce_typed_violation();
+    hidden_broad_scan_fails_exact_counter_contract();
+    observed_counters_with_mismatched_ready_basis_are_denied();
+    witness_admission_rejects_wrong_access_path_kind_with_observed_cost_receipt();
+    witness_admission_rejects_wrong_plan_binding_even_when_shape_matches();
 }

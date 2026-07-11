@@ -6,9 +6,18 @@ license.workspace = true
 description = "Roadmap 1 structural delta storage and branch delta layering."
 
 [dependencies]
-forge-store-authority.workspace = true
 forge-store-contracts.workspace = true
 forge-store-layout-indexes.workspace = true
+forge-store-live-query.workspace = true
+
+[features]
+default = []
+phase23-layout-rule-construction = []
+
+[dev-dependencies]
+forge-store-aspect-native.workspace = true
+forge-store-budgets.workspace = true
+forge-store-test-support.workspace = true
 
 [lints]
 workspace = true

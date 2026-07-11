@@ -1,4 +1,4 @@
-use forge_store_layout_indexes::S8PhaseSkeletonObligationRow;
+use forge_store_layout_indexes::layout_certification::S8PhaseSkeletonObligationRow;
 
 fn main() {
     let _ = S8PhaseSkeletonObligationRow {

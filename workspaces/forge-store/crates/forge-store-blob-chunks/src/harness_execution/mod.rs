@@ -13,3 +13,5 @@ pub use actors::{
     execute_s7_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
     BlobHarnessObservedYieldpoint,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use certification_test_authority::{phase28_operations_witnesses, Phase28OperationsWitnesses};

@@ -1,4 +1,7 @@
-use crate::{layout_declarations, ArtifactScopePartitionWitness};
+use crate::{
+    layout_declarations, ArtifactScopePartitionWitness, S8BlobGenerationBasis,
+    S8BlobIdentityKeyBasis,
+};
 use forge_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use forge_proof::TransitionOutcome;
 use forge_store_aspect_native::{
@@ -12,9 +15,9 @@ use forge_store_blob_chunks::{
         materialize_s7_executed_lifecycle_evidence, BlobHarnessExecutedWitness,
         BlobHarnessExecutionInput,
     },
-    BlobGeneration, BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
+    BlobHarnessAccessMode, BlobHarnessActorMix, BlobHarnessChunkSizeClass,
     BlobHarnessChunkTopology, BlobHarnessFailurePoint, BlobHarnessPlacementClass,
-    BlobHarnessSecurityScopeClass, BlobHarnessSizeClass, BlobImportDeclaration, BlobObjectId,
+    BlobHarnessSecurityScopeClass, BlobHarnessSizeClass, BlobImportDeclaration,
     S7ExecutedLifecycleEvidenceBundle,
 };
 use forge_store_budgets::BlobHarnessEnvelopeProfile;
@@ -74,19 +77,19 @@ pub(crate) fn admit_phase_four_scope(
         .unwrap()
 }
 
-pub(crate) fn published_blob_identity() -> (BlobObjectId, BlobGeneration) {
+pub(crate) fn published_blob_identity() -> S8BlobIdentityKeyBasis {
     let evidence = published_blob_evidence_bundle();
-    (
-        evidence.export_object_id().clone(),
-        evidence.export_generation(),
+    S8BlobIdentityKeyBasis::new(
+        evidence.export_object_id().digest().clone(),
+        S8BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
     )
 }
 
-pub(crate) fn alternate_blob_identity() -> (BlobObjectId, BlobGeneration) {
+pub(crate) fn alternate_blob_identity() -> S8BlobIdentityKeyBasis {
     let evidence = alternate_blob_evidence_bundle();
-    (
-        evidence.export_object_id().clone(),
-        evidence.export_generation(),
+    S8BlobIdentityKeyBasis::new(
+        evidence.export_object_id().digest().clone(),
+        S8BlobGenerationBasis::from_sequence(evidence.export_generation().sequence()),
     )
 }
 

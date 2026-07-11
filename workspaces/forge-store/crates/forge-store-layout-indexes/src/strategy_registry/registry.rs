@@ -1,201 +1,131 @@
 use super::{
-    S8LayoutAdmissionDeferred, S8LayoutAdmissionDenial, S8LayoutAdmissionRequest,
-    S8LayoutRequestedCapability, S8LayoutStrategyCapability, S8LayoutStrategyRegistrySnapshot,
+    S8LayoutAdmissionDenial, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
+    S8LayoutStrategyCapability, S8LayoutStrategyRegistrySnapshot,
 };
 use crate::key_domain::{CompositeKeyOrderingLaw, HashCollisionLaw};
 use crate::maintenance::{S8IndexMaintenanceMode, S8PhysicalMutationShape};
-use crate::materialization::S8PhysicalAbsenceProof;
+use crate::production_transition::define_owner_outcome;
 use crate::strategy::{admit_strategy, S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
-use forge_proof::TransitionOutcome;
 
-pub type S8LayoutAdmissionOutcome =
-    TransitionOutcome<S8AdmittedLayoutStrategy, S8LayoutAdmissionDenial, S8LayoutAdmissionDeferred>;
-pub type S8LayoutRegistrySnapshotOutcome = TransitionOutcome<
-    S8LayoutStrategyRegistrySnapshot,
-    S8LayoutAdmissionDenial,
-    S8LayoutAdmissionDeferred,
->;
+define_owner_outcome!(
+    pub S8LayoutAdmissionOutcome,
+    pub S8LayoutAdmissionView,
+    S8LayoutAdmissionPayload,
+    LayoutAdmission,
+    AdmitLayoutStrategy,
+    [
+        success => Success(S8LayoutStrategyRegistrySnapshot): Declared => Admit => Admitted,
+        denied => Denied(S8LayoutAdmissionDenial): Declared => Deny => Denied,
+    ]
+);
+
+impl S8LayoutAdmissionOutcome {
+    pub fn into_result(self) -> Result<S8LayoutStrategyRegistrySnapshot, S8LayoutAdmissionDenial> {
+        match self.into_owner_payload() {
+            S8LayoutAdmissionPayload::Success(value) => Ok(value),
+            S8LayoutAdmissionPayload::Denied(denial) => Err(denial),
+        }
+    }
+    pub fn unwrap(self) -> S8LayoutStrategyRegistrySnapshot {
+        self.into_result().unwrap()
+    }
+    pub fn unwrap_err(self) -> S8LayoutAdmissionDenial {
+        self.into_result().unwrap_err()
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayoutAdmissionRegistryFacade;
 
 impl LayoutAdmissionRegistryFacade {
     pub fn admit(&self, request: S8LayoutAdmissionRequest) -> S8LayoutAdmissionOutcome {
-        match self.admit_with(request) {
-            TransitionOutcome::Success(snapshot) => self.try_admit_ready(snapshot),
-            TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
-            TransitionOutcome::Deferred(deferred) => TransitionOutcome::Deferred(deferred),
-            TransitionOutcome::Stale(stale) => match stale {},
-            TransitionOutcome::RebindRequired(rebind) => match rebind {},
-            TransitionOutcome::Failed(failed) => match failed {},
+        match derive_registry_snapshot(request) {
+            Ok(snapshot) => S8LayoutAdmissionOutcome::success(snapshot),
+            Err(denial) => S8LayoutAdmissionOutcome::denied(denial),
+        }
+    }
+}
+
+fn derive_registry_snapshot(
+    request: S8LayoutAdmissionRequest,
+) -> Result<S8LayoutStrategyRegistrySnapshot, S8LayoutAdmissionDenial> {
+    let admitted = match admit_strategy(request.lifecycle(), request.key_domain(), request.family())
+    {
+        Ok(admitted) => admitted,
+        Err(denial) => {
+            return Err(S8LayoutAdmissionDenial::StrategyVocabularyDenied(denial));
+        }
+    };
+
+    if admitted.declared_access_lane() != request.requested_lane() {
+        return Err(
+            S8LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
+                family: admitted.family(),
+                requested_lane: request.requested_lane(),
+                declared_lane: admitted.declared_access_lane(),
+            },
+        );
+    }
+
+    if request.required_scope_partition() != request.key_domain().scope() {
+        return Err(
+            S8LayoutAdmissionDenial::RequestedScopeDoesNotMatchKeyDomain {
+                requested_scope: request.required_scope_partition(),
+                key_domain_scope: request.key_domain().scope(),
+            },
+        );
+    }
+
+    if !maintenance_mode_supports_lane(request.maintenance_mode(), request.requested_lane()) {
+        return Err(
+            S8LayoutAdmissionDenial::MaintenanceModeIncompatibleWithRequestedLane {
+                family: admitted.family(),
+                maintenance_mode: request.maintenance_mode(),
+                requested_lane: request.requested_lane(),
+            },
+        );
+    }
+
+    if !mutation_shape_is_compatible(admitted.family(), request.mutation_shape()) {
+        return Err(
+            S8LayoutAdmissionDenial::MutationShapeIncompatibleWithStrategy {
+                family: admitted.family(),
+                mutation_shape: request.mutation_shape(),
+            },
+        );
+    }
+
+    if let Some(required_posture) = request.required_migration_posture() {
+        if admitted.migration_posture() != required_posture {
+            return Err(
+                S8LayoutAdmissionDenial::MigrationPostureIncompatibleWithStrategy {
+                    family: admitted.family(),
+                    required_migration_posture: required_posture,
+                    admitted_migration_posture: admitted.migration_posture(),
+                },
+            );
         }
     }
 
-    pub fn admit_with(&self, request: S8LayoutAdmissionRequest) -> S8LayoutRegistrySnapshotOutcome {
-        let admitted =
-            match admit_strategy(request.lifecycle(), request.key_domain(), request.family()) {
-                Ok(admitted) => admitted,
-                Err(denial) => {
-                    return TransitionOutcome::denied(
-                        S8LayoutAdmissionDenial::StrategyVocabularyDenied(denial),
-                    );
-                }
-            };
-
-        if admitted.declared_access_lane() != request.requested_lane() {
-            return TransitionOutcome::denied(
-                S8LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
-                    family: admitted.family(),
-                    requested_lane: request.requested_lane(),
-                    declared_lane: admitted.declared_access_lane(),
-                },
-            );
-        }
-
-        if request.required_scope_partition() != request.key_domain().scope() {
-            return TransitionOutcome::denied(
-                S8LayoutAdmissionDenial::RequestedScopeDoesNotMatchKeyDomain {
-                    requested_scope: request.required_scope_partition(),
-                    key_domain_scope: request.key_domain().scope(),
-                },
-            );
-        }
-
-        if !maintenance_mode_supports_lane(request.maintenance_mode(), request.requested_lane()) {
-            return TransitionOutcome::denied(
-                S8LayoutAdmissionDenial::MaintenanceModeIncompatibleWithRequestedLane {
-                    family: admitted.family(),
-                    maintenance_mode: request.maintenance_mode(),
-                    requested_lane: request.requested_lane(),
-                },
-            );
-        }
-
-        if !mutation_shape_is_compatible(admitted.family(), request.mutation_shape()) {
-            return TransitionOutcome::denied(
-                S8LayoutAdmissionDenial::MutationShapeIncompatibleWithStrategy {
-                    family: admitted.family(),
-                    mutation_shape: request.mutation_shape(),
-                },
-            );
-        }
-
-        if let Some(required_posture) = request.required_migration_posture() {
-            if admitted.migration_posture() != required_posture {
-                return TransitionOutcome::denied(
-                    S8LayoutAdmissionDenial::MigrationPostureIncompatibleWithStrategy {
-                        family: admitted.family(),
-                        required_migration_posture: required_posture,
-                        admitted_migration_posture: admitted.migration_posture(),
-                    },
-                );
-            }
-        }
-
-        if let Err(denial) = require_key_law_compatibility(admitted, request.requested_capability())
-        {
-            return TransitionOutcome::denied(denial);
-        }
-
-        let (hash_equality_law, composite_ordering_law) =
-            match require_requested_key_law_compatibility(admitted, request) {
-                Ok(laws) => laws,
-                Err(denial) => return TransitionOutcome::denied(denial),
-            };
-
-        let granted_capability =
-            S8LayoutStrategyCapability::from_requested(request.requested_capability());
-        TransitionOutcome::success(S8LayoutStrategyRegistrySnapshot::new(
-            admitted,
-            request,
-            granted_capability,
-            hash_equality_law,
-            composite_ordering_law,
-        ))
+    if let Err(denial) = require_key_law_compatibility(admitted, request.requested_capability()) {
+        return Err(denial);
     }
 
-    pub fn try_admit_ready(
-        &self,
-        snapshot: S8LayoutStrategyRegistrySnapshot,
-    ) -> S8LayoutAdmissionOutcome {
-        let request = snapshot.request();
-        let admitted = snapshot.admitted_strategy();
+    let (hash_equality_law, composite_ordering_law) =
+        match require_requested_key_law_compatibility(admitted, request) {
+            Ok(laws) => laws,
+            Err(denial) => return Err(denial),
+        };
 
-        if request.requires_exact_materialization() && request.exact_coverage().is_none() {
-            return TransitionOutcome::deferred(
-                S8LayoutAdmissionDeferred::ExactCoverageEvidenceRequired {
-                    family: admitted.family(),
-                    capability: snapshot.granted_capability(),
-                },
-            );
-        }
-
-        if let Some(coverage) = request.exact_coverage() {
-            let Some(maintenance_witness) = request.exact_maintenance_witness() else {
-                return TransitionOutcome::deferred(
-                    S8LayoutAdmissionDeferred::LiveExactMaintenanceWitnessRequired {
-                        family: admitted.family(),
-                        capability: snapshot.granted_capability(),
-                    },
-                );
-            };
-
-            if coverage.family() != admitted.lifecycle().declaration().family() {
-                return TransitionOutcome::denied(
-                    S8LayoutAdmissionDenial::CoverageFamilyDoesNotMatchStrategy {
-                        coverage_family: coverage.family(),
-                        strategy_family: admitted.lifecycle().declaration().family(),
-                    },
-                );
-            }
-
-            if maintenance_witness.family() != admitted.lifecycle().declaration().family() {
-                return TransitionOutcome::denied(
-                    S8LayoutAdmissionDenial::LiveExactMaintenanceWitnessDoesNotMatchStrategy {
-                        witness_family: maintenance_witness.family(),
-                        strategy_family: admitted.lifecycle().declaration().family(),
-                    },
-                );
-            }
-
-            if maintenance_witness.exact_coverage() != coverage {
-                return TransitionOutcome::denied(
-                    S8LayoutAdmissionDenial::LiveExactMaintenanceCoverageDoesNotMatchRequest {
-                        witness_coverage: maintenance_witness.exact_coverage(),
-                        requested_coverage: coverage,
-                    },
-                );
-            }
-
-            if !maintenance_witness
-                .maintenance_mode()
-                .permits_exact_answers()
-            {
-                return TransitionOutcome::deferred(
-                    S8LayoutAdmissionDeferred::LiveExactMaintenanceWitnessRequired {
-                        family: admitted.family(),
-                        capability: snapshot.granted_capability(),
-                    },
-                );
-            }
-
-            if let Err(denial) = coverage.require_exact() {
-                return TransitionOutcome::denied(S8LayoutAdmissionDenial::ExactCoverageDenied(
-                    denial,
-                ));
-            }
-
-            if request.requires_exact_absence_proof() {
-                if let Err(denial) = S8PhysicalAbsenceProof::exact_index(coverage) {
-                    return TransitionOutcome::denied(
-                        S8LayoutAdmissionDenial::ExactAbsenceProofDenied(denial),
-                    );
-                }
-            }
-        }
-
-        TransitionOutcome::success(admitted)
-    }
+    let granted_capability =
+        S8LayoutStrategyCapability::from_requested(request.requested_capability());
+    Ok(S8LayoutStrategyRegistrySnapshot::new(
+        admitted,
+        request,
+        granted_capability,
+        hash_equality_law,
+        composite_ordering_law,
+    ))
 }
 
 pub const fn layout_admission_registry() -> LayoutAdmissionRegistryFacade {

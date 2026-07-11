@@ -1,3 +1,4 @@
+use crate::source_precedence::RecoverySourceReplayBasis;
 use crate::{PageLsn, RecoverySourceDecisionTrace};
 
 use super::{RecoveredStateProjection, RedoApplicationPageFact, SkippedRedoFrameReport};
@@ -6,6 +7,7 @@ use super::{RecoveredStateProjection, RedoApplicationPageFact, SkippedRedoFrameR
 pub struct RecoveredPhysicalState {
     recovered_physical_root: String,
     page_lsn_frontier: Option<PageLsn>,
+    source_replay_basis: RecoverySourceReplayBasis,
     source_decision_digest: String,
     applied_frame_count: usize,
     skipped_frame_count: usize,
@@ -37,6 +39,7 @@ impl RecoveredPhysicalState {
     pub(crate) fn from_projected_parts(
         recovered_physical_root: String,
         page_lsn_frontier: Option<PageLsn>,
+        source_replay_basis: RecoverySourceReplayBasis,
         source_decision_digest: String,
         applied_frame_count: usize,
         skipped_frame_count: usize,
@@ -44,6 +47,7 @@ impl RecoveredPhysicalState {
         Self {
             recovered_physical_root,
             page_lsn_frontier,
+            source_replay_basis,
             source_decision_digest,
             applied_frame_count,
             skipped_frame_count,
@@ -56,6 +60,10 @@ impl RecoveredPhysicalState {
 
     pub const fn page_lsn_frontier(&self) -> Option<PageLsn> {
         self.page_lsn_frontier
+    }
+
+    pub(crate) const fn source_replay_basis(&self) -> &RecoverySourceReplayBasis {
+        &self.source_replay_basis
     }
 
     pub fn source_decision_digest(&self) -> &str {

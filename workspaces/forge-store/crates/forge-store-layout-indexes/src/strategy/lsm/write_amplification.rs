@@ -14,7 +14,10 @@ impl S8LsmWriteAmplificationLaw {
         bytes_out: u64,
         rewritten_runs: u16,
     ) -> Result<(), S8StrategyDenial> {
-        if bytes_in > 0 && bytes_out >= bytes_in && rewritten_runs > 0 {
+        // Compaction may legitimately shrink output after tombstone/value
+        // collapse. Exact non-zero input/output work and rewritten-run count
+        // are the accounting invariant; amplification is their measured ratio.
+        if bytes_in > 0 && bytes_out > 0 && rewritten_runs > 0 {
             return Ok(());
         }
         Err(S8StrategyDenial::WriteAmplificationViolation)

@@ -3,8 +3,8 @@ use crate::{
     wal::DurableMutationId,
     ForegroundIsolationOutcome,
 };
-pub use forge_store_contracts::PublicationFamily;
 use forge_relational::facade::{history::CommitId, replay::CanonicalCommitEnvelope};
+pub use forge_store_contracts::PublicationFamily;
 use serde::Serialize;
 
 const DEFAULT_RUNTIME_SESSION_ID: &str = "durable-runtime";

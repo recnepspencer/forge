@@ -24,4 +24,3 @@ pub(crate) fn refine_coverage_case(
         other => other,
     }
 }
-

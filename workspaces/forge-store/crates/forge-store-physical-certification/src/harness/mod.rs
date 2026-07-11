@@ -1,6 +1,6 @@
 //! Harness authority for physical simulation certification scenarios.
 
-pub mod by_milestone;
+pub(crate) mod by_milestone;
 
 pub use by_milestone::s6::{
     all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds, evaluate_row_rebind,

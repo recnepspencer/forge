@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StoreKeyScope {
     StoreManagedRoot,
     TenantEnvelope,
@@ -37,7 +37,7 @@ impl StoreKeyVersionPosture {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StoreTenantScope {
     StoreInternal,
     TenantPhysicalBoundary,

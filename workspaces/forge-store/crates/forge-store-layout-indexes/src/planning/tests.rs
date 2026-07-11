@@ -10,6 +10,11 @@ use crate::{
 use forge_store_budgets::S8PreExecutionBudgetEnvelope;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_format::PhysicalEpoch;
+
+pub(crate) fn assert_owner_transition_handoff_equivalence() {
+    deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads();
+    deterministic_selection_denies_when_budget_is_exceeded_before_execution();
+}
 use forge_store_recovery_physics::LogSequenceNumber;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
@@ -39,14 +44,17 @@ fn deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads(
         .require_exact_range_access(coverage)
         .unwrap();
 
-    let first = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            access_shape,
-            S8PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .unwrap();
+    let first_outcome = deterministic_plan_selection().select_with_budget(
+        lifecycle,
+        key_domain,
+        access_shape,
+        S8PreExecutionBudgetEnvelope::foreground_default(),
+    );
+    assert_eq!(
+        first_outcome.production_transition().outcome_case().name(),
+        "Selected"
+    );
+    let first = first_outcome.unwrap();
     let replayed = deterministic_plan_selection()
         .select_with_budget(
             lifecycle,
@@ -71,6 +79,14 @@ fn deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads(
             granted_capability: S8PlanningCapabilityGrant::OrderedRange,
             planned_counter_envelope: first.planned_counter_envelope(),
         })
+    );
+    assert_eq!(
+        first
+            .primary_candidate()
+            .layout_admission_transition()
+            .expect("planned candidate preserves layout admission")
+            .machine(),
+        crate::production_transition::S8LayoutStateMachine::LayoutAdmission
     );
 }
 
@@ -146,14 +162,17 @@ fn deterministic_selection_denies_when_budget_is_exceeded_before_execution() {
         )
         .unwrap();
 
-    let denial = deterministic_plan_selection()
-        .select_with_budget(
-            lifecycle,
-            key_domain,
-            degraded,
-            S8PreExecutionBudgetEnvelope::foreground_default(),
-        )
-        .unwrap_err();
+    let denied_outcome = deterministic_plan_selection().select_with_budget(
+        lifecycle,
+        key_domain,
+        degraded,
+        S8PreExecutionBudgetEnvelope::foreground_default(),
+    );
+    assert_eq!(
+        denied_outcome.production_transition().outcome_case().name(),
+        "Denied"
+    );
+    let denial = denied_outcome.unwrap_err();
 
     assert!(matches!(denial, S8PlanSelectionDenied::BudgetDenied(_)));
 }
@@ -367,4 +386,13 @@ fn exact_multi_range_and_grouped_prefix_paths_fail_closed_without_btree_counter_
             .unwrap_err(),
         S8PlanSelectionDenied::NoEligibleAlternative
     );
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    deterministic_selection_keeps_btree_fingerprint_stable_for_exact_range_reads();
+    deterministic_selection_selects_lsm_for_exact_wal_point_paths();
+    deterministic_selection_denies_when_budget_is_exceeded_before_execution();
+    degraded_exact_scan_uses_explicit_rule_and_plan_bound_budget_receipt();
+    deterministic_selection_denies_when_no_strategy_is_eligible();
+    exact_multi_range_and_grouped_prefix_paths_fail_closed_without_btree_counter_lane();
 }

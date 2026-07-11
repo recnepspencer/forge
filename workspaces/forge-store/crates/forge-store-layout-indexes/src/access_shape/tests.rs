@@ -19,6 +19,25 @@ fn exact_coverage() -> crate::S8LayoutCoverageWitness {
         .expect("exact coverage should admit")
 }
 
+pub(crate) fn assert_hidden_scan_owner_transition_equivalence() {
+    let outcome = access_shapes().full_declared_scan(
+        exact_coverage(),
+        S8AccessLaneClassification::Foreground,
+        S8FullDeclaredScanBasis::DeclaredFullTraversal,
+    );
+    let fact = outcome.production_transition();
+    assert!(matches!(
+        outcome.view(),
+        super::S8FullDeclaredScanView::HiddenDenied(_)
+    ));
+    assert!(
+        crate::production_transition::S8LayoutMachineContract::for_machine(
+            crate::production_transition::S8LayoutStateMachine::FullDeclaredScanAdmission,
+        )
+        .contains(fact)
+    );
+}
+
 #[test]
 fn exact_access_shapes_require_materialization_coverage_witnesses() {
     let coverage = exact_coverage();
@@ -358,4 +377,11 @@ fn degraded_exact_scan_stays_budgeted_and_counter_distinct() {
         S8ExpectedCounterClass::DegradedExactScan
     );
     assert_eq!(degraded.budget_rows(), Some(64));
+}
+
+pub(crate) fn exercise_owner_outcome_cases() {
+    exact_access_shapes_require_materialization_coverage_witnesses();
+    scan_and_manifest_shapes_preserve_bound_and_lane_truth();
+    mutation_and_maintenance_shapes_keep_denial_boundaries();
+    degraded_exact_scan_stays_budgeted_and_counter_distinct();
 }

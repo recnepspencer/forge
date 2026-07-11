@@ -1,3 +1,4 @@
+use crate::{CrashBoundaryLayoutReport, RecoveryLayoutAccess};
 use crate::{RecoveryEntryIdentity, RecoveryReplayEntryGate};
 
 use super::{
@@ -11,6 +12,7 @@ pub struct PartialPublicationReplayReadRecord {
     recovery_entry_identity: RecoveryEntryIdentity,
     persisted_bytes_digest: String,
     classification: PartialPublicationClassification,
+    crash_report: CrashBoundaryLayoutReport,
     _seal: ReplayReadRecordSeal,
 }
 
@@ -22,6 +24,7 @@ pub struct PartialPublicationReplayReadArtifact {
     recovery_entry_identity: RecoveryEntryIdentity,
     persisted_bytes_digest: String,
     classification: PartialPublicationClassification,
+    crash_report: CrashBoundaryLayoutReport,
     _seal: ReplayReadArtifactSeal,
 }
 
@@ -33,6 +36,7 @@ struct PartialPublicationReplayReadSource {
     recovery_entry_digest: String,
     persisted_bytes_digest: String,
     classification: PartialPublicationClassification,
+    crash_report: CrashBoundaryLayoutReport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,20 +54,44 @@ pub enum PartialPublicationReplayReadDenial {
 }
 
 impl PartialPublicationReplayReadArtifact {
+    pub(crate) fn from_admitted_before_wal_read(
+        recovery_entry_identity: RecoveryEntryIdentity,
+        bytes: PartialPublicationPersistedBytes,
+        classification: PartialPublicationClassification,
+        crash_report: CrashBoundaryLayoutReport,
+    ) -> Self {
+        Self {
+            recovery_entry_identity,
+            persisted_bytes_digest: bytes.persisted_bytes_digest(),
+            classification,
+            crash_report,
+            _seal: ReplayReadArtifactSeal,
+        }
+    }
+
     pub(crate) fn from_replay_entry_gate(
         replay_entry: &RecoveryReplayEntryGate,
         bytes: PartialPublicationPersistedBytes,
-    ) -> Self {
+    ) -> Result<Self, PartialPublicationReplayReadDenial> {
         let persisted_bytes_digest = bytes.persisted_bytes_digest();
         let classification = PartialPublicationClassification::classify_observations(
             PartialPublicationObservationSet::new().with_persisted_bytes(bytes),
         );
-        Self {
+        let crash_report = RecoveryLayoutAccess::s8()
+            .phase22_crash_boundary_family()
+            .admit_classification(&classification)
+            .map_err(|_| PartialPublicationReplayReadDenial::NotBeforeWalAppend {
+                actual_operation_digest: classification
+                    .before_wal_append_operation_digest()
+                    .map(str::to_owned),
+            })?;
+        Ok(Self {
             recovery_entry_identity: replay_entry.entry_identity().clone(),
             persisted_bytes_digest,
             classification,
+            crash_report,
             _seal: ReplayReadArtifactSeal,
-        }
+        })
     }
 
     pub fn recovery_entry_digest(&self) -> &str {
@@ -74,8 +102,12 @@ impl PartialPublicationReplayReadArtifact {
         &self.persisted_bytes_digest
     }
 
-    pub fn classification(&self) -> &PartialPublicationClassification {
+    pub(crate) fn classification(&self) -> &PartialPublicationClassification {
         &self.classification
+    }
+
+    pub const fn crash_report(&self) -> &CrashBoundaryLayoutReport {
+        &self.crash_report
     }
 }
 
@@ -85,6 +117,7 @@ impl PartialPublicationReplayReadRecord {
             recovery_entry_identity: artifact.recovery_entry_identity,
             persisted_bytes_digest: artifact.persisted_bytes_digest,
             classification: artifact.classification,
+            crash_report: artifact.crash_report,
             _seal: ReplayReadRecordSeal,
         }
     }
@@ -97,8 +130,12 @@ impl PartialPublicationReplayReadRecord {
         &self.persisted_bytes_digest
     }
 
-    pub fn classification(&self) -> &PartialPublicationClassification {
+    pub(crate) fn classification(&self) -> &PartialPublicationClassification {
         &self.classification
+    }
+
+    pub const fn crash_report(&self) -> &CrashBoundaryLayoutReport {
+        &self.crash_report
     }
 
     fn into_source(self) -> PartialPublicationReplayReadSource {
@@ -106,6 +143,7 @@ impl PartialPublicationReplayReadRecord {
             recovery_entry_digest: self.recovery_entry_identity.digest().as_str().to_owned(),
             persisted_bytes_digest: self.persisted_bytes_digest,
             classification: self.classification,
+            crash_report: self.crash_report,
         }
     }
 }
@@ -115,8 +153,7 @@ impl PartialPublicationReplayReadWitness {
         record: PartialPublicationReplayReadRecord,
     ) -> Result<Self, PartialPublicationReplayReadDenial> {
         let source = record.into_source();
-        if source.classification.outcome() != UnacknowledgedPublicationOutcome::NoWalAppendObserved
-        {
+        if source.crash_report.outcome() != UnacknowledgedPublicationOutcome::NoWalAppendObserved {
             return Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
                 actual_operation_digest: source
                     .classification
@@ -164,7 +201,11 @@ impl PartialPublicationReplayReadWitness {
         self.source.classification.counters()
     }
 
-    pub fn classification(&self) -> &PartialPublicationClassification {
+    pub(crate) fn classification(&self) -> &PartialPublicationClassification {
         &self.source.classification
+    }
+
+    pub const fn crash_report(&self) -> &CrashBoundaryLayoutReport {
+        &self.source.crash_report
     }
 }

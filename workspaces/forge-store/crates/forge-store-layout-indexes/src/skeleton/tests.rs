@@ -103,9 +103,16 @@ fn inventory_and_map_stay_in_lockstep() {
 #[test]
 fn topology_closeout_names_required_homes() {
     let closeout = S8SubsystemTopologyCloseout::current();
-    assert!(closeout.layout_indexes_homes().contains(&"budget"));
-    assert!(closeout.layout_indexes_homes().contains(&"materialization"));
-    assert!(closeout.layout_indexes_homes().contains(&"handoff"));
+    assert!(closeout.layout_indexes_homes().contains(&"customization"));
+    assert!(closeout
+        .layout_indexes_public_facades()
+        .contains(&"layout_families.rs"));
+    assert!(closeout
+        .layout_indexes_public_facades()
+        .contains(&"access_planning.rs"));
+    assert!(closeout
+        .layout_indexes_public_facades()
+        .contains(&"layout_readmission.rs"));
     assert!(closeout
         .family_homes()
         .contains(&"forge-store-blob-chunks::layout_access"));
@@ -132,60 +139,69 @@ fn selected_phase_zero_files_exist_and_displaced_homes_are_gone() {
     let expected_homes: std::collections::BTreeSet<_> = S8SubsystemTopologyCloseout::current()
         .layout_indexes_homes()
         .iter()
-        .map(|home| home.split('/').next().expect("top-level home").to_owned())
+        .map(|home| (*home).to_owned())
         .collect();
     assert_eq!(
         actual_homes, expected_homes,
-        "layout-indexes must expose exactly the selected Phase 0 top-level homes"
+        "layout-indexes must expose the selected internal homes exactly"
     );
 
     let required = [
-        "access_shape/contract.rs",
-        "access_shape/point.rs",
-        "access_shape/range.rs",
-        "access_shape/prefix.rs",
-        "access_shape/scan.rs",
-        "access_shape/streaming.rs",
-        "access_shape/append.rs",
-        "access_shape/verifier.rs",
-        "access_shape/repair.rs",
-        "access_shape/quarantine.rs",
-        "access_shape/denial.rs",
-        "planning/lowering_request.rs",
-        "planning/alternative.rs",
-        "planning/selection_policy.rs",
-        "planning/plan_fingerprint.rs",
-        "planning/selection_receipt.rs",
-        "maintenance/rebuild.rs",
-        "maintenance/parity.rs",
-        "maintenance/mutation_plan.rs",
-        "maintenance/maintenance_mode.rs",
-        "maintenance/publication_protocol.rs",
-        "maintenance/lag.rs",
-        "maintenance/failure.rs",
-        "migration/version.rs",
-        "migration/compatibility.rs",
-        "migration/migration_plan.rs",
-        "migration/rollback_plan.rs",
-        "migration/stale_rebind.rs",
-        "strategy/invariant_suite.rs",
-        "strategy/denial.rs",
-        "strategy_registry/mod.rs",
-        "strategy_registry/request.rs",
-        "strategy_registry/denial.rs",
-        "strategy_registry/registry.rs",
-        "facade/declarations.rs",
-        "facade/key_domains.rs",
-        "facade/maintenance.rs",
-        "facade/migration.rs",
-        "facade/readmission.rs",
-        "facade/closeout.rs",
+        "layout_families.rs",
+        "layout_strategy_admission.rs",
+        "access_planning.rs",
+        "access_lowering.rs",
+        "access_execution.rs",
+        "layout_rebuild.rs",
+        "layout_migration.rs",
+        "layout_counters.rs",
+        "layout_readmission.rs",
+        "layout_customization.rs",
+        "layout_closeout.rs",
+        "layout_certification.rs",
     ];
 
     for relative_path in required {
         assert!(
             root.join(relative_path).is_file(),
-            "missing selected skeleton file {relative_path}"
+            "missing lifecycle-shaped public facade {relative_path}"
+        );
+    }
+
+    let crate_root = std::fs::read_to_string(root.join("lib.rs")).expect("layout-indexes lib.rs");
+    for required in [
+        "pub mod layout_families;",
+        "pub mod layout_strategy_admission;",
+        "pub mod access_planning;",
+        "pub mod access_lowering;",
+        "pub mod access_execution;",
+        "pub mod layout_rebuild;",
+        "pub mod layout_migration;",
+        "pub mod layout_counters;",
+        "pub mod layout_readmission;",
+        "pub mod layout_customization;",
+        "pub mod layout_closeout;",
+        "pub mod layout_certification;",
+    ] {
+        assert!(
+            crate_root.contains(required),
+            "crate root must expose lifecycle facade line {required}"
+        );
+    }
+
+    for forbidden in [
+        "pub use artifact_family::",
+        "pub use execution::",
+        "pub use maintenance::",
+        "pub use migration::",
+        "pub use planning::",
+        "pub use corruption::",
+        "pub use customization::",
+        "pub use facade::",
+    ] {
+        assert!(
+            !crate_root.contains(forbidden),
+            "crate root must not preserve broad root authority via {forbidden}"
         );
     }
 
@@ -306,9 +322,12 @@ fn responsibility_rows_are_complete_and_point_to_real_phase_zero_homes() {
             S8CratePrimaryRole::LayoutAccessGrammar => {
                 assert_eq!(
                     row.public_facade_home(),
-                    "forge_store_layout_indexes::{layout_declarations,layout_customization_boundary,access_planning,layout_readmission,layout_closeout}"
+                    "forge_store_layout_indexes::{layout_families,layout_strategy_admission,access_planning,access_lowering,access_execution,layout_rebuild,layout_migration,layout_counters,layout_readmission,layout_customization,layout_closeout,layout_certification}"
                 );
-                assert!(crate_dir.join("src").join("facade").is_dir());
+                for facade in S8SubsystemTopologyCloseout::current().layout_indexes_public_facades()
+                {
+                    assert!(crate_dir.join("src").join(facade).is_file());
+                }
             }
             S8CratePrimaryRole::FamilyExecutionAuthority => {
                 assert!(
@@ -321,14 +340,9 @@ fn responsibility_rows_are_complete_and_point_to_real_phase_zero_homes() {
             S8CratePrimaryRole::PhysicalCertificationCourtroom => {
                 assert_eq!(
                     row.public_facade_home(),
-                    "forge_store_physical_certification::harness::by_milestone::s8_layout_access"
+                    "forge_store_physical_certification::layout_harness"
                 );
-                assert!(crate_dir
-                    .join("src")
-                    .join("harness")
-                    .join("by_milestone")
-                    .join("s8_layout_access")
-                    .is_dir());
+                assert!(crate_dir.join("src").join("layout_harness").is_dir());
             }
             S8CratePrimaryRole::CertificationCloseoutCourtroom => {
                 assert_eq!(
@@ -340,14 +354,13 @@ fn responsibility_rows_are_complete_and_point_to_real_phase_zero_homes() {
             S8CratePrimaryRole::HonestTestFixtureSupport => {
                 assert_eq!(
                     row.public_facade_home(),
-                    "forge_store_test_support::harness::milestone::s8_layout_access"
+                    "forge_store_test_support::harness::production_facade::s8_layout_access"
                 );
                 assert!(crate_dir
                     .join("src")
                     .join("harness")
-                    .join("milestone")
-                    .join("s8_layout_access")
-                    .is_dir());
+                    .join("production_facade.rs")
+                    .is_file());
             }
             _ => {}
         }

@@ -4,13 +4,13 @@ use forge_store_physical_certification::{
     ProductionStorageBoundaryDriver,
 };
 
-pub fn admitted_developer_smoke_driver_contracts(
-) -> Result<AdmittedDriverContractSet, DriverAdmissionDenial> {
+pub fn admitted_developer_smoke_driver_contracts()
+-> Result<AdmittedDriverContractSet, DriverAdmissionDenial> {
     AdmittedDriverContractSet::developer_smoke()
 }
 
-pub fn admitted_ci_certification_driver_contracts(
-) -> Result<AdmittedDriverContractSet, DriverAdmissionDenial> {
+pub fn admitted_ci_certification_driver_contracts()
+-> Result<AdmittedDriverContractSet, DriverAdmissionDenial> {
     AdmittedDriverContractSet::ci_certification()
 }
 

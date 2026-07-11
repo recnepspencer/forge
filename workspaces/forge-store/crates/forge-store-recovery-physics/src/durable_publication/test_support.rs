@@ -1,11 +1,9 @@
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
-    CapabilityEvidenceClass, PhysicalBackendCapabilityAdmissionAuthority,
-    PhysicalStoreDurabilityExecutor, StoreDurabilityAdmission, StoreDurabilityBoundaryReached,
-    StoreDurabilityDenial, StoreDurabilityExecutionObservation, StoreDurabilityExecutionRequest,
-    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityPublicationKind,
-    StoreDurabilityRequirement, StoreDurabilityWriteAccepted,
+    PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
+    StoreDurabilityBoundaryReached, StoreDurabilityDenial, StoreDurabilityFileSyncKind,
+    StoreDurabilityRequirement, StoreDurabilityRuntime, StoreDurabilityWriteAccepted,
 };
 
 pub(super) fn admitted(requirement: StoreDurabilityRequirement) -> StoreDurabilityAdmission {
@@ -31,83 +29,21 @@ pub(super) fn reach_boundary<S>(
 where
     S: Clone + Eq + core::fmt::Debug,
 {
-    let expected_scope = accepted.scope().clone();
-    let expected_requirement = accepted.requirement();
-    let expected_publication = expected_requirement.publication();
-    let observation = execution_observation(
-        accepted.requirement(),
-        sync,
-        directory_sync_completed,
-        rename_completed,
-        ordering_barrier_completed,
+    assert_eq!(accepted.requirement().required_file_sync(), sync);
+    assert_eq!(
+        accepted.requirement().requires_directory_sync(),
+        directory_sync_completed
     );
-    let mut backend = RequestAssertingDurabilityBackend {
-        expected_scope,
-        expected_requirement,
-        expected_publication,
-        observation,
-    };
-    let proof = StoreDurabilityExecutionSession::for_store_backend(
-        &mut backend,
-        forge_store_physical_backend::StoreOwnedDurabilityExecution::for_certification_test_authority(),
-    )
-    .execute(&accepted)
-    .unwrap();
+    assert_eq!(
+        accepted.requirement().requires_rename_durable(),
+        rename_completed
+    );
+    assert_eq!(
+        accepted.requirement().requires_ordering_barrier(),
+        ordering_barrier_completed
+    );
+    let proof = StoreDurabilityRuntime::new()
+        .persist_and_execute(&std::env::temp_dir(), b"recovery-durable-write", &accepted)
+        .unwrap();
     accepted.reach_durability_boundary(proof)
-}
-
-fn execution_observation(
-    requirement: StoreDurabilityRequirement,
-    sync: StoreDurabilityFileSyncKind,
-    directory_sync_completed: bool,
-    rename_completed: bool,
-    ordering_barrier_completed: bool,
-) -> StoreDurabilityExecutionObservation {
-    let mut observation =
-        StoreDurabilityExecutionObservation::new(requirement.required_barriers(), sync);
-    if directory_sync_completed {
-        observation = observation.with_directory_sync_completed();
-    }
-    if rename_completed {
-        observation = observation.with_rename_completed();
-    }
-    if ordering_barrier_completed {
-        observation = observation.with_ordering_barrier_completed();
-    }
-    observation
-}
-
-struct RequestAssertingDurabilityBackend<S> {
-    expected_scope: S,
-    expected_requirement: StoreDurabilityRequirement,
-    expected_publication: StoreDurabilityPublicationKind,
-    observation: StoreDurabilityExecutionObservation,
-}
-
-impl<S> PhysicalStoreDurabilityExecutor<S> for RequestAssertingDurabilityBackend<S>
-where
-    S: Eq + core::fmt::Debug,
-{
-    type Error = ();
-
-    fn execute_durability(
-        &mut self,
-        request: StoreDurabilityExecutionRequest<S>,
-    ) -> Result<StoreDurabilityExecutionObservation, Self::Error> {
-        assert_eq!(request.scope(), &self.expected_scope);
-        assert_eq!(
-            request.profile(),
-            BackendTargetProfile::PosixFileFsyncDirSync
-        );
-        assert_eq!(
-            request.evidence_class(),
-            CapabilityEvidenceClass::CertifiedBackendProfile
-        );
-        assert_eq!(request.requirement(), self.expected_requirement);
-        assert_eq!(
-            request.requirement().publication(),
-            self.expected_publication
-        );
-        Ok(self.observation)
-    }
 }

@@ -129,8 +129,7 @@ fn require_replay_matches_handoff(
     if state.page_lsn_frontier() != readiness.admitted_page_lsn_frontier {
         return Err(S5RecoveryReadinessDenial::ReplayPageLsnFrontierMismatch);
     }
-    if state.source_decision_digest() != readiness.source_precedence_trace.canonical_replay_digest()
-    {
+    if state.source_replay_basis() != readiness.source_precedence_trace.replay_basis() {
         return Err(S5RecoveryReadinessDenial::ReplaySourceDecisionMismatch);
     }
     Ok(())

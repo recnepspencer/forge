@@ -56,6 +56,18 @@ pub fn admitted_tenant_artifact_security_scope_for_layout_access_test() -> Store
     )
 }
 
+pub fn admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test(
+) -> StoreAdmittedSecurityScope {
+    admitted_scope(
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreTenantScope::TenantPhysicalBoundary,
+        StoreAuthenticityRequirement::required(
+            crate::StoreAuthenticityRequirementClass::AuthenticatedFrame,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    )
+}
+
 pub fn admitted_tenant_page_without_authenticity_for_layout_access_test(
 ) -> StoreAdmittedSecurityScope {
     admitted_scope(

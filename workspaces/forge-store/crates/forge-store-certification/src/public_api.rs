@@ -2,6 +2,12 @@
 //!
 //! Order: authority → evidence → scenario → replay → harness → closeout → lanes.
 
+// --- runtime matrix: courtroom-only Phase 33 completeness gate ---
+pub use crate::s8_runtime_matrix::{
+    require_complete_s8_runtime_matrix, required_s8_runtime_cases, S8RuntimeMatrixDenial,
+    S8RuntimeStrategyEquivalenceClass,
+};
+
 // --- authority: substrate certification entry points ---
 pub use crate::authority::{
     certify_physical_page_segment_extent_substrate, certify_store_json_residue_inventory,
@@ -74,13 +80,15 @@ pub use crate::evidence::by_substrate::{
 };
 // --- closeout: milestone certification bundles and handoff evidence ---
 pub use crate::courtroom::closeout::{
-    adopt_materialized_s6_certification_evidence_for_closeout,
-    assemble_s5_physical_isolation_replay_bundle, certify_s5_1_security_scope_closeout,
-    certify_s7_native_blob_store_closeout, close_s3_physical_integrity_from_executed_evidence,
-    evaluate_s7_closeout_request, materialize_s5_executed_isolation_evidence,
-    materialize_s6_certification_evidence, observe_s5_physical_isolation_trace,
     admit_s7_backup_non_claim_handoff, admit_s7_full_certification_non_claim_handoff,
     admit_s7_key_lifecycle_non_claim_handoff, admit_s7_layout_readiness_handoff,
+    adopt_materialized_s6_certification_evidence_for_closeout,
+    assemble_s5_physical_isolation_replay_bundle, certify_s5_1_security_scope_closeout,
+    certify_s7_native_blob_store_closeout, certify_s8_layout_closeout,
+    certify_s8_layout_closeout_suite, classify_s8_layout_closeout_sources,
+    close_s3_physical_integrity_from_executed_evidence, evaluate_s7_closeout_request,
+    materialize_s5_executed_isolation_evidence, materialize_s6_certification_evidence,
+    observe_s5_physical_isolation_trace, project_s8_layout_handoff_grammar,
     s5_physical_isolation_ci_certification_context_without_lane_registration,
     s5_physical_isolation_ci_certification_planning_context,
     s5_physical_isolation_context_without_lane_registration, s5_physical_isolation_coverage_matrix,
@@ -108,14 +116,16 @@ pub use crate::courtroom::closeout::{
     RecoveryPhysicsScenarioDefinitionDenial, RecoveryPhysicsScenarioDrivers,
     RecoveryPhysicsScenarioPlan, RecoveryPhysicsScenarioPlanDenial, RecoveryPhysicsShortcutAttempt,
     RecoveryPhysicsShortcutDenialBoundary, RecoveryPhysicsShortcutDenialReason,
-    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript, S3AcceptanceSuiteKind,
-    S3CloseoutDenialBoundary, S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind,
-    S3CloseoutHarnessExecutionEvidence, S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary,
-    S3CorruptionLocalizationBoundary, S3ExecutedBoundaryDenialEvidence,
-    S3ExecutedCorruptionLocalizationEvidence, S3HarnessTranscriptEvidence,
-    S3LineCapCompositionEvidence, S3LineCapModuleEvidence, S3OwnedCloseoutFileEvidence,
-    S3S4HandoffCloseoutEvidence, S51CertificationCloseoutDenial, S51CertificationCloseoutEvidence,
-    S51CertificationCloseoutInput, S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
+    RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript,
+    S10BlobBackupRepairNonClaimHandoff, S11KeyLifecycleNonClaimHandoff,
+    S12FullCertificationNonClaimHandoff, S3AcceptanceSuiteKind, S3CloseoutDenialBoundary,
+    S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
+    S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary, S3CorruptionLocalizationBoundary,
+    S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
+    S3HarnessTranscriptEvidence, S3LineCapCompositionEvidence, S3LineCapModuleEvidence,
+    S3OwnedCloseoutFileEvidence, S3S4HandoffCloseoutEvidence, S51CertificationCloseoutDenial,
+    S51CertificationCloseoutEvidence, S51CertificationCloseoutInput,
+    S51CertificationEvidencePolicy, S51CloseoutApiAdoptionEvidence,
     S51CloseoutBoundaryEvidencePublication, S51CloseoutCounterMatrix,
     S51CloseoutFoundationalBoundaryPackage, S51CloseoutFoundationalLane,
     S51CloseoutPerformanceReceipts, S51CloseoutPerformanceRows, S5CloseoutReservationSet,
@@ -127,12 +137,12 @@ pub use crate::courtroom::closeout::{
     S5FoundationalPerformanceReceipts, S5PhysicalIsolationHarnessLane,
     S5PhysicalIsolationMutationEvidence, S5PhysicalIsolationProofTrace,
     S5PhysicalIsolationTraceFixtures, S5ProofProjectionArtifact,
-    S10BlobBackupRepairNonClaimHandoff, S11KeyLifecycleNonClaimHandoff,
-    S12FullCertificationNonClaimHandoff, S7CloseoutCertificationInput, S7CloseoutDenial,
+    S6CertificationEvidenceAdoptionReceipt, S7CloseoutCertificationInput, S7CloseoutDenial,
     S7CloseoutEvidencePolicy, S7CloseoutRequest, S7CloseoutShortcutAttempt,
     S7CloseoutShortcutInput, S7CloseoutShortcutRejectionReport, S7NativeBlobStoreCloseout,
-    S7S8LayoutReadinessHandoff,
-    S6CertificationEvidenceAdoptionReceipt, SyntheticCloseoutRejectionDenial,
+    S7S8LayoutReadinessHandoff, S8LayoutCloseoutCertificate, S8LayoutCloseoutClassification,
+    S8LayoutCloseoutDenial, S8LayoutCloseoutSources, S8LayoutCloseoutSuiteCertificate,
+    S8LayoutCloseoutVerifier, S8LayoutCourtroomGrammar, SyntheticCloseoutRejectionDenial,
     SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,
     SyntheticCloseoutShortcutRejectionReport,
 };
@@ -172,27 +182,28 @@ pub use crate::courtroom::harness::{
 };
 // --- replay: observed traces and verifier comparison ---
 pub use crate::courtroom::replay::{
-    FixtureAdversaryPosture, FixtureAdversaryReport, LargeStorePressureClass,
-    ObservedPhysicalTrace, OfflineVerifierObserver, PhysicalCounterExpectationKind,
-    PhysicalHostileScaleCondition, PhysicalHostileScaleFixtureDenial,
-    PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource, PhysicalLayoutParity,
-    PhysicalLayoutParityDenial, PhysicalLayoutParityReport, PhysicalRuntimeVerifierComparison,
-    PhysicalScalePropertyEvidence, PhysicalStoryTranscript, RuntimeLayoutObserver,
-    RuntimeVerifierComparisonClassification, RuntimeVerifierComparisonDenial,
-    RuntimeVerifierComparisonReport, RuntimeVerifierDiagnosticDenial,
-    RuntimeVerifierDiagnosticKind, RuntimeVerifierDiagnosticReport, RuntimeVerifierParityTrace,
-    RuntimeVerifierRelationship, RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport,
+    assemble_s8_layout_replay_bundle, FixtureAdversaryPosture, FixtureAdversaryReport,
+    LargeStorePressureClass, ObservedPhysicalTrace, OfflineVerifierObserver,
+    PhysicalCounterExpectationKind, PhysicalHostileScaleCondition,
+    PhysicalHostileScaleFixtureDenial, PhysicalHostileScaleFixtureReport,
+    PhysicalHostileScaleFixtureSource, PhysicalLayoutParity, PhysicalLayoutParityDenial,
+    PhysicalLayoutParityReport, PhysicalRuntimeVerifierComparison, PhysicalScalePropertyEvidence,
+    PhysicalStoryTranscript, RuntimeLayoutObserver, RuntimeVerifierComparisonClassification,
+    RuntimeVerifierComparisonDenial, RuntimeVerifierComparisonReport,
+    RuntimeVerifierDiagnosticDenial, RuntimeVerifierDiagnosticKind,
+    RuntimeVerifierDiagnosticReport, RuntimeVerifierParityTrace, RuntimeVerifierRelationship,
+    RuntimeVerifierSupportDenial, RuntimeVerifierSupportReport, S8LayoutReplayBundle,
     ScenarioCounterExpectation, ScenarioCounterObservation, ScenarioCounterTrace,
     ScenarioDenialBoundary, ScenarioDenialTrace, ScenarioObserverTrace, ShortcutRejectionTrace,
 };
 // --- scenario: definition, planning, and execution ---
 pub use crate::courtroom::scenario::{
-    ArtifactPolicy, ExpectedPhysicalFootprint, PhysicalScenarioCapabilityTier,
-    PhysicalScenarioCostClass, PhysicalScenarioDefinition, PhysicalScenarioDefinitionBuilder,
-    PhysicalScenarioDefinitionDenial, PhysicalScenarioExecution, PhysicalScenarioExecutionReport,
-    PhysicalScenarioPlan, PhysicalScenarioPlanDenial, PhysicalScenarioPlanIdentity,
-    PhysicalScenarioPlannedWorkBoundaryReport, PhysicalStoryStep, ScenarioLane,
-    StorageBoundaryCrossing, WorkloadScale,
+    certify_s8_layout_scenario, ArtifactPolicy, ExpectedPhysicalFootprint,
+    PhysicalScenarioCapabilityTier, PhysicalScenarioCostClass, PhysicalScenarioDefinition,
+    PhysicalScenarioDefinitionBuilder, PhysicalScenarioDefinitionDenial, PhysicalScenarioExecution,
+    PhysicalScenarioExecutionReport, PhysicalScenarioPlan, PhysicalScenarioPlanDenial,
+    PhysicalScenarioPlanIdentity, PhysicalScenarioPlannedWorkBoundaryReport, PhysicalStoryStep,
+    S8LayoutScenarioCertificate, ScenarioLane, StorageBoundaryCrossing, WorkloadScale,
 };
 // --- lanes: substrate lane vocabulary ---
 pub use crate::lanes::{LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily};

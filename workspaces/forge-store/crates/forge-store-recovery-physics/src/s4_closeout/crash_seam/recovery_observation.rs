@@ -1,3 +1,4 @@
+use crate::source_precedence::RecoverySourceReplayBasis;
 use crate::{PageLsn, RecoveryCounterSnapshot};
 
 use super::{S4CrashFaultSchedulerEvidence, S4RecoveryCrashSeam};
@@ -14,6 +15,7 @@ pub struct CrashSeamRecoveryObservation {
     fault_ordinal: u16,
     recovered_root: String,
     page_lsn_frontier: Option<PageLsn>,
+    source_replay_basis: RecoverySourceReplayBasis,
     source_decision_digest: String,
     counters: RecoveryCounterSnapshot,
 }
@@ -33,6 +35,7 @@ impl CrashSeamRecoveryObservation {
             fault_ordinal: evidence.fault_ordinal,
             recovered_root: state.recovered_physical_root().to_string(),
             page_lsn_frontier: state.page_lsn_frontier(),
+            source_replay_basis: state.source_replay_basis().clone(),
             source_decision_digest: state.source_decision_digest().to_string(),
             counters: crash_receipt.counters(),
         }
@@ -76,6 +79,10 @@ impl CrashSeamRecoveryObservation {
 
     pub const fn page_lsn_frontier(&self) -> Option<PageLsn> {
         self.page_lsn_frontier
+    }
+
+    pub(crate) const fn source_replay_basis(&self) -> &RecoverySourceReplayBasis {
+        &self.source_replay_basis
     }
 
     pub fn source_decision_digest(&self) -> &str {

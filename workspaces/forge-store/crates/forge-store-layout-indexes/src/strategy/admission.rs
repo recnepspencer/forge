@@ -1,3 +1,4 @@
+use super::invariant_suite::S8AdmittedStrategyInvariants;
 use super::{
     capability::S8StrategyCapability,
     posture::{
@@ -7,12 +8,10 @@ use super::{
     },
     S8LayoutStrategyFamily, S8StrategyDeclaration, S8StrategyDenial, S8StrategyInvariantSuite,
 };
+use crate::access_shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 use crate::artifact_family::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, ArtifactFamilyLifecycleAdmission,
     DurableArtifactMigrationPosture, DurableArtifactProjectionClass, DurableArtifactRebuildPosture,
-};
-use crate::access_shape::{
-    S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis,
 };
 use crate::budget::S8PlannedCounterEnvelope;
 use crate::execution::S8AccessPathCounterSnapshot;
@@ -25,13 +24,13 @@ use crate::key_domain::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8AdmittedLayoutStrategy {
     declaration: S8StrategyDeclaration,
-    invariants: S8StrategyInvariantSuite,
+    invariants: S8AdmittedStrategyInvariants,
 }
 
 impl S8AdmittedLayoutStrategy {
     pub(crate) const fn new(
         declaration: S8StrategyDeclaration,
-        invariants: S8StrategyInvariantSuite,
+        invariants: S8AdmittedStrategyInvariants,
     ) -> Self {
         Self {
             declaration,
@@ -44,7 +43,13 @@ impl S8AdmittedLayoutStrategy {
     }
 
     pub const fn invariant_suite(&self) -> S8StrategyInvariantSuite {
-        self.invariants
+        self.invariants.suite()
+    }
+
+    pub const fn invariant_production_transition(
+        &self,
+    ) -> crate::production_transition::S8LayoutProductionTransition {
+        self.invariants.production_transition()
     }
 
     pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
@@ -129,7 +134,11 @@ impl S8AdmittedLayoutStrategy {
     pub const fn declared_counter_profile(&self) -> super::S8StrategyCounterProfile {
         match self.planned_counter_envelope() {
             Some(envelope) => envelope.aggregate_profile(),
-            None => self.invariants.counter_evidence().aggregate_profile(),
+            None => self
+                .invariants
+                .suite()
+                .counter_evidence()
+                .aggregate_profile(),
         }
     }
 
@@ -275,7 +284,7 @@ pub(crate) fn admit_strategy(
     family: S8LayoutStrategyFamily,
 ) -> Result<S8AdmittedLayoutStrategy, S8StrategyDenial> {
     let declaration = declare_strategy(lifecycle, key_domain, family)?;
-    let invariants = S8StrategyInvariantSuite::declare(declaration)?;
+    let invariants = S8StrategyInvariantSuite::declare(declaration).into_admitted()?;
     Ok(S8AdmittedLayoutStrategy::new(declaration, invariants))
 }
 
@@ -351,9 +360,15 @@ const fn declare_planned_counter_envelope(
     match family {
         S8LayoutStrategyFamily::BaselineBTreeRange => None,
         S8LayoutStrategyFamily::BaselineLsmWriteOptimized => Some(S8PlannedCounterEnvelope::new(
-            S8AccessPathCounterSnapshot::exact(1, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0),
-            S8AccessPathCounterSnapshot::exact(0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 4, 16_384, 8_192, 2, 4, 2),
-            S8AccessPathCounterSnapshot::exact(0, 0, 1, 0, 1, 2, 0, 0, 0, 0, 0, 1, 8_192, 0, 0, 2, 0),
+            S8AccessPathCounterSnapshot::exact(
+                1, 1, 0, 0, 0, 2, 2, 2, 1, 0, 0, 0, 8_192, 0, 0, 2, 0,
+            ),
+            S8AccessPathCounterSnapshot::exact(
+                0, 0, 0, 2, 2, 4, 0, 0, 0, 0, 0, 4, 16_384, 8_192, 2, 4, 2,
+            ),
+            S8AccessPathCounterSnapshot::exact(
+                0, 0, 1, 0, 1, 2, 0, 0, 0, 0, 0, 1, 8_192, 0, 0, 2, 0,
+            ),
         )),
         _ => None,
     }
