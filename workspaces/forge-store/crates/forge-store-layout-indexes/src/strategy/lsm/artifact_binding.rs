@@ -40,9 +40,7 @@ pub(super) fn record_artifact_checksum(bytes: &[u8]) -> u64 {
     })
 }
 
-pub fn baseline_lsm_output_artifact_bytes(
-    scope: &WalFrameDurablePublicationScope,
-) -> Vec<u8> {
+pub fn baseline_lsm_output_artifact_bytes(scope: &WalFrameDurablePublicationScope) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(4096);
     bytes.extend_from_slice(b"forge-store:baseline-lsm-output:v1\0");
     bytes.extend_from_slice(scope.frame_digest().as_bytes());
@@ -50,9 +48,7 @@ pub fn baseline_lsm_output_artifact_bytes(
     bytes
 }
 
-pub fn baseline_lsm_manifest_artifact_bytes(
-    scope: &CheckpointDurablePublicationScope,
-) -> Vec<u8> {
+pub fn baseline_lsm_manifest_artifact_bytes(scope: &CheckpointDurablePublicationScope) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(64 + scope.manifest_digest().len());
     bytes.extend_from_slice(b"forge-store:baseline-lsm-manifest:v1\0");
     bytes.extend_from_slice(&scope.checkpoint().checkpoint_epoch().to_le_bytes());

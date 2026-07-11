@@ -6,8 +6,8 @@ use super::key_law_validation::admit_strategy_key_laws;
 use super::{
     S8LayoutStrategyFamily, S8StrategyDeclaration, S8StrategyDenial, S8StrategyInvariantSuite,
 };
-use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
-use crate::key_domain::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
+use crate::catalog::ArtifactFamilyLifecycleAdmission;
+use crate::keyspace::{PhysicalKeyDomain, PhysicalKeyDomainWitness};
 
 pub(crate) fn declare_strategy(
     lifecycle: ArtifactFamilyLifecycleAdmission,

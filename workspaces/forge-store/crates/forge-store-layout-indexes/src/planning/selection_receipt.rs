@@ -1,9 +1,9 @@
 use super::selection_decision::decide_access_plan;
 use super::selection_issuance::issue_selection_outcome;
 use super::selection_outcome::S8AccessPlanSelectionOutcome;
-use crate::access_shape::S8AccessShapeContract;
-use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::access::shape::S8AccessShapeContract;
+use crate::catalog::ArtifactFamilyLifecycleAdmission;
+use crate::keyspace::PhysicalKeyDomainWitness;
 use forge_store_budgets::S8PreExecutionBudgetEnvelope;
 
 /// The sole operation authorized to decide and issue an access-plan outcome.

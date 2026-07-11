@@ -1,13 +1,12 @@
-use crate::strategy::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
-use crate::facade::layout_maintenance;
-use crate::{
-    access_planning, ArtifactFamilyAccessLane,
-    S8ExactPublicationAuthoritySource, S8IndexLagOutcome, S8IndexLagWitness,
-    S8IndexMaintenanceFailureOutcome, S8IndexMaintenanceMode, S8IndexMaintenanceTransitionOutcome,
-    S8IndexPublicationProtocol, S8LagReason, S8LayoutMutationAdmissionOutcome,
-    S8LiveMaintenanceRequest, S8PhysicalMutationShape,
-};
 use super::{S8IndexMaintenanceTransitionView, S8LayoutMutationAdmissionView};
+use crate::facade::layout_maintenance;
+use crate::strategy::tests_support::{admit_btree_page_strategy, admit_lsm_wal_strategy};
+use crate::{
+    access_planning, ArtifactFamilyAccessLane, S8ExactPublicationAuthoritySource,
+    S8IndexLagOutcome, S8IndexLagWitness, S8IndexMaintenanceFailureOutcome, S8IndexMaintenanceMode,
+    S8IndexMaintenanceTransitionOutcome, S8IndexPublicationProtocol, S8LagReason,
+    S8LayoutMutationAdmissionOutcome, S8LiveMaintenanceRequest, S8PhysicalMutationShape,
+};
 use forge_store_physical_format::{
     PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
     PhysicalRootReference,

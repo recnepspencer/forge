@@ -1,14 +1,14 @@
-use crate::access_shape::{
+use crate::access::planning::S8AccessPlanSelection;
+use crate::access::shape::{
     access_shapes, S8AccessLaneClassification, S8AccessShapeContract,
     S8AccessShapeUnsupportedDenial, S8DegradedExactScanRequest, S8FullDeclaredScanBasis,
 };
-use crate::artifact_family::PhysicalArtifactFamilyDeclaration;
 use crate::blob_basis::S8BlobGenerationBasis;
+use crate::catalog::PhysicalArtifactFamilyDeclaration;
 use crate::materialization::{
     S8CoverageGapWitness, S8LayoutCoverageWitness, S8LayoutMaterializationState,
     S8MaterializationDenial, S8PhysicalAbsenceProof, S8PhysicalCoverageBasis,
 };
-use crate::planning::S8AccessPlanSelection;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
 
@@ -191,7 +191,7 @@ impl AccessPlanningFacade {
         &self,
         coverage: S8LayoutCoverageWitness,
         lane: S8AccessLaneClassification,
-    ) -> crate::access_shape::S8FullDeclaredScanOutcome {
+    ) -> crate::access::shape::S8FullDeclaredScanOutcome {
         access_shapes().full_declared_scan(
             coverage,
             lane,

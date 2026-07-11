@@ -3,9 +3,9 @@ use super::{
     S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
     S8FutureLayoutWorkloadEnvelope,
 };
+use crate::strategy::registry::{S8LayoutAdmissionDenial, S8LayoutRequestedCapability};
 use crate::strategy::tests_support::{admit_phase_five_scope, root_manifest_scope};
 use crate::strategy::S8LayoutStrategyFamily;
-use crate::strategy_registry::{S8LayoutAdmissionDenial, S8LayoutRequestedCapability};
 use forge_proof::TransitionOutcome;
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_security::{

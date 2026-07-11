@@ -1,12 +1,12 @@
 #[test]
 fn phase_seven_denies_unsupported_or_incomplete_strategy_claims_before_declaration() {
     use super::tests_support::{admit_phase_five_scope, root_manifest_scope};
-    use crate::strategy::S8LayoutStrategyFamily;
-    use crate::strategy_registry::S8LayoutAdmissionDenial;
-    use crate::strategy_registry::{
+    use crate::strategy::registry::S8LayoutAdmissionDenial;
+    use crate::strategy::registry::{
         layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
         S8LayoutRequestedCapability,
     };
+    use crate::strategy::S8LayoutStrategyFamily;
     use crate::{ArtifactFamilyAccessLane, S8StrategyDenial};
     use forge_proof::TransitionOutcome;
     use forge_store_contracts::DurableArtifactFamilyId;
@@ -256,10 +256,10 @@ fn phase_seven_admission_binds_counter_profiles_and_posture_to_strategy_families
 #[test]
 fn phase_seven_strategy_identity_preserves_family_and_lane_posture() {
     use super::tests_support::admit_phase_five_scope;
-    use crate::strategy::S8LayoutStrategyFamily;
-    use crate::strategy_registry::{
+    use crate::strategy::registry::{
         layout_admission_registry, S8LayoutAdmissionRequest, S8LayoutRequestedCapability,
     };
+    use crate::strategy::S8LayoutStrategyFamily;
     use crate::ArtifactFamilyAccessLane;
     use forge_proof::TransitionOutcome;
     use forge_store_contracts::DurableArtifactFamilyId;

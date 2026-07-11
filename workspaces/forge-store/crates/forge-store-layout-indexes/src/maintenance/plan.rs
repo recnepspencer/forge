@@ -1,6 +1,6 @@
-use crate::access_shape::S8AccessShapeContract;
-use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::access::shape::S8AccessShapeContract;
+use crate::catalog::ArtifactFamilyLifecycleAdmission;
+use crate::keyspace::PhysicalKeyDomainWitness;
 use crate::strategy::S8LayoutStrategyFamily;
 use crate::S8LayoutCorruptionOutcome;
 

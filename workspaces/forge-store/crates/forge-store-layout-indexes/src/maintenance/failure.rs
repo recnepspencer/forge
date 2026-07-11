@@ -1,4 +1,4 @@
-use crate::artifact_family::{ArtifactFamilyAccessLane, DurableArtifactMigrationPosture};
+use crate::catalog::{ArtifactFamilyAccessLane, DurableArtifactMigrationPosture};
 use crate::materialization::S8LayoutCoverageWitness;
 use crate::strategy::{S8LayoutStrategyFamily, S8StrategyDenial};
 
@@ -58,8 +58,8 @@ pub enum S8IndexMaintenanceFailureOutcome {
         maintenance_mode: S8IndexMaintenanceMode,
     },
     CoverageFamilyDoesNotMatchStrategy {
-        coverage_family: crate::artifact_family::PhysicalArtifactFamily,
-        strategy_family: crate::artifact_family::PhysicalArtifactFamily,
+        coverage_family: crate::catalog::PhysicalArtifactFamily,
+        strategy_family: crate::catalog::PhysicalArtifactFamily,
     },
     LagWitnessRequired {
         family: S8LayoutStrategyFamily,

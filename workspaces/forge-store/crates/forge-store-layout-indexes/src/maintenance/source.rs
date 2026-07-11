@@ -1,4 +1,4 @@
-use crate::artifact_family::PhysicalArtifactFamily;
+use crate::catalog::PhysicalArtifactFamily;
 use crate::facade::layout_declarations;
 use crate::materialization::S8LayoutCoverageWitness;
 use crate::strategy::S8StrategyRebuildSourceRequirement;

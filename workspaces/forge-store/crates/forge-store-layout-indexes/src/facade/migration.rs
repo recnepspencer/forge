@@ -1,5 +1,5 @@
-pub use crate::migration::LayoutMigrationFacade;
+pub use crate::evolution::migration::LayoutMigrationFacade;
 
 pub const fn layout_migration() -> LayoutMigrationFacade {
-    crate::migration::layout_migration()
+    crate::evolution::migration::layout_migration()
 }

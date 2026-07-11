@@ -1,4 +1,10 @@
-pub use crate::access_shape::{
+pub use crate::access::planning::{
+    S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,
+    S8PlanFingerprint, S8PlanSelectionDenied, S8PlanningCapabilityGrant, S8SelectedAccessPlan,
+    S8SelectionCandidateAudit, S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
+    S8SelectionCandidateRejection,
+};
+pub use crate::access::shape::{
     access_shapes, S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape,
     S8AccessShapeContract, S8AccessShapeDetail, S8AccessShapeUnsupportedDenial,
     S8AccessStaleDisposition, S8BatchPointBasis, S8BoundedScanBasis, S8ChunkTreeWalkBasis,
@@ -14,10 +20,4 @@ pub use crate::materialization::{
     S8MaterializationCompleteness, S8MaterializationDenial, S8MaterializationStateClass,
     S8PhysicalAbsenceProof, S8PhysicalCoverageBasis, S8PrefixCompletenessWitness,
     S8RangeCompletenessWitness,
-};
-pub use crate::planning::{
-    S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,
-    S8PlanFingerprint, S8PlanSelectionDenied, S8PlanningCapabilityGrant, S8SelectedAccessPlan,
-    S8SelectionCandidateAudit, S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
-    S8SelectionCandidateRejection,
 };

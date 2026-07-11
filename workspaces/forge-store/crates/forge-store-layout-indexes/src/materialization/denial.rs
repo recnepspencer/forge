@@ -1,6 +1,6 @@
 use super::state::S8MaterializationStateClass;
 use super::watermark::S8CoverageBasisKind;
-use crate::artifact_family::PhysicalArtifactFamily;
+use crate::catalog::PhysicalArtifactFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8CoverageGapClass {

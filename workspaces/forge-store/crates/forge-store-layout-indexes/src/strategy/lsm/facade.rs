@@ -52,9 +52,8 @@ impl LsmStrategy {
         durable: &AdmittedWalAppendReceipt,
         key: BaselineLsmAdmittedKey,
     ) -> Result<BaselineLsmAdmittedRecord, BaselineLsmExecutionAdmissionDenial> {
-        let record = BaselineLsmAdmittedRecord::admit(envelope, durable, key).ok_or(
-            BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch,
-        )?;
+        let record = BaselineLsmAdmittedRecord::admit(envelope, durable, key)
+            .ok_or(BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)?;
         session.persist(record.clone())?;
         Ok(record)
     }

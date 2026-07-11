@@ -8,7 +8,7 @@ mod maintenance_inputs;
 mod row;
 mod subscription_support_inputs;
 
-use super::surface_row::LegacySurfaceInventoryRow;
+use super::LegacySurfaceInventoryRow;
 use std::sync::LazyLock;
 
 static LEGACY_SURFACE_ROWS: LazyLock<Box<[LegacySurfaceInventoryRow]>> = LazyLock::new(|| {

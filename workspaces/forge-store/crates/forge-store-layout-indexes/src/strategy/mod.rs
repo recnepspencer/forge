@@ -14,6 +14,7 @@ mod key_law_validation;
 mod lsm;
 mod materialization_policy;
 mod posture;
+pub(crate) mod registry;
 #[cfg(test)]
 pub(crate) mod tests;
 #[cfg(test)]

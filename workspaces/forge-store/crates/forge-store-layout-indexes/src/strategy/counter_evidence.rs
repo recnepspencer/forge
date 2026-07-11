@@ -1,6 +1,6 @@
 use super::invariant_suite::S8StrategyCounterProfile;
-use crate::budget::S8PlannedCounterEnvelope;
-use crate::execution::S8AccessPathCounterSnapshot;
+use crate::access::budget::S8PlannedCounterEnvelope;
+use crate::access::execution::S8AccessPathCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8StrategyCounterEvidence {

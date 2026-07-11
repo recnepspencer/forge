@@ -2,8 +2,8 @@ use super::{
     S8AccessPlanCostEstimate, S8DeterministicSelectionRule, S8PlanFingerprint,
     S8SelectionCandidateAudit,
 };
-use crate::access_shape::S8AccessShapeContract;
-use crate::budget::S8PlannedCounterEnvelope;
+use crate::access::budget::S8PlannedCounterEnvelope;
+use crate::access::shape::S8AccessShapeContract;
 use crate::strategy::S8LayoutStrategyFamily;
 use forge_store_budgets::S8PreExecutionBudgetAdmissionReceipt;
 

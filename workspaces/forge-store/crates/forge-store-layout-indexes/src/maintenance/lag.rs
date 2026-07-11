@@ -1,4 +1,4 @@
-use crate::artifact_family::PhysicalArtifactFamily;
+use crate::catalog::PhysicalArtifactFamily;
 use crate::materialization::S8LayoutCoverageWitness;
 
 use super::maintenance_mode::S8IndexMaintenanceMode;

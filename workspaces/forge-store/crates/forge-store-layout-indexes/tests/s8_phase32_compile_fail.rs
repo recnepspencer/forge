@@ -63,12 +63,12 @@ const fn fixtures() -> [CompileFailFixture; 9] {
         ),
         fixture(
             "private_execution_module_cannot_bypass_access_execution_facade.rs",
-            &["module `execution` is private"],
+            &["module `access` is private"],
             &[],
         ),
         fixture(
             "private_corruption_module_cannot_bypass_layout_readmission_facade.rs",
-            &["module `corruption` is private"],
+            &["module `integrity` is private"],
             &[],
         ),
     ]

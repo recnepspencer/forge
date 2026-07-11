@@ -2,7 +2,7 @@ use super::{
     S8FutureLayoutCustomizationAdmission, S8FutureLayoutCustomizationDeferred,
     S8FutureLayoutCustomizationDenial, S8FutureLayoutCustomizationRequest,
 };
-use crate::strategy_registry::{
+use crate::strategy::registry::{
     layout_admission_registry, S8LayoutAdmissionOutcome, S8LayoutAdmissionRequest,
 };
 use forge_proof::TransitionOutcome;

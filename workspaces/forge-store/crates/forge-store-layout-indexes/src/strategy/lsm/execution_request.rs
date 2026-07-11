@@ -321,10 +321,7 @@ impl BaselineLsmCompactionPlan {
         )
     }
 
-    pub fn output_frame_digest(
-        &self,
-        physical: BaselineLsmPhysicalPublicationBinding,
-    ) -> String {
+    pub fn output_frame_digest(&self, physical: BaselineLsmPhysicalPublicationBinding) -> String {
         format!(
             "lsm-output-v1:{}:{}:{}:{:02x?}:{}",
             physical.root_scope(),

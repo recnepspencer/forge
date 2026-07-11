@@ -5,11 +5,11 @@ use super::{
     S8PlanSelectionDenied, S8SelectedAccessPlan, S8SelectionCandidateAudit,
     S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
 };
-use crate::access_shape::{S8AccessAuthorityPosture, S8AccessShapeContract};
-use crate::artifact_family::{ArtifactFamilyLifecycleAdmission, AuthorityRole};
-use crate::budget::S8PlannedCounterEnvelope;
-use crate::execution::S8AccessPathCounterSnapshot;
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::access::budget::S8PlannedCounterEnvelope;
+use crate::access::execution::S8AccessPathCounterSnapshot;
+use crate::access::shape::{S8AccessAuthorityPosture, S8AccessShapeContract};
+use crate::catalog::{ArtifactFamilyLifecycleAdmission, AuthorityRole};
+use crate::keyspace::PhysicalKeyDomainWitness;
 use crate::strategy::S8LayoutStrategyFamily;
 use forge_store_budgets::{
     pre_execution_budget_admission, S8PreExecutionBudgetAdmissionOutcome,

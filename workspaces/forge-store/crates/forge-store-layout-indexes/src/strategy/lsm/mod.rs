@@ -15,9 +15,8 @@ pub use advisory_filter::S8LsmAdvisoryFilterLaw;
 pub(crate) use compaction_ordering::S8LsmCompactionOrderingLaw;
 pub use execution::{
     baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
-    baseline_lsm_record_artifact_bytes,
-    BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord, BaselineLsmCompactionKeyIdentity,
-    BaselineLsmCompactionPlan,
+    baseline_lsm_record_artifact_bytes, BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord,
+    BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
     BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordIdentity,
     BaselineLsmCompactionRecordKind, BaselineLsmCompactionTransition,
     BaselineLsmCounterObservation, BaselineLsmDurableInputs, BaselineLsmExecutionAdmissionDenial,

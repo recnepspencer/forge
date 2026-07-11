@@ -1,4 +1,4 @@
-use crate::artifact_family::ArtifactFamilyAccessLane;
+use crate::catalog::ArtifactFamilyAccessLane;
 
 use super::S8FutureLayoutCapabilityRequest;
 

@@ -1,4 +1,4 @@
-use crate::artifact_family::ArtifactFamilyAccessLane;
+use crate::catalog::ArtifactFamilyAccessLane;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8IndexMaintenanceMode {

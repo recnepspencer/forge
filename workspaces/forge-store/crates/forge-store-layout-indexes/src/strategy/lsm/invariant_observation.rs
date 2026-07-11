@@ -180,8 +180,8 @@ impl BaselineLsmInvariantWitness {
 pub fn collect_baseline_lsm_invariant_witness(
     execution: &super::BaselineLsmExecutionWitness,
 ) -> BaselineLsmInvariantWitness {
-    let newest_run = execution
-        .execute_lookup_latest_visible_record(execution.memtable_records()[0].sequence());
+    let newest_run =
+        execution.execute_lookup_latest_visible_record(execution.memtable_records()[0].sequence());
     let older_run = execution.execute_lookup_older_visible_record();
     let tombstone_blocked = execution.execute_lookup_tombstone_blocked_record();
     let publication = execution.execute_manifest_publication();

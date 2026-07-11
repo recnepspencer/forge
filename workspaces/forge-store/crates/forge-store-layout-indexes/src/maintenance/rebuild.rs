@@ -1,6 +1,6 @@
-use crate::access_shape::{S8AccessLaneClassification, S8AccessShape, S8AccessShapeDetail};
-use crate::corruption::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
+use crate::access::shape::{S8AccessLaneClassification, S8AccessShape, S8AccessShapeDetail};
 use crate::facade::layout_declarations;
+use crate::integrity::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
 use crate::strategy::{
     admit_strategy, S8AdmittedLayoutStrategy, S8StrategyRebuildSourceRequirement,
 };

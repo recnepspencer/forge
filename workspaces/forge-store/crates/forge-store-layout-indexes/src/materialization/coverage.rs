@@ -2,8 +2,8 @@ use super::completeness::{S8PrefixCompletenessWitness, S8RangeCompletenessWitnes
 use super::denial::{S8CoverageGapWitness, S8MaterializationDenial};
 use super::state::{S8LayoutMaterializationState, S8MaterializationStateClass};
 use super::watermark::S8LayoutWatermark;
-use crate::artifact_family::PhysicalArtifactFamily;
-use crate::corruption::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
+use crate::catalog::PhysicalArtifactFamily;
+use crate::integrity::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8LayoutCoverageWitness {

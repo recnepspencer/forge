@@ -1,7 +1,7 @@
 use super::invariant_suite::S8AdmittedStrategyInvariants;
 use super::{S8LayoutStrategyFamily, S8StrategyDeclaration, S8StrategyInvariantSuite};
-use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::catalog::ArtifactFamilyLifecycleAdmission;
+use crate::keyspace::PhysicalKeyDomainWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8AdmittedLayoutStrategy {

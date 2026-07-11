@@ -1,6 +1,6 @@
 use super::counter_evidence::S8StrategyCounterEvidence;
 use super::declaration::S8StrategyDeclaration;
-use crate::access_shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
+use crate::access::shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 
 pub(super) fn derive_strategy_counter_evidence(
     declaration: S8StrategyDeclaration,
@@ -40,9 +40,9 @@ pub(super) fn derive_strategy_counter_evidence(
 }
 
 const fn derive_shape_specific_aggregate_profile(
-    point_lookup: Option<crate::budget::S8PlannedCounterEnvelope>,
-    range_lookup: Option<crate::budget::S8PlannedCounterEnvelope>,
-    prefix_lookup: Option<crate::budget::S8PlannedCounterEnvelope>,
+    point_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
+    range_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
+    prefix_lookup: Option<crate::access::budget::S8PlannedCounterEnvelope>,
 ) -> Option<super::S8StrategyCounterProfile> {
     match (point_lookup, range_lookup, prefix_lookup) {
         (Some(point), Some(range), Some(prefix)) => Some(max_counter_profile(

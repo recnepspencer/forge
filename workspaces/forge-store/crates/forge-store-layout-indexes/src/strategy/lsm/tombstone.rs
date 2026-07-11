@@ -1,7 +1,5 @@
+use super::{BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordKind};
 use forge_store_security::{StoreKeyScope, StoreTenantScope};
-use super::{
-    BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordKind,
-};
 
 use crate::strategy::S8StrategyDenial;
 

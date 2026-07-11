@@ -1,5 +1,5 @@
 use super::S8AdmittedLayoutStrategy;
-use crate::artifact_family::{
+use crate::catalog::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, DurableArtifactProjectionClass,
 };
 

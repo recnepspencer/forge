@@ -1,21 +1,20 @@
 #![forbid(unsafe_code)]
 
+mod access;
 pub mod access_execution;
 pub mod access_lowering;
 pub mod access_planning;
-mod access_shape;
 mod artifact_family;
 mod blob_basis;
 mod bootstrap;
-mod budget;
-mod compile_fail;
-mod corruption;
+mod catalog;
 pub mod compaction_projection;
+mod compile_fail;
 mod customization;
-mod degraded_access;
-mod execution;
+mod evolution;
 mod facade;
-mod key_domain;
+mod integrity;
+mod keyspace;
 pub mod layout_counters;
 pub mod layout_customization;
 pub mod layout_families;
@@ -26,19 +25,17 @@ pub mod layout_strategy_admission;
 mod legacy_disposition;
 mod maintenance;
 mod materialization;
-mod migration;
 mod planning;
 mod strategy;
-mod strategy_registry;
 
-pub use access_shape::{S8FullDeclaredScanOutcome, S8FullDeclaredScanView};
+pub use access::shape::{S8FullDeclaredScanOutcome, S8FullDeclaredScanView};
 pub use blob_basis::{S8BlobGenerationBasis, S8BlobIdentityKeyBasis};
 pub use bootstrap::{
     bootstrap_catalog, BootstrapCatalogFacade, S8BootstrapCatalogReadAdmission,
     S8BootstrapCatalogReadOutcome, S8BootstrapCatalogReadOutcomeView, S8BootstrapLayoutCatalog,
     S8BootstrapOnlyAccessDenied, S8BootstrapOnlyAccessPath, S8MinimalRootDiscoveryLayout,
 };
-pub use key_domain::{S8KeyDomainAdmissionOutcome, S8KeyDomainAdmissionView};
+pub use keyspace::{S8KeyDomainAdmissionOutcome, S8KeyDomainAdmissionView};
 pub use materialization::{S8PhysicalAbsenceOutcome, S8PhysicalAbsenceOutcomeView};
 pub use strategy::btree::execution::{
     decode_leaf_record as decode_baseline_btree_leaf_record,
@@ -51,40 +48,8 @@ pub use strategy::btree::execution::{
     BaselineBTreeRootPublicationExecution,
 };
 
-pub(crate) use access_shape::{
-    access_shapes, S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape,
-    S8AccessShapeContract, S8AccessShapeDetail, S8AccessShapeUnsupportedDenial,
-    S8AccessStaleDisposition, S8BatchPointBasis, S8BoundedScanBasis, S8ChunkTreeWalkBasis,
-    S8CoalescedPageReadBasis, S8DegradedExactScanBasis, S8DegradedExactScanRequest,
-    S8ExpectedCounterClass, S8FullDeclaredScanBasis, S8GroupedPrefixBasis, S8MaintenanceReadBasis,
-    S8ManifestGraphWalkBasis, S8MultiRangeBasis, S8MutationAccessBasis, S8PrefixBasis,
-    S8RangeBasis, S8SortedBatchBasis, S8StreamingContinuationBasis, S8StreamingReadBasis,
-};
-pub(crate) use artifact_family::{
-    ArtifactAuthorityRoleWitness, ArtifactDerivedAccuracyWitness, ArtifactFamilyAccessLane,
-    ArtifactFamilyAuthorityClass, ArtifactFamilyAuthorityDisposition,
-    ArtifactFamilyAuthorityWitness, ArtifactFamilyClassification, ArtifactFamilyDenial,
-    ArtifactFamilyInventoryRow, ArtifactFamilyLifecycleAdmission, ArtifactFamilyLifecycleClass,
-    ArtifactFamilyLifecycleDisposition, ArtifactFamilyStrategyLane, ArtifactKeyScopePartition,
-    ArtifactScopePartitionWitness, ArtifactTenantScopePartition, AuthorityRole,
-    DerivedAccuracyClass, DurableArtifactMigrationPosture, DurableArtifactProjectionClass,
-    DurableArtifactRebuildPosture, ExistingArtifactFamilySurface, PhysicalArtifactFamily,
-    PhysicalArtifactFamilyDeclaration, S8ArtifactFamilyInventory,
-};
-pub(crate) use budget::S8PlannedCounterEnvelope;
-pub(crate) use corruption::{
-    layout_corruption, LayoutCorruptionFacade, S8CorruptionDenial, S8LayoutCorruptionClass,
-    S8LayoutCorruptionInput, S8LayoutCorruptionOutcome, S8LayoutCorruptionView,
-    S8LayoutQuarantineWitness, S8LayoutReadmissionOutcome, S8LayoutReadmissionSource,
-    S8LayoutReadmissionView, S8LayoutReadmissionWitness, S8NativeReadmissionInput,
-};
-pub(crate) use customization::{
-    S8FutureLayoutCapabilityRequest, S8FutureLayoutCustomizationAdmission,
-    S8FutureLayoutCustomizationDeferred, S8FutureLayoutCustomizationDenial,
-    S8FutureLayoutCustomizationOutcome, S8FutureLayoutCustomizationRequest,
-    S8FutureLayoutWorkloadEnvelope,
-};
-pub(crate) use execution::{
+pub(crate) use access::budget::S8PlannedCounterEnvelope;
+pub(crate) use access::execution::{
     S8AccessAttemptCostReceipt, S8AccessLoweringBasis, S8AccessLoweringDeferred,
     S8AccessLoweringDenied, S8AccessLoweringOutcome, S8AccessPathAmplificationReceipt,
     S8AccessPathCounterSnapshot, S8AccessPathKind, S8CostEnvelopeViolationOutcome,
@@ -95,17 +60,65 @@ pub(crate) use execution::{
     S8PlannedVsObservedCounterReceipt, S8RebindRequiredAccessReceipt, S8StaleLoweredAccessReceipt,
     S8StaleReadmissionOutcome, S8StoreLayoutPerformanceReceipt,
 };
-pub(crate) use key_domain::{
+pub(crate) use access::planning::{
+    S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,
+    S8PlanFingerprint, S8PlanSelectionDenied, S8PlanningCapabilityGrant, S8SelectedAccessPlan,
+    S8SelectionCandidateAudit, S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
+    S8SelectionCandidateRejection,
+};
+pub(crate) use access::shape::{
+    access_shapes, S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape,
+    S8AccessShapeContract, S8AccessShapeDetail, S8AccessShapeUnsupportedDenial,
+    S8AccessStaleDisposition, S8BatchPointBasis, S8BoundedScanBasis, S8ChunkTreeWalkBasis,
+    S8CoalescedPageReadBasis, S8DegradedExactScanBasis, S8DegradedExactScanRequest,
+    S8ExpectedCounterClass, S8FullDeclaredScanBasis, S8GroupedPrefixBasis, S8MaintenanceReadBasis,
+    S8ManifestGraphWalkBasis, S8MultiRangeBasis, S8MutationAccessBasis, S8PrefixBasis,
+    S8RangeBasis, S8SortedBatchBasis, S8StreamingContinuationBasis, S8StreamingReadBasis,
+};
+pub(crate) use catalog::{
+    ArtifactAuthorityRoleWitness, ArtifactDerivedAccuracyWitness, ArtifactFamilyAccessLane,
+    ArtifactFamilyAuthorityClass, ArtifactFamilyAuthorityDisposition,
+    ArtifactFamilyAuthorityWitness, ArtifactFamilyClassification, ArtifactFamilyDenial,
+    ArtifactFamilyInventoryRow, ArtifactFamilyLifecycleAdmission, ArtifactFamilyLifecycleClass,
+    ArtifactFamilyLifecycleDisposition, ArtifactFamilyStrategyLane, ArtifactKeyScopePartition,
+    ArtifactScopePartitionWitness, ArtifactTenantScopePartition, AuthorityRole,
+    DerivedAccuracyClass, DurableArtifactMigrationPosture, DurableArtifactProjectionClass,
+    DurableArtifactRebuildPosture, ExistingArtifactFamilySurface, PhysicalArtifactFamily,
+    PhysicalArtifactFamilyDeclaration, S8ArtifactFamilyInventory,
+};
+pub(crate) use customization::{
+    S8FutureLayoutCapabilityRequest, S8FutureLayoutCustomizationAdmission,
+    S8FutureLayoutCustomizationDeferred, S8FutureLayoutCustomizationDenial,
+    S8FutureLayoutCustomizationOutcome, S8FutureLayoutCustomizationRequest,
+    S8FutureLayoutWorkloadEnvelope,
+};
+pub(crate) use evolution::compatibility::{
+    LegacyAccessPathBypass, LegacyAccessPathBypassInventory, LegacySurfaceDisposition,
+    LegacySurfaceDispositionAndDedicatedWorkspaceBoundary, LegacySurfaceDispositionOutcome,
+    LegacySurfaceInventoryRow, LegacySurfaceOwner, LegacySurfaceStage,
+};
+pub(crate) use evolution::migration::{
+    LayoutBindingWitness, LayoutCompatibilityWindow, LayoutEvolutionDeclaration,
+    LayoutEvolutionDenial, LayoutInterruptedMigrationDisposition, LayoutInterruptionPolicy,
+    LayoutInterruptionState, LayoutMigrationFacade, LayoutMigrationOutcome, LayoutMigrationPlan,
+    LayoutMigrationRequest, LayoutPlanFingerprint, LayoutReadCompatibilityPosture,
+    LayoutRollbackOutcome, LayoutRollbackPlan, LayoutRollbackRequest, LayoutVersion,
+    LayoutWriteCompatibilityPosture, S8LayoutRebindRequired, S8LayoutStaleBinding,
+    S8MigrationPlanningOutcome, S8MigrationPlanningView, S8RollbackPlanningOutcome,
+    S8RollbackPlanningView,
+};
+pub(crate) use integrity::{
+    layout_corruption, LayoutCorruptionFacade, S8CorruptionDenial, S8LayoutCorruptionClass,
+    S8LayoutCorruptionInput, S8LayoutCorruptionOutcome, S8LayoutCorruptionView,
+    S8LayoutQuarantineWitness, S8LayoutReadmissionOutcome, S8LayoutReadmissionSource,
+    S8LayoutReadmissionView, S8LayoutReadmissionWitness, S8NativeReadmissionInput,
+};
+pub(crate) use keyspace::{
     CanonicalKeyBytes, CanonicalKeyEncoding, ComparatorBehavior, ComparatorLaw, CompositeKeyField,
     CompositeKeyOrderingLaw, ConcretePhysicalKeyWitness, EncodingSentinelPolicy,
     HashCollisionBehavior, HashCollisionLaw, PhysicalKeyDomain, PhysicalKeyDomainDenial,
     PhysicalKeyDomainWitness, PrefixBoundaryBehavior, PrefixLawWitness, RangeBoundBehavior,
     RangeBoundLawWitness, TenantScopedKeyDomain,
-};
-pub(crate) use legacy_disposition::{
-    LegacyAccessPathBypass, LegacyAccessPathBypassInventory, LegacySurfaceDisposition,
-    LegacySurfaceDispositionAndDedicatedWorkspaceBoundary, LegacySurfaceDispositionOutcome,
-    LegacySurfaceInventoryRow, LegacySurfaceOwner, LegacySurfaceStage,
 };
 pub(crate) use maintenance::{
     LayoutCorruptionClassification, S8DerivedIndexCostEnvelopeParity,
@@ -129,27 +142,10 @@ pub(crate) use materialization::{
     S8PhysicalAbsenceProof, S8PhysicalCoverageBasis, S8PrefixCompletenessWitness,
     S8RangeCompletenessWitness,
 };
-pub(crate) use migration::{
-    LayoutBindingWitness, LayoutCompatibilityWindow, LayoutEvolutionDeclaration,
-    LayoutEvolutionDenial, LayoutInterruptedMigrationDisposition, LayoutInterruptionPolicy,
-    LayoutInterruptionState, LayoutMigrationFacade, LayoutMigrationOutcome, LayoutMigrationPlan,
-    LayoutMigrationRequest, LayoutPlanFingerprint, LayoutReadCompatibilityPosture,
-    LayoutRollbackOutcome, LayoutRollbackPlan, LayoutRollbackRequest, LayoutVersion,
-    LayoutWriteCompatibilityPosture, S8LayoutRebindRequired, S8LayoutStaleBinding,
-    S8MigrationPlanningOutcome, S8MigrationPlanningView, S8RollbackPlanningOutcome,
-    S8RollbackPlanningView,
-};
-pub(crate) use planning::{
-    S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,
-    S8PlanFingerprint, S8PlanSelectionDenied, S8PlanningCapabilityGrant, S8SelectedAccessPlan,
-    S8SelectionCandidateAudit, S8SelectionCandidateEligibility, S8SelectionCandidateOutcome,
-    S8SelectionCandidateRejection,
-};
 pub use strategy::{
     baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
-    baseline_lsm_record_artifact_bytes,
-    lsm_strategy, BaselineLsmAdmittedKey, BaselineLsmAdmittedRecord,
-    BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
+    baseline_lsm_record_artifact_bytes, lsm_strategy, BaselineLsmAdmittedKey,
+    BaselineLsmAdmittedRecord, BaselineLsmCompactionKeyIdentity, BaselineLsmCompactionPlan,
     BaselineLsmCompactionPublicationReceipt, BaselineLsmCompactionRecordIdentity,
     BaselineLsmCompactionRecordKind, BaselineLsmCompactionTransition,
     BaselineLsmCounterObservation, BaselineLsmDurableInputs, BaselineLsmExecutionAdmissionDenial,

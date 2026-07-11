@@ -1,5 +1,5 @@
 pub use crate::facade::key_domain_law;
-pub use crate::key_domain::{
+pub use crate::keyspace::{
     CanonicalKeyBytes, CanonicalKeyEncoding, ComparatorBehavior, ComparatorLaw, CompositeKeyField,
     CompositeKeyOrderingLaw, ConcretePhysicalKeyWitness, EncodingSentinelPolicy,
     HashCollisionBehavior, HashCollisionLaw, PhysicalKeyDomain, PhysicalKeyDomainDenial,

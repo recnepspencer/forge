@@ -1,4 +1,4 @@
-use crate::key_domain::{CanonicalKeyBytes, ComparatorLaw};
+use crate::keyspace::{CanonicalKeyBytes, ComparatorLaw};
 use crate::strategy::S8StrategyDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -3,7 +3,7 @@ use super::{
     S8BTreeRootPublicationLaw, S8BTreeSearchPathLaw, S8BTreeSeparatorLaw, S8BTreeSiblingLinkLaw,
     S8BTreeSplitMergeLaw, S8BTreeStableReadLaw, S8BTreeTombstoneLaw,
 };
-use crate::key_domain::{
+use crate::keyspace::{
     declare_comparator_law, require_canonical_key_encoding, require_prefix_law,
     require_range_bound_law,
 };

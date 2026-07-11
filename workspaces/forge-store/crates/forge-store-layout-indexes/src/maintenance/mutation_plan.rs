@@ -1,8 +1,8 @@
-use crate::artifact_family::{
+use crate::catalog::{
     ArtifactFamilyAccessLane, ArtifactFamilyLifecycleAdmission, DurableArtifactMigrationPosture,
     PhysicalArtifactFamily,
 };
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::keyspace::PhysicalKeyDomainWitness;
 use crate::materialization::S8LayoutCoverageWitness;
 use crate::strategy::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
 use forge_store_physical_format::RootPublicationValidationWitness;

@@ -7,12 +7,12 @@ use super::posture::{
     S8StrategyRebuildSourceRequirement,
 };
 use super::S8LayoutStrategyFamily;
-use crate::artifact_family::{
+use crate::access::budget::S8PlannedCounterEnvelope;
+use crate::catalog::{
     ArtifactFamilyAccessLane, ArtifactFamilyAuthorityClass, ArtifactFamilyLifecycleAdmission,
     DurableArtifactMigrationPosture, DurableArtifactProjectionClass, DurableArtifactRebuildPosture,
 };
-use crate::budget::S8PlannedCounterEnvelope;
-use crate::key_domain::{
+use crate::keyspace::{
     CanonicalKeyEncoding, ComparatorLaw, PhysicalKeyDomainWitness, PrefixLawWitness,
     RangeBoundLawWitness,
 };

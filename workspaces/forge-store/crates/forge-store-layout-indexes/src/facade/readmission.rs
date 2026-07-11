@@ -1,6 +1,6 @@
-pub use crate::execution::{S8ExecutionReadmissionWitness, S8ExecutionRebindWitness};
+pub use crate::access::execution::{S8ExecutionReadmissionWitness, S8ExecutionRebindWitness};
 use crate::{
-    execution::{
+    access::execution::{
         S8AccessLoweringDenied, S8RebindRequiredAccessReceipt, S8StaleLoweredAccessReceipt,
     },
     ArtifactFamilyLifecycleAdmission, PhysicalKeyDomainWitness, S8LayoutCoverageWitness,

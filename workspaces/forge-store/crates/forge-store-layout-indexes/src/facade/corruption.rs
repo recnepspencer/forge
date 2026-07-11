@@ -1,1 +1,1 @@
-pub use crate::corruption::layout_corruption;
+pub use crate::integrity::layout_corruption;

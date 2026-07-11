@@ -1,6 +1,6 @@
-use crate::key_domain::PhysicalKeyDomainWitness;
+use crate::keyspace::PhysicalKeyDomainWitness;
+use crate::strategy::registry::S8LayoutRequestedCapability;
 use crate::strategy::S8LayoutStrategyFamily;
-use crate::strategy_registry::S8LayoutRequestedCapability;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8FutureLayoutCapabilityRequest {

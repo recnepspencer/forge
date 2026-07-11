@@ -1,5 +1,5 @@
 use super::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily, S8StrategyDenial};
-use crate::key_domain::{
+use crate::keyspace::{
     declare_comparator_law, require_canonical_key_encoding, require_prefix_law,
     require_range_bound_law, CanonicalKeyEncoding, ComparatorLaw, PhysicalKeyDomainWitness,
     PrefixLawWitness, RangeBoundLawWitness,

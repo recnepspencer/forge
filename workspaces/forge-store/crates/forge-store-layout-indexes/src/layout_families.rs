@@ -1,4 +1,4 @@
-pub use crate::artifact_family::{
+pub use crate::catalog::{
     ArtifactAuthorityRoleWitness, ArtifactDerivedAccuracyWitness, ArtifactFamilyAccessLane,
     ArtifactFamilyAuthorityClass, ArtifactFamilyAuthorityDisposition,
     ArtifactFamilyAuthorityWitness, ArtifactFamilyClassification, ArtifactFamilyDenial,

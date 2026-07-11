@@ -1,5 +1,5 @@
-use crate::key_domain::PhysicalKeyDomainWitness;
-use crate::strategy_registry::{
+use crate::keyspace::PhysicalKeyDomainWitness;
+use crate::strategy::registry::{
     S8LayoutAdmissionDeferred, S8LayoutAdmissionDenial, S8LayoutStrategyRegistrySnapshot,
 };
 

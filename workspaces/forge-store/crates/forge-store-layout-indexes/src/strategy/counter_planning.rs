@@ -1,7 +1,7 @@
 use super::{S8AdmittedLayoutStrategy, S8LayoutStrategyFamily, S8StrategyCounterProfile};
-use crate::access_shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
-use crate::budget::S8PlannedCounterEnvelope;
-use crate::execution::S8AccessPathCounterSnapshot;
+use crate::access::budget::S8PlannedCounterEnvelope;
+use crate::access::execution::S8AccessPathCounterSnapshot;
+use crate::access::shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 
 impl S8AdmittedLayoutStrategy {
     pub const fn declared_counter_profile(&self) -> S8StrategyCounterProfile {

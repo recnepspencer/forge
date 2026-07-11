@@ -1,4 +1,4 @@
-use crate::key_domain::CanonicalKeyBytes;
+use crate::keyspace::CanonicalKeyBytes;
 use crate::strategy::{S8BTreeLookupBranch, S8BTreeSeparatorLaw, S8StrategyDenial};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

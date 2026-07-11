@@ -3,7 +3,7 @@ use super::{
     S8StrategyCorruptionIsolationBehavior, S8StrategyLocalityProfile,
     S8StrategyMaterializationPosture, S8StrategyRebuildSourceRequirement,
 };
-use crate::artifact_family::{DurableArtifactMigrationPosture, DurableArtifactRebuildPosture};
+use crate::catalog::{DurableArtifactMigrationPosture, DurableArtifactRebuildPosture};
 use crate::materialization::S8MaterializationStateClass;
 
 impl S8AdmittedLayoutStrategy {

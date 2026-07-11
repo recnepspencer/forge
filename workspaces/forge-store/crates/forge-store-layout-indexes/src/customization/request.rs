@@ -1,4 +1,4 @@
-use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
+use crate::catalog::ArtifactFamilyLifecycleAdmission;
 
 use super::{S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope};
 

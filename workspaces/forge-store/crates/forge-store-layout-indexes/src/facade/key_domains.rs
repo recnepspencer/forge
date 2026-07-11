@@ -1,7 +1,7 @@
-use crate::artifact_family::ArtifactFamilyDenial;
-use crate::artifact_family::ArtifactScopePartitionWitness;
 use crate::blob_basis::S8BlobIdentityKeyBasis;
-use crate::key_domain::{
+use crate::catalog::ArtifactFamilyDenial;
+use crate::catalog::ArtifactScopePartitionWitness;
+use crate::keyspace::{
     admit_blob_identity_key, admit_extent_address_key, admit_page_address_key,
     admit_physical_reference_key, admit_root_manifest_key, admit_segment_address_key,
     admit_wal_record_key, canonical_bytes_for_key, compare_concrete_physical_keys,
@@ -30,7 +30,7 @@ impl KeyDomainLawFacade {
         &self,
         scope: ArtifactScopePartitionWitness,
     ) -> crate::S8KeyDomainAdmissionOutcome {
-        crate::key_domain::issue_key_domain_admission(declare_physical_key_domain(scope))
+        crate::keyspace::issue_key_domain_admission(declare_physical_key_domain(scope))
     }
 
     pub fn require_canonical_key_encoding(

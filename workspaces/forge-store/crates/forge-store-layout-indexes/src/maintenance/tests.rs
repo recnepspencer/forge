@@ -1,8 +1,9 @@
+use super::{S8DerivedIndexParityView, S8DerivedIndexRebuildView};
+use crate::maintenance::layout_rebuild;
 use crate::strategy::tests_support::{
     admit_btree_page_strategy, admit_lsm_wal_strategy, admitted_page_key_bytes,
     admitted_wal_key_bytes,
 };
-use crate::maintenance::layout_rebuild;
 use crate::{
     access_shapes, S8AccessLaneClassification, S8DerivedIndexCostEnvelopeParity,
     S8DerivedIndexCounterShapeParity, S8DerivedIndexParityBasis, S8DerivedIndexParityOutcome,
@@ -10,7 +11,6 @@ use crate::{
     S8DerivedIndexRebuildRequest, S8DerivedIndexRebuildSourceInput, S8DerivedIndexResultIdentity,
     S8LayoutCorruptionView,
 };
-use super::{S8DerivedIndexParityView, S8DerivedIndexRebuildView};
 use forge_store_physical_format::{
     PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalRecordSlot,
@@ -44,10 +44,13 @@ fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() 
         S8LayoutCorruptionView::RebuildRequired(_)
     ));
 
-    let rebuilt = layout_rebuild().rebuild(
-        plan,
-        root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page"),
-    ).into_rebuilt().expect("expected rebuilt outcome");
+    let rebuilt = layout_rebuild()
+        .rebuild(
+            plan,
+            root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page"),
+        )
+        .into_rebuilt()
+        .expect("expected rebuilt outcome");
     assert_eq!(
         rebuilt.plan().result_identity(),
         S8DerivedIndexResultIdentity::RemainsDerivedProjection
@@ -142,10 +145,13 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_au
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild().rebuild(
-        plan,
-        root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page-mismatch"),
-    ).into_rebuilt().expect("expected rebuilt outcome");
+    let rebuilt = layout_rebuild()
+        .rebuild(
+            plan,
+            root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page-mismatch"),
+        )
+        .into_rebuilt()
+        .expect("expected rebuilt outcome");
 
     let parity = layout_rebuild()
         .verify_parity(rebuilt)
@@ -178,10 +184,13 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority() 
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild().rebuild(
-        plan,
-        wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal-mismatch"),
-    ).into_rebuilt().expect("expected rebuilt outcome");
+    let rebuilt = layout_rebuild()
+        .rebuild(
+            plan,
+            wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal-mismatch"),
+        )
+        .into_rebuilt()
+        .expect("expected rebuilt outcome");
 
     let parity = layout_rebuild()
         .verify_parity(rebuilt)
@@ -214,19 +223,22 @@ fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witnes
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild().rebuild(
-        plan,
-        S8DerivedIndexParityBasis::new(
-            vec![S8DerivedIndexParityRow::new(
-                admitted_page_key_bytes(7, 11),
-                "rebuilt-page",
-            )],
-            authority_coverage,
-            true,
-            vec![999],
+    let rebuilt = layout_rebuild()
+        .rebuild(
+            plan,
+            S8DerivedIndexParityBasis::new(
+                vec![S8DerivedIndexParityRow::new(
+                    admitted_page_key_bytes(7, 11),
+                    "rebuilt-page",
+                )],
+                authority_coverage,
+                true,
+                vec![999],
+            )
+            .unwrap(),
         )
-        .unwrap(),
-    ).into_rebuilt().expect("expected rebuilt outcome");
+        .into_rebuilt()
+        .expect("expected rebuilt outcome");
 
     assert!(matches!(
         layout_rebuild().verify_parity(rebuilt),

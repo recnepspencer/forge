@@ -9,7 +9,7 @@ mod migration;
 mod plan_selection;
 mod readmission;
 
-pub use crate::access_shape::access_shapes;
+pub use crate::access::shape::access_shapes;
 pub use access_lowering::access_lowering;
 pub use access_planning::access_planning;
 pub(crate) use access_planning::AccessPlanningFacade;
