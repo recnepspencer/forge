@@ -40,6 +40,16 @@ pub(super) const SUPPORT_ROWS: &[ArtifactFamilyInventoryRow] = &[
         OFFLINE_ONLY,
     ),
     row(
+        Family::MaintenanceReclaim,
+        Authority::Derived,
+        Lifecycle::OperationalSupport,
+        Lane::MaintenancePath,
+        Owner::ForgeStoreMaintenance,
+        Rebuild::PartialRebuildOnly,
+        Migration::StableNoMigration,
+        OFFLINE_ONLY,
+    ),
+    row(
         Family::MaintenanceCapsule,
         Authority::Derived,
         Lifecycle::OperationalSupport,

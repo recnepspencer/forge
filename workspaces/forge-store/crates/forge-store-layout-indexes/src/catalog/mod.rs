@@ -13,6 +13,7 @@ mod phase_three_tests;
 #[cfg(test)]
 mod phase_two_tests;
 mod scope_partition;
+pub(crate) mod system_families;
 #[cfg(test)]
 mod tests;
 mod witness;

@@ -35,6 +35,11 @@ pub use bootstrap::{
     S8BootstrapCatalogReadOutcome, S8BootstrapCatalogReadOutcomeView, S8BootstrapLayoutCatalog,
     S8BootstrapOnlyAccessDenied, S8BootstrapOnlyAccessPath, S8MinimalRootDiscoveryLayout,
 };
+pub use catalog::system_families::offline_verifier::{
+    project_offline_custody_capsule, project_offline_export_bundle, project_offline_layout_report,
+    project_offline_repair_blast_radius, OfflineVerifierAccessShape,
+    OfflineVerifierAuthorityPosture, OfflineVerifierEvidenceKind, OfflineVerifierLayoutProjection,
+};
 pub use keyspace::{S8KeyDomainAdmissionOutcome, S8KeyDomainAdmissionView};
 pub use materialization::{S8PhysicalAbsenceOutcome, S8PhysicalAbsenceOutcomeView};
 pub use strategy::btree::execution::{

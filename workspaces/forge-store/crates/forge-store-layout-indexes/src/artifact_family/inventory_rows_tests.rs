@@ -60,6 +60,7 @@ const EXPECTED_ORDER: &[Family] = &[
     Family::CompatibilityMilestone13TieringRecord,
     Family::MaintenanceSnapshot,
     Family::MaintenanceCompaction,
+    Family::MaintenanceReclaim,
     Family::MaintenanceCapsule,
     Family::MaintenanceQueueDeclaration,
     Family::SchedulerReservationIndex,
