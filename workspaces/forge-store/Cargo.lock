@@ -403,7 +403,9 @@ dependencies = [
  "forge-store-offline-verifier",
  "forge-store-operations",
  "forge-store-physical-backend",
+ "forge-store-physical-integrity",
  "forge-store-physical-isolation",
+ "forge-store-readiness",
  "forge-store-security",
  "forge-store-wal",
 ]

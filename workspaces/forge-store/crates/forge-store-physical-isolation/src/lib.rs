@@ -45,6 +45,7 @@ pub use byte_guard::{
 #[cfg(any(test, feature = "certification-authority"))]
 pub use checkpoint_interlock::read_during_checkpoint_verdict_for_certification_test;
 pub use checkpoint_interlock::{
+    checkpoint_flush_scheduler_demand,
     reject_copied_checkpoint_report_as_checkpoint_interlock,
     reject_same_run_self_comparison_as_checkpoint_interlock, CheckpointInterlockEvidenceOrigin,
     CheckpointInterlockFoundationalEvidence, CheckpointPublicationReadmission,
@@ -61,7 +62,8 @@ pub use compaction_interlock::{
     publish_compaction_rewrite_for_certification, CompactionCutoverEvidenceForCertification,
 };
 pub use compaction_interlock::{
-    compaction_cutover_outcome_facts, execute_read_during_compaction_cutover,
+    compaction_cutover_outcome_facts, compaction_rewrite_scheduler_demand,
+    execute_read_during_compaction_cutover,
     CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
     CompactionCutoverState, CompactionCutoverTransition, CompactionCutoverTransitionKind,
     CompactionDeferredReclaimQueue, CompactionInterlockFoundationalEvidence,

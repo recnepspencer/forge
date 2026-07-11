@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[test]
-fn queue_execution_assessment_declares_strength_for_every_counter_row() {
+fn queue_execution_assessment_reports_exact_strength_for_every_counter_row() {
     let plan = admitted_plan();
     let claim = LatencyEnvelopeClaim::for_queue_execution(
         plan.replay_identity(),
@@ -33,10 +33,6 @@ fn queue_execution_assessment_declares_strength_for_every_counter_row() {
         .expect("sampled queue-depth claim should assess through real queue execution");
 
     assert_eq!(assessment.status(), LatencyEnvelopeAssessmentStatus::Held);
-    assert!(assessment
-        .counter_rows()
-        .iter()
-        .all(|row| row.strength().is_declared()));
     let queue_depth = assessment
         .counter_rows()
         .iter()

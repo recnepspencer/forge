@@ -5,6 +5,8 @@ use forge_foundational::{
     FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
     FoundationalPerformanceWorkClass,
 };
+use forge_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
+use forge_store_contracts::S6QueueProducerResourceShape;
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendQueueExecutionAdaptation, BackendQueueExecutionBackpressure,
@@ -16,12 +18,13 @@ use forge_store_physical_backend::{
 use crate::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_security_scope_for_scheduler, admit_secure_io_scope_for_scheduler,
-    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
-    IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest, QueueExecutionReadyPlan,
-    QueueGroupingBasis, QueueRecoveryOrdering, QueueSlot, QueueWorkDeclaration,
-    QueueWritebackPolicy, ReadAheadWindow, SchedulerSecurityScopeEvidence, S6QueueDurabilityClass,
-    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
+    admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
+    lower_buffer_pool_queue_declaration, BackgroundResourceBudget, BandwidthToken,
+    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
+    QueueExecutionReadyPlan, QueueGroupingBasis, QueueRecoveryOrdering, QueueSlot,
+    QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow, S6QueueDurabilityClass,
+    SchedulerSecurityScopeEvidence, SecureIoOperation, SecureIoPostureRequirement,
+    SecureIoPreservationRequest, WorkerPermit,
 };
 use forge_store_security::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
@@ -29,6 +32,26 @@ use forge_store_security::{
 
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
     admitted_plan_for_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
+}
+
+pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
+    let reservation = admitted_point_read_reservation_for_certification_test();
+    let resource_shape = S6QueueProducerResourceShape::new()
+        .with_queue_slots(1)
+        .with_bandwidth_tokens(4096)
+        .with_write_back_windows(1)
+        .with_worker_permits(1);
+    let producer = BufferPoolQueueExecutionDeclaration::write_back(7, resource_shape);
+    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+        .expect("write-back producer should lower to queue work");
+    let backend = backend_for(work);
+    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
+        work,
+        &backend,
+        policy_receipt(work.requested_budget()),
+    ))
+    .expect("write-back queue work should admit")
 }
 
 pub(crate) fn admitted_plan_for_backend_profile(

@@ -52,7 +52,7 @@ fn secure_scope_pressure_rejects_wrong_security_scope_receipts() {
         .expect_err("wrong S.5.1 scope must not mint an S.6 secure-I/O handoff");
     assert!(matches!(
         denial,
-        forge_store_readiness::S51LaterMilestoneHandoffDenial::WrongKeyScope { .. }
+        forge_store_security::S51LaterMilestoneHandoffDenial::WrongKeyScope { .. }
     ));
 }
 
