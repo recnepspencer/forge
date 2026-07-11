@@ -72,7 +72,7 @@ pub(crate) trait PhysicalStoreDurabilityExecutor<S> {
     ) -> Result<StoreDurabilityExecutionObservation, Self::Error>;
 }
 
-struct StoreDurabilityExecutionSession<'backend, Backend> {
+pub(super) struct StoreDurabilityExecutionSession<'backend, Backend> {
     backend: &'backend mut Backend,
     authority: StoreOwnedDurabilityExecution,
 }
@@ -276,7 +276,7 @@ impl StoreDurabilityExecutionObservation {
         self
     }
 
-    fn with_persisted_artifact(
+    pub(super) fn with_persisted_artifact(
         mut self,
         persisted_path: std::path::PathBuf,
         persisted_bytes: u64,

@@ -1,4 +1,5 @@
 use super::storage::PlatformPhysicalFacadeStorage;
+use super::PlatformPhysicalFacade;
 use crate::{
     ExtentMembership, ExtentRecordAppendRequest, PhysicalExtentRecordAuthority, PhysicalPageKind,
     PhysicalPageRecordAuthority, PlatformPhysicalAppendReport, PlatformPhysicalAppendRequest,
@@ -6,6 +7,23 @@ use crate::{
     PlatformPhysicalFacadeDenialKind, PlatformPhysicalRecordTarget, SlotAppendRequest,
     SlotGenerationCell, PHYSICAL_HEADER_LENGTH,
 };
+
+impl PlatformPhysicalFacade {
+    pub fn append_physical_record(
+        &mut self,
+        request: PlatformPhysicalAppendRequest<'_>,
+    ) -> Result<PlatformPhysicalAppendReport, PlatformPhysicalFacadeDenial> {
+        let append = append_physical_record(
+            &mut self.storage,
+            &self.page_records,
+            &self.extent_records,
+            self.counters,
+            request,
+        )?;
+        self.counters = append.counters();
+        Ok(append.report())
+    }
+}
 
 pub(crate) struct PlatformPhysicalAppendOutcome {
     report: PlatformPhysicalAppendReport,

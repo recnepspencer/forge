@@ -1,29 +1,57 @@
-use crate::{
+use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
     PhysicalSegmentId, SlotGenerationCell,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum BaselineBTreeCorruptionMarker {
+pub enum BaselineBTreeCorruptionMarker {
     Header,
     CellPayload,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct BaselineBTreeLeafRecord {
-    pub(super) slots: [PhysicalRecordSlot; 2],
-    pub(super) sibling_links_present: bool,
-    pub(super) tombstones_present: bool,
+pub struct BaselineBTreeLeafRecord {
+    slots: [PhysicalRecordSlot; 2],
+    sibling_links_present: bool,
+    tombstones_present: bool,
 }
 
-pub(super) struct BaselineBTreeRootNode {
-    pub(super) corruption_marker: BaselineBTreeCorruptionMarker,
-    pub(super) separator_slot: PhysicalRecordSlot,
-    pub(super) left_child: SlotGenerationCell,
-    pub(super) right_child: SlotGenerationCell,
+impl BaselineBTreeLeafRecord {
+    pub const fn slots(self) -> [PhysicalRecordSlot; 2] {
+        self.slots
+    }
+    pub const fn sibling_links_present(self) -> bool {
+        self.sibling_links_present
+    }
+    pub const fn tombstones_present(self) -> bool {
+        self.tombstones_present
+    }
 }
 
-pub(super) fn encode_leaf_record(
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BaselineBTreeRootNode {
+    corruption_marker: BaselineBTreeCorruptionMarker,
+    separator_slot: PhysicalRecordSlot,
+    left_child: SlotGenerationCell,
+    right_child: SlotGenerationCell,
+}
+
+impl BaselineBTreeRootNode {
+    pub const fn corruption_marker(self) -> BaselineBTreeCorruptionMarker {
+        self.corruption_marker
+    }
+    pub const fn separator_slot(self) -> PhysicalRecordSlot {
+        self.separator_slot
+    }
+    pub const fn left_child(self) -> SlotGenerationCell {
+        self.left_child
+    }
+    pub const fn right_child(self) -> SlotGenerationCell {
+        self.right_child
+    }
+}
+
+pub fn encode_leaf_record(
     slots: [PhysicalRecordSlot; 2],
     sibling_links_present: bool,
     tombstones_present: bool,
@@ -40,7 +68,7 @@ pub(super) fn encode_leaf_record(
     ]
 }
 
-pub(super) fn decode_leaf_record(bytes: &[u8]) -> Option<BaselineBTreeLeafRecord> {
+pub fn decode_leaf_record(bytes: &[u8]) -> Option<BaselineBTreeLeafRecord> {
     if bytes.len() != 6 || bytes[0] != b'L' {
         return None;
     }
@@ -54,7 +82,7 @@ pub(super) fn decode_leaf_record(bytes: &[u8]) -> Option<BaselineBTreeLeafRecord
     })
 }
 
-pub(super) fn encode_root_record(
+pub fn encode_root_record(
     corruption_marker: BaselineBTreeCorruptionMarker,
     separator_slot: PhysicalRecordSlot,
     left_child: SlotGenerationCell,
@@ -72,7 +100,7 @@ pub(super) fn encode_root_record(
     bytes
 }
 
-pub(super) fn decode_root_record(bytes: &[u8]) -> Option<BaselineBTreeRootNode> {
+pub fn decode_root_record(bytes: &[u8]) -> Option<BaselineBTreeRootNode> {
     if bytes.len() != 56 || bytes[0] != b'R' {
         return None;
     }
@@ -103,28 +131,15 @@ fn decode_slot_cell(bytes: &[u8]) -> Option<SlotGenerationCell> {
     Some(
         PhysicalGenerationAuthority::s1()
             .slot_cell(
-                segment(u64::from_le_bytes(bytes[0..8].try_into().ok()?)),
-                page(u64::from_le_bytes(bytes[8..16].try_into().ok()?)),
-                slot(u16::from_le_bytes(bytes[16..18].try_into().ok()?)),
+                PhysicalSegmentId::from_raw(u64::from_le_bytes(bytes[0..8].try_into().ok()?))
+                    .ok()?,
+                PhysicalPageId::from_raw(u64::from_le_bytes(bytes[8..16].try_into().ok()?)).ok()?,
+                PhysicalRecordSlot::from_raw(u16::from_le_bytes(bytes[16..18].try_into().ok()?))
+                    .ok()?,
             )
-            .with_slot_generation(generation(u64::from_le_bytes(
-                bytes[18..26].try_into().ok()?,
-            ))),
+            .with_slot_generation(
+                PhysicalGeneration::from_raw(u64::from_le_bytes(bytes[18..26].try_into().ok()?))
+                    .ok()?,
+            ),
     )
-}
-
-fn segment(value: u64) -> PhysicalSegmentId {
-    PhysicalSegmentId::from_raw(value).unwrap()
-}
-
-fn page(value: u64) -> PhysicalPageId {
-    PhysicalPageId::from_raw(value).unwrap()
-}
-
-fn slot(value: u16) -> PhysicalRecordSlot {
-    PhysicalRecordSlot::from_raw(value).unwrap()
-}
-
-fn generation(value: u64) -> PhysicalGeneration {
-    PhysicalGeneration::from_raw(value).unwrap()
 }

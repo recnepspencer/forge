@@ -559,7 +559,6 @@ dependencies = [
  "forge-store-authority",
  "forge-store-budgets",
  "forge-store-contracts",
- "forge-store-layout-indexes",
  "forge-store-security",
 ]
 

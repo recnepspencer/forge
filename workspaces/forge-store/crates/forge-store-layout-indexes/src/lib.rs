@@ -56,6 +56,16 @@ pub use bootstrap::{
 };
 pub use key_domain::{S8KeyDomainAdmissionOutcome, S8KeyDomainAdmissionView};
 pub use materialization::{S8PhysicalAbsenceOutcome, S8PhysicalAbsenceOutcomeView};
+pub use strategy::btree::execution::{
+    decode_leaf_record as decode_baseline_btree_leaf_record,
+    decode_root_record as decode_baseline_btree_root_record,
+    encode_leaf_record as encode_baseline_btree_leaf_record,
+    encode_root_record as encode_baseline_btree_root_record, BaselineBTreeCorruptionMarker,
+    BaselineBTreeExactCounterWitness, BaselineBTreeExecutionDenial, BaselineBTreeExecutionWitness,
+    BaselineBTreeLeafRecord, BaselineBTreeLookupBranch, BaselineBTreeLookupExecution,
+    BaselineBTreeReadShape, BaselineBTreeReplayRecoveryExecution, BaselineBTreeRootNode,
+    BaselineBTreeRootPublicationExecution,
+};
 
 pub(crate) use access_shape::{
     access_shapes, S8AccessAuthorityPosture, S8AccessLaneClassification, S8AccessShape,
@@ -185,16 +195,13 @@ pub(crate) use phase28_rules::{
     AdmittedRestoreEvidenceLayoutRule, Phase28LayoutAuthorityPosture,
 };
 pub(crate) use physical_format_layout_access::{
-    phase19_extent_rule, phase19_frame_rule, phase19_page_rule, phase19_segment_rule,
-    phase20_allocation_rule, phase20_fragmentation_rule, phase20_free_space_rule,
-    phase20_manifest_index_rule, phase20_placement_rule, phase20_root_manifest_rule,
-    phase21_recovery_manifest_rule, phase22_bounded_wal_tail_rule, phase22_crash_boundary_rule,
-    phase22_readmission_rule, phase22_recovery_source_rule, phase22_replay_index_rule,
-    phase23_branch_delta_rule, phase23_continuation_support_rule, phase23_snapshot_rule,
-    phase23_stable_basis_rule, phase24_blob_object_rule, phase24_chunk_tree_rule,
-    phase24_streaming_rule, phase25_compaction_rule, phase25_dedupe_rule, phase25_quarantine_rule,
-    phase25_reachability_rule, phase25_reclaim_rule, phase25_retention_rule,
-    Phase19LayoutRuleDenial,
+    phase20_placement_rule, phase21_recovery_manifest_rule, phase22_bounded_wal_tail_rule,
+    phase22_crash_boundary_rule, phase22_readmission_rule, phase22_recovery_source_rule,
+    phase22_replay_index_rule, phase23_branch_delta_rule, phase23_continuation_support_rule,
+    phase23_snapshot_rule, phase23_stable_basis_rule, phase24_blob_object_rule,
+    phase24_chunk_tree_rule, phase24_streaming_rule, phase25_compaction_rule, phase25_dedupe_rule,
+    phase25_quarantine_rule, phase25_reachability_rule, phase25_reclaim_rule,
+    phase25_retention_rule, Phase19LayoutRuleDenial,
 };
 pub(crate) use planning::{
     S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,

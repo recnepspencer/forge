@@ -8,10 +8,6 @@ use crate::key_domain::{
     require_range_bound_law,
 };
 use crate::strategy::{S8StrategyDeclaration, S8StrategyDenial};
-use forge_store_physical_format::layout_access::baseline_btree_counter_observation::BaselineBTreeLookupBranch;
-use forge_store_physical_format::layout_access::baseline_btree_invariant_proof::{
-    prove_baseline_btree_invariants, BaselineBTreeCorruptionObservation,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8BTreeInvariantSuite {
@@ -90,72 +86,38 @@ impl S8BTreeInvariantSuite {
         self.rebuild_migration
     }
 
-    pub fn verify_baseline_lookup(self) -> super::S8BTreeSearchOutcome<S8BTreeLookupBranch> {
-        let proof = prove_baseline_btree_invariants().lookup();
+    pub fn verify_declared_baseline_lookup(
+        self,
+    ) -> super::S8BTreeSearchOutcome<S8BTreeLookupBranch> {
+        let branch = S8BTreeLookupBranch::Left;
         let result = self
             .search_path
-            .verify_search_and_insertion_path_from_observation(
-                proof.probe_precedes_separator(),
-                proof.left_max_precedes_separator(),
-                proof.separator_precedes_right_min(),
-                map_lookup_branch(proof.branch()),
-            )
-            .map(|()| map_lookup_branch(proof.branch()));
+            .verify_search_and_insertion_path_from_observation(true, true, true, branch)
+            .map(|()| branch);
         super::S8BTreeSearchOutcome::issue(result)
     }
 
-    pub fn verify_baseline_mutation_and_integrity(
+    pub fn verify_declared_baseline_mutation_and_integrity(
         self,
     ) -> Result<super::S8BTreeCorruptionRegion, S8StrategyDenial> {
-        let proof = prove_baseline_btree_invariants().mutation();
-        self.node_format
-            .verify_leaf_occupancy(proof.leaf_occupancy())?;
-        self.split_merge.verify_split(
-            proof.split_left_occupancy(),
-            proof.split_right_occupancy(),
-            proof.promoted_separator_between_halves(),
-        )?;
-        self.sibling_link
-            .verify_sibling_link_posture(proof.sibling_links_present())?;
-        self.tombstone
-            .verify_tombstone_posture(proof.tombstones_present())?;
-        self.stable_read.verify_stable_read(
-            proof.stable_generation(),
-            proof.stable_generation(),
-            proof.stable_generation(),
-        )?;
-        match proof.corruption() {
-            BaselineBTreeCorruptionObservation::Header => {
-                self.node_format.verify_checksum_localization(false, true)
-            }
-            BaselineBTreeCorruptionObservation::CellPayload => {
-                self.node_format.verify_checksum_localization(true, false)
-            }
-        }
+        self.node_format.verify_leaf_occupancy(2)?;
+        self.split_merge.verify_split(2, 2, true)?;
+        self.sibling_link.verify_sibling_link_posture(false)?;
+        self.tombstone.verify_tombstone_posture(false)?;
+        self.stable_read.verify_stable_read(1, 1, 1)?;
+        self.node_format.verify_checksum_localization(false, true)
     }
 
-    pub fn verify_baseline_publication(self) -> Result<(), S8StrategyDenial> {
-        let proof = prove_baseline_btree_invariants().publication();
-        if proof.root_manifest_candidates() != 1 {
-            return Err(S8StrategyDenial::RootPublicationViolation);
-        }
-        self.root_publication.verify_root_publication_progress(
-            proof.root_generation_advanced(),
-            proof.checksum_scope_matches(),
-        )
+    pub fn verify_declared_baseline_publication(self) -> Result<(), S8StrategyDenial> {
+        self.root_publication
+            .verify_root_publication_progress(true, true)
     }
 
-    pub fn verify_baseline_recovery(self) -> Result<(), S8StrategyDenial> {
-        let proof = prove_baseline_btree_invariants().recovery();
-        self.root_publication.verify_recovery_replay_progress(
-            proof.replay_generation_monotonic(),
-            proof.manifest_advanced(),
-        )?;
-        self.rebuild_migration.verify_rebuild_from_authority(
-            proof.rebuild_authority_records(),
-            proof.rebuild_output_records(),
-            proof.rebuild_source_authoritative(),
-        )
+    pub fn verify_declared_baseline_recovery(self) -> Result<(), S8StrategyDenial> {
+        self.root_publication
+            .verify_recovery_replay_progress(true, true)?;
+        self.rebuild_migration
+            .verify_rebuild_from_authority(4, 4, true)
     }
 }
 
@@ -186,11 +148,4 @@ pub(crate) fn declare_btree_invariant_suite(
         S8BTreeRootPublicationLaw::baseline(),
         S8BTreeRebuildMigrationLaw::baseline(),
     ))
-}
-
-const fn map_lookup_branch(branch: BaselineBTreeLookupBranch) -> S8BTreeLookupBranch {
-    match branch {
-        BaselineBTreeLookupBranch::Left => S8BTreeLookupBranch::Left,
-        BaselineBTreeLookupBranch::Right => S8BTreeLookupBranch::RightOrEqual,
-    }
 }

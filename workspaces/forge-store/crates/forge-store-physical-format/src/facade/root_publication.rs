@@ -8,6 +8,68 @@ use crate::{
 
 use super::denials::{PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind};
 use super::storage::PlatformPhysicalFacadeStorage;
+use super::{
+    PlatformPhysicalFacade, PlatformPhysicalFacadeCounterSnapshot,
+    PlatformPhysicalRootPublicationReport,
+};
+
+impl PlatformPhysicalFacade {
+    pub fn publish_physical_root(
+        &mut self,
+    ) -> Result<PlatformPhysicalRootPublicationReport, PlatformPhysicalFacadeDenial> {
+        let published = encode_next_root_publication(
+            &mut self.next_root_generation,
+            &self.storage,
+            &self.headers,
+            self.references,
+        )?;
+        self.storage.replace_manifest_bytes(
+            Some(published.root.root_publication()),
+            vec![published.root_manifest],
+            published.segment_manifest,
+            published.extent_manifest,
+            published.free_space_map,
+        );
+        self.counters = self
+            .counters
+            .with_root_publication()
+            .with_flush()
+            .with_rename();
+        Ok(PlatformPhysicalRootPublicationReport::new(
+            self.headers.clone(),
+            self.storage.persisted_layout(),
+            self.counters,
+        ))
+    }
+
+    pub fn publish_interrupted_physical_root(
+        &mut self,
+    ) -> Result<PlatformPhysicalRootPublicationReport, PlatformPhysicalFacadeDenial> {
+        let first = encode_next_root_publication(
+            &mut self.next_root_generation,
+            &self.storage,
+            &self.headers,
+            self.references,
+        )?;
+        let second = encode_next_root_publication(
+            &mut self.next_root_generation,
+            &self.storage,
+            &self.headers,
+            self.references,
+        )?;
+        self.storage.replace_manifest_bytes(
+            None,
+            vec![first.root_manifest, second.root_manifest],
+            first.segment_manifest,
+            first.extent_manifest,
+            first.free_space_map,
+        );
+        self.counters = self.counters.with_root_publication().with_flush();
+        Err(PlatformPhysicalFacadeDenial::new(
+            PlatformPhysicalFacadeDenialKind::AmbiguousRootPublication,
+        ))
+    }
+}
 
 pub(crate) struct EncodedRootPublication {
     pub(crate) root: PhysicalRootManifest,

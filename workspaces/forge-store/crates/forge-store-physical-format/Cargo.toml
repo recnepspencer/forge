@@ -7,8 +7,6 @@ description = "Roadmap 2 S.1 physical page, segment, extent, frame, and referenc
 
 [features]
 certification-test-authority = []
-phase19-layout-rule-construction = []
-phase20-layout-rule-construction = []
 
 [dependencies]
 forge-foundational = { path = "../../../../crates/forge-foundational" }
@@ -19,7 +17,6 @@ forge-store-budgets.workspace = true
 
 [dev-dependencies]
 forge-store-authority = { path = "../forge-store-authority" }
-forge-store-layout-indexes = { path = "../forge-store-layout-indexes" }
 forge-store-security.workspace = true
 
 [lints]

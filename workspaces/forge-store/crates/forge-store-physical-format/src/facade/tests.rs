@@ -1,8 +1,4 @@
 use crate::{
-    layout_access::grammar::{
-        AdmittedExtentLayoutRule, AdmittedFrameLayoutRule, AdmittedPageLayoutRule,
-        AdmittedSegmentLayoutRule,
-    },
     ExtentGenerationCell, PersistedPhysicalLayout, PhysicalExtentId, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalRecordSlot, PhysicalReferenceKind, PhysicalSegmentId,
     PlatformPhysicalAppendRequest, PlatformPhysicalFacade, PlatformPhysicalFacadeDenialKind,
@@ -25,24 +21,18 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
 
     assert_eq!(append.reference().kind(), PhysicalReferenceKind::PageSlot);
 
-    let mut page_layout = facade
-        .page_layout(&AdmittedPageLayoutRule::internal_phase19())
-        .expect("admitted page layout");
+    let mut page_layout = facade.page_layout().expect("admitted page layout");
     let located = page_layout
         .locate_record(append.reference())
         .expect("locate through facade");
     assert_eq!(located.record_view().payload().as_bytes(), b"small");
 
-    let mut page_layout = facade
-        .page_layout(&AdmittedPageLayoutRule::internal_phase19())
-        .expect("admitted page layout");
+    let mut page_layout = facade.page_layout().expect("admitted page layout");
     let read = page_layout
         .read_record(append.reference())
         .expect("read through facade");
     assert_eq!(read.record_view().payload().as_bytes(), b"small");
-    let mut frame_layout = facade
-        .frame_layout(&AdmittedFrameLayoutRule::internal_phase19())
-        .expect("admitted frame layout");
+    let mut frame_layout = facade.frame_layout().expect("admitted frame layout");
     let framed = frame_layout
         .read_frame(append.reference())
         .expect("frame-admitted read through facade");
@@ -65,9 +55,7 @@ fn facade_append_publish_scan_reopen_and_locate_stays_physical() {
         published.replay_artifact(),
     )
     .expect("reopen through verifier");
-    let mut reopened_page_layout = reopened
-        .page_layout(&AdmittedPageLayoutRule::internal_phase19())
-        .expect("admitted page layout");
+    let mut reopened_page_layout = reopened.page_layout().expect("admitted page layout");
     let reopened_locate = reopened_page_layout
         .locate_record(append.reference())
         .expect("reopen locate by physical reference");
@@ -144,9 +132,7 @@ fn extent_records_route_through_facade_as_peer_physical_placement() {
         .append_physical_record(PlatformPhysicalAppendRequest::extent(extent_cell, b"large"))
         .expect("append extent-backed record");
 
-    let mut extent_layout = facade
-        .extent_layout(&AdmittedExtentLayoutRule::internal_phase19())
-        .expect("admitted extent layout");
+    let mut extent_layout = facade.extent_layout().expect("admitted extent layout");
     let located = extent_layout
         .locate_record(append.reference())
         .expect("locate extent-backed record");
@@ -170,7 +156,7 @@ fn segment_records_route_through_admitted_segment_layout() {
         .expect("append extent-backed record");
 
     let report = facade
-        .segment_layout(&AdmittedSegmentLayoutRule::internal_phase19())
+        .segment_layout()
         .expect("admitted segment layout")
         .read_segment(segment(1))
         .expect("read admitted segment");

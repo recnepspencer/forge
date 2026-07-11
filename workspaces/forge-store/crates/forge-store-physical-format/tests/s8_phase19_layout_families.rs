@@ -1,9 +1,6 @@
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase19_extent_rule, phase19_frame_rule, phase19_page_rule, phase19_segment_rule,
-};
 use forge_store_physical_format::{
     layout_access::{
         extent_family::extent_layout_access_counters, page_family::page_layout_access_counters,
@@ -14,7 +11,7 @@ use forge_store_physical_format::{
 };
 
 #[test]
-fn phase19_page_and_frame_rules_drive_public_layout_access() {
+fn page_and_frame_operations_use_public_physical_access() {
     let mut facade = open_facade();
     let append = facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -22,19 +19,14 @@ fn phase19_page_and_frame_rules_drive_public_layout_access() {
             b"frame-backed",
         ))
         .expect("page append through public facade");
-    let page_rule = phase19_page_rule().expect("phase-19 page rule");
-    let frame_rule = phase19_frame_rule().expect("phase-19 frame rule");
-
-    let mut page_layout = facade
-        .page_layout(&page_rule)
-        .expect("public page layout admission");
+    let mut page_layout = facade.page_layout().expect("public page layout admission");
     let located = page_layout
         .read_record(append.reference())
         .expect("public page read");
     assert_eq!(located.record_view().payload().as_bytes(), b"frame-backed");
 
     let mut frame_layout = facade
-        .frame_layout(&frame_rule)
+        .frame_layout()
         .expect("public frame layout admission");
     let framed = frame_layout
         .read_frame(append.reference())
@@ -44,7 +36,7 @@ fn phase19_page_and_frame_rules_drive_public_layout_access() {
 }
 
 #[test]
-fn phase19_extent_and_reopen_follow_public_rule_witnesses() {
+fn extent_and_reopen_follow_public_physical_evidence() {
     let mut facade = open_facade();
     let append = facade
         .append_physical_record(PlatformPhysicalAppendRequest::extent(
@@ -58,11 +50,8 @@ fn phase19_extent_and_reopen_follow_public_rule_witnesses() {
             b"root-page",
         ))
         .expect("page append before publish");
-    let extent_rule = phase19_extent_rule().expect("phase-19 extent rule");
-    let page_rule = phase19_page_rule().expect("phase-19 page rule");
-
     let mut extent_layout = facade
-        .extent_layout(&extent_rule)
+        .extent_layout()
         .expect("public extent layout admission");
     let extent = extent_layout
         .read_record(append.reference())
@@ -77,7 +66,7 @@ fn phase19_extent_and_reopen_follow_public_rule_witnesses() {
     )
     .expect("public replay reopen");
     let mut reopened_page_layout = reopened
-        .page_layout(&page_rule)
+        .page_layout()
         .expect("public page layout admission after reopen");
     let reopened_page = reopened_page_layout
         .locate_record(page_append.reference())
@@ -89,7 +78,7 @@ fn phase19_extent_and_reopen_follow_public_rule_witnesses() {
 }
 
 #[test]
-fn phase19_segment_rule_uses_maintained_segment_occupancy() {
+fn segment_access_uses_maintained_segment_occupancy() {
     let mut facade = open_facade();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -103,10 +92,8 @@ fn phase19_segment_rule_uses_maintained_segment_occupancy() {
             b"seg-extent",
         ))
         .expect("extent append");
-    let segment_rule = phase19_segment_rule().expect("phase-19 segment rule");
-
     let report = facade
-        .segment_layout(&segment_rule)
+        .segment_layout()
         .expect("public segment layout admission")
         .read_segment(segment(1))
         .expect("public segment read");
@@ -119,7 +106,7 @@ fn phase19_segment_rule_uses_maintained_segment_occupancy() {
 }
 
 #[test]
-fn phase19_point_counters_do_not_scale_with_storage_cardinality() {
+fn point_counters_do_not_scale_with_storage_cardinality() {
     let mut facade = open_facade();
     for value in 1..=8 {
         facade
@@ -135,8 +122,6 @@ fn phase19_point_counters_do_not_scale_with_storage_cardinality() {
             ))
             .expect("extent append");
     }
-    let page_rule = phase19_page_rule().expect("phase-19 page rule");
-    let extent_rule = phase19_extent_rule().expect("phase-19 extent rule");
     let page_reference = forge_store_physical_format::PhysicalReferenceAuthority::s1()
         .admit_page_slot(slot_cell_for(page(8), slot(8)))
         .reference();
@@ -145,9 +130,7 @@ fn phase19_point_counters_do_not_scale_with_storage_cardinality() {
         .reference();
 
     let page_counters = {
-        let mut page_layout = facade
-            .page_layout(&page_rule)
-            .expect("public page layout admission");
+        let mut page_layout = facade.page_layout().expect("public page layout admission");
         let report = page_layout
             .read_record(page_reference)
             .expect("public page read");
@@ -155,7 +138,7 @@ fn phase19_point_counters_do_not_scale_with_storage_cardinality() {
     };
     let extent_counters = {
         let mut extent_layout = facade
-            .extent_layout(&extent_rule)
+            .extent_layout()
             .expect("public extent layout admission");
         let report = extent_layout
             .read_record(extent_reference)

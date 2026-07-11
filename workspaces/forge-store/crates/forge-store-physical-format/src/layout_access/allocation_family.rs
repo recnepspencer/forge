@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedAllocationLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use super::root_discovery_family::canonical_root_manifest;
 use crate::{AllocationClassKind, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial};
 
@@ -16,14 +16,11 @@ pub struct AllocationLayoutReport {
 }
 
 impl AllocationLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedAllocationLayoutRule,
-    ) -> Result<AllocationLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<AllocationLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(AllocationLayoutFamilyAdmission)
     }
 }

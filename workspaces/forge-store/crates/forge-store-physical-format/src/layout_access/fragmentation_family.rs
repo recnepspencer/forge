@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedFragmentationLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use super::root_discovery_family::canonical_root_manifest;
 use crate::{
     PhysicalFragmentationPressureReport, PhysicalFreeSpaceSearchPolicy, PlatformPhysicalFacade,
@@ -19,13 +19,12 @@ pub struct FragmentationLayoutReport {
 }
 
 impl FragmentationLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
     pub fn admit(
         &self,
-        _rule: &AdmittedFragmentationLayoutRule,
     ) -> Result<FragmentationLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(FragmentationLayoutFamilyAdmission)
     }

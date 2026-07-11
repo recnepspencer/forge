@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedRootManifestLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     ManifestDiscoveryAuthority, ManifestDiscoveryCounterSnapshot, ManifestDiscoveryReport,
     OfflineManifestCodec, OfflineVerifierCounterSnapshot, PhysicalBootstrapCatalogDenial,
@@ -33,13 +33,12 @@ pub(super) struct CanonicalRootManifestAccess {
 }
 
 impl RootDiscoveryLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
     pub fn admit(
         &self,
-        _rule: &AdmittedRootManifestLayoutRule,
     ) -> Result<RootDiscoveryLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(RootDiscoveryLayoutFamilyAdmission)
     }

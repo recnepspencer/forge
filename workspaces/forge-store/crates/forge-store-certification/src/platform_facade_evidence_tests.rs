@@ -5,7 +5,6 @@ use crate::{
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::phase19_page_rule;
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
     PhysicalSegmentId, PlatformPhysicalAppendRequest, PlatformPhysicalFacade,
@@ -21,9 +20,8 @@ fn facade_scan_evidence_materializes_runtime_verifier_parity() {
             b"cert",
         ))
         .expect("append through facade");
-    let page_rule = phase19_page_rule().expect("phase-19 page rule");
     facade
-        .page_layout(&page_rule)
+        .page_layout()
         .expect("admitted page layout")
         .locate_record(append.reference())
         .expect("locate through facade");

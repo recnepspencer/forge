@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedFreeSpaceLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use super::root_discovery_family::canonical_root_manifest;
 use crate::{
     FreeSpaceReuseCell, PhysicalForegroundBoundednessOutcome, PhysicalFreeSpaceSearchPolicy,
@@ -20,14 +20,11 @@ pub struct FreeSpaceLayoutReport {
 }
 
 impl FreeSpaceLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedFreeSpaceLayoutRule,
-    ) -> Result<FreeSpaceLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<FreeSpaceLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(FreeSpaceLayoutFamilyAdmission)
     }
 }

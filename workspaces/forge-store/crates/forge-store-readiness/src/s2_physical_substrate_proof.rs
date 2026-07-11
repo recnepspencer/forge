@@ -3,9 +3,6 @@ use crate::{
     S2PhysicalSubstrateReadiness, S2ReadinessDenial, S2ReadinessDenialKind,
 };
 use forge_store_contracts::{AcceptedHandoffReadiness, ROADMAP_2_S1_SCOPE};
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase19_extent_rule, phase19_page_rule,
-};
 use forge_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalHeaderAuthority, PhysicalPageId, PhysicalPublicationState,
@@ -72,15 +69,13 @@ fn prove_s1_physical_handoff_evidence(
             b"s2-extent-handoff",
         ))
         .map_err(|_| proof_rejected())?;
-    let page_rule = phase19_page_rule().map_err(|_| proof_rejected())?;
-    let extent_rule = phase19_extent_rule().map_err(|_| proof_rejected())?;
     facade
-        .page_layout(&page_rule)
+        .page_layout()
         .map_err(|_| proof_rejected())?
         .locate_record(page_append.reference())
         .map_err(|_| proof_rejected())?;
     facade
-        .extent_layout(&extent_rule)
+        .extent_layout()
         .map_err(|_| proof_rejected())?
         .read_record(extent_append.reference())
         .map_err(|_| proof_rejected())?;
@@ -97,7 +92,7 @@ fn prove_s1_physical_handoff_evidence(
     )
     .map_err(|_| proof_rejected())?;
     reopened
-        .page_layout(&page_rule)
+        .page_layout()
         .map_err(|_| proof_rejected())?
         .locate_record(page_append.reference())
         .map_err(|_| proof_rejected())?;

@@ -293,6 +293,7 @@ mod durability_profile;
 pub mod external_recovery_compile_fail;
 mod heavy_fixture;
 mod io_capability;
+mod operation;
 mod operation_boundary;
 mod placement_observation;
 mod s6_queue_execution;
@@ -354,6 +355,7 @@ pub use io_capability::{
     BackendTargetProfile, CapabilityConfidenceLimits, CapabilityConfidenceScope,
     CapabilityEvidenceClass, CapabilityResidualRisk, PhysicalBackendCapabilityAdmissionAuthority,
 };
+pub use operation::PhysicalStoreBackend;
 pub use operation_boundary::ProductionStorageBoundarySeam;
 pub use placement_observation::{
     BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
@@ -394,11 +396,3 @@ pub use s6_secure_io::{
     preserve_secure_io_for_backend_completion, BackendSecureIoPreservationDenial,
     BackendSecureIoPreservationReceipt, BackendSecureIoScope,
 };
-
-pub trait PhysicalStoreBackend {
-    type Error;
-
-    fn append_framed_record(&mut self, bytes: &[u8]) -> Result<PhysicalReference, Self::Error>;
-
-    fn read_framed_record(&self, reference: PhysicalReference) -> Result<Vec<u8>, Self::Error>;
-}

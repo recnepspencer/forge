@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedManifestIndexLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use super::root_discovery_family::canonical_root_manifest;
 use crate::{
     ManifestDiscoveryAuthority, PhysicalReference, PhysicalReferenceAdmissionWitness,
@@ -20,14 +20,11 @@ pub struct ManifestMembershipLayoutReport {
 }
 
 impl ManifestLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedManifestIndexLayoutRule,
-    ) -> Result<ManifestLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<ManifestLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(ManifestLayoutFamilyAdmission)
     }
 }

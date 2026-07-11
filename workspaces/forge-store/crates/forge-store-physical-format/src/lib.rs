@@ -110,10 +110,8 @@ pub use header::{
 };
 pub use layout_access::counters::PhysicalLayoutAccessCounterSnapshot;
 pub use layout_access::grammar::{
-    AdmittedAllocationLayoutRule, AdmittedExtentLayoutRule, AdmittedFragmentationLayoutRule,
-    AdmittedFrameLayoutRule, AdmittedFreeSpaceLayoutRule, AdmittedManifestIndexLayoutRule,
-    AdmittedPageLayoutRule, AdmittedRootManifestLayoutRule, AdmittedSegmentLayoutRule,
-    PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
+    PhysicalLayoutAccessConstraint, PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
+    UnsupportedPhysicalLayoutAccess,
 };
 pub use manifest::{
     AllocationClassManifestEntry, ExtentManifestEntry, ExtentManifestVocabulary,

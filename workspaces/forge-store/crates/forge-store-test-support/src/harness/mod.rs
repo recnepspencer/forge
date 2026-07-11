@@ -12,4 +12,8 @@ pub mod physical_simulation;
 pub mod production_facade;
 pub mod test_authority;
 
+pub use milestone::s8_layout_access::{
+    baseline_btree_probe_slot, deterministic_baseline_btree_witness,
+    execute_s8_layout_runtime_receipt,
+};
 pub use production_facade::*;

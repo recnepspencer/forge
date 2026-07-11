@@ -1,10 +1,6 @@
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase20_allocation_rule, phase20_fragmentation_rule, phase20_free_space_rule,
-    phase20_manifest_index_rule, phase20_root_manifest_rule,
-};
 use forge_store_physical_format::{
     AllocationClassKind, PhysicalExtentId, PhysicalFreeSpaceSearchPolicy, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot, PhysicalSegmentId,
@@ -13,7 +9,7 @@ use forge_store_physical_format::{
 };
 
 #[test]
-fn phase20_root_manifest_and_manifest_index_rules_drive_public_layout_access() {
+fn root_manifest_and_manifest_index_use_public_physical_access() {
     let mut facade = open_facade();
     let page_append = facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -29,11 +25,8 @@ fn phase20_root_manifest_and_manifest_index_rules_drive_public_layout_access() {
         .expect("extent append");
     facade.publish_physical_root().expect("root publish");
 
-    let root_rule = phase20_root_manifest_rule().expect("phase-20 root rule");
-    let manifest_rule = phase20_manifest_index_rule().expect("phase-20 manifest rule");
-
     let root_report = facade
-        .root_manifest_layout(&root_rule)
+        .root_manifest_layout()
         .expect("root manifest admission")
         .current_root_manifest()
         .expect("discover current root");
@@ -44,7 +37,7 @@ fn phase20_root_manifest_and_manifest_index_rules_drive_public_layout_access() {
     assert!(root_report.counters().bytes_read() > 0);
 
     let manifest_report = facade
-        .manifest_index_layout(&manifest_rule)
+        .manifest_index_layout()
         .expect("manifest admission")
         .validate_membership(page_append.reference())
         .expect("page membership");
@@ -62,7 +55,7 @@ fn phase20_root_manifest_and_manifest_index_rules_drive_public_layout_access() {
 }
 
 #[test]
-fn phase20_allocation_free_space_and_fragmentation_rules_stay_family_local() {
+fn allocation_free_space_and_fragmentation_stay_family_local() {
     let mut facade = open_facade();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -78,19 +71,15 @@ fn phase20_allocation_free_space_and_fragmentation_rules_stay_family_local() {
         .expect("extent append");
     facade.publish_physical_root().expect("root publish");
 
-    let allocation_rule = phase20_allocation_rule().expect("phase-20 allocation rule");
-    let free_space_rule = phase20_free_space_rule().expect("phase-20 free-space rule");
-    let fragmentation_rule = phase20_fragmentation_rule().expect("phase-20 fragmentation rule");
     let policy = PhysicalFreeSpaceSearchPolicy::foreground_bounded(4, 4);
-    let root_rule = phase20_root_manifest_rule().expect("phase-20 root rule");
     let root_report = facade
-        .root_manifest_layout(&root_rule)
+        .root_manifest_layout()
         .expect("root manifest admission")
         .current_root_manifest()
         .expect("discover current root");
 
     let allocation = facade
-        .allocation_layout(&allocation_rule)
+        .allocation_layout()
         .expect("allocation admission")
         .allocation_classes()
         .expect("allocation classes");
@@ -109,7 +98,7 @@ fn phase20_allocation_free_space_and_fragmentation_rules_stay_family_local() {
     assert!(allocation.counters().bytes_read() > 0);
 
     let free_space = facade
-        .free_space_layout(&free_space_rule)
+        .free_space_layout()
         .expect("free-space admission")
         .bounded_candidates(policy)
         .expect("bounded free-space read");
@@ -123,7 +112,7 @@ fn phase20_allocation_free_space_and_fragmentation_rules_stay_family_local() {
     assert!(free_space.counters().bytes_read() > 0);
 
     let fragmentation = facade
-        .fragmentation_layout(&fragmentation_rule)
+        .fragmentation_layout()
         .expect("fragmentation admission")
         .pressure(policy)
         .expect("fragmentation report");
@@ -138,7 +127,7 @@ fn phase20_allocation_free_space_and_fragmentation_rules_stay_family_local() {
 }
 
 #[test]
-fn phase20_reopen_discovers_same_root_manifest_family_truth() {
+fn reopen_discovers_same_root_manifest_family_truth() {
     let mut facade = open_facade();
     facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -147,10 +136,8 @@ fn phase20_reopen_discovers_same_root_manifest_family_truth() {
         ))
         .expect("page append");
     let published = facade.publish_physical_root().expect("root publish");
-    let root_rule = phase20_root_manifest_rule().expect("phase-20 root rule");
-
     let original = facade
-        .root_manifest_layout(&root_rule)
+        .root_manifest_layout()
         .expect("root manifest admission")
         .current_root_manifest()
         .expect("discover original root");
@@ -161,7 +148,7 @@ fn phase20_reopen_discovers_same_root_manifest_family_truth() {
     )
     .expect("public replay reopen");
     let reopened_root = reopened
-        .root_manifest_layout(&root_rule)
+        .root_manifest_layout()
         .expect("reopened root manifest admission")
         .current_root_manifest()
         .expect("discover reopened root");
@@ -171,7 +158,7 @@ fn phase20_reopen_discovers_same_root_manifest_family_truth() {
 }
 
 #[test]
-fn phase20_manifest_membership_rejects_unpublished_runtime_append() {
+fn manifest_membership_rejects_unpublished_runtime_append() {
     let mut facade = open_facade();
     let page_append = facade
         .append_physical_record(PlatformPhysicalAppendRequest::page_slot(
@@ -179,10 +166,8 @@ fn phase20_manifest_membership_rejects_unpublished_runtime_append() {
             b"unpublished-page",
         ))
         .expect("page append");
-    let manifest_rule = phase20_manifest_index_rule().expect("phase-20 manifest rule");
-
     let denial = facade
-        .manifest_index_layout(&manifest_rule)
+        .manifest_index_layout()
         .expect("manifest admission")
         .validate_membership(page_append.reference())
         .expect_err("unpublished append must not be manifest-admitted");
@@ -194,25 +179,22 @@ fn phase20_manifest_membership_rejects_unpublished_runtime_append() {
 }
 
 #[test]
-fn phase20_allocation_free_space_and_fragmentation_require_published_root_truth() {
+fn allocation_free_space_and_fragmentation_require_published_root_truth() {
     let mut facade = open_facade();
-    let allocation_rule = phase20_allocation_rule().expect("phase-20 allocation rule");
-    let free_space_rule = phase20_free_space_rule().expect("phase-20 free-space rule");
-    let fragmentation_rule = phase20_fragmentation_rule().expect("phase-20 fragmentation rule");
     let policy = PhysicalFreeSpaceSearchPolicy::foreground_bounded(4, 4);
 
     let allocation_denial = facade
-        .allocation_layout(&allocation_rule)
+        .allocation_layout()
         .expect("allocation admission")
         .allocation_classes()
         .expect_err("allocation must require published root");
     let free_space_denial = facade
-        .free_space_layout(&free_space_rule)
+        .free_space_layout()
         .expect("free-space admission")
         .bounded_candidates(policy)
         .expect_err("free-space must require published root");
     let fragmentation_denial = facade
-        .fragmentation_layout(&fragmentation_rule)
+        .fragmentation_layout()
         .expect("fragmentation admission")
         .pressure(policy)
         .expect_err("fragmentation must require published root");

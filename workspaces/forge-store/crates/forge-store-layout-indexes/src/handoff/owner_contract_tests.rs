@@ -127,7 +127,7 @@ fn ordinary_execution_and_corruption_outcomes_are_the_handoff_source() {
             .contains(strategy.invariant_production_transition())
     );
     let btree_suite = invariant_suite.require_btree_suite().unwrap();
-    let btree_lookup = btree_suite.verify_baseline_lookup();
+    let btree_lookup = btree_suite.verify_declared_baseline_lookup();
     assert!(
         S9LayoutMachineContract::for_machine(S9LayoutStateMachine::BTreeSearchPathInvariant)
             .contains(btree_lookup.production_transition())

@@ -1,10 +1,12 @@
+use super::execution::{
+    PhysicalStoreDurabilityExecutor, StoreDurabilityExecutionObservation,
+    StoreDurabilityExecutionRequest, StoreDurabilityExecutionSession,
+};
 use crate::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     CapabilityEvidenceClass, PhysicalBackendCapabilityAdmissionAuthority,
-    PhysicalStoreDurabilityExecutor, StoreDurabilityExecutionObservation,
-    StoreDurabilityExecutionProof, StoreDurabilityExecutionRequest,
-    StoreDurabilityExecutionSession, StoreDurabilityFileSyncKind, StoreDurabilityPublicationKind,
+    StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind, StoreDurabilityPublicationKind,
     StoreDurabilityRequirement, StoreDurabilityWriteAccepted, WalDurabilityBarrierSet,
 };
 
@@ -37,7 +39,10 @@ where
     S: Clone,
     ScriptedDurabilityBackend: PhysicalStoreDurabilityExecutor<S, Error = ()>,
 {
-    let mut backend = ScriptedDurabilityBackend { observation };
+    let mut backend = ScriptedDurabilityBackend {
+        observation: observation
+            .with_persisted_artifact(std::path::PathBuf::from("scripted-durability-artifact"), 1),
+    };
     match StoreDurabilityExecutionSession::for_owned_backend(&mut backend).execute(accepted) {
         Ok(proof) => proof,
         Err(()) => panic!("scripted durability backend should not fail"),
@@ -59,7 +64,7 @@ impl<S> PhysicalStoreDurabilityExecutor<S> for ScriptedDurabilityBackend {
             request.requirement().required_barriers(),
             WalDurabilityBarrierSet::EMPTY
         );
-        Ok(self.observation)
+        Ok(self.observation.clone())
     }
 }
 
@@ -94,7 +99,7 @@ where
             request.requirement().publication(),
             self.expected_publication
         );
-        Ok(self.observation)
+        Ok(self.observation.clone())
     }
 }
 

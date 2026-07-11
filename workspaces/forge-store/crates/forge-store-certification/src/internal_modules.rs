@@ -20,6 +20,8 @@ mod authority_projection_readmission_tests;
 mod background_envelope_evidence;
 #[cfg(test)]
 mod background_envelope_evidence_tests;
+#[cfg(test)]
+mod baseline_btree_counter_evidence_tests;
 mod binary_format_evidence;
 mod bounded_memory_closeout;
 #[cfg(test)]

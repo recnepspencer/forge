@@ -6,7 +6,30 @@ use forge_store_contracts::AcceptedHandoffReadiness;
 
 use super::denials::{PlatformPhysicalFacadeDenial, PlatformPhysicalFacadeDenialKind};
 use super::storage::PlatformPhysicalFacadeStorage;
-use super::{map_verifier_denial_for_reopen, PlatformPhysicalFacade};
+use super::PlatformPhysicalFacade;
+
+impl PlatformPhysicalFacade {
+    pub fn open_s1(
+        readiness: AcceptedHandoffReadiness,
+        request: PlatformPhysicalOpenRequest,
+    ) -> Result<Self, PlatformPhysicalFacadeDenial> {
+        verify_handoff_readiness(&readiness)?;
+        Ok(Self::new(
+            readiness.scope(),
+            request.headers().clone(),
+            PlatformPhysicalFacadeStorage::empty(),
+            PlatformPhysicalFacadeCounterSnapshot::empty().with_open(),
+        ))
+    }
+
+    pub fn reopen_s1(
+        readiness: AcceptedHandoffReadiness,
+        request: PlatformPhysicalOpenRequest,
+        replay_artifact: crate::PlatformPhysicalReplayArtifact,
+    ) -> Result<Self, PlatformPhysicalFacadeDenial> {
+        replay_artifact.reopen_s1(readiness, request)
+    }
+}
 
 pub(crate) fn verify_handoff_readiness(
     readiness: &AcceptedHandoffReadiness,
@@ -73,4 +96,19 @@ pub(crate) fn reopen_s1(
             .with_open()
             .with_reopen(),
     ))
+}
+
+pub(crate) fn map_verifier_denial_for_reopen(
+    denial: crate::OfflineVerifierDenial,
+) -> PlatformPhysicalFacadeDenial {
+    let kind = match denial.kind() {
+        crate::OfflineVerifierDenialKind::MissingRootManifest => {
+            PlatformPhysicalFacadeDenialKind::MissingPhysicalRoot
+        }
+        crate::OfflineVerifierDenialKind::AmbiguousRootManifest => {
+            PlatformPhysicalFacadeDenialKind::AmbiguousRootPublication
+        }
+        _ => PlatformPhysicalFacadeDenialKind::OfflineVerifierDenied,
+    };
+    PlatformPhysicalFacadeDenial::new(kind).with_verifier_denial(denial)
 }

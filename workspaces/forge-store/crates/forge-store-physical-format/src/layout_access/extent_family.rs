@@ -1,5 +1,4 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::AdmittedExtentLayoutRule;
 use crate::{
     extent_record::ExtentRecordLocateReport, ExtentMembership, PhysicalExtentRecordAuthority,
     PhysicalReference, PhysicalReferenceAuthority, PlatformPhysicalFacade,
@@ -13,14 +12,11 @@ pub struct ExtentLayoutFamilyHome;
 pub struct ExtentLayoutFamilyAdmission;
 
 impl ExtentLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedExtentLayoutRule,
-    ) -> Result<ExtentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<ExtentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(ExtentLayoutFamilyAdmission)
     }
 }

@@ -1,8 +1,8 @@
-use forge_store_budgets::{CounterEvidenceStrength, S8PreExecutionPlanBinding};
-use forge_store_physical_format::layout_access::baseline_btree_counter_observation::{
+use crate::strategy::btree::execution::{
     BaselineBTreeExactCounterWitness, BaselineBTreeLookupExecution, BaselineBTreeReadShape,
     BaselineBTreeReplayRecoveryExecution, BaselineBTreeRootPublicationExecution,
 };
+use forge_store_budgets::{CounterEvidenceStrength, S8PreExecutionPlanBinding};
 
 use super::{
     S8AccessLoweringBasis, S8AccessPathCounterSnapshot, S8AccessPathKind,
@@ -13,9 +13,9 @@ use crate::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 mod private {
     pub trait Sealed {}
 
-    impl Sealed for forge_store_physical_format::layout_access::baseline_btree_counter_observation::BaselineBTreeLookupExecution {}
-    impl Sealed for forge_store_physical_format::layout_access::baseline_btree_counter_observation::BaselineBTreeRootPublicationExecution {}
-    impl Sealed for forge_store_physical_format::layout_access::baseline_btree_counter_observation::BaselineBTreeReplayRecoveryExecution {}
+    impl Sealed for crate::strategy::btree::execution::BaselineBTreeLookupExecution {}
+    impl Sealed for crate::strategy::btree::execution::BaselineBTreeRootPublicationExecution {}
+    impl Sealed for crate::strategy::btree::execution::BaselineBTreeReplayRecoveryExecution {}
 }
 
 pub trait S8ExecutedCounterWitness: private::Sealed {

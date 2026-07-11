@@ -12,7 +12,7 @@ forge-store-budgets = { path = "../forge-store-budgets" }
 forge-store-compatibility = { path = "../forge-store-compatibility" }
 forge-store-contracts = { path = "../forge-store-contracts" }
 forge-store-offline-verifier = { path = "../forge-store-offline-verifier" }
-forge-store-physical-format = { path = "../forge-store-physical-format", features = ["phase19-layout-rule-construction", "phase20-layout-rule-construction"] }
+forge-store-physical-format = { path = "../forge-store-physical-format" }
 forge-store-physical-isolation = { path = "../forge-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
 forge-store-physical-integrity = { path = "../forge-store-physical-integrity" }
 forge-store-recovery-physics = { path = "../forge-store-recovery-physics", features = ["phase21-layout-rule-construction", "phase22-layout-rule-construction"] }
@@ -28,7 +28,7 @@ forge-store-certification = { path = "../forge-store-certification" }
 forge-store = { path = "../forge-store" }
 forge-store-operations = { path = "../forge-store-operations" }
 forge-store-physical-certification = { path = "../forge-store-physical-certification" }
-forge-store-physical-format = { path = "../forge-store-physical-format", features = ["phase19-layout-rule-construction", "phase20-layout-rule-construction"] }
+forge-store-physical-format = { path = "../forge-store-physical-format" }
 forge-store-physical-isolation = { path = "../forge-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
 forge-store-recovery-physics = { path = "../forge-store-recovery-physics", features = ["phase21-layout-rule-construction", "phase22-layout-rule-construction"] }
 forge-store-security = { path = "../forge-store-security", features = ["certification-test-authority", "phase27-layout-rule-construction"] }

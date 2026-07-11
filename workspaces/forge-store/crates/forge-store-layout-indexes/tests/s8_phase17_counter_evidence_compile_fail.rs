@@ -1,5 +1,5 @@
 #[test]
-fn executed_counter_receipts_reject_raw_struct_shortcuts() {
+fn btree_execution_rejects_coarse_and_seeded_production_shortcuts() {
     for fixture in fixtures() {
         assert_compile_fails(fixture);
     }
@@ -11,27 +11,11 @@ struct CompileFailFixture {
     expected_stderr: &'static [&'static str],
 }
 
-const fn fixtures() -> [CompileFailFixture; 7] {
+const fn fixtures() -> [CompileFailFixture; 3] {
     [
         CompileFailFixture {
-            name: "amplification_receipt_struct_literal_is_not_public.rs",
-            expected_stderr: &["cannot construct", "S8AccessPathAmplificationReceipt"],
-        },
-        CompileFailFixture {
-            name: "planned_vs_observed_receipt_struct_literal_is_not_public.rs",
-            expected_stderr: &["cannot construct", "S8PlannedVsObservedCounterReceipt"],
-        },
-        CompileFailFixture {
-            name: "planned_snapshot_cannot_satisfy_execute_ready.rs",
-            expected_stderr: &["mismatched types", "S8AdmittedExecutedCounters"],
-        },
-        CompileFailFixture {
-            name: "executed_counter_rows_admission_is_not_public.rs",
-            expected_stderr: &["no method named", "admit_executed_counter_rows"],
-        },
-        CompileFailFixture {
             name: "coarse_execution_counter_lane_is_not_public.rs",
-            expected_stderr: &["private method", "counters"],
+            expected_stderr: &["no method named", "counters"],
         },
         CompileFailFixture {
             name: "seeded_execution_helper_lane_is_not_public.rs",
@@ -39,7 +23,7 @@ const fn fixtures() -> [CompileFailFixture; 7] {
         },
         CompileFailFixture {
             name: "seeded_execution_transcript_lane_is_not_public.rs",
-            expected_stderr: &["private function", "execute_baseline_btree_transcript"],
+            expected_stderr: &["unresolved import", "execute_baseline_btree_transcript"],
         },
     ]
 }

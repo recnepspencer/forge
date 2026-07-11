@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedSegmentLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     PhysicalSegmentId, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
     PlatformPhysicalFacadeDenialKind,
@@ -20,14 +20,11 @@ pub struct PhysicalSegmentLayoutReport {
 }
 
 impl SegmentLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedSegmentLayoutRule,
-    ) -> Result<SegmentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<SegmentLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(SegmentLayoutFamilyAdmission)
     }
 }

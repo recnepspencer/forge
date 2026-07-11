@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedPageLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use crate::{
     page_record::RecordLocateReport, PhysicalPageRecordAuthority, PhysicalReference,
     PhysicalReferenceAuthority, PlatformPhysicalFacade, PlatformPhysicalFacadeDenial,
@@ -15,14 +15,11 @@ pub struct PageLayoutFamilyAdmission {
 }
 
 impl PageLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedPageLayoutRule,
-    ) -> Result<PageLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<PageLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(PageLayoutFamilyAdmission {
             family: PhysicalLayoutAccessFamily::Page,
         })

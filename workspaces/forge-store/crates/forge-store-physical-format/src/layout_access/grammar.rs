@@ -22,154 +22,87 @@ pub enum PhysicalLayoutAccessPattern {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedPageLayoutRule {
-    _private: (),
-}
-
-impl AdmittedPageLayoutRule {
-    pub(crate) const fn internal_phase19() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase19-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase19() -> Self {
-        Self::internal_phase19()
-    }
+pub struct PhysicalLayoutAccessConstraint {
+    family: PhysicalLayoutAccessFamily,
+    pattern: PhysicalLayoutAccessPattern,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedFrameLayoutRule {
-    _private: (),
+pub struct UnsupportedPhysicalLayoutAccess {
+    family: PhysicalLayoutAccessFamily,
+    pattern: PhysicalLayoutAccessPattern,
 }
 
-impl AdmittedFrameLayoutRule {
-    pub(crate) const fn internal_phase19() -> Self {
-        Self { _private: () }
+impl PhysicalLayoutAccessConstraint {
+    pub const fn admit(
+        family: PhysicalLayoutAccessFamily,
+        pattern: PhysicalLayoutAccessPattern,
+    ) -> Result<Self, UnsupportedPhysicalLayoutAccess> {
+        if family.supports(pattern) {
+            Ok(Self { family, pattern })
+        } else {
+            Err(UnsupportedPhysicalLayoutAccess { family, pattern })
+        }
     }
 
-    #[cfg(feature = "phase19-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase19() -> Self {
-        Self::internal_phase19()
+    pub const fn family(self) -> PhysicalLayoutAccessFamily {
+        self.family
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedSegmentLayoutRule {
-    _private: (),
-}
-
-impl AdmittedSegmentLayoutRule {
-    pub(crate) const fn internal_phase19() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase19-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase19() -> Self {
-        Self::internal_phase19()
+    pub const fn pattern(self) -> PhysicalLayoutAccessPattern {
+        self.pattern
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedExtentLayoutRule {
-    _private: (),
-}
-
-impl AdmittedExtentLayoutRule {
-    pub(crate) const fn internal_phase19() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase19-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase19() -> Self {
-        Self::internal_phase19()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedRootManifestLayoutRule {
-    _private: (),
-}
-
-impl AdmittedRootManifestLayoutRule {
-    pub(crate) const fn internal_phase20() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase20-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase20() -> Self {
-        Self::internal_phase20()
+impl PhysicalLayoutAccessFamily {
+    pub const fn supports(self, pattern: PhysicalLayoutAccessPattern) -> bool {
+        match self {
+            Self::Page | Self::Frame | Self::Segment | Self::Extent => {
+                matches!(pattern, PhysicalLayoutAccessPattern::PointLookup)
+            }
+            Self::RootManifest | Self::Allocation | Self::Fragmentation | Self::FreeSpace => {
+                matches!(pattern, PhysicalLayoutAccessPattern::BoundedScan)
+            }
+            Self::ManifestIndex => matches!(
+                pattern,
+                PhysicalLayoutAccessPattern::PointLookup
+                    | PhysicalLayoutAccessPattern::RangeLookup
+                    | PhysicalLayoutAccessPattern::BoundedScan
+            ),
+        }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedManifestIndexLayoutRule {
-    _private: (),
-}
-
-impl AdmittedManifestIndexLayoutRule {
-    pub(crate) const fn internal_phase20() -> Self {
-        Self { _private: () }
+impl UnsupportedPhysicalLayoutAccess {
+    pub const fn family(self) -> PhysicalLayoutAccessFamily {
+        self.family
     }
-
-    #[cfg(feature = "phase20-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase20() -> Self {
-        Self::internal_phase20()
+    pub const fn pattern(self) -> PhysicalLayoutAccessPattern {
+        self.pattern
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedAllocationLayoutRule {
-    _private: (),
-}
+#[cfg(test)]
+mod tests {
+    use super::{
+        PhysicalLayoutAccessConstraint, PhysicalLayoutAccessFamily, PhysicalLayoutAccessPattern,
+    };
 
-impl AdmittedAllocationLayoutRule {
-    pub(crate) const fn internal_phase20() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase20-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase20() -> Self {
-        Self::internal_phase20()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedFreeSpaceLayoutRule {
-    _private: (),
-}
-
-impl AdmittedFreeSpaceLayoutRule {
-    pub(crate) const fn internal_phase20() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase20-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase20() -> Self {
-        Self::internal_phase20()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedFragmentationLayoutRule {
-    _private: (),
-}
-
-impl AdmittedFragmentationLayoutRule {
-    pub(crate) const fn internal_phase20() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase20-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase20() -> Self {
-        Self::internal_phase20()
+    #[test]
+    fn grammar_admits_only_mechanics_supported_by_each_family() {
+        assert!(PhysicalLayoutAccessConstraint::admit(
+            PhysicalLayoutAccessFamily::Page,
+            PhysicalLayoutAccessPattern::PointLookup,
+        )
+        .is_ok());
+        assert!(PhysicalLayoutAccessConstraint::admit(
+            PhysicalLayoutAccessFamily::Page,
+            PhysicalLayoutAccessPattern::FullScan,
+        )
+        .is_err());
+        assert!(PhysicalLayoutAccessConstraint::admit(
+            PhysicalLayoutAccessFamily::FreeSpace,
+            PhysicalLayoutAccessPattern::BoundedScan,
+        )
+        .is_ok());
     }
 }

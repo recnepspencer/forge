@@ -1,5 +1,5 @@
 mod admission;
-mod btree;
+pub(crate) mod btree;
 mod capability;
 mod counter_evidence;
 mod counter_path;

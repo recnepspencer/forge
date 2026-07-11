@@ -3,9 +3,6 @@ use forge_store_claim_boundaries::PlatformGradeClaimWitness;
 use forge_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase19_extent_rule, phase19_page_rule,
-};
 use forge_store_physical_format::{
     PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId,
     PhysicalRecordSlot, PhysicalReferenceAuthority, PhysicalSegmentId,
@@ -39,17 +36,13 @@ impl PhysicalSubstrateCertificationScan {
                 b"derived-large",
             ))
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
-        let page_rule = phase19_page_rule()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
-        let extent_rule = phase19_extent_rule()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .page_layout(&page_rule)
+            .page_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
             .locate_record(page_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .extent_layout(&extent_rule)
+            .extent_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
             .read_record(extent_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
@@ -66,7 +59,7 @@ impl PhysicalSubstrateCertificationScan {
         )
         .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         reopened
-            .page_layout(&page_rule)
+            .page_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
             .locate_record(page_append.reference())
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
@@ -99,10 +92,8 @@ impl PhysicalSubstrateCertificationScan {
                 b"page-only",
             ))
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
-        let page_rule = phase19_page_rule()
-            .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?;
         facade
-            .page_layout(&page_rule)
+            .page_layout()
             .map_err(|_| PhysicalSubstrateCertificationDenial::FacadeOperationDenied)?
             .locate_record(
                 PhysicalReferenceAuthority::s1()

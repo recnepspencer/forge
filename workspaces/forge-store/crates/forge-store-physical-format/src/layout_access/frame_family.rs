@@ -1,5 +1,5 @@
 use super::counters::PhysicalLayoutAccessCounterSnapshot;
-use super::grammar::{AdmittedFrameLayoutRule, PhysicalLayoutAccessFamily};
+use super::grammar::PhysicalLayoutAccessFamily;
 use super::page_family::locate_page_record;
 use crate::{
     FramedRecordView, PhysicalReference, PhysicalReferenceAuthority, PlatformPhysicalFacade,
@@ -22,14 +22,11 @@ pub struct PhysicalFrameLayoutReport<'a> {
 }
 
 impl FrameLayoutFamilyHome {
-    pub const fn s8() -> Self {
+    pub const fn physical() -> Self {
         Self
     }
 
-    pub fn admit(
-        &self,
-        _rule: &AdmittedFrameLayoutRule,
-    ) -> Result<FrameLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
+    pub fn admit(&self) -> Result<FrameLayoutFamilyAdmission, PlatformPhysicalFacadeDenial> {
         Ok(FrameLayoutFamilyAdmission {
             family: PhysicalLayoutAccessFamily::Frame,
         })

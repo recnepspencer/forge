@@ -19,12 +19,7 @@ use crate::{
     S8AccessShapeContract, S8AccessShapeUnsupportedDenial,
 };
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_physical_format::{
-    AdmittedAllocationLayoutRule, AdmittedExtentLayoutRule, AdmittedFragmentationLayoutRule,
-    AdmittedFrameLayoutRule, AdmittedFreeSpaceLayoutRule, AdmittedManifestIndexLayoutRule,
-    AdmittedPageLayoutRule, AdmittedRootManifestLayoutRule, AdmittedSegmentLayoutRule,
-    PhysicalEpoch,
-};
+use forge_store_physical_format::PhysicalEpoch;
 use forge_store_physical_isolation::AdmittedPlacementLayoutRule;
 use forge_store_recovery_physics::AdmittedRecoveryManifestLayoutRule;
 use forge_store_recovery_physics::{
@@ -41,45 +36,6 @@ pub enum Phase19LayoutRuleDenial {
     WrongShape(S8AccessShape),
 }
 
-pub fn phase19_page_rule() -> Result<AdmittedPageLayoutRule, Phase19LayoutRuleDenial> {
-    validate_exact_point_family(DurableArtifactFamilyId::PhysicalPage)?;
-    Ok(AdmittedPageLayoutRule::phase19())
-}
-pub fn phase19_frame_rule() -> Result<AdmittedFrameLayoutRule, Phase19LayoutRuleDenial> {
-    validate_exact_point_family(DurableArtifactFamilyId::PhysicalPage)?;
-    Ok(AdmittedFrameLayoutRule::phase19())
-}
-pub fn phase19_segment_rule() -> Result<AdmittedSegmentLayoutRule, Phase19LayoutRuleDenial> {
-    validate_exact_point_family(DurableArtifactFamilyId::PhysicalSegment)?;
-    Ok(AdmittedSegmentLayoutRule::phase19())
-}
-pub fn phase19_extent_rule() -> Result<AdmittedExtentLayoutRule, Phase19LayoutRuleDenial> {
-    validate_exact_point_family(DurableArtifactFamilyId::PhysicalExtent)?;
-    Ok(AdmittedExtentLayoutRule::phase19())
-}
-pub fn phase20_root_manifest_rule(
-) -> Result<AdmittedRootManifestLayoutRule, Phase19LayoutRuleDenial> {
-    validate_bounded_scan_family(DurableArtifactFamilyId::PhysicalRootManifest)?;
-    Ok(AdmittedRootManifestLayoutRule::phase20())
-}
-pub fn phase20_manifest_index_rule(
-) -> Result<AdmittedManifestIndexLayoutRule, Phase19LayoutRuleDenial> {
-    validate_bounded_scan_family(DurableArtifactFamilyId::PhysicalRootManifest)?;
-    Ok(AdmittedManifestIndexLayoutRule::phase20())
-}
-pub fn phase20_allocation_rule() -> Result<AdmittedAllocationLayoutRule, Phase19LayoutRuleDenial> {
-    validate_bounded_scan_family(DurableArtifactFamilyId::PhysicalRootManifest)?;
-    Ok(AdmittedAllocationLayoutRule::phase20())
-}
-pub fn phase20_free_space_rule() -> Result<AdmittedFreeSpaceLayoutRule, Phase19LayoutRuleDenial> {
-    validate_bounded_scan_family(DurableArtifactFamilyId::PhysicalRootManifest)?;
-    Ok(AdmittedFreeSpaceLayoutRule::phase20())
-}
-pub fn phase20_fragmentation_rule(
-) -> Result<AdmittedFragmentationLayoutRule, Phase19LayoutRuleDenial> {
-    validate_bounded_scan_family(DurableArtifactFamilyId::PhysicalRootManifest)?;
-    Ok(AdmittedFragmentationLayoutRule::phase20())
-}
 pub fn phase20_placement_rule() -> Result<AdmittedPlacementLayoutRule, Phase19LayoutRuleDenial> {
     validate_bounded_scan_family(DurableArtifactFamilyId::PlacementStableBasis)?;
     Ok(AdmittedPlacementLayoutRule::phase20())
