@@ -1,6 +1,5 @@
 //! Replay traces, layout observers, and runtime verifier comparison.
 
-pub mod s8_layout;
 
 pub use crate::courtroom::cross_cutting::observed_trace::{
     FixtureAdversaryPosture, FixtureAdversaryReport, LargeStorePressureClass,
@@ -29,4 +28,4 @@ pub use crate::scenario::cross_cutting::scale_fixture::{
     PhysicalHostileScaleFixtureReport, PhysicalHostileScaleFixtureSource,
 };
 pub use crate::scenario::cross_cutting::story_transcript::PhysicalStoryTranscript;
-pub use s8_layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};
+pub use crate::replay::layout::{assemble_s8_layout_replay_bundle, S8LayoutReplayBundle};

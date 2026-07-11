@@ -9,6 +9,7 @@
 pub mod authority;
 pub mod courtroom;
 pub mod evidence;
+mod replay;
 mod scenario;
 
 include!("internal_modules.rs");
