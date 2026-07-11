@@ -87,6 +87,7 @@ mod backup_export_custody_denial;
 mod backup_export_custody_emission;
 mod backup_export_custody_handoff;
 mod backup_export_custody_readiness;
+mod backup_export_custody_scheduler_demand;
 #[cfg(any(test, feature = "certification-test-authority"))]
 #[cfg_attr(feature = "certification-test-authority", allow(dead_code))]
 mod backup_export_custody_test_support;
@@ -97,12 +98,14 @@ mod backup_import_source_custody;
 mod capsule_chunk_availability;
 mod import_placement_plan;
 pub mod layout_access;
+mod recovery_posture;
 mod repair_blast_radius_counters;
 mod repair_blast_radius_declaration;
 mod repair_blast_radius_denial;
 mod repair_blast_radius_handoff;
 mod repair_blast_radius_plan;
 mod repair_blast_radius_readiness;
+mod repair_blast_radius_scheduler_demand;
 #[cfg(test)]
 mod repair_blast_radius_test_support;
 #[cfg(test)]
@@ -110,8 +113,8 @@ mod repair_blast_radius_tests;
 mod repair_quarantine_readiness;
 #[cfg(test)]
 mod repair_quarantine_readiness_tests;
+mod replication_prep_scheduler_demand;
 mod s10_later_io_readiness;
-mod s6_background_pressure;
 mod s8_runtime_receipt;
 
 pub use backup_export_custody_admission::BackupExportCustodyAdmission;
@@ -125,6 +128,7 @@ pub use backup_export_custody_handoff::{
     S10BackupExportCustodyHandoff, S10BackupExportCustodyPermission,
 };
 pub use backup_export_custody_readiness::BackupExportCustodyReadiness;
+pub use backup_export_custody_scheduler_demand::backup_prep_background_pressure_shape;
 pub use backup_import_readmission::BackupImportCustodyReadmission;
 pub use backup_import_source_custody::{
     admit_backup_import_source_custody_scope, BackupImportSourceCustodyDenial,
@@ -143,6 +147,7 @@ pub use layout_access::export_family::ExportLayoutEvidenceReport;
 pub use layout_access::import_family::ImportLayoutEvidenceReport;
 pub use layout_access::operations_layout_closeout::OperationsLayoutCloseout;
 pub use layout_access::restore_family::RestoreLayoutEvidenceReport;
+pub use recovery_posture::OperationalRecoveryPosture;
 pub use repair_blast_radius_counters::RepairBlastRadiusCounterSnapshot;
 pub use repair_blast_radius_declaration::{RepairBlastRadiusDeclaration, RepairPhysicalRegion};
 pub use repair_blast_radius_denial::RepairBlastRadiusDenial;
@@ -151,25 +156,14 @@ pub use repair_blast_radius_handoff::{
 };
 pub use repair_blast_radius_plan::{RepairBlastRadiusPlan, RepairReadPlan};
 pub use repair_blast_radius_readiness::RepairBlastRadiusReadiness;
+pub use repair_blast_radius_scheduler_demand::repair_background_pressure_shape;
 pub use repair_quarantine_readiness::RepairQuarantineScopePreservation;
+pub use replication_prep_scheduler_demand::replication_prep_background_pressure_shape;
 pub use s10_later_io_readiness::{
     admit_s10_backup_export_io_readiness_seed, admit_s10_compaction_io_readiness_seed,
     admit_s10_repair_scan_io_readiness_seed, S10BackupExportIoReadinessSeed,
     S10CompactionIoReadinessSeed, S10RepairScanIoReadinessSeed,
 };
-pub use s6_background_pressure::{
-    backup_prep_background_pressure_shape, operations_background_pressure_kind,
-    repair_background_pressure_shape, replication_prep_background_pressure_shape,
-    OperationsBackgroundPressureKind,
-};
 #[cfg(feature = "certification-test-authority")]
 pub use s8_runtime_receipt::s8_security_custody_export_runtime_receipt_for_certification_test;
 pub use s8_runtime_receipt::S8SecurityCustodyExportRuntimeReceipt;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OperationalRecoveryPosture {
-    TrustedTruth,
-    DegradedDerived,
-    Quarantined,
-    Unrecoverable,
-}
