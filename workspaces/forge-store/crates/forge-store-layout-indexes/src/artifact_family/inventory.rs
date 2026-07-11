@@ -1,4 +1,4 @@
-use super::{inventory_rows::ROWS, PhysicalArtifactFamilyDeclaration};
+use super::{inventory_rows, PhysicalArtifactFamilyDeclaration};
 use crate::ArtifactFamilyDenial;
 use forge_store_contracts::{
     CompatibilityFamilyKind, DerivedFamilyRetentionPolicy, DurableArtifactFamilyId,
@@ -37,15 +37,15 @@ impl S8ArtifactFamilyInventory {
         Self
     }
 
-    pub const fn rows(&self) -> &'static [ArtifactFamilyInventoryRow] {
-        ROWS
+    pub fn rows(&self) -> &'static [ArtifactFamilyInventoryRow] {
+        inventory_rows::rows()
     }
 
     pub fn declaration(
         &self,
         family_id: DurableArtifactFamilyId,
     ) -> Result<&'static PhysicalArtifactFamilyDeclaration, ArtifactFamilyDenial> {
-        declaration_in_rows(ROWS, family_id)
+        declaration_in_rows(inventory_rows::rows(), family_id)
     }
 
     pub fn admit_existing_family(

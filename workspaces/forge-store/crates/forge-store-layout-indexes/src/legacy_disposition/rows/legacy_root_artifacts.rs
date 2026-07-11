@@ -1,0 +1,99 @@
+//! Displaced artifacts and selection aliases historically exposed by the legacy root.
+
+use super::super::{
+    LegacyAccessPathBypass as Bypass, LegacySurfaceInventoryRow, LegacySurfaceStage as Stage,
+};
+use super::row::{
+    forbidden_legacy_root as forbidden, superseded_legacy_root as superseded,
+    terminal_legacy_root as terminal,
+};
+
+pub(super) const ROWS: &[LegacySurfaceInventoryRow] = &[
+    forbidden(
+        "AspectLayoutReadRequest",
+        Stage::DeclarationArtifact,
+        Bypass::Declaration,
+    ),
+    forbidden(
+        "AdmittedAspectLayoutReadPlan",
+        Stage::AdmissionArtifact,
+        Bypass::Admission,
+    ),
+    forbidden(
+        "AspectLayoutReadExecutionDecision",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "AspectLayoutReadPlanDecision",
+        Stage::SelectionArtifact,
+        Bypass::Selection,
+    ),
+    forbidden(
+        "AspectLayoutReadExecutionResult",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "AspectLayoutControlTruth",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    terminal("Milestone6LayoutMaterialization"),
+    terminal("Milestone6ChunkModelExport"),
+    forbidden(
+        "Milestone6DerivedArtifactRebuildReport",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "Milestone6PreparedLayoutSupport",
+        Stage::ReadinessArtifact,
+        Bypass::Readiness,
+    ),
+    forbidden(
+        "ChunkModelFrozenPhysicalLayout",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "StructuralBlockLookup",
+        Stage::ExecutionFacade,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "DedupAdmittedBlockReuse",
+        Stage::AdmissionArtifact,
+        Bypass::Admission,
+    ),
+    forbidden(
+        "DedupBackedReadResult",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "Milestone7IndependentLayoutReference",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    forbidden(
+        "Milestone9PhysicalChunkReference",
+        Stage::ExecutionArtifact,
+        Bypass::Execution,
+    ),
+    superseded(
+        "AspectLayoutFallbackClass",
+        Stage::SelectionArtifact,
+        Bypass::Selection,
+    ),
+    superseded(
+        "ExplicitBroadFallbackPlan",
+        Stage::SelectionArtifact,
+        Bypass::Selection,
+    ),
+    superseded(
+        "BranchDeltaFallbackClass",
+        Stage::SelectionArtifact,
+        Bypass::Selection,
+    ),
+];

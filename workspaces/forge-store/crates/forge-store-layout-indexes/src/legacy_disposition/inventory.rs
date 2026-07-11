@@ -81,4 +81,4 @@ impl LegacyAccessPathBypassInventory {
     }
 }
 
-pub(crate) use super::rows::LEGACY_SURFACE_ROWS;
+pub(crate) use super::rows::legacy_surface_rows;

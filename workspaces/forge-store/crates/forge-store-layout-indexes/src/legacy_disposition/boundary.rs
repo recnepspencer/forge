@@ -1,5 +1,5 @@
 use super::{
-    inventory::{LegacyAccessPathBypassInventory, LEGACY_SURFACE_ROWS},
+    inventory::{legacy_surface_rows, LegacyAccessPathBypassInventory},
     LegacySurfaceDisposition,
 };
 
@@ -9,9 +9,9 @@ pub struct LegacySurfaceDispositionAndDedicatedWorkspaceBoundary {
 }
 
 impl LegacySurfaceDispositionAndDedicatedWorkspaceBoundary {
-    pub const fn current() -> Self {
+    pub fn current() -> Self {
         Self {
-            inventory: LegacyAccessPathBypassInventory::new(&LEGACY_SURFACE_ROWS),
+            inventory: LegacyAccessPathBypassInventory::new(legacy_surface_rows()),
         }
     }
 

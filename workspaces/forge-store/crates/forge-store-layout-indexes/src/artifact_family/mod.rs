@@ -7,6 +7,8 @@ mod declaration;
 mod denial;
 mod inventory;
 mod inventory_rows;
+#[cfg(test)]
+mod inventory_rows_tests;
 mod lifecycle;
 #[cfg(test)]
 mod phase_three_tests;

@@ -7,7 +7,7 @@ fn legacy_disposition_home_exists() {
     assert!(!boundary.legacy_topology_is_precedent());
     assert_eq!(
         inventory.rows().len(),
-        super::inventory::LEGACY_SURFACE_ROWS.len()
+        super::inventory::legacy_surface_rows().len()
     );
     assert!(boundary.forbids_legacy_authority("ForgeStore"));
     assert!(boundary.forbids_legacy_authority("ForgeStoreBuilder"));

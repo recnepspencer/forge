@@ -5,21 +5,22 @@ use crate::access_shape::{S8AccessShapeDetail, S8PrefixBasis, S8RangeBasis};
 pub(super) fn derive_strategy_counter_evidence(
     declaration: S8StrategyDeclaration,
 ) -> S8StrategyCounterEvidence {
-    let point_lookup = super::admission::planned_counter_envelope_for(
+    let point_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
         S8AccessShapeDetail::PointLookup,
     );
-    let range_lookup = super::admission::planned_counter_envelope_for(
+    let range_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
         S8AccessShapeDetail::RangeLookup(S8RangeBasis::CanonicalRangeBounds),
     );
-    let prefix_lookup = super::admission::planned_counter_envelope_for(
+    let prefix_lookup = super::counter_planning::planned_counter_envelope_for(
         declaration.family(),
         S8AccessShapeDetail::PrefixLookup(S8PrefixBasis::CanonicalPrefixBounds),
     );
     let publication =
-        super::admission::planned_publication_counter_snapshot_for(declaration.family());
-    let recovery = super::admission::planned_recovery_counter_snapshot_for(declaration.family());
+        super::counter_planning::planned_publication_counter_snapshot_for(declaration.family());
+    let recovery =
+        super::counter_planning::planned_recovery_counter_snapshot_for(declaration.family());
     let aggregate = declaration
         .planned_counter_envelope()
         .map(|envelope| envelope.aggregate_profile())

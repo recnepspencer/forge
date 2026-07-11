@@ -1,4 +1,4 @@
-use super::selection_receipt::S8SelectedAccessPlan;
+use super::selected_plan::S8SelectedAccessPlan;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8AccessLoweringRequest {

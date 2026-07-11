@@ -1,4 +1,6 @@
 use super::capability::S8StrategyCapability;
+use super::counter_planning::declared_strategy_counter_envelope;
+use super::key_law_validation::S8DeclaredKeyLawPosture;
 use super::posture::{
     S8StrategyAmplificationProfile, S8StrategyCorruptionIsolationBehavior,
     S8StrategyLocalityProfile, S8StrategyMaterializationPosture,
@@ -39,48 +41,63 @@ pub(crate) struct S8StrategyDeclaration {
 }
 
 impl S8StrategyDeclaration {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) const fn new(
+    pub(super) const fn baseline_btree_range(
         lifecycle: ArtifactFamilyLifecycleAdmission,
         key_domain: PhysicalKeyDomainWitness,
-        family: S8LayoutStrategyFamily,
-        capability: S8StrategyCapability,
-        locality: S8StrategyLocalityProfile,
-        amplification: S8StrategyAmplificationProfile,
-        materialization: S8StrategyMaterializationPosture,
-        rebuild_source: S8StrategyRebuildSourceRequirement,
-        corruption_isolation: S8StrategyCorruptionIsolationBehavior,
-        access_lane: ArtifactFamilyAccessLane,
-        authority_class: ArtifactFamilyAuthorityClass,
-        rebuild_posture: DurableArtifactRebuildPosture,
-        migration_posture: DurableArtifactMigrationPosture,
-        projection_classes: &'static [DurableArtifactProjectionClass],
-        canonical_key_encoding: Option<CanonicalKeyEncoding>,
-        comparator_law: Option<ComparatorLaw>,
-        prefix_law: Option<PrefixLawWitness>,
-        range_bound_law: Option<RangeBoundLawWitness>,
-        planned_counter_envelope: Option<S8PlannedCounterEnvelope>,
+        key_laws: S8DeclaredKeyLawPosture,
     ) -> Self {
+        let artifact = lifecycle.declaration();
         Self {
             lifecycle,
             key_domain,
-            family,
-            capability,
-            locality,
-            amplification,
-            materialization,
-            rebuild_source,
-            corruption_isolation,
-            access_lane,
-            authority_class,
-            rebuild_posture,
-            migration_posture,
-            projection_classes,
-            canonical_key_encoding,
-            comparator_law,
-            prefix_law,
-            range_bound_law,
-            planned_counter_envelope,
+            family: S8LayoutStrategyFamily::BaselineBTreeRange,
+            capability: S8StrategyCapability::baseline_btree_range(),
+            locality: S8StrategyLocalityProfile::OrderedPageLocality,
+            amplification: S8StrategyAmplificationProfile::SplitMergeBounded,
+            materialization: S8StrategyMaterializationPosture::PublishedTreeLifecycle,
+            rebuild_source: S8StrategyRebuildSourceRequirement::PhysicalSnapshotReplay,
+            corruption_isolation: S8StrategyCorruptionIsolationBehavior::PageScoped,
+            access_lane: artifact.access_lane(),
+            authority_class: artifact.authority(),
+            rebuild_posture: artifact.rebuild_posture(),
+            migration_posture: artifact.migration_posture(),
+            projection_classes: artifact.non_authority_projection_classes(),
+            canonical_key_encoding: Some(key_laws.encoding()),
+            comparator_law: Some(key_laws.comparator()),
+            prefix_law: key_laws.prefix(),
+            range_bound_law: key_laws.range(),
+            planned_counter_envelope: None,
+        }
+    }
+
+    pub(super) const fn baseline_lsm_write_optimized(
+        lifecycle: ArtifactFamilyLifecycleAdmission,
+        key_domain: PhysicalKeyDomainWitness,
+        key_laws: S8DeclaredKeyLawPosture,
+    ) -> Self {
+        let artifact = lifecycle.declaration();
+        Self {
+            lifecycle,
+            key_domain,
+            family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+            capability: S8StrategyCapability::baseline_lsm_write_optimized(),
+            locality: S8StrategyLocalityProfile::BufferedRunLocality,
+            amplification: S8StrategyAmplificationProfile::CompactionWriteAmplified,
+            materialization: S8StrategyMaterializationPosture::WalBufferedRunLifecycle,
+            rebuild_source: S8StrategyRebuildSourceRequirement::WalReplay,
+            corruption_isolation: S8StrategyCorruptionIsolationBehavior::RunScoped,
+            access_lane: artifact.access_lane(),
+            authority_class: artifact.authority(),
+            rebuild_posture: artifact.rebuild_posture(),
+            migration_posture: artifact.migration_posture(),
+            projection_classes: artifact.non_authority_projection_classes(),
+            canonical_key_encoding: Some(key_laws.encoding()),
+            comparator_law: Some(key_laws.comparator()),
+            prefix_law: None,
+            range_bound_law: None,
+            planned_counter_envelope: declared_strategy_counter_envelope(
+                S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+            ),
         }
     }
 
