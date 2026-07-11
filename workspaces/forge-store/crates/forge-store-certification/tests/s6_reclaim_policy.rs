@@ -16,7 +16,7 @@ use forge_store_reclaim_policy::{
     ReclaimPolicyReachabilityDenial, ReclaimPolicyRequest, ReclaimPolicySecurityScope,
     ReclaimPolicyViolationKind,
 };
-use forge_store_tiering::S6ColdTierIoPosture;
+use forge_store_tiering::ColdTierIoPosture;
 
 use reclaim_support::{
     admitted_backend, admitted_policy_for_region, backend_without_reclaim_posture,
@@ -65,9 +65,15 @@ fn reclaim_policy_consumes_real_s5_reachability_removal() {
         receipt.observed_interpretation(),
         ReclaimedByteInterpretation::NonObservableReclaimedStorage
     );
-    assert!(!S6ColdTierIoPosture::from_reclaim_receipt(receipt)
-        .unwrap()
-        .carries_tier_placement_claim());
+    assert_eq!(
+        ColdTierIoPosture::from_reclaim_receipt(receipt)
+            .unwrap()
+            .reclaim_receipt()
+            .policy()
+            .posture()
+            .operation(),
+        forge_store_reclaim_policy::ReclaimPolicyOperation::ColdTierMovementPosture,
+    );
 }
 
 #[test]

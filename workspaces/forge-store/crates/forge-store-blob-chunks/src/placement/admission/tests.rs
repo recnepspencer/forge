@@ -8,14 +8,11 @@ use forge_store_physical_backend::{
     BackendCapabilitySupportPosture, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
     BackendRebindTriggers, BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
-use forge_store_tiering::{
-    admit_s7_placement_io_readiness_seed, S6ColdTierIoPosture, S7ColdPlacementState,
-};
+use forge_store_tiering::{admit_s7_placement_io_readiness_seed, S7ColdPlacementState};
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, root_publication,
@@ -251,9 +248,8 @@ fn stale_readiness(
     let handoff = publish_s7_placement_io_readiness_handoff(
         &IoSchedulerIsolationAdmission::for_certification_test(),
     );
-    let cold = S6ColdTierIoPosture::for_certification_test_authority(
+    let cold = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
         reachability.security_metadata().identity(),
-        ReclaimPolicyCounterSnapshot::start_request(),
     );
     admit_s7_placement_io_readiness_seed(handoff, cold)
 }
@@ -261,13 +257,7 @@ fn stale_readiness(
 fn readiness_for_security_scope(
     scope: StoreSecurityScopeIdentity,
 ) -> forge_store_tiering::S7PlacementIoReadinessSeed {
-    let cold = S6ColdTierIoPosture::for_certification_test_authority(
-        scope,
-        ReclaimPolicyCounterSnapshot::start_request()
-            .with_admitted()
-            .with_executed()
-            .with_non_claim_handoff(),
-    );
+    let cold = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(scope);
     admit_s7_placement_io_readiness_seed(
         s7_placement_io_readiness_handoff_for_certification_test(),
         cold,

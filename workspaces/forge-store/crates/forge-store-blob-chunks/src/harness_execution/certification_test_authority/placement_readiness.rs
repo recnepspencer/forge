@@ -28,18 +28,16 @@ use super::super::backend::{admitted_backend, current_authority};
 pub(in crate::harness_execution) fn placement_readiness(
     security_scope: StoreSecurityScopeIdentity,
 ) -> forge_store_tiering::S7PlacementIoReadinessSeed {
-    let published_readiness =
-        publish_scheduler_isolation_capability_for_certification_test(2, 1)
-            .expect("published S6 readiness");
-    let scheduler_readiness =
-        admit_store_published_isolation_capability(&published_readiness)
-            .expect("scheduler S6 readiness");
+    let published_readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
+        .expect("published S6 readiness");
+    let scheduler_readiness = admit_store_published_isolation_capability(&published_readiness)
+        .expect("scheduler S6 readiness");
     let handoff = readmit_s7_placement_io_readiness_after_publication(
         publish_s7_placement_io_readiness_handoff(&scheduler_readiness),
     );
     admit_s7_placement_io_readiness_seed(
         handoff,
-        forge_store_tiering::S6ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
+        forge_store_tiering::ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
             security_scope,
         ))
         .expect("cold-tier posture"),

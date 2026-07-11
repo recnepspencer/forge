@@ -17,10 +17,8 @@ use forge_store_physical_backend::{
     StoreOwnedBlobBackendResidueScan, StoreOwnedBlobPhysicalManifestTraversal,
     StoreOwnedExternalPlacementCleanup, StoreOwnedExternalPlacementRecoveryProbe,
 };
-use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 use forge_store_tiering::{
-    admit_s7_placement_io_readiness_seed, S6ColdTierIoPosture, S7ColdPlacementState,
-    S7PlacementIoReadinessSeed,
+    admit_s7_placement_io_readiness_seed, S7ColdPlacementState, S7PlacementIoReadinessSeed,
 };
 
 use crate::{
@@ -104,12 +102,8 @@ pub(crate) fn external_recovery_for_digest_and_scope(
 pub(crate) fn readiness(
     reachability: &BlobChunkReachabilityProofSet,
 ) -> S7PlacementIoReadinessSeed {
-    let cold_posture = S6ColdTierIoPosture::for_certification_test_authority(
+    let cold_posture = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
         reachability.security_metadata().identity(),
-        ReclaimPolicyCounterSnapshot::start_request()
-            .with_admitted()
-            .with_executed()
-            .with_non_claim_handoff(),
     );
     admit_s7_placement_io_readiness_seed(
         s7_placement_io_readiness_handoff_for_certification_test(),

@@ -1,3 +1,6 @@
-mod s6_cold_tier_posture;
+mod posture;
 
-pub use s6_cold_tier_posture::{S6ColdTierIoPosture, S6ColdTierIoPostureDenial};
+#[cfg(feature = "certification-test-authority")]
+pub mod certification_test_support;
+
+pub use posture::{ColdTierIoPosture, ColdTierIoPostureDenial};

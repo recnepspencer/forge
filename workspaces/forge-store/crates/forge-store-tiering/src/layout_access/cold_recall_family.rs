@@ -5,7 +5,7 @@ use forge_store_layout_indexes::layout_strategy_admission::{
 };
 use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
-use crate::S6ColdTierIoPosture;
+use crate::ColdTierIoPosture;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ColdRecallLayoutFamilyHome;
@@ -37,7 +37,7 @@ pub struct ColdRecallLayoutReport {
     access_shape: S8AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: ColdRecallInterferencePosture,
-    posture: S6ColdTierIoPosture,
+    posture: ColdTierIoPosture,
 }
 
 impl ColdRecallLayoutFamilyHome {
@@ -60,7 +60,7 @@ fn cold_recall_layout() -> AdmittedColdRecallLayoutFamily {
 }
 
 impl AdmittedColdRecallLayoutFamily {
-    fn admit_cold_recall(&self, posture: &S6ColdTierIoPosture) -> ColdRecallLayoutReport {
+    fn admit_cold_recall(&self, posture: &ColdTierIoPosture) -> ColdRecallLayoutReport {
         let _ = self;
         ColdRecallLayoutReport {
             family_id: DurableArtifactFamilyId::ColdRecallQueue,
@@ -119,7 +119,7 @@ impl ColdRecallAccessBudget {
     }
 }
 
-impl S6ColdTierIoPosture {
+impl ColdTierIoPosture {
     pub fn admit_cold_recall_layout(&self) -> ColdRecallLayoutReport {
         cold_recall_layout().admit_cold_recall(self)
     }

@@ -37,7 +37,7 @@ use forge_store_security::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
-use forge_store_tiering::S6ColdTierIoPosture;
+use forge_store_tiering::ColdTierIoPosture;
 
 #[test]
 fn reclaim_policy_evidence_materializes_execution_and_non_claim_handoffs() {
@@ -85,9 +85,8 @@ fn reclaim_policy_evidence_materializes_execution_and_non_claim_handoffs() {
         &S6ReclaimPolicyEvidenceOutcomeKind::BlobNonClaimHandoff
     );
 
-    let cold = S6ColdTierIoPosture::from_reclaim_receipt(receipt).unwrap();
-    assert!(!cold.carries_tier_placement_claim());
-    assert!(!cold.carries_compaction_claim());
+    let cold = ColdTierIoPosture::from_reclaim_receipt(receipt).unwrap();
+    assert_eq!(cold.reclaim_receipt().policy().posture().operation(), ReclaimPolicyOperation::ColdTierMovementPosture);
     let cold_row = S6ReclaimPolicyEvidenceRow::from_cold_tier_non_claim_handoff(cold);
     assert_eq!(
         cold_row.outcome(),

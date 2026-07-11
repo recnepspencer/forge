@@ -5,7 +5,7 @@ use forge_store_layout_indexes::layout_strategy_admission::{
 };
 use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
-use crate::S6ColdTierIoPosture;
+use crate::ColdTierIoPosture;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct RecallAmplificationLayoutFamilyHome;
@@ -37,7 +37,7 @@ pub struct RecallAmplificationLayoutReport {
     access_shape: S8AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: RecallAmplificationInterferencePosture,
-    posture: S6ColdTierIoPosture,
+    posture: ColdTierIoPosture,
 }
 
 impl RecallAmplificationLayoutFamilyHome {
@@ -66,7 +66,7 @@ fn recall_amplification_layout() -> AdmittedRecallAmplificationLayoutFamily {
 impl AdmittedRecallAmplificationLayoutFamily {
     fn admit_recall_amplification(
         &self,
-        posture: &S6ColdTierIoPosture,
+        posture: &ColdTierIoPosture,
     ) -> RecallAmplificationLayoutReport {
         let _ = self;
         RecallAmplificationLayoutReport {
@@ -126,7 +126,7 @@ impl RecallAmplificationAccessBudget {
     }
 }
 
-impl S6ColdTierIoPosture {
+impl ColdTierIoPosture {
     pub fn admit_recall_amplification_layout(&self) -> RecallAmplificationLayoutReport {
         recall_amplification_layout().admit_recall_amplification(self)
     }

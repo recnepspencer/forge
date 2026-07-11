@@ -1,17 +1,17 @@
 use forge_store_contracts::S7PlacementReadinessNonClaim;
 use forge_store_io_scheduler::S7PlacementIoReadinessHandoff;
 
-use crate::cold_tier_posture::S6ColdTierIoPosture;
+use crate::cold_tier_posture::ColdTierIoPosture;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S7PlacementIoReadinessSeed {
     handoff: S7PlacementIoReadinessHandoff,
-    cold_tier_posture: S6ColdTierIoPosture,
+    cold_tier_posture: ColdTierIoPosture,
 }
 
 pub fn admit_s7_placement_io_readiness_seed(
     handoff: S7PlacementIoReadinessHandoff,
-    cold_tier_posture: S6ColdTierIoPosture,
+    cold_tier_posture: ColdTierIoPosture,
 ) -> S7PlacementIoReadinessSeed {
     S7PlacementIoReadinessSeed {
         handoff,
@@ -24,7 +24,7 @@ impl S7PlacementIoReadinessSeed {
         &self.handoff
     }
 
-    pub const fn cold_tier_posture(&self) -> &S6ColdTierIoPosture {
+    pub const fn cold_tier_posture(&self) -> &ColdTierIoPosture {
         &self.cold_tier_posture
     }
 

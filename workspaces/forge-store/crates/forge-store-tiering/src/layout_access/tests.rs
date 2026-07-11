@@ -14,7 +14,7 @@ use forge_store_reclaim_policy::{
 };
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
-use crate::{admit_s7_placement_io_readiness_seed, S6ColdTierIoPosture};
+use crate::{admit_s7_placement_io_readiness_seed, ColdTierIoPosture};
 
 #[test]
 fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
@@ -43,7 +43,7 @@ fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
     assert_eq!(amplification.exact_counters().executed(), 1);
 }
 
-fn real_cold_tier_posture() -> S6ColdTierIoPosture {
+fn real_cold_tier_posture() -> ColdTierIoPosture {
     let backend = PhysicalBackendCapabilityAdmissionAuthority::store_owned()
         .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
             BackendTargetProfile::PosixFileFsyncDirSync,
@@ -89,7 +89,7 @@ fn real_cold_tier_posture() -> S6ColdTierIoPosture {
         .expect("backend execution should succeed")
         .expect("policy execution should succeed");
 
-    S6ColdTierIoPosture::from_reclaim_receipt(receipt)
+    ColdTierIoPosture::from_reclaim_receipt(receipt)
         .expect("cold-tier posture should admit from the real receipt")
 }
 

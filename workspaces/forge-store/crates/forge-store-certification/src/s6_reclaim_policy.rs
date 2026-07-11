@@ -6,7 +6,7 @@ use forge_store_reclaim_policy::{
     ReclaimPolicyViolation, ReclaimPolicyViolationKind,
 };
 use forge_store_security::StoreSecurityScopeIdentity;
-use forge_store_tiering::S6ColdTierIoPosture;
+use forge_store_tiering::ColdTierIoPosture;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum S6ReclaimPolicyEvidenceOutcomeKind {
@@ -79,7 +79,7 @@ impl S6ReclaimPolicyEvidenceRow {
         }
     }
 
-    pub fn from_cold_tier_non_claim_handoff(posture: S6ColdTierIoPosture) -> Self {
+    pub fn from_cold_tier_non_claim_handoff(posture: ColdTierIoPosture) -> Self {
         Self {
             operation: Some(ReclaimPolicyOperation::ColdTierMovementPosture),
             interpretation: Some(posture.interpretation()),
