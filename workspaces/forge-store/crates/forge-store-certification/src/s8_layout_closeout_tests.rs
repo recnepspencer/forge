@@ -6,12 +6,12 @@ use forge_store_layout_indexes::layout_certification::{
     S9_DOWNSTREAM_PROTOCOL_DESTINATIONS,
 };
 use forge_store_layout_indexes::layout_closeout::layout_closeout;
-use forge_store_physical_certification::layout_harness::runtime::S8RuntimeCoverageMatrix;
+use forge_store_physical_certification::layout_harness::runtime::LayoutRuntimeCoverageMatrix;
 use forge_store_readiness::admit_s8_layout_handoff_readiness;
 
 #[test]
 fn s8_layout_closeout_suite_rejects_inventory_without_executed_runtime_matrix() {
-    assert!(certify_s8_layout_closeout_suite(&S8RuntimeCoverageMatrix::default()).is_err());
+    assert!(certify_s8_layout_closeout_suite(&LayoutRuntimeCoverageMatrix::default()).is_err());
 }
 
 #[test]

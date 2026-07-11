@@ -27,7 +27,4 @@ pub use crate::repair::blast_radius::{
 pub use crate::repair::quarantine::RepairQuarantineScopePreservation;
 pub use crate::repair_blast_radius_scheduler_demand::repair_background_pressure_shape;
 pub use crate::replication_prep_scheduler_demand::replication_prep_background_pressure_shape;
-#[cfg(feature = "certification-test-authority")]
-pub use crate::s8_runtime_receipt::s8_security_custody_export_runtime_receipt_for_certification_test;
-pub use crate::s8_runtime_receipt::S8SecurityCustodyExportRuntimeReceipt;
 pub use forge_store_operations_vocabulary::BackupExportCustodyMode;

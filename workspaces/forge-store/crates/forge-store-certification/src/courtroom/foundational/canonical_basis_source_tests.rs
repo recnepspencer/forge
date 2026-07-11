@@ -1,3 +1,4 @@
+use crate::courtroom::source_tree::repository_root;
 use crate::{
     certify_scanned_store_canonical_basis_source_inventory,
     certify_store_canonical_basis_source_inventory, certify_store_canonical_basis_source_rows,
@@ -6,7 +7,6 @@ use crate::{
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
 };
-use crate::courtroom::source_tree::repository_root;
 use forge_store_aspect_native::{
     canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
     certify_canonical_basis_source, StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole,

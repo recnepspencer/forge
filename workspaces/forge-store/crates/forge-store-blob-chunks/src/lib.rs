@@ -38,7 +38,6 @@ mod publication;
 mod reachability;
 mod recovery;
 mod retention_reclaim;
-mod s8_runtime_receipt;
 mod streaming;
 #[cfg(test)]
 mod test_support;
@@ -68,9 +67,6 @@ pub use layout_projection::{
 pub(crate) use publication::test_support::publish_generation_with_bytes_and_chunk_size;
 #[cfg(test)]
 pub(crate) use retention_reclaim::test_support::reclaim_fixture as phase25_reclaim_fixture;
-#[cfg(feature = "certification-test-authority")]
-pub use s8_runtime_receipt::s8_blob_runtime_receipt_for_certification_test;
-pub use s8_runtime_receipt::S8BlobRuntimeReceipt;
 #[cfg(test)]
 pub(crate) use streaming::phase24_layout_runtime_case;
 

@@ -2,9 +2,9 @@ mod behavior;
 mod blob_object;
 mod chunk_tree;
 mod compaction;
+mod counters;
 mod dedupe;
 mod denial;
-mod counters;
 mod quarantine;
 mod reachability;
 mod reclaim;
@@ -21,9 +21,9 @@ pub use chunk_tree::{
     StoredChunkLookupLayoutReport,
 };
 pub use compaction::CompactionLayoutReport;
+pub use counters::BlobLayoutAccessPathEvidence;
 pub use dedupe::DedupeLayoutReport;
 pub use denial::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind};
-pub use counters::BlobLayoutAccessPathEvidence;
 pub use quarantine::QuarantineLayoutReport;
 pub use reachability::ReachabilityLayoutReport;
 pub use reclaim::ReclaimLayoutReport;

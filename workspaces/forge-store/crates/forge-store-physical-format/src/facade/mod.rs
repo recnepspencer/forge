@@ -35,8 +35,9 @@ pub use requests::{
 pub use runtime_receipt::{
     PlatformPhysicalDegradedExactScanReceipt, PlatformPhysicalHiddenScanDenialReceipt,
     PlatformPhysicalLayoutAccessIntent, PlatformPhysicalLayoutAccessRequest,
-    PlatformPhysicalRuntimeOperation, PlatformPhysicalRuntimeReceipt,
-    PlatformPhysicalRuntimeReceiptDenial, PlatformPhysicalRuntimeStrategy,
+    PlatformPhysicalRuntimeOperation, PlatformPhysicalRuntimeOutcome,
+    PlatformPhysicalRuntimeReceipt, PlatformPhysicalRuntimeReceiptDenial,
+    PlatformPhysicalRuntimeStrategy,
 };
 pub use state::PlatformPhysicalFacade;
 pub use vocabulary::{PlatformPhysicalFacadeOperation, PlatformPhysicalFacadeVocabulary};

@@ -189,8 +189,7 @@ fn synthetic_shortcut_rejections_retain_named_boundaries() {
 fn bundle_requires_synthetic_shortcut_rejections_before_closeout() {
     let mut incomplete_rejections = synthetic_rejections();
     incomplete_rejections.retain(|report| {
-        report.rejected_attempt()
-            != SyntheticCloseoutShortcutAttempt::TestSupportOwnedOracleMeaning
+        report.rejected_attempt() != SyntheticCloseoutShortcutAttempt::TestSupportOwnedOracleMeaning
     });
     let denial = BufferPoolCertificationBundle::admit(
         suite(),

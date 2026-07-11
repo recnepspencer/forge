@@ -3,9 +3,9 @@
 //! Order: authority ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ evidence ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ scenario ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ replay ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ harness ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ closeout ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ lanes.
 
 // --- runtime matrix: courtroom-only Phase 33 completeness gate ---
-pub use crate::s8_runtime_matrix::{
-    require_complete_s8_runtime_matrix, required_s8_runtime_cases, S8RuntimeMatrixDenial,
-    S8RuntimeStrategyEquivalenceClass,
+pub use crate::courtroom::layout::runtime_matrix::{
+    require_complete_layout_runtime_matrix, required_layout_runtime_obligations,
+    LayoutRuntimeCompletenessDenial, LayoutRuntimeStrategyEquivalenceClass,
 };
 
 // --- authority: substrate certification entry points ---

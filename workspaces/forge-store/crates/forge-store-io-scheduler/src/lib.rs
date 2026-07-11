@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
-mod backend_capability;
 mod admission;
+mod backend_capability;
 pub mod background_pacing;
 mod execution;
-pub mod foreground_reservation;
-mod interference_accounting;
 #[path = "layout_access/foreground_interference_family.rs"]
 mod foreground_interference_family;
+pub mod foreground_reservation;
+mod interference_accounting;
 #[path = "layout_access/pacing_family.rs"]
 mod pacing_family;
 pub mod queue_execution;
@@ -15,12 +15,19 @@ mod resource_envelope;
 mod resource_units;
 #[path = "layout_access/scheduler_reservation_family.rs"]
 mod scheduler_reservation_family;
-mod s8_runtime_receipt;
 mod security_scope_io;
 
 #[cfg(test)]
 mod execution_tests;
 
+pub use admission::{
+    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
+    IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
+    IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerPhysicalStabilityAssumption,
+    IoSchedulerSecurityScopeAdmission, IoSchedulerSecurityScopeAdmissionDenial,
+    SchedulerSecurityScopeCapability,
+};
 pub use backend_capability::{
     admit_backend_capability_for_scheduler_claim,
     admit_secure_frame_backend_capability_for_scheduler_claim,
@@ -61,20 +68,17 @@ pub use execution::{
     IoQueueCounterSnapshot, IoQueueExecutedEvidenceSource, IoQueueExecutionDenial,
     IoQueueExecutionRecorder,
 };
+pub use foreground_interference_family::{
+    ForegroundInterferenceAccessBudget, ForegroundInterferenceLayoutReport,
+    ForegroundInterferencePosture,
+};
 pub use interference_accounting::{
     assess_queue_latency_envelope, BackgroundInterferenceEvidence, InterferenceAttribution,
     InterferenceCounterClaim, InterferenceCounterDenial, InterferenceCounterName,
     InterferenceCounterRequirement, InterferenceCounterRow, InterferenceReplayScope,
     LatencyEnvelopeAssessment, LatencyEnvelopeAssessmentStatus, LatencyEnvelopeClaim,
 };
-pub use foreground_interference_family::{
-    ForegroundInterferenceAccessBudget, ForegroundInterferenceLayoutReport,
-    ForegroundInterferencePosture,
-};
 pub use pacing_family::{BackgroundPacingInterferencePosture, BackgroundPacingLayoutReport};
-pub use scheduler_reservation_family::{
-    SchedulerReservationInterferencePosture, SchedulerReservationLayoutReport,
-};
 pub use queue_execution::{
     admit_queue_execution_plan, execute_grouped_ready_queue_plans, execute_ready_queue_plan,
     group_ready_queue_pair, lower_background_queue_lease, lower_buffer_pool_queue_declaration,
@@ -94,17 +98,9 @@ pub use resource_units::{
     IoResourceUnitKind, QueueSlot, ReadAheadWindow, ReclaimPermit, SyncDebt, WorkerPermit,
     WriteBackWindow,
 };
-pub use admission::{
-    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
-    IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial,
-    IoSchedulerIsolationCounterSnapshot, IoSchedulerPhysicalStabilityAssumption,
-    IoSchedulerSecurityScopeAdmission, IoSchedulerSecurityScopeAdmissionDenial,
-    SchedulerSecurityScopeCapability,
+pub use scheduler_reservation_family::{
+    SchedulerReservationInterferencePosture, SchedulerReservationLayoutReport,
 };
-#[cfg(feature = "certification-test-authority")]
-pub use s8_runtime_receipt::s8_maintenance_io_runtime_receipt_for_certification_test;
-pub use s8_runtime_receipt::S8MaintenanceIoRuntimeReceipt;
 pub use security_scope_io::{
     admit_secure_io_scope_for_scheduler, reject_lower_authority_secure_io_scope_source,
     SecureIoCounterStrength, SecureIoOperation, SecureIoPosture, SecureIoPostureRequirement,

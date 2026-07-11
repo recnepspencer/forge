@@ -1,8 +1,8 @@
-use crate::s8_runtime_matrix::S8RuntimeMatrixDenial;
+use crate::courtroom::layout::runtime_matrix::LayoutRuntimeCompletenessDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8LayoutCloseoutDenial {
-    RuntimeMatrixIncomplete(S8RuntimeMatrixDenial),
+    RuntimeMatrixIncomplete(LayoutRuntimeCompletenessDenial),
     MissingCoverageRows,
     ShortcutDenialsRequired,
     CanonicalTranscriptMismatch,

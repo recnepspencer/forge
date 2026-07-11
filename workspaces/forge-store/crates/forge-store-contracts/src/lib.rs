@@ -31,7 +31,6 @@ mod s3_readiness_payload;
 mod s3_readiness_recap;
 mod s6_background_pressure;
 mod s6_queue_producer;
-mod s8_runtime_lifecycle;
 
 pub use artifact_identity::{StableArtifactId, StableDigest};
 pub use compatibility_family::{
@@ -75,10 +74,6 @@ pub use s6_background_pressure::{
     IoPressureBackgroundPressureDeclaration, IoPressureBackgroundPressureKind,
 };
 pub use s6_queue_producer::{S6QueueProducerKind, S6QueueProducerResourceShape};
-pub use s8_runtime_lifecycle::{
-    S8RuntimeCase, S8RuntimeExactCounterEvidence, S8RuntimeExecutionIdentity, S8RuntimeOutcome,
-    S8RuntimeOwnerFact, S8RuntimeScanPosture,
-};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableArtifactClass {

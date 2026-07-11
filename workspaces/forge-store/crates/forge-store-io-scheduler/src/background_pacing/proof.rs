@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use forge_proof::prelude::{AuthorityMarker, AuthorityWitness, ProofOutcome};
 
-use crate::{IoSchedulerIsolationCounterSnapshot, IoSchedulerIsolationAdmission};
+use crate::{IoSchedulerIsolationAdmission, IoSchedulerIsolationCounterSnapshot};
 
 use super::{BackgroundIoPressureClass, BackgroundPacingDenial};
 

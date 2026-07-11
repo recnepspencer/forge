@@ -1,6 +1,6 @@
 use super::S8LayoutCloseoutDenial;
-use crate::s8_runtime_matrix::require_complete_s8_runtime_matrix;
-use forge_store_physical_certification::layout_harness::runtime::S8RuntimeCoverageMatrix;
+use crate::courtroom::layout::runtime_matrix::require_complete_layout_runtime_matrix;
+use forge_store_physical_certification::layout_harness::runtime::LayoutRuntimeCoverageMatrix;
 use forge_store_physical_certification::layout_harness::scenario_inventory::{
     verify_canonical_s8_layout_scenario_inventory, S8LayoutScenarioInventoryReceipt,
 };
@@ -11,9 +11,9 @@ pub struct S8LayoutCloseoutSuiteCertificate {
 }
 
 pub fn certify_s8_layout_closeout_suite(
-    runtime_matrix: &S8RuntimeCoverageMatrix,
+    runtime_matrix: &LayoutRuntimeCoverageMatrix,
 ) -> Result<S8LayoutCloseoutSuiteCertificate, S8LayoutCloseoutDenial> {
-    require_complete_s8_runtime_matrix(runtime_matrix)
+    require_complete_layout_runtime_matrix(runtime_matrix)
         .map_err(S8LayoutCloseoutDenial::RuntimeMatrixIncomplete)?;
     let inventory = verify_canonical_s8_layout_scenario_inventory()
         .map_err(|_| S8LayoutCloseoutDenial::CanonicalScenarioInventoryMismatch)?;

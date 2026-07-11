@@ -8,7 +8,8 @@ fn raw_json_cannot_enter_canonical_basis_construction() {
 }
 
 fn assert_sources_do_not_expose_forbidden_constructor_inputs() {
-    let construction_source = aspect_native_source("canonical_basis/canonical_basis_construction.rs");
+    let construction_source =
+        aspect_native_source("canonical_basis/canonical_basis_construction.rs");
     let construction_contents = fs::read_to_string(&construction_source).unwrap();
     for forbidden_input in [
         "serde_json",
@@ -43,9 +44,9 @@ fn assert_sources_do_not_expose_forbidden_constructor_inputs() {
 }
 
 fn assert_compile_fail_proofs_cover_every_native_constructor_lane() {
-    let compile_fail_proofs = fs::read_to_string(
-        certification_source("courtroom/cross_cutting/certification_compile_fail_proofs.md"),
-    )
+    let compile_fail_proofs = fs::read_to_string(certification_source(
+        "courtroom/cross_cutting/certification_compile_fail_proofs.md",
+    ))
     .unwrap();
 
     for required_proof in [

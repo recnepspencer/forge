@@ -1,8 +1,8 @@
 // --- Capabilities (admission handles, next-step types) ---
 pub use crate::compaction::{
     BlobCompactionAuthority, BlobCompactionColdReadiness, BlobCompactionEquivalence,
-    BlobCompactionIntent, BlobCompactionPhysicalInterlock, BlobCompactionReadHold,
-    BlobCompactionRewriteExecution, BlobCompactionRewritePlan, BlobCompactionPacingAdmission,
+    BlobCompactionIntent, BlobCompactionPacingAdmission, BlobCompactionPhysicalInterlock,
+    BlobCompactionReadHold, BlobCompactionRewriteExecution, BlobCompactionRewritePlan,
 };
 // --- Outcomes (transition receipts) ---
 pub use crate::compaction::{

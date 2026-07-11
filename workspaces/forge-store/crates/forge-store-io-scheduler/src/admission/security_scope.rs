@@ -16,12 +16,18 @@ impl SchedulerSecurityScopeCapability {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoSchedulerSecurityScopeAdmissionDenial {
-    WrongKeyScope { actual: StoreKeyScope },
-    WrongTenantScope { actual: StoreTenantScope },
+    WrongKeyScope {
+        actual: StoreKeyScope,
+    },
+    WrongTenantScope {
+        actual: StoreTenantScope,
+    },
     WrongAuthenticityRequirement {
         actual: StoreAuthenticityRequirement,
     },
-    WrongCustodyPosture { actual: StoreCustodyPosture },
+    WrongCustodyPosture {
+        actual: StoreCustodyPosture,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -98,8 +104,10 @@ fn reject_wrong_custody(
     if identity.custody_posture() == StoreCustodyPosture::InternalStoreCustody {
         Ok(())
     } else {
-        Err(IoSchedulerSecurityScopeAdmissionDenial::WrongCustodyPosture {
-            actual: identity.custody_posture(),
-        })
+        Err(
+            IoSchedulerSecurityScopeAdmissionDenial::WrongCustodyPosture {
+                actual: identity.custody_posture(),
+            },
+        )
     }
 }

@@ -1,4 +1,4 @@
-use crate::IoSchedulerIsolationAdmissionDenial as IoSchedulerIsolationAdmissionDenial;
+use crate::IoSchedulerIsolationAdmissionDenial;
 use forge_store_physical_isolation::{
     PhysicalIsolationCounterSnapshot, PhysicalStabilityAssumption, SchedulerIsolationCapability,
     UnsupportedQoSClaim,
@@ -102,7 +102,8 @@ pub const fn reject_hardware_queue_depth_claim_as_isolation_admission(
     Err(IoSchedulerIsolationAdmissionDenial::HardwareQueueDepthClaim)
 }
 
-pub const fn reject_media_qos_claim_as_isolation_admission() -> Result<(), IoSchedulerIsolationAdmissionDenial> {
+pub const fn reject_media_qos_claim_as_isolation_admission(
+) -> Result<(), IoSchedulerIsolationAdmissionDenial> {
     Err(IoSchedulerIsolationAdmissionDenial::MediaQosClaim)
 }
 

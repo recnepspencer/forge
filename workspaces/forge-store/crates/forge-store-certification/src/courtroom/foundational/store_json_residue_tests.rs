@@ -24,10 +24,12 @@ fn store_json_residue_inventory_classifies_every_occurrence() {
         assert!(!classification.quarantine_or_removal_condition().is_empty());
     }
 
-    assert!(inventory.dedicated_workspace_classified().all(|classification| {
-        classification.is_quarantined_terminal_or_hostile_boundary()
-            || classification.is_durable_serde_contract()
-    }));
+    assert!(inventory
+        .dedicated_workspace_classified()
+        .all(|classification| {
+            classification.is_quarantined_terminal_or_hostile_boundary()
+                || classification.is_durable_serde_contract()
+        }));
     assert!(inventory.classified().iter().any(|classification| {
         classification.zone() == StoreJsonResidueZone::DedicatedWorkspaceDurableSerdeContract
             && classification.owner() == "forge-store durable compatibility contract"

@@ -59,8 +59,10 @@ pub fn reject_terminal_projection_as_retention_reclaim_authority() -> BlobRetent
     }
 }
 
-pub fn reject_reclaim_policy_evidence_as_retention_reclaim_authority() -> BlobRetentionReclaimDenial {
+pub fn reject_reclaim_policy_evidence_as_retention_reclaim_authority() -> BlobRetentionReclaimDenial
+{
     BlobRetentionReclaimDenial::S6HandoffAloneRejected {
-        counters: BlobRetentionReclaimCounterSnapshot::start().record_reclaim_policy_evidence_denial(),
+        counters: BlobRetentionReclaimCounterSnapshot::start()
+            .record_reclaim_policy_evidence_denial(),
     }
 }

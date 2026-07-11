@@ -16,5 +16,10 @@ pub(crate) fn transition_plan_reclaim(
     let (candidate, reclaim_policy_evidence) = admission.into_parts();
     let counters = counters.with_residue_localization().with_permit();
     let residue = BlobLocalizedReclaimResidue::from_candidate(&candidate, residue_kind, counters);
-    BlobRetentionReclaimPermit::from_candidate(candidate, reclaim_policy_evidence, residue, counters)
+    BlobRetentionReclaimPermit::from_candidate(
+        candidate,
+        reclaim_policy_evidence,
+        residue,
+        counters,
+    )
 }

@@ -23,8 +23,7 @@ use crate::{
     CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
     QueueExecutionReadyPlan, QueueGroupingBasis, QueueRecoveryOrdering, QueueSlot,
     QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow, S6QueueDurabilityClass,
-    SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationRequest, WorkerPermit,
+    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
 };
 
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
@@ -100,8 +99,7 @@ fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperati
 }
 
 fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
-    let security_scope =
-        forge_store_security::admitted_store_internal_security_scope_for_s6_test();
+    let security_scope = forge_store_security::admitted_store_internal_security_scope_for_s6_test();
     admit_security_scope_for_scheduler(&security_scope)
         .expect("test security scope should admit for scheduler use")
 }

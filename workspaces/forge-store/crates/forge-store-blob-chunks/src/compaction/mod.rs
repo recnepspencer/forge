@@ -37,6 +37,6 @@ pub use receipt_construction::published_observation::BlobCompactionPublishedObse
 pub use recovery::{BlobCompactionResidue, BlobCompactionRestartOutcome};
 pub use transitions::execute_rewrite::BlobCompactionRewriteExecution;
 pub use types::{
-    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPhysicalInterlock,
-    BlobCompactionReadHold, BlobCompactionRewritePlan, BlobCompactionPacingAdmission,
+    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPacingAdmission,
+    BlobCompactionPhysicalInterlock, BlobCompactionReadHold, BlobCompactionRewritePlan,
 };

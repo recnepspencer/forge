@@ -1,8 +1,8 @@
 use super::compaction_eligibility_case::CompactionEligibilityCase;
 use crate::compaction::types::BlobCompactionIntent;
 use crate::compaction::verification::{
-    cold_readiness, dedupe_edges, lifecycle_placement, lifecycle_reachability, physical_interlock,
-    pacing_admission, quarantine_absent, reachability_present, read_hold_matches_physical,
+    cold_readiness, dedupe_edges, lifecycle_placement, lifecycle_reachability, pacing_admission,
+    physical_interlock, quarantine_absent, reachability_present, read_hold_matches_physical,
     uncompacted_publication,
 };
 use crate::{BlobCompactionCounterSnapshot, BlobCompactionDenial};

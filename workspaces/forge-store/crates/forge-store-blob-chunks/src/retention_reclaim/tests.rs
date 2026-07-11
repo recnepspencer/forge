@@ -169,7 +169,8 @@ fn weak_representations_return_denials_not_authority() {
     let copied_receipt = crate::reject_copied_receipt_as_retention_reclaim_authority();
     let copied_counter = crate::reject_copied_counter_as_retention_reclaim_authority();
     let projection = crate::reject_terminal_projection_as_retention_reclaim_authority();
-    let policy_evidence_only = crate::reject_reclaim_policy_evidence_as_retention_reclaim_authority();
+    let policy_evidence_only =
+        crate::reject_reclaim_policy_evidence_as_retention_reclaim_authority();
 
     assert!(matches!(
         residue,

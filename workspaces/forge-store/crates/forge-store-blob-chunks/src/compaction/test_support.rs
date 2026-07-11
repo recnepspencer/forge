@@ -17,7 +17,7 @@ use crate::test_support::{
 use crate::{
     BlobAuthorityClassification, BlobChunkDedupeAdmission, BlobChunkDedupeReferenceRegistry,
     BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionColdReadiness, BlobCompactionIntent,
-    BlobCompactionReadHold, BlobCompactionPacingAdmission, BlobCorruptedChunkLocalization,
+    BlobCompactionPacingAdmission, BlobCompactionReadHold, BlobCorruptedChunkLocalization,
     BlobCorruptionDetectionSource, BlobCorruptionGuard, BlobCorruptionPlacementClass,
     BlobCorruptionReferenceEdges, BlobQuarantineAuthority, BlobStreamingContentFrontier,
     BlobStreamingVerifiedRead, LifecycleReceipt,

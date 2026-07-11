@@ -25,8 +25,10 @@ pub(crate) fn admit_via_reachability_gate(
     verify_no_live_reachability_holds(reachability)?;
     let release = collect_reachability_release(reachability, chunk_identity)?;
     verify_reclaim_policy_scope(&release, &reclaim_policy_evidence)?;
-    let physical_claim =
-        BlobRetentionPhysicalOrphanClaim::from_admitted_reclaim_policy_evidence(&release, &reclaim_policy_evidence)?;
+    let physical_claim = BlobRetentionPhysicalOrphanClaim::from_admitted_reclaim_policy_evidence(
+        &release,
+        &reclaim_policy_evidence,
+    )?;
     let eligibility = match resume_barrier {
         None => RetentionReclaimEligibilityCase::EligibleReachabilityOrphan,
         Some(barrier) => {
@@ -73,6 +75,7 @@ fn construct_admission(
         _ => unreachable!("denials are assembled before construct_admission"),
     };
     Ok(BlobRetentionReclaimAdmission::construct(
-        candidate, reclaim_policy_evidence,
+        candidate,
+        reclaim_policy_evidence,
     ))
 }

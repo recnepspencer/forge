@@ -133,5 +133,7 @@ fn physical_witness() -> StorePhysicalBoundaryWitness {
 }
 
 fn aspect_native_source(file: &str) -> PathBuf {
-    store_crate_source("forge-store-aspect-native").join("receipts").join(file)
+    store_crate_source("forge-store-aspect-native")
+        .join("receipts")
+        .join(file)
 }

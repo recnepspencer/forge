@@ -1,6 +1,6 @@
 use crate::{
-    courtroom::source_tree::store_crate_source, StoreJsonResidueDenial,
-    StoreJsonResidueOccurrence, StoreJsonResidueTokenKind,
+    courtroom::source_tree::store_crate_source, StoreJsonResidueDenial, StoreJsonResidueOccurrence,
+    StoreJsonResidueTokenKind,
 };
 use std::fs;
 

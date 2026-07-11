@@ -3,10 +3,9 @@ mod isolation_denial;
 mod security_scope;
 
 pub use isolation::{
-    admit_store_published_isolation_capability,
-    IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
-    IoSchedulerIsolationAdmission, IoSchedulerIsolationCounterSnapshot,
-    IoSchedulerPhysicalStabilityAssumption,
+    admit_store_published_isolation_capability, IoSchedulerBackgroundMaintenanceAssumption,
+    IoSchedulerForegroundInterferenceSurface, IoSchedulerIsolationAdmission,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerPhysicalStabilityAssumption,
 };
 pub use isolation_denial::IoSchedulerIsolationAdmissionDenial;
 pub use security_scope::{

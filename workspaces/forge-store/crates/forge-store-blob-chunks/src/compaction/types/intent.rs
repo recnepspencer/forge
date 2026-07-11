@@ -1,6 +1,6 @@
 use super::{
-    BlobCompactionColdReadiness, BlobCompactionPhysicalInterlock, BlobCompactionReadHold,
-    BlobCompactionPacingAdmission,
+    BlobCompactionColdReadiness, BlobCompactionPacingAdmission, BlobCompactionPhysicalInterlock,
+    BlobCompactionReadHold,
 };
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobChunkRegisteredDedupeReference,

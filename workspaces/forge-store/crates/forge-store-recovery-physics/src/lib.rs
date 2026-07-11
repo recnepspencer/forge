@@ -31,7 +31,6 @@ mod recovery_integrity_handoff_receipt;
 mod recovery_replay_entry_gate;
 mod redo_replay;
 mod replay_receipt;
-mod s8_runtime_receipt;
 mod security_metadata_admission;
 #[cfg(test)]
 mod security_metadata_tests;
@@ -198,9 +197,6 @@ pub use redo_replay::{
     WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
 };
 pub use replay_receipt::{CheckpointValidityDecision, WalReplayReceipt};
-#[cfg(feature = "certification-test-authority")]
-pub use s8_runtime_receipt::s8_recovery_runtime_receipt_for_certification_test;
-pub use s8_runtime_receipt::{S8RecoveryRuntimeReceipt, S8RecoveryRuntimeStrategy};
 pub use security_metadata_admission::RecoveryRootSecurityMetadataAdmission;
 pub use security_scope_propagation::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope,

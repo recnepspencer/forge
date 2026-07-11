@@ -9,7 +9,6 @@
 pub mod authority;
 pub mod courtroom;
 pub mod evidence;
-pub mod s8_runtime_matrix;
 mod scenario;
 
 include!("internal_modules.rs");

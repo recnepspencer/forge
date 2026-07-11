@@ -24,10 +24,10 @@ use crate::publication::test_support::publish_generation_with_bytes_and_chunk_si
 use crate::test_support::{admitted_blob_security_scope, admitted_sequence_for_scope, blob_scope};
 use crate::{
     BlobChunkIdentity, BlobChunkReachabilityRegistry, BlobChunkSecurityMetadataWitness,
-    BlobReachabilityEdge, BlobReachabilityReclaimDecision, BlobRetentionHoldKind,
-    BlobRetentionReclaimAdmission, BlobRetentionReclaimAdmissionAuthority,
+    BlobReachabilityEdge, BlobReachabilityReclaimDecision, BlobReclaimPolicyEvidence,
+    BlobRetentionHoldKind, BlobRetentionReclaimAdmission, BlobRetentionReclaimAdmissionAuthority,
     BlobRetentionReclaimDenial, BlobRetentionReclaimOutcome, BlobRetentionReclaimRequest,
-    BlobRetentionSafeReclaimPlanner, BlobReclaimPolicyEvidence,
+    BlobRetentionSafeReclaimPlanner,
 };
 
 pub(crate) fn plan(request: BlobRetentionReclaimRequest) -> BlobRetentionReclaimOutcome {

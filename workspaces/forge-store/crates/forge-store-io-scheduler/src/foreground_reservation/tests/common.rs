@@ -14,8 +14,8 @@ use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_c
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
-    admit_backend_capability_for_scheduler_claim,
-    admit_store_published_isolation_capability, IoSchedulerBackendCapabilityRequirement,
+    admit_backend_capability_for_scheduler_claim, admit_store_published_isolation_capability,
+    IoSchedulerBackendCapabilityRequirement,
 };
 
 use super::super::*;
@@ -56,11 +56,9 @@ pub(super) fn s6_readiness_admission_with_counts(
     wait_count: u64,
     retry_count: u64,
 ) -> crate::IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(
-        wait_count,
-        retry_count,
-    )
-    .expect("S.5 closeout should publish S.6 readiness through production path");
+    let readiness =
+        publish_scheduler_isolation_capability_for_certification_test(wait_count, retry_count)
+            .expect("S.5 closeout should publish S.6 readiness through production path");
     admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit Store-published S.6 readiness")
 }

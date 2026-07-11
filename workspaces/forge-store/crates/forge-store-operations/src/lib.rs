@@ -69,6 +69,5 @@ mod recovery_posture;
 mod repair;
 mod repair_blast_radius_scheduler_demand;
 mod replication_prep_scheduler_demand;
-mod s8_runtime_receipt;
 
 pub use facade::*;

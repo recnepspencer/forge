@@ -6,7 +6,7 @@ use super::test_support::{
 };
 use crate::{
     BlobCompactionAuthority, BlobCompactionDenial, BlobCompactionEquivalence,
-    BlobCompactionRestartOutcome, BlobCompactionPacingAdmission,
+    BlobCompactionPacingAdmission, BlobCompactionRestartOutcome,
 };
 
 #[test]
@@ -49,7 +49,8 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
 
     assert!(matches!(
         BlobCompactionAuthority::store_owned().plan_compaction(
-            intent("phase18-pacing").with_pacing_admission(BlobCompactionPacingAdmission::Unsupported)
+            intent("phase18-pacing")
+                .with_pacing_admission(BlobCompactionPacingAdmission::Unsupported)
         ),
         Err(BlobCompactionDenial::UnsupportedSchedulerPacing { .. })
     ));

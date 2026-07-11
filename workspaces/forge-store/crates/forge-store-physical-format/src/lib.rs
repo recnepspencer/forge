@@ -85,8 +85,9 @@ pub use facade::{
     PlatformPhysicalLocateReport, PlatformPhysicalOpenRequest, PlatformPhysicalRecordTarget,
     PlatformPhysicalReplayArtifact, PlatformPhysicalRootPublicationReport,
     PlatformPhysicalRuntimeLayoutReport, PlatformPhysicalRuntimeOperation,
-    PlatformPhysicalRuntimeReceipt, PlatformPhysicalRuntimeReceiptDenial,
-    PlatformPhysicalRuntimeStrategy, PlatformPhysicalScanReport,
+    PlatformPhysicalRuntimeOutcome, PlatformPhysicalRuntimeReceipt,
+    PlatformPhysicalRuntimeReceiptDenial, PlatformPhysicalRuntimeStrategy,
+    PlatformPhysicalScanReport,
 };
 pub use format_identity::{
     PhysicalEpoch, PhysicalExtentId, PhysicalFormatMagic, PhysicalFormatVersion,

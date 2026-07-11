@@ -1,5 +1,8 @@
 use crate::courtroom::source_tree::{certification_source, store_crate_source};
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[test]
 fn serde_json_digest_basis_is_rejected() {
@@ -26,9 +29,9 @@ fn serde_json_digest_basis_is_rejected() {
 
 #[test]
 fn digest_text_cannot_satisfy_store_authority() {
-    let compile_fail_proofs = fs::read_to_string(
-        certification_source("courtroom/cross_cutting/certification_compile_fail_proofs.md"),
-    )
+    let compile_fail_proofs = fs::read_to_string(certification_source(
+        "courtroom/cross_cutting/certification_compile_fail_proofs.md",
+    ))
     .unwrap();
 
     for required_proof in [
@@ -68,10 +71,7 @@ fn phase_six_production_authority_sources() -> Vec<PathBuf> {
         "forge-store-physical-integrity",
         "forge-store-physical-format",
     ] {
-        collect_rust_sources(
-            &store_crate_source(crate_name),
-            &mut sources,
-        );
+        collect_rust_sources(&store_crate_source(crate_name), &mut sources);
     }
 
     sources
@@ -101,4 +101,3 @@ fn collect_rust_sources(directory: &Path, sources: &mut Vec<PathBuf>) {
         }
     }
 }
-

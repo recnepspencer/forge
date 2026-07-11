@@ -2,11 +2,11 @@ use forge_store_contracts::StableDigest;
 use forge_store_physical_format::PhysicalChunkPayloadIntegrityWitness;
 
 use crate::{
-    chunk_integrity::stable_digest_for, BlobChunkByteWindow, BlobChunkContentDigest,
-    BlobChunkIdentity, BlobChunkIntegrityCounterSnapshot, BlobChunkIntegrityDenial,
-    BlobChunkIntegrityProof, BlobChunkOrdinal, BlobChunkSecurityMetadataWitness,
-    BlobChunkSecurityScope, BlobChunkingRuleAdmission, ChunkTreeRoot, LogicalContentDigest,
-    AdmittedBlobChunkSecurity, StoredChunkDigest,
+    chunk_integrity::stable_digest_for, AdmittedBlobChunkSecurity, BlobChunkByteWindow,
+    BlobChunkContentDigest, BlobChunkIdentity, BlobChunkIntegrityCounterSnapshot,
+    BlobChunkIntegrityDenial, BlobChunkIntegrityProof, BlobChunkOrdinal,
+    BlobChunkSecurityMetadataWitness, BlobChunkSecurityScope, BlobChunkingRuleAdmission,
+    ChunkTreeRoot, LogicalContentDigest, StoredChunkDigest,
 };
 
 #[derive(Debug, PartialEq, Eq)]

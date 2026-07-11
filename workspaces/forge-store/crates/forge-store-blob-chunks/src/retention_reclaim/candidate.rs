@@ -63,7 +63,10 @@ impl BlobRetentionPhysicalOrphanClaim {
         Ok(Self {
             chunk_identity: release.chunk_identity().clone(),
             physical_identity: BlobRetentionPhysicalOrphanIdentity {
-                owner: reclaim_policy_evidence.region().reference().generation_owner(),
+                owner: reclaim_policy_evidence
+                    .region()
+                    .reference()
+                    .generation_owner(),
                 durable_bytes,
             },
         })

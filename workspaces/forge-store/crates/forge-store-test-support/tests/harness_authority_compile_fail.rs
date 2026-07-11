@@ -12,7 +12,7 @@ struct CompileFailFixture {
     include_physical_certification: bool,
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 8] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
     [
         CompileFailFixture {
             name: "harness_reference_is_not_physical_reference.rs",
@@ -22,11 +22,6 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 8] {
         CompileFailFixture {
             name: "harness_reference_cannot_expose_private_reference_lane.rs",
             expected_stderr: &["as_physical_reference", "private"],
-            include_physical_certification: true,
-        },
-        CompileFailFixture {
-            name: "copied_s8_runtime_fact_cannot_satisfy_matrix.rs",
-            expected_stderr: &["S8RuntimeEvidence", "S8RuntimeOwnerFact"],
             include_physical_certification: true,
         },
         CompileFailFixture {
@@ -40,18 +35,13 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 8] {
             include_physical_certification: false,
         },
         CompileFailFixture {
-            name: "s8_layout_runtime_receipt_is_not_public.rs",
-            expected_stderr: &["s8_layout_access", "could not find"],
-            include_physical_certification: true,
-        },
-        CompileFailFixture {
             name: "fixtures_cannot_satisfy_production_execution.rs",
             expected_stderr: &["execute_s8_layout_scenario", "S8LayoutFixtures"],
             include_physical_certification: true,
         },
         CompileFailFixture {
             name: "adversarial_inputs_cannot_satisfy_production_execution.rs",
-            expected_stderr: &["S8RuntimeEvidence", "S8LayoutAdversarialInputs"],
+            expected_stderr: &["LayoutRuntimeEvidence", "S8LayoutAdversarialInputs"],
             include_physical_certification: true,
         },
     ]
