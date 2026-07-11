@@ -1,30 +1,22 @@
 #![forbid(unsafe_code)]
 
-mod authenticity_check;
-#[cfg(test)]
-mod authenticity_check_tests;
-mod authenticity_counters;
-mod authenticity_denial;
-mod authenticity_result;
-mod authenticity_vocabulary;
-mod authenticity_witness;
-mod authority_source;
+mod authenticity;
 #[path = "layout_access/authenticity_family.rs"]
 mod authenticity_family;
+mod authority_source;
 #[path = "layout_access/custody_family.rs"]
 mod custody_family;
 #[path = "layout_access/key_scope_family.rs"]
 mod key_scope_family;
 #[path = "layout_access/phase27_lookup_rule.rs"]
 mod phase27_lookup_rule;
-#[path = "layout_access/repair_blast_radius_family.rs"]
-mod repair_blast_radius_family;
-#[path = "layout_access/scope_partition_basis.rs"]
-mod scope_partition_basis;
-#[path = "layout_access/tenant_scope_family.rs"]
-mod tenant_scope_family;
 mod raw_security_declarations;
 mod repair_blast_radius;
+#[path = "layout_access/repair_blast_radius_family.rs"]
+mod repair_blast_radius_family;
+mod scope;
+#[path = "layout_access/scope_partition_basis.rs"]
+mod scope_partition_basis;
 mod scope_vocabulary;
 #[cfg(test)]
 mod security_authority_source_tests;
@@ -32,50 +24,29 @@ mod security_metadata;
 mod security_metadata_canonical;
 #[cfg(test)]
 mod security_metadata_tests;
-mod security_scope_admission;
-mod security_scope_admission_basis;
-mod security_scope_admission_denial;
-mod security_scope_admission_request;
-#[cfg(test)]
-mod security_scope_admission_tests;
-mod security_scope_counters;
-mod security_scope_custody_readmission;
-#[cfg(test)]
-mod security_scope_custody_readmission_tests;
-mod security_scope_denial;
-mod security_scope_identity;
-mod security_scope_propagation;
-#[cfg(test)]
-mod security_scope_propagation_tests;
-#[cfg(test)]
-mod security_scope_readmission_tests;
-mod security_scope_receipt;
-mod security_scope_roles;
-#[cfg(any(test, feature = "certification-test-authority"))]
-mod security_scope_test_authority;
-#[cfg(test)]
-mod security_scope_test_support;
-mod security_scope_witnesses;
+#[path = "layout_access/tenant_scope_family.rs"]
+mod tenant_scope_family;
 mod trust_boundary;
-mod trust_boundary_category;
-mod trust_boundary_observation;
 #[cfg(test)]
 mod vocabulary_tests;
 
-pub use authenticity_check::{
+pub use authenticity::authenticity_check::{
     StoreAuthenticityCheck, StoreAuthenticityCheckInput, StorePhysicalAuthenticityCheck,
     StoreScopedAuthenticityCheck,
 };
-pub use authenticity_counters::StoreAuthenticityCheckCounterSnapshot;
-pub use authenticity_denial::{StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind};
-pub use authenticity_result::{StoreAuthenticityResult, StoreAuthenticityResultKind};
-pub use authenticity_vocabulary::{
+pub use authenticity::authenticity_counters::StoreAuthenticityCheckCounterSnapshot;
+pub use authenticity::authenticity_denial::{
+    StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind,
+};
+pub use authenticity::authenticity_result::{StoreAuthenticityResult, StoreAuthenticityResultKind};
+pub use authenticity::authenticity_vocabulary::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
 };
-pub use authenticity_witness::{
+pub use authenticity::authenticity_witness::{
     admit_store_authenticity_witness_observation, StoreAuthenticityWitnessBinding,
     StoreAuthenticityWitnessInput, StoreAuthenticityWitnessObservationDeclaration,
 };
+pub use authenticity_family::AuthenticityLayoutReport;
 pub use authority_source::{
     classify_app_org_id_as_security_scope_source, classify_audit_record_as_security_scope_source,
     classify_foundational_evidence_as_security_scope_source,
@@ -89,7 +60,6 @@ pub use authority_source::{
     classify_store_current_authority_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source, StoreSecurityAuthoritySource,
 };
-pub use authenticity_family::AuthenticityLayoutReport;
 pub use custody_family::CustodyLayoutReport;
 pub use key_scope_family::KeyScopeLayoutReport;
 pub use phase27_lookup_rule::{
@@ -97,13 +67,6 @@ pub use phase27_lookup_rule::{
     AdmittedRepairBlastRadiusLayoutRule, AdmittedTenantScopeLayoutRule,
     SecurityCustodyLookupAccessShape,
 };
-pub use repair_blast_radius_family::{
-    RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
-};
-pub use scope_partition_basis::{
-    admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
-};
-pub use tenant_scope_family::TenantScopeLayoutReport;
 pub use raw_security_declarations::{
     evaluate_deserialized_security_scope_readmission,
     readmit_deserialized_security_scope_declaration, StoreApplicationOrgIdClaim, StoreIamRoleClaim,
@@ -115,6 +78,66 @@ pub use repair_blast_radius::{
     reject_repair_authority_source, repair_blast_radius_authenticity,
     repair_blast_radius_expectation, StoreRepairPhysicalRegionAdmissionOutcome,
     StoreRepairPhysicalRegionDeclaration, StoreRepairPhysicalRegionWitness,
+};
+pub use repair_blast_radius_family::{
+    RepairBlastRadiusAuthorityPosture, RepairBlastRadiusLayoutReport,
+};
+pub use scope::security_scope_admission::{
+    admission_counter_snapshot, admit_store_security_scope,
+    evaluate_store_security_scope_admission, StoreSecurityScopeAdmissionEvaluation,
+    StoreSecurityScopeAdmissionOutcome,
+};
+pub use scope::security_scope_admission_basis::{
+    StoreSecurityScopeAdmissionBasis, StoreSecurityScopeAdmissionExpectation,
+};
+pub use scope::security_scope_admission_denial::{
+    StoreSecurityScopeAdmissionDeferred, StoreSecurityScopeAdmissionDenial,
+    StoreSecurityScopeAdmissionFailure, StoreSecurityScopeAdmissionRebindRequired,
+    StoreSecurityScopeAdmissionStale,
+};
+pub use scope::security_scope_admission_request::StoreSecurityScopeAdmissionRequest;
+pub use scope::security_scope_counters::StoreSecurityScopeAdmissionCounterSnapshot;
+pub use scope::security_scope_custody_readmission::readmit_trust_boundary_security_scope_declaration;
+pub use scope::security_scope_denial::{
+    reject_non_store_security_scope_source, StoreSecurityScopeDenial, StoreSecurityScopeDenialKind,
+};
+pub use scope::security_scope_identity::StoreSecurityScopeIdentity;
+pub use scope::security_scope_propagation::{
+    deny_drifted_store_security_scope, deny_missing_store_security_scope,
+    deny_stale_store_security_scope, propagate_store_security_scope,
+    StoreSecurityScopePropagationCounters, StoreSecurityScopePropagationDenial,
+    StoreSecurityScopePropagationDenialKind, StoreSecurityScopePropagationOutcome,
+    StoreSecurityScopePropagationSite, StoreSecurityScopePropagationWitness,
+};
+pub use scope::security_scope_receipt::{
+    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeAdmissionReceiptId,
+    StoreSecurityScopeProofProgressionIdentity,
+};
+pub use scope::security_scope_roles::{
+    StoreSecurityEvidenceVocabulary, StoreSecurityReadinessVocabulary,
+    StoreSecurityReadinessVocabularyTerm, StoreSecurityRequirementVocabulary,
+    StoreSecurityResultVocabulary, StoreSecurityWitnessVocabulary,
+    StoreSecurityWitnessVocabularyTerm,
+};
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use scope::security_scope_test_authority::{
+    admitted_store_internal_security_scope_for_s6_test,
+    admitted_store_managed_root_security_scope_for_layout_access_test,
+    admitted_tenant_artifact_security_scope_for_layout_access_test,
+    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
+    admitted_tenant_page_security_scope_for_layout_access_test,
+    admitted_tenant_page_without_authenticity_for_layout_access_test,
+    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test,
+    admitted_wrong_s6_io_qos_security_scope_for_test,
+};
+pub use scope::security_scope_witnesses::{
+    StoreAdmittedSecurityScope, StoreCurrentAuthenticityScopeWitness,
+    StoreCurrentCustodyScopeWitness, StoreCurrentKeyScopeWitness,
+    StoreCurrentKeyVersionScopeWitness, StoreCurrentSecurityScopeWitnessSet,
+    StoreCurrentTenantScopeWitness,
+};
+pub use scope_partition_basis::{
+    admit_layout_access_security_boundary, StoreLayoutAccessSecurityBoundaryWitness,
 };
 pub use scope_vocabulary::{
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
@@ -129,59 +152,12 @@ pub use security_metadata::{
 pub use security_metadata_canonical::{
     compare_store_security_metadata, StoreSecurityMetadataCanonicalBasis,
 };
-pub use security_scope_admission::{
-    admission_counter_snapshot, admit_store_security_scope,
-    evaluate_store_security_scope_admission, StoreSecurityScopeAdmissionEvaluation,
-    StoreSecurityScopeAdmissionOutcome,
-};
-pub use security_scope_admission_basis::{
-    StoreSecurityScopeAdmissionBasis, StoreSecurityScopeAdmissionExpectation,
-};
-pub use security_scope_admission_denial::{
-    StoreSecurityScopeAdmissionDeferred, StoreSecurityScopeAdmissionDenial,
-    StoreSecurityScopeAdmissionFailure, StoreSecurityScopeAdmissionRebindRequired,
-    StoreSecurityScopeAdmissionStale,
-};
-pub use security_scope_admission_request::StoreSecurityScopeAdmissionRequest;
-pub use security_scope_counters::StoreSecurityScopeAdmissionCounterSnapshot;
-pub use security_scope_custody_readmission::readmit_trust_boundary_security_scope_declaration;
-pub use security_scope_denial::{
-    reject_non_store_security_scope_source, StoreSecurityScopeDenial, StoreSecurityScopeDenialKind,
-};
-pub use security_scope_identity::StoreSecurityScopeIdentity;
-pub use security_scope_propagation::{
-    deny_drifted_store_security_scope, deny_missing_store_security_scope,
-    deny_stale_store_security_scope, propagate_store_security_scope,
-    StoreSecurityScopePropagationCounters, StoreSecurityScopePropagationDenial,
-    StoreSecurityScopePropagationDenialKind, StoreSecurityScopePropagationOutcome,
-    StoreSecurityScopePropagationSite, StoreSecurityScopePropagationWitness,
-};
-pub use security_scope_receipt::{
-    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeAdmissionReceiptId,
-    StoreSecurityScopeProofProgressionIdentity,
-};
-pub use security_scope_roles::{
-    StoreSecurityEvidenceVocabulary, StoreSecurityReadinessVocabulary,
-    StoreSecurityReadinessVocabularyTerm, StoreSecurityRequirementVocabulary,
-    StoreSecurityResultVocabulary, StoreSecurityWitnessVocabulary,
-    StoreSecurityWitnessVocabularyTerm,
-};
-#[cfg(any(test, feature = "certification-test-authority"))]
-pub use security_scope_test_authority::{
-    admitted_store_internal_security_scope_for_s6_test,
-    admitted_store_managed_root_security_scope_for_layout_access_test,
-    admitted_tenant_artifact_security_scope_for_layout_access_test,
-    admitted_tenant_page_export_prepared_scope_for_layout_access_test,
-    admitted_tenant_page_security_scope_for_layout_access_test,
-    admitted_tenant_page_without_authenticity_for_layout_access_test,
-    admitted_tenant_wal_checkpoint_security_scope_for_layout_access_test,
-    admitted_wrong_s6_io_qos_security_scope_for_test,
-};
-pub use security_scope_witnesses::{
-    StoreAdmittedSecurityScope, StoreCurrentAuthenticityScopeWitness,
-    StoreCurrentCustodyScopeWitness, StoreCurrentKeyScopeWitness,
-    StoreCurrentKeyVersionScopeWitness, StoreCurrentSecurityScopeWitnessSet,
-    StoreCurrentTenantScopeWitness,
+pub use tenant_scope_family::TenantScopeLayoutReport;
+pub use trust_boundary::trust_boundary_observation::{
+    store_backup_restore_boundary_fact, store_custody_domain_boundary_fact,
+    store_deployment_boundary_fact, store_instance_boundary_fact,
+    store_key_scope_generation_boundary_fact, store_offline_transfer_boundary_fact,
+    store_tenant_scope_authority_boundary_fact,
 };
 pub use trust_boundary::{
     StoreBackupRestoreAfterKeyRotationBoundaryEvidence,
@@ -197,10 +173,4 @@ pub use trust_boundary::{
     StoreTenantScopeAuthorityBoundaryFact, StoreTenantScopeAuthorityBoundaryFactInput,
     StoreTrustBoundaryCrossing, StoreTrustBoundaryCrossingEvidence, StoreTrustBoundaryEvidence,
     StoreTrustBoundaryEvidenceDenial, StoreTrustBoundaryReadmissionTrigger,
-};
-pub use trust_boundary_observation::{
-    store_backup_restore_boundary_fact, store_custody_domain_boundary_fact,
-    store_deployment_boundary_fact, store_instance_boundary_fact,
-    store_key_scope_generation_boundary_fact, store_offline_transfer_boundary_fact,
-    store_tenant_scope_authority_boundary_fact,
 };

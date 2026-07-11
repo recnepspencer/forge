@@ -5,7 +5,10 @@ use crate::{
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeIdentity,
 };
 
-pub use crate::trust_boundary_category::{
+pub(crate) mod trust_boundary_category;
+pub(crate) mod trust_boundary_observation;
+
+pub use trust_boundary_category::{
     StoreBackupRestoreAfterKeyRotationBoundaryEvidence, StoreBackupRestoreBoundaryFactInput,
     StoreCustodyDomainBoundaryEvidence, StoreCustodyDomainBoundaryFactInput,
     StoreDeploymentBoundaryFact, StoreDifferentDeploymentBoundaryEvidence,

@@ -7,7 +7,7 @@ use crate::{
     StoreSecurityScopeAdmissionExpectation, StoreTenantScope,
 };
 
-use crate::security_scope_counters::StoreSecurityScopeAdmissionCounters;
+use crate::scope::security_scope_counters::StoreSecurityScopeAdmissionCounters;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StoreSecurityScopeDeclarationProvenance {

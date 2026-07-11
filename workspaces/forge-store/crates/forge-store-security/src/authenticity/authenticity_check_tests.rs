@@ -1,6 +1,6 @@
 use forge_proof::TransitionOutcome;
 
-use crate::security_scope_test_support::{
+use crate::scope::security_scope_test_support::{
     current_authority, platform_authenticity_requirement, platform_request,
 };
 use crate::{

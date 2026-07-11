@@ -10,7 +10,7 @@ use crate::{
     StoreSecurityScopeIdentity,
 };
 
-use crate::security_scope_counters::StoreSecurityScopeAdmissionCounters;
+use crate::scope::security_scope_counters::StoreSecurityScopeAdmissionCounters;
 
 pub type StoreSecurityScopeAdmissionOutcome = TransitionOutcome<
     StoreAdmittedSecurityScope,

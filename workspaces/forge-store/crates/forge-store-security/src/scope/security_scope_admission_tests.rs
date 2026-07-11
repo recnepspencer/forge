@@ -1,6 +1,6 @@
 use forge_proof::TransitionOutcome;
 
-use crate::security_scope_test_support::{
+use crate::scope::security_scope_test_support::{
     current_authority, platform_authenticity_requirement, platform_request, raw_request,
     request_with_custody,
 };
@@ -95,9 +95,10 @@ fn proof_progression_identity_changes_when_admission_basis_changes() {
     let authority = current_authority("store.s51.security.progression", "page-0003");
     let native_request = platform_request(&authority, StoreKeyVersionPosture::Current);
     let raw_deserialized =
-        crate::security_scope_test_support::platform_deserialized_declaration(&authority);
+        crate::scope::security_scope_test_support::platform_deserialized_declaration(&authority);
     let readmitted =
-        crate::security_scope_test_support::readmit_platform(&authority, raw_deserialized).unwrap();
+        crate::scope::security_scope_test_support::readmit_platform(&authority, raw_deserialized)
+            .unwrap();
     let readmitted_request = raw_request(&authority, readmitted);
 
     assert_ne!(

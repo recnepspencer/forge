@@ -1,4 +1,4 @@
-use crate::security_scope_test_support::{current_authority, platform_request};
+use crate::scope::security_scope_test_support::{current_authority, platform_request};
 use crate::{
     admit_store_security_scope, deny_missing_store_security_scope, propagate_store_security_scope,
     StoreCustodyPosture, StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityMetadata,

@@ -1,5 +1,5 @@
-use crate::authenticity_counters::StoreAuthenticityCheckCounterRecorder;
-use crate::authenticity_witness::StoreAuthenticityWitnessPosture;
+use crate::authenticity::authenticity_counters::StoreAuthenticityCheckCounterRecorder;
+use crate::authenticity::authenticity_witness::StoreAuthenticityWitnessPosture;
 use crate::{
     StoreAuthenticityCheckDenial, StoreAuthenticityCheckDenialKind, StoreAuthenticityRequirement,
     StoreAuthenticityResult, StoreAuthenticityWitnessBinding, StoreAuthenticityWitnessInput,

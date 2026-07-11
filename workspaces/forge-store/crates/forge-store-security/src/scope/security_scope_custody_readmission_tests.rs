@@ -1,4 +1,4 @@
-use crate::security_scope_test_support::{
+use crate::scope::security_scope_test_support::{
     boundary_fact, current_authority, platform_authenticity_requirement,
     trust_boundary_readmission_trigger,
 };
