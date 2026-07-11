@@ -257,7 +257,7 @@ def main() -> None:
                 {
                     "action": "override_model",
                     "turns": ["repair", "test_repair_implement", "code_quality_repair"],
-                    "model_policy": dict(OVERSIGHT),
+                    "model_policy": {**OVERSIGHT, "goal_mode": GOAL_MODE_REPAIR},
                     "scope": "phase",
                 },
             ],

@@ -123,10 +123,10 @@ This is shared recovery semantics and must land with the graph suite green.
 
 ## Goal mode (implemented)
 
-`goal_mode` is a model-policy flag: when set, the adapter appends the provider's
-self-verification loop so the turn drives itself to completion before handing
-back to review. For grok this is `--check`; codex has no equivalent flag, so
-goal mode is a no-op there. It is set two ways:
+`goal_mode` is a model-policy flag: when set, the adapter turns on the provider's
+goal/self-verification behavior so the turn drives itself to completion before
+handing back to review. For grok this appends `--check`; for codex it enables the
+experimental `goals` feature (`--enable goals`). It is set two ways:
 
 - **Config default**: any turn's `model_policy` may carry `"goal_mode": true`.
   The M1B repair turns default to goal mode (`GOAL_MODE_REPAIR`).

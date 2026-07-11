@@ -291,6 +291,20 @@ class GoalModeTests(unittest.TestCase):
         state["session"]["goal_mode"] = False
         self.assertNotIn("--check", build_grok_command(state, Path("C:/tmp/prompt.md")))
 
+    def test_goal_mode_enables_codex_goals_feature(self) -> None:
+        from runner.adapters.codex import build_codex_command
+
+        state = {
+            "session": {"provider": "codex", "model": "gpt-5.6-sol", "reasoning_effort": "high", "goal_mode": True, "config": {}, "reuse_session": True},
+            "project": {"cwd": "C:/tmp/demo"},
+        }
+        command = build_codex_command(state)
+        self.assertIn("--enable", command)
+        self.assertIn("goals", command)
+        # No goal mode -> the goals feature is not enabled.
+        state["session"]["goal_mode"] = False
+        self.assertNotIn("goals", build_codex_command(state))
+
     def test_goal_prefix_sets_goal_mode_on_default_model(self) -> None:
         model, instructions = parse_operator_custom_turn(CUSTOM_TURN_CONFIG, "goal finish the repair")
         self.assertEqual(model["provider"], "grok")  # default alias
