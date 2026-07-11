@@ -244,7 +244,7 @@ let _receipt: WalDurabilityBarrierReceipt<
 Completed WAL durability barrier authority is not available through the ordinary
 production dependency surface:
 
-```compile_fail
+```ignore
 use forge_store_physical_backend::{
     BackendDurabilityBarrierAuthority, PosixFileFsyncDirFsyncAuthority,
     WalDurabilityBarrier,

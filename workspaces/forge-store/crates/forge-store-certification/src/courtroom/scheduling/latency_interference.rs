@@ -104,7 +104,7 @@ fn require_declared_strengths(
     rows: &[InterferenceCounterRow],
 ) -> Result<(), S6LatencyInterferenceCertificationDenial> {
     for row in rows {
-        if !row.strength().is_declared() {
+        if !row.strength().is_declared() && (row.value() != 0 || row.attribution().is_some()) {
             return Err(
                 S6LatencyInterferenceCertificationDenial::InsufficientCounterStrength {
                     counter: row.name(),
@@ -272,6 +272,37 @@ mod tests {
             CounterEvidenceStrength::Sampled
         );
         assert!(evidence.counter_backed_receipt().counter_rows().is_empty());
+    }
+
+    #[test]
+    fn unavailable_zero_rows_remain_explicit_non_claims() {
+        let evidence = evidence_from_rows(vec![InterferenceCounterRow::new(
+            InterferenceCounterName::PageCacheWaitEvents,
+            0,
+            CounterEvidenceStrength::Unavailable,
+            "s6-profile/posix-file",
+            test_lane(),
+            None,
+        )]);
+
+        assert_eq!(
+            evidence.rows()[0].strength(),
+            CounterEvidenceStrength::Unavailable
+        );
+        assert!(evidence.counter_backed_receipt().counter_rows().is_empty());
+        assert_eq!(
+            evidence
+                .require_counter_strength(
+                    InterferenceCounterName::PageCacheWaitEvents,
+                    CounterEvidenceStrength::Exact,
+                )
+                .unwrap_err(),
+            S6LatencyInterferenceCertificationDenial::InsufficientCounterStrength {
+                counter: InterferenceCounterName::PageCacheWaitEvents,
+                required: CounterEvidenceStrength::Exact,
+                actual: CounterEvidenceStrength::Unavailable,
+            }
+        );
     }
 
     #[test]

@@ -1,0 +1,7 @@
+use forge_store_physical_isolation::PhysicalIsolationEntryRequest;
+
+fn main() {
+    let _ = PhysicalIsolationEntryRequest {
+        recovery_completion: todo!(),
+    };
+}

@@ -7,7 +7,6 @@ use crate::reclaim_support::ReclaimFixture;
 use crate::source_precedence_fixture;
 use crate::support::{
     current_generation_page_reference, physical_authority_from_complete_closeout,
-    physical_authority_from_operation_digest_closeout,
 };
 use forge_proof::TransitionOutcome;
 use forge_store_physical_integrity::CompactionSourceIntegrityClearance;
@@ -16,10 +15,9 @@ use forge_store_physical_isolation::{
     CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
     CompactionProtectedReferenceSet, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, EpochComparisonScope, ExecutedIsolationEvidence,
-    ExecutedIsolationReceipts, HazardLeaseTable, HazardLeaseTableCapacity,
-    LatchAcquisitionRequest, LatchAcquisitionStep, PhysicalEpochVector,
-    PhysicalIsolationCounterSnapshot, PhysicalLatchKey, PhysicalPublicationIntent,
-    ReadDuringCompactionVerdict, StablePhysicalReadExecution,
+    ExecutedIsolationReceipts, HazardLeaseTable, HazardLeaseTableCapacity, LatchAcquisitionRequest,
+    LatchAcquisitionStep, PhysicalEpochVector, PhysicalIsolationCounterSnapshot, PhysicalLatchKey,
+    PhysicalPublicationIntent, ReadDuringCompactionVerdict, StablePhysicalReadExecution,
 };
 use forge_store_recovery_physics::CompactionCutoverRecoveryPosture;
 
@@ -50,17 +48,15 @@ pub(crate) fn honest_executed_s5_closeout() -> ExecutedIsolationEvidence {
     .unwrap();
     let epoch_freshness =
         compare_physical_epoch_vectors_with_evidence(epoch_vector, epoch_vector).unwrap();
-    ExecutedIsolationEvidence::from_physical_isolation_receipts(
-        ExecutedIsolationReceipts {
-            stable_read,
-            latch_order_proof: latch_plan.order_proof(),
-            epoch_freshness: &epoch_freshness,
-            publication: &publication,
-            reclaim: &reclaim,
-            compaction: &compaction,
-            checkpoint: &checkpoint,
-        },
-    )
+    ExecutedIsolationEvidence::from_physical_isolation_receipts(ExecutedIsolationReceipts {
+        stable_read,
+        latch_order_proof: latch_plan.order_proof(),
+        epoch_freshness: &epoch_freshness,
+        publication: &publication,
+        reclaim: &reclaim,
+        compaction: &compaction,
+        checkpoint: &checkpoint,
+    })
     .unwrap()
 }
 
@@ -127,9 +123,8 @@ fn admitted_compaction_surfaces() -> (
         old_plan.into_execution_ready_handle(),
     )
     .complete();
-    let new_authority = physical_authority_from_operation_digest_closeout("s5-phase15-new-root");
     let post_plan = admit_plan(
-        &new_authority,
+        &inputs.new_authority,
         inputs.new_root,
         protected_set([current_generation_page_reference(702)], 4),
         8,

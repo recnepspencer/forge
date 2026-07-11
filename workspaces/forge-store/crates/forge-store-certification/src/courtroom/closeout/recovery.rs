@@ -1,4 +1,4 @@
-pub use crate::recovery_harness::{
+pub use crate::courtroom::recovery::harness::{
     RecoveryPhysicsCertificationDenial, RecoveryPhysicsCertificationMatrix,
     RecoveryPhysicsCertificationRow, RecoveryPhysicsCounterExpectation, RecoveryPhysicsCounterKind,
     RecoveryPhysicsCrashLane, RecoveryPhysicsCrashMatrix, RecoveryPhysicsCrashMatrixBuilder,

@@ -148,7 +148,9 @@ fn s0_handoff_tests_do_not_use_symbolic_required_negative_proof_shortcut() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
-            .join("s0_handoff_contract_tests.rs"),
+            .join("courtroom")
+            .join("foundational")
+            .join("handoff_contract_tests.rs"),
     )
     .unwrap();
 

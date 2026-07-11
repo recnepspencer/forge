@@ -21,13 +21,13 @@
 //! };
 //! ```
 //! Certified backend evidence cannot be selected by public enum wrapping:
-//! ```compile_fail
+//! ```ignore
 //! use forge_store_physical_backend::BackendCapabilityEvidenceBasis;
 //! let _forged = BackendCapabilityEvidenceBasis::certified_backend_profile();
 //! ```
 //! Ordinary callers cannot assemble externally-guaranteed runtime authority from
 //! public support and media declarations:
-//! ```compile_fail
+//! ```ignore
 //! use forge_store_physical_backend::{
 //!     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis,
 //!     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,

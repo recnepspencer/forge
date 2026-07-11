@@ -1,13 +1,13 @@
-#[path = "../../../s4_checkpoint_cutover/checkpoint_basis_fixture.rs"]
+#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_basis_fixture.rs"]
 #[allow(dead_code)]
 mod checkpoint_basis_fixture;
-#[path = "../../../s4_checkpoint_cutover/checkpoint_durability_fixture.rs"]
+#[path = "../../../support/recovery/checkpoint_cutover/checkpoint_durability_fixture.rs"]
 mod checkpoint_durability_fixture;
-#[path = "../../../s4_closeout/fixture.rs"]
+#[path = "../../../support/recovery/closeout/fixture.rs"]
 mod closeout_fixture;
-#[path = "../../../s5_stable_read_execution/plan_admission.rs"]
+#[path = "../stable_read_execution/plan_admission.rs"]
 mod plan_admission;
-#[path = "../../../s5_epoch_scope_and_root_kind/support.rs"]
+#[path = "../../../support/physical_isolation/epoch_scope_and_root_kind/support.rs"]
 #[allow(dead_code)]
 mod support;
 

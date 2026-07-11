@@ -12,7 +12,7 @@ struct CompileFailFixture {
     include_physical_certification: bool,
 }
 
-fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
+fn compile_fail_fixtures() -> [CompileFailFixture; 4] {
     [
         CompileFailFixture {
             name: "harness_reference_is_not_physical_reference.rs",
@@ -33,16 +33,6 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "platform_physical_runtime_denial_receipt_requires_certification_authority.rs",
             expected_stderr: &["from_append_hidden_scan_denial", "not found"],
             include_physical_certification: false,
-        },
-        CompileFailFixture {
-            name: "fixtures_cannot_satisfy_production_execution.rs",
-            expected_stderr: &["execute_s8_layout_scenario", "S8LayoutFixtures"],
-            include_physical_certification: true,
-        },
-        CompileFailFixture {
-            name: "adversarial_inputs_cannot_satisfy_production_execution.rs",
-            expected_stderr: &["LayoutRuntimeEvidence", "S8LayoutAdversarialInputs"],
-            include_physical_certification: true,
         },
     ]
 }

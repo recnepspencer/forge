@@ -36,6 +36,13 @@ impl WalValidPrefix {
         acknowledged_range: WalLsnRange,
         scan: WalPrefixObservationScan,
     ) -> Result<Self, RedoPlanningDenial> {
+        if let AdmittedRecoverySource::RecoveryBlocked { damage, .. } = source {
+            return Err(RedoPlanningDenial::new(
+                RedoPlanningDenialKind::RecoveryBlocked {
+                    damage: damage.clone(),
+                },
+            ));
+        }
         let replay_index = crate::layout_projection::admit_recovery_source_replay_index(source)
             .map_err(|_| RedoPlanningDenial::new(RedoPlanningDenialKind::NoAdmittedWalTail))?;
         let source_range = replay_index.replay_frontier();

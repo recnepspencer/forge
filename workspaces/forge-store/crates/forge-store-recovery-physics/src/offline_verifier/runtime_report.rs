@@ -147,7 +147,12 @@ pub(super) fn require_matching_recovered_state(
     receipt: &BoundedRecoveryReceipt,
     offline: &OfflineRecoveryVerificationReport,
 ) -> Result<(), RuntimeRecoveryReportDenial> {
-    if Some(receipt.execution().recovered_state()) == offline.recovered_state() {
+    if offline.recovered_state().is_some_and(|offline_state| {
+        receipt
+            .execution()
+            .recovered_state()
+            .has_same_recovered_contents(offline_state)
+    }) {
         return Ok(());
     }
     Err(RuntimeRecoveryReportDenial::RecoveredStateMismatch)

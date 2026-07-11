@@ -211,21 +211,21 @@ fn is_exact_public_facade_json_enforcement_home(path: &str) -> bool {
 fn is_exact_compile_fail_json_denial_home(path: &str) -> bool {
     matches!(
         path,
-        "workspaces/forge-store/crates/forge-store-certification/tests/s4_5_coverage_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/s4_5_forbidden_shortcut_rejection_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/s4_5_scenario_authority_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/s4_5_simulation_plan_boundary_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/s4_5_transcript_evidence_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/security_scope_admission_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/security_scope_vocabulary_compile_fail.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5/terminal_json_cannot_satisfy_coverage.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5_forbidden_shortcuts/raw_json_cannot_satisfy_certified_scenario.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5_scenario_authority/json_value_cannot_define_scenario.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5_simulation_plan_boundary/json_value_cannot_satisfy_lowered_plan.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5_transcript_evidence/terminal_json_cannot_satisfy_evidence_bundle.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/s4_5_transcript_evidence/terminal_json_cannot_satisfy_replay_bundle.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/security_scope_admission/serde_json_value_cannot_satisfy_admitted_scope.rs"
-            | "workspaces/forge-store/crates/forge-store-certification/tests/ui/security_scope_vocabulary/serde_json_value_cannot_satisfy_tenant_scope.rs"
+        "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/coverage_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/forbidden_shortcut_rejection_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/scenario_authority_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/simulation_plan_boundary_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/transcript_evidence_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/security/security_scope_admission_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/security/security_scope_vocabulary_runner.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/coverage/terminal_json_cannot_satisfy_coverage.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/forbidden_shortcuts/raw_json_cannot_satisfy_certified_scenario.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/scenario_authority/json_value_cannot_define_scenario.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/simulation_plan_boundary/json_value_cannot_satisfy_lowered_plan.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/transcript_evidence/terminal_json_cannot_satisfy_evidence_bundle.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/recovery/transcript_evidence/terminal_json_cannot_satisfy_replay_bundle.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/security/security_scope_admission/serde_json_value_cannot_satisfy_admitted_scope.rs"
+            | "workspaces/forge-store/crates/forge-store-certification/tests/compile_fail/security/security_scope_vocabulary/serde_json_value_cannot_satisfy_tenant_scope.rs"
     )
 }
 

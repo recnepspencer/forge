@@ -11,7 +11,6 @@ pub(crate) mod memory;
 pub(crate) mod physical_integrity;
 pub(crate) mod physical_isolation;
 pub(crate) mod physical_substrate;
-#[cfg(test)]
 pub(crate) mod recovery;
 pub mod replay;
 pub mod scenario;

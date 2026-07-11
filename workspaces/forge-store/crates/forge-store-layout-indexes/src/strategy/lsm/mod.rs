@@ -2,7 +2,9 @@ mod advisory_filter;
 mod compaction_ordering;
 mod execution;
 mod facade;
+#[path = "invariants/assessment.rs"]
 mod invariant_assessment;
+#[path = "invariants/observation.rs"]
 mod invariant_observation;
 mod invariants;
 mod memtable_wal;

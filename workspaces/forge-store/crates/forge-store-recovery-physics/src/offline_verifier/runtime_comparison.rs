@@ -93,7 +93,11 @@ fn classify_runtime_offline_comparison(
     if offline.conclusion() != OfflineRecoveryVerifierConclusion::Verified {
         return RuntimeRecoveryComparisonClassification::VerifierConclusionMismatch;
     }
-    if Some(runtime.recovered_state()) != offline.recovered_state() {
+    if !offline.recovered_state().is_some_and(|offline_state| {
+        runtime
+            .recovered_state()
+            .has_same_recovered_contents(offline_state)
+    }) {
         return RuntimeRecoveryComparisonClassification::RecoveredStateMismatch;
     }
     if Some(runtime.counters()) != offline.counters() {

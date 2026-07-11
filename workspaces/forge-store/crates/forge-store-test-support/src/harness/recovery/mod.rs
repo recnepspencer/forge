@@ -1,12 +1,22 @@
+#[path = "drivers/crash_harness.rs"]
 mod s4_crash_harness;
+#[path = "drivers/fault_scheduler.rs"]
 mod s4_fault_scheduler;
+#[path = "drivers/fresh_runtime.rs"]
 mod s4_fresh_runtime;
+#[path = "fixtures/persisted_recovery.rs"]
 mod s4_persisted_recovery;
+#[path = "fixtures/recovery_entry.rs"]
 mod s4_recovery_entry_fixture;
+#[path = "fixtures/recovery_handoff.rs"]
 mod s4_recovery_handoff_fixture;
+#[path = "fixtures/recovery_integrity.rs"]
 mod s4_recovery_integrity_fixture;
+#[path = "fixtures/recovery_physical.rs"]
 mod s4_recovery_physical_fixture;
+#[path = "fixtures/recovery_readiness.rs"]
 mod s4_recovery_readiness_fixture;
+#[path = "drivers/storage_interposer.rs"]
 mod s4_storage_interposer;
 
 pub use s4_crash_harness::{ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript};
