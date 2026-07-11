@@ -1,5 +1,5 @@
 use super::S5CloseoutReservationSet;
-use crate::s6::verify_executed_closeout_handoff_admissible;
+use crate::courtroom::scheduling::verify_executed_closeout_handoff_admissible;
 use crate::{
     physical_isolation_required_mutation_rows, PhysicalIsolationMutationEvidence,
     S5ExecutedIsolationEvidenceBundle, S6IoQosReadinessHandoffMaterializationDenial,

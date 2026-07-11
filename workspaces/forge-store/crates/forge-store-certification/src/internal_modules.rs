@@ -26,17 +26,3 @@ mod s5_1_recovery_scope_propagation_tests;
 mod s5_evidence_materialization;
 mod s5_physical_isolation_closeout;
 mod s5_physical_isolation_harness;
-#[path = "s6.rs"]
-mod s6;
-mod s6_access_policy;
-#[path = "s6_evidence_materialization/mod.rs"]
-mod s6_evidence_materialization;
-mod s6_flush_durability;
-mod s6_io_pressure_harness_closeout;
-mod s6_latency_interference;
-mod s6_queue_execution;
-pub use s6_access_policy::{S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow};
-pub use s6_flush_durability::S6FlushDurabilityEvidenceRow;
-pub use s6_queue_execution::{
-    S6CertifiedQueueExecutionEvidence, S6QueueExecutionCertificationDenial,
-};

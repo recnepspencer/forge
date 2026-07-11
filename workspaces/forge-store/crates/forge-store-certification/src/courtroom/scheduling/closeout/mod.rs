@@ -1,13 +1,13 @@
-//! S.6 certification closeout and evidence materialization exports.
+//! Scheduling certification closeout and evidence materialization exports.
 
-pub use crate::courtroom::scheduling::{
+pub use super::materialized_closeout::{
     S6MaterializedCertificationAdoptionDenial, S6MaterializedCertificationAdoptionReceipt,
     S6ReadinessCertificationCounterEvidence, S6ReadinessCertificationCounterFamily,
     S6ReadinessCertificationCounterStrength, S6ReadinessCertificationProofSummary,
     S6ReadinessCertificationProofTopology, S6ReadinessResidualDebtEvidenceKind,
     S6ReadinessResidualDebtEvidenceRow,
 };
-pub use crate::s6::{
+pub use super::{
     certify_io_pressure_backend_qualification_matrix, certify_s6_backend_capability_admission,
     certify_s6_background_pacing, certify_s6_foreground_reservation,
     publish_s6_backend_capability_readiness, S6BackendCapabilityAdmissionCertificationEvidence,
@@ -18,7 +18,13 @@ pub use crate::s6::{
     S6IoQosReadinessHandoffMaterializationDenial, S6ReclaimPolicyEvidenceOutcomeKind,
     S6ReclaimPolicyEvidenceRow,
 };
-pub use crate::s6_evidence_materialization::{
+pub use super::{
+    S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow,
+    S6CertifiedQueueExecutionEvidence, S6FlushDurabilityEvidenceRow,
+    S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
+    S6QueueExecutionCertificationDenial,
+};
+pub use crate::evidence::scheduling::{
     adopt_materialized_s6_certification_evidence_for_closeout,
     materialize_s6_certification_evidence,
     reject_materialized_s6_certification_as_runtime_authority, S6CanonicalEvidenceBasis,
@@ -31,14 +37,6 @@ pub use crate::s6_evidence_materialization::{
     S6PostAdmissionViolationEvidenceRow, S6PostAdmissionViolationFamily, S6ProofProjectionArtifact,
     StoreOwnedS6CertificationMaterializationSources,
 };
-pub use crate::s6_io_pressure_harness_closeout::{
+pub use crate::scenario::scheduling::{
     IoPressureHarnessCloseoutDenial, IoPressureHarnessCloseoutEvidence,
-};
-pub use crate::s6_latency_interference::{
-    S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
-};
-pub use crate::{
-    S6AccessPolicyEvidenceOutcomeKind, S6AccessPolicyEvidenceRow,
-    S6CertifiedQueueExecutionEvidence, S6FlushDurabilityEvidenceRow,
-    S6QueueExecutionCertificationDenial,
 };
