@@ -6,83 +6,30 @@ use crate::{
 
 use super::{RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedCrashBoundaryLayoutRule {
-    _private: (),
-}
-
-impl AdmittedCrashBoundaryLayoutRule {
-    pub(crate) const fn internal_phase22() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase22-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase22() -> Self {
-        Self::internal_phase22()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CrashBoundaryLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CrashBoundaryLayoutAdmission {
-    _private: (),
-}
-
-impl CrashBoundaryLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedCrashBoundaryLayoutRule,
-    ) -> Result<CrashBoundaryLayoutAdmission, RecoveryLayoutAccessDenial> {
-        Ok(CrashBoundaryLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedCrashBoundaryLayoutFamily {
-    _admission: CrashBoundaryLayoutAdmission,
-}
-
-impl AdmittedCrashBoundaryLayoutFamily {
-    pub(crate) const fn new(admission: CrashBoundaryLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
+impl CrashBoundaryLayoutReport {
     pub fn admit_observations(
-        &self,
         observations: PartialPublicationObservationSet,
     ) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
-        self.admit_classification(&PartialPublicationClassification::classify_observations(
+        Self::admit_classification(&PartialPublicationClassification::classify_observations(
             observations,
         ))
     }
 
     pub fn admit_evidence(
-        &self,
         evidence: PartialPublicationEvidence,
     ) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
-        self.admit_classification(&PartialPublicationClassification::classify(evidence))
+        Self::admit_classification(&PartialPublicationClassification::classify(evidence))
     }
 
     pub fn admit_crash_edge(
-        &self,
         crash_edge: PartialPublicationCrashEdge,
     ) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
-        self.admit_evidence(PartialPublicationEvidence::from_persisted_crash_edge(
+        Self::admit_evidence(PartialPublicationEvidence::from_persisted_crash_edge(
             crash_edge,
         ))
     }
 
     pub fn admit_classification(
-        &self,
         classification: &PartialPublicationClassification,
     ) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
         match classification.outcome() {
@@ -109,7 +56,6 @@ impl AdmittedCrashBoundaryLayoutFamily {
     }
 
     pub fn reject_derived_rollback_outcome(
-        &self,
         _outcome: UnacknowledgedPublicationOutcome,
     ) -> Result<(), RecoveryLayoutAccessDenial> {
         Err(RecoveryLayoutAccessDenial::new(
@@ -121,11 +67,7 @@ impl AdmittedCrashBoundaryLayoutFamily {
 pub(crate) fn admit_partial_publication_classification(
     classification: &PartialPublicationClassification,
 ) -> Result<CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial> {
-    AdmittedCrashBoundaryLayoutFamily::new(
-        CrashBoundaryLayoutFamilyHome::s8()
-            .admit(&AdmittedCrashBoundaryLayoutRule::internal_phase22())?,
-    )
-    .admit_classification(classification)
+    CrashBoundaryLayoutReport::admit_classification(classification)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

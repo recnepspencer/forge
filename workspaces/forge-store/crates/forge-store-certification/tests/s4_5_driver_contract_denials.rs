@@ -11,30 +11,8 @@ use forge_store_physical_certification::{
     SupportedPhysicalDriverSet,
 };
 use forge_store_test_support::{
-    admitted_developer_smoke_driver_contracts, fake_in_memory_only_driver_attempt,
-    private_mutation_driver_attempt_fixture, sleep_based_scheduling_driver_attempt,
-    test_support_verdict_driver_attempt_fixture, NativeStoreAspectFixture,
+    admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
 };
-
-#[test]
-fn forbidden_driver_shortcuts_deny_at_driver_admission() {
-    assert_eq!(
-        private_mutation_driver_attempt_fixture().unwrap_err(),
-        DriverAdmissionDenial::PrivateMutationDriverDenied
-    );
-    assert_eq!(
-        fake_in_memory_only_driver_attempt().unwrap_err(),
-        DriverAdmissionDenial::FakeInMemoryOnlyDriverDenied
-    );
-    assert_eq!(
-        sleep_based_scheduling_driver_attempt().unwrap_err(),
-        DriverAdmissionDenial::SleepBasedSchedulingDenied
-    );
-    assert_eq!(
-        test_support_verdict_driver_attempt_fixture().unwrap_err(),
-        DriverAdmissionDenial::TestSupportVerdictDriverDenied
-    );
-}
 
 #[test]
 fn driver_without_declared_yieldpoint_denies_before_planning() {

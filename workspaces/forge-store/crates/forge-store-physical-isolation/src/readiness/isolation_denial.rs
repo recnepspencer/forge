@@ -45,5 +45,7 @@ pub const fn reject_missing_protected_byte_footprint_as_isolation_readiness(
 pub const fn reject_unsupported_qos_claim_as_isolation_readiness(
     claim: UnsupportedQoSClaim,
 ) -> Result<(), IsolationReadinessDenial> {
-    Err(IsolationReadinessDenial::UnsupportedQoSClaimRequested(claim))
+    Err(IsolationReadinessDenial::UnsupportedQoSClaimRequested(
+        claim,
+    ))
 }

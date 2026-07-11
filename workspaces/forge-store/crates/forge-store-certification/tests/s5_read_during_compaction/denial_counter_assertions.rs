@@ -86,9 +86,6 @@ fn compaction_denies_quarantine_stale_epoch_in_place_and_backend_residue() {
     let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
-        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
-            inputs.new_root,
-        ),
     )
     .unwrap();
     let residue = CompactionCutoverRecoveryPosture::missing_generation_identity(
@@ -197,9 +194,6 @@ fn compaction_rejects_minted_source_and_publication_mismatches() {
         forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
             receipt,
-            forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
-                inputs.new_root
-            ),
         ),
         Err(CompactionReadInterlockDenial::PublicationReachabilityFootprintMismatch { .. })
     ));

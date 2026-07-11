@@ -1,8 +1,6 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("physical_integrity_compile_fail_proofs.md")]
 
-pub mod layout_access;
-
 mod authenticity_decode_gate;
 mod authenticity_integrity_counters;
 mod checksum_algorithm;
@@ -259,7 +257,6 @@ pub use scrub_denial::{
 pub use scrub_execution::{
     ScrubExecution, ScrubExecutionReceipt, ScrubIntegrityFinding, ScrubProgressReport,
 };
-pub use scrub_scheduler_demand::scrub_scan_scheduler_demand;
 pub use scrub_plan::{
     PlannedScrubWindow, PlannedScrubWindowStatus, ScrubPlan, ScrubPlanBudget, ScrubPlanRequest,
 };
@@ -267,6 +264,7 @@ pub use scrub_planning_memory_envelope::{
     ScrubPlanningMemoryEnvelope, ScrubPlanningMemoryEnvelopeDenial,
 };
 pub use scrub_resume::ScrubResumeToken;
+pub use scrub_scheduler_demand::scrub_scan_scheduler_demand;
 pub use scrub_window::{
     ScrubLocalitySummary, ScrubMode, ScrubWindow, ScrubWindowOrdinal, ScrubWindowSource,
 };

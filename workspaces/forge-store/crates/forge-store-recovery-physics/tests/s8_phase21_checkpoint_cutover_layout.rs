@@ -1,4 +1,3 @@
-use forge_store_layout_indexes::layout_strategy_admission::phase21_recovery_manifest_rule;
 use forge_store_physical_backend::{
     BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
     SimulatedStrictDurableProfile, WalDurabilityBarrier,
@@ -8,24 +7,20 @@ use forge_store_physical_format::{
     PhysicalSegmentId,
 };
 use forge_store_recovery_physics::{
-    AcknowledgmentPrecondition, CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
-    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverReceipt,
-    CheckpointDurabilityEvidenceSet, CheckpointLocatorArtifactCommitment, CheckpointManifest,
-    CheckpointPageLsnFrontier, CheckpointPublicationPlan, CheckpointRedoBoundary,
-    CheckpointRootPosture, CheckpointSelectorEvidence, CheckpointValidation, DurableAckReceipt,
-    IntegrityDamageMap, LogSequenceNumber, PageLsn, RecoveryLayoutAccess,
-    RecoveryLayoutAccessDenialKind, SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator,
-    WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange, WalSegmentGeneration,
-    WalSegmentId,
+    ensure_recovery_entry_allowed, reject_locator_projection, AcknowledgmentPrecondition,
+    CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
+    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverLayoutReport,
+    CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet, CheckpointLocatorArtifactCommitment,
+    CheckpointManifest, CheckpointPageLsnFrontier, CheckpointPublicationPlan,
+    CheckpointRecoveryManifestLayoutReport, CheckpointRedoBoundary, CheckpointRootPosture,
+    CheckpointSelectorEvidence, CheckpointValidation, DurableAckReceipt, IntegrityDamageMap,
+    LogSequenceNumber, PageLsn, RecoveryLayoutAccessDenialKind, SharpCheckpointCertificationMode,
+    StoreOwnedCheckpointLocator, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
+    WalSegmentGeneration, WalSegmentId,
 };
 
 #[test]
 fn phase21_recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
-    let rule = phase21_recovery_manifest_rule().expect("phase-21 recovery manifest rule");
-    let access = RecoveryLayoutAccess::s8();
-    let family = access
-        .checkpoint_cutover_layout(&rule)
-        .expect("checkpoint cutover family admission");
     let manifest = checkpoint_manifest();
     let locator_commitment = CheckpointLocatorArtifactCommitment::manifest_pointer(&manifest);
     let locator = StoreOwnedCheckpointLocator::admit(
@@ -43,7 +38,7 @@ fn phase21_recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
         CheckpointValidation::validate_located_checkpoint(located, &IntegrityDamageMap::new())
             .expect("checkpoint validation");
 
-    let manifest_report = family.validated_checkpoint(&validation);
+    let manifest_report = CheckpointRecoveryManifestLayoutReport::from_validation(&validation);
     assert_eq!(manifest_report.checkpoint_id(), validation.checkpoint_id());
     assert_eq!(
         manifest_report.covered_lsn_range(),
@@ -73,7 +68,8 @@ fn phase21_recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
     .expect("checkpoint durability evidence");
     let plan = CheckpointPublicationPlan::plan_cutover(validation.clone(), durability)
         .expect("checkpoint publication plan");
-    let cutover_report = family.published_cutover(&CheckpointCutoverReceipt::publish(plan));
+    let cutover_report =
+        CheckpointCutoverLayoutReport::from_receipt(&CheckpointCutoverReceipt::publish(plan));
     assert_eq!(cutover_report.checkpoint_id(), validation.checkpoint_id());
     assert_eq!(
         cutover_report.covered_lsn_range(),
@@ -84,11 +80,9 @@ fn phase21_recovery_manifest_and_cutover_rules_consume_checkpoint_authority() {
         validation.counters().manifest_validation_count()
     );
 
-    family
-        .ensure_recovery_entry_allowed(&IntegrityDamageMap::new())
+    ensure_recovery_entry_allowed(&IntegrityDamageMap::new())
         .expect("empty damage map must allow recovery entry");
-    let denial = family
-        .reject_locator_projection(validation.locator())
+    let denial = reject_locator_projection(validation.locator())
         .expect_err("locator projection must not stand in for checkpoint authority");
     assert_eq!(
         denial.kind(),

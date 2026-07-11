@@ -18,6 +18,7 @@ mod page_lsn_publication;
 mod partial_publication;
 mod recovery_blocking_integrity;
 mod recovery_budget;
+mod recovery_completion;
 mod recovery_entry_admission;
 mod recovery_entry_basis;
 mod recovery_entry_counters;
@@ -29,7 +30,6 @@ mod recovery_integrity_handoff_receipt;
 mod recovery_replay_entry_gate;
 mod redo_replay;
 mod replay_receipt;
-mod s4_closeout;
 mod s4_recovery_physics_integrity_readiness;
 mod s5_publication_recovery;
 mod s8_runtime_receipt;
@@ -93,17 +93,11 @@ pub use integrity_vetted_records::{
     IntegrityVettedWalFrame,
 };
 pub use layout_access::{
-    AdmittedBoundedWalTailLayoutFamily, AdmittedBoundedWalTailLayoutRule,
-    AdmittedCheckpointCutoverLayoutFamily, AdmittedCrashBoundaryLayoutFamily,
-    AdmittedCrashBoundaryLayoutRule, AdmittedRecoveryManifestLayoutRule,
-    AdmittedRecoverySourceLayoutFamily, AdmittedRecoverySourceLayoutRule,
-    AdmittedReplayIndexLayoutFamily, AdmittedReplayIndexLayoutRule, BoundedWalTailLayoutFamilyHome,
-    BoundedWalTailLayoutReport, CheckpointCutoverLayoutFamilyHome, CheckpointCutoverLayoutReport,
-    CheckpointRecoveryManifestLayoutReport, CrashBoundaryLayoutFamilyHome,
-    CrashBoundaryLayoutReport, RecoveryLayoutAccess, RecoveryLayoutAccessDenial,
-    RecoveryLayoutAccessDenialKind, RecoveryReadmissionLayoutReport,
-    RecoverySourceLayoutFamilyHome, RecoverySourceLayoutReport, ReplayIndexLayoutCounters,
-    ReplayIndexLayoutFamilyHome, ReplayIndexLayoutReport,
+    ensure_recovery_entry_allowed, reject_decision_row, reject_locator_projection,
+    BoundedWalTailLayoutReport, CheckpointCutoverLayoutReport,
+    CheckpointRecoveryManifestLayoutReport, CrashBoundaryLayoutReport, RecoveryLayoutAccessDenial,
+    RecoveryLayoutAccessDenialKind, RecoveryReadmissionLayoutReport, RecoverySourceLayoutReport,
+    ReplayIndexLayoutCounters, ReplayIndexLayoutReport,
 };
 pub use layout_readmission::{
     admit_offline_layout_readmission, admit_record_backed_layout_readmission,
@@ -159,6 +153,7 @@ pub use recovery_budget::{
     RecoveryBudget, RecoveryBudgetDenial, RecoveryBudgetDenialKind, RecoveryCounterSnapshot,
     RecoveryStoreFootprint, ReopenedRecoveryDenial, WalTailReplayBudget,
 };
+pub use recovery_completion::{complete_recovery, RecoveryCompletion, RecoveryCompletionDenial};
 pub use recovery_entry_admission::RecoveryEntryAdmission;
 pub use recovery_entry_basis::RecoveryEntryBasis;
 pub use recovery_entry_counters::RecoveryEntryCounters;
@@ -198,18 +193,6 @@ pub use redo_replay::{
     WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
 };
 pub use replay_receipt::{CheckpointValidityDecision, WalReplayReceipt};
-pub use s4_closeout::{
-    CrashSeamRecoveryObservation, FreshRuntimeCrashRecoveryEvidence, RecoveryBoundednessEvidence,
-    RecoveryPhysicsCertificationBundle, RecoveryPhysicsCloseoutCollector,
-    RecoveryPhysicsCloseoutDenial, RecoveryPhysicsCloseoutEvidence, RecoveryPhysicsCloseoutReport,
-    RecoveryPhysicsCloseoutSuiteLane, RecoveryPhysicsCloseoutSuiteRequirement,
-    RecoveryPhysicsCloseoutSuiteStatus, RecoveryPhysicsStabilityAssumption, RecoveryWorkBound,
-    S4CrashFaultSchedulerEvidence, S4CrashHarnessTranscriptSource, S4LoweredCrashHarnessEvidence,
-    S4RecoveryCrashSeam, S5PhysicalIsolationRecoveryReadiness, S5RecoveryReadinessAdmission,
-    S5RecoveryReadinessDenial, SyntheticRecoveryShortcutEvidence, SyntheticRecoveryShortcutKind,
-    SyntheticRecoveryShortcutRejection, SyntheticRecoveryShortcutRejectionBoundary,
-    SyntheticRecoveryShortcutRejectionReport, WalCheckpointLsnRecoveryPhysicsSuite,
-};
 pub use s4_recovery_physics_integrity_readiness::S4RecoveryPhysicsIntegrityReadiness;
 pub use s5_publication_recovery::{
     ExecutedS5PublicationRecoveryReceipt, S5PublicationCrashStage,

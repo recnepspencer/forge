@@ -2,6 +2,13 @@
 
 pub(crate) mod by_milestone;
 
+pub use crate::blob_harness::{
+    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
+    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
+    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
+    BlobHarnessShortcutDenial, S7BlobResumeCrashPoint, S7BlobResumeExpectedOutcome,
+    S7BlobResumeRecoveryScenario,
+};
 pub use by_milestone::s6::{
     all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds, evaluate_row_rebind,
     reject_copied_backend_qualification_row, reject_environment_name_backend_qualification,
@@ -17,11 +24,4 @@ pub use by_milestone::s6::{
     S6IoPressureFaultKind, S6IoPressureHarnessEvidence, S6IoPressureHarnessEvidenceDenial,
     S6IoPressureHarnessScenario, S6IoPressureOracleObservation, S6PressureEvidenceMaturity,
     S6RealBackendSafetyQualification,
-};
-pub use crate::blob_harness::{
-    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
-    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
-    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
-    BlobHarnessShortcutDenial, S7BlobResumeCrashPoint, S7BlobResumeExpectedOutcome,
-    S7BlobResumeRecoveryScenario,
 };

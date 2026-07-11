@@ -17,7 +17,9 @@ use forge_store_physical_backend::{
     StoreOwnedBlobBackendResidueScan, StoreOwnedBlobPhysicalManifestTraversal,
     StoreOwnedExternalPlacementCleanup, StoreOwnedExternalPlacementRecoveryProbe,
 };
-use forge_store_tiering::{admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission};
+use forge_store_tiering::{
+    admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission,
+};
 
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority,
@@ -97,13 +99,14 @@ pub(crate) fn external_recovery_for_digest_and_scope(
         .expect("external recoverability should admit")
 }
 
-pub(crate) fn readiness(
-    reachability: &BlobChunkReachabilityProofSet,
-) -> TierPlacementIoAdmission {
+pub(crate) fn readiness(reachability: &BlobChunkReachabilityProofSet) -> TierPlacementIoAdmission {
     let cold_posture = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
         reachability.security_metadata().identity(),
     );
-    admit_tier_placement_io(IoSchedulerIsolationAdmission::for_certification_test(), cold_posture)
+    admit_tier_placement_io(
+        IoSchedulerIsolationAdmission::for_certification_test(),
+        cold_posture,
+    )
 }
 
 pub(crate) fn admitted_backend() -> AdmittedBackendCapabilityWitness {

@@ -1,12 +1,12 @@
 use super::isolation_evidence::basis::SchedulerIsolationPublicationWitness;
 use super::{
-    ExecutedIsolationBasis, IsolationEvidenceProjection,
-    SchedulerIsolationCapabilityBasis, SchedulerIsolationProof,
+    ExecutedIsolationBasis, IsolationEvidenceProjection, SchedulerIsolationCapabilityBasis,
+    SchedulerIsolationProof,
 };
 use crate::{
     BackgroundMaintenanceIsolationAssumption, ExecutedIsolationEvidence,
-    ForegroundInterferenceSurface, PhysicalIsolationCounterSnapshot, PhysicalStabilityAssumption,
-    IsolationReadinessDenial,
+    ForegroundInterferenceSurface, IsolationReadinessDenial, PhysicalIsolationCounterSnapshot,
+    PhysicalStabilityAssumption,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -136,10 +136,11 @@ impl S6StoreIsolationHandoffEvidence {
             closeout.counters().reclaim_block_count(),
             closeout.counters().protected_byte_footprint(),
         )?;
-        let publication_witness = SchedulerIsolationPublicationWitness::from_validated_store_handoff(
-            closeout.counters(),
-            &projection_evidence,
-        )?;
+        let publication_witness =
+            SchedulerIsolationPublicationWitness::from_validated_store_handoff(
+                closeout.counters(),
+                &projection_evidence,
+            )?;
         Ok(S6StoreIsolationHandoffEvidence {
             basis: closeout.basis(),
             counters: closeout.counters(),

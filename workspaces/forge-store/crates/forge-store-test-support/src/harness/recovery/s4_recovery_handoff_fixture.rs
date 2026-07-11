@@ -1,10 +1,11 @@
 use forge_store_physical_format::CheckpointAdjacencyPosture;
 use forge_store_physical_integrity::{QuarantineRecord, StoreExecutedIntegrityEvidence};
 use forge_store_recovery_physics::{
-    IntegrityDamageMap, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
-    IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
-    IntegrityVettedWalFrame, PartialPublicationBeforeWalReplayRead,
-    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, IntegrityHandoffPayload,
+    IntegrityDamageMap, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
+    IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
+    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame,
+    PartialPublicationBeforeWalReplayRead, RecoveryBlockedByIntegrityDamage,
+    RecoveryIntegrityHandoffReceipt,
 };
 
 use super::s4_recovery_integrity_fixture::{

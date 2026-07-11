@@ -293,6 +293,7 @@ dependencies = [
  "forge-store-budgets",
  "forge-store-contracts",
  "forge-store-physical-format",
+ "forge-store-readiness",
  "forge-store-security",
 ]
 

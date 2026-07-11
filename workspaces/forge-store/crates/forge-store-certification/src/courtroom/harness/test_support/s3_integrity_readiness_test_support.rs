@@ -1,10 +1,11 @@
 use super::bounded_memory_closeout_test_support::s2_readiness;
-use forge_store_readiness::{
+use forge_store_contracts::{
     BufferPoolAuthorityRecap, IntegrityInspectionLifetimeLaw, PhysicalAuthorityRecap,
     ProtectedIntegrityViewCapability, S2BoundedCounterRecap, S2DenialBehaviorRecap,
-    S2DeniedBoundaryKind, S2NoMaterializationWitness, S3PhysicalIntegrityReadiness,
+    S2DeniedBoundaryKind, S2NoMaterializationWitness,
     S3PhysicalIntegrityReadinessPayload, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
+use forge_store_readiness::S3PhysicalIntegrityReadiness;
 
 pub(crate) fn s3_integrity_readiness() -> S3PhysicalIntegrityReadiness {
     let s2 = s2_readiness();

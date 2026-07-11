@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-#[path = "s4_5_checkpoint_publication_oracle_support.rs"]
+#[path = "s4_5_checkpoint_publication_oracle/support.rs"]
 mod checkpoint_support;
 #[path = "s4_closeout/fixture.rs"]
 mod closeout_fixture;
@@ -123,9 +123,9 @@ pub(crate) fn independent_verifier_observation() -> IndependentVerifierObservati
 }
 
 fn s5_lane_registration() -> S5PhysicalIsolationCertificationLaneRegistration {
-    let readiness = closeout_fixture::certify_complete_closeout().publish_s5_readiness();
+    let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_s4_recovery_readiness(&readiness),
+        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
     register_s5_physical_isolation_certification_lane(&entry, s45_harness_readiness_receipt())

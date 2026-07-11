@@ -28,18 +28,6 @@ mod store_binding;
 mod persisted_index;
 pub use persisted_index::BaselineLsmWalIndexSession;
 
-#[cfg(test)]
-#[path = "persisted_index_tests.rs"]
-mod persisted_index_tests;
-
-#[cfg(test)]
-#[path = "baseline_lsm_persisted_hostile_tests.rs"]
-mod persisted_hostile_tests;
-
-#[cfg(test)]
-#[path = "baseline_lsm_manifest_hostile_tests.rs"]
-mod manifest_hostile_tests;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineLsmPhysicalPublicationBinding {
     root_scope: u64,

@@ -1,7 +1,7 @@
 use forge_store_security::{
     StoreAdmittedSecurityScope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
-    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
-    StoreSecurityScopeAdmissionReceipt, StoreSecurityScopeIdentity, StoreTenantScope,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeAdmissionReceipt,
+    StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 use crate::{BlobChunkScopeCounterSnapshot, BlobChunkSecurityScopeDenial};

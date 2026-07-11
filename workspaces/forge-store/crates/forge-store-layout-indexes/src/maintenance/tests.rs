@@ -2,13 +2,15 @@ use crate::strategy::tests_support::{
     admit_btree_page_strategy, admit_lsm_wal_strategy, admitted_page_key_bytes,
     admitted_wal_key_bytes,
 };
+use crate::maintenance::layout_rebuild;
 use crate::{
-    access_shapes, layout_rebuild::layout_rebuild, S8AccessLaneClassification,
-    S8DerivedIndexCostEnvelopeParity, S8DerivedIndexCounterShapeParity, S8DerivedIndexParityBasis,
-    S8DerivedIndexParityOutcome, S8DerivedIndexParityRow, S8DerivedIndexRebuildDenied,
-    S8DerivedIndexRebuildOutcome, S8DerivedIndexRebuildRequest, S8DerivedIndexRebuildSourceInput,
-    S8DerivedIndexResultIdentity, S8LayoutCorruptionOutcome,
+    access_shapes, S8AccessLaneClassification, S8DerivedIndexCostEnvelopeParity,
+    S8DerivedIndexCounterShapeParity, S8DerivedIndexParityBasis, S8DerivedIndexParityOutcome,
+    S8DerivedIndexParityRow, S8DerivedIndexRebuildDenied, S8DerivedIndexRebuildOutcome,
+    S8DerivedIndexRebuildRequest, S8DerivedIndexRebuildSourceInput, S8DerivedIndexResultIdentity,
+    S8LayoutCorruptionView,
 };
+use super::{S8DerivedIndexParityView, S8DerivedIndexRebuildView};
 use forge_store_physical_format::{
     PhysicalEpoch, PhysicalGeneration, PhysicalGenerationAuthority,
     PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalRecordSlot,
@@ -19,10 +21,6 @@ use forge_store_wal::{
     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, BlobWalReplayRebuildWitness,
     DurablePublicationDeclaration, WalFrameDurablePublicationScope,
 };
-
-pub(crate) fn assert_rebuild_owner_transition_handoff_equivalence() {
-    derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority();
-}
 
 #[test]
 fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() {
@@ -42,38 +40,23 @@ fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() 
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
     assert!(matches!(
-        plan.corruption(),
-        S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired { .. }
+        plan.corruption().view(),
+        S8LayoutCorruptionView::RebuildRequired(_)
     ));
 
-    let rebuilt_outcome = layout_rebuild().rebuild(
+    let rebuilt = layout_rebuild().rebuild(
         plan,
         root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page"),
-    );
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::DerivedRebuildParity,
-        )
-        .contains(rebuilt_outcome.production_transition())
-    );
-    let rebuilt = rebuilt_outcome
-        .into_rebuilt()
-        .unwrap_or_else(|other| panic!("expected rebuilt outcome, got {other:?}"));
+    ).into_rebuilt().expect("expected rebuilt outcome");
     assert_eq!(
         rebuilt.plan().result_identity(),
         S8DerivedIndexResultIdentity::RemainsDerivedProjection
     );
 
-    let parity_outcome = layout_rebuild().verify_parity(rebuilt);
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::DerivedRebuildParity,
-        )
-        .contains(parity_outcome.production_transition())
-    );
-    let parity = parity_outcome
+    let parity = layout_rebuild()
+        .verify_parity(rebuilt)
         .into_verified()
-        .unwrap_or_else(|other| panic!("expected parity witness, got {other:?}"));
+        .expect("expected parity witness");
     assert!(parity.parity_holds());
     assert_eq!(
         parity.value_identity(),
@@ -91,10 +74,6 @@ fn derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority() 
 
 #[test]
 fn authoritative_wal_source_quarantines_without_caller_relabeling() {
-    execute_authoritative_wal_corruption_quarantine();
-}
-
-pub(crate) fn execute_authoritative_wal_corruption_quarantine() {
     let strategy = admit_lsm_wal_strategy();
     let rebuild_shape = wal_rebuild_shape(strategy.lifecycle(), 37);
     let authority_coverage = rebuild_shape.coverage().expect("rebuild coverage");
@@ -111,13 +90,11 @@ pub(crate) fn execute_authoritative_wal_corruption_quarantine() {
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
     assert!(matches!(
-        layout_rebuild()
-            .rebuild(
-                plan,
-                wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal")
-            )
-            .view(),
-        super::S8DerivedIndexRebuildView::Quarantined(_)
+        layout_rebuild().rebuild(
+            plan,
+            wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal")
+        ),
+        outcome if matches!(outcome.view(), S8DerivedIndexRebuildView::Quarantined(_))
     ));
 }
 
@@ -165,18 +142,15 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_au
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild()
-        .rebuild(
-            plan,
-            root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page-mismatch"),
-        )
-        .into_rebuilt()
-        .unwrap();
+    let rebuilt = layout_rebuild().rebuild(
+        plan,
+        root_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-page-mismatch"),
+    ).into_rebuilt().expect("expected rebuilt outcome");
 
     let parity = layout_rebuild()
         .verify_parity(rebuilt)
         .into_verified()
-        .unwrap();
+        .expect("expected parity witness");
     assert_eq!(
         parity.value_identity(),
         crate::S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
@@ -204,18 +178,15 @@ fn visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority() 
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild()
-        .rebuild(
-            plan,
-            wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal-mismatch"),
-        )
-        .into_rebuilt()
-        .unwrap();
+    let rebuilt = layout_rebuild().rebuild(
+        plan,
+        wal_rebuilt_parity_basis(authority_coverage, &source_witness, "rebuilt-wal-mismatch"),
+    ).into_rebuilt().expect("expected rebuilt outcome");
 
     let parity = layout_rebuild()
         .verify_parity(rebuilt)
         .into_verified()
-        .unwrap();
+        .expect("expected parity witness");
     assert_eq!(
         parity.value_identity(),
         crate::S8DerivedIndexIdentityParity::SourceArtifactDoesNotProveIdentity
@@ -243,27 +214,27 @@ fn parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witnes
     );
 
     let plan = layout_rebuild().admit_plan(request).unwrap();
-    let rebuilt = layout_rebuild()
-        .rebuild(
-            plan,
-            S8DerivedIndexParityBasis::new(
-                vec![S8DerivedIndexParityRow::new(
-                    admitted_page_key_bytes(7, 11),
-                    "rebuilt-page",
-                )],
-                authority_coverage,
-                true,
-                vec![999],
-            )
-            .unwrap(),
+    let rebuilt = layout_rebuild().rebuild(
+        plan,
+        S8DerivedIndexParityBasis::new(
+            vec![S8DerivedIndexParityRow::new(
+                admitted_page_key_bytes(7, 11),
+                "rebuilt-page",
+            )],
+            authority_coverage,
+            true,
+            vec![999],
         )
-        .into_rebuilt()
-        .unwrap();
+        .unwrap(),
+    ).into_rebuilt().expect("expected rebuilt outcome");
 
     assert!(matches!(
-        layout_rebuild().verify_parity(rebuilt).view(),
-        super::S8DerivedIndexParityView::Denied(
-            S8DerivedIndexRebuildDenied::ParityCounterShapeMismatch
+        layout_rebuild().verify_parity(rebuilt),
+        outcome if matches!(
+            outcome.view(),
+            S8DerivedIndexParityView::Denied(
+                S8DerivedIndexRebuildDenied::ParityCounterShapeMismatch
+            )
         )
     ));
 }
@@ -381,13 +352,4 @@ fn wal_replay_source_witness(
         )
         .unwrap(),
     )
-}
-
-pub(crate) fn exercise_owner_outcome_cases() {
-    derived_projection_rebuilds_to_visible_parity_from_root_manifest_authority();
-    authoritative_wal_source_quarantines_without_caller_relabeling();
-    derived_data_inputs_are_denied_as_rebuild_sources();
-    visible_parity_does_not_claim_source_value_or_cost_truth_for_root_manifest_authority();
-    visible_parity_does_not_claim_source_value_or_cost_truth_for_wal_authority();
-    parity_lane_denies_rebuilt_counter_shape_mismatch_against_source_owned_witness();
 }

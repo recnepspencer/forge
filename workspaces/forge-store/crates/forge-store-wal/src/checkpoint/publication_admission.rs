@@ -113,3 +113,14 @@ pub fn admit_checkpoint_publication(
     }
     Ok(AdmittedCheckpointPublicationReceipt::from_receipt(receipt))
 }
+
+pub fn admit_checkpoint_cutover(
+    receipt: &StoreDurabilityOrderingBarrierDurable<CheckpointDurablePublicationScope>,
+) -> Result<AdmittedCheckpointPublicationReceipt, WalOperationDenial> {
+    if receipt.publication() != StoreDurabilityPublicationKind::Checkpoint {
+        return Err(WalOperationDenial::new(
+            WalOperationDenialKind::WrongPublicationKind,
+        ));
+    }
+    Ok(AdmittedCheckpointPublicationReceipt::from_receipt(receipt))
+}

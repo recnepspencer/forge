@@ -17,7 +17,7 @@ use forge_foundational::{
 };
 
 use crate::readiness::isolation_evidence::basis::FoundationalIsolationCounterReceipt;
-use crate::{PhysicalIsolationCounterSnapshot, IsolationReadinessDenial};
+use crate::{IsolationReadinessDenial, PhysicalIsolationCounterSnapshot};
 
 pub(crate) fn construct_s6_foundational_counter_receipt(
     counters: PhysicalIsolationCounterSnapshot,

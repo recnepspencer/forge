@@ -17,34 +17,6 @@ impl LegacySurfaceDispositionOutcome {
     pub const fn disposition(self) -> LegacySurfaceDisposition {
         self.disposition
     }
-
-    pub const fn production_transition(
-        self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        Self::classified_transition()
-    }
-
-    const fn classified_transition() -> crate::production_transition::S8LayoutProductionTransition {
-        crate::production_transition::owner_transition(
-            crate::production_transition::S8LayoutStateMachine::LegacyDisposition,
-            crate::production_transition::S8LayoutProductionOperation::ClassifyLegacyDisposition,
-            "Classified",
-            crate::production_transition::S8LayoutMachineState::Unclassified,
-            crate::production_transition::S8LayoutMachineTransition::Classify,
-            crate::production_transition::S8LayoutMachineState::Admitted,
-        )
-    }
-
-    pub(crate) fn owner_transition_contract(
-    ) -> crate::production_transition::S8OwnerTransitionContract {
-        static FACTS: [crate::production_transition::S8LayoutProductionTransition; 1] =
-            [LegacySurfaceDispositionOutcome::classified_transition()];
-        crate::production_transition::S8OwnerTransitionContract::from_owner_outcomes(
-            crate::production_transition::S8LayoutStateMachine::LegacyDisposition,
-            crate::production_transition::S8LayoutProductionOperation::ClassifyLegacyDisposition,
-            &FACTS,
-        )
-    }
 }
 
 impl PartialEq<LegacySurfaceDisposition> for LegacySurfaceDispositionOutcome {

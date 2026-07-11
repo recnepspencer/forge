@@ -1,23 +1,76 @@
 use super::super::S8LoweredAccessReceipt;
-use crate::production_transition::define_owner_outcome;
 
-define_owner_outcome!(
-    pub S8IndexedLoweringOutcome,
-    pub S8IndexedLoweringView,
-    S8IndexedLoweringPayload,
-    AccessLowering,
-    LowerSelectedAccess,
-    [lowered => Lowered(S8LoweredAccessReceipt): Budgeted => Lower => Lowered]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8IndexedLoweringPayload {
+    Lowered(S8LoweredAccessReceipt),
+}
 
-define_owner_outcome!(
-    pub S8DegradedLoweringOutcome,
-    pub S8DegradedLoweringView,
-    S8DegradedLoweringPayload,
-    DegradedExactScan,
-    ExecuteBudgetedDegradedExactScan,
-    [lowered => DegradedLowered(S8LoweredAccessReceipt): Budgeted => Lower => Lowered]
-);
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8IndexedLoweringOutcome {
+    case: S8IndexedLoweringPayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8IndexedLoweringView<'a> {
+    Lowered(&'a S8LoweredAccessReceipt),
+}
+
+impl S8IndexedLoweringOutcome {
+    pub(crate) fn lowered(value: S8LoweredAccessReceipt) -> Self {
+        Self::from_owner_payload(S8IndexedLoweringPayload::Lowered(value))
+    }
+
+    fn from_owner_payload(case: S8IndexedLoweringPayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8IndexedLoweringView<'_> {
+        match &self.case {
+            S8IndexedLoweringPayload::Lowered(value) => S8IndexedLoweringView::Lowered(value),
+        }
+    }
+
+    fn into_owner_payload(self) -> S8IndexedLoweringPayload {
+        self.case
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum S8DegradedLoweringPayload {
+    DegradedLowered(S8LoweredAccessReceipt),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8DegradedLoweringOutcome {
+    case: S8DegradedLoweringPayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8DegradedLoweringView<'a> {
+    DegradedLowered(&'a S8LoweredAccessReceipt),
+}
+
+impl S8DegradedLoweringOutcome {
+    pub(crate) fn lowered(value: S8LoweredAccessReceipt) -> Self {
+        Self::from_owner_payload(S8DegradedLoweringPayload::DegradedLowered(value))
+    }
+
+    fn from_owner_payload(case: S8DegradedLoweringPayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8DegradedLoweringView<'_> {
+        match &self.case {
+            S8DegradedLoweringPayload::DegradedLowered(value) => {
+                S8DegradedLoweringView::DegradedLowered(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8DegradedLoweringPayload {
+        self.case
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum LoweringOwnerOutcome {
@@ -65,19 +118,5 @@ impl S8AccessLoweringOutcome {
                 S8DegradedLoweringPayload::DegradedLowered(receipt) => receipt,
             },
         }
-    }
-    pub const fn production_transition(
-        &self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        match &self.owner {
-            LoweringOwnerOutcome::Indexed(value) => value.production_transition(),
-            LoweringOwnerOutcome::Degraded(value) => value.production_transition(),
-        }
-    }
-    pub(crate) fn indexed_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8IndexedLoweringOutcome::owner_transition_contract()
-    }
-    pub(crate) fn degraded_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8DegradedLoweringOutcome::owner_transition_contract()
     }
 }

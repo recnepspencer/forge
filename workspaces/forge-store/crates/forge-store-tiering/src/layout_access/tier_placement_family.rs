@@ -1,24 +1,8 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_io_scheduler::IoSchedulerIsolationCounterSnapshot;
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_tier_placement_rule, AdmittedTierPlacementLayoutRule,
-};
 
 use crate::TierPlacementIoAdmission;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TierPlacementLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TierPlacementLayoutAdmission {
-    _rule: AdmittedTierPlacementLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedTierPlacementLayoutFamily {
-    _admission: TierPlacementLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TierPlacementInterferencePosture {
@@ -41,28 +25,8 @@ pub struct TierPlacementLayoutReport {
     admission: TierPlacementIoAdmission,
 }
 
-impl TierPlacementLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedTierPlacementLayoutRule) -> TierPlacementLayoutAdmission {
-        let _ = self;
-        TierPlacementLayoutAdmission { _rule: rule }
-    }
-}
-
-fn tier_placement_layout() -> AdmittedTierPlacementLayoutFamily {
-    AdmittedTierPlacementLayoutFamily {
-        _admission: TierPlacementLayoutFamilyHome::s8().admit(
-            phase26_tier_placement_rule().expect("phase 26 tier placement rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedTierPlacementLayoutFamily {
-    fn admit_tier_placement(&self, admission: &TierPlacementIoAdmission) -> TierPlacementLayoutReport {
-        let _ = self;
+impl TierPlacementLayoutReport {
+    fn from_admission(admission: &TierPlacementIoAdmission) -> Self {
         TierPlacementLayoutReport {
             family_id: DurableArtifactFamilyId::TierPlacementManifest,
             access_shape: S8AccessShape::BoundedScan,
@@ -71,9 +35,7 @@ impl AdmittedTierPlacementLayoutFamily {
             admission: admission.clone(),
         }
     }
-}
 
-impl TierPlacementLayoutReport {
     pub const fn family_id(&self) -> DurableArtifactFamilyId {
         self.family_id
     }
@@ -92,7 +54,11 @@ impl TierPlacementLayoutReport {
 
     pub fn declared_budget(&self) -> TierPlacementAccessBudget {
         TierPlacementAccessBudget {
-            reclaim_permits: self.admission.cold_tier_posture().reclaim_permit().permits(),
+            reclaim_permits: self
+                .admission
+                .cold_tier_posture()
+                .reclaim_permit()
+                .permits(),
             blocked_maintenance_count: self
                 .admission
                 .scheduler()
@@ -139,6 +105,6 @@ impl TierPlacementAccessBudget {
 
 impl TierPlacementIoAdmission {
     pub fn admit_tier_placement_layout(&self) -> TierPlacementLayoutReport {
-        tier_placement_layout().admit_tier_placement(self)
+        TierPlacementLayoutReport::from_admission(self)
     }
 }

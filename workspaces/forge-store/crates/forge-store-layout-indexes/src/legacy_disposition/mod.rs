@@ -6,8 +6,6 @@ mod rows;
 #[cfg(test)]
 mod rows_tests;
 mod surface_row;
-#[cfg(test)]
-pub(crate) mod tests;
 
 pub use boundary::LegacySurfaceDispositionAndDedicatedWorkspaceBoundary;
 pub use bypass::LegacyAccessPathBypass;

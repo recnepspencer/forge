@@ -1,39 +1,10 @@
 use forge_store_contracts::DurableArtifactFamilyId;
 
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase24_blob_object_rule, AdmittedBlobObjectLayoutRule,
-};
-
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
 use crate::{
     BlobGeneration, BlobGenerationPublished, BlobObjectClassification, BlobObjectId, ChunkTreeRoot,
     LogicalContentDigest,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct BlobObjectLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct BlobObjectLayoutAdmission {
-    _rule: AdmittedBlobObjectLayoutRule,
-}
-
-impl BlobObjectLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedBlobObjectLayoutRule) -> BlobObjectLayoutAdmission {
-        let _ = self;
-        BlobObjectLayoutAdmission { _rule: rule }
-    }
-}
-
-fn blob_object_layout() -> AdmittedBlobObjectLayoutFamily {
-    let admission = BlobObjectLayoutFamilyHome::s8()
-        .admit(phase24_blob_object_rule().expect("phase 24 blob-object rule must stay admitted"));
-    AdmittedBlobObjectLayoutFamily::new(admission)
-}
 
 pub fn reject_chunk_tree_root_as_blob_object_layout_authority(
     _root: &ChunkTreeRoot,
@@ -41,24 +12,6 @@ pub fn reject_chunk_tree_root_as_blob_object_layout_authority(
     Err(BlobLayoutAccessDenial::new(
         BlobLayoutAccessDenialKind::ChunkTreeRootCannotStandInForBlobObjectLayoutAuthority,
     ))
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedBlobObjectLayoutFamily {
-    _admission: BlobObjectLayoutAdmission,
-}
-
-impl AdmittedBlobObjectLayoutFamily {
-    const fn new(admission: BlobObjectLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
-    fn admit_blob_object(&self, published: &BlobGenerationPublished) -> BlobObjectLayoutReport {
-        let _ = self;
-        BlobObjectLayoutReport::from_published(published)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -163,6 +116,6 @@ impl BlobGenerationPublished {
     pub fn admit_blob_object_layout(
         &self,
     ) -> Result<BlobObjectLayoutReport, BlobLayoutAccessDenial> {
-        Ok(blob_object_layout().admit_blob_object(self))
+        Ok(BlobObjectLayoutReport::from_published(self))
     }
 }

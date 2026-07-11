@@ -72,7 +72,7 @@ impl PublishedSnapshotHandle {
         &self,
         request: &SnapshotReadRequest,
     ) -> Result<SnapshotLayoutReport, SnapshotLayoutAccessDenial> {
-        crate::layout_access::admit_snapshot_image_support(self, request)
+        crate::layout_projection::admit_snapshot_image_support(self, request)
     }
 }
 

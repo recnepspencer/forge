@@ -1,24 +1,8 @@
 use forge_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_maintenance_queue_rule, AdmittedMaintenanceQueueLayoutRule,
-};
 
 use crate::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct MaintenanceQueueLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct MaintenanceQueueLayoutAdmission {
-    _rule: AdmittedMaintenanceQueueLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedMaintenanceQueueLayoutFamily {
-    _admission: MaintenanceQueueLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaintenanceQueueClass {
@@ -56,26 +40,6 @@ pub struct MaintenanceQueueLayoutReport {
     queue_class: MaintenanceQueueClass,
     interference_posture: MaintenanceQueueInterferencePosture,
     evidence: MaintenanceQueueLayoutEvidence,
-}
-
-impl MaintenanceQueueLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedMaintenanceQueueLayoutRule) -> MaintenanceQueueLayoutAdmission {
-        let _ = self;
-        MaintenanceQueueLayoutAdmission { _rule: rule }
-    }
-}
-
-fn maintenance_queue_layout() -> AdmittedMaintenanceQueueLayoutFamily {
-    AdmittedMaintenanceQueueLayoutFamily {
-        _admission: MaintenanceQueueLayoutFamilyHome::s8().admit(
-            phase26_maintenance_queue_rule()
-                .expect("phase 26 maintenance queue rule must stay admitted"),
-        ),
-    }
 }
 
 impl MaintenanceQueueLayoutReport {
@@ -195,32 +159,14 @@ impl MaintenanceQueueAccessBudget {
     }
 }
 
-impl AdmittedMaintenanceQueueLayoutFamily {
-    const fn admit_compaction(
-        &self,
-        envelope: CompactionPlanningMemoryEnvelope,
-    ) -> MaintenanceQueueLayoutReport {
-        let _ = self;
-        MaintenanceQueueLayoutReport::from_compaction(envelope)
-    }
-
-    const fn admit_import_export(
-        &self,
-        envelope: ImportExportMemoryEnvelope,
-    ) -> MaintenanceQueueLayoutReport {
-        let _ = self;
-        MaintenanceQueueLayoutReport::from_import_export(envelope)
-    }
-}
-
 impl CompactionPlanningMemoryEnvelope {
     pub fn admit_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
-        maintenance_queue_layout().admit_compaction(*self)
+        MaintenanceQueueLayoutReport::from_compaction(*self)
     }
 }
 
 impl ImportExportMemoryEnvelope {
     pub fn admit_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
-        maintenance_queue_layout().admit_import_export(*self)
+        MaintenanceQueueLayoutReport::from_import_export(*self)
     }
 }

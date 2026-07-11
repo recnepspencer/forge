@@ -8,6 +8,7 @@ mod denial;
 mod expectation;
 mod identity;
 mod proof_progression;
+mod recovery;
 mod vocabulary;
 
 pub use authority::PhysicalScenarioAuthorityWitness;
@@ -24,6 +25,9 @@ pub use expectation::{
 pub use identity::PhysicalScenarioCanonicalIdentity;
 pub(crate) use proof_progression::certify_scenario_definition;
 pub use proof_progression::reject_raw_json_scenario_authority_attempt;
+pub use recovery::{
+    FreshRuntimeCrashRecoveryEvidence, FreshRuntimeCrashRecoveryEvidenceDenial, RecoveryCrashSeam,
+};
 pub use vocabulary::{
     PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioFault,
     PhysicalScenarioFaultKind, PhysicalScenarioIntent, PhysicalScenarioSchedule,

@@ -1,6 +1,6 @@
 use forge_store_security::{
-    admit_store_security_scope, StoreAuthenticityRequirement,
-    StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    admit_store_security_scope, StoreAuthenticityRequirement, StoreAuthenticityRequirementClass,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 
@@ -43,8 +43,7 @@ pub(super) fn blob_scope(
         expectation,
     ))
     .success("security scope");
-    BlobChunkSecurityScope::from_admitted_security_scope(admitted)
-    .expect("blob scope")
+    BlobChunkSecurityScope::from_admitted_security_scope(admitted).expect("blob scope")
 }
 
 pub(super) fn integrity_proof_for_scope(

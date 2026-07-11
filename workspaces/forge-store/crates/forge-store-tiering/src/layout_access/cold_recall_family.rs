@@ -1,24 +1,8 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_cold_recall_rule, AdmittedColdRecallLayoutRule,
-};
 use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
 use crate::ColdTierIoPosture;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ColdRecallLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ColdRecallLayoutAdmission {
-    _rule: AdmittedColdRecallLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedColdRecallLayoutFamily {
-    _admission: ColdRecallLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColdRecallInterferencePosture {
@@ -40,28 +24,8 @@ pub struct ColdRecallLayoutReport {
     posture: ColdTierIoPosture,
 }
 
-impl ColdRecallLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedColdRecallLayoutRule) -> ColdRecallLayoutAdmission {
-        let _ = self;
-        ColdRecallLayoutAdmission { _rule: rule }
-    }
-}
-
-fn cold_recall_layout() -> AdmittedColdRecallLayoutFamily {
-    AdmittedColdRecallLayoutFamily {
-        _admission: ColdRecallLayoutFamilyHome::s8().admit(
-            phase26_cold_recall_rule().expect("phase 26 cold recall rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedColdRecallLayoutFamily {
-    fn admit_cold_recall(&self, posture: &ColdTierIoPosture) -> ColdRecallLayoutReport {
-        let _ = self;
+impl ColdRecallLayoutReport {
+    fn from_posture(posture: &ColdTierIoPosture) -> Self {
         ColdRecallLayoutReport {
             family_id: DurableArtifactFamilyId::ColdRecallQueue,
             access_shape: S8AccessShape::BoundedScan,
@@ -70,9 +34,7 @@ impl AdmittedColdRecallLayoutFamily {
             posture: posture.clone(),
         }
     }
-}
 
-impl ColdRecallLayoutReport {
     pub const fn family_id(&self) -> DurableArtifactFamilyId {
         self.family_id
     }
@@ -121,6 +83,6 @@ impl ColdRecallAccessBudget {
 
 impl ColdTierIoPosture {
     pub fn admit_cold_recall_layout(&self) -> ColdRecallLayoutReport {
-        cold_recall_layout().admit_cold_recall(self)
+        ColdRecallLayoutReport::from_posture(self)
     }
 }

@@ -107,7 +107,6 @@ fn decide_degraded_plan(
                     budget_rows: access_shape.budget_rows().unwrap_or(0),
                 },
             ),
-            None,
         ),
         S8SelectionCandidateAudit::new(
             S8LayoutStrategyFamily::SparseIndex,
@@ -115,7 +114,6 @@ fn decide_degraded_plan(
             S8SelectionCandidateOutcome::Rejected(
                 super::S8SelectionCandidateRejection::StrategyUnsupported,
             ),
-            None,
         ),
     )
 }

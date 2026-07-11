@@ -1,8 +1,8 @@
 use forge_store_security::{
     StoreApplicationOrgIdClaim, StoreAuthenticityRequirement, StoreCustodyPosture,
-    StoreIamRoleClaim, StoreJwtSubjectClaim, StoreKeyScope,
-    StoreKeyVersionPosture, StoreKmsKeyIdentifier, StoreOperatorIdentityClaim,
-    StoreRawSecurityScopeDeclaration, StoreTenantScope,
+    StoreIamRoleClaim, StoreJwtSubjectClaim, StoreKeyScope, StoreKeyVersionPosture,
+    StoreKmsKeyIdentifier, StoreOperatorIdentityClaim, StoreRawSecurityScopeDeclaration,
+    StoreTenantScope,
 };
 
 use crate::BlobChunkScopeCounterSnapshot;

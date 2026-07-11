@@ -59,11 +59,10 @@ pub use layout_access::{
     reject_full_blob_buffer_as_streaming_layout_authority,
     reject_streaming_frontier_as_chunk_tree_layout_authority,
     BlobGenerationPublicationLayoutReport, BlobLayoutAccessDenial, BlobLayoutAccessDenialKind,
-    BlobLayoutAccessPathEvidence, BlobLayoutCloseout, BlobLayoutCorruptionBehavior,
-    BlobLayoutScopeSafeAbsenceBehavior, BlobObjectLayoutReport, ChunkTreeLayoutReport,
-    CompactionLayoutReport, DedupeLayoutReport, ReachabilityLayoutReport, ReclaimLayoutReport,
-    RetentionLayoutReport, StoredChunkLookupLayoutReport, StreamingLayoutReport,
-    StreamingResumeLayoutReport,
+    BlobLayoutAccessPathEvidence, BlobLayoutCorruptionBehavior, BlobLayoutScopeSafeAbsenceBehavior,
+    BlobObjectLayoutReport, ChunkTreeLayoutReport, CompactionLayoutReport, DedupeLayoutReport,
+    ReachabilityLayoutReport, ReclaimLayoutReport, RetentionLayoutReport,
+    StoredChunkLookupLayoutReport, StreamingLayoutReport, StreamingResumeLayoutReport,
 };
 #[cfg(test)]
 pub(crate) use publication::test_support::publish_generation_with_bytes_and_chunk_size;

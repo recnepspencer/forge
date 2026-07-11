@@ -3,11 +3,11 @@ mod denial;
 mod evidence;
 mod foundational_lowering;
 mod identity;
+mod isolation_denial;
 mod proof_progression;
 mod request;
-mod shortcut_denials;
-mod isolation_denial;
 mod scheduler_capability;
+mod shortcut_denials;
 pub mod interference {
     mod assumptions;
     pub use assumptions::{
@@ -19,8 +19,8 @@ pub(crate) mod isolation_evidence {
     pub(crate) mod basis;
 }
 pub(crate) use isolation_evidence::basis::{
-    ExecutedIsolationBasis, IsolationEvidenceProjection,
-    SchedulerIsolationCapabilityBasis, SchedulerIsolationProof,
+    ExecutedIsolationBasis, IsolationEvidenceProjection, SchedulerIsolationCapabilityBasis,
+    SchedulerIsolationProof,
 };
 
 pub use admission::{
@@ -31,12 +31,27 @@ pub use denial::{PhysicalIsolationEntryDenial, PhysicalIsolationEntryRebindRequi
 pub use evidence::PhysicalIsolationEntryEvidence;
 pub use foundational_lowering::PhysicalIsolationEntryFoundationalEvidence;
 pub use identity::{PhysicalIsolationEntryIdentity, PhysicalIsolationRootEpochBasis};
+pub use isolation_denial::{
+    reject_copied_closeout_report_as_isolation_readiness,
+    reject_log_or_terminal_projection_as_isolation_readiness,
+    reject_missing_latch_counters_as_isolation_readiness,
+    reject_missing_protected_byte_footprint_as_isolation_readiness,
+    reject_missing_reclaim_counters_as_isolation_readiness,
+    reject_synthetic_wait_label_as_isolation_readiness,
+    reject_unsupported_qos_claim_as_isolation_readiness, IsolationReadinessDenial,
+};
 pub use proof_progression::{
     PhysicalIsolationAdmittedEntryRecipe, PhysicalIsolationEntryProofProgression,
     PhysicalIsolationEntryProofRequest, PhysicalIsolationLoweredEntryRecipe,
     PhysicalIsolationResolvedEntryRecipe, S4RecoveryReadinessBasis,
 };
 pub use request::PhysicalIsolationEntryRequest;
+#[cfg(any(test, feature = "certification-authority"))]
+pub use scheduler_capability::publish_scheduler_isolation_capability_for_certification_test;
+pub use scheduler_capability::{
+    publish_scheduler_isolation_capability_from_executed_evidence, SchedulerIsolationCapability,
+    UnsupportedQoSClaim,
+};
 pub use shortcut_denials::{
     reject_copied_recovery_fields_as_physical_isolation_entry,
     reject_foundational_or_proof_projection_as_physical_isolation_entry,
@@ -47,17 +62,3 @@ pub use shortcut_denials::{
     reject_terminal_projection_as_physical_isolation_entry,
     require_rebound_s4_recovery_readiness_for_physical_isolation_entry,
 };
-pub use isolation_denial::{
-    reject_copied_closeout_report_as_isolation_readiness,
-    reject_log_or_terminal_projection_as_isolation_readiness,
-    reject_missing_latch_counters_as_isolation_readiness,
-    reject_missing_protected_byte_footprint_as_isolation_readiness,
-    reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
-    reject_synthetic_wait_label_as_isolation_readiness, IsolationReadinessDenial,
-};
-pub use scheduler_capability::{
-    publish_scheduler_isolation_capability_from_executed_evidence, SchedulerIsolationCapability,
-    UnsupportedQoSClaim,
-};
-#[cfg(any(test, feature = "certification-authority"))]
-pub use scheduler_capability::publish_scheduler_isolation_capability_for_certification_test;

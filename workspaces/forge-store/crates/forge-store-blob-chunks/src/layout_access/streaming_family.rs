@@ -1,9 +1,5 @@
 use forge_store_contracts::DurableArtifactFamilyId;
 
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase24_streaming_rule, AdmittedStreamingLayoutRule,
-};
-
 use super::{
     read_counters_are_exact, BlobLayoutAccessDenial, BlobLayoutAccessDenialKind,
     BlobLayoutAccessPathEvidence,
@@ -11,31 +7,6 @@ use super::{
 use crate::{BlobStreamingReadRequest, BlobStreamingVerifiedRead};
 
 use super::chunk_tree_family::ChunkTreeLayoutReport;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct StreamingLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct StreamingLayoutAdmission {
-    _rule: AdmittedStreamingLayoutRule,
-}
-
-impl StreamingLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedStreamingLayoutRule) -> StreamingLayoutAdmission {
-        let _ = self;
-        StreamingLayoutAdmission { _rule: rule }
-    }
-}
-
-fn streaming_layout() -> AdmittedStreamingLayoutFamily {
-    let admission = StreamingLayoutFamilyHome::s8()
-        .admit(phase24_streaming_rule().expect("phase 24 streaming rule must stay admitted"));
-    AdmittedStreamingLayoutFamily::new(admission)
-}
 
 pub fn reject_full_blob_buffer_as_streaming_layout_authority(
     whole_blob: &[u8],
@@ -46,25 +17,12 @@ pub fn reject_full_blob_buffer_as_streaming_layout_authority(
     ))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedStreamingLayoutFamily {
-    _admission: StreamingLayoutAdmission,
-}
-
-impl AdmittedStreamingLayoutFamily {
-    const fn new(admission: StreamingLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
+impl StreamingLayoutReport {
     fn admit_streaming(
-        &self,
         chunk_tree: &ChunkTreeLayoutReport,
         request: &BlobStreamingReadRequest,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<StreamingLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if chunk_tree.chunk_tree_root() != request.chunk_tree_root()
             || chunk_tree.logical_content_digest() != request.logical_content_digest()
             || request.object_id() != read.object_id()
@@ -182,6 +140,6 @@ impl ChunkTreeLayoutReport {
         request: &BlobStreamingReadRequest,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<StreamingLayoutReport, BlobLayoutAccessDenial> {
-        streaming_layout().admit_streaming(self, request, read)
+        StreamingLayoutReport::admit_streaming(self, request, read)
     }
 }

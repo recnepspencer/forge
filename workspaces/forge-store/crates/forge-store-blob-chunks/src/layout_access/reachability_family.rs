@@ -1,9 +1,6 @@
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_reachability_rule, AdmittedReachabilityLayoutRule,
-};
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use super::behavior::{
@@ -12,19 +9,6 @@ use super::behavior::{
 };
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
 use crate::{BlobChunkReachabilityProofSet, StoredChunkDigest};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ReachabilityLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ReachabilityLayoutAdmission {
-    _rule: AdmittedReachabilityLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedReachabilityLayoutFamily {
-    _admission: ReachabilityLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReachabilityLayoutReport {
@@ -42,31 +26,10 @@ pub struct ReachabilityLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl ReachabilityLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedReachabilityLayoutRule) -> ReachabilityLayoutAdmission {
-        let _ = self;
-        ReachabilityLayoutAdmission { _rule: rule }
-    }
-}
-
-fn reachability_layout() -> AdmittedReachabilityLayoutFamily {
-    AdmittedReachabilityLayoutFamily {
-        _admission: ReachabilityLayoutFamilyHome::s8().admit(
-            phase25_reachability_rule().expect("phase 25 reachability rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedReachabilityLayoutFamily {
+impl ReachabilityLayoutReport {
     fn admit_reachability(
-        &self,
         proof: &BlobChunkReachabilityProofSet,
     ) -> Result<ReachabilityLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if proof.reachable_chunks().is_empty() {
             return Err(BlobLayoutAccessDenial::new(
                 BlobLayoutAccessDenialKind::EmptyReachabilityProofCannotStandInForReachabilityLayoutAuthority,
@@ -156,6 +119,6 @@ impl BlobChunkReachabilityProofSet {
     pub fn admit_reachability_layout(
         &self,
     ) -> Result<ReachabilityLayoutReport, BlobLayoutAccessDenial> {
-        reachability_layout().admit_reachability(self)
+        ReachabilityLayoutReport::admit_reachability(self)
     }
 }

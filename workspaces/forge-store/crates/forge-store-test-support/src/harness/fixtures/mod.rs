@@ -11,8 +11,8 @@ pub use crate::json_fixture_boundary::{
 pub use crate::large_record_streams::LargeRecordStreamPressure;
 pub use crate::memory_pressure::MemoryPressureDriverInput;
 pub use crate::native_aspect_fixtures::{
-    AspectDerivedSegmentReference, NativeAspectPhysicalReferenceDenial, NativeStoreAspectFixture,
-    require_native_store_aspect_fixture,
+    require_native_store_aspect_fixture, AspectDerivedSegmentReference,
+    NativeAspectPhysicalReferenceDenial, NativeStoreAspectFixture,
 };
 pub use crate::resident_pressure_fixtures::{LargeStorePressureClass, LargeStorePressureFixture};
 pub use crate::terminal_projection_json_fixtures::StoreTerminalProjectionJsonFixture;

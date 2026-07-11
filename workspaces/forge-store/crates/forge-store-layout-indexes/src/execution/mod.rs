@@ -17,8 +17,6 @@ mod performance_receipt;
 mod planned_vs_observed;
 #[cfg(test)]
 pub(crate) mod progression_tests;
-#[cfg(test)]
-pub(crate) use progression_tests::assert_owner_transition_handoff_equivalence;
 mod ready_plan;
 #[cfg(test)]
 pub(crate) mod tests_support;

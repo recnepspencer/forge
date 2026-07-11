@@ -2,41 +2,38 @@
 
 pub mod s6_interference_profiles;
 pub mod s6_io_pressure_profiles;
-pub mod s7_blob_harness_execution;
 pub mod s7_blob_harness_heavy_fixture;
 pub mod s7_blob_harness_profiles;
-pub mod s8_layout_access;
 
+pub use super::physical_isolation::{
+    physical_isolation_boundary_fact, physical_isolation_boundary_yieldpoint,
+};
 pub use super::recovery::{
-    ExecutedS4CrashHarnessDenial, ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver,
-    FreshRuntimeRecoveryDriver, RecoveryRuntimePosture, ScheduledFault, StorageBoundaryEvent,
-    StorageBoundaryInterposerDriver, admitted_s4_partial_publication_recovery_entry,
-    admitted_s4_recovery_entry, deterministic_s4_fresh_runtime_driver,
-    deterministic_s4_recovery_artifacts, duplicate_role_s4_recovery_artifacts,
-    incomplete_s4_recovery_artifacts, malformed_s4_recovery_record,
-    reordered_s4_recovery_artifacts, runtime_disagreement_s4_recovery_artifacts,
-    runtime_state_mismatch_s4_recovery_artifacts, s4_recovery_artifacts_with_operation_digest,
+    admitted_s4_partial_publication_recovery_entry, admitted_s4_recovery_entry,
+    deterministic_s4_fresh_runtime_driver, deterministic_s4_recovery_artifacts,
+    duplicate_role_s4_recovery_artifacts, incomplete_s4_recovery_artifacts,
+    malformed_s4_recovery_record, reordered_s4_recovery_artifacts,
+    runtime_disagreement_s4_recovery_artifacts, runtime_state_mismatch_s4_recovery_artifacts,
+    s4_recovery_artifacts_with_operation_digest, ExecutedS4CrashHarnessDenial,
+    ExecutedS4CrashHarnessTranscript, FaultSchedulerDriver, FreshRuntimeRecoveryDriver,
+    RecoveryRuntimePosture, ScheduledFault, StorageBoundaryEvent, StorageBoundaryInterposerDriver,
 };
 pub use super::security_scope::{
-    S51SecurityScopeHarnessExecution, S51SecurityScopeHarnessReplayExecution,
     execute_s5_1_security_scope_harness_replay_with_physical_replay,
     execute_s5_1_security_scope_harness_scenario, s5_1_security_scope_drift_scenario,
     s5_1_security_scope_metadata_preservation_scenarios,
     s5_1_security_scope_metadata_preserved_scenario,
     s5_1_security_scope_missing_authenticity_scenario,
     s5_1_security_scope_replayed_custody_scenario, s5_1_security_scope_stale_key_scenario,
-    s5_1_security_scope_wrong_tenant_scenario,
-};
-pub use super::physical_isolation::{
-    physical_isolation_boundary_fact, physical_isolation_boundary_yieldpoint,
+    s5_1_security_scope_wrong_tenant_scenario, S51SecurityScopeHarnessExecution,
+    S51SecurityScopeHarnessReplayExecution,
 };
 pub use s6_interference_profiles::{
-    S6InterferenceTestProfile, deterministic_s6_interference_profile,
+    deterministic_s6_interference_profile, S6InterferenceTestProfile,
 };
 pub use s6_io_pressure_profiles::{
-    S6IoPressureTestProfile, deterministic_s6_io_pressure_profile, large_s6_io_pressure_profile,
+    deterministic_s6_io_pressure_profile, large_s6_io_pressure_profile, S6IoPressureTestProfile,
 };
-pub use s7_blob_harness_execution::execute_s7_blob_harness_scenario;
 pub use s7_blob_harness_heavy_fixture::{
     execute_s7_blob_harness_real_multi_gb_temp_file_fixture,
     execute_s7_blob_harness_temp_file_fixture_smoke,

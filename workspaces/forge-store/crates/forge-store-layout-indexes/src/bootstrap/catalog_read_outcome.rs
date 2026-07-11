@@ -1,21 +1,53 @@
-use crate::production_transition::define_owner_outcome;
-
 type CatalogReadSuccess = (
     super::S8BootstrapLayoutCatalog,
     super::S8BootstrapCatalogReadAdmission,
 );
 
-define_owner_outcome!(
-    pub S8BootstrapCatalogReadOutcome,
-    pub S8BootstrapCatalogReadOutcomeView,
-    S8BootstrapCatalogReadCase,
-    BootstrapCatalogDiscovery,
-    ReadDiscoveredBootstrapCatalog,
-    [
-        root_admitted => Success(CatalogReadSuccess): CatalogDiscovered => ValidateCurrentRoot => CurrentRootAdmitted,
-        denied => Denied(super::S8BootstrapOnlyAccessDenied): CatalogDiscovered => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8BootstrapCatalogReadCase {
+    Success(CatalogReadSuccess),
+    Denied(super::S8BootstrapOnlyAccessDenied),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8BootstrapCatalogReadOutcome {
+    case: S8BootstrapCatalogReadCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8BootstrapCatalogReadOutcomeView<'a> {
+    Success(&'a CatalogReadSuccess),
+    Denied(&'a super::S8BootstrapOnlyAccessDenied),
+}
+
+impl S8BootstrapCatalogReadOutcome {
+    pub(crate) fn root_admitted(value: CatalogReadSuccess) -> Self {
+        Self::from_owner_payload(S8BootstrapCatalogReadCase::Success(value))
+    }
+
+    pub(crate) fn denied(value: super::S8BootstrapOnlyAccessDenied) -> Self {
+        Self::from_owner_payload(S8BootstrapCatalogReadCase::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8BootstrapCatalogReadCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8BootstrapCatalogReadOutcomeView<'_> {
+        match &self.case {
+            S8BootstrapCatalogReadCase::Success(value) => {
+                S8BootstrapCatalogReadOutcomeView::Success(value)
+            }
+            S8BootstrapCatalogReadCase::Denied(value) => {
+                S8BootstrapCatalogReadOutcomeView::Denied(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8BootstrapCatalogReadCase {
+        self.case
+    }
+}
 
 impl S8BootstrapCatalogReadOutcome {
     pub fn is_err(&self) -> bool {

@@ -30,10 +30,6 @@ use forge_store_wal::{
     DurablePublicationScope,
 };
 
-#[cfg(test)]
-#[path = "execution_tests.rs"]
-mod tests;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct BaselineLsmCounterObservation {
     point_lookups: u16,

@@ -4,9 +4,10 @@ mod runtime_recovery_fixture;
 use forge_store_physical_backend::ProductionStorageBoundarySeam;
 use forge_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario, AdmittedDriverContractSet,
-    ExpectedFaultLocalization, FaultDeliveryDenial, ForbiddenShortcutSet, ObservedFaultBoundary,
-    PhysicalArtifactKind, PhysicalBoundarySeam, PhysicalBoundaryYieldpoint, PhysicalDriverKind,
-    PhysicalFaultEvent, PhysicalFaultEventKind, PhysicalFaultFieldKind, PhysicalScenarioActor,
+    ExpectedFaultLocalization, FaultDeliveryDenial, ForbiddenShortcutSet,
+    FreshRuntimeCrashRecoveryEvidence, ObservedFaultBoundary, PhysicalArtifactKind,
+    PhysicalBoundarySeam, PhysicalBoundaryYieldpoint, PhysicalDriverKind, PhysicalFaultEvent,
+    PhysicalFaultEventKind, PhysicalFaultFieldKind, PhysicalScenarioActor,
     PhysicalScenarioExpectation, PhysicalScenarioIntent, PhysicalScenarioSchedule,
     PhysicalSimulationCapabilitySet, PhysicalSimulationDriver, PhysicalSimulationProfile,
     PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
@@ -14,14 +15,16 @@ use forge_store_physical_certification::{
     SupportedObserverSet, SupportedOracleFamilySet,
 };
 use forge_store_recovery_physics::{
-    FreshRuntimeCrashRecoveryEvidence, FreshRuntimeRecoveryDriver, RecoveryOfflineVerifier,
-    RecoveryProfileId, RecoveryRuntimeClassification, RuntimeRecoveryReport,
+    FreshRuntimeRecoveryDriver, RecoveryOfflineVerifier, RecoveryProfileId,
+    RecoveryRuntimeClassification, RuntimeRecoveryReport,
 };
 use forge_store_test_support::{
     admitted_developer_smoke_driver_contracts, deterministic_s4_recovery_artifacts,
+    NativeStoreAspectFixture,
+};
+use forge_store_test_support::harness::test_authority::{
     io_pressure_fault_locus, observed_checksum_mismatch_boundary, observed_io_pressure_boundary,
     observed_torn_frame_boundary, page_generation_fault_locus, wal_frame_payload_fault_locus,
-    NativeStoreAspectFixture,
 };
 
 #[derive(Clone)]

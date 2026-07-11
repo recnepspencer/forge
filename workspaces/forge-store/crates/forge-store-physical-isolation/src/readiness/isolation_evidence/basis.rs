@@ -229,7 +229,9 @@ impl SchedulerIsolationPublicationWitness {
     }
 
     fn authority_witness(self) -> AuthorityWitness<SchedulerIsolationPublicationAuthority> {
-        AuthorityWitness::from_authority_marker(SchedulerIsolationPublicationAuthority { _private: () })
+        AuthorityWitness::from_authority_marker(SchedulerIsolationPublicationAuthority {
+            _private: (),
+        })
     }
 }
 
@@ -282,7 +284,8 @@ impl IsolationEvidenceProjection {
     }
 }
 
-fn scheduler_isolation_lowering_capability() -> CapabilityWitness<SchedulerIsolationLoweringCapability> {
+fn scheduler_isolation_lowering_capability(
+) -> CapabilityWitness<SchedulerIsolationLoweringCapability> {
     CapabilityWitness::from_capability_marker(SchedulerIsolationLoweringCapability { _private: () })
 }
 

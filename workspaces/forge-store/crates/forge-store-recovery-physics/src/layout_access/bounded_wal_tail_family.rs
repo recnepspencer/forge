@@ -5,58 +5,8 @@ use super::{
     RecoveryLayoutAccessDenialKind,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedBoundedWalTailLayoutRule {
-    _private: (),
-}
-
-impl AdmittedBoundedWalTailLayoutRule {
-    pub(crate) const fn internal_phase22() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase22-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase22() -> Self {
-        Self::internal_phase22()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BoundedWalTailLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BoundedWalTailLayoutAdmission {
-    _private: (),
-}
-
-impl BoundedWalTailLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedBoundedWalTailLayoutRule,
-    ) -> Result<BoundedWalTailLayoutAdmission, RecoveryLayoutAccessDenial> {
-        Ok(BoundedWalTailLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedBoundedWalTailLayoutFamily {
-    _admission: BoundedWalTailLayoutAdmission,
-}
-
-impl AdmittedBoundedWalTailLayoutFamily {
-    pub(crate) const fn new(admission: BoundedWalTailLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
+impl BoundedWalTailLayoutReport {
     pub fn lookup_tail_range(
-        &self,
         replay_index: &ReplayIndexLayoutReport,
         requested_range: WalLsnRange,
     ) -> Result<BoundedWalTailLayoutReport, RecoveryLayoutAccessDenial> {
@@ -81,11 +31,7 @@ pub(crate) fn lookup_recovery_tail_range(
     replay_index: &ReplayIndexLayoutReport,
     requested_range: WalLsnRange,
 ) -> Result<BoundedWalTailLayoutReport, RecoveryLayoutAccessDenial> {
-    AdmittedBoundedWalTailLayoutFamily::new(
-        BoundedWalTailLayoutFamilyHome::s8()
-            .admit(&AdmittedBoundedWalTailLayoutRule::internal_phase22())?,
-    )
-    .lookup_tail_range(replay_index, requested_range)
+    BoundedWalTailLayoutReport::lookup_tail_range(replay_index, requested_range)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

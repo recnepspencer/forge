@@ -6,10 +6,10 @@ mod plan_fingerprint;
 mod selected_plan;
 mod selection_basis;
 mod selection_decision;
+mod selection_issuance;
 mod selection_outcome;
 mod selection_policy;
 mod selection_receipt;
-mod selection_transition;
 #[cfg(test)]
 pub(crate) mod tests;
 

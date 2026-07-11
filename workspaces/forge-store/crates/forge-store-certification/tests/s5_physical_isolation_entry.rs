@@ -37,23 +37,21 @@ use forge_store_physical_isolation::{
 use forge_store_readiness::{S5CorrectnessNonClaimEvidence, S5SimulationHarnessReadinessDenial};
 
 #[test]
-fn s5_entry_admits_only_typed_s4_recovery_readiness() {
-    let bundle = closeout_fixture::certify_complete_closeout();
-    let report = bundle.closeout_report();
-    let readiness = bundle.publish_s5_readiness();
+fn s5_entry_admits_only_typed_recovery_completion() {
+    let completion = closeout_fixture::recovery_completion();
 
     let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_s4_recovery_readiness(&readiness),
+        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
 
-    assert_eq!(entry.recovered_root(), report.recovered_root());
+    assert_eq!(entry.recovered_root(), completion.recovered_root());
     assert_eq!(
         entry.admitted_page_lsn_frontier(),
-        report.admitted_page_lsn_frontier()
+        completion.admitted_page_lsn_frontier()
     );
-    assert_eq!(entry.replayed_frames(), report.counters().replayed_frames());
-    assert_eq!(entry.identity().recovered_root(), report.recovered_root());
+    assert_eq!(entry.replayed_frames(), completion.replayed_frames());
+    assert_eq!(entry.identity().recovered_root(), completion.recovered_root());
     assert_eq!(
         entry.root_epoch_basis(),
         entry.identity().root_epoch_basis()
@@ -84,12 +82,11 @@ fn s5_entry_admits_only_typed_s4_recovery_readiness() {
 }
 
 #[test]
-fn independently_materialized_s4_readiness_has_same_entry_identity_and_root_epoch_basis() {
-    let direct_readiness = closeout_fixture::certify_complete_closeout().publish_s5_readiness();
-    let reordered_readiness =
-        closeout_fixture::certify_closeout_from_reordered_evidence().publish_s5_readiness();
-    let first = admit_s4_readiness_entry(&direct_readiness);
-    let second = admit_s4_readiness_entry(&reordered_readiness);
+fn independently_executed_recovery_has_same_entry_identity_and_root_epoch_basis() {
+    let first_completion = closeout_fixture::recovery_completion();
+    let second_completion = closeout_fixture::recovery_completion();
+    let first = admit_recovery_completion_entry(&first_completion);
+    let second = admit_recovery_completion_entry(&second_completion);
 
     assert_eq!(first.identity(), second.identity());
     assert_eq!(first.root_epoch_basis(), second.root_epoch_basis());
@@ -100,11 +97,11 @@ fn independently_materialized_s4_readiness_has_same_entry_identity_and_root_epoc
     );
 }
 
-fn admit_s4_readiness_entry(
-    readiness: &forge_store_recovery_physics::S5PhysicalIsolationRecoveryReadiness,
+fn admit_recovery_completion_entry(
+    completion: &forge_store_recovery_physics::RecoveryCompletion,
 ) -> forge_store_physical_isolation::PhysicalIsolationEntryAdmission {
-    admit_physical_isolation_entry(PhysicalIsolationEntryRequest::from_s4_recovery_readiness(
-        readiness,
+    admit_physical_isolation_entry(PhysicalIsolationEntryRequest::from_recovery_completion(
+        completion,
     ))
     .unwrap()
 }
@@ -191,9 +188,9 @@ fn s5_entry_rejects_copied_runtime_semantic_projection_and_json_authority() {
 
 #[test]
 fn s5_physical_isolation_lane_requires_entry_and_s45_harness_readiness() {
-    let readiness = closeout_fixture::certify_complete_closeout().publish_s5_readiness();
+    let completion = closeout_fixture::recovery_completion();
     let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_s4_recovery_readiness(&readiness),
+        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
     let receipt = s45_harness_readiness_receipt();

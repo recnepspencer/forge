@@ -2,8 +2,8 @@ use forge_store_authority::StoreCurrentAuthorityWitness;
 use forge_store_physical_integrity::QuarantineRecord;
 
 use crate::{
-    BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, RecoveryIntegrityHandoffReceipt,
-    IntegrityHandoffDenial,
+    BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, IntegrityHandoffDenial,
+    RecoveryIntegrityHandoffReceipt,
 };
 
 /// Readmission rebuilds current Store authority ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deserialized quarantine records are not proof.

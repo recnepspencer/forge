@@ -5,6 +5,8 @@ pub mod layout_harness;
 
 mod actors;
 mod authoring;
+#[path = "harness/blob/mod.rs"]
+mod blob_harness;
 mod closeout;
 mod counters;
 mod coverage;
@@ -63,8 +65,6 @@ mod s6_io_pressure_shortcut_tests;
 mod s6_io_pressure_test_support;
 #[path = "harness/by_milestone/s6/s6_io_pressure_vocab.rs"]
 mod s6_io_pressure_vocab;
-#[path = "harness/blob/mod.rs"]
-mod blob_harness;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -82,6 +82,19 @@ pub use actors::{
 pub use authoring::{
     physical_scenario, PhysicalScenarioBuilder, ScenarioBuilderActorStep,
     ScenarioBuilderExpectationStep, ScenarioBuilderFixtureStep, ScenarioBuilderScheduleStep,
+};
+#[cfg(any(test, feature = "certification-test-support"))]
+pub use blob_harness::{
+    blob_harness_replay_artifacts_for_certification,
+    synthetic_blob_harness_coverage_matrix_for_test_support,
+    synthetic_blob_harness_replay_bundle_for_test_support,
+};
+pub use blob_harness::{
+    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
+    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
+    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
+    BlobHarnessShortcutDenial, S7BlobHarnessOracleObservation, S7BlobResumeCrashPoint,
+    S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
 };
 pub use closeout::{
     FutureHarnessExtensionSlotInventory, FutureHarnessExtensionSlotReport,
@@ -267,27 +280,15 @@ pub use s6_io_pressure_replay::S6IoPressureHarnessEvidenceDenial;
 #[cfg(feature = "certification-test-support")]
 pub use s6_io_pressure_test_support::replay_bundle_for as s6_io_pressure_test_replay_bundle_for;
 pub use s6_io_pressure_vocab::{all_s6_fault_evidence_classes, all_s6_io_pressure_fault_kinds};
-pub use blob_harness::{
-    lower_blob_simulation_seed_plan, BlobHarnessLoweredSeedPlan, BlobHarnessLoweringDenial,
-    BlobHarnessMaterializedProfile, BlobHarnessProfile, BlobHarnessProfileSet,
-    BlobHarnessScenarioSeed, BlobHarnessScenarioSeedBuilder, BlobHarnessShortcutAttempt,
-    BlobHarnessShortcutDenial, S7BlobHarnessOracleObservation, S7BlobResumeCrashPoint,
-    S7BlobResumeExpectedOutcome, S7BlobResumeRecoveryScenario,
-};
-#[cfg(any(test, feature = "certification-test-support"))]
-pub use blob_harness::{
-    blob_harness_replay_artifacts_for_certification,
-    synthetic_blob_harness_coverage_matrix_for_test_support,
-    synthetic_blob_harness_replay_bundle_for_test_support,
-};
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,
+    FreshRuntimeCrashRecoveryEvidence, FreshRuntimeCrashRecoveryEvidenceDenial,
     JsonScenarioAuthorityDenied, PhysicalScenarioActor, PhysicalScenarioActorRole,
     PhysicalScenarioActorSet, PhysicalScenarioAuthorityWitness, PhysicalScenarioCanonicalIdentity,
     PhysicalScenarioDefinitionDenial, PhysicalScenarioExpectation, PhysicalScenarioExpectationKind,
     PhysicalScenarioFault, PhysicalScenarioFaultKind, PhysicalScenarioFixtureSet,
     PhysicalScenarioIntent, PhysicalScenarioNonClaim, PhysicalScenarioSchedule,
-    PhysicalSimulationScenarioDefinition, PhysicalSimulationScenarioFamily,
+    PhysicalSimulationScenarioDefinition, PhysicalSimulationScenarioFamily, RecoveryCrashSeam,
     S7BlobHarnessScenarioMetadata, TerminalProjectionScenarioDenied,
 };
 pub use schedule::{

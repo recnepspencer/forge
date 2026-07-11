@@ -1,8 +1,7 @@
 use crate::epoch::EpochRetryDecision;
 
 use crate::{
-    ExecutedIsolationReceipts, PhysicalIsolationCounterSnapshot,
-    IsolationReadinessDenial,
+    ExecutedIsolationReceipts, IsolationReadinessDenial, PhysicalIsolationCounterSnapshot,
 };
 
 pub(crate) fn project_closeout_counters(

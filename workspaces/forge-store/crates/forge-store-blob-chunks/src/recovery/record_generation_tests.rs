@@ -295,7 +295,11 @@ fn durable_publication_receipt(
             .expect("checkpoint publication scope should admit");
     let accepted = admission.submit_write(scope.clone()).backend_accepted();
     let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(&std::env::temp_dir(), b"blob-generation-durable-write", &accepted)
+        .persist_and_execute(
+            &std::env::temp_dir(),
+            b"blob-generation-durable-write",
+            &accepted,
+        )
         .expect("durability execution should succeed");
     accepted
         .reach_durability_boundary(proof)

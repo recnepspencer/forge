@@ -1,5 +1,5 @@
 use forge_store_blob_chunks::certification_test_authority::{
-    BlobHarnessExecutedWitness, BlobHarnessExecutionInput, execute_s7_blob_harness,
+    execute_s7_blob_harness, BlobHarnessExecutedWitness, BlobHarnessExecutionInput,
 };
 
 use super::s7_blob_harness_profiles::{

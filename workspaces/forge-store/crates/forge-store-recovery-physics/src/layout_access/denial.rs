@@ -17,6 +17,10 @@ pub struct RecoveryLayoutAccessDenial {
 }
 
 impl RecoveryLayoutAccessDenial {
-    pub const fn new(kind: RecoveryLayoutAccessDenialKind) -> Self { Self { kind } }
-    pub const fn kind(&self) -> RecoveryLayoutAccessDenialKind { self.kind }
+    pub const fn new(kind: RecoveryLayoutAccessDenialKind) -> Self {
+        Self { kind }
+    }
+    pub const fn kind(&self) -> RecoveryLayoutAccessDenialKind {
+        self.kind
+    }
 }

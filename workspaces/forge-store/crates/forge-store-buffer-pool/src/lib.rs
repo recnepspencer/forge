@@ -1,8 +1,6 @@
 #![doc = include_str!("api_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
-pub mod layout_access;
-
 mod access_policy_lifecycle;
 mod admission;
 mod allocation_scope;

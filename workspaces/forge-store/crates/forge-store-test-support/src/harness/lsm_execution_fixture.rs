@@ -15,8 +15,8 @@ use forge_store_layout_indexes::{
     baseline_lsm_manifest_artifact_bytes, baseline_lsm_output_artifact_bytes,
     baseline_lsm_record_artifact_bytes, lsm_strategy, BaselineLsmAdmittedKey,
     BaselineLsmAdmittedRecord, BaselineLsmExecutionAdmissionDenial, BaselineLsmExecutionIntent,
-    BaselineLsmExecutionWitness, BaselineLsmPhysicalPublicationBinding,
-    BaselineLsmWalIndexSession, LsmStrategy,
+    BaselineLsmExecutionWitness, BaselineLsmPhysicalPublicationBinding, BaselineLsmWalIndexSession,
+    LsmStrategy,
 };
 use forge_store_wal::{
     admit_checkpoint_publication, admit_durable_append, AdmittedWalAppendReceipt,
@@ -154,8 +154,8 @@ pub(crate) fn durable_record_binding_for_store(
     )
     .expect("WAL envelope");
     let artifact = baseline_lsm_record_artifact_bytes(&envelope, key);
-    let durable = admit_durable_append(&wal_receipt(scope, &artifact))
-        .expect("executed WAL durability");
+    let durable =
+        admit_durable_append(&wal_receipt(scope, &artifact)).expect("executed WAL durability");
     (envelope, durable)
 }
 
@@ -290,12 +290,9 @@ mod artifact_binding_tests {
             StoreKeyVersionPosture::Current,
             StoreLegacySecurityPosture::NativeScoped,
         );
-        let key = access
-            .admit_key(metadata, *b"mismatch")
-            .unwrap();
+        let key = access.admit_key(metadata, *b"mismatch").unwrap();
         let scope = wal_scope(91, "claimed-frame".into(), 11);
-        let receipt = admit_durable_append(&wal_receipt(scope.clone(), b"wrong-bytes"))
-            .unwrap();
+        let receipt = admit_durable_append(&wal_receipt(scope.clone(), b"wrong-bytes")).unwrap();
         let envelope = BlobWalRecordEnvelope::new(
             BlobWalRecordIdentity::new(91, BlobWalRecordKind::LsmValue).unwrap(),
             DurablePublicationDeclaration::wal_frame(scope),

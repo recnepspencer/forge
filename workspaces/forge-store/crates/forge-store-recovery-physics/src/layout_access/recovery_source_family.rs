@@ -5,68 +5,12 @@ use crate::{
 
 use super::{RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedRecoverySourceLayoutRule {
-    _private: (),
-}
-
-impl AdmittedRecoverySourceLayoutRule {
-    pub(crate) const fn internal_phase22() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase22-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase22() -> Self {
-        Self::internal_phase22()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RecoverySourceLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct RecoverySourceLayoutAdmission {
-    _private: (),
-}
-
-impl RecoverySourceLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedRecoverySourceLayoutRule,
-    ) -> Result<RecoverySourceLayoutAdmission, RecoveryLayoutAccessDenial> {
-        Ok(RecoverySourceLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedRecoverySourceLayoutFamily {
-    _admission: RecoverySourceLayoutAdmission,
-}
-
-impl AdmittedRecoverySourceLayoutFamily {
-    pub(crate) const fn new(admission: RecoverySourceLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
-    pub fn source_report(&self, source: &AdmittedRecoverySource) -> RecoverySourceLayoutReport {
-        RecoverySourceLayoutReport::from_source(source)
-    }
-
-    pub fn reject_decision_row(
-        &self,
-        _row: &RecoverySourceDecisionRow,
-    ) -> Result<(), RecoveryLayoutAccessDenial> {
-        Err(RecoveryLayoutAccessDenial::new(
-            RecoveryLayoutAccessDenialKind::RecoverySourceRowCannotStandInForRecoveryAuthority,
-        ))
-    }
+pub fn reject_decision_row(
+    _row: &RecoverySourceDecisionRow,
+) -> Result<(), RecoveryLayoutAccessDenial> {
+    Err(RecoveryLayoutAccessDenial::new(
+        RecoveryLayoutAccessDenialKind::RecoverySourceRowCannotStandInForRecoveryAuthority,
+    ))
 }
 
 pub(crate) fn project_recovery_source_layout(
@@ -84,7 +28,7 @@ pub struct RecoverySourceLayoutReport {
 }
 
 impl RecoverySourceLayoutReport {
-    fn from_source(source: &AdmittedRecoverySource) -> Self {
+    pub fn from_source(source: &AdmittedRecoverySource) -> Self {
         let trace = source.trace();
         Self {
             decision_kind: trace.kind(),

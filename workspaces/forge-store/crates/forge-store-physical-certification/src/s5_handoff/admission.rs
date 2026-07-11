@@ -9,7 +9,6 @@ pub struct AcceptedS5SimulationHarnessReadiness {
 
 pub fn accept_store_owned_s5_harness_readiness(
     receipt: S5HarnessReadinessReceipt,
-    _requirement: forge_store_physical_isolation::S5SimulationHarnessReadinessRequirement,
 ) -> AcceptedS5SimulationHarnessReadiness {
     AcceptedS5SimulationHarnessReadiness {
         readiness: receipt.into_readiness(),

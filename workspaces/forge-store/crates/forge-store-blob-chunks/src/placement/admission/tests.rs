@@ -9,7 +9,9 @@ use forge_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
-use forge_store_tiering::{admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission};
+use forge_store_tiering::{
+    admit_tier_placement_io, S7ColdPlacementState, TierPlacementIoAdmission,
+};
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, root_publication,
@@ -222,11 +224,12 @@ fn receipt(case: &str) -> crate::LifecycleReceipt {
     )
 }
 
-fn readiness_for_security_scope(
-    scope: StoreSecurityScopeIdentity,
-) -> TierPlacementIoAdmission {
+fn readiness_for_security_scope(scope: StoreSecurityScopeIdentity) -> TierPlacementIoAdmission {
     let cold = forge_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(scope);
-    admit_tier_placement_io(IoSchedulerIsolationAdmission::for_certification_test(), cold)
+    admit_tier_placement_io(
+        IoSchedulerIsolationAdmission::for_certification_test(),
+        cold,
+    )
 }
 
 fn mismatched_security_scope() -> StoreSecurityScopeIdentity {

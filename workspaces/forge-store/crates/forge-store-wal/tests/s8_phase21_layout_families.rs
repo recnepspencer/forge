@@ -7,25 +7,21 @@ use forge_store_physical_backend::{
     StoreDurabilityWriteAccepted, WalDurabilityBarrier, WalDurabilityBarrierSet,
 };
 use forge_store_wal::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
-    CheckpointDurablePublicationScope, DurablePublicationDeclaration, LogSequenceNumber,
-    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope, WalLayoutAccess,
-    WalLayoutAccessDenialKind, WalLsnRange, WalSegmentGeneration, WalSegmentId,
-    WalSegmentScanRecord, WalTopologyScan,
+    admit_checkpoint_cutover, admit_checkpoint_publication, admit_durable_append,
+    admit_replay_cursor, inspect_replay_tail_record, BlobWalRecordEnvelope, BlobWalRecordIdentity,
+    BlobWalRecordKind, CheckpointDurablePublicationScope, DurablePublicationDeclaration,
+    LogSequenceNumber, StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope, WalLsnRange,
+    WalOperationDenialKind, WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord,
+    WalTopologyScan,
 };
 
 #[test]
 fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
-    let access = WalLayoutAccess::s8();
-
     let append_scope = WalFrameDurablePublicationScope::new(2, 9, 40, 80, "sha256:wal-crash", 256)
         .expect("append scope");
     let append_receipt = wal_receipt(append_scope.clone());
-    let append_receipt = access
-        .durable_mutation()
-        .admit_append_receipt(&append_receipt)
-        .expect("append receipt admission");
-    let append_report = access.durable_mutation().append_report(&append_receipt);
+    let append_receipt = admit_durable_append(&append_receipt).expect("append receipt admission");
+    let append_report = append_receipt.report();
     assert_eq!(append_report.scope(), &append_scope);
     assert_eq!(append_report.byte_count(), 256);
     assert_eq!(append_report.range_span(), 40);
@@ -37,28 +33,25 @@ fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
         "sha256:payload",
     )
     .expect("replayable wal record");
-    let tail_family = access.replay_tail();
-    let replay_cursor = tail_family
-        .admit_replay_cursor(
-            WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
-                WalSegmentId::new(append_scope.segment_id()).unwrap(),
-                WalSegmentGeneration::new(append_scope.generation()).unwrap(),
-                WalLsnRange::new(
-                    LogSequenceNumber::new(append_scope.lsn_start()),
-                    LogSequenceNumber::new(append_scope.lsn_end()),
-                )
-                .unwrap(),
-            )]),
+    let replay_cursor = admit_replay_cursor(
+        WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
+            WalSegmentId::new(append_scope.segment_id()).unwrap(),
             WalSegmentGeneration::new(append_scope.generation()).unwrap(),
-        )
-        .expect("replay cursor admission");
-    let cursor_report = tail_family.replay_cursor_report(&replay_cursor);
+            WalLsnRange::new(
+                LogSequenceNumber::new(append_scope.lsn_start()),
+                LogSequenceNumber::new(append_scope.lsn_end()),
+            )
+            .unwrap(),
+        )]),
+        WalSegmentGeneration::new(append_scope.generation()).unwrap(),
+    )
+    .expect("replay cursor admission");
+    let cursor_report = replay_cursor.report();
     assert_eq!(cursor_report.first_lsn(), append_scope.lsn_start());
     assert_eq!(cursor_report.end_lsn(), append_scope.lsn_end());
     assert_eq!(cursor_report.segment_count(), 1);
-    let tail_report = tail_family
-        .replay_tail_record(&replay_cursor, &replay_record)
-        .expect("tail report");
+    let tail_report =
+        inspect_replay_tail_record(&replay_cursor, &replay_record).expect("tail report");
     assert_eq!(tail_report.identity(), replay_record.identity());
     assert_eq!(tail_report.segment_id(), append_scope.segment_id());
 
@@ -69,17 +62,15 @@ fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
         55,
     )
     .expect("checkpoint scope");
-    let checkpoint_family = access.checkpoint();
-    let admitted_checkpoint_receipt = checkpoint_family
-        .admit_checkpoint_publication_receipt(&checkpoint_receipt(
-            checkpoint_scope.clone(),
-            StoreDurabilityRequirement::checkpoint_publication(
-                WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
-                    .insert(WalDurabilityBarrier::WalDirectoryFsync),
-            ),
-        ))
-        .expect("checkpoint receipt");
-    let checkpoint_report = checkpoint_family.publication_report_for(&admitted_checkpoint_receipt);
+    let admitted_checkpoint_receipt = admit_checkpoint_cutover(&checkpoint_receipt(
+        checkpoint_scope.clone(),
+        StoreDurabilityRequirement::checkpoint_publication(
+            WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
+                .insert(WalDurabilityBarrier::WalDirectoryFsync),
+        ),
+    ))
+    .expect("checkpoint receipt");
+    let checkpoint_report = admitted_checkpoint_receipt.report();
     assert_eq!(checkpoint_report.scope(), &checkpoint_scope);
     assert_eq!(
         checkpoint_report.publication(),
@@ -88,16 +79,15 @@ fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
     assert_eq!(checkpoint_report.range_span(), 50);
     assert_eq!(checkpoint_report.counters().directory_syncs_completed(), 1);
 
-    let manifest_receipt = checkpoint_family
-        .admit_manifest_publication_receipt(&checkpoint_receipt(
-            checkpoint_scope,
-            StoreDurabilityRequirement::manifest_publication(
-                WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
-                    .insert(WalDurabilityBarrier::WalDirectoryFsync),
-            ),
-        ))
-        .expect("manifest receipt");
-    let manifest_report = checkpoint_family.publication_report_for(&manifest_receipt);
+    let manifest_receipt = admit_checkpoint_publication(&checkpoint_receipt(
+        checkpoint_scope,
+        StoreDurabilityRequirement::manifest_publication(
+            WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
+                .insert(WalDurabilityBarrier::WalDirectoryFsync),
+        ),
+    ))
+    .expect("manifest receipt");
+    let manifest_report = manifest_receipt.report();
     assert_eq!(
         manifest_report.publication(),
         StoreDurabilityPublicationKind::Manifest
@@ -107,7 +97,6 @@ fn phase21_wal_append_tail_and_checkpoint_rules_drive_public_layout_access() {
 
 #[test]
 fn phase21_replay_tail_rejects_non_replay_record_kinds() {
-    let access = WalLayoutAccess::s8();
     let record = BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(11, BlobWalRecordKind::ChunkAppend).unwrap(),
         DurablePublicationDeclaration::wal_frame(
@@ -117,29 +106,21 @@ fn phase21_replay_tail_rejects_non_replay_record_kinds() {
     )
     .expect("non-replayable record");
 
-    let denial = access
-        .replay_tail()
-        .replay_tail_record(
-            &access
-                .replay_tail()
-                .admit_replay_cursor(
-                    WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
-                        WalSegmentId::new(1).unwrap(),
-                        WalSegmentGeneration::new(1).unwrap(),
-                        WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(20))
-                            .unwrap(),
-                    )]),
-                    WalSegmentGeneration::new(1).unwrap(),
-                )
-                .expect("cursor"),
-            &record,
+    let denial = inspect_replay_tail_record(
+        &admit_replay_cursor(
+            WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
+                WalSegmentId::new(1).unwrap(),
+                WalSegmentGeneration::new(1).unwrap(),
+                WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(20)).unwrap(),
+            )]),
+            WalSegmentGeneration::new(1).unwrap(),
         )
-        .expect_err("chunk append must not stand in for replay tail");
+        .expect("cursor"),
+        &record,
+    )
+    .expect_err("chunk append must not stand in for replay tail");
 
-    assert_eq!(
-        denial.kind(),
-        WalLayoutAccessDenialKind::NonReplayTailRecord
-    );
+    assert_eq!(denial.kind(), WalOperationDenialKind::NonReplayTailRecord);
 }
 
 fn wal_receipt(

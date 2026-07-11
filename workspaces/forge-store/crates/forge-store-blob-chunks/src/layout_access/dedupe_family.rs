@@ -1,8 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_dedupe_rule, AdmittedDedupeLayoutRule,
-};
 use forge_store_security::StoreSecurityScopeIdentity;
 
 use super::behavior::{
@@ -12,19 +9,6 @@ use super::behavior::{
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessPathEvidence};
 use crate::{BlobChunkDedupeCollisionPosture, BlobChunkDedupeShareClaim, BlobChunkIdentity};
 use forge_store_contracts::StableDigest;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct DedupeLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct DedupeLayoutAdmission {
-    _rule: AdmittedDedupeLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedDedupeLayoutFamily {
-    _admission: DedupeLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DedupeLayoutReport {
@@ -41,30 +25,10 @@ pub struct DedupeLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl DedupeLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedDedupeLayoutRule) -> DedupeLayoutAdmission {
-        let _ = self;
-        DedupeLayoutAdmission { _rule: rule }
-    }
-}
-
-fn dedupe_layout() -> AdmittedDedupeLayoutFamily {
-    AdmittedDedupeLayoutFamily {
-        _admission: DedupeLayoutFamilyHome::s8()
-            .admit(phase25_dedupe_rule().expect("phase 25 dedupe rule must stay admitted")),
-    }
-}
-
-impl AdmittedDedupeLayoutFamily {
+impl DedupeLayoutReport {
     fn admit_dedupe(
-        &self,
         claim: &BlobChunkDedupeShareClaim,
     ) -> Result<DedupeLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         Ok(DedupeLayoutReport::from_claim(claim))
     }
 }
@@ -145,6 +109,6 @@ impl DedupeLayoutReport {
 
 impl BlobChunkDedupeShareClaim {
     pub fn admit_dedupe_layout(&self) -> Result<DedupeLayoutReport, BlobLayoutAccessDenial> {
-        dedupe_layout().admit_dedupe(self)
+        DedupeLayoutReport::admit_dedupe(self)
     }
 }

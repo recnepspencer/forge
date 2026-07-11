@@ -1,4 +1,4 @@
-use super::selection_transition::{self, S8IssuedSelection, S8SelectionIssuedPayload};
+use super::selection_issuance::{S8IssuedSelection, S8SelectionIssuedPayload};
 use super::{S8PlanSelectionDenied, S8SelectedAccessPlan};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -24,12 +24,6 @@ impl S8AccessPlanSelectionOutcome {
         }
     }
 
-    pub const fn production_transition(
-        &self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        self.issued.transition()
-    }
-
     pub fn unwrap(self) -> S8SelectedAccessPlan {
         match self.issued.into_payload() {
             S8SelectionIssuedPayload::Selected(plan) => plan,
@@ -42,13 +36,5 @@ impl S8AccessPlanSelectionOutcome {
             S8SelectionIssuedPayload::Denied(denial) => denial,
             S8SelectionIssuedPayload::Selected(_) => panic!("selection unexpectedly succeeded"),
         }
-    }
-
-    pub(crate) fn indexed_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        selection_transition::indexed_contract()
-    }
-
-    pub(crate) fn degraded_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        selection_transition::degraded_contract()
     }
 }

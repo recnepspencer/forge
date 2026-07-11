@@ -1,6 +1,6 @@
 #[path = "s4_closeout/fixture.rs"]
 mod closeout_fixture;
-#[path = "s5_executed_closeout_fixture.rs"]
+#[path = "support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
 #[path = "s5_interleaving_harness_support.rs"]
 mod harness_support;
@@ -208,7 +208,13 @@ fn phase15_closeout_seals_handoff_evidence_without_minting_production_readiness(
     );
     assert_eq!(
         readiness.unsupported_qos_claims(),
-        &UnsupportedQoSClaim::canonical_s5_non_claims()
+        &[
+            UnsupportedQoSClaim::P99Latency,
+            UnsupportedQoSClaim::P999Latency,
+            UnsupportedQoSClaim::HardwareQueueDepth,
+            UnsupportedQoSClaim::MediaQoS,
+            UnsupportedQoSClaim::BackgroundWorkPacing,
+        ]
     );
     executed_closeout_fixture::assert_expected_s6_closeout_counters(readiness.counters());
 }

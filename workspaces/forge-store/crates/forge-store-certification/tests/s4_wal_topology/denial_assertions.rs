@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::{WalTopologyDenial, WalTopologyDenialKind};
+use forge_store_wal::{WalTopologyDenial, WalTopologyDenialKind};
 
 use crate::scan_fixtures::{generation, lsn, range, segment};
 

@@ -50,10 +50,7 @@ fn s5_receives_store_owned_simulation_harness_readiness() {
     assert_eq!(receipt.shortcut_denial_count(), 9);
     assert_compaction_mutation_rows(&matrix);
 
-    let accepted = accept_store_owned_s5_harness_readiness(
-        receipt,
-        forge_store_physical_isolation::s5_simulation_harness_readiness_requirement(),
-    );
+    let accepted = accept_store_owned_s5_harness_readiness(receipt);
     assert!(accepted.does_not_claim_s5_correctness());
 }
 

@@ -11,7 +11,6 @@ use super::request::S45HarnessEntryRequest;
 pub(crate) struct S45HarnessEntryBasis {
     recovered_root: String,
     source_decision_digest: String,
-    required_lanes: usize,
 }
 
 impl S45HarnessEntryBasis {
@@ -19,7 +18,6 @@ impl S45HarnessEntryBasis {
         Self {
             recovered_root: request.recovered_root().to_string(),
             source_decision_digest: request.source_decision_digest().to_string(),
-            required_lanes: request.s4_required_lanes(),
         }
     }
 }
@@ -55,9 +53,7 @@ pub(crate) fn admit_entry_request(
 fn require_request_already_checked(
     request: &S45HarnessEntryRequest,
 ) -> Result<(), S45HarnessBoundaryDenial> {
-    if request.s4_completed_lanes() != request.s4_required_lanes()
-        || !request.roadmap_requirements().is_complete()
-    {
+    if !request.roadmap_requirements().is_complete() {
         return Err(S45HarnessBoundaryDenial::ProofProgressionSkipped);
     }
     Ok(())

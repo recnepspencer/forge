@@ -5,91 +5,24 @@ use crate::{
 
 use super::{RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedRecoveryManifestLayoutRule {
-    _private: (),
-}
-
-impl AdmittedRecoveryManifestLayoutRule {
-    pub(crate) const fn internal_phase21() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase21-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase21() -> Self {
-        Self::internal_phase21()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CheckpointCutoverLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CheckpointCutoverLayoutAdmission {
-    _private: (),
-}
-
-impl CheckpointCutoverLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedRecoveryManifestLayoutRule,
-    ) -> Result<CheckpointCutoverLayoutAdmission, RecoveryLayoutAccessDenial> {
-        Ok(CheckpointCutoverLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedCheckpointCutoverLayoutFamily {
-    _admission: CheckpointCutoverLayoutAdmission,
-}
-
-impl AdmittedCheckpointCutoverLayoutFamily {
-    pub(crate) const fn new(admission: CheckpointCutoverLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
-    pub fn validated_checkpoint(
-        &self,
-        validation: &CheckpointValidation,
-    ) -> CheckpointRecoveryManifestLayoutReport {
-        CheckpointRecoveryManifestLayoutReport::from_validation(validation)
-    }
-
-    pub fn published_cutover(
-        &self,
-        receipt: &CheckpointCutoverReceipt,
-    ) -> CheckpointCutoverLayoutReport {
-        CheckpointCutoverLayoutReport::from_receipt(receipt)
-    }
-
-    pub fn ensure_recovery_entry_allowed(
-        &self,
-        damage_map: &IntegrityDamageMap,
-    ) -> Result<(), RecoveryLayoutAccessDenial> {
-        if damage_map.recovery_blocking_findings().is_empty() {
-            Ok(())
-        } else {
-            Err(RecoveryLayoutAccessDenial::new(
-                RecoveryLayoutAccessDenialKind::RecoveryBlockedByIntegrityDamage,
-            ))
-        }
-    }
-
-    pub fn reject_locator_projection(
-        &self,
-        _locator: &CheckpointLocator,
-    ) -> Result<(), RecoveryLayoutAccessDenial> {
+pub fn ensure_recovery_entry_allowed(
+    damage_map: &IntegrityDamageMap,
+) -> Result<(), RecoveryLayoutAccessDenial> {
+    if damage_map.recovery_blocking_findings().is_empty() {
+        Ok(())
+    } else {
         Err(RecoveryLayoutAccessDenial::new(
-            RecoveryLayoutAccessDenialKind::LocatorProjectionCannotStandInForCheckpointAuthority,
+            RecoveryLayoutAccessDenialKind::RecoveryBlockedByIntegrityDamage,
         ))
     }
+}
+
+pub fn reject_locator_projection(
+    _locator: &CheckpointLocator,
+) -> Result<(), RecoveryLayoutAccessDenial> {
+    Err(RecoveryLayoutAccessDenial::new(
+        RecoveryLayoutAccessDenialKind::LocatorProjectionCannotStandInForCheckpointAuthority,
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,7 +33,7 @@ pub struct CheckpointRecoveryManifestLayoutReport {
 }
 
 impl CheckpointRecoveryManifestLayoutReport {
-    fn from_validation(validation: &CheckpointValidation) -> Self {
+    pub fn from_validation(validation: &CheckpointValidation) -> Self {
         Self {
             checkpoint_id: validation.checkpoint_id().clone(),
             covered_lsn_range: validation.manifest().covered_lsn_range(),
@@ -129,7 +62,7 @@ pub struct CheckpointCutoverLayoutReport {
 }
 
 impl CheckpointCutoverLayoutReport {
-    fn from_receipt(receipt: &CheckpointCutoverReceipt) -> Self {
+    pub fn from_receipt(receipt: &CheckpointCutoverReceipt) -> Self {
         Self {
             checkpoint_id: receipt.checkpoint_id().clone(),
             covered_lsn_range: receipt.covered_lsn_range(),

@@ -16,7 +16,6 @@ pub struct S8SelectionCandidateAudit {
     family: S8LayoutStrategyFamily,
     authority_role: AuthorityRole,
     outcome: S8SelectionCandidateOutcome,
-    layout_admission_transition: Option<crate::production_transition::S8LayoutProductionTransition>,
 }
 
 impl S8SelectionCandidateAudit {
@@ -24,15 +23,11 @@ impl S8SelectionCandidateAudit {
         family: S8LayoutStrategyFamily,
         authority_role: AuthorityRole,
         outcome: S8SelectionCandidateOutcome,
-        layout_admission_transition: Option<
-            crate::production_transition::S8LayoutProductionTransition,
-        >,
     ) -> Self {
         Self {
             family,
             authority_role,
             outcome,
-            layout_admission_transition,
         }
     }
 
@@ -46,14 +41,6 @@ impl S8SelectionCandidateAudit {
 
     pub const fn outcome(self) -> S8SelectionCandidateOutcome {
         self.outcome
-    }
-
-    /// The owner-emitted layout-admission fact consumed while deriving this
-    /// candidate. Explicit degraded scans have no layout-strategy admission.
-    pub const fn layout_admission_transition(
-        self,
-    ) -> Option<crate::production_transition::S8LayoutProductionTransition> {
-        self.layout_admission_transition
     }
 }
 
@@ -143,7 +130,6 @@ fn derive_candidate(
 ) -> (Option<S8PlanningAlternative>, S8SelectionCandidateAudit) {
     let request = build_request(lifecycle, key_domain, shape, family);
     let admission = layout_admission_registry().admit(request);
-    let admission_transition = admission.production_transition();
     match admission.into_result() {
         Ok(snapshot) => {
             let planned_counter_envelope = crate::strategy::planned_counter_envelope_for(
@@ -159,7 +145,6 @@ fn derive_candidate(
                         S8SelectionCandidateOutcome::Rejected(
                             S8SelectionCandidateRejection::MissingPlannedCounterEnvelope,
                         ),
-                        Some(admission_transition),
                     ),
                 );
             }
@@ -173,7 +158,6 @@ fn derive_candidate(
                             .expect("eligible alternatives declare planned envelopes"),
                     },
                 ),
-                Some(admission_transition),
             );
             (Some(S8PlanningAlternative { snapshot, audit }), audit)
         }
@@ -183,7 +167,6 @@ fn derive_candidate(
                 family,
                 authority_role,
                 S8SelectionCandidateOutcome::Rejected(map_denial(denial)),
-                Some(admission_transition),
             ),
         ),
     }

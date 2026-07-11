@@ -8,49 +8,50 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn s45_entry_identity_is_stable_across_reordered_closeout_evidence() {
-    let direct_bundle = fixture::certify_complete_closeout();
-    let reordered_bundle = fixture::certify_closeout_from_reordered_evidence();
+fn s45_entry_identity_is_stable_across_independent_recovery_execution() {
+    let direct_recovery = fixture::executed_recovery_receipt();
+    let repeated_recovery = fixture::executed_recovery_receipt();
 
     let direct_entry = admit_s45_simulation_harness_entry(
-        &direct_bundle,
+        &direct_recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
     .expect("direct closeout evidence admits");
-    let reordered_entry = admit_s45_simulation_harness_entry(
-        &reordered_bundle,
+    let repeated_entry = admit_s45_simulation_harness_entry(
+        &repeated_recovery,
         S45RoadmapHarnessRequirementSet::from_requirements(
             scrambled_duplicate_requirements_from_spec(),
         ),
         S45ExistingHarnessInventory::from_registered_surfaces(scrambled_registered_surfaces()),
     )
-    .expect("reordered closeout evidence admits");
+    .expect("repeated recovery evidence admits");
 
-    assert_eq!(direct_entry.identity(), reordered_entry.identity());
+    assert_eq!(direct_entry.identity(), repeated_entry.identity());
     assert_eq!(
         direct_entry.roadmap_requirements().requirements(),
         required_roadmap_requirements_from_spec()
     );
     assert_eq!(
-        reordered_entry.roadmap_requirements().requirements(),
+        repeated_entry.roadmap_requirements().requirements(),
         required_roadmap_requirements_from_spec()
     );
 }
 
 #[test]
 fn s45_entry_identity_changes_when_s4_recovered_outcome_changes() {
-    let first_bundle = fixture::certify_complete_closeout();
-    let second_bundle = fixture::certify_closeout_with_runtime_state_mismatch_artifacts();
+    let first_recovery = fixture::executed_recovery_receipt();
+    let second_recovery =
+        fixture::executed_recovery_receipt_with_operation_digest("alternate-operation");
 
     let first_entry = admit_s45_simulation_harness_entry(
-        &first_bundle,
+        &first_recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
     .expect("first closeout admits");
     let second_entry = admit_s45_simulation_harness_entry(
-        &second_bundle,
+        &second_recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
@@ -65,7 +66,7 @@ fn s45_entry_identity_changes_when_s4_recovered_outcome_changes() {
 
 #[test]
 fn s45_entry_rejects_each_missing_roadmap_requirement() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
 
     assert_eq!(
         S45RoadmapHarnessRequirementSet::roadmap2_required().requirements(),
@@ -82,7 +83,7 @@ fn s45_entry_rejects_each_missing_roadmap_requirement() {
         );
 
         let denial = admit_s45_simulation_harness_entry(
-            &bundle,
+            &recovery,
             requirements,
             S45ExistingHarnessInventory::dedicated_workspace_baseline(),
         )
@@ -110,7 +111,7 @@ fn s45_inventory_classifies_every_registered_surface_exactly() {
 
 #[test]
 fn s45_inventory_denies_missing_reusable_mechanics_surface() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
     let inventory = S45ExistingHarnessInventory::from_registered_surfaces(vec![
         S45RegisteredHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
         S45RegisteredHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
@@ -119,7 +120,7 @@ fn s45_inventory_denies_missing_reusable_mechanics_surface() {
     ]);
 
     let denial = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         inventory,
     )

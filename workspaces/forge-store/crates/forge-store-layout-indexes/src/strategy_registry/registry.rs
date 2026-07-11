@@ -4,20 +4,49 @@ use super::{
 };
 use crate::key_domain::{CompositeKeyOrderingLaw, HashCollisionLaw};
 use crate::maintenance::{S8IndexMaintenanceMode, S8PhysicalMutationShape};
-use crate::production_transition::define_owner_outcome;
 use crate::strategy::{admit_strategy, S8AdmittedLayoutStrategy, S8LayoutStrategyFamily};
 
-define_owner_outcome!(
-    pub S8LayoutAdmissionOutcome,
-    pub S8LayoutAdmissionView,
-    S8LayoutAdmissionPayload,
-    LayoutAdmission,
-    AdmitLayoutStrategy,
-    [
-        success => Success(S8LayoutStrategyRegistrySnapshot): Declared => Admit => Admitted,
-        denied => Denied(S8LayoutAdmissionDenial): Declared => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8LayoutAdmissionPayload {
+    Success(S8LayoutStrategyRegistrySnapshot),
+    Denied(S8LayoutAdmissionDenial),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8LayoutAdmissionOutcome {
+    case: S8LayoutAdmissionPayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8LayoutAdmissionView<'a> {
+    Success(&'a S8LayoutStrategyRegistrySnapshot),
+    Denied(&'a S8LayoutAdmissionDenial),
+}
+
+impl S8LayoutAdmissionOutcome {
+    pub(crate) fn success(value: S8LayoutStrategyRegistrySnapshot) -> Self {
+        Self::from_owner_payload(S8LayoutAdmissionPayload::Success(value))
+    }
+
+    pub(crate) fn denied(value: S8LayoutAdmissionDenial) -> Self {
+        Self::from_owner_payload(S8LayoutAdmissionPayload::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8LayoutAdmissionPayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8LayoutAdmissionView<'_> {
+        match &self.case {
+            S8LayoutAdmissionPayload::Success(value) => S8LayoutAdmissionView::Success(value),
+            S8LayoutAdmissionPayload::Denied(value) => S8LayoutAdmissionView::Denied(value),
+        }
+    }
+
+    fn into_owner_payload(self) -> S8LayoutAdmissionPayload {
+        self.case
+    }
+}
 
 impl S8LayoutAdmissionOutcome {
     pub fn into_result(self) -> Result<S8LayoutStrategyRegistrySnapshot, S8LayoutAdmissionDenial> {

@@ -1,6 +1,6 @@
 use super::{
-    CompactionInterlockFoundationalEvidence, CompactionReadInterlockCounters,
-    CompactionCutoverDelta, CompactionReadInterlockDenial,
+    CompactionCutoverDelta, CompactionInterlockFoundationalEvidence,
+    CompactionReadInterlockCounters, CompactionReadInterlockDenial,
 };
 use crate::PhysicalPublicationReceipt;
 

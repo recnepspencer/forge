@@ -1,7 +1,4 @@
 use forge_store_authority::StoreCurrentAuthorityWitness;
-use forge_store_physical_integrity::layout_access::quarantine_family::{
-    quarantine_layout_family, LayoutQuarantineAuthorityClass,
-};
 use forge_store_recovery_physics::{
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionWitness,
@@ -17,6 +14,7 @@ use super::outcome::{
     S8ReadmissionRequirement, S8RequiredReadmission, S8UnsupportedCorruptionState,
 };
 use super::quarantine::S8LayoutQuarantineWitness;
+use super::quarantine_authority::{classify_quarantine_authority, LayoutQuarantineAuthorityClass};
 use super::readmission::S8NativeReadmissionInput;
 use super::S8LayoutReadmissionSource;
 
@@ -33,7 +31,7 @@ impl LayoutCorruptionFacade {
                 classify_rebuild(classification)
             }
             S8LayoutCorruptionInput::AuthoritativeQuarantine { family, record } => {
-                match quarantine_layout_family().authority_class(&record) {
+                match classify_quarantine_authority(&record) {
                     LayoutQuarantineAuthorityClass::DerivedProjectionDamage => {
                         S8LayoutCorruptionOutcome::rebuild_required(
                             LayoutCorruptionClassification::DerivedProjectionRebuildToParity,

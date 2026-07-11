@@ -27,7 +27,7 @@ impl SameBranchDescendantWitness {
         &self,
         plan: &BranchDeltaReadPlan,
     ) -> Result<BranchDeltaLayoutReport, BranchDeltaLayoutAccessDenial> {
-        crate::layout_access::admit_branch_delta_layout(plan, self)
+        crate::layout_projection::admit_branch_delta_layout(plan, self)
     }
 }
 

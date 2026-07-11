@@ -10,7 +10,7 @@ use forge_store_physical_certification::{
     PhysicalBoundarySeam, PhysicalBoundaryYieldpoint, PhysicalFaultEvent, PhysicalFaultEventKind,
     PhysicalFaultFieldKind,
 };
-use forge_store_test_support::{
+use forge_store_test_support::harness::test_authority::{
     ambiguous_locus_fault_attempt_fixture, arbitrary_byte_scribble_fault_attempt_fixture,
     crash_recovery_fault_locus, observed_checksum_mismatch_boundary,
     post_decode_corruption_fault_attempt_fixture, private_mutation_fault_attempt_fixture,

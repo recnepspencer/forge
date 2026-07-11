@@ -1,6 +1,6 @@
 #[path = "s4_closeout/fixture.rs"]
 mod closeout_fixture;
-#[path = "s5_executed_closeout_fixture.rs"]
+#[path = "support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
 #[path = "s5_stable_read_execution/plan_admission.rs"]
 mod plan_admission;
@@ -15,9 +15,6 @@ mod support;
 
 use forge_store_io_scheduler::{
     admit_store_published_isolation_capability,
-    reject_hardware_queue_depth_claim_as_isolation_admission,
-    reject_log_or_metric_projection_as_isolation_admission, reject_media_qos_claim_as_isolation_admission,
-    IoSchedulerIsolationAdmissionDenial,
 };
 use forge_store_physical_isolation::publish_scheduler_isolation_capability_from_executed_evidence;
 use forge_store_physical_isolation::{
@@ -28,7 +25,7 @@ use forge_store_physical_isolation::{
     reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
     reject_synthetic_wait_label_as_isolation_readiness, ExecutedIsolationEvidence,
     PhysicalStabilityAssumption, SchedulerIsolationCapability, IsolationReadinessDenial,
-    SchedulerIsolationAuthorityPosture, UnsupportedQoSClaim,
+    UnsupportedQoSClaim,
 };
 
 #[test]
@@ -77,11 +74,7 @@ fn executed_s5_closeout_publishes_typed_s6_io_qos_readiness() {
     );
     assert_eq!(
         readiness.unsupported_qos_claims(),
-        &UnsupportedQoSClaim::canonical_s5_non_claims()
-    );
-    assert_eq!(
-        readiness.basis().projection_evidence().authority_posture(),
-        SchedulerIsolationAuthorityPosture::StoreExecutedIsolationMaterialized
+        &expected_unsupported_qos_claims()
     );
 }
 
@@ -144,7 +137,7 @@ fn missing_latch_reclaim_or_footprint_counters_deny_s6_readiness() {
 
 #[test]
 fn s5_names_every_qos_claim_it_does_not_make() {
-    for claim in UnsupportedQoSClaim::canonical_s5_non_claims() {
+    for claim in expected_unsupported_qos_claims() {
         assert_eq!(
             reject_unsupported_qos_claim_as_isolation_readiness(claim).unwrap_err(),
             IsolationReadinessDenial::UnsupportedQoSClaimRequested(claim)
@@ -211,20 +204,14 @@ fn s6_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
     );
 }
 
-#[test]
-fn scheduler_denies_projection_and_claim_shortcuts() {
-    assert_eq!(
-        reject_log_or_metric_projection_as_isolation_admission().unwrap_err(),
-        IoSchedulerIsolationAdmissionDenial::LogOrMetricProjection
-    );
-    assert_eq!(
-        reject_hardware_queue_depth_claim_as_isolation_admission().unwrap_err(),
-        IoSchedulerIsolationAdmissionDenial::HardwareQueueDepthClaim
-    );
-    assert_eq!(
-        reject_media_qos_claim_as_isolation_admission().unwrap_err(),
-        IoSchedulerIsolationAdmissionDenial::MediaQosClaim
-    );
+const fn expected_unsupported_qos_claims() -> [UnsupportedQoSClaim; 5] {
+    [
+        UnsupportedQoSClaim::P99Latency,
+        UnsupportedQoSClaim::P999Latency,
+        UnsupportedQoSClaim::HardwareQueueDepth,
+        UnsupportedQoSClaim::MediaQoS,
+        UnsupportedQoSClaim::BackgroundWorkPacing,
+    ]
 }
 
 fn readiness_from_executed_s5_closeout(

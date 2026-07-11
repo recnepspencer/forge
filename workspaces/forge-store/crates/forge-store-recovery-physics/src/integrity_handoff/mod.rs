@@ -1,9 +1,9 @@
-mod declaration;
+mod admission;
 pub mod damage_map;
+mod declaration;
 mod denial;
 mod inspection_envelope;
 mod payload;
-mod admission;
 
 pub use admission::IntegrityHandoffAdmission;
 pub use declaration::IntegrityHandoffDeclaration;

@@ -45,9 +45,6 @@ pub struct S45SimulationHarnessEntry {
     admitted_page_lsn_frontier: Option<PageLsn>,
     source_decision_digest: String,
     recovery_counters: RecoveryCounterSnapshot,
-    s4_completed_lanes: usize,
-    s4_required_lanes: usize,
-    s4_foundational_exact_counter_assertions: usize,
     roadmap_requirements: S45RoadmapHarnessRequirementSet,
     inventory: S45ExistingHarnessInventory,
     non_claims: Vec<S45HarnessNonClaim>,
@@ -59,15 +56,8 @@ impl S45SimulationHarnessEntry {
         admitted_page_lsn_frontier: Option<PageLsn>,
         recovery_counters: RecoveryCounterSnapshot,
     ) -> Self {
-        let (
-            recovered_root,
-            source_decision_digest,
-            s4_completed_lanes,
-            s4_required_lanes,
-            s4_foundational_exact_counter_assertions,
-            roadmap_requirements,
-            inventory,
-        ) = request.into_admitted_parts();
+        let (recovered_root, source_decision_digest, roadmap_requirements, inventory) =
+            request.into_admitted_parts();
         let identity = S45SimulationHarnessEntryIdentity::new(
             recovered_root.clone(),
             source_decision_digest.clone(),
@@ -79,9 +69,6 @@ impl S45SimulationHarnessEntry {
             admitted_page_lsn_frontier,
             source_decision_digest,
             recovery_counters,
-            s4_completed_lanes,
-            s4_required_lanes,
-            s4_foundational_exact_counter_assertions,
             roadmap_requirements,
             inventory,
             non_claims: REQUIRED_S45_ENTRY_NON_CLAIMS.to_vec(),
@@ -108,18 +95,6 @@ impl S45SimulationHarnessEntry {
         self.recovery_counters
     }
 
-    pub const fn s4_completed_lanes(&self) -> usize {
-        self.s4_completed_lanes
-    }
-
-    pub const fn s4_required_lanes(&self) -> usize {
-        self.s4_required_lanes
-    }
-
-    pub const fn s4_foundational_exact_counter_assertions(&self) -> usize {
-        self.s4_foundational_exact_counter_assertions
-    }
-
     pub const fn roadmap_requirements(&self) -> &S45RoadmapHarnessRequirementSet {
         &self.roadmap_requirements
     }
@@ -132,9 +107,8 @@ impl S45SimulationHarnessEntry {
         &self.non_claims
     }
 
-    pub fn accepts_only_s4_closeout_and_roadmap2_harness_evidence(&self) -> bool {
-        self.s4_completed_lanes == self.s4_required_lanes
-            && self.roadmap_requirements.is_complete()
+    pub fn accepts_recovery_receipt_and_roadmap2_harness_evidence(&self) -> bool {
+        self.roadmap_requirements.is_complete()
             && self
                 .non_claims
                 .contains(&S45HarnessNonClaim::NoS5PhysicalIsolationCorrectnessClaim)

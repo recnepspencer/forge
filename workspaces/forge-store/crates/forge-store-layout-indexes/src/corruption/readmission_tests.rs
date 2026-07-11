@@ -5,8 +5,8 @@ use super::readmission_test_support::{
 };
 use super::tests::{family, offline_admission, other_family};
 use crate::corruption::{
-    layout_corruption, S8CorruptionDenial, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome,
-    S8LayoutReadmissionSource,
+    layout_corruption, S8CorruptionDenial, S8LayoutCorruptionInput, S8LayoutCorruptionView,
+    S8LayoutReadmissionSource, S8LayoutReadmissionView,
 };
 
 #[test]
@@ -15,7 +15,6 @@ fn offline_readmission_resumes_foreground_authority_with_family_bound_store_witn
         family: family(),
         admission: offline_admission("offline-success"),
     });
-    let required_state = required.production_transition().edge().to();
     let outcome = layout_corruption().readmit_with(
         required,
         crate::corruption::S8NativeReadmissionInput::RecoveryWitness {
@@ -23,24 +22,9 @@ fn offline_readmission_resumes_foreground_authority_with_family_bound_store_witn
         },
     );
 
-    assert_eq!(
-        outcome.production_transition().edge().to(),
-        crate::production_transition::S8LayoutMachineState::Readmitted
-    );
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::CorruptionQuarantine,
-        )
-        .permits_edge(
-            required_state,
-            crate::production_transition::S8LayoutMachineTransition::Readmit,
-            outcome.production_transition().edge().to(),
-        )
-    );
-
     assert!(matches!(
-        outcome,
-        crate::corruption::S8LayoutReadmissionOutcome::Readmitted(witness)
+        outcome.view(),
+        S8LayoutReadmissionView::OfflineReadmitted(witness)
             if witness.family() == family()
                 && witness.source() == S8LayoutReadmissionSource::OfflineRecoveryEvidence
     ));
@@ -58,20 +42,6 @@ fn quarantine_readmission_resumes_foreground_authority_with_family_bound_store_w
             &current_authority("store.s8.corruption", "quarantine-success"),
         )
         .expect("record-backed quarantine should derive readmission requirement");
-    assert_eq!(
-        required.production_transition().edge().to(),
-        crate::production_transition::S8LayoutMachineState::QuarantineReadmissionRequired
-    );
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::CorruptionQuarantine,
-        )
-        .permits_edge(
-            crate::production_transition::S8LayoutMachineState::Quarantined,
-            crate::production_transition::S8LayoutMachineTransition::RequireRebind,
-            required.production_transition().edge().to(),
-        )
-    );
     let outcome = layout_corruption().readmit_with(
         required,
         crate::corruption::S8NativeReadmissionInput::RecoveryWitness {
@@ -79,24 +49,9 @@ fn quarantine_readmission_resumes_foreground_authority_with_family_bound_store_w
         },
     );
 
-    assert_eq!(
-        outcome.production_transition().edge().to(),
-        crate::production_transition::S8LayoutMachineState::Readmitted
-    );
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::CorruptionQuarantine,
-        )
-        .permits_edge(
-            crate::production_transition::S8LayoutMachineState::QuarantineReadmissionRequired,
-            crate::production_transition::S8LayoutMachineTransition::Readmit,
-            outcome.production_transition().edge().to(),
-        )
-    );
-
     assert!(matches!(
-        outcome,
-        crate::corruption::S8LayoutReadmissionOutcome::Readmitted(witness)
+        outcome.view(),
+        S8LayoutReadmissionView::QuarantineReadmitted(witness)
             if witness.family() == family()
                 && witness.source() == S8LayoutReadmissionSource::QuarantineRecovery
     ));
@@ -115,8 +70,17 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
         )
         .expect("record-backed quarantine should derive readmission requirement");
 
+    let wrong_family_required = layout_corruption()
+        .require_record_backed_recovery_readmission(
+            layout_corruption().classify(S8LayoutCorruptionInput::AuthoritativeQuarantine {
+                family: family(),
+                record: quarantine_record.clone(),
+            }),
+            &current_authority("store.s8.corruption", "quarantine-required-a"),
+        )
+        .unwrap();
     let wrong_family = layout_corruption().readmit_with(
-        required.clone(),
+        wrong_family_required,
         crate::corruption::S8NativeReadmissionInput::RecoveryWitness {
             witness: record_backed_witness(
                 other_family(),
@@ -134,22 +98,20 @@ fn quarantine_readmission_rejects_witness_for_different_family_or_artifact_ident
     );
 
     assert!(matches!(
-        wrong_family,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_family.view(),
+        S8LayoutReadmissionView::QuarantineDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::QuarantineRecovery,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
     assert!(matches!(
-        wrong_identity,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_identity.view(),
+        S8LayoutReadmissionView::QuarantineDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::QuarantineRecovery,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
 }
 
@@ -207,8 +169,12 @@ fn offline_readmission_rejects_witness_for_different_family_or_artifact_identity
         admission: offline_admission("offline-required-a"),
     });
 
+    let wrong_family_required = layout_corruption().classify(S8LayoutCorruptionInput::OfflineEvidence {
+        family: family(),
+        admission: offline_admission("offline-required-a"),
+    });
     let wrong_family = layout_corruption().readmit_with(
-        required.clone(),
+        wrong_family_required,
         crate::corruption::S8NativeReadmissionInput::RecoveryWitness {
             witness: offline_witness(other_family(), "offline-required-a"),
         },
@@ -222,22 +188,20 @@ fn offline_readmission_rejects_witness_for_different_family_or_artifact_identity
     );
 
     assert!(matches!(
-        wrong_family,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_family.view(),
+        S8LayoutReadmissionView::OfflineDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::OfflineRecoveryEvidence,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
     assert!(matches!(
-        wrong_identity,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_identity.view(),
+        S8LayoutReadmissionView::OfflineDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::OfflineRecoveryEvidence,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
 }
 
@@ -254,8 +218,8 @@ fn terminal_import_readmission_resumes_foreground_authority_with_family_bound_st
     );
 
     assert!(matches!(
-        outcome,
-        crate::corruption::S8LayoutReadmissionOutcome::Readmitted(witness)
+        outcome.view(),
+        S8LayoutReadmissionView::ImportReadmitted(witness)
             if witness.family() == family()
                 && witness.source() == S8LayoutReadmissionSource::TerminalImport
     ));
@@ -274,13 +238,12 @@ fn terminal_import_does_not_accept_offline_recovery_witness_as_readmission_autho
     );
 
     assert!(matches!(
-        outcome,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        outcome.view(),
+        S8LayoutReadmissionView::ImportDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::TerminalImport,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
 }
 
@@ -292,10 +255,10 @@ fn terminal_import_keeps_receipt_identity_in_required_outcome() {
         layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport { witness });
 
     assert!(matches!(
-        required,
-        S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired { family: actual_family, identity }
-            if actual_family == family()
-                && identity == expected_identity
+        required.view(),
+        S8LayoutCorruptionView::ImportReadmissionRequired(requirement)
+            if requirement.family() == family()
+                && requirement.identity() == &expected_identity
     ));
 }
 
@@ -305,8 +268,11 @@ fn terminal_import_readmission_rejects_witness_for_different_family_or_artifact_
         witness: import_witness(family(), "terminal-required-a"),
     });
 
+    let wrong_family_required = layout_corruption().classify(S8LayoutCorruptionInput::TerminalImport {
+        witness: import_witness(family(), "terminal-required-a"),
+    });
     let wrong_family = layout_corruption().readmit_with(
-        required.clone(),
+        wrong_family_required,
         crate::corruption::S8NativeReadmissionInput::RecoveryWitness {
             witness: import_witness(other_family(), "terminal-required-a"),
         },
@@ -320,32 +286,19 @@ fn terminal_import_readmission_rejects_witness_for_different_family_or_artifact_
     );
 
     assert!(matches!(
-        wrong_family,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_family.view(),
+        S8LayoutReadmissionView::ImportDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::TerminalImport,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
     assert!(matches!(
-        wrong_identity,
-        crate::corruption::S8LayoutReadmissionOutcome::Denied {
-            denial: S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
+        wrong_identity.view(),
+        S8LayoutReadmissionView::ImportDenied(denied)
+            if matches!(denied.denial(), S8CorruptionDenial::FamilyBoundReadmissionWitnessRequired {
                 family: actual_family,
                 source: S8LayoutReadmissionSource::TerminalImport,
-            }, ..
-        } if actual_family == family()
+            } if *actual_family == family())
     ));
-}
-
-pub(crate) fn exercise_readmission_cases() {
-    offline_readmission_resumes_foreground_authority_with_family_bound_store_witness();
-    quarantine_readmission_resumes_foreground_authority_with_family_bound_store_witness();
-    quarantine_readmission_rejects_witness_for_different_family_or_artifact_identity();
-    quarantine_readmission_requirement_refuses_placeholder_quarantine_outcomes();
-    offline_readmission_rejects_witness_for_different_family_or_artifact_identity();
-    terminal_import_readmission_resumes_foreground_authority_with_family_bound_store_witness();
-    terminal_import_does_not_accept_offline_recovery_witness_as_readmission_authority();
-    terminal_import_readmission_rejects_witness_for_different_family_or_artifact_identity();
 }

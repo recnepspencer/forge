@@ -1,10 +1,9 @@
 use forge_proof::TransitionOutcome;
-use forge_store_layout_indexes::layout_strategy_admission::phase22_crash_boundary_rule;
 use forge_store_physical_backend::SimulatedStrictDurableProfile;
 use forge_store_recovery_physics::{
     CrashBoundaryLayoutReport, LogSequenceNumber, PartialPublicationCrashEdge,
     PartialPublicationReplayedCrashEdge, RecoveryCheckpointRecordSecurityMetadataEnvelope,
-    RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission, RecoveryLayoutAccess,
+    RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
     RecoveryReplayEntryGate, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoveryWalRecordSecurityMetadataEnvelope,
     RecoveryWalRecordSecurityMetadataIdentity, WalAppendPlan, WalLsnRange, WalSegmentGeneration,
@@ -40,13 +39,10 @@ pub(crate) fn replayable_wal_classification(frame_digest: &str) -> CrashBoundary
         .record_written_bytes(64)
         .finish()
         .expect("wal append receipt should finish");
-    RecoveryLayoutAccess::s8()
-        .crash_boundary_layout(&phase22_crash_boundary_rule().expect("phase-22 crash rule"))
-        .expect("phase-22 crash family")
-        .admit_crash_edge(PartialPublicationCrashEdge::after_durability_before_ack(
-            receipt,
-        ))
-        .expect("phase-22 crash report should admit replayable WAL evidence")
+    CrashBoundaryLayoutReport::admit_crash_edge(
+        PartialPublicationCrashEdge::after_durability_before_ack(receipt),
+    )
+    .expect("phase-22 crash report should admit replayable WAL evidence")
 }
 
 pub(crate) fn pre_wal_replay_edge(

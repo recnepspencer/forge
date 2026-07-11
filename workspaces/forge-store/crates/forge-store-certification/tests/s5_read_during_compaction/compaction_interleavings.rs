@@ -60,9 +60,6 @@ fn read_during_compaction_keeps_old_reader_and_new_reader_stable() {
     let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
-        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
-            inputs.new_root,
-        ),
     )
     .unwrap();
     assert_eq!(publication.counters().publication_swaps(), 1);

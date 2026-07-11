@@ -73,16 +73,13 @@ impl LayoutCustomizationBoundaryFacade {
         );
 
         let admission = layout_admission_registry().admit(layout_request);
-        let admission_transition = admission.production_transition();
         match admission.into_result() {
             Ok(snapshot) => TransitionOutcome::success(S8FutureLayoutCustomizationAdmission::new(
-                request,
-                snapshot,
-                admission_transition,
+                request, snapshot,
             )),
             Err(denial) => {
                 TransitionOutcome::denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-                    super::S8LayoutAdmissionDenialProjection::new(denial, admission_transition),
+                    super::S8LayoutAdmissionDenialProjection::new(denial),
                 ))
             }
         }

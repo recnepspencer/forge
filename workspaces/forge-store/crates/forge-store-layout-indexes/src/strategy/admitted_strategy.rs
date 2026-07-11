@@ -26,11 +26,6 @@ impl S8AdmittedLayoutStrategy {
     pub const fn invariant_suite(&self) -> S8StrategyInvariantSuite {
         self.invariants.suite()
     }
-    pub const fn invariant_production_transition(
-        &self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        self.invariants.production_transition()
-    }
     pub const fn key_domain(&self) -> PhysicalKeyDomainWitness {
         self.declaration.key_domain()
     }

@@ -1,6 +1,5 @@
 use forge_store_recovery_physics::RecoveryLayoutReadmissionIdentity;
 
-use crate::production_transition::define_owner_outcome;
 use crate::{
     LayoutCorruptionClassification, PhysicalArtifactFamily, S8LayoutCoverageWitness,
     S8MaterializationStateClass,
@@ -77,25 +76,121 @@ impl S8QuarantineReadmissionRequirement {
     }
 }
 
-define_owner_outcome!(
-    pub S8LayoutCorruptionOutcome,
-    pub S8LayoutCorruptionView,
-    S8LayoutCorruptionCase,
-    CorruptionQuarantine,
-    ClassifyCorruption,
-    [
-        clean => Clean(S8LayoutCoverageWitness): Unclassified => Classify => Clean,
-        not_found => NotFound(PhysicalArtifactFamily): Unclassified => Classify => NotFound,
-        unsupported => Unsupported(S8UnsupportedCorruptionState): Unclassified => Classify => Unsupported,
-        stale_binding => StaleBinding(S8LayoutCoverageWitness): Unclassified => Classify => Stale,
-        rebuild_required => RebuildRequired(LayoutCorruptionClassification): Unclassified => Classify => RebuildRequired,
-        quarantined => Quarantined(S8LayoutQuarantineWitness): Unclassified => Quarantine => Quarantined,
-        quarantine_readmission_required => QuarantineReadmissionRequired(S8QuarantineReadmissionRequirement): Quarantined => RequireRebind => QuarantineReadmissionRequired,
-        offline_readmission_required => OfflineReadmissionRequired(S8ReadmissionRequirement): Unclassified => Classify => OfflineEvidenceReadmissionRequired,
-        import_readmission_required => ImportReadmissionRequired(S8ReadmissionRequirement): Unclassified => Classify => TerminalImportReadmissionRequired,
-        migration_required => MigrationRequired(PhysicalArtifactFamily): Unclassified => Classify => MigrationRequired
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8LayoutCorruptionCase {
+    Clean(S8LayoutCoverageWitness),
+    NotFound(PhysicalArtifactFamily),
+    Unsupported(S8UnsupportedCorruptionState),
+    StaleBinding(S8LayoutCoverageWitness),
+    RebuildRequired(LayoutCorruptionClassification),
+    Quarantined(S8LayoutQuarantineWitness),
+    QuarantineReadmissionRequired(S8QuarantineReadmissionRequirement),
+    OfflineReadmissionRequired(S8ReadmissionRequirement),
+    ImportReadmissionRequired(S8ReadmissionRequirement),
+    MigrationRequired(PhysicalArtifactFamily),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8LayoutCorruptionOutcome {
+    case: S8LayoutCorruptionCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8LayoutCorruptionView<'a> {
+    Clean(&'a S8LayoutCoverageWitness),
+    NotFound(&'a PhysicalArtifactFamily),
+    Unsupported(&'a S8UnsupportedCorruptionState),
+    StaleBinding(&'a S8LayoutCoverageWitness),
+    RebuildRequired(&'a LayoutCorruptionClassification),
+    Quarantined(&'a S8LayoutQuarantineWitness),
+    QuarantineReadmissionRequired(&'a S8QuarantineReadmissionRequirement),
+    OfflineReadmissionRequired(&'a S8ReadmissionRequirement),
+    ImportReadmissionRequired(&'a S8ReadmissionRequirement),
+    MigrationRequired(&'a PhysicalArtifactFamily),
+}
+
+impl S8LayoutCorruptionOutcome {
+    pub(crate) fn clean(value: S8LayoutCoverageWitness) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::Clean(value))
+    }
+
+    pub(crate) fn not_found(value: PhysicalArtifactFamily) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::NotFound(value))
+    }
+
+    pub(crate) fn unsupported(value: S8UnsupportedCorruptionState) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::Unsupported(value))
+    }
+
+    pub(crate) fn stale_binding(value: S8LayoutCoverageWitness) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::StaleBinding(value))
+    }
+
+    pub(crate) fn rebuild_required(value: LayoutCorruptionClassification) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::RebuildRequired(value))
+    }
+
+    pub(crate) fn quarantined(value: S8LayoutQuarantineWitness) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::Quarantined(value))
+    }
+
+    pub(crate) fn quarantine_readmission_required(
+        value: S8QuarantineReadmissionRequirement,
+    ) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::QuarantineReadmissionRequired(value))
+    }
+
+    pub(crate) fn offline_readmission_required(value: S8ReadmissionRequirement) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::OfflineReadmissionRequired(value))
+    }
+
+    pub(crate) fn import_readmission_required(value: S8ReadmissionRequirement) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::ImportReadmissionRequired(value))
+    }
+
+    pub(crate) fn migration_required(value: PhysicalArtifactFamily) -> Self {
+        Self::from_owner_payload(S8LayoutCorruptionCase::MigrationRequired(value))
+    }
+
+    fn from_owner_payload(case: S8LayoutCorruptionCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8LayoutCorruptionView<'_> {
+        match &self.case {
+            S8LayoutCorruptionCase::Clean(value) => S8LayoutCorruptionView::Clean(value),
+            S8LayoutCorruptionCase::NotFound(value) => S8LayoutCorruptionView::NotFound(value),
+            S8LayoutCorruptionCase::Unsupported(value) => {
+                S8LayoutCorruptionView::Unsupported(value)
+            }
+            S8LayoutCorruptionCase::StaleBinding(value) => {
+                S8LayoutCorruptionView::StaleBinding(value)
+            }
+            S8LayoutCorruptionCase::RebuildRequired(value) => {
+                S8LayoutCorruptionView::RebuildRequired(value)
+            }
+            S8LayoutCorruptionCase::Quarantined(value) => {
+                S8LayoutCorruptionView::Quarantined(value)
+            }
+            S8LayoutCorruptionCase::QuarantineReadmissionRequired(value) => {
+                S8LayoutCorruptionView::QuarantineReadmissionRequired(value)
+            }
+            S8LayoutCorruptionCase::OfflineReadmissionRequired(value) => {
+                S8LayoutCorruptionView::OfflineReadmissionRequired(value)
+            }
+            S8LayoutCorruptionCase::ImportReadmissionRequired(value) => {
+                S8LayoutCorruptionView::ImportReadmissionRequired(value)
+            }
+            S8LayoutCorruptionCase::MigrationRequired(value) => {
+                S8LayoutCorruptionView::MigrationRequired(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8LayoutCorruptionCase {
+        self.case
+    }
+}
 
 impl S8LayoutCorruptionOutcome {
     pub fn class(&self) -> S8LayoutCorruptionClass {
@@ -168,21 +263,87 @@ impl S8ReadmissionDenied {
     }
 }
 
-define_owner_outcome!(
-    pub S8LayoutReadmissionOutcome,
-    pub S8LayoutReadmissionView,
-    S8LayoutReadmissionCase,
-    CorruptionQuarantine,
-    ReadmitCorruptionEvidence,
-    [
-        quarantine_readmitted => QuarantineReadmitted(S8LayoutReadmissionWitness): QuarantineReadmissionRequired => Readmit => Readmitted,
-        offline_readmitted => OfflineReadmitted(S8LayoutReadmissionWitness): OfflineEvidenceReadmissionRequired => Readmit => Readmitted,
-        import_readmitted => ImportReadmitted(S8LayoutReadmissionWitness): TerminalImportReadmissionRequired => Readmit => Readmitted,
-        quarantine_denied => QuarantineDenied(S8ReadmissionDenied): QuarantineReadmissionRequired => Deny => Denied,
-        offline_denied => OfflineDenied(S8ReadmissionDenied): OfflineEvidenceReadmissionRequired => Deny => Denied,
-        import_denied => ImportDenied(S8ReadmissionDenied): TerminalImportReadmissionRequired => Deny => Denied
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8LayoutReadmissionCase {
+    QuarantineReadmitted(S8LayoutReadmissionWitness),
+    OfflineReadmitted(S8LayoutReadmissionWitness),
+    ImportReadmitted(S8LayoutReadmissionWitness),
+    QuarantineDenied(S8ReadmissionDenied),
+    OfflineDenied(S8ReadmissionDenied),
+    ImportDenied(S8ReadmissionDenied),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8LayoutReadmissionOutcome {
+    case: S8LayoutReadmissionCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8LayoutReadmissionView<'a> {
+    QuarantineReadmitted(&'a S8LayoutReadmissionWitness),
+    OfflineReadmitted(&'a S8LayoutReadmissionWitness),
+    ImportReadmitted(&'a S8LayoutReadmissionWitness),
+    QuarantineDenied(&'a S8ReadmissionDenied),
+    OfflineDenied(&'a S8ReadmissionDenied),
+    ImportDenied(&'a S8ReadmissionDenied),
+}
+
+impl S8LayoutReadmissionOutcome {
+    pub(crate) fn quarantine_readmitted(value: S8LayoutReadmissionWitness) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::QuarantineReadmitted(value))
+    }
+
+    pub(crate) fn offline_readmitted(value: S8LayoutReadmissionWitness) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::OfflineReadmitted(value))
+    }
+
+    pub(crate) fn import_readmitted(value: S8LayoutReadmissionWitness) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::ImportReadmitted(value))
+    }
+
+    pub(crate) fn quarantine_denied(value: S8ReadmissionDenied) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::QuarantineDenied(value))
+    }
+
+    pub(crate) fn offline_denied(value: S8ReadmissionDenied) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::OfflineDenied(value))
+    }
+
+    pub(crate) fn import_denied(value: S8ReadmissionDenied) -> Self {
+        Self::from_owner_payload(S8LayoutReadmissionCase::ImportDenied(value))
+    }
+
+    fn from_owner_payload(case: S8LayoutReadmissionCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8LayoutReadmissionView<'_> {
+        match &self.case {
+            S8LayoutReadmissionCase::QuarantineReadmitted(value) => {
+                S8LayoutReadmissionView::QuarantineReadmitted(value)
+            }
+            S8LayoutReadmissionCase::OfflineReadmitted(value) => {
+                S8LayoutReadmissionView::OfflineReadmitted(value)
+            }
+            S8LayoutReadmissionCase::ImportReadmitted(value) => {
+                S8LayoutReadmissionView::ImportReadmitted(value)
+            }
+            S8LayoutReadmissionCase::QuarantineDenied(value) => {
+                S8LayoutReadmissionView::QuarantineDenied(value)
+            }
+            S8LayoutReadmissionCase::OfflineDenied(value) => {
+                S8LayoutReadmissionView::OfflineDenied(value)
+            }
+            S8LayoutReadmissionCase::ImportDenied(value) => {
+                S8LayoutReadmissionView::ImportDenied(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8LayoutReadmissionCase {
+        self.case
+    }
+}
 
 impl S8LayoutReadmissionOutcome {
     pub(super) fn readmitted(witness: S8LayoutReadmissionWitness) -> Self {

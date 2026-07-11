@@ -13,7 +13,7 @@ use forge_store_physical_integrity::{
     IntegrityEntryAdmission, IntegrityEntryBasis, IntegrityEntryDenialKind, IntegrityEntryRequest,
     ProtectedPhysicalByteView, ScrubEnvelopeLimits, VerifierResidentLimits,
 };
-use forge_store_readiness::S2DeniedBoundaryKind;
+use forge_store_contracts::S2DeniedBoundaryKind;
 
 #[test]
 fn equivalent_s2_closeouts_lower_to_same_s3_entry_basis_and_scrub_limits() {

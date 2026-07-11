@@ -9,19 +9,16 @@ use super::{S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope};
 pub struct S8FutureLayoutCustomizationAdmission {
     request: super::S8FutureLayoutCustomizationRequest,
     registry_snapshot: S8LayoutStrategyRegistrySnapshot,
-    layout_admission_transition: crate::production_transition::S8LayoutProductionTransition,
 }
 
 impl S8FutureLayoutCustomizationAdmission {
     pub(crate) const fn new(
         request: super::S8FutureLayoutCustomizationRequest,
         registry_snapshot: S8LayoutStrategyRegistrySnapshot,
-        layout_admission_transition: crate::production_transition::S8LayoutProductionTransition,
     ) -> Self {
         Self {
             request,
             registry_snapshot,
-            layout_admission_transition,
         }
     }
 
@@ -31,12 +28,6 @@ impl S8FutureLayoutCustomizationAdmission {
 
     pub const fn registry_snapshot(self) -> S8LayoutStrategyRegistrySnapshot {
         self.registry_snapshot
-    }
-
-    pub const fn layout_admission_transition(
-        self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        self.layout_admission_transition
     }
 }
 
@@ -60,35 +51,15 @@ pub enum S8FutureLayoutCustomizationDenial {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S8LayoutAdmissionDenialProjection {
     denial: S8LayoutAdmissionDenial,
-    transition: crate::production_transition::S8LayoutProductionTransition,
 }
 
 impl S8LayoutAdmissionDenialProjection {
-    pub(crate) const fn new(
-        denial: S8LayoutAdmissionDenial,
-        transition: crate::production_transition::S8LayoutProductionTransition,
-    ) -> Self {
-        Self { denial, transition }
+    pub(crate) const fn new(denial: S8LayoutAdmissionDenial) -> Self {
+        Self { denial }
     }
 
     pub const fn denial(self) -> S8LayoutAdmissionDenial {
         self.denial
-    }
-    pub const fn transition(self) -> crate::production_transition::S8LayoutProductionTransition {
-        self.transition
-    }
-}
-
-impl S8FutureLayoutCustomizationDenial {
-    /// Preserves the lower owner fact when customization reached Store layout
-    /// admission. Earlier customization denials correctly have no such fact.
-    pub const fn layout_admission_transition(
-        self,
-    ) -> Option<crate::production_transition::S8LayoutProductionTransition> {
-        match self {
-            Self::StoreAdmissionDenied(projection) => Some(projection.transition()),
-            _ => None,
-        }
     }
 }
 

@@ -51,13 +51,14 @@ pub(crate) fn during_checkpoint_cutover_edge() -> PartialPublicationCrashEdge {
     PartialPublicationCrashEdge::during_checkpoint_cutover("phase8-checkpoint-cutover")
 }
 
-pub(crate) fn persisted_before_durability_bytes(start: u64, end_exclusive: u64) -> Vec<u8> {
+pub(crate) fn persisted_before_durability_bytes(
+    start: u64,
+    end_exclusive: u64,
+) -> PartialPublicationPersistedBytes {
     PartialPublicationPersistedBytes::after_wal_append_before_durability(
         wal_range(start, end_exclusive),
         "phase8-before-durability",
     )
-    .as_bytes()
-    .to_vec()
 }
 
 fn wal_range(start: u64, end_exclusive: u64) -> WalLsnRange {

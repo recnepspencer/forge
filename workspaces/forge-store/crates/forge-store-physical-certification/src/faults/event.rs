@@ -1,8 +1,9 @@
-use forge_store_recovery_physics::FreshRuntimeCrashRecoveryEvidence;
-
 use super::denial::{require_unambiguous_locus, FaultDeliveryDenial};
 use super::locus::PhysicalArtifactFaultLocus;
-use crate::{PhysicalBoundarySeam, PhysicalBoundaryYieldpoint, S6IoPressureFaultKind};
+use crate::{
+    FreshRuntimeCrashRecoveryEvidence, PhysicalBoundarySeam, PhysicalBoundaryYieldpoint,
+    S6IoPressureFaultKind,
+};
 use forge_store_physical_backend::ProductionStorageBoundarySeam;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

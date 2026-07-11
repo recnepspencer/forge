@@ -9,7 +9,7 @@ use crate::stable_read_execution::StablePhysicalReadReceipt;
 use crate::readiness::isolation_evidence::basis::{
     ExecutedIsolationBasis, FoundationalIsolationCounterReceipt,
 };
-use crate::{PhysicalIsolationCounterSnapshot, IsolationReadinessDenial};
+use crate::{IsolationReadinessDenial, PhysicalIsolationCounterSnapshot};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedIsolationEvidence {
@@ -57,10 +57,8 @@ impl ExecutedIsolationEvidence {
             super::performance_receipt::construct_s6_foundational_counter_receipt(counters)?;
         let proof_progression_identity =
             super::project_counters::foreground_reservation_test_progression_identity(counters);
-        let basis = ExecutedIsolationBasis::from_executed_isolation(
-            proof_progression_identity,
-            counters,
-        );
+        let basis =
+            ExecutedIsolationBasis::from_executed_isolation(proof_progression_identity, counters);
         Ok(Self {
             basis,
             counters,
@@ -77,7 +75,9 @@ impl ExecutedIsolationEvidence {
         self.counters
     }
 
-    pub(crate) const fn foundational_counter_receipt(&self) -> &FoundationalIsolationCounterReceipt {
+    pub(crate) const fn foundational_counter_receipt(
+        &self,
+    ) -> &FoundationalIsolationCounterReceipt {
         &self.foundational_counter_receipt
     }
 

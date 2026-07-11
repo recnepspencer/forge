@@ -1,29 +1,96 @@
 use super::super::{S8AccessLoweringDenied, S8ExecutedAccessReceipt};
-use crate::production_transition::define_owner_outcome;
 
-define_owner_outcome!(
-    pub S8IndexedExecutedEvidenceOutcome,
-    pub S8IndexedExecutedEvidenceView,
-    S8IndexedExecutedEvidencePayload,
-    ExecutedEvidence,
-    AdmitCountersAndExecute,
-    [
-        executed => Executed(S8ExecutedAccessReceipt): ExactCountersObserved => Execute => Executed,
-        denied => Denied(S8AccessLoweringDenied): ExactCountersObserved => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8IndexedExecutedEvidencePayload {
+    Executed(S8ExecutedAccessReceipt),
+    Denied(S8AccessLoweringDenied),
+}
 
-define_owner_outcome!(
-    pub S8DegradedExecutedEvidenceOutcome,
-    pub S8DegradedExecutedEvidenceView,
-    S8DegradedExecutedEvidencePayload,
-    DegradedExactScan,
-    ExecuteBudgetedDegradedExactScan,
-    [
-        executed => DegradedExecuted(S8ExecutedAccessReceipt): ExactCountersObserved => Execute => Executed,
-        denied => DegradedDenied(S8AccessLoweringDenied): ExactCountersObserved => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8IndexedExecutedEvidenceOutcome {
+    case: S8IndexedExecutedEvidencePayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8IndexedExecutedEvidenceView<'a> {
+    Executed(&'a S8ExecutedAccessReceipt),
+    Denied(&'a S8AccessLoweringDenied),
+}
+
+impl S8IndexedExecutedEvidenceOutcome {
+    pub(crate) fn executed(value: S8ExecutedAccessReceipt) -> Self {
+        Self::from_owner_payload(S8IndexedExecutedEvidencePayload::Executed(value))
+    }
+
+    pub(crate) fn denied(value: S8AccessLoweringDenied) -> Self {
+        Self::from_owner_payload(S8IndexedExecutedEvidencePayload::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8IndexedExecutedEvidencePayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8IndexedExecutedEvidenceView<'_> {
+        match &self.case {
+            S8IndexedExecutedEvidencePayload::Executed(value) => {
+                S8IndexedExecutedEvidenceView::Executed(value)
+            }
+            S8IndexedExecutedEvidencePayload::Denied(value) => {
+                S8IndexedExecutedEvidenceView::Denied(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8IndexedExecutedEvidencePayload {
+        self.case
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum S8DegradedExecutedEvidencePayload {
+    DegradedExecuted(S8ExecutedAccessReceipt),
+    DegradedDenied(S8AccessLoweringDenied),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8DegradedExecutedEvidenceOutcome {
+    case: S8DegradedExecutedEvidencePayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8DegradedExecutedEvidenceView<'a> {
+    DegradedExecuted(&'a S8ExecutedAccessReceipt),
+    DegradedDenied(&'a S8AccessLoweringDenied),
+}
+
+impl S8DegradedExecutedEvidenceOutcome {
+    pub(crate) fn executed(value: S8ExecutedAccessReceipt) -> Self {
+        Self::from_owner_payload(S8DegradedExecutedEvidencePayload::DegradedExecuted(value))
+    }
+
+    pub(crate) fn denied(value: S8AccessLoweringDenied) -> Self {
+        Self::from_owner_payload(S8DegradedExecutedEvidencePayload::DegradedDenied(value))
+    }
+
+    fn from_owner_payload(case: S8DegradedExecutedEvidencePayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8DegradedExecutedEvidenceView<'_> {
+        match &self.case {
+            S8DegradedExecutedEvidencePayload::DegradedExecuted(value) => {
+                S8DegradedExecutedEvidenceView::DegradedExecuted(value)
+            }
+            S8DegradedExecutedEvidencePayload::DegradedDenied(value) => {
+                S8DegradedExecutedEvidenceView::DegradedDenied(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8DegradedExecutedEvidencePayload {
+        self.case
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum ExecutedOwnerOutcome {
@@ -96,19 +163,5 @@ impl S8ExecutedEvidenceOutcome {
     }
     pub fn expect_err(self, message: &str) -> S8AccessLoweringDenied {
         self.into_result().expect_err(message)
-    }
-    pub const fn production_transition(
-        &self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        match &self.owner {
-            ExecutedOwnerOutcome::Indexed(value) => value.production_transition(),
-            ExecutedOwnerOutcome::Degraded(value) => value.production_transition(),
-        }
-    }
-    pub(crate) fn indexed_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8IndexedExecutedEvidenceOutcome::owner_transition_contract()
-    }
-    pub(crate) fn degraded_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8DegradedExecutedEvidenceOutcome::owner_transition_contract()
     }
 }

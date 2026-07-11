@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use forge_store_recovery_physics::{
+use forge_store_wal::{
     LogSequenceNumber, ReplayCursor, WalLsnRange, WalSegmentGeneration, WalSegmentId,
     WalSegmentScanRecord, WalTopologyDenial, WalTopologyScan,
 };

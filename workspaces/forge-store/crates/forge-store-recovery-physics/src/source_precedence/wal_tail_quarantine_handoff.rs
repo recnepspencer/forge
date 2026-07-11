@@ -1,6 +1,4 @@
-use crate::{
-    RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenial, IntegrityHandoffDenialKind,
-};
+use crate::{IntegrityHandoffDenial, IntegrityHandoffDenialKind, RecoveryIntegrityHandoffReceipt};
 use forge_store_physical_integrity::{
     QuarantineRecord, WalFrameDamageDenial, WalFrameIntegrityCounters,
     WalFrameIntegrityInputIdentity, WalTailIntegrityPosture,

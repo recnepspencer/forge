@@ -1,4 +1,4 @@
-#[path = "s4_5_closeout_support.rs"]
+#[path = "s4_5_physical_simulation_harness_closeout/support.rs"]
 mod closeout_support;
 #[path = "s4_5_counter_strength/support.rs"]
 mod counter_support;

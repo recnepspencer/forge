@@ -1,7 +1,6 @@
-use crate::corruption::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionOutcome};
-use crate::layout_families::layout_declarations;
+use crate::corruption::{layout_corruption, S8LayoutCorruptionInput, S8LayoutCorruptionView};
 use crate::materialization::{S8LayoutCoverageWitness, S8LayoutMaterializationState};
-use crate::{LayoutCorruptionClassification, S8PhysicalCoverageBasis};
+use crate::{layout_declarations, LayoutCorruptionClassification, S8PhysicalCoverageBasis};
 use forge_store_contracts::DurableArtifactFamilyId;
 use forge_store_physical_format::PhysicalEpoch;
 use forge_store_recovery_physics::{
@@ -68,8 +67,8 @@ pub(super) fn offline_admission(
 #[test]
 fn materialization_states_keep_not_found_stale_and_quarantine_distinct() {
     assert!(matches!(
-        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(absent_coverage())),
-        S8LayoutCorruptionOutcome::NotFound { family: actual_family } if actual_family == family()
+        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(absent_coverage())).view(),
+        S8LayoutCorruptionView::NotFound(actual_family) if *actual_family == family()
     ));
 
     let stale = crate::facade::access_planning()
@@ -79,8 +78,8 @@ fn materialization_states_keep_not_found_stale_and_quarantine_distinct() {
         )
         .unwrap();
     assert!(matches!(
-        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(stale)),
-        S8LayoutCorruptionOutcome::StaleBinding { .. }
+        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(stale)).view(),
+        S8LayoutCorruptionView::StaleBinding(_)
     ));
 
     let quarantined = crate::facade::access_planning()
@@ -96,8 +95,8 @@ fn materialization_states_keep_not_found_stale_and_quarantine_distinct() {
         )
         .unwrap();
     assert!(matches!(
-        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(quarantined)),
-        S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(_)
+        layout_corruption().classify(S8LayoutCorruptionInput::Materialization(quarantined)).view(),
+        S8LayoutCorruptionView::Quarantined(_)
     ));
 }
 
@@ -106,8 +105,8 @@ fn rebuild_classification_keeps_derived_and_authoritative_corruption_distinct() 
     assert!(matches!(
         layout_corruption().classify(S8LayoutCorruptionInput::RebuildClassification(
             LayoutCorruptionClassification::DerivedProjectionRebuildToParity
-        )),
-        S8LayoutCorruptionOutcome::DerivedProjectionRebuildRequired { .. }
+        )).view(),
+        S8LayoutCorruptionView::RebuildRequired(_)
     ));
 
     assert!(matches!(
@@ -115,8 +114,8 @@ fn rebuild_classification_keeps_derived_and_authoritative_corruption_distinct() 
             LayoutCorruptionClassification::AuthoritativeSourceQuarantineRequired {
                 family: family()
             }
-        )),
-        S8LayoutCorruptionOutcome::AuthoritativeArtifactQuarantineRequired(_)
+        )).view(),
+        S8LayoutCorruptionView::Quarantined(_)
     ));
 }
 
@@ -130,41 +129,16 @@ fn terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes() {
         witness: super::readmission_tests::import_witness(family(), "terminal-import"),
     });
 
-    assert_eq!(
-        offline.production_transition().edge().to(),
-        crate::production_transition::S8LayoutMachineState::OfflineEvidenceReadmissionRequired
-    );
-    assert_eq!(
-        terminal.production_transition().edge().to(),
-        crate::production_transition::S8LayoutMachineState::TerminalImportReadmissionRequired
-    );
-    for outcome in [&offline, &terminal] {
-        assert!(
-            crate::production_transition::S8LayoutMachineContract::for_machine(
-                crate::production_transition::S8LayoutStateMachine::CorruptionQuarantine,
-            )
-            .contains(outcome.production_transition())
-        );
-    }
-
     assert!(matches!(
-        offline,
-        S8LayoutCorruptionOutcome::OfflineEvidenceReadmissionRequired { family: actual_family, .. } if actual_family == family()
+        offline.view(),
+        S8LayoutCorruptionView::OfflineReadmissionRequired(requirement)
+            if requirement.family() == family()
     ));
     assert!(matches!(
-        terminal,
-        S8LayoutCorruptionOutcome::TerminalImportReadmissionRequired { family: actual_family, .. } if actual_family == family()
+        terminal.view(),
+        S8LayoutCorruptionView::ImportReadmissionRequired(requirement)
+            if requirement.family() == family()
     ));
-}
-
-pub(crate) fn exercise_classification_cases() {
-    materialization_states_keep_not_found_stale_and_quarantine_distinct();
-    rebuild_classification_keeps_derived_and_authoritative_corruption_distinct();
-    terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes();
-}
-
-pub(crate) fn assert_owner_transition_handoff_equivalence() {
-    terminal_and_offline_inputs_require_store_readmission_on_distinct_lanes();
 }
 
 pub(super) fn other_family() -> crate::PhysicalArtifactFamily {

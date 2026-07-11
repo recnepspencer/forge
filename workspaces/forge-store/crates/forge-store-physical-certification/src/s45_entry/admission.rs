@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::RecoveryPhysicsCertificationBundle;
+use forge_store_recovery_physics::BoundedRecoveryReceipt;
 
 use super::denial::S45HarnessBoundaryDenial;
 use super::entry::S45SimulationHarnessEntry;
@@ -8,29 +8,25 @@ use super::request::S45HarnessEntryRequest;
 use super::requirement_set::S45RoadmapHarnessRequirementSet;
 
 pub fn admit_s45_simulation_harness_entry(
-    s4_closeout: &RecoveryPhysicsCertificationBundle,
+    recovery: &BoundedRecoveryReceipt,
     roadmap_requirements: S45RoadmapHarnessRequirementSet,
     inventory: S45ExistingHarnessInventory,
 ) -> Result<S45SimulationHarnessEntry, S45HarnessBoundaryDenial> {
-    let report = s4_closeout.closeout_report();
-    require_complete_s4_closeout(s4_closeout)?;
     require_roadmap_harness_requirements(&roadmap_requirements)?;
     inventory.validate_for_s45_entry()?;
+    let recovered_state = recovery.execution().recovered_state();
 
     let request = S45HarnessEntryRequest::new(
-        report.recovered_root(),
-        report.source_decision_digest(),
-        report.suite_status().completed_lanes(),
-        report.suite_status().required_lanes(),
-        report.foundational_exact_counter_assertions(),
+        recovered_state.recovered_physical_root(),
+        recovered_state.source_decision_digest(),
         roadmap_requirements,
         inventory,
     );
     let request = admit_entry_request(request)?;
     Ok(S45SimulationHarnessEntry::from_admitted_request(
         request,
-        report.admitted_page_lsn_frontier(),
-        report.counters(),
+        recovered_state.page_lsn_frontier(),
+        recovery.counters(),
     ))
 }
 
@@ -60,26 +56,6 @@ pub const fn reject_s45_s5_isolation_authority_attempt() -> S45HarnessBoundaryDe
 
 pub const fn reject_s45_foundational_projection_authority() -> S45HarnessBoundaryDenial {
     S45HarnessBoundaryDenial::FoundationalProjectionCannotReplaceStoreAuthority
-}
-
-fn require_complete_s4_closeout(
-    s4_closeout: &RecoveryPhysicsCertificationBundle,
-) -> Result<(), S45HarnessBoundaryDenial> {
-    let report = s4_closeout.closeout_report();
-    if !report.suite_status().is_complete() {
-        return Err(S45HarnessBoundaryDenial::IncompleteS4Closeout);
-    }
-    if !report
-        .synthetic_shortcut_rejections()
-        .all_required_shortcuts_denied()
-    {
-        return Err(S45HarnessBoundaryDenial::S4CloseoutDoesNotRejectSyntheticShortcuts);
-    }
-    s4_closeout
-        .publish_s5_readiness()
-        .admit_for_s5_startup()
-        .map_err(|_| S45HarnessBoundaryDenial::S4CloseoutMissingS5RecoveryReadiness)?;
-    Ok(())
 }
 
 fn require_roadmap_harness_requirements(

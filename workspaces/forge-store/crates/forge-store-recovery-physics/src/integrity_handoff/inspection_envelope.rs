@@ -111,9 +111,7 @@ impl ChecksumAlgorithmScopeBasis {
         &self.scope
     }
 
-    fn from_coverage_basis(
-        basis: &ChecksumCoverageBasis,
-    ) -> Result<Self, IntegrityHandoffDenial> {
+    fn from_coverage_basis(basis: &ChecksumCoverageBasis) -> Result<Self, IntegrityHandoffDenial> {
         let scope = ChecksumScopeDeclaration::for_physical_format(
             basis.physical_format_identity(),
             basis.coverage_map().clone(),

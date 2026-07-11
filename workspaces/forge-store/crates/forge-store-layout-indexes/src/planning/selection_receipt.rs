@@ -1,6 +1,6 @@
 use super::selection_decision::decide_access_plan;
+use super::selection_issuance::issue_selection_outcome;
 use super::selection_outcome::S8AccessPlanSelectionOutcome;
-use super::selection_transition::issue_selection_outcome;
 use crate::access_shape::S8AccessShapeContract;
 use crate::artifact_family::ArtifactFamilyLifecycleAdmission;
 use crate::key_domain::PhysicalKeyDomainWitness;

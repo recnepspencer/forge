@@ -2,12 +2,12 @@ use super::inspection_envelope::BoundedInspectionEnvelopeEvidence;
 use super::payload::{
     IntegrityHandoffCounters, IntegrityHandoffPayload, SealedIntegrityHandoffPayloadParts,
 };
+use super::{IntegrityHandoffDenial, IntegrityHandoffDenialKind};
 use crate::{
     IntegrityDamageMap, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
     IntegrityVettedWalFrame, PartialPublicationBeforeWalReplayRead,
 };
-use super::{IntegrityHandoffDenial, IntegrityHandoffDenialKind};
 
 #[derive(Debug, Clone, Default)]
 pub struct IntegrityHandoffDeclaration {
@@ -79,9 +79,9 @@ impl IntegrityHandoffDeclaration {
             &self.wal_frames,
             &self.checkpoint_records,
         )?;
-        let inspection_envelope = self.inspection_envelope.ok_or_else(|| {
-            denial(IntegrityHandoffDenialKind::MissingInspectionEnvelopeEvidence)
-        })?;
+        let inspection_envelope = self
+            .inspection_envelope
+            .ok_or_else(|| denial(IntegrityHandoffDenialKind::MissingInspectionEnvelopeEvidence))?;
         let checksum_basis = inspection_envelope.checksum_basis().clone();
         let sealed_parts = SealedIntegrityHandoffPayloadParts {
             root_manifest,
@@ -119,9 +119,7 @@ fn require_vetted_records(
         return Err(denial(IntegrityHandoffDenialKind::MissingWalFrame));
     }
     if checkpoint_records.is_empty() {
-        return Err(denial(
-            IntegrityHandoffDenialKind::MissingCheckpointRecord,
-        ));
+        return Err(denial(IntegrityHandoffDenialKind::MissingCheckpointRecord));
     }
     Ok(())
 }

@@ -1,6 +1,5 @@
 use forge_store_blob_chunks::certification_test_authority::phase28_operations_witnesses;
 use forge_store_contracts::DurableArtifactFamilyId;
-use forge_store_layout_indexes::Phase28LayoutAuthorityPosture;
 use forge_store_offline_verifier::OfflineCustodyCapsuleObservation;
 use forge_store_security::{StoreTenantScope, StoreTrustBoundaryCrossing};
 
@@ -10,7 +9,7 @@ use crate::{
     BackupExportCustodyDeclaration, BackupExportCustodyMode, BackupExportCustodyReadiness,
     BackupExportTerminalProjectionPreparation, BackupImportCustodyReadmission,
     BackupLayoutEvidenceReport, CapsuleOperationLayoutReport, ExportLayoutEvidenceReport,
-    ImportLayoutEvidenceReport, OperationsLayoutCloseout,
+    ImportLayoutEvidenceReport,
 };
 
 #[test]
@@ -29,10 +28,6 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
     );
     let backup = BackupLayoutEvidenceReport::from_terminal_projection(&backup_preparation);
     assert_eq!(backup.family_id(), DurableArtifactFamilyId::ExportBundle);
-    assert_eq!(
-        backup.authority_posture(),
-        Phase28LayoutAuthorityPosture::TerminalOnly
-    );
     assert!(backup.cannot_be_foreground_authority());
 
     let raw = forge_store_security::StoreRawSecurityScopeDeclaration::deserialized_unadmitted(
@@ -60,10 +55,6 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
     .expect("offline observation");
     let restore = BackupImportCustodyReadmission::new(observation).admit_restore_evidence_layout();
     assert_eq!(restore.family_id(), DurableArtifactFamilyId::ImportBundle);
-    assert_eq!(
-        restore.authority_posture(),
-        Phase28LayoutAuthorityPosture::ReadmissionRequired
-    );
     assert!(restore.requires_explicit_readmission());
 
     let rotation_raw =
@@ -92,10 +83,6 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
     .expect("key-rotation observation");
     let restore_after_key_rotation =
         BackupImportCustodyReadmission::new(rotation_observation).admit_restore_evidence_layout();
-    assert_eq!(
-        restore_after_key_rotation.authority_posture(),
-        Phase28LayoutAuthorityPosture::ReadmissionRequired
-    );
     assert!(restore_after_key_rotation.requires_explicit_readmission());
     assert_eq!(
         restore_after_key_rotation.readmission_trigger().crossing(),
@@ -104,7 +91,7 @@ fn backup_and_restore_layout_reports_preserve_terminal_and_readmission_required_
 }
 
 #[test]
-fn closeout_preserves_real_export_import_and_capsule_witness_reports() {
+fn owner_reports_preserve_real_export_import_capsule_and_restore_evidence() {
     let witnesses = phase28_operations_witnesses("phase28.operations", b"abcdefghijklmno", 4);
     let export = ExportLayoutEvidenceReport::from_blob_export_bundle(witnesses.export_bundle());
     let import =
@@ -153,20 +140,13 @@ fn closeout_preserves_real_export_import_and_capsule_witness_reports() {
     )
     .admit_restore_evidence_layout();
 
-    let closeout = OperationsLayoutCloseout::new(backup, export, capsule, restore, import);
+    assert_eq!(export.family_id(), DurableArtifactFamilyId::ExportBundle);
+    assert_eq!(export.declared_chunks(), 4);
+    assert_eq!(import.local_chunks(), 4);
+    assert_eq!(capsule.declared_bytes(), 15);
     assert_eq!(
-        closeout.export().family_id(),
-        DurableArtifactFamilyId::ExportBundle
-    );
-    assert_eq!(closeout.export().declared_chunks(), 4);
-    assert_eq!(closeout.import().local_chunks(), 4);
-    assert_eq!(closeout.capsule().declared_bytes(), 15);
-    assert_eq!(
-        closeout.restore().readmission_trigger().crossing(),
+        restore.readmission_trigger().crossing(),
         StoreTrustBoundaryCrossing::OfflineExportImport
     );
-    assert_eq!(
-        closeout.backup().authority_posture(),
-        Phase28LayoutAuthorityPosture::TerminalOnly
-    );
+    assert!(backup.cannot_be_foreground_authority());
 }

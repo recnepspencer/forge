@@ -4,7 +4,6 @@ use super::counter_path::derive_strategy_counter_evidence;
 use super::declaration::S8StrategyDeclaration;
 use super::lsm::{declare_lsm_invariant_suite, S8LsmInvariantSuite};
 use super::{S8LayoutStrategyFamily, S8StrategyDenial};
-use crate::production_transition::define_owner_outcome;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S8StrategyLookupInvariant {
@@ -101,24 +100,57 @@ pub struct S8StrategyInvariantSuite {
     specific: StrategySpecificInvariantSuite,
 }
 
-define_owner_outcome!(
-    pub(crate) S8StrategyInvariantAdmissionOutcome,
-    pub(crate) S8StrategyInvariantAdmissionView,
-    S8StrategyInvariantAdmissionCase,
-    StrategyInvariantAdmission,
-    AdmitStrategyInvariantSuite,
-    [
-        admitted => Success(S8StrategyInvariantSuite): Declared => Admit => Admitted,
-        denied => Denied(S8StrategyDenial): Declared => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8StrategyInvariantAdmissionCase {
+    Success(S8StrategyInvariantSuite),
+    Denied(S8StrategyDenial),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct S8StrategyInvariantAdmissionOutcome {
+    case: S8StrategyInvariantAdmissionCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum S8StrategyInvariantAdmissionView<'a> {
+    Success(&'a S8StrategyInvariantSuite),
+    Denied(&'a S8StrategyDenial),
+}
+
+impl S8StrategyInvariantAdmissionOutcome {
+    pub(crate) fn admitted(value: S8StrategyInvariantSuite) -> Self {
+        Self::from_owner_payload(S8StrategyInvariantAdmissionCase::Success(value))
+    }
+
+    pub(crate) fn denied(value: S8StrategyDenial) -> Self {
+        Self::from_owner_payload(S8StrategyInvariantAdmissionCase::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8StrategyInvariantAdmissionCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8StrategyInvariantAdmissionView<'_> {
+        match &self.case {
+            S8StrategyInvariantAdmissionCase::Success(value) => {
+                S8StrategyInvariantAdmissionView::Success(value)
+            }
+            S8StrategyInvariantAdmissionCase::Denied(value) => {
+                S8StrategyInvariantAdmissionView::Denied(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8StrategyInvariantAdmissionCase {
+        self.case
+    }
+}
 
 impl S8StrategyInvariantAdmissionOutcome {
     pub(crate) fn into_admitted(self) -> Result<S8AdmittedStrategyInvariants, S8StrategyDenial> {
-        let transition = self.production_transition();
         match self.into_owner_payload() {
             S8StrategyInvariantAdmissionCase::Success(suite) => {
-                Ok(S8AdmittedStrategyInvariants { suite, transition })
+                Ok(S8AdmittedStrategyInvariants { suite })
             }
             S8StrategyInvariantAdmissionCase::Denied(denial) => Err(denial),
         }
@@ -128,17 +160,11 @@ impl S8StrategyInvariantAdmissionOutcome {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct S8AdmittedStrategyInvariants {
     suite: S8StrategyInvariantSuite,
-    transition: crate::production_transition::S8LayoutProductionTransition,
 }
 
 impl S8AdmittedStrategyInvariants {
     pub(crate) const fn suite(self) -> S8StrategyInvariantSuite {
         self.suite
-    }
-    pub(crate) const fn production_transition(
-        self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        self.transition
     }
 }
 

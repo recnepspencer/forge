@@ -13,7 +13,6 @@ use forge_store_buffer_pool::{
 use forge_store_contracts::{
     DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
 };
-use forge_store_layout_indexes::layout_strategy_admission::phase21_recovery_manifest_rule;
 use forge_store_physical_backend::{
     BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
     SimulatedStrictDurableProfile, WalDurabilityBarrier,
@@ -28,18 +27,18 @@ use forge_store_physical_integrity::{
 use forge_store_recovery_physics::{
     AcknowledgmentPrecondition, AdmittedRecoverySource, BackendResidueKind,
     BackendResidueRejection, CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
-    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverReceipt,
-    CheckpointDurabilityEvidenceSet, CheckpointIntervalContract, CheckpointManifest,
-    CheckpointPageLsnFrontier, CheckpointPublicationPlan, CheckpointRedoBoundary,
-    CheckpointRootPosture, CheckpointSelectorEvidence, CheckpointValidation,
-    ContiguousWalTailProof, DurableAckReceipt, IntegrityDamageMap, LogSequenceNumber, PageLsn,
-    RecoveryCandidateDiscoveryTrace, RecoveryLayoutAccess, RecoveryMemoryEnvelope,
+    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverLayoutReport,
+    CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet, CheckpointIntervalContract,
+    CheckpointManifest, CheckpointPageLsnFrontier, CheckpointPublicationPlan,
+    CheckpointRedoBoundary, CheckpointRootPosture, CheckpointSelectorEvidence,
+    CheckpointValidation, ContiguousWalTailProof, DurableAckReceipt, IntegrityDamageMap,
+    LogSequenceNumber, PageLsn, RecoveryCandidateDiscoveryTrace, RecoveryMemoryEnvelope,
     RecoverySourceCandidate, RecoveryStoreFootprint, SharpCheckpointCertificationMode,
     StoreOwnedCheckpointLocator, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
     WalSegmentGeneration, WalSegmentId, WalTailRedoSource, WalTailReplayBudget,
 };
 use forge_store_wal::{
-    AdmittedReplayTailCursor, WalLayoutAccess, WalSegmentScanRecord, WalTopologyScan,
+    admit_replay_cursor, AdmittedReplayTailCursor, WalSegmentScanRecord, WalTopologyScan,
 };
 
 pub struct Phase22Fixture {
@@ -49,10 +48,6 @@ pub struct Phase22Fixture {
 }
 
 pub fn fixture() -> Phase22Fixture {
-    let recovery_rule = phase21_recovery_manifest_rule().expect("phase-21 recovery rule");
-    let checkpoint_family = RecoveryLayoutAccess::s8()
-        .checkpoint_cutover_layout(&recovery_rule)
-        .expect("checkpoint family");
     let manifest = checkpoint_manifest();
     let locator_commitment =
         forge_store_recovery_physics::CheckpointLocatorArtifactCommitment::manifest_pointer(
@@ -91,19 +86,17 @@ pub fn fixture() -> Phase22Fixture {
     .expect("durability");
     let plan = CheckpointPublicationPlan::plan_cutover(validation.clone(), durability).unwrap();
     let checkpoint_receipt = CheckpointCutoverReceipt::publish(plan);
-    let checkpoint_report = checkpoint_family.published_cutover(&checkpoint_receipt);
+    let checkpoint_report = CheckpointCutoverLayoutReport::from_receipt(&checkpoint_receipt);
 
-    let replay_cursor = WalLayoutAccess::s8()
-        .replay_tail()
-        .admit_replay_cursor(
-            WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
-                WalSegmentId::new(1).unwrap(),
-                WalSegmentGeneration::new(1).unwrap(),
-                wal_range(30, 45),
-            )]),
+    let replay_cursor = admit_replay_cursor(
+        WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
+            WalSegmentId::new(1).unwrap(),
             WalSegmentGeneration::new(1).unwrap(),
-        )
-        .expect("replay cursor");
+            wal_range(30, 45),
+        )]),
+        WalSegmentGeneration::new(1).unwrap(),
+    )
+    .expect("replay cursor");
 
     Phase22Fixture {
         checkpoint_receipt,

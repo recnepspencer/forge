@@ -13,10 +13,14 @@ use forge_store_authority::{require_current_store_authority, StoreCurrentAuthori
 use forge_store_contracts::{
     DurableArtifactFamilyId, StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
 };
-use forge_store_layout_indexes::{
-    layout_families::layout_declarations, ArtifactFamilyLifecycleAdmission,
-    PhysicalKeyDomainWitness, S8FutureLayoutCapabilityRequest, S8FutureLayoutWorkloadEnvelope,
+use forge_store_layout_indexes::layout_customization::{
+    S8FutureLayoutCapabilityRequest, S8FutureLayoutCustomizationDenial,
+    S8FutureLayoutWorkloadEnvelope,
 };
+use forge_store_layout_indexes::layout_families::{
+    layout_declarations, ArtifactFamilyLifecycleAdmission,
+};
+use forge_store_layout_indexes::layout_strategy_admission::PhysicalKeyDomainWitness;
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
@@ -111,7 +115,7 @@ fn phase_nine_extensions_targets_own_capability_and_workload_semantics() {
     assert_eq!(
         layout_customization_catalog().admit(support_trust),
         TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
-            forge_store_layout_indexes::S8FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
+            S8FutureLayoutCustomizationDenial::NoStrategySupportsRequestedCapability {
                 capability: S8FutureLayoutCapabilityRequest::verifier_declared_scan(page_domain),
                 key_domain: page_domain,
             }
@@ -120,7 +124,7 @@ fn phase_nine_extensions_targets_own_capability_and_workload_semantics() {
     assert_eq!(
         layout_customization_catalog().admit(aspect_projection),
         TransitionOutcome::Denied(FutureLayoutCustomizationDenial::StoreDenied(
-            forge_store_layout_indexes::S8FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
+            S8FutureLayoutCustomizationDenial::RebuildableProjectionNotYetSupported {
                 key_domain: page_domain,
             }
         ))

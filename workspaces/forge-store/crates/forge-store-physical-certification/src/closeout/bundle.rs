@@ -39,10 +39,7 @@ impl PhysicalSimulationHarnessCertificationBundle {
             non_claim,
         )?;
         let shortcut_denial_count = receipt.shortcut_denial_count();
-        let s5_readiness = accept_store_owned_s5_harness_readiness(
-            receipt,
-            forge_store_physical_isolation::s5_simulation_harness_readiness_requirement(),
-        );
+        let s5_readiness = accept_store_owned_s5_harness_readiness(receipt);
         let dogfood = S45HarnessDogfoodReport::new(
             dogfood_evidence.s4_recovery().scenario().clone(),
             dogfood_evidence.shortcut_rejection().scenario().clone(),

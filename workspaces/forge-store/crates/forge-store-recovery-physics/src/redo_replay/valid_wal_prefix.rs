@@ -1,7 +1,4 @@
-use crate::{
-    AdmittedRecoverySource, LogSequenceNumber, WalLsnRange,
-    WalSegmentGeneration,
-};
+use crate::{AdmittedRecoverySource, LogSequenceNumber, WalLsnRange, WalSegmentGeneration};
 
 use super::{
     MiddleWalCorruptionDenial, MissingAcknowledgedWalRangeDenial, RedoPlanningDenial,

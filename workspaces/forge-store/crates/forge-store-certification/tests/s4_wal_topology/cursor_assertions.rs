@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::ReplayCursor;
+use forge_store_wal::ReplayCursor;
 
 use crate::scan_fixtures::{generation, lsn};
 

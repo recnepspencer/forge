@@ -1,4 +1,4 @@
-use crate::S5RecoveryReadinessAdmission;
+use crate::RecoveryCompletion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum S5PublicationCrashStage {
@@ -134,24 +134,24 @@ impl S5PublicationRecoveryReplayInput {
     }
 }
 
-impl S5RecoveryReadinessAdmission {
+impl RecoveryCompletion {
     pub const fn execute_publication_recovery_replay(
         &self,
         replay: S5PublicationRecoveryReplayInput,
     ) -> ExecutedS5PublicationRecoveryReceipt {
-        replay.execute_with_readiness(self)
+        replay.execute_with_completion(self)
     }
 }
 
 impl S5PublicationRecoveryReplayInput {
-    const fn execute_with_readiness(
+    const fn execute_with_completion(
         self,
-        recovery_readiness: &S5RecoveryReadinessAdmission,
+        recovery_completion: &RecoveryCompletion,
     ) -> ExecutedS5PublicationRecoveryReceipt {
         ExecutedS5PublicationRecoveryReceipt {
             stage: self.stage,
             recovered_kind: self.recover_structure_kind(),
-            recovery_replayed_frames: recovery_readiness.replayed_frames(),
+            recovery_replayed_frames: recovery_completion.replayed_frames(),
         }
     }
 

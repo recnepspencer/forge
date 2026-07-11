@@ -21,9 +21,6 @@ use forge_store_physical_format::{
     PhysicalReferenceAuthority, PhysicalSegmentId, SlotAppendRequest,
     StorePhysicalChunkWriteReceipt, PHYSICAL_HEADER_LENGTH,
 };
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreAuthenticityRequirementClass, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
@@ -47,7 +44,7 @@ fn s5_1_blob_chunk_scope_and_dedupe_readiness_public_api_courtroom() {
         StoreTenantScope::BackupRestoreBoundary,
     );
     assert!(matches!(
-        S7BlobChunkSecurityHandoff::from_s5_1_readiness(backup_readiness),
+        S7BlobChunkSecurityHandoff::from_admitted_security_scope(backup_readiness),
         Err(BlobChunkSecurityScopeDenial::WrongTenantScope { counters, .. })
             if counters.denials() == 1
     ));
@@ -111,7 +108,7 @@ fn candidate_for_scope(scope: BlobChunkSecurityScope) -> BlobChunkDedupeCandidat
 }
 
 fn blob_scope(identity_key: &str, tenant_scope: StoreTenantScope) -> BlobChunkSecurityScope {
-    let handoff = S7BlobChunkSecurityHandoff::from_s5_1_readiness(blob_readiness_for(
+    let handoff = S7BlobChunkSecurityHandoff::from_admitted_security_scope(blob_readiness_for(
         identity_key,
         tenant_scope,
     ))
@@ -122,11 +119,8 @@ fn blob_scope(identity_key: &str, tenant_scope: StoreTenantScope) -> BlobChunkSe
 fn blob_readiness_for(
     identity_key: &str,
     tenant_scope: StoreTenantScope,
-) -> forge_store_readiness::S51AdmittedSecurityScopeReadiness {
-    accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted_blob_security_scope(identity_key, tenant_scope),
-    )
+) -> StoreAdmittedSecurityScope {
+    admitted_blob_security_scope(identity_key, tenant_scope)
 }
 
 fn admitted_blob_security_scope(

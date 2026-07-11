@@ -6,20 +6,57 @@ use super::detail::{
 use super::lane::S8AccessLaneClassification;
 use super::shape::S8AccessShape;
 use crate::materialization::S8LayoutCoverageWitness;
-use crate::production_transition::define_owner_outcome;
 
-define_owner_outcome!(
-    pub S8FullDeclaredScanOutcome,
-    pub S8FullDeclaredScanView,
-    S8FullDeclaredScanCase,
-    FullDeclaredScanAdmission,
-    AdmitFullDeclaredScan,
-    [
-        admitted => Success(S8AccessShapeContract): SelectionRequested => Admit => Admitted,
-        hidden_denied => HiddenDenied(S8AccessShapeUnsupportedDenial): SelectionRequested => Deny => Denied,
-        denied => Denied(S8AccessShapeUnsupportedDenial): SelectionRequested => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8FullDeclaredScanCase {
+    Success(S8AccessShapeContract),
+    HiddenDenied(S8AccessShapeUnsupportedDenial),
+    Denied(S8AccessShapeUnsupportedDenial),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8FullDeclaredScanOutcome {
+    case: S8FullDeclaredScanCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8FullDeclaredScanView<'a> {
+    Success(&'a S8AccessShapeContract),
+    HiddenDenied(&'a S8AccessShapeUnsupportedDenial),
+    Denied(&'a S8AccessShapeUnsupportedDenial),
+}
+
+impl S8FullDeclaredScanOutcome {
+    pub(crate) fn admitted(value: S8AccessShapeContract) -> Self {
+        Self::from_owner_payload(S8FullDeclaredScanCase::Success(value))
+    }
+
+    pub(crate) fn hidden_denied(value: S8AccessShapeUnsupportedDenial) -> Self {
+        Self::from_owner_payload(S8FullDeclaredScanCase::HiddenDenied(value))
+    }
+
+    pub(crate) fn denied(value: S8AccessShapeUnsupportedDenial) -> Self {
+        Self::from_owner_payload(S8FullDeclaredScanCase::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8FullDeclaredScanCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8FullDeclaredScanView<'_> {
+        match &self.case {
+            S8FullDeclaredScanCase::Success(value) => S8FullDeclaredScanView::Success(value),
+            S8FullDeclaredScanCase::HiddenDenied(value) => {
+                S8FullDeclaredScanView::HiddenDenied(value)
+            }
+            S8FullDeclaredScanCase::Denied(value) => S8FullDeclaredScanView::Denied(value),
+        }
+    }
+
+    fn into_owner_payload(self) -> S8FullDeclaredScanCase {
+        self.case
+    }
+}
 
 impl S8FullDeclaredScanOutcome {
     pub fn into_result(self) -> Result<S8AccessShapeContract, S8AccessShapeUnsupportedDenial> {

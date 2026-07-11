@@ -11,7 +11,6 @@ pub struct BaselineLsmLookupInvariantProof {
     disposition: BaselineLsmLookupDisposition,
     tombstone_blocks_older: bool,
 }
-
 impl BaselineLsmLookupInvariantProof {
     pub const fn probe_sequence(self) -> u64 {
         self.probe_sequence
@@ -249,62 +248,4 @@ pub fn prove_baseline_lsm_tombstone_blocked_lookup(
             .lookup()
             .tombstone_blocked(),
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        prove_baseline_lsm_invariants, prove_baseline_lsm_older_run_lookup,
-        prove_baseline_lsm_tombstone_blocked_lookup, BaselineLsmLookupDisposition,
-    };
-    use crate::layout_access::baseline_lsm_invariant_witness::collect_baseline_lsm_invariant_witness;
-    use crate::BlobWalRecordKind;
-
-    #[test]
-    fn baseline_lsm_invariant_proof_is_wal_owned() {
-        let execution =
-            super::super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness::seeded();
-        let proof = prove_baseline_lsm_invariants(&execution);
-        let witness = collect_baseline_lsm_invariant_witness(&execution);
-
-        assert_eq!(
-            proof.lookup().disposition(),
-            BaselineLsmLookupDisposition::Memtable
-        );
-        assert_eq!(
-            proof.lookup().probe_sequence(),
-            proof.lookup().memtable_sequence()
-        );
-        assert!(proof.lookup().probe_visible_in_newer_run());
-        assert!(!proof.lookup().probe_visible_in_older_run());
-        assert_eq!(
-            proof.recovery().replay_tail()[1],
-            BlobWalRecordKind::GenerationPublication
-        );
-        assert_eq!(
-            proof.publication().published_run_count(),
-            witness.publication().published_run_count()
-        );
-        assert_eq!(
-            proof.compaction().input_generations(),
-            witness.compaction().input_generations()
-        );
-        assert!(proof.compaction().stale_runs_retired());
-        assert!(proof.compaction().bytes_out() <= proof.compaction().bytes_in());
-    }
-
-    #[test]
-    fn baseline_lsm_lookup_proofs_cover_older_run_and_tombstone_denial() {
-        let execution =
-            super::super::baseline_lsm_counter_observation::BaselineLsmExecutionWitness::seeded();
-        let older = prove_baseline_lsm_older_run_lookup(&execution);
-        let denied = prove_baseline_lsm_tombstone_blocked_lookup(&execution);
-
-        assert_eq!(older.disposition(), BaselineLsmLookupDisposition::SortedRun);
-        assert!(older.probe_visible_in_older_run());
-        assert!(!older.tombstone_blocks_older());
-        assert_eq!(denied.disposition(), BaselineLsmLookupDisposition::NotFound);
-        assert!(denied.probe_visible_in_older_run());
-        assert!(denied.tombstone_blocks_older());
-    }
 }

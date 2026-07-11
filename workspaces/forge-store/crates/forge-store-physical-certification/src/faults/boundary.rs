@@ -1,12 +1,10 @@
+use super::denial::{FaultDeliveryDenial, FaultObservedBoundaryKind};
+use crate::{FreshRuntimeCrashRecoveryEvidence, ProductionBoundaryDriverTrace};
 use forge_foundational::FoundationalBoundaryEvidenceLocality;
 use forge_store_physical_integrity::{
     PhysicalBoundaryLocalization, PhysicalContainerIntegrityDenial,
     PhysicalContainerIntegrityDenialKind, PreDecodePhysicalDenial, PreDecodePhysicalDenialKind,
 };
-use forge_store_recovery_physics::FreshRuntimeCrashRecoveryEvidence;
-
-use super::denial::{FaultDeliveryDenial, FaultObservedBoundaryKind};
-use crate::ProductionBoundaryDriverTrace;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NoFaultProductionBoundaryParity {

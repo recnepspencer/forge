@@ -7,58 +7,8 @@ use super::{
     CheckpointCutoverLayoutReport, RecoveryLayoutAccessDenial, RecoveryLayoutAccessDenialKind,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedReplayIndexLayoutRule {
-    _private: (),
-}
-
-impl AdmittedReplayIndexLayoutRule {
-    pub(crate) const fn internal_phase22() -> Self {
-        Self { _private: () }
-    }
-
-    #[cfg(feature = "phase22-layout-rule-construction")]
-    #[doc(hidden)]
-    pub const fn phase22() -> Self {
-        Self::internal_phase22()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ReplayIndexLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ReplayIndexLayoutAdmission {
-    _private: (),
-}
-
-impl ReplayIndexLayoutFamilyHome {
-    pub const fn s8() -> Self {
-        Self
-    }
-
-    pub fn admit(
-        self,
-        _rule: &AdmittedReplayIndexLayoutRule,
-    ) -> Result<ReplayIndexLayoutAdmission, RecoveryLayoutAccessDenial> {
-        Ok(ReplayIndexLayoutAdmission { _private: () })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AdmittedReplayIndexLayoutFamily {
-    _admission: ReplayIndexLayoutAdmission,
-}
-
-impl AdmittedReplayIndexLayoutFamily {
-    pub(crate) const fn new(admission: ReplayIndexLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
+impl ReplayIndexLayoutReport {
     pub fn admit_checkpoint_replay_index(
-        &self,
         checkpoint: &CheckpointCutoverLayoutReport,
         cursor: &AdmittedReplayTailCursor,
     ) -> Result<ReplayIndexLayoutReport, RecoveryLayoutAccessDenial> {
@@ -74,14 +24,12 @@ impl AdmittedReplayIndexLayoutFamily {
     }
 
     pub fn admit_wal_only_replay_index(
-        &self,
         cursor: &AdmittedReplayTailCursor,
     ) -> ReplayIndexLayoutReport {
         ReplayIndexLayoutReport::from_cursor(None, cursor)
     }
 
     pub fn admit_recovery_source_replay_index(
-        &self,
         source: &AdmittedRecoverySource,
     ) -> Result<ReplayIndexLayoutReport, RecoveryLayoutAccessDenial> {
         let replay_frontier = source
@@ -109,7 +57,6 @@ impl AdmittedReplayIndexLayoutFamily {
     }
 
     pub fn reject_row_projection(
-        &self,
         _row: &RecoverySourceDecisionRow,
     ) -> Result<(), RecoveryLayoutAccessDenial> {
         Err(RecoveryLayoutAccessDenial::new(
@@ -121,11 +68,7 @@ impl AdmittedReplayIndexLayoutFamily {
 pub(crate) fn admit_recovery_source_replay_index(
     source: &AdmittedRecoverySource,
 ) -> Result<ReplayIndexLayoutReport, RecoveryLayoutAccessDenial> {
-    AdmittedReplayIndexLayoutFamily::new(
-        ReplayIndexLayoutFamilyHome::s8()
-            .admit(&AdmittedReplayIndexLayoutRule::internal_phase22())?,
-    )
-    .admit_recovery_source_replay_index(source)
+    ReplayIndexLayoutReport::admit_recovery_source_replay_index(source)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

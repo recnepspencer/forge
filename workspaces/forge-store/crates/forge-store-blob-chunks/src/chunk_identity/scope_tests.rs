@@ -6,8 +6,7 @@ use forge_store_security::{
 
 use crate::test_support::{
     blob_scope, blob_scope_from_parts, candidate_for_scope, candidate_for_scope_with_digest,
-    canonical_equivalence, security_scope_admission_outcome,
-    streaming_window,
+    canonical_equivalence, security_scope_admission_outcome, streaming_window,
 };
 use crate::{
     BlobChunkCanonicalComparisonBasis, BlobChunkDedupeAdmission, BlobChunkDedupeAdmissionDenial,

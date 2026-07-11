@@ -133,11 +133,8 @@ pub(crate) fn execute_mixed_tree_recovery_replay() -> ExecutedS5PublicationRecov
     recovery_readiness.execute_publication_recovery_replay(replay)
 }
 
-fn recovery_readiness_admission() -> forge_store_recovery_physics::S5RecoveryReadinessAdmission {
-    closeout_fixture::certify_complete_closeout()
-        .publish_s5_readiness()
-        .admit_for_s5_startup()
-        .unwrap()
+fn recovery_readiness_admission() -> forge_store_recovery_physics::RecoveryCompletion {
+    closeout_fixture::recovery_completion()
 }
 
 pub(crate) fn root_publication_validation(

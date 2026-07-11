@@ -1,17 +1,53 @@
-use crate::production_transition::define_owner_outcome;
+#[derive(Debug, PartialEq, Eq)]
+enum S8PhysicalAbsenceCase {
+    Success(super::S8PhysicalAbsenceProof),
+    PartialDenied(super::S8MaterializationDenial),
+    Denied(super::S8MaterializationDenial),
+}
 
-define_owner_outcome!(
-    pub S8PhysicalAbsenceOutcome,
-    pub S8PhysicalAbsenceOutcomeView,
-    S8PhysicalAbsenceCase,
-    MaterializationCoverageAbsence,
-    ProveExactIndexAbsence,
-    [
-        absence_proven => Success(super::S8PhysicalAbsenceProof): Admitted => ProveAbsence => AbsenceProven,
-        partial_denied => PartialDenied(super::S8MaterializationDenial): CoveragePartial => ProveAbsence => Denied,
-        denied => Denied(super::S8MaterializationDenial): Admitted => Deny => Denied,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8PhysicalAbsenceOutcome {
+    case: S8PhysicalAbsenceCase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8PhysicalAbsenceOutcomeView<'a> {
+    Success(&'a super::S8PhysicalAbsenceProof),
+    PartialDenied(&'a super::S8MaterializationDenial),
+    Denied(&'a super::S8MaterializationDenial),
+}
+
+impl S8PhysicalAbsenceOutcome {
+    pub(crate) fn absence_proven(value: super::S8PhysicalAbsenceProof) -> Self {
+        Self::from_owner_payload(S8PhysicalAbsenceCase::Success(value))
+    }
+
+    pub(crate) fn partial_denied(value: super::S8MaterializationDenial) -> Self {
+        Self::from_owner_payload(S8PhysicalAbsenceCase::PartialDenied(value))
+    }
+
+    pub(crate) fn denied(value: super::S8MaterializationDenial) -> Self {
+        Self::from_owner_payload(S8PhysicalAbsenceCase::Denied(value))
+    }
+
+    fn from_owner_payload(case: S8PhysicalAbsenceCase) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8PhysicalAbsenceOutcomeView<'_> {
+        match &self.case {
+            S8PhysicalAbsenceCase::Success(value) => S8PhysicalAbsenceOutcomeView::Success(value),
+            S8PhysicalAbsenceCase::PartialDenied(value) => {
+                S8PhysicalAbsenceOutcomeView::PartialDenied(value)
+            }
+            S8PhysicalAbsenceCase::Denied(value) => S8PhysicalAbsenceOutcomeView::Denied(value),
+        }
+    }
+
+    fn into_owner_payload(self) -> S8PhysicalAbsenceCase {
+        self.case
+    }
+}
 
 impl S8PhysicalAbsenceOutcome {
     pub fn into_result(

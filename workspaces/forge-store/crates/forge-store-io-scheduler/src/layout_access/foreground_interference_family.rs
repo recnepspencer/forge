@@ -1,27 +1,11 @@
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_foreground_interference_rule, AdmittedForegroundInterferenceLayoutRule,
-};
 
 use crate::{
     BackgroundResourceBudget, InterferenceCounterName, InterferenceCounterRow,
     LatencyEnvelopeAssessment, LatencyEnvelopeAssessmentStatus,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ForegroundInterferenceLayoutFamilyHome;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ForegroundInterferenceLayoutAdmission {
-    _rule: AdmittedForegroundInterferenceLayoutRule,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct AdmittedForegroundInterferenceLayoutFamily {
-    _admission: ForegroundInterferenceLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ForegroundInterferencePosture {
@@ -48,45 +32,18 @@ pub struct ForegroundInterferenceLayoutReport {
     exact_rows: Vec<InterferenceCounterRow>,
 }
 
-impl ForegroundInterferenceLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(
-        self,
-        rule: AdmittedForegroundInterferenceLayoutRule,
-    ) -> ForegroundInterferenceLayoutAdmission {
-        let _ = self;
-        ForegroundInterferenceLayoutAdmission { _rule: rule }
-    }
-}
-
-fn foreground_interference_layout() -> AdmittedForegroundInterferenceLayoutFamily {
-    AdmittedForegroundInterferenceLayoutFamily {
-        _admission: ForegroundInterferenceLayoutFamilyHome::s8().admit(
-            phase26_foreground_interference_rule()
-                .expect("phase 26 foreground interference rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedForegroundInterferenceLayoutFamily {
-    fn admit_foreground_interference(
-        &self,
-        assessment: &LatencyEnvelopeAssessment,
-    ) -> ForegroundInterferenceLayoutReport {
-        let _ = self;
+impl LatencyEnvelopeAssessment {
+    pub fn admit_foreground_interference_layout(&self) -> ForegroundInterferenceLayoutReport {
         ForegroundInterferenceLayoutReport {
             family_id: DurableArtifactFamilyId::ForegroundInterferenceRecord,
             access_shape: S8AccessShape::PointLookup,
             rebuild_posture: DurableArtifactRebuildPosture::NoRebuild,
-            interference_posture: posture_for(assessment.status()),
+            interference_posture: posture_for(self.status()),
             declared_budget: ForegroundInterferenceAccessBudget {
-                requested_budget: assessment.replay_identity().requested_budget(),
-                max_interference_events: assessment.max_interference_events(),
+                requested_budget: self.replay_identity().requested_budget(),
+                max_interference_events: self.max_interference_events(),
             },
-            exact_rows: exact_rows(assessment),
+            exact_rows: exact_rows(self),
         }
     }
 }
@@ -121,12 +78,6 @@ impl ForegroundInterferenceLayoutReport {
             .iter()
             .copied()
             .find(|row| row.name() == name)
-    }
-}
-
-impl LatencyEnvelopeAssessment {
-    pub fn admit_foreground_interference_layout(&self) -> ForegroundInterferenceLayoutReport {
-        foreground_interference_layout().admit_foreground_interference(self)
     }
 }
 

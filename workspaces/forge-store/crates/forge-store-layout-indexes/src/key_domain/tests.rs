@@ -183,25 +183,12 @@ fn phase_four_denies_families_without_explicit_concrete_key_law() {
         ),
     );
 
-    let repair_denial = layout_declarations().declare_physical_key_domain(repair_scope);
-    assert!(
-        crate::production_transition::S8LayoutMachineContract::for_machine(
-            crate::production_transition::S8LayoutStateMachine::KeyDomainAdmission,
-        )
-        .contains(repair_denial.production_transition())
-    );
     assert_eq!(
-        repair_denial,
+        layout_declarations().declare_physical_key_domain(repair_scope),
         Err(ArtifactFamilyDenial::PhysicalKeyDomainNotDeclaredForFamily)
     );
-    let transfer_denial = layout_declarations().declare_physical_key_domain(transfer_scope);
     assert_eq!(
-        transfer_denial,
+        layout_declarations().declare_physical_key_domain(transfer_scope),
         Err(ArtifactFamilyDenial::PhysicalKeyDomainNotDeclaredForFamily)
     );
-}
-
-pub(crate) fn exercise_owner_outcome_cases() {
-    phase_four_pages_admit_concrete_bytes_order_prefix_and_range();
-    phase_four_denies_families_without_explicit_concrete_key_law();
 }

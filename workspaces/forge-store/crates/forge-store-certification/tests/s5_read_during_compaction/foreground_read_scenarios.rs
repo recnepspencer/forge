@@ -49,9 +49,6 @@ fn read_during_compaction_verdict_rejects_unbound_read_receipts() {
     let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
         receipt,
-        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(
-            inputs.new_root,
-        ),
     )
     .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(

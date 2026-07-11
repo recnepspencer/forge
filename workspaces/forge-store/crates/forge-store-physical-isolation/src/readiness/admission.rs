@@ -1,4 +1,4 @@
-use forge_store_recovery_physics::{PageLsn, S5RecoveryReadinessAdmission};
+use forge_store_recovery_physics::{PageLsn, RecoveryCompletion};
 
 use super::{
     PhysicalIsolationEntryDenial, PhysicalIsolationEntryEvidence, PhysicalIsolationEntryIdentity,
@@ -8,7 +8,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct PhysicalIsolationEntryAdmission {
-    recovery_admission: S5RecoveryReadinessAdmission,
+    recovery_completion: RecoveryCompletion,
     identity: PhysicalIsolationEntryIdentity,
     root_epoch_basis: PhysicalIsolationRootEpochBasis,
     evidence: PhysicalIsolationEntryEvidence,
@@ -56,20 +56,20 @@ impl PhysicalIsolationEntryAdmission {
     fn admit(
         request: PhysicalIsolationEntryRequest<'_>,
     ) -> Result<Self, PhysicalIsolationEntryDenial> {
-        let recovery_admission = verify_s5_startup_admission(request)?;
-        let identity = derive_entry_identity_from_admission(request, &recovery_admission);
+        let recovery_completion = request.recovery_completion().clone();
+        let identity = derive_entry_identity_from_completion(&recovery_completion);
         let root_epoch_basis = identity.root_epoch_basis();
         let evidence = seal_physical_isolation_entry_evidence(&identity);
         Ok(Self {
-            recovery_admission,
+            recovery_completion,
             identity,
             root_epoch_basis,
             evidence,
         })
     }
 
-    pub const fn recovery_admission(&self) -> &S5RecoveryReadinessAdmission {
-        &self.recovery_admission
+    pub const fn recovery_completion(&self) -> &RecoveryCompletion {
+        &self.recovery_completion
     }
 
     pub const fn identity(&self) -> &PhysicalIsolationEntryIdentity {
@@ -81,19 +81,19 @@ impl PhysicalIsolationEntryAdmission {
     }
 
     pub fn recovered_root(&self) -> &str {
-        self.recovery_admission.recovered_root()
+        self.recovery_completion.recovered_root()
     }
 
     pub const fn admitted_page_lsn_frontier(&self) -> Option<PageLsn> {
-        self.recovery_admission.admitted_page_lsn_frontier()
+        self.recovery_completion.admitted_page_lsn_frontier()
     }
 
     pub const fn replayed_frames(&self) -> usize {
-        self.recovery_admission.replayed_frames()
+        self.recovery_completion.replayed_frames()
     }
 
     pub const fn source_candidate_count(&self) -> usize {
-        self.recovery_admission.source_candidate_count()
+        self.recovery_completion.source_candidate_count()
     }
 
     pub const fn evidence(&self) -> &PhysicalIsolationEntryEvidence {
@@ -105,29 +105,15 @@ impl PhysicalIsolationEntryAdmission {
     }
 }
 
-fn verify_s5_startup_admission(
-    request: PhysicalIsolationEntryRequest<'_>,
-) -> Result<S5RecoveryReadinessAdmission, PhysicalIsolationEntryDenial> {
-    request
-        .recovery_readiness()
-        .admit_for_s5_startup()
-        .map_err(PhysicalIsolationEntryDenial::from)
-}
-
-fn derive_entry_identity_from_admission(
-    request: PhysicalIsolationEntryRequest<'_>,
-    admission: &S5RecoveryReadinessAdmission,
+fn derive_entry_identity_from_completion(
+    completion: &RecoveryCompletion,
 ) -> PhysicalIsolationEntryIdentity {
-    let source_decision_digest = request
-        .recovery_readiness()
-        .source_precedence_trace()
-        .canonical_replay_digest();
     PhysicalIsolationEntryIdentity::new(
-        admission.recovered_root(),
-        admission.admitted_page_lsn_frontier(),
-        &source_decision_digest,
-        admission.replayed_frames(),
-        admission.source_candidate_count(),
+        completion.recovered_root(),
+        completion.admitted_page_lsn_frontier(),
+        completion.source_decision_digest(),
+        completion.replayed_frames(),
+        completion.source_candidate_count(),
     )
 }
 

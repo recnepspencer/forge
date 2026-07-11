@@ -1,26 +1,10 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_background_pacing_rule, AdmittedBackgroundPacingLayoutRule,
-};
 
 use crate::{
     BackgroundIoPressureClass, BackgroundPacingCounterSnapshot, BackgroundPacingOutcome,
     BackgroundPacingStaleRebindKind, BackgroundResourceBudget,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct BackgroundPacingLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct BackgroundPacingLayoutAdmission {
-    _rule: AdmittedBackgroundPacingLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedBackgroundPacingLayoutFamily {
-    _admission: BackgroundPacingLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackgroundPacingInterferencePosture {
@@ -46,32 +30,9 @@ pub struct BackgroundPacingLayoutReport {
     counters: BackgroundPacingCounterSnapshot,
 }
 
-impl BackgroundPacingLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedBackgroundPacingLayoutRule) -> BackgroundPacingLayoutAdmission {
-        let _ = self;
-        BackgroundPacingLayoutAdmission { _rule: rule }
-    }
-}
-
-fn background_pacing_layout() -> AdmittedBackgroundPacingLayoutFamily {
-    AdmittedBackgroundPacingLayoutFamily {
-        _admission: BackgroundPacingLayoutFamilyHome::s8().admit(
-            phase26_background_pacing_rule()
-                .expect("phase 26 background pacing rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedBackgroundPacingLayoutFamily {
-    fn admit_background_pacing(
-        &self,
-        outcome: BackgroundPacingOutcome,
-    ) -> BackgroundPacingLayoutReport {
-        let _ = self;
+impl BackgroundPacingOutcome {
+    pub fn admit_background_pacing_layout(&self) -> BackgroundPacingLayoutReport {
+        let outcome = *self;
         let (interference_posture, admitted_budget, counters) = pacing_basis(outcome);
         BackgroundPacingLayoutReport {
             family_id: DurableArtifactFamilyId::BackgroundPacingRecord,
@@ -117,12 +78,6 @@ impl BackgroundPacingLayoutReport {
 
     pub const fn exact_counters(&self) -> BackgroundPacingCounterSnapshot {
         self.counters
-    }
-}
-
-impl BackgroundPacingOutcome {
-    pub fn admit_background_pacing_layout(&self) -> BackgroundPacingLayoutReport {
-        background_pacing_layout().admit_background_pacing(*self)
     }
 }
 

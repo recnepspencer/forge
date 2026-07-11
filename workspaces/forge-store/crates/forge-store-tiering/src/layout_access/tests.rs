@@ -1,4 +1,4 @@
-use forge_store_io_scheduler::s7_placement_io_readiness_handoff_for_certification_test;
+use forge_store_io_scheduler::IoSchedulerIsolationAdmission;
 use forge_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReclaimRegion,
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
@@ -14,21 +14,21 @@ use forge_store_reclaim_policy::{
 };
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
-use crate::{admit_s7_placement_io_readiness_seed, ColdTierIoPosture};
+use crate::{admit_tier_placement_io, ColdTierIoPosture};
 
 #[test]
 fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
     let posture = real_cold_tier_posture();
-    let seed = admit_s7_placement_io_readiness_seed(
-        s7_placement_io_readiness_handoff_for_certification_test(),
+    let admission = admit_tier_placement_io(
+        IoSchedulerIsolationAdmission::for_certification_test(),
         posture.clone(),
     );
 
-    let placement = seed.admit_tier_placement_layout();
+    let placement = admission.admit_tier_placement_layout();
     assert_eq!(placement.declared_budget().reclaim_permits(), 1);
     assert_eq!(placement.reclaim_region().byte_len(), 4096);
     assert_eq!(placement.security_scope(), posture.security_scope());
-    assert_eq!(placement.exact_counters(), seed.handoff().counters());
+    assert_eq!(placement.exact_counters(), admission.scheduler().counters());
 
     let recall = posture.admit_cold_recall_layout();
     assert_eq!(recall.declared_budget().reclaim_permits(), 1);

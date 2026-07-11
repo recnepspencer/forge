@@ -7,27 +7,9 @@ mod redo_replay_fixture;
 #[path = "../s4_recovery_source_precedence/source_precedence_fixture.rs"]
 mod source_precedence_fixture;
 
-#[allow(dead_code)]
-mod closeout_collectors;
-#[allow(dead_code)]
-mod crash_evidence;
 mod executed_recovery;
-mod foundational_evidence;
-#[allow(dead_code)]
-mod shortcut_evidence;
 
-#[allow(unused_imports)]
-pub use closeout_collectors::{
-    certify_closeout_from_reordered_evidence, certify_closeout_with_cursor_lsn,
-    certify_closeout_with_operation_digest, certify_closeout_with_page_digest,
-    certify_closeout_with_redo_lsn, certify_closeout_with_runtime_state_mismatch_artifacts,
-    certify_complete_closeout, complete_closeout_evidence, evidence_with_missing_crash_seam,
-    evidence_with_missing_shortcut_rejection_denial, mixed_authority_closeout_denial,
-    unbounded_closeout_denial,
+pub use executed_recovery::{
+    executed_recovery_receipt, executed_recovery_receipt_with_operation_digest,
+    recovery_completion, recovery_completion_with_operation_digest,
 };
-#[allow(unused_imports)]
-pub use crash_evidence::{
-    missing_crash_scheduler_evidence_denial, same_process_runtime_report_denial,
-};
-#[allow(unused_imports)]
-pub use shortcut_evidence::{unrelated_budget_shortcut_denial, unrelated_residue_shortcut_denial};

@@ -92,7 +92,6 @@ fn compaction_interlock_evidence() -> CompactionInterlockFoundationalEvidence {
     let publication = forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, new_root).unwrap(),
         receipt,
-        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .unwrap();
     let proof = CompactionCutoverStabilityProof::admit(
@@ -178,7 +177,6 @@ fn publication_only_evidence() -> CompactionInterlockFoundationalEvidence {
     forge_store_physical_isolation::publish_compaction_rewrite_for_certification(
         CompactionCutoverDelta::lower(plan, new_root).unwrap(),
         receipt,
-        forge_store_physical_isolation::execute_baseline_lsm_compaction_for_certification(new_root),
     )
     .unwrap()
     .foundational_evidence()
@@ -284,24 +282,21 @@ fn current_root_from_authority(
 
 fn physical_authority_from_complete_closeout(
 ) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
-    physical_authority_from_readiness(
-        closeout_fixture::certify_complete_closeout().publish_s5_readiness(),
-    )
+    physical_authority_from_completion(closeout_fixture::recovery_completion())
 }
 
 fn physical_authority_from_operation_digest_closeout(
 ) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
-    physical_authority_from_readiness(
-        closeout_fixture::certify_closeout_with_operation_digest("s5-phase8-counter-trace")
-            .publish_s5_readiness(),
+    physical_authority_from_completion(
+        closeout_fixture::recovery_completion_with_operation_digest("s5-phase8-counter-trace"),
     )
 }
 
-fn physical_authority_from_readiness(
-    readiness: forge_store_recovery_physics::S5PhysicalIsolationRecoveryReadiness,
+fn physical_authority_from_completion(
+    completion: forge_store_recovery_physics::RecoveryCompletion,
 ) -> forge_store_physical_isolation::PhysicalReadStabilityAuthority {
     let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_s4_recovery_readiness(&readiness),
+        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
     admit_physical_read_stability_authority(&entry).unwrap()

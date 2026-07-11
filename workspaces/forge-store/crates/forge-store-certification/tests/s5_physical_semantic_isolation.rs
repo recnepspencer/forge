@@ -227,25 +227,22 @@ fn semantic_lower_authority_sources() -> [StoreLowerAuthoritySource; 6] {
 }
 
 fn physical_authority_from_complete_closeout() -> PhysicalReadStabilityAuthority {
-    physical_authority_from_readiness(
-        closeout_fixture::certify_complete_closeout().publish_s5_readiness(),
-    )
+    physical_authority_from_completion(closeout_fixture::recovery_completion())
 }
 
 fn physical_authority_from_operation_digest_closeout(
     operation_digest: &str,
 ) -> PhysicalReadStabilityAuthority {
-    physical_authority_from_readiness(
-        closeout_fixture::certify_closeout_with_operation_digest(operation_digest)
-            .publish_s5_readiness(),
+    physical_authority_from_completion(
+        closeout_fixture::recovery_completion_with_operation_digest(operation_digest),
     )
 }
 
-fn physical_authority_from_readiness(
-    readiness: forge_store_recovery_physics::S5PhysicalIsolationRecoveryReadiness,
+fn physical_authority_from_completion(
+    completion: forge_store_recovery_physics::RecoveryCompletion,
 ) -> PhysicalReadStabilityAuthority {
     let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_s4_recovery_readiness(&readiness),
+        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
     )
     .unwrap();
     admit_physical_read_stability_authority(&entry).unwrap()

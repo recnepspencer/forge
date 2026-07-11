@@ -1,8 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_retention_rule, AdmittedRetentionLayoutRule,
-};
 use forge_store_retention::RetentionDisposition;
 use forge_store_security::StoreSecurityScopeIdentity;
 
@@ -12,19 +9,6 @@ use super::behavior::{
 };
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
 use crate::{BlobChunkReachabilityProofSet, BlobRetentionReclaimPermit};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RetentionLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RetentionLayoutAdmission {
-    _rule: AdmittedRetentionLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedRetentionLayoutFamily {
-    _admission: RetentionLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RetentionLayoutReport {
@@ -39,30 +23,10 @@ pub struct RetentionLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl RetentionLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedRetentionLayoutRule) -> RetentionLayoutAdmission {
-        let _ = self;
-        RetentionLayoutAdmission { _rule: rule }
-    }
-}
-
-fn retention_layout() -> AdmittedRetentionLayoutFamily {
-    AdmittedRetentionLayoutFamily {
-        _admission: RetentionLayoutFamilyHome::s8()
-            .admit(phase25_retention_rule().expect("phase 25 retention rule must stay admitted")),
-    }
-}
-
-impl AdmittedRetentionLayoutFamily {
+impl RetentionLayoutReport {
     fn admit_retention(
-        &self,
         proof: &BlobChunkReachabilityProofSet,
     ) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if proof.protected_holds().is_empty() {
             return Err(BlobLayoutAccessDenial::new(
                 BlobLayoutAccessDenialKind::RetentionLayoutRequiresProtectedHoldEvidence,
@@ -138,7 +102,7 @@ impl RetentionLayoutReport {
 
 impl BlobChunkReachabilityProofSet {
     pub fn admit_retention_layout(&self) -> Result<RetentionLayoutReport, BlobLayoutAccessDenial> {
-        retention_layout().admit_retention(self)
+        RetentionLayoutReport::admit_retention(self)
     }
 }
 

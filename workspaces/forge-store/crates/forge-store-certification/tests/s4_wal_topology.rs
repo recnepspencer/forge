@@ -10,7 +10,7 @@ use denial_assertions::{
     assert_denial_has_no_context, assert_gap_denial, assert_generation_denial,
     assert_range_pair_denial, assert_segment_denial,
 };
-use forge_store_recovery_physics::{WalSegmentGeneration, WalSegmentId, WalTopologyDenialKind};
+use forge_store_wal::{WalSegmentGeneration, WalSegmentId, WalTopologyDenialKind};
 use scan_fixtures::{
     admit_cursor, directory_listing_scan, generation, hostile_mixed_scan, intact_forward_scan,
     map_iteration_scan, named_scan_orders, range, scan_record, stale_scan_record, try_range,

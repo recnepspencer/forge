@@ -10,14 +10,12 @@ mod bootstrap;
 mod budget;
 mod compile_fail;
 mod corruption;
+pub mod compaction_projection;
 mod customization;
 mod degraded_access;
 mod execution;
 mod facade;
-mod handoff;
 mod key_domain;
-pub mod layout_certification;
-pub mod layout_closeout;
 pub mod layout_counters;
 pub mod layout_customization;
 pub mod layout_families;
@@ -29,21 +27,7 @@ mod legacy_disposition;
 mod maintenance;
 mod materialization;
 mod migration;
-mod phase23_rules;
-mod phase24_rules;
-mod phase25_rules;
-mod phase26_layout_access;
-mod phase26_rules;
-mod phase27_layout_access;
-mod phase28_layout_access;
-mod phase28_offline_verifier_family;
-mod phase28_rules;
-mod physical_format_layout_access;
 mod planning;
-mod production_transition;
-#[cfg(test)]
-mod security_scope_projection_tests;
-mod skeleton;
 mod strategy;
 mod strategy_registry;
 
@@ -155,54 +139,6 @@ pub(crate) use migration::{
     S8MigrationPlanningOutcome, S8MigrationPlanningView, S8RollbackPlanningOutcome,
     S8RollbackPlanningView,
 };
-pub(crate) use phase23_rules::{
-    AdmittedBranchDeltaLayoutRule, AdmittedContinuationLayoutRule, AdmittedSnapshotLayoutRule,
-    AdmittedStableBasisLayoutRule,
-};
-pub(crate) use phase24_rules::{
-    AdmittedBlobObjectLayoutRule, AdmittedChunkTreeLayoutRule, AdmittedStreamingLayoutRule,
-};
-pub(crate) use phase25_rules::{
-    AdmittedCompactionLayoutRule, AdmittedDedupeLayoutRule, AdmittedQuarantineLayoutRule,
-    AdmittedReachabilityLayoutRule, AdmittedReclaimLayoutRule, AdmittedRetentionLayoutRule,
-};
-pub(crate) use phase26_layout_access::{
-    phase26_background_pacing_rule, phase26_cold_recall_rule, phase26_foreground_interference_rule,
-    phase26_maintenance_queue_rule, phase26_recall_amplification_rule,
-    phase26_scheduler_reservation_rule, phase26_tier_placement_rule,
-};
-pub(crate) use phase26_rules::{
-    AdmittedBackgroundPacingLayoutRule, AdmittedColdRecallLayoutRule,
-    AdmittedForegroundInterferenceLayoutRule, AdmittedMaintenanceQueueLayoutRule,
-    AdmittedRecallAmplificationLayoutRule, AdmittedSchedulerReservationLayoutRule,
-    AdmittedTierPlacementLayoutRule,
-};
-pub(crate) use phase27_layout_access::{
-    phase27_authenticity_rule, phase27_custody_rule, phase27_key_scope_rule,
-    phase27_repair_blast_radius_rule, phase27_tenant_scope_rule,
-};
-pub(crate) use phase28_layout_access::{
-    phase28_capsule_manifest_rule, phase28_export_bundle_rule, phase28_import_readmission_rule,
-    phase28_offline_verifier_rule, phase28_restore_evidence_rule,
-};
-pub(crate) use phase28_offline_verifier_family::{
-    OfflineVerifierAccessShape, OfflineVerifierAuthorityPosture, OfflineVerifierEvidenceKind,
-    OfflineVerifierLayoutReport, Phase28OfflineVerifierLayoutExt,
-};
-pub(crate) use phase28_rules::{
-    AdmittedCapsuleManifestLayoutRule, AdmittedExportBundleLayoutRule,
-    AdmittedImportReadmissionLayoutRule, AdmittedOfflineVerifierLayoutRule,
-    AdmittedRestoreEvidenceLayoutRule, Phase28LayoutAuthorityPosture,
-};
-pub(crate) use physical_format_layout_access::{
-    phase20_placement_rule, phase21_recovery_manifest_rule, phase22_bounded_wal_tail_rule,
-    phase22_crash_boundary_rule, phase22_recovery_source_rule,
-    phase22_replay_index_rule, phase23_branch_delta_rule, phase23_continuation_support_rule,
-    phase23_snapshot_rule, phase23_stable_basis_rule, phase24_blob_object_rule,
-    phase24_chunk_tree_rule, phase24_streaming_rule, phase25_compaction_rule, phase25_dedupe_rule,
-    phase25_quarantine_rule, phase25_reachability_rule, phase25_reclaim_rule,
-    phase25_retention_rule, Phase19LayoutRuleDenial,
-};
 pub(crate) use planning::{
     S8AccessPlanCostEstimate, S8AccessPlanSelection, S8DeterministicSelectionRule,
     S8PlanFingerprint, S8PlanSelectionDenied, S8PlanningCapabilityGrant, S8SelectedAccessPlan,
@@ -238,7 +174,6 @@ pub(crate) use strategy::{
 
 pub(crate) use access_lowering::access_lowering;
 pub(crate) use access_planning::{access_planning, deterministic_plan_selection};
-pub(crate) use layout_closeout::layout_closeout;
 pub(crate) use layout_customization::layout_customization_boundary;
 pub(crate) use layout_families::layout_declarations;
 pub(crate) use layout_strategy_admission::key_domain_law;

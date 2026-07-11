@@ -11,7 +11,7 @@ use crate::{
     S2AcceptanceSuiteKind, S2BoundaryDenialKind, ScenarioDenialBoundary,
     SyntheticCloseoutShortcutAttempt,
 };
-use forge_store_readiness::S2DeniedBoundaryKind;
+use forge_store_contracts::S2DeniedBoundaryKind;
 
 #[test]
 fn bounded_memory_closeout_publishes_concrete_s3_readiness() {

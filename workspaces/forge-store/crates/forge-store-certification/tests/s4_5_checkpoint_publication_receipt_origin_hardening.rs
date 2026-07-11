@@ -1,4 +1,4 @@
-#[path = "s4_5_checkpoint_publication_oracle_support.rs"]
+#[path = "s4_5_checkpoint_publication_oracle/support.rs"]
 #[allow(dead_code)]
 mod checkpoint_oracle_support;
 #[path = "s4_closeout/fixture.rs"]

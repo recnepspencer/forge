@@ -32,10 +32,6 @@ fn phase_nine_customization_admits_supported_foreground_requests_as_registry_sna
 
     match layout_customization_boundary().admit(request) {
         TransitionOutcome::Success(admitted) => {
-            assert_eq!(
-                admitted.layout_admission_transition().machine(),
-                crate::production_transition::S8LayoutStateMachine::LayoutAdmission
-            );
             let snapshot = admitted.registry_snapshot();
             assert_eq!(
                 snapshot.admitted_strategy().family(),
@@ -113,44 +109,28 @@ fn phase_nine_customization_propagates_store_missing_layout_facts_honestly() {
         S8FutureLayoutWorkloadEnvelope::verifier_corpus_inspection(),
     );
 
-    let unsupported_outcome = layout_customization_boundary().admit(unsupported_range);
-    let TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-        projection,
-    )) = &unsupported_outcome
-    else {
-        panic!("unsupported range should preserve Store admission denial")
-    };
     assert_eq!(
-        projection.denial(),
-        S8LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability {
-            family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-            capability: S8LayoutRequestedCapability::OrderedRange,
-        }
+        layout_customization_boundary().admit(unsupported_range),
+        TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+            super::S8LayoutAdmissionDenialProjection::new(
+                S8LayoutAdmissionDenial::StrategyDoesNotSupportRequestedCapability {
+                    family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+                    capability: S8LayoutRequestedCapability::OrderedRange,
+                },
+            )
+        ))
     );
-    let TransitionOutcome::Denied(unsupported_denial) = unsupported_outcome else {
-        unreachable!("asserted denied outcome")
-    };
     assert_eq!(
-        unsupported_denial
-            .layout_admission_transition()
-            .expect("Store admission denial preserves owner fact")
-            .machine(),
-        crate::production_transition::S8LayoutStateMachine::LayoutAdmission
-    );
-    let verifier_outcome = layout_customization_boundary().admit(verifier_scan);
-    let TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
-        projection,
-    )) = verifier_outcome
-    else {
-        panic!("verifier lane mismatch should preserve Store admission denial")
-    };
-    assert_eq!(
-        projection.denial(),
-        S8LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
-            family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
-            requested_lane: crate::ArtifactFamilyAccessLane::VerifierPath,
-            declared_lane: crate::ArtifactFamilyAccessLane::HotPath,
-        }
+        layout_customization_boundary().admit(verifier_scan),
+        TransitionOutcome::Denied(S8FutureLayoutCustomizationDenial::StoreAdmissionDenied(
+            super::S8LayoutAdmissionDenialProjection::new(
+                S8LayoutAdmissionDenial::RequestedLaneDoesNotMatchFamilyLane {
+                    family: S8LayoutStrategyFamily::BaselineLsmWriteOptimized,
+                    requested_lane: crate::ArtifactFamilyAccessLane::VerifierPath,
+                    declared_lane: crate::ArtifactFamilyAccessLane::HotPath,
+                },
+            )
+        ))
     );
 }
 

@@ -11,18 +11,17 @@ use forge_store_physical_certification::{
 };
 
 #[test]
-fn s45_entry_admits_complete_s4_closeout_and_roadmap_requirements() {
-    let bundle = fixture::certify_complete_closeout();
+fn s45_entry_admits_executed_recovery_and_roadmap_requirements() {
+    let recovery = fixture::executed_recovery_receipt();
 
     let entry = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
-    .expect("complete S.4 closeout and roadmap harness evidence admit S.4.5 entry");
+    .expect("executed recovery and roadmap harness evidence admit S.4.5 entry");
 
-    assert!(entry.accepts_only_s4_closeout_and_roadmap2_harness_evidence());
-    assert_eq!(entry.s4_completed_lanes(), entry.s4_required_lanes());
+    assert!(entry.accepts_recovery_receipt_and_roadmap2_harness_evidence());
     assert!(entry
         .inventory()
         .contains_reusable_mechanics("forge-store-test-support::s4_recovery_physics"));
@@ -40,9 +39,9 @@ fn s45_entry_admits_complete_s4_closeout_and_roadmap_requirements() {
 }
 
 #[test]
-fn s45_entry_identity_is_stable_across_independent_closeout_materialization() {
-    let first_bundle = fixture::certify_complete_closeout();
-    let second_bundle = fixture::certify_complete_closeout();
+fn s45_entry_identity_is_stable_across_independent_recovery_execution() {
+    let first_recovery = fixture::executed_recovery_receipt();
+    let second_recovery = fixture::executed_recovery_receipt();
     let mut scrambled_requirements = S45RoadmapHarnessRequirementSet::roadmap2_required()
         .requirements()
         .to_vec();
@@ -50,13 +49,13 @@ fn s45_entry_identity_is_stable_across_independent_closeout_materialization() {
     scrambled_requirements.push(S45RoadmapHarnessRequirement::GoldenPathAuthoringApi);
 
     let first_entry = admit_s45_simulation_harness_entry(
-        &first_bundle,
+        &first_recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
-    .expect("first independently materialized closeout admits");
+    .expect("first independently executed recovery admits");
     let second_entry = admit_s45_simulation_harness_entry(
-        &second_bundle,
+        &second_recovery,
         S45RoadmapHarnessRequirementSet::from_requirements(scrambled_requirements),
         S45ExistingHarnessInventory::from_registered_surfaces(vec![
             S45RegisteredHarnessSurface::ObsoleteSemanticHarness,
@@ -67,7 +66,7 @@ fn s45_entry_identity_is_stable_across_independent_closeout_materialization() {
             S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
         ]),
     )
-    .expect("second independently materialized closeout admits");
+    .expect("second independently executed recovery admits");
 
     assert_eq!(first_entry.identity(), second_entry.identity());
     assert_eq!(
@@ -78,7 +77,7 @@ fn s45_entry_identity_is_stable_across_independent_closeout_materialization() {
 
 #[test]
 fn s45_entry_rejects_missing_roadmap_requirement() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
     let incomplete_requirements = S45RoadmapHarnessRequirementSet::from_requirements(
         S45RoadmapHarnessRequirementSet::roadmap2_required()
             .requirements()
@@ -91,7 +90,7 @@ fn s45_entry_rejects_missing_roadmap_requirement() {
     );
 
     let denial = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         incomplete_requirements,
         S45ExistingHarnessInventory::dedicated_workspace_baseline(),
     )
@@ -170,7 +169,7 @@ fn s45_inventory_registered_test_support_surfaces_stay_mechanics() {
 
 #[test]
 fn s45_inventory_denies_missing_registered_baseline_surface() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
     let inventory = S45ExistingHarnessInventory::from_registered_surfaces(vec![
         S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
         S45RegisteredHarnessSurface::TestSupportNativeAspectFixtures,
@@ -180,7 +179,7 @@ fn s45_inventory_denies_missing_registered_baseline_surface() {
     ]);
 
     let denial = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         inventory,
     )
@@ -194,7 +193,7 @@ fn s45_inventory_denies_missing_registered_baseline_surface() {
 
 #[test]
 fn s45_inventory_denies_missing_milestone_local_surface() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
     let inventory = S45ExistingHarnessInventory::from_registered_surfaces(vec![
         S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
         S45RegisteredHarnessSurface::TestSupportNativeAspectFixtures,
@@ -204,7 +203,7 @@ fn s45_inventory_denies_missing_milestone_local_surface() {
     ]);
 
     let denial = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         inventory,
     )
@@ -218,7 +217,7 @@ fn s45_inventory_denies_missing_milestone_local_surface() {
 
 #[test]
 fn s45_inventory_denies_legacy_harness_as_authority() {
-    let bundle = fixture::certify_complete_closeout();
+    let recovery = fixture::executed_recovery_receipt();
     let inventory = S45ExistingHarnessInventory::from_registered_surfaces(vec![
         S45RegisteredHarnessSurface::TestSupportS4RecoveryPhysics,
         S45RegisteredHarnessSurface::TestSupportNativeAspectFixtures,
@@ -228,7 +227,7 @@ fn s45_inventory_denies_legacy_harness_as_authority() {
     ]);
 
     let denial = admit_s45_simulation_harness_entry(
-        &bundle,
+        &recovery,
         S45RoadmapHarnessRequirementSet::roadmap2_required(),
         inventory,
     )

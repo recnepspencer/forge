@@ -28,14 +28,11 @@ use forge_store_physical_certification::{
     S51SecurityScopeHarnessEvidence, S51SecurityScopeHarnessScenario,
     S51SecurityScopeHarnessSchedule, S51SecurityScopeReplayMutationKind,
 };
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, PhysicalFoundationEvidenceField,
-    S51AdmittedSecurityScopeReadiness, S51SecurityFoundationHandoff,
-    S51SecurityScopeReadinessReservation,
-};
+use forge_store_readiness::PhysicalFoundationEvidenceField;
 use forge_store_security::{
-    admit_store_security_scope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
-    StoreKeyVersionPosture, StoreSecurityScopeAdmissionCounterSnapshot,
+    admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
+    StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
+    StoreSecurityScopeAdmissionCounterSnapshot,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
 use forge_store_test_support::{
@@ -52,13 +49,13 @@ use support::{physical_replay_for_scenario, replay_scenario};
 fn phase_11_certifies_closeout_from_lower_store_evidence_and_counter_receipts() {
     let scenario_evidence = closeout_scenario_evidence();
     let replay_transcripts = closeout_replay_transcripts();
-    let s11_handoff = security_foundation_handoff();
+    let security_scope = security_foundation_scope();
 
     let closeout = certify_s5_1_security_scope_closeout(
-        S51CertificationCloseoutInput::from_phase10_replay_and_handoffs(
+        S51CertificationCloseoutInput::from_replay_and_security_scope(
             scenario_evidence,
             replay_transcripts,
-            s11_handoff,
+            security_scope,
             S51CertificationEvidencePolicy::counter_backed_foundational(),
         ),
     )
@@ -213,10 +210,10 @@ fn phase_11_rejects_harness_evidence_with_mismatched_lower_store_counters() {
     );
 
     let denial = certify_s5_1_security_scope_closeout(
-        S51CertificationCloseoutInput::from_phase10_replay_and_handoffs(
+        S51CertificationCloseoutInput::from_replay_and_security_scope(
             scenario_evidence,
             closeout_replay_transcripts(),
-            security_foundation_handoff(),
+            security_foundation_scope(),
             S51CertificationEvidencePolicy::counter_backed_foundational(),
         ),
     )
@@ -279,27 +276,24 @@ fn closeout_replay_transcripts(
     transcripts
 }
 
-fn security_foundation_handoff() -> S51SecurityFoundationHandoff {
+fn security_foundation_scope() -> StoreAdmittedSecurityScope {
     let authority = current_authority("store.s51.phase11.closeout");
-    S51SecurityFoundationHandoff::from_s5_1_readiness(admitted_readiness(
+    admitted_security_scope(
         &authority,
-        S51SecurityScopeReadinessReservation::security_foundation(),
         StoreKeyScope::SecurityLifecycleFoundation,
         StoreTenantScope::SecurityLifecycleFoundation,
         StoreAuthenticityRequirement::not_required(),
         StoreCustodyPosture::InternalStoreCustody,
-    ))
-    .expect("S.11 lifecycle foundation handoff must publish from S.5.1 readiness")
+    )
 }
 
-fn admitted_readiness(
+fn admitted_security_scope(
     authority: &StoreCurrentAuthorityWitness,
-    reservation: S51SecurityScopeReadinessReservation,
     key_scope: StoreKeyScope,
     tenant_scope: StoreTenantScope,
     authenticity: StoreAuthenticityRequirement,
     custody: StoreCustodyPosture,
-) -> S51AdmittedSecurityScopeReadiness {
+) -> StoreAdmittedSecurityScope {
     let expectation =
         StoreSecurityScopeAdmissionExpectation::new(key_scope, tenant_scope, authenticity, custody);
     let request = StoreSecurityScopeAdmissionRequest::new(
@@ -313,7 +307,7 @@ fn admitted_readiness(
     );
 
     match admit_store_security_scope(request) {
-        Success(admitted) => accept_s5_1_admitted_security_scope_readiness(reservation, admitted),
+        Success(admitted) => admitted,
         outcome => panic!("security scope should admit: {outcome:?}"),
     }
 }

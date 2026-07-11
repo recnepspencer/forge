@@ -10,8 +10,6 @@
 
 extern crate self as forge_store_physical_isolation;
 
-pub mod layout_access;
-
 mod blob_orphan_reclaim;
 mod byte_guard;
 mod checkpoint_interlock;
@@ -29,7 +27,6 @@ mod publication;
 mod readiness;
 mod reclaim_reachability;
 mod root_protocol;
-mod s5_harness_readiness;
 mod security_scope_propagation;
 mod stable_read_execution;
 
@@ -45,8 +42,7 @@ pub use byte_guard::{
 #[cfg(any(test, feature = "certification-authority"))]
 pub use checkpoint_interlock::read_during_checkpoint_verdict_for_certification_test;
 pub use checkpoint_interlock::{
-    checkpoint_flush_scheduler_demand,
-    reject_copied_checkpoint_report_as_checkpoint_interlock,
+    checkpoint_flush_scheduler_demand, reject_copied_checkpoint_report_as_checkpoint_interlock,
     reject_same_run_self_comparison_as_checkpoint_interlock, CheckpointInterlockEvidenceOrigin,
     CheckpointInterlockFoundationalEvidence, CheckpointPublicationReadmission,
     CheckpointPublicationStabilityProof, CheckpointReadInterlockCounters,
@@ -63,11 +59,11 @@ pub use compaction_interlock::{
 };
 pub use compaction_interlock::{
     compaction_cutover_outcome_facts, compaction_rewrite_scheduler_demand,
-    execute_read_during_compaction_cutover,
-    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
-    CompactionCutoverState, CompactionCutoverTransition, CompactionCutoverTransitionKind,
-    CompactionDeferredReclaimQueue, CompactionInterlockFoundationalEvidence,
-    CompactionMutationLaneOrigin, CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
+    execute_read_during_compaction_cutover, CompactionCandidateRangeSet, CompactionCutoverDelta,
+    CompactionCutoverStabilityProof, CompactionCutoverState, CompactionCutoverTransition,
+    CompactionCutoverTransitionKind, CompactionDeferredReclaimQueue,
+    CompactionInterlockFoundationalEvidence, CompactionMutationLaneOrigin,
+    CompactionMutationLaneReceipt, CompactionMutationLaneReceiptKind,
     CompactionProtectedReferenceSet, CompactionReadInterlockCounters,
     CompactionReadInterlockDenial, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, DrainedCompactionReclaim, ReadDuringCompactionVerdict,
@@ -96,6 +92,11 @@ pub use executed_isolation_evidence::{
     ProjectionAuthorityDenial, S5IsolationEvidenceProfile, S5IsolationEvidenceRichness,
     StorePhysicalAuthoritySurface,
 };
+pub use executed_isolation_evidence::{
+    ExecutedIsolationCounterKind, ExecutedIsolationEvidence, ExecutedIsolationReceipts,
+    IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
+    IsolationInterferenceSnapshotRow, PhysicalIsolationCounterSnapshot,
+};
 pub use free_reuse_fence::{
     AllocatorPublicationReceipt, CrashStableReclaimReuseFence, FreeReuseFenceDenial,
     GenerationAdvanceReceipt,
@@ -123,10 +124,6 @@ pub use latch::{
     LatchWaitForGraphAdmissionDenial, LatchWaitForGraphDenial, PhysicalLatchClass,
     PhysicalLatchDeadlockPolicy, PhysicalLatchFamilyDeadlockPolicy, PhysicalLatchKey,
     PhysicalLatchMode, PhysicalLatchWaitEdge,
-};
-pub use layout_access::movable_stability_family::{
-    AdmittedPlacementLayoutFamily, AdmittedPlacementLayoutRule, MovableStabilityLayoutFamilyHome,
-    PlacementLayoutFamilyAdmission, PlacementLayoutReport, PlacementResidencyMapState,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use movable_stability::physical_placement_movement_execution_for_certification_test;
@@ -174,6 +171,12 @@ pub use publication::{
     PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication, ReleasedOldReachability,
     RootPublicationEpoch, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
+pub use readiness::interference::{
+    BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
+    PhysicalStabilityAssumption,
+};
+#[cfg(any(test, feature = "certification-authority"))]
+pub use readiness::publish_scheduler_isolation_capability_for_certification_test;
 pub use readiness::{
     admit_physical_isolation_entry, admit_physical_isolation_entry_checked,
     reject_copied_recovery_fields_as_physical_isolation_entry,
@@ -193,6 +196,17 @@ pub use readiness::{
     PhysicalIsolationResolvedEntryRecipe, PhysicalIsolationRootEpochBasis,
     S4RecoveryReadinessBasis,
 };
+pub use readiness::{
+    publish_scheduler_isolation_capability_from_executed_evidence,
+    reject_copied_closeout_report_as_isolation_readiness,
+    reject_log_or_terminal_projection_as_isolation_readiness,
+    reject_missing_latch_counters_as_isolation_readiness,
+    reject_missing_protected_byte_footprint_as_isolation_readiness,
+    reject_missing_reclaim_counters_as_isolation_readiness,
+    reject_synthetic_wait_label_as_isolation_readiness,
+    reject_unsupported_qos_claim_as_isolation_readiness, IsolationReadinessDenial,
+    SchedulerIsolationCapability, UnsupportedQoSClaim,
+};
 pub use reclaim_reachability::{
     reject_backend_residue_as_reclaim_authority,
     reject_copied_read_plan_fields_as_reclaim_authority,
@@ -210,31 +224,6 @@ pub use root_protocol::{
     CheckpointPublicationRoot, CheckpointPublicationRootBasis, CurrentPhysicalRoot,
     CurrentPhysicalRootBasis, ManifestLocatorRoot, ManifestLocatorRootBasis, RecoveryRoot,
     RecoveryRootBasis, RootKindMismatchDenial,
-};
-pub use s5_harness_readiness::{
-    s5_simulation_harness_readiness_requirement, S5SimulationHarnessReadinessRequirement,
-};
-#[cfg(any(test, feature = "certification-authority"))]
-pub use readiness::publish_scheduler_isolation_capability_for_certification_test;
-pub use readiness::{
-    publish_scheduler_isolation_capability_from_executed_evidence,
-    reject_copied_closeout_report_as_isolation_readiness,
-    reject_log_or_terminal_projection_as_isolation_readiness,
-    reject_missing_latch_counters_as_isolation_readiness,
-    reject_missing_protected_byte_footprint_as_isolation_readiness,
-    reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
-    reject_synthetic_wait_label_as_isolation_readiness,
-    SchedulerIsolationCapability, IsolationReadinessDenial, UnsupportedQoSClaim,
-};
-pub use readiness::interference::{
-    BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
-    PhysicalStabilityAssumption,
-};
-pub use executed_isolation_evidence::{
-    ExecutedIsolationEvidence, ExecutedIsolationReceipts,
-    PhysicalIsolationCounterSnapshot, ExecutedIsolationCounterKind,
-    IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
-    IsolationInterferenceSnapshotRow,
 };
 pub use security_scope_propagation::{
     preserve_s6_secure_io_stable_read_scope, LogicalDecodeSecurityScopeEntry,

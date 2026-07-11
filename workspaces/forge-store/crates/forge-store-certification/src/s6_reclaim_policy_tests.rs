@@ -22,14 +22,12 @@ use forge_store_physical_format::{
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
     ReclaimedByteInterpretation,
 };
-use forge_store_readiness::{
-    accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
-};
 use forge_store_reclaim_policy::{
     PhysicalStoreReclaimPolicyExecutor, ReclaimPermit, ReclaimPolicyAdmission,
     ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionRequest,
-    ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority, ReclaimPolicyReachabilityProof,
-    ReclaimPolicyRequest, ReclaimPolicySecurityScope, StoreOwnedReclaimPolicyExecution,
+    ReclaimPolicyExecutionSession, ReclaimPolicyOperation, ReclaimPolicyProofAuthority,
+    ReclaimPolicyReachabilityProof, ReclaimPolicyRequest, ReclaimPolicySecurityScope,
+    StoreOwnedReclaimPolicyExecution,
 };
 use forge_store_security::{
     admit_store_security_scope, admitted_store_internal_security_scope_for_s6_test,
@@ -104,11 +102,7 @@ fn blob_reclaim_non_claim_handoff_denies_mismatched_security_metadata() {
         "store.s7.phase2.cert.reclaim.copied",
         StoreTenantScope::MultiTenantPhysicalBoundary,
     );
-    let copied_readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        copied_admitted,
-    );
-    let copied_metadata = S7BlobChunkSecurityHandoff::from_s5_1_readiness(copied_readiness)
+    let copied_metadata = S7BlobChunkSecurityHandoff::from_admitted_security_scope(copied_admitted)
         .expect("copied blob metadata should admit")
         .permission()
         .metadata();
@@ -196,11 +190,8 @@ fn blob_reclaim_security_scope_and_metadata(
     let admitted =
         admitted_blob_security_scope(identity_key, StoreTenantScope::TenantPhysicalBoundary);
     let reclaim_scope = ReclaimPolicySecurityScope::from_admitted_scope(&admitted);
-    let readiness = accept_s5_1_admitted_security_scope_readiness(
-        S51SecurityScopeReadinessReservation::blob_chunk(),
-        admitted,
-    );
-    let handoff = S7BlobChunkSecurityHandoff::from_s5_1_readiness(readiness).expect("blob handoff");
+    let handoff =
+        S7BlobChunkSecurityHandoff::from_admitted_security_scope(admitted).expect("blob handoff");
     (reclaim_scope, handoff.permission().metadata())
 }
 

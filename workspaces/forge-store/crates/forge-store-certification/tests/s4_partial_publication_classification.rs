@@ -20,14 +20,10 @@ use non_authoritative_observations::*;
 fn identical_partial_publication_bytes_classify_identically() {
     let persisted_bytes = persisted_before_durability_bytes(20, 21);
     let first = PartialPublicationClassification::classify_observations(
-        PartialPublicationObservationSet::new().with_persisted_bytes(
-            PartialPublicationPersistedBytes::from_bytes(persisted_bytes.clone()),
-        ),
+        PartialPublicationObservationSet::new().with_persisted_bytes(persisted_bytes.clone()),
     );
     let second = PartialPublicationClassification::classify_observations(
-        PartialPublicationObservationSet::new().with_persisted_bytes(
-            PartialPublicationPersistedBytes::from_bytes(persisted_bytes),
-        ),
+        PartialPublicationObservationSet::new().with_persisted_bytes(persisted_bytes),
     );
 
     assert_eq!(first.outcome(), second.outcome());

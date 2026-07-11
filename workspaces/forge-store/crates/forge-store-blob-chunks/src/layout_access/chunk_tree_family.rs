@@ -1,40 +1,11 @@
 use forge_store_contracts::DurableArtifactFamilyId;
 
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase24_chunk_tree_rule, AdmittedChunkTreeLayoutRule,
-};
-
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
 use crate::{
     BlobStreamingContentFrontier, BlobStreamingVerifiedRead, ChunkTreeRoot, LogicalContentDigest,
 };
 
 use super::blob_object_family::BlobObjectLayoutReport;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ChunkTreeLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ChunkTreeLayoutAdmission {
-    _rule: AdmittedChunkTreeLayoutRule,
-}
-
-impl ChunkTreeLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedChunkTreeLayoutRule) -> ChunkTreeLayoutAdmission {
-        let _ = self;
-        ChunkTreeLayoutAdmission { _rule: rule }
-    }
-}
-
-fn chunk_tree_layout() -> AdmittedChunkTreeLayoutFamily {
-    let admission = ChunkTreeLayoutFamilyHome::s8()
-        .admit(phase24_chunk_tree_rule().expect("phase 24 chunk-tree rule must stay admitted"));
-    AdmittedChunkTreeLayoutFamily::new(admission)
-}
 
 pub fn reject_streaming_frontier_as_chunk_tree_layout_authority(
     _frontier: &BlobStreamingContentFrontier,
@@ -44,24 +15,11 @@ pub fn reject_streaming_frontier_as_chunk_tree_layout_authority(
     ))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedChunkTreeLayoutFamily {
-    _admission: ChunkTreeLayoutAdmission,
-}
-
-impl AdmittedChunkTreeLayoutFamily {
-    const fn new(admission: ChunkTreeLayoutAdmission) -> Self {
-        Self {
-            _admission: admission,
-        }
-    }
-
+impl ChunkTreeLayoutReport {
     fn admit_chunk_tree(
-        &self,
         blob: &BlobObjectLayoutReport,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<ChunkTreeLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if blob.object_id() != read.object_id()
             || blob.generation() != read.generation()
             || blob.chunk_tree_root() != read.chunk_tree_root()
@@ -160,6 +118,6 @@ impl BlobObjectLayoutReport {
         &self,
         read: &BlobStreamingVerifiedRead,
     ) -> Result<ChunkTreeLayoutReport, BlobLayoutAccessDenial> {
-        chunk_tree_layout().admit_chunk_tree(self, read)
+        ChunkTreeLayoutReport::admit_chunk_tree(self, read)
     }
 }

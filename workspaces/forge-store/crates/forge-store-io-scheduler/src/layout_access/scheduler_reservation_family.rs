@@ -1,26 +1,10 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_scheduler_reservation_rule, AdmittedSchedulerReservationLayoutRule,
-};
 
 use crate::foreground_reservation::{
     ForegroundFairnessClass, ForegroundReservationCounterSnapshot, ForegroundReservationReceipt,
 };
 use crate::BackgroundResourceBudget;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SchedulerReservationLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SchedulerReservationLayoutAdmission {
-    _rule: AdmittedSchedulerReservationLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedSchedulerReservationLayoutFamily {
-    _admission: SchedulerReservationLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SchedulerReservationInterferencePosture {
@@ -39,35 +23,9 @@ pub struct SchedulerReservationLayoutReport {
     counters: ForegroundReservationCounterSnapshot,
 }
 
-impl SchedulerReservationLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(
-        self,
-        rule: AdmittedSchedulerReservationLayoutRule,
-    ) -> SchedulerReservationLayoutAdmission {
-        let _ = self;
-        SchedulerReservationLayoutAdmission { _rule: rule }
-    }
-}
-
-fn scheduler_reservation_layout() -> AdmittedSchedulerReservationLayoutFamily {
-    AdmittedSchedulerReservationLayoutFamily {
-        _admission: SchedulerReservationLayoutFamilyHome::s8().admit(
-            phase26_scheduler_reservation_rule()
-                .expect("phase 26 scheduler reservation rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedSchedulerReservationLayoutFamily {
-    fn admit_scheduler_reservation(
-        &self,
-        receipt: ForegroundReservationReceipt,
-    ) -> SchedulerReservationLayoutReport {
-        let _ = self;
+impl ForegroundReservationReceipt {
+    pub fn admit_scheduler_reservation_layout(&self) -> SchedulerReservationLayoutReport {
+        let receipt = *self;
         SchedulerReservationLayoutReport {
             family_id: DurableArtifactFamilyId::SchedulerReservationIndex,
             access_shape: S8AccessShape::PointLookup,
@@ -115,12 +73,6 @@ impl SchedulerReservationLayoutReport {
 
     pub const fn exact_counters(&self) -> ForegroundReservationCounterSnapshot {
         self.counters
-    }
-}
-
-impl ForegroundReservationReceipt {
-    pub fn admit_scheduler_reservation_layout(&self) -> SchedulerReservationLayoutReport {
-        scheduler_reservation_layout().admit_scheduler_reservation(*self)
     }
 }
 

@@ -1,5 +1,4 @@
 mod behavior;
-mod blob_layout_closeout;
 mod blob_object_family;
 mod chunk_tree_family;
 mod compaction_family;
@@ -13,7 +12,6 @@ mod retention_family;
 mod streaming_family;
 
 pub use behavior::{BlobLayoutCorruptionBehavior, BlobLayoutScopeSafeAbsenceBehavior};
-pub use blob_layout_closeout::BlobLayoutCloseout;
 pub use blob_object_family::{
     reject_chunk_tree_root_as_blob_object_layout_authority, BlobGenerationPublicationLayoutReport,
     BlobObjectLayoutReport,

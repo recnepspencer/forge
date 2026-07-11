@@ -1,5 +1,5 @@
-use crate::S4RecoveryPhysicsIntegrityReadiness;
 use super::{IntegrityHandoffDenial, IntegrityHandoffDenialKind, IntegrityHandoffPayload};
+use crate::S4RecoveryPhysicsIntegrityReadiness;
 use forge_store_contracts::S3PhysicalIntegrityReadinessPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

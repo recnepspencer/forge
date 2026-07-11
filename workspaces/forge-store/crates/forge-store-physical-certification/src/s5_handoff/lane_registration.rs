@@ -1,6 +1,4 @@
-use forge_store_physical_isolation::{
-    s5_simulation_harness_readiness_requirement, PhysicalIsolationEntryAdmission,
-};
+use forge_store_physical_isolation::PhysicalIsolationEntryAdmission;
 use forge_store_readiness::S5SimulationHarnessReadinessDenial;
 
 use super::{
@@ -26,10 +24,7 @@ pub fn register_s5_physical_isolation_certification_lane(
     entry: &PhysicalIsolationEntryAdmission,
     receipt: S5HarnessReadinessReceipt,
 ) -> S5PhysicalIsolationCertificationLaneRegistration {
-    let accepted = accept_store_owned_s5_harness_readiness(
-        receipt,
-        s5_simulation_harness_readiness_requirement(),
-    );
+    let accepted = accept_store_owned_s5_harness_readiness(receipt);
     S5PhysicalIsolationCertificationLaneRegistration::new(entry, accepted)
 }
 

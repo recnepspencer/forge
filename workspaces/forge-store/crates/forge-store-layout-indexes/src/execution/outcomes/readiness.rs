@@ -2,30 +2,107 @@ use super::super::{
     S8AccessLoweringDeferred, S8ExecutionReadyAccessReceipt, S8LoweredAccessReceipt,
     S8RebindRequiredAccessReceipt, S8StaleLoweredAccessReceipt,
 };
-use crate::production_transition::define_owner_outcome;
 
-define_owner_outcome!(
-    pub S8IndexedExecutionReadinessOutcome,
-    pub S8IndexedExecutionReadinessView,
-    S8IndexedExecutionReadinessPayload,
-    ExecutionReadiness,
-    AdmitExecutionReadiness,
-    [
-        ready => Ready(S8ExecutionReadyAccessReceipt): Lowered => Ready => Ready,
-        stale => Stale(S8StaleLoweredAccessReceipt): Lowered => Ready => Stale,
-        rebind_required => RebindRequired(S8RebindRequiredAccessReceipt): Lowered => RequireRebind => RebindRequired,
-        deferred => Deferred(S8AccessLoweringDeferred): Lowered => Defer => Deferred,
-    ]
-);
+#[derive(Debug, PartialEq, Eq)]
+enum S8IndexedExecutionReadinessPayload {
+    Ready(S8ExecutionReadyAccessReceipt),
+    Stale(S8StaleLoweredAccessReceipt),
+    RebindRequired(S8RebindRequiredAccessReceipt),
+    Deferred(S8AccessLoweringDeferred),
+}
 
-define_owner_outcome!(
-    pub S8DegradedExecutionReadinessOutcome,
-    pub S8DegradedExecutionReadinessView,
-    S8DegradedExecutionReadinessPayload,
-    DegradedExactScan,
-    ExecuteBudgetedDegradedExactScan,
-    [ready => DegradedReady(S8ExecutionReadyAccessReceipt): Lowered => Ready => Ready]
-);
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8IndexedExecutionReadinessOutcome {
+    case: S8IndexedExecutionReadinessPayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8IndexedExecutionReadinessView<'a> {
+    Ready(&'a S8ExecutionReadyAccessReceipt),
+    Stale(&'a S8StaleLoweredAccessReceipt),
+    RebindRequired(&'a S8RebindRequiredAccessReceipt),
+    Deferred(&'a S8AccessLoweringDeferred),
+}
+
+impl S8IndexedExecutionReadinessOutcome {
+    pub(crate) fn ready(value: S8ExecutionReadyAccessReceipt) -> Self {
+        Self::from_owner_payload(S8IndexedExecutionReadinessPayload::Ready(value))
+    }
+
+    pub(crate) fn stale(value: S8StaleLoweredAccessReceipt) -> Self {
+        Self::from_owner_payload(S8IndexedExecutionReadinessPayload::Stale(value))
+    }
+
+    pub(crate) fn rebind_required(value: S8RebindRequiredAccessReceipt) -> Self {
+        Self::from_owner_payload(S8IndexedExecutionReadinessPayload::RebindRequired(value))
+    }
+
+    pub(crate) fn deferred(value: S8AccessLoweringDeferred) -> Self {
+        Self::from_owner_payload(S8IndexedExecutionReadinessPayload::Deferred(value))
+    }
+
+    fn from_owner_payload(case: S8IndexedExecutionReadinessPayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8IndexedExecutionReadinessView<'_> {
+        match &self.case {
+            S8IndexedExecutionReadinessPayload::Ready(value) => {
+                S8IndexedExecutionReadinessView::Ready(value)
+            }
+            S8IndexedExecutionReadinessPayload::Stale(value) => {
+                S8IndexedExecutionReadinessView::Stale(value)
+            }
+            S8IndexedExecutionReadinessPayload::RebindRequired(value) => {
+                S8IndexedExecutionReadinessView::RebindRequired(value)
+            }
+            S8IndexedExecutionReadinessPayload::Deferred(value) => {
+                S8IndexedExecutionReadinessView::Deferred(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8IndexedExecutionReadinessPayload {
+        self.case
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum S8DegradedExecutionReadinessPayload {
+    DegradedReady(S8ExecutionReadyAccessReceipt),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct S8DegradedExecutionReadinessOutcome {
+    case: S8DegradedExecutionReadinessPayload,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum S8DegradedExecutionReadinessView<'a> {
+    DegradedReady(&'a S8ExecutionReadyAccessReceipt),
+}
+
+impl S8DegradedExecutionReadinessOutcome {
+    pub(crate) fn ready(value: S8ExecutionReadyAccessReceipt) -> Self {
+        Self::from_owner_payload(S8DegradedExecutionReadinessPayload::DegradedReady(value))
+    }
+
+    fn from_owner_payload(case: S8DegradedExecutionReadinessPayload) -> Self {
+        Self { case }
+    }
+
+    pub fn view(&self) -> S8DegradedExecutionReadinessView<'_> {
+        match &self.case {
+            S8DegradedExecutionReadinessPayload::DegradedReady(value) => {
+                S8DegradedExecutionReadinessView::DegradedReady(value)
+            }
+        }
+    }
+
+    fn into_owner_payload(self) -> S8DegradedExecutionReadinessPayload {
+        self.case
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum ReadinessOwnerOutcome {
@@ -150,20 +227,6 @@ impl S8ExecutionReadinessOutcome {
             },
             owner => Err(Self { owner }),
         }
-    }
-    pub const fn production_transition(
-        &self,
-    ) -> crate::production_transition::S8LayoutProductionTransition {
-        match &self.owner {
-            ReadinessOwnerOutcome::Indexed(value) => value.production_transition(),
-            ReadinessOwnerOutcome::Degraded(value) => value.production_transition(),
-        }
-    }
-    pub(crate) fn indexed_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8IndexedExecutionReadinessOutcome::owner_transition_contract()
-    }
-    pub(crate) fn degraded_contract() -> crate::production_transition::S8OwnerTransitionContract {
-        S8DegradedExecutionReadinessOutcome::owner_transition_contract()
     }
 }
 

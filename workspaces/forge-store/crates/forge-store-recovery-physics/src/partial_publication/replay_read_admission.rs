@@ -77,12 +77,13 @@ impl PartialPublicationReplayReadArtifact {
         let classification = PartialPublicationClassification::classify_observations(
             PartialPublicationObservationSet::new().with_persisted_bytes(bytes),
         );
-        let crash_report = crate::layout_access::admit_partial_publication_classification(&classification)
-            .map_err(|_| PartialPublicationReplayReadDenial::NotBeforeWalAppend {
-                actual_operation_digest: classification
-                    .before_wal_append_operation_digest()
-                    .map(str::to_owned),
-            })?;
+        let crash_report =
+            crate::layout_access::admit_partial_publication_classification(&classification)
+                .map_err(|_| PartialPublicationReplayReadDenial::NotBeforeWalAppend {
+                    actual_operation_digest: classification
+                        .before_wal_append_operation_digest()
+                        .map(str::to_owned),
+                })?;
         Ok(Self {
             recovery_entry_identity: replay_entry.entry_identity().clone(),
             persisted_bytes_digest,

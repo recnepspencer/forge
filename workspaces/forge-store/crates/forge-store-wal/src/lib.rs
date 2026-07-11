@@ -28,7 +28,7 @@ pub use blob_records::{
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
     BlobWalReplayRebuildWitness,
 };
-pub use checkpoint::admit_checkpoint_publication;
+pub use checkpoint::{admit_checkpoint_cutover, admit_checkpoint_publication};
 pub use durable_publication::{
     CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
     WalFrameDurablePublicationScope,

@@ -4,6 +4,7 @@ mod facade;
 mod input;
 mod outcome;
 mod quarantine;
+mod quarantine_authority;
 mod readmission;
 #[cfg(test)]
 mod readmission_test_support;
@@ -11,8 +12,6 @@ mod readmission_test_support;
 pub(crate) mod readmission_tests;
 #[cfg(test)]
 pub(crate) mod tests;
-#[cfg(test)]
-pub(crate) use tests::assert_owner_transition_handoff_equivalence;
 
 pub use classification::{S8LayoutCorruptionClass, S8LayoutReadmissionSource};
 pub use denial::S8CorruptionDenial;

@@ -1,12 +1,11 @@
-use forge_store_recovery_physics::{
-    BoundedRecoveryReceipt, RecoveryCounterSnapshot, S4RecoveryCrashSeam,
-};
+use forge_store_physical_certification::RecoveryCrashSeam;
+use forge_store_recovery_physics::{BoundedRecoveryReceipt, RecoveryCounterSnapshot};
 
 use crate::{FaultSchedulerDriver, StorageBoundaryInterposerDriver};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedS4CrashHarnessTranscript {
-    seam: S4RecoveryCrashSeam,
+    seam: RecoveryCrashSeam,
     lowered_plan_id: String,
     storage_boundary_id: String,
     observer_transcript_id: String,
@@ -21,7 +20,7 @@ pub struct ExecutedS4CrashHarnessTranscript {
 
 impl ExecutedS4CrashHarnessTranscript {
     pub fn execute(
-        seam: S4RecoveryCrashSeam,
+        seam: RecoveryCrashSeam,
         lowered_plan_id: impl Into<String>,
         receipt: &BoundedRecoveryReceipt,
     ) -> Result<Self, ExecutedS4CrashHarnessDenial> {
@@ -63,7 +62,7 @@ impl ExecutedS4CrashHarnessTranscript {
         })
     }
 
-    pub const fn seam(&self) -> S4RecoveryCrashSeam {
+    pub const fn seam(&self) -> RecoveryCrashSeam {
         self.seam
     }
 

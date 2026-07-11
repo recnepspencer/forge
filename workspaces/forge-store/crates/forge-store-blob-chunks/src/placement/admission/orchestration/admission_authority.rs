@@ -6,9 +6,7 @@ use crate::placement::admission::{
     basis::BlobPlacementReachabilityBasis,
     receipt_construction::construct_admitted_placement,
     types::AdmittedBlobPlacement,
-    verification::{
-        verify_class_backend_capability, verify_readiness_basis_match,
-    },
+    verification::{verify_class_backend_capability, verify_readiness_basis_match},
     BlobPlacementAdmissionDenial, BlobPlacementIntent,
 };
 

@@ -1,4 +1,4 @@
-use crate::{RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenial};
+use crate::{IntegrityHandoffDenial, RecoveryIntegrityHandoffReceipt};
 use forge_store_physical_format::{
     PhysicalGenerationOwner, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };

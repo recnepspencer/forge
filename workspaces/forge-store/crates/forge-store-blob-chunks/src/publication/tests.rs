@@ -1,8 +1,8 @@
-use forge_store_layout_indexes::layout_strategy_admission::phase22_crash_boundary_rule;
 use forge_store_physical_isolation::SemanticVisibilityReference;
 use forge_store_recovery_physics::{
-    PartialPublicationObservationSet, PartialPublicationReplayReadDenial,
-    PartialPublicationReplayReadWitness, PartialPublicationReplayedCrashEdge, RecoveryLayoutAccess,
+    CrashBoundaryLayoutReport, PartialPublicationObservationSet,
+    PartialPublicationReplayReadDenial, PartialPublicationReplayReadWitness,
+    PartialPublicationReplayedCrashEdge,
 };
 
 use crate::publication::test_support::{
@@ -289,12 +289,8 @@ fn non_replayable_recovery_classification_cannot_commit_publication_record() {
     let staged =
         BlobReachabilityStaging::stage(candidate, reachability).expect("reachability should stage");
     let payload = BlobPublicationWalPayload::from_staged_reachability(&staged);
-    let family = RecoveryLayoutAccess::s8()
-        .crash_boundary_layout(&phase22_crash_boundary_rule().expect("phase-22 crash rule"))
-        .expect("phase-22 crash family");
-
     assert!(matches!(
-        family.admit_observations(
+        CrashBoundaryLayoutReport::admit_observations(
             PartialPublicationObservationSet::new()
                 .with_insufficient_persisted_evidence("ambiguous"),
         ),

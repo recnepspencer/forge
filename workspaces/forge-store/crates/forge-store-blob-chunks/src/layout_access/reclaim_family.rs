@@ -1,8 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture, StableDigest};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_reclaim_rule, AdmittedReclaimLayoutRule,
-};
 use forge_store_physical_format::{PhysicalReclaimRegion, ReclaimedByteInterpretation};
 use forge_store_security::StoreSecurityScopeIdentity;
 
@@ -12,19 +9,6 @@ use super::behavior::{
 };
 use super::{BlobLayoutAccessDenial, BlobLayoutAccessDenialKind, BlobLayoutAccessPathEvidence};
 use crate::{BlobChunkIdentity, BlobRetentionReclaimPermit};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ReclaimLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct ReclaimLayoutAdmission {
-    _rule: AdmittedReclaimLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedReclaimLayoutFamily {
-    _admission: ReclaimLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReclaimLayoutReport {
@@ -42,30 +26,10 @@ pub struct ReclaimLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl ReclaimLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedReclaimLayoutRule) -> ReclaimLayoutAdmission {
-        let _ = self;
-        ReclaimLayoutAdmission { _rule: rule }
-    }
-}
-
-fn reclaim_layout() -> AdmittedReclaimLayoutFamily {
-    AdmittedReclaimLayoutFamily {
-        _admission: ReclaimLayoutFamilyHome::s8()
-            .admit(phase25_reclaim_rule().expect("phase 25 reclaim rule must stay admitted")),
-    }
-}
-
-impl AdmittedReclaimLayoutFamily {
+impl ReclaimLayoutReport {
     fn admit_reclaim(
-        &self,
         permit: &BlobRetentionReclaimPermit,
     ) -> Result<ReclaimLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if permit.reclaim_release().released_edges().is_empty() {
             return Err(BlobLayoutAccessDenial::new(
                 BlobLayoutAccessDenialKind::ReclaimLayoutRequiresReachabilityBoundPolicyExecution,
@@ -166,6 +130,6 @@ impl ReclaimLayoutReport {
 
 impl BlobRetentionReclaimPermit {
     pub fn admit_reclaim_layout(&self) -> Result<ReclaimLayoutReport, BlobLayoutAccessDenial> {
-        reclaim_layout().admit_reclaim(self)
+        ReclaimLayoutReport::admit_reclaim(self)
     }
 }

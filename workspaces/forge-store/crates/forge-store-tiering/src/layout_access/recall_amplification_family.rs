@@ -1,24 +1,8 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase26_recall_amplification_rule, AdmittedRecallAmplificationLayoutRule,
-};
 use forge_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
 use crate::ColdTierIoPosture;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RecallAmplificationLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct RecallAmplificationLayoutAdmission {
-    _rule: AdmittedRecallAmplificationLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedRecallAmplificationLayoutFamily {
-    _admission: RecallAmplificationLayoutAdmission,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecallAmplificationInterferencePosture {
@@ -40,35 +24,8 @@ pub struct RecallAmplificationLayoutReport {
     posture: ColdTierIoPosture,
 }
 
-impl RecallAmplificationLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(
-        self,
-        rule: AdmittedRecallAmplificationLayoutRule,
-    ) -> RecallAmplificationLayoutAdmission {
-        let _ = self;
-        RecallAmplificationLayoutAdmission { _rule: rule }
-    }
-}
-
-fn recall_amplification_layout() -> AdmittedRecallAmplificationLayoutFamily {
-    AdmittedRecallAmplificationLayoutFamily {
-        _admission: RecallAmplificationLayoutFamilyHome::s8().admit(
-            phase26_recall_amplification_rule()
-                .expect("phase 26 recall amplification rule must stay admitted"),
-        ),
-    }
-}
-
-impl AdmittedRecallAmplificationLayoutFamily {
-    fn admit_recall_amplification(
-        &self,
-        posture: &ColdTierIoPosture,
-    ) -> RecallAmplificationLayoutReport {
-        let _ = self;
+impl RecallAmplificationLayoutReport {
+    fn from_posture(posture: &ColdTierIoPosture) -> Self {
         RecallAmplificationLayoutReport {
             family_id: DurableArtifactFamilyId::RecallAmplificationIndex,
             access_shape: S8AccessShape::BoundedScan,
@@ -77,9 +34,7 @@ impl AdmittedRecallAmplificationLayoutFamily {
             posture: posture.clone(),
         }
     }
-}
 
-impl RecallAmplificationLayoutReport {
     pub const fn family_id(&self) -> DurableArtifactFamilyId {
         self.family_id
     }
@@ -128,6 +83,6 @@ impl RecallAmplificationAccessBudget {
 
 impl ColdTierIoPosture {
     pub fn admit_recall_amplification_layout(&self) -> RecallAmplificationLayoutReport {
-        recall_amplification_layout().admit_recall_amplification(self)
+        RecallAmplificationLayoutReport::from_posture(self)
     }
 }

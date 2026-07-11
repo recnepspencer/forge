@@ -1,8 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_quarantine_rule, AdmittedQuarantineLayoutRule,
-};
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
@@ -14,19 +11,6 @@ use crate::{
     BlobCorruptionPlacementClass, BlobGeneration, BlobObjectId, BlobQuarantineLifecycleState,
     BlobQuarantineRepairCapability, StoredChunkDigest,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct QuarantineLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct QuarantineLayoutAdmission {
-    _rule: AdmittedQuarantineLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedQuarantineLayoutFamily {
-    _admission: QuarantineLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuarantineLayoutReport {
@@ -47,30 +31,10 @@ pub struct QuarantineLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl QuarantineLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedQuarantineLayoutRule) -> QuarantineLayoutAdmission {
-        let _ = self;
-        QuarantineLayoutAdmission { _rule: rule }
-    }
-}
-
-fn quarantine_layout() -> AdmittedQuarantineLayoutFamily {
-    AdmittedQuarantineLayoutFamily {
-        _admission: QuarantineLayoutFamilyHome::s8()
-            .admit(phase25_quarantine_rule().expect("phase 25 quarantine rule must stay admitted")),
-    }
-}
-
-impl AdmittedQuarantineLayoutFamily {
+impl QuarantineLayoutReport {
     fn admit_quarantine(
-        &self,
         quarantine: &BlobChunkQuarantine,
     ) -> Result<QuarantineLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         Ok(QuarantineLayoutReport::from_quarantine(quarantine))
     }
 }
@@ -174,6 +138,6 @@ impl BlobChunkQuarantine {
     pub fn admit_quarantine_layout(
         &self,
     ) -> Result<QuarantineLayoutReport, BlobLayoutAccessDenial> {
-        quarantine_layout().admit_quarantine(self)
+        QuarantineLayoutReport::admit_quarantine(self)
     }
 }

@@ -1,8 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use forge_store_layout_indexes::access_planning::S8AccessShape;
-use forge_store_layout_indexes::layout_strategy_admission::{
-    phase25_compaction_rule, AdmittedCompactionLayoutRule,
-};
 
 use super::behavior::{
     corruption_behavior_for, declared_rebuild_posture, BlobLayoutCorruptionBehavior,
@@ -13,19 +10,6 @@ use crate::{
     BlobAuthorityClassification, BlobChunkSecurityMetadataWitness, BlobCompactionEquivalence,
     BlobCompactionRewritePlan, LogicalContentDigest,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct CompactionLayoutFamilyHome;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct CompactionLayoutAdmission {
-    _rule: AdmittedCompactionLayoutRule,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct AdmittedCompactionLayoutFamily {
-    _admission: CompactionLayoutAdmission,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompactionLayoutReport {
@@ -44,31 +28,11 @@ pub struct CompactionLayoutReport {
     counter_evidence: BlobLayoutAccessPathEvidence,
 }
 
-impl CompactionLayoutFamilyHome {
-    const fn s8() -> Self {
-        Self
-    }
-
-    fn admit(self, rule: AdmittedCompactionLayoutRule) -> CompactionLayoutAdmission {
-        let _ = self;
-        CompactionLayoutAdmission { _rule: rule }
-    }
-}
-
-fn compaction_layout() -> AdmittedCompactionLayoutFamily {
-    AdmittedCompactionLayoutFamily {
-        _admission: CompactionLayoutFamilyHome::s8()
-            .admit(phase25_compaction_rule().expect("phase 25 compaction rule must stay admitted")),
-    }
-}
-
-impl AdmittedCompactionLayoutFamily {
+impl CompactionLayoutReport {
     fn admit_compaction(
-        &self,
         plan: &BlobCompactionRewritePlan,
         equivalence: &BlobCompactionEquivalence,
     ) -> Result<CompactionLayoutReport, BlobLayoutAccessDenial> {
-        let _ = self;
         if !equivalence.matches_plan_basis(plan) {
             return Err(BlobLayoutAccessDenial::new(
                 BlobLayoutAccessDenialKind::CompactionLayoutRequiresPlanBoundEquivalence,
@@ -170,6 +134,6 @@ impl BlobCompactionRewritePlan {
         &self,
         equivalence: &BlobCompactionEquivalence,
     ) -> Result<CompactionLayoutReport, BlobLayoutAccessDenial> {
-        compaction_layout().admit_compaction(self, equivalence)
+        CompactionLayoutReport::admit_compaction(self, equivalence)
     }
 }
