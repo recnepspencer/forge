@@ -8,9 +8,12 @@
 pub mod fixtures;
 mod lsm_execution_fixture;
 mod milestone;
+mod physical_isolation;
 pub mod physical_reference;
 pub mod physical_simulation;
 pub mod production_facade;
+mod recovery;
+mod security_scope;
 pub mod test_authority;
 
 pub use milestone::s8_layout_access::{

@@ -3,7 +3,9 @@ use forge_store_physical_certification::{
     PhysicalScenarioExpectation, PhysicalScenarioFault, PhysicalScenarioFaultKind,
     PhysicalScenarioIntent, PhysicalSimulationScenarioFamily,
 };
-use forge_store_test_support::{s5_boundary_fact, s5_boundary_yieldpoint};
+use forge_store_test_support::{
+    physical_isolation_boundary_fact, physical_isolation_boundary_yieldpoint,
+};
 
 #[derive(Debug, Clone)]
 pub struct S5PhysicalIsolationHarnessLane {
@@ -109,7 +111,7 @@ fn lane<const N: usize>(
     let mut builder = physical_scenario(format!("store.physical.s5.interleaving.{name}"))
         .family(family)
         .intent(intent)
-        .fixture(s5_boundary_fact(name, 11));
+        .fixture(physical_isolation_boundary_fact(name, 11));
     for actor in actors {
         builder = builder.actor(actor);
     }
@@ -118,7 +120,7 @@ fn lane<const N: usize>(
         expected_fault,
         scenario: builder
             .fault(fault)
-            .schedule(s5_boundary_yieldpoint())
+            .schedule(physical_isolation_boundary_yieldpoint())
             .expectation(expectation)
             .certify_definition()
             .unwrap(),

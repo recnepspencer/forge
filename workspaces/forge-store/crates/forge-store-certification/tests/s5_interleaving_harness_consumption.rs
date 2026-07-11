@@ -137,7 +137,7 @@ fn readiness_shape_probe_remains_non_claiming_and_not_s5_closeout_authority() {
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
         .actor(PhysicalScenarioActor::compaction_driver("compactor"))
         .fault(PhysicalScenarioFault::no_fault())
-        .schedule(forge_store_test_support::s5_boundary_yieldpoint())
+        .schedule(forge_store_test_support::physical_isolation_boundary_yieldpoint())
         .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
         .certify_definition()
         .unwrap();
@@ -162,7 +162,7 @@ fn readiness_shape_probe_remains_non_claiming_and_not_s5_closeout_authority() {
         .actor(PhysicalScenarioActor::foreground_reader("reader"))
         .actor(PhysicalScenarioActor::compaction_driver("compactor"))
         .fault(PhysicalScenarioFault::early_reclaim())
-        .schedule(forge_store_test_support::s5_boundary_yieldpoint())
+        .schedule(forge_store_test_support::physical_isolation_boundary_yieldpoint())
         .expectation(PhysicalScenarioExpectation::non_claiming_s5_readiness_shape())
         .certify_definition()
         .unwrap();

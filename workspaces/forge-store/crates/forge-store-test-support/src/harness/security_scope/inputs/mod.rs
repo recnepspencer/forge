@@ -1,12 +1,7 @@
 mod fixtures;
-mod readiness;
 mod scenarios;
 
-pub use readiness::{
-    S51SecurityScopeHarnessExecution, S51SecurityScopeHarnessReplayExecution,
-    execute_s5_1_security_scope_harness_replay_with_physical_replay,
-    execute_s5_1_security_scope_harness_scenario,
-};
+pub(crate) use fixtures::S51SecurityScopeNativeHarnessFixture;
 pub use scenarios::{
     s5_1_security_scope_drift_scenario, s5_1_security_scope_metadata_preservation_scenarios,
     s5_1_security_scope_metadata_preserved_scenario,

@@ -18,7 +18,7 @@ use forge_store_security::{
     evaluate_deserialized_security_scope_readmission, evaluate_store_security_scope_admission,
 };
 
-use super::fixtures::S51SecurityScopeNativeHarnessFixture;
+use super::inputs::S51SecurityScopeNativeHarnessFixture;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct S51SecurityScopeHarnessExecution {

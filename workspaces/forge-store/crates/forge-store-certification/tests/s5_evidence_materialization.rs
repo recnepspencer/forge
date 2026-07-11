@@ -282,7 +282,7 @@ fn lane_for(
 }
 
 fn s5_source_authority() -> StoreCurrentAuthorityWitness {
-    require_current_store_authority(forge_store_test_support::s5_boundary_fact(
+    require_current_store_authority(forge_store_test_support::physical_isolation_boundary_fact(
         "s5.executed.isolation",
         11,
     ))
