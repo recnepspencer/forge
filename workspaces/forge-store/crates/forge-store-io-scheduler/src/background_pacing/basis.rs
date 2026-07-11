@@ -4,7 +4,7 @@ use forge_store_security::StoreSecurityScopeIdentity;
 use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerS6CounterSnapshot, IoSchedulerS6ReadinessAdmission,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerIsolationAdmission,
 };
 
 use super::BackgroundIoPressureClass;
@@ -21,7 +21,7 @@ pub struct BackgroundPacingAdmissionBasis {
     backend_evidence_class: CapabilityEvidenceClass,
     backend_security_scope_bound: bool,
     security_scope_identity: StoreSecurityScopeIdentity,
-    readiness_counters: IoSchedulerS6CounterSnapshot,
+    readiness_counters: IoSchedulerIsolationCounterSnapshot,
 }
 
 impl BackgroundPacingAdmissionBasis {
@@ -29,7 +29,7 @@ impl BackgroundPacingAdmissionBasis {
         class: BackgroundIoPressureClass,
         foreground: &ForegroundReservationReceipt,
         backend: &IoSchedulerBackendCapabilityAdmission,
-        readiness: &IoSchedulerS6ReadinessAdmission,
+        readiness: &IoSchedulerIsolationAdmission,
         security_scope_identity: StoreSecurityScopeIdentity,
     ) -> Self {
         Self {
@@ -77,7 +77,7 @@ impl BackgroundPacingAdmissionBasis {
     pub const fn security_scope_identity(self) -> StoreSecurityScopeIdentity {
         self.security_scope_identity
     }
-    pub const fn readiness_counters(self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn readiness_counters(self) -> IoSchedulerIsolationCounterSnapshot {
         self.readiness_counters
     }
 }

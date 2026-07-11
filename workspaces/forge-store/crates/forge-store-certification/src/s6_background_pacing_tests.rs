@@ -8,7 +8,7 @@ use forge_foundational::{
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
-    admit_background_pacing, admit_store_published_s6_io_qos_isolation_readiness,
+    admit_background_pacing, admit_store_published_isolation_capability,
     BackgroundCapacityAdmissionRequest, BackgroundDebtKind, BackgroundIdleCapacityLeaseRequest,
     BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundPacingProgressionDrift,
     BackgroundPacingProgressionEvidence, BackgroundResourceBudget,
@@ -19,7 +19,7 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 
 use crate::{
     certify_s6_background_pacing, S6BackgroundPacingCertificationDenial,
@@ -295,14 +295,14 @@ fn progression_drift(
 }
 
 fn mismatched_counters(
-    counters: forge_store_io_scheduler::IoSchedulerS6CounterSnapshot,
-) -> forge_store_io_scheduler::IoSchedulerS6CounterSnapshot {
-    let alternate = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(
+    counters: forge_store_io_scheduler::IoSchedulerIsolationCounterSnapshot,
+) -> forge_store_io_scheduler::IoSchedulerIsolationCounterSnapshot {
+    let alternate = publish_scheduler_isolation_capability_for_certification_test(
         counters.wait_count() + 3,
         counters.retry_count() + 1,
     )
     .expect("alternate S.6 readiness should publish");
-    admit_store_published_s6_io_qos_isolation_readiness(&alternate)
+    admit_store_published_isolation_capability(&alternate)
         .expect("alternate scheduler readiness should admit")
         .counters()
 }
@@ -333,10 +333,10 @@ fn backend_admission() -> forge_store_io_scheduler::IoSchedulerBackendCapability
     .expect("scheduler should admit backend")
 }
 
-fn s6_readiness() -> forge_store_io_scheduler::IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+fn s6_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit readiness")
 }
 

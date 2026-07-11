@@ -21,7 +21,7 @@ pub use lowering::{
 pub use oracle_observation::S7BlobHarnessOracleObservation;
 pub use profile::{BlobHarnessProfile, BlobHarnessProfileSet};
 #[cfg(any(test, feature = "certification-test-support"))]
-pub(crate) use replay::execute_replay_artifacts_for_seed;
+pub use replay::blob_harness_replay_artifacts_for_certification;
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use replay::{
     coverage_matrix_for_seed as synthetic_blob_harness_coverage_matrix_for_test_support,

@@ -10,7 +10,7 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_security::{
     accept_s5_1_admitted_security_scope_readiness,
     admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
@@ -18,9 +18,9 @@ use forge_store_security::{
 };
 
 use crate::{
-    admit_backend_capability_for_scheduler_claim, admit_s5_1_security_scope_for_s6_io_qos,
+    admit_backend_capability_for_scheduler_claim, admit_security_scope_for_scheduler,
     admit_secure_frame_backend_capability_for_scheduler_claim,
-    admit_store_published_s6_io_qos_isolation_readiness, S6IoQosSecurityScopeHandoff,
+    admit_store_published_isolation_capability, SchedulerSecurityScopeEvidence,
 };
 
 use super::{
@@ -167,18 +167,18 @@ fn admitted_secure_frame_reservation_for_certification_test(
     .expect("secure-frame reservation should admit through production path")
 }
 
-fn s6_readiness_admission() -> crate::IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+fn s6_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness through production path");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit Store-published S.6 readiness")
 }
 
 fn capacity_admission(
     lane: ForegroundLaneDeclaration,
     backend: &crate::IoSchedulerBackendCapabilityAdmission,
-    readiness: &crate::IoSchedulerS6ReadinessAdmission,
-    security: &crate::IoSchedulerS6SecurityScopeAdmission,
+    readiness: &crate::IoSchedulerIsolationAdmission,
+    security: &crate::IoSchedulerSecurityScopeAdmission,
     arbitration: ForegroundArbitrationDeclaration,
     requested: ForegroundResourceBudget,
     available: ForegroundResourceBudget,
@@ -317,14 +317,14 @@ fn backend_evidence_basis(
     }
 }
 
-fn security_scope_admission() -> crate::IoSchedulerS6SecurityScopeAdmission {
+fn security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         admitted_store_internal_security_scope_for_s6_test(),
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("test S.5.1 security handoff should admit");
-    admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    admit_security_scope_for_scheduler(handoff)
 }
 
 fn point_read_budget() -> ForegroundResourceBudget {

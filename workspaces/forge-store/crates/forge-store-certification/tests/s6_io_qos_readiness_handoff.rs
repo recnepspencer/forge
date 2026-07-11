@@ -14,21 +14,21 @@ mod source_precedence_fixture;
 mod support;
 
 use forge_store_io_scheduler::{
-    admit_store_published_s6_io_qos_isolation_readiness,
-    reject_hardware_queue_depth_claim_as_s6_readiness,
-    reject_log_or_metric_projection_as_s6_readiness, reject_media_qos_claim_as_s6_readiness,
-    IoSchedulerS6ReadinessDenial,
+    admit_store_published_isolation_capability,
+    reject_hardware_queue_depth_claim_as_isolation_admission,
+    reject_log_or_metric_projection_as_isolation_admission, reject_media_qos_claim_as_isolation_admission,
+    IoSchedulerIsolationAdmissionDenial,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_from_s5_closeout;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_from_executed_evidence;
 use forge_store_physical_isolation::{
-    reject_copied_closeout_report_as_s6_readiness,
-    reject_log_or_terminal_projection_as_s6_readiness,
-    reject_missing_latch_counters_as_s6_readiness,
-    reject_missing_protected_byte_footprint_as_s6_readiness,
-    reject_missing_reclaim_counters_as_s6_readiness, reject_qos_claim_as_s5_readiness,
-    reject_synthetic_wait_label_as_s6_readiness, ExecutedS5IsolationCloseout,
-    PhysicalStabilityAssumption, S6IoQosIsolationReadiness, S6IoQosIsolationReadinessDenial,
-    S6ReadinessAuthorityPosture, UnsupportedQoSClaim,
+    reject_copied_closeout_report_as_isolation_readiness,
+    reject_log_or_terminal_projection_as_isolation_readiness,
+    reject_missing_latch_counters_as_isolation_readiness,
+    reject_missing_protected_byte_footprint_as_isolation_readiness,
+    reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
+    reject_synthetic_wait_label_as_isolation_readiness, ExecutedIsolationEvidence,
+    PhysicalStabilityAssumption, SchedulerIsolationCapability, IsolationReadinessDenial,
+    SchedulerIsolationAuthorityPosture, UnsupportedQoSClaim,
 };
 
 #[test]
@@ -81,7 +81,7 @@ fn executed_s5_closeout_publishes_typed_s6_io_qos_readiness() {
     );
     assert_eq!(
         readiness.basis().projection_evidence().authority_posture(),
-        S6ReadinessAuthorityPosture::StoreExecutedIsolationMaterialized
+        SchedulerIsolationAuthorityPosture::StoreExecutedIsolationMaterialized
     );
 }
 
@@ -113,32 +113,32 @@ fn identical_executed_s5_evidence_produces_equivalent_s6_handoff() {
 #[test]
 fn shortcuts_cannot_satisfy_s6_readiness() {
     assert_eq!(
-        reject_copied_closeout_report_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::CopiedCloseoutReport
+        reject_copied_closeout_report_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::CopiedCloseoutReport
     );
     assert_eq!(
-        reject_log_or_terminal_projection_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::LogOrTerminalProjection
+        reject_log_or_terminal_projection_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::LogOrTerminalProjection
     );
     assert_eq!(
-        reject_synthetic_wait_label_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::SyntheticWaitLabel
+        reject_synthetic_wait_label_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::SyntheticWaitLabel
     );
 }
 
 #[test]
 fn missing_latch_reclaim_or_footprint_counters_deny_s6_readiness() {
     assert_eq!(
-        reject_missing_latch_counters_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::MissingLatchCounters
+        reject_missing_latch_counters_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::MissingLatchCounters
     );
     assert_eq!(
-        reject_missing_reclaim_counters_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::MissingReclaimCounters
+        reject_missing_reclaim_counters_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::MissingReclaimCounters
     );
     assert_eq!(
-        reject_missing_protected_byte_footprint_as_s6_readiness().unwrap_err(),
-        S6IoQosIsolationReadinessDenial::MissingProtectedByteFootprint
+        reject_missing_protected_byte_footprint_as_isolation_readiness().unwrap_err(),
+        IsolationReadinessDenial::MissingProtectedByteFootprint
     );
 }
 
@@ -146,8 +146,8 @@ fn missing_latch_reclaim_or_footprint_counters_deny_s6_readiness() {
 fn s5_names_every_qos_claim_it_does_not_make() {
     for claim in UnsupportedQoSClaim::canonical_s5_non_claims() {
         assert_eq!(
-            reject_qos_claim_as_s5_readiness(claim).unwrap_err(),
-            S6IoQosIsolationReadinessDenial::UnsupportedQoSClaimRequested(claim)
+            reject_unsupported_qos_claim_as_isolation_readiness(claim).unwrap_err(),
+            IsolationReadinessDenial::UnsupportedQoSClaimRequested(claim)
         );
     }
 }
@@ -158,12 +158,12 @@ fn s6_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
         executed_closeout_fixture::honest_executed_s5_closeout(),
     );
     let counters = readiness.counters();
-    let scheduler_admission = admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    let scheduler_admission = admit_store_published_isolation_capability(&readiness)
         .expect("scheduler receives Store-published S6 readiness");
 
     assert_eq!(
         readiness.assumptions(),
-        &PhysicalStabilityAssumption::s6_handoff_assumptions()
+        &PhysicalStabilityAssumption::required()
     );
     assert_eq!(
         readiness.foreground_interference().wait_count(),
@@ -214,22 +214,22 @@ fn s6_readiness_exposes_scheduler_required_surfaces_without_qos_authority() {
 #[test]
 fn scheduler_denies_projection_and_claim_shortcuts() {
     assert_eq!(
-        reject_log_or_metric_projection_as_s6_readiness().unwrap_err(),
-        IoSchedulerS6ReadinessDenial::LogOrMetricProjection
+        reject_log_or_metric_projection_as_isolation_admission().unwrap_err(),
+        IoSchedulerIsolationAdmissionDenial::LogOrMetricProjection
     );
     assert_eq!(
-        reject_hardware_queue_depth_claim_as_s6_readiness().unwrap_err(),
-        IoSchedulerS6ReadinessDenial::HardwareQueueDepthClaim
+        reject_hardware_queue_depth_claim_as_isolation_admission().unwrap_err(),
+        IoSchedulerIsolationAdmissionDenial::HardwareQueueDepthClaim
     );
     assert_eq!(
-        reject_media_qos_claim_as_s6_readiness().unwrap_err(),
-        IoSchedulerS6ReadinessDenial::MediaQosClaim
+        reject_media_qos_claim_as_isolation_admission().unwrap_err(),
+        IoSchedulerIsolationAdmissionDenial::MediaQosClaim
     );
 }
 
 fn readiness_from_executed_s5_closeout(
-    closeout: ExecutedS5IsolationCloseout,
-) -> S6IoQosIsolationReadiness {
-    publish_s6_io_qos_isolation_readiness_from_s5_closeout(closeout)
+    closeout: ExecutedIsolationEvidence,
+) -> SchedulerIsolationCapability {
+    publish_scheduler_isolation_capability_from_executed_evidence(closeout)
         .expect("executed S5 physical closeout publishes S6 readiness")
 }

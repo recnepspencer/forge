@@ -4,7 +4,7 @@ use forge_store_recovery_physics::{
     IntegrityDamageMap, IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameRecord,
     IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
     IntegrityVettedWalFrame, PartialPublicationBeforeWalReplayRead,
-    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffPayload,
+    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, IntegrityHandoffPayload,
 };
 
 use super::s4_recovery_integrity_fixture::{
@@ -16,7 +16,7 @@ use super::s4_recovery_physical_fixture::{page_payload_with_record, with_protect
 pub(super) fn intact_payload(
     label: &str,
     include_partial_publication_replay_read: bool,
-) -> S4IntegrityHandoffPayload {
+) -> IntegrityHandoffPayload {
     let page_payload = page_payload_with_record(label.as_bytes());
     let page = inspect_page_report(&page_payload);
     let wal = inspect_wal_frame(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
@@ -27,7 +27,7 @@ pub(super) fn intact_payload(
         &manifest,
     ));
 
-    let mut declaration = S4IntegrityHandoffPayload::declare()
+    let mut declaration = IntegrityHandoffPayload::declare()
         .root_manifest(
             IntegrityVettedRootManifestRecord::from_manifest_report(
                 &manifest,

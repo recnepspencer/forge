@@ -1,5 +1,5 @@
 use forge_store_recovery_physics::{
-    RecoveryEntryAdmission, RecoveryEntryAdmissionDecision, S4IntegrityHandoffAdmission,
+    IntegrityHandoffAdmission, RecoveryEntryAdmission, RecoveryEntryAdmissionDecision,
 };
 
 use super::s4_recovery_handoff_fixture::intact_payload;
@@ -19,7 +19,7 @@ fn admit_recovery_entry_from_s4_handoff(
     label: &str,
     include_partial_publication_replay_read: bool,
 ) -> RecoveryEntryAdmission {
-    let readiness = S4IntegrityHandoffAdmission::admit(
+    let readiness = IntegrityHandoffAdmission::admit(
         s3_readiness().payload(),
         intact_payload(label, include_partial_publication_replay_read),
     )

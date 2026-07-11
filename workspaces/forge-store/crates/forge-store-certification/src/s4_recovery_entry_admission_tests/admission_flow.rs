@@ -5,7 +5,7 @@ use super::support::{
 };
 use forge_store_buffer_pool::{BackgroundEnvelopeAdmission, BackgroundWorkClass};
 use forge_store_recovery_physics::{
-    RecoveryEntryAdmission, RecoveryEntryAdmissionDecision, S4IntegrityHandoffPayload,
+    RecoveryEntryAdmission, RecoveryEntryAdmissionDecision, IntegrityHandoffPayload,
 };
 
 #[test]
@@ -98,7 +98,7 @@ fn quarantine_summary_preserves_its_damage_case_across_mixed_recovery_blockers()
         )
         .unwrap();
 
-    let payload = S4IntegrityHandoffPayload::declare()
+    let payload = IntegrityHandoffPayload::declare()
         .root_manifest(intact.payload().root_manifest().clone())
         .segment_manifest(intact.payload().segment_manifest().clone())
         .page_frame(intact.payload().page_frames()[0].clone())

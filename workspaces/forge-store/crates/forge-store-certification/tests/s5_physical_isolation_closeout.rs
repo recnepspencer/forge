@@ -27,7 +27,7 @@ use forge_store_physical_certification::{
     PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence,
 };
 use forge_store_physical_isolation::{
-    publish_s6_io_qos_isolation_readiness_from_s5_closeout, PhysicalStabilityAssumption,
+    publish_scheduler_isolation_capability_from_executed_evidence, PhysicalStabilityAssumption,
     S5IsolationEvidenceProfile, UnsupportedQoSClaim,
 };
 
@@ -200,11 +200,11 @@ fn phase15_closeout_seals_handoff_evidence_without_minting_production_readiness(
     assert_eq!(handoff.suite().lanes().len(), 6);
     assert_eq!(handoff.executed_closeout(), &closeout);
 
-    let readiness = publish_s6_io_qos_isolation_readiness_from_s5_closeout(closeout)
+    let readiness = publish_scheduler_isolation_capability_from_executed_evidence(closeout)
         .expect("production readiness minting belongs to physical-isolation");
     assert_eq!(
         readiness.assumptions(),
-        &PhysicalStabilityAssumption::s6_handoff_assumptions()
+        &PhysicalStabilityAssumption::required()
     );
     assert_eq!(
         readiness.unsupported_qos_claims(),

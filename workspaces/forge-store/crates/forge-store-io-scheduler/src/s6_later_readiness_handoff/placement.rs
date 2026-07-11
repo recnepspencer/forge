@@ -1,4 +1,4 @@
-//! S.7 placement I/O readiness handoff — admission evidence for movement cost and foreground
+//! S.7 placement I/O readiness handoff ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â admission evidence for movement cost and foreground
 //! interference posture. Does not prove moved bytes are semantically valid; carries explicit
 //! non-claims that deny blob lifecycle and placement policy authority promotion.
 
@@ -6,7 +6,7 @@ use forge_store_contracts::{S6LaterMilestoneDestination, S7PlacementReadinessNon
 
 use crate::{
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
-    IoSchedulerS6CounterSnapshot, IoSchedulerS6ReadinessAdmission,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerIsolationAdmission,
 };
 
 use super::{core::S6LaterReadinessEvidenceCore, S6LaterReadinessReadmissionState};
@@ -18,7 +18,7 @@ pub struct S7PlacementIoReadinessHandoff {
 }
 
 pub fn publish_s7_placement_io_readiness_handoff(
-    readiness: &IoSchedulerS6ReadinessAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
 ) -> S7PlacementIoReadinessHandoff {
     S7PlacementIoReadinessHandoff {
         core: S6LaterReadinessEvidenceCore::from_current_readiness(readiness),
@@ -28,7 +28,7 @@ pub fn publish_s7_placement_io_readiness_handoff(
 
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub fn s7_placement_io_readiness_handoff_for_certification_test() -> S7PlacementIoReadinessHandoff {
-    let readiness = IoSchedulerS6ReadinessAdmission::for_certification_test();
+    let readiness = IoSchedulerIsolationAdmission::for_certification_test();
     readmit_s7_placement_io_readiness_after_publication(publish_s7_placement_io_readiness_handoff(
         &readiness,
     ))
@@ -45,7 +45,7 @@ impl S7PlacementIoReadinessHandoff {
         S6LaterMilestoneDestination::S7Placement
     }
 
-    pub const fn counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.core.counters()
     }
 

@@ -16,7 +16,7 @@ use forge_store_physical_integrity::{
 };
 use forge_store_recovery_physics::{
     IntegrityVettedWalFrame, QuarantineSummary, RecoveryBlockedByIntegrityDamage,
-    RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenialKind,
+    RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenialKind,
 };
 
 #[test]
@@ -39,28 +39,28 @@ fn handoff_constructors_reject_copied_or_mismatched_receipt_surfaces() {
         IntegrityVettedWalFrame::from_integrity_report(&wal, page_receipt.clone()).unwrap_err();
     assert_eq!(
         denial.kind(),
-        S4IntegrityHandoffDenialKind::ReceiptScopeMismatch
+        IntegrityHandoffDenialKind::ReceiptScopeMismatch
     );
 
     let denial =
         RecoveryIntegrityHandoffReceipt::from_executed_evidence(&quarantine_evidence).unwrap_err();
     assert_eq!(
         denial.kind(),
-        S4IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent
+        IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent
     );
 
     let denial = QuarantineSummary::from_recovery_blocking_damage(&record, page_receipt, &damage)
         .unwrap_err();
     assert_eq!(
         denial.kind(),
-        S4IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence
+        IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence
     );
 
     let denial =
         RecoveryBlockedByIntegrityDamage::unresolved_authority_damage(&record).unwrap_err();
     assert_eq!(
         denial.kind(),
-        S4IntegrityHandoffDenialKind::UnresolvedAuthorityDamageRequiresAuthorityClassification
+        IntegrityHandoffDenialKind::UnresolvedAuthorityDamageRequiresAuthorityClassification
     );
 
     QuarantineSummary::from_recovery_blocking_damage(&record, quarantine_receipt, &damage).unwrap();
@@ -91,7 +91,7 @@ fn quarantine_summary_rejects_receipt_evidence_from_different_sealed_record() {
 
     assert_eq!(
         denial.kind(),
-        S4IntegrityHandoffDenialKind::ReceiptBasisMismatch
+        IntegrityHandoffDenialKind::ReceiptBasisMismatch
     );
 }
 

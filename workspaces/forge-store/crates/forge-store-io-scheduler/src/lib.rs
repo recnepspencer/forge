@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod backend_capability;
+mod admission;
 pub mod background_pacing;
 mod execution;
 pub mod foreground_reservation;
@@ -10,7 +11,6 @@ pub mod queue_execution;
 mod resource_envelope;
 mod resource_units;
 mod s6_later_readiness_handoff;
-mod s6_readiness;
 mod s8_runtime_receipt;
 mod security_scope_io;
 
@@ -112,17 +112,13 @@ pub use s6_later_readiness_handoff::{
     S11OperatorIoReadinessSeed, S6LaterReadinessHandoffDenial, S6LaterReadinessReadmissionState,
     S7PlacementIoReadinessHandoff,
 };
-#[cfg(any(test, feature = "certification-test-authority"))]
-pub use s6_readiness::admit_s6_io_qos_isolation_readiness;
-pub use s6_readiness::{
-    admit_s5_1_security_scope_for_s6_io_qos, admit_store_published_s6_io_qos_isolation_readiness,
-    reject_hardware_queue_depth_claim_as_s6_readiness,
-    reject_log_or_metric_projection_as_s6_readiness, reject_media_qos_claim_as_s6_readiness,
+pub use admission::{
+    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
-    IoSchedulerPhysicalStabilityAssumption, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission, IoSchedulerS6ReadinessDenial, IoSchedulerS6ReadinessRequest,
-    IoSchedulerS6SecurityScopeAdmission, IoSchedulerUnsupportedQosNonClaim,
-    S6IoQosSecurityScopeHandoff, S6IoQosSecurityScopePermission,
+    IoSchedulerIsolationAdmission, IoSchedulerIsolationAdmissionDenial,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerPhysicalStabilityAssumption,
+    IoSchedulerSecurityScopeAdmission, SchedulerSecurityScopeCapability,
+    SchedulerSecurityScopeEvidence,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use s8_runtime_receipt::s8_maintenance_io_runtime_receipt_for_certification_test;

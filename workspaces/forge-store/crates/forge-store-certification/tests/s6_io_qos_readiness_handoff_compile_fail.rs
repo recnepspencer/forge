@@ -19,11 +19,11 @@ fn s6_readiness_handoff_fixtures() -> Vec<S6ReadinessHandoffFixture> {
         },
         S6ReadinessHandoffFixture {
             name: "raw_source_cannot_publish_s6_readiness.rs",
-            expected_stderr: &["publish_s6_io_qos_isolation_readiness"],
+            expected_stderr: &["publish_scheduler_isolation_capability"],
         },
         S6ReadinessHandoffFixture {
             name: "raw_request_cannot_be_built_without_handoff_evidence.rs",
-            expected_stderr: &["S6IoQosIsolationReadinessRequest"],
+            expected_stderr: &["SchedulerIsolationCapabilityRequest"],
         },
     ]
 }

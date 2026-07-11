@@ -1,13 +1,13 @@
 use crate::{
     IoSchedulerBackgroundMaintenanceAssumption, IoSchedulerForegroundInterferenceSurface,
-    IoSchedulerS6CounterSnapshot, IoSchedulerS6ReadinessAdmission,
+    IoSchedulerIsolationCounterSnapshot, IoSchedulerIsolationAdmission,
 };
 
 use super::S6LaterReadinessReadmissionState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct S6LaterReadinessEvidenceCore {
-    counters: IoSchedulerS6CounterSnapshot,
+    counters: IoSchedulerIsolationCounterSnapshot,
     foreground_interference: IoSchedulerForegroundInterferenceSurface,
     background_maintenance: IoSchedulerBackgroundMaintenanceAssumption,
     readmission: S6LaterReadinessReadmissionState,
@@ -15,7 +15,7 @@ pub(crate) struct S6LaterReadinessEvidenceCore {
 
 impl S6LaterReadinessEvidenceCore {
     pub(crate) const fn from_current_readiness(
-        readiness: &IoSchedulerS6ReadinessAdmission,
+        readiness: &IoSchedulerIsolationAdmission,
     ) -> Self {
         Self {
             counters: readiness.counters(),
@@ -25,7 +25,7 @@ impl S6LaterReadinessEvidenceCore {
         }
     }
 
-    pub(crate) const fn counters(self) -> IoSchedulerS6CounterSnapshot {
+    pub(crate) const fn counters(self) -> IoSchedulerIsolationCounterSnapshot {
         self.counters
     }
 

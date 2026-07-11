@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use forge_store_physical_integrity::{ChecksumAlgorithmId, WalFrameDamageDenialKind};
-use forge_store_recovery_physics::S4IntegrityHandoffDenialKind;
+use forge_store_recovery_physics::IntegrityHandoffDenialKind;
 
 #[test]
 fn intact_inputs_publish_stable_s4_handoff_identity_across_independent_runs() {
@@ -98,10 +98,10 @@ fn s4_handoff_payload_exposes_required_integrity_surfaces_and_exact_counters() {
 fn handoff_rejects_manifest_receipt_swaps_and_forged_envelope_counters() {
     assert_eq!(
         manifest_receipt_swap_denial_kind(7, 8),
-        S4IntegrityHandoffDenialKind::ReceiptBasisMismatch
+        IntegrityHandoffDenialKind::ReceiptBasisMismatch
     );
     assert_eq!(
         forged_inspection_envelope_counter_denial_kind(b"forged-envelope"),
-        S4IntegrityHandoffDenialKind::InspectionEnvelopeExceeded
+        IntegrityHandoffDenialKind::InspectionEnvelopeExceeded
     );
 }

@@ -1,13 +1,13 @@
 use crate::{
     admit_secure_io_scope_for_scheduler, BackgroundIoPressureClass, BackgroundIoPressureShape,
-    IoSchedulerBackendCapabilityAdmission, IoSchedulerS6SecurityScopeAdmission, SecureIoOperation,
+    IoSchedulerBackendCapabilityAdmission, IoSchedulerSecurityScopeAdmission, SecureIoOperation,
     SecureIoPostureRequirement, SecureIoPreservationRequest,
 };
 
 pub(super) fn secure_io_for_pressure(
     pressure: BackgroundIoPressureShape,
     backend: &IoSchedulerBackendCapabilityAdmission,
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
 ) -> crate::SecureIoPreservationReceipt {
     let operation = match pressure.class() {
         BackgroundIoPressureClass::VerificationPressure => SecureIoOperation::VerificationPressure,

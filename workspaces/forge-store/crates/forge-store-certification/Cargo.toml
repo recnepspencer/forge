@@ -38,6 +38,9 @@ forge-store-test-support.workspace = true
 forge-store-tiering.workspace = true
 forge-store-wal.workspace = true
 
+[features]
+certification-test-support = ["forge-store-physical-certification/certification-test-support"]
+
 [lints]
 workspace = true
 

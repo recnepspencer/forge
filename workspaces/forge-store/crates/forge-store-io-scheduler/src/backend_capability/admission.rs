@@ -3,7 +3,7 @@ use forge_store_physical_backend::{
     CapabilityEvidenceClass,
 };
 
-use crate::s6_readiness::IoSchedulerS6SecurityScopeAdmission;
+use crate::IoSchedulerSecurityScopeAdmission;
 
 use super::{IoSchedulerBackendCapabilityDenial, IoSchedulerBackendCapabilityRequirement};
 
@@ -54,7 +54,7 @@ pub fn admit_backend_capability_for_scheduler_claim(
 
 pub fn admit_secure_frame_backend_capability_for_scheduler_claim(
     witness: &AdmittedBackendCapabilityWitness,
-    security_scope: &IoSchedulerS6SecurityScopeAdmission,
+    security_scope: &IoSchedulerSecurityScopeAdmission,
 ) -> Result<IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityDenial> {
     let _receipt = security_scope.receipt();
     let requirement = IoSchedulerBackendCapabilityRequirement::SecureFrameIo;

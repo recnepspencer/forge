@@ -2,8 +2,8 @@ use forge_store_contracts::{S10RepairScanReadinessNonClaim, S6LaterMilestoneDest
 
 use crate::{
     BackgroundPacingCounterSnapshot, IoSchedulerBackgroundMaintenanceAssumption,
-    IoSchedulerForegroundInterferenceSurface, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission,
+    IoSchedulerForegroundInterferenceSurface, IoSchedulerIsolationCounterSnapshot,
+    IoSchedulerIsolationAdmission,
 };
 
 use super::{
@@ -19,7 +19,7 @@ pub struct S10RepairScanIoReadinessHandoff {
 }
 
 pub fn publish_s10_repair_scan_io_readiness_handoff(
-    readiness: &IoSchedulerS6ReadinessAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
     background_pacing: S10RepairScanPacingEvidence,
 ) -> S10RepairScanIoReadinessHandoff {
     S10RepairScanIoReadinessHandoff {
@@ -40,7 +40,7 @@ impl S10RepairScanIoReadinessHandoff {
         S6LaterMilestoneDestination::S10RepairScan
     }
 
-    pub const fn counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.core.counters()
     }
 

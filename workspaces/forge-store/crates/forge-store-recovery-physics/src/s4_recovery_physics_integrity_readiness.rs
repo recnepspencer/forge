@@ -1,20 +1,20 @@
-use crate::{S4IntegrityHandoffCounters, S4IntegrityHandoffPayload};
+use crate::{IntegrityHandoffCounters, IntegrityHandoffPayload};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S4RecoveryPhysicsIntegrityReadiness {
-    payload: S4IntegrityHandoffPayload,
+    payload: IntegrityHandoffPayload,
 }
 
 impl S4RecoveryPhysicsIntegrityReadiness {
-    pub(crate) fn from_admitted_s3_handoff(payload: S4IntegrityHandoffPayload) -> Self {
+    pub(crate) fn from_admitted_s3_handoff(payload: IntegrityHandoffPayload) -> Self {
         Self { payload }
     }
 
-    pub const fn payload(&self) -> &S4IntegrityHandoffPayload {
+    pub const fn payload(&self) -> &IntegrityHandoffPayload {
         &self.payload
     }
 
-    pub const fn counters(&self) -> S4IntegrityHandoffCounters {
+    pub const fn counters(&self) -> IntegrityHandoffCounters {
         self.payload().counters()
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     IoSchedulerBackendCapabilityDenial, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerS6ReadinessDenial,
+    IoSchedulerIsolationAdmissionDenial,
 };
 
 use super::{ForegroundIoLaneKind, ForegroundResourceBudget, ForegroundResourceUnitKind};
@@ -22,7 +22,7 @@ pub enum ForegroundReservationResourceShortfall {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForegroundReservationAdmissionDenial {
     BackendCapabilityDenied(IoSchedulerBackendCapabilityDenial),
-    StableReadinessDenied(IoSchedulerS6ReadinessDenial),
+    StableReadinessDenied(IoSchedulerIsolationAdmissionDenial),
     LaneBackendRequirementMismatch {
         lane_required: IoSchedulerBackendCapabilityRequirement,
         admitted: IoSchedulerBackendCapabilityRequirement,

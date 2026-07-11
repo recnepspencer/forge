@@ -19,7 +19,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "identity_provider_claim_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreJwtSubjectClaim",
             ],
         },
@@ -27,7 +27,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "kms_key_id_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreKmsKeyIdentifier",
             ],
         },
@@ -35,7 +35,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "iam_role_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreIamRoleClaim",
             ],
         },
@@ -43,7 +43,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "operator_identity_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreOperatorIdentityClaim",
             ],
         },
@@ -51,7 +51,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "terminal_projection_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreTerminalProjectionText",
             ],
         },
@@ -59,7 +59,7 @@ fn compile_fail_fixtures() -> [CompileFailFixture; 6] {
             name: "security_scope_identity_cannot_satisfy_secure_io_scope.rs",
             expected_stderr: &[
                 "SecureIoPreservationRequest::new",
-                "IoSchedulerS6SecurityScopeAdmission",
+                "IoSchedulerSecurityScopeAdmission",
                 "StoreSecurityScopeIdentity",
             ],
         },

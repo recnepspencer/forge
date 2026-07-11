@@ -6,7 +6,7 @@ use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerS6ReadinessAdmission, IoSchedulerS6SecurityScopeAdmission,
+    IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission,
 };
 
 use super::capacity::require_capacity;
@@ -160,8 +160,8 @@ impl ForegroundReservationCapacityAdmissionRequest {
         authority_witness: AuthorityWitness<ForegroundReservationCapacityAuthority>,
         lane: ForegroundLaneDeclaration,
         backend: &IoSchedulerBackendCapabilityAdmission,
-        stable_readiness: &IoSchedulerS6ReadinessAdmission,
-        security_scope: &IoSchedulerS6SecurityScopeAdmission,
+        stable_readiness: &IoSchedulerIsolationAdmission,
+        security_scope: &IoSchedulerSecurityScopeAdmission,
         arbitration: ForegroundArbitrationDeclaration,
         admitted: ForegroundResourceBudget,
         assumed_backend_limits: ForegroundResourceBudget,

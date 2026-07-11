@@ -3,27 +3,27 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
 };
 use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
-    admit_backend_capability_for_scheduler_claim, admit_s5_1_security_scope_for_s6_io_qos,
+    admit_backend_capability_for_scheduler_claim, admit_security_scope_for_scheduler,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_store_published_s6_io_qos_isolation_readiness, BackgroundIoDebt,
+    admit_store_published_isolation_capability, BackgroundIoDebt,
     BackgroundIoPressureClass, BackgroundPacingCounterSnapshot, BackgroundPacingOutcome,
     BackgroundPacingViolation, BackgroundResourceBudget, IoSchedulerBackendCapabilityAdmission,
-    IoSchedulerBackendCapabilityRequirement, IoSchedulerS6ReadinessAdmission,
-    IoSchedulerS6SecurityScopeAdmission, QueueSlot, S6IoQosSecurityScopeHandoff, SecureIoOperation,
+    IoSchedulerBackendCapabilityRequirement, IoSchedulerIsolationAdmission,
+    IoSchedulerSecurityScopeAdmission, QueueSlot, SchedulerSecurityScopeEvidence, SecureIoOperation,
     SecureIoPostureRequirement, SecureIoPreservationReceipt, SecureIoPreservationRequest,
 };
 
-pub(super) fn scheduler_readiness() -> IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+pub(super) fn scheduler_readiness() -> IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit Store-published S.6 readiness")
 }
 
@@ -44,18 +44,18 @@ pub(super) fn background_pacing_outcome(
     ))
 }
 
-pub(super) fn scheduler_security_scope() -> IoSchedulerS6SecurityScopeAdmission {
+pub(super) fn scheduler_security_scope() -> IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         admitted_store_internal_security_scope_for_s6_test(),
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("S.5.1 handoff should admit");
-    admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    admit_security_scope_for_scheduler(handoff)
 }
 
 pub(super) fn secure_io_receipt(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
     backend: &IoSchedulerBackendCapabilityAdmission,
     operation: SecureIoOperation,
 ) -> SecureIoPreservationReceipt {
@@ -68,7 +68,7 @@ pub(super) fn secure_io_receipt(
 }
 
 pub(super) fn secure_io_receipt_with_posture(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
     backend: &IoSchedulerBackendCapabilityAdmission,
     operation: SecureIoOperation,
     posture: SecureIoPostureRequirement,
@@ -80,7 +80,7 @@ pub(super) fn secure_io_receipt_with_posture(
 }
 
 pub(super) fn secure_frame_backend_admission(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
 ) -> IoSchedulerBackendCapabilityAdmission {
     let witness = backend_witness(BackendCapabilitySupportSet::all_supported());
     admit_secure_frame_backend_capability_for_scheduler_claim(&witness, security)

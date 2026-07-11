@@ -82,15 +82,11 @@ pub use crate::s5_physical_isolation_harness::{
     s5_physical_isolation_lanes, s5_physical_isolation_planning_context,
     S5PhysicalIsolationHarnessLane, S5PhysicalIsolationTraceFixtures,
 };
-pub use crate::s7_closeout::{
-    admit_s7_backup_non_claim_handoff, admit_s7_full_certification_non_claim_handoff,
-    admit_s7_key_lifecycle_non_claim_handoff, admit_s7_layout_readiness_handoff,
-    certify_s7_native_blob_store_closeout, evaluate_s7_closeout_request,
-    S10BlobBackupRepairNonClaimHandoff, S11KeyLifecycleNonClaimHandoff,
-    S12FullCertificationNonClaimHandoff, S7CloseoutCertificationInput, S7CloseoutDenial,
-    S7CloseoutEvidencePolicy, S7CloseoutRequest, S7CloseoutShortcutAttempt,
-    S7CloseoutShortcutInput, S7CloseoutShortcutRejectionReport, S7NativeBlobStoreCloseout,
-    S7S8LayoutReadinessHandoff,
+pub use crate::courtroom::blobs::closeout::{
+    certify_native_blob_store_closeout, evaluate_blob_closeout_request,
+    BlobCloseoutCertificationInput, BlobCloseoutDenial, BlobCloseoutEvidencePolicy,
+    BlobCloseoutRequest, BlobCloseoutShortcutAttempt, BlobCloseoutShortcutInput,
+    BlobCloseoutShortcutRejectionReport, BlobStoreCloseoutCertificate,
 };
 pub use crate::synthetic_closeout_rejection::{
     SyntheticCloseoutRejectionDenial, SyntheticCloseoutShortcutAttempt,

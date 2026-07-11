@@ -2,7 +2,7 @@ use forge_store_security::{reject_non_store_security_scope_source, StoreSecurity
 
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerS6SecurityScopeAdmission,
+    IoSchedulerSecurityScopeAdmission,
 };
 
 use super::{
@@ -14,7 +14,7 @@ use super::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SecureIoPreservationRequest<'a> {
     operation: SecureIoOperation,
-    security_scope: &'a IoSchedulerS6SecurityScopeAdmission,
+    security_scope: &'a IoSchedulerSecurityScopeAdmission,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
     required_backend: IoSchedulerBackendCapabilityRequirement,
     posture: SecureIoPostureRequirement,
@@ -23,7 +23,7 @@ pub struct SecureIoPreservationRequest<'a> {
 impl<'a> SecureIoPreservationRequest<'a> {
     pub const fn new(
         operation: SecureIoOperation,
-        security_scope: &'a IoSchedulerS6SecurityScopeAdmission,
+        security_scope: &'a IoSchedulerSecurityScopeAdmission,
         backend: &'a IoSchedulerBackendCapabilityAdmission,
     ) -> Self {
         Self {

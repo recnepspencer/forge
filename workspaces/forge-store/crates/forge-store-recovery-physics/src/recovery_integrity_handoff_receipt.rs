@@ -1,4 +1,4 @@
-use crate::{S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind};
+use crate::{IntegrityHandoffDenial, IntegrityHandoffDenialKind};
 use forge_foundational::{FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole};
 use forge_store_aspect_native::StoreDigestEvidence;
 use forge_store_contracts::StableDigest;
@@ -23,23 +23,23 @@ pub struct RecoveryIntegrityHandoffReceipt {
 impl RecoveryIntegrityHandoffReceipt {
     pub fn from_executed_evidence(
         evidence: &PhysicalIntegrityEvidenceBundle,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         if evidence.category() != FoundationalBoundaryArtifactCategory::Artifact {
-            return Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent,
+            return Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent,
             ));
         }
         if evidence.boundary_role() != FoundationalBoundaryArtifactRole::AuthoritativeCurrent {
-            return Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent,
+            return Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotAuthoritativeCurrent,
             ));
         }
         if !matches!(
             evidence.integrity_outcome(),
             IntegrityEvidenceOutcome::IntactPhysicalBoundary
         ) {
-            return Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotIntactPhysicalBoundary,
+            return Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotIntactPhysicalBoundary,
             ));
         }
         Ok(Self::from_evidence(evidence))
@@ -47,15 +47,15 @@ impl RecoveryIntegrityHandoffReceipt {
 
     pub fn from_quarantine_receipt_evidence(
         evidence: &PhysicalIntegrityEvidenceBundle,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         if evidence.category() != FoundationalBoundaryArtifactCategory::Receipt {
-            return Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
+            return Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
             ));
         }
         if evidence.boundary_role() != FoundationalBoundaryArtifactRole::ReceiptEvidence {
-            return Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
+            return Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
             ));
         }
         Ok(Self::from_evidence(evidence))
@@ -92,12 +92,12 @@ impl RecoveryIntegrityHandoffReceipt {
     pub(crate) fn require_scope(
         &self,
         scope: PhysicalReferenceScope,
-    ) -> Result<(), S4IntegrityHandoffDenial> {
+    ) -> Result<(), IntegrityHandoffDenial> {
         if self.locality == IntegrityEvidenceLocality::PhysicalScope(scope) {
             Ok(())
         } else {
-            Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::ReceiptScopeMismatch,
+            Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::ReceiptScopeMismatch,
             ))
         }
     }
@@ -105,12 +105,12 @@ impl RecoveryIntegrityHandoffReceipt {
     pub(crate) fn require_counters(
         &self,
         counters: IntegrityEvidenceCounters,
-    ) -> Result<(), S4IntegrityHandoffDenial> {
+    ) -> Result<(), IntegrityHandoffDenial> {
         if self.counters == counters {
             Ok(())
         } else {
-            Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::ReceiptCounterMismatch,
+            Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::ReceiptCounterMismatch,
             ))
         }
     }
@@ -118,24 +118,24 @@ impl RecoveryIntegrityHandoffReceipt {
     pub(crate) fn require_physical_authority_basis(
         &self,
         basis: &StoreDigestEvidence,
-    ) -> Result<(), S4IntegrityHandoffDenial> {
+    ) -> Result<(), IntegrityHandoffDenial> {
         if self.physical_authority_basis.as_ref() == Some(basis) {
             Ok(())
         } else {
-            Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::ReceiptBasisMismatch,
+            Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::ReceiptBasisMismatch,
             ))
         }
     }
 
-    pub(crate) fn require_receipt_evidence(&self) -> Result<(), S4IntegrityHandoffDenial> {
+    pub(crate) fn require_receipt_evidence(&self) -> Result<(), IntegrityHandoffDenial> {
         if self.category == FoundationalBoundaryArtifactCategory::Receipt
             && self.role == FoundationalBoundaryArtifactRole::ReceiptEvidence
         {
             Ok(())
         } else {
-            Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
+            Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::EvidenceIsNotReceiptEvidence,
             ))
         }
     }
@@ -143,14 +143,14 @@ impl RecoveryIntegrityHandoffReceipt {
     pub(crate) fn require_quarantine_record_basis(
         &self,
         record: &QuarantineRecord,
-    ) -> Result<(), S4IntegrityHandoffDenial> {
+    ) -> Result<(), IntegrityHandoffDenial> {
         self.require_receipt_evidence()?;
         let expected = record.receipt().foundational_basis().digest();
         if self.receipt_evidence_basis.as_ref() == Some(expected) {
             Ok(())
         } else {
-            Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::ReceiptBasisMismatch,
+            Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::ReceiptBasisMismatch,
             ))
         }
     }

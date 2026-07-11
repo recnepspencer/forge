@@ -5,7 +5,7 @@ use forge_store_physical_integrity::{
     WalFrameDamageDenial, WalFrameDamageDenialKind, WalTailIntegrityPosture,
 };
 
-use crate::{S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind};
+use crate::{IntegrityHandoffDenial, IntegrityHandoffDenialKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryBlockingIntegritySource {
@@ -80,7 +80,7 @@ impl RecoveryBlockedByIntegrityDamage {
 
     pub fn unresolved_authority_damage(
         record: &QuarantineRecord,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         match record.damage_classification() {
             DamageClassification::UnrecoverableAuthorityDamage(damage) => Ok(Self {
                 source: RecoveryBlockingIntegritySource::UnresolvedAuthorityDamage,
@@ -96,8 +96,8 @@ impl RecoveryBlockedByIntegrityDamage {
                 manifest_kind: None,
                 root_posture: None,
             }),
-            _ => Err(S4IntegrityHandoffDenial::new(
-                S4IntegrityHandoffDenialKind::UnresolvedAuthorityDamageRequiresAuthorityClassification,
+            _ => Err(IntegrityHandoffDenial::new(
+                IntegrityHandoffDenialKind::UnresolvedAuthorityDamageRequiresAuthorityClassification,
             )),
         }
     }

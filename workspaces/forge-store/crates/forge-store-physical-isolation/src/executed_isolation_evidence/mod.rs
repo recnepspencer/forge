@@ -1,4 +1,9 @@
 mod authority_denial;
+mod counter_snapshot;
+mod executed;
+mod interference_snapshot;
+mod performance_receipt;
+mod project_counters;
 mod profile;
 
 pub use authority_denial::{
@@ -13,3 +18,9 @@ pub use authority_denial::{
     ProjectionAuthorityDenial, StorePhysicalAuthoritySurface,
 };
 pub use profile::{S5IsolationEvidenceProfile, S5IsolationEvidenceRichness};
+pub use counter_snapshot::{PhysicalIsolationCounterSnapshot, ExecutedIsolationCounterKind};
+pub use executed::{ExecutedIsolationEvidence, ExecutedIsolationReceipts};
+pub use interference_snapshot::{
+    IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
+    IsolationInterferenceSnapshotRow,
+};

@@ -138,17 +138,17 @@
 //! S.4 integrity handoff declarations cannot attach copied pre-WAL operation
 //! identity:
 //! ```compile_fail
-//! use forge_store_recovery_physics::S4IntegrityHandoffPayload;
+//! use forge_store_recovery_physics::IntegrityHandoffPayload;
 //!
-//! let _payload = S4IntegrityHandoffPayload::declare()
+//! let _payload = IntegrityHandoffPayload::declare()
 //!     .partial_publication_before_wal_operation_digest("copied-operation");
 //! ```
 //! S.4 integrity handoff declarations cannot treat copied operation identity as
 //! a sealed replay-read payload:
 //! ```compile_fail
-//! use forge_store_recovery_physics::S4IntegrityHandoffPayload;
+//! use forge_store_recovery_physics::IntegrityHandoffPayload;
 //!
-//! let _payload = S4IntegrityHandoffPayload::declare()
+//! let _payload = IntegrityHandoffPayload::declare()
 //!     .partial_publication_before_wal_replay_read("copied-operation");
 //! ```
 //! Protected physical bytes cannot be forged from caller-owned raw byte slices:

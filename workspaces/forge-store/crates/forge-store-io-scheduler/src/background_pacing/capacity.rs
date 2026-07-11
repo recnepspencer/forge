@@ -4,7 +4,7 @@ use forge_store_security::StoreSecurityScopeIdentity;
 use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerS6ReadinessAdmission, SecureIoOperation, SecureIoPreservationDenial,
+    IoSchedulerIsolationAdmission, SecureIoOperation, SecureIoPreservationDenial,
     SecureIoPreservationReceipt,
 };
 
@@ -19,7 +19,7 @@ pub struct BackgroundCapacityAdmissionRequest<'a> {
     pressure: BackgroundIoPressureShape,
     foreground: &'a ForegroundReservationReceipt,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
-    readiness: &'a IoSchedulerS6ReadinessAdmission,
+    readiness: &'a IoSchedulerIsolationAdmission,
     security_scope_identity: StoreSecurityScopeIdentity,
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
@@ -73,7 +73,7 @@ impl<'a> BackgroundCapacityAdmissionRequest<'a> {
         pressure: BackgroundIoPressureShape,
         foreground: &'a ForegroundReservationReceipt,
         backend: &'a IoSchedulerBackendCapabilityAdmission,
-        readiness: &'a IoSchedulerS6ReadinessAdmission,
+        readiness: &'a IoSchedulerIsolationAdmission,
         policy_receipt: FoundationalPolicyAdmissionReceipt,
     ) -> Self {
         let requested = pressure.requested_budget();

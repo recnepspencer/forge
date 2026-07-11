@@ -12,11 +12,11 @@ use forge_store_contracts::S6QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_s5_1_security_scope_for_s6_io_qos, admit_secure_io_scope_for_scheduler,
+    admit_security_scope_for_scheduler, admit_secure_io_scope_for_scheduler,
     assess_queue_latency_envelope, execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
     BackgroundResourceBudget, CacheResidencyHint, InterferenceCounterName,
     InterferenceCounterRequirement, LatencyEnvelopeClaim, QueueExecutionReadyPlan, QueueSlot,
-    ReadAheadWindow, S6IoQosSecurityScopeHandoff, SecureIoOperation, SecureIoPostureRequirement,
+    ReadAheadWindow, SchedulerSecurityScopeEvidence, SecureIoOperation, SecureIoPostureRequirement,
     SecureIoPreservationRequest, WorkerPermit,
 };
 use forge_store_physical_backend::{
@@ -192,14 +192,14 @@ fn backend_witness() -> AdmittedBackendCapabilityWitness {
         .expect("backend witness should admit")
 }
 
-fn s6_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerS6SecurityScopeAdmission {
+fn s6_security_scope_admission() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         forge_store_security::admitted_store_internal_security_scope_for_s6_test(),
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("S.5.1 readiness should hand off to S.6");
-    admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    admit_security_scope_for_scheduler(handoff)
 }
 
 fn policy_receipt(budget: BackgroundResourceBudget) -> FoundationalPolicyAdmissionReceipt {

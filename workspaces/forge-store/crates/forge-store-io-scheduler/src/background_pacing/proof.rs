@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use forge_proof::prelude::{AuthorityMarker, AuthorityWitness, ProofOutcome};
 
-use crate::{IoSchedulerS6CounterSnapshot, IoSchedulerS6ReadinessAdmission};
+use crate::{IoSchedulerIsolationCounterSnapshot, IoSchedulerIsolationAdmission};
 
 use super::{BackgroundIoPressureClass, BackgroundPacingDenial};
 
@@ -48,8 +48,8 @@ pub enum BackgroundPacingProgressionDrift {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackgroundPacingProgressionEvidence {
     freshness: BackgroundPacingFreshness,
-    admitted_counters: IoSchedulerS6CounterSnapshot,
-    observed_counters: IoSchedulerS6CounterSnapshot,
+    admitted_counters: IoSchedulerIsolationCounterSnapshot,
+    observed_counters: IoSchedulerIsolationCounterSnapshot,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -117,7 +117,7 @@ impl BackgroundPacingReady {
 }
 
 impl BackgroundPacingProgressionEvidence {
-    pub fn current(readiness: &IoSchedulerS6ReadinessAdmission) -> Self {
+    pub fn current(readiness: &IoSchedulerIsolationAdmission) -> Self {
         let counters = readiness.counters();
         Self {
             freshness: BackgroundPacingFreshness::Current,
@@ -127,8 +127,8 @@ impl BackgroundPacingProgressionEvidence {
     }
 
     pub fn from_readiness_counter_drift(
-        readiness: &IoSchedulerS6ReadinessAdmission,
-        observed_counters: IoSchedulerS6CounterSnapshot,
+        readiness: &IoSchedulerIsolationAdmission,
+        observed_counters: IoSchedulerIsolationCounterSnapshot,
         drift: BackgroundPacingProgressionDrift,
     ) -> Option<Self> {
         let admitted_counters = readiness.counters();
@@ -159,11 +159,11 @@ impl BackgroundPacingProgressionEvidence {
         self.freshness
     }
 
-    pub const fn admitted_counters(self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn admitted_counters(self) -> IoSchedulerIsolationCounterSnapshot {
         self.admitted_counters
     }
 
-    pub const fn observed_counters(self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn observed_counters(self) -> IoSchedulerIsolationCounterSnapshot {
         self.observed_counters
     }
 }

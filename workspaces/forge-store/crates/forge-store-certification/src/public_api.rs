@@ -1,6 +1,6 @@
 //! Lifecycle-ordered public facade for forge-store-certification.
 //!
-//! Order: authority → evidence → scenario → replay → harness → closeout → lanes.
+//! Order: authority ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ evidence ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ scenario ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ replay ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ harness ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ closeout ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ lanes.
 
 // --- runtime matrix: courtroom-only Phase 33 completeness gate ---
 pub use crate::s8_runtime_matrix::{
@@ -80,13 +80,11 @@ pub use crate::evidence::by_substrate::{
 };
 // --- closeout: milestone certification bundles and handoff evidence ---
 pub use crate::courtroom::closeout::{
-    admit_s7_backup_non_claim_handoff, admit_s7_full_certification_non_claim_handoff,
-    admit_s7_key_lifecycle_non_claim_handoff, admit_s7_layout_readiness_handoff,
     adopt_materialized_s6_certification_evidence_for_closeout,
     assemble_s5_physical_isolation_replay_bundle, certify_s5_1_security_scope_closeout,
-    certify_s7_native_blob_store_closeout, certify_s8_layout_closeout,
+    certify_native_blob_store_closeout, certify_s8_layout_closeout,
     certify_s8_layout_closeout_suite, classify_s8_layout_closeout_sources,
-    close_s3_physical_integrity_from_executed_evidence, evaluate_s7_closeout_request,
+    close_s3_physical_integrity_from_executed_evidence, evaluate_blob_closeout_request,
     materialize_s5_executed_isolation_evidence, materialize_s6_certification_evidence,
     observe_s5_physical_isolation_trace, project_s8_layout_handoff_grammar,
     s5_physical_isolation_ci_certification_context_without_lane_registration,
@@ -117,8 +115,10 @@ pub use crate::courtroom::closeout::{
     RecoveryPhysicsScenarioPlan, RecoveryPhysicsScenarioPlanDenial, RecoveryPhysicsShortcutAttempt,
     RecoveryPhysicsShortcutDenialBoundary, RecoveryPhysicsShortcutDenialReason,
     RecoveryPhysicsShortcutRejection, RecoveryPhysicsTranscript,
-    S10BlobBackupRepairNonClaimHandoff, S11KeyLifecycleNonClaimHandoff,
-    S12FullCertificationNonClaimHandoff, S3AcceptanceSuiteKind, S3CloseoutDenialBoundary,
+    BlobCloseoutCertificationInput, BlobCloseoutDenial, BlobCloseoutEvidencePolicy,
+    BlobCloseoutRequest, BlobCloseoutShortcutAttempt, BlobCloseoutShortcutInput,
+    BlobCloseoutShortcutRejectionReport, BlobStoreCloseoutCertificate,
+    S3AcceptanceSuiteKind, S3CloseoutDenialBoundary,
     S3CloseoutEvidenceFamily, S3CloseoutExecutedOutputKind, S3CloseoutHarnessExecutionEvidence,
     S3CloseoutModuleKind, S3CloseoutSuiteHarnessSummary, S3CorruptionLocalizationBoundary,
     S3ExecutedBoundaryDenialEvidence, S3ExecutedCorruptionLocalizationEvidence,
@@ -137,10 +137,7 @@ pub use crate::courtroom::closeout::{
     S5FoundationalPerformanceReceipts, S5PhysicalIsolationHarnessLane,
     S5PhysicalIsolationMutationEvidence, S5PhysicalIsolationProofTrace,
     S5PhysicalIsolationTraceFixtures, S5ProofProjectionArtifact,
-    S6CertificationEvidenceAdoptionReceipt, S7CloseoutCertificationInput, S7CloseoutDenial,
-    S7CloseoutEvidencePolicy, S7CloseoutRequest, S7CloseoutShortcutAttempt,
-    S7CloseoutShortcutInput, S7CloseoutShortcutRejectionReport, S7NativeBlobStoreCloseout,
-    S7S8LayoutReadinessHandoff, S8LayoutCloseoutCertificate, S8LayoutCloseoutClassification,
+    S6CertificationEvidenceAdoptionReceipt, S8LayoutCloseoutCertificate, S8LayoutCloseoutClassification,
     S8LayoutCloseoutDenial, S8LayoutCloseoutSources, S8LayoutCloseoutSuiteCertificate,
     S8LayoutCloseoutVerifier, S8LayoutCourtroomGrammar, SyntheticCloseoutRejectionDenial,
     SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,

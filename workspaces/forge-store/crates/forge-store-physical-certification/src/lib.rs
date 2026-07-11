@@ -65,7 +65,6 @@ mod s6_io_pressure_test_support;
 mod s6_io_pressure_vocab;
 #[path = "harness/by_milestone/s7_blob_harness/mod.rs"]
 mod s7_blob_harness;
-mod s7_closeout;
 mod scenario;
 mod schedule;
 mod shortcut_rejection;
@@ -277,14 +276,9 @@ pub use s7_blob_harness::{
 };
 #[cfg(any(test, feature = "certification-test-support"))]
 pub use s7_blob_harness::{
+    blob_harness_replay_artifacts_for_certification,
     synthetic_blob_harness_coverage_matrix_for_test_support,
     synthetic_blob_harness_replay_bundle_for_test_support,
-};
-#[cfg(any(test, feature = "certification-test-support"))]
-pub use s7_closeout::s7_blob_harness_closeout_sources_for_seed;
-pub use s7_closeout::{
-    materialize_s7_closeout_evidence, S7CloseoutProofSummary, S7CloseoutProofTopology,
-    S7CloseoutSourceDenial, S7ExecutedCloseoutSources, S7MaterializedCloseoutEvidenceBundle,
 };
 pub use scenario::{
     reject_raw_json_scenario_authority_attempt, CertifiedPhysicalScenario,

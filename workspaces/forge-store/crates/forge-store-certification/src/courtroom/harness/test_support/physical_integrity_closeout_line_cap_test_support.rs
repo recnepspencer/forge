@@ -37,7 +37,7 @@ pub(crate) fn line_cap_module_evidence() -> Vec<S3LineCapModuleEvidence> {
         ),
         checked_module(
             S3CloseoutModuleKind::Handoff,
-            recovery_physics("s4_integrity_handoff_payload.rs"),
+            recovery_physics("integrity_handoff.rs"),
             cap,
         ),
         checked_module(

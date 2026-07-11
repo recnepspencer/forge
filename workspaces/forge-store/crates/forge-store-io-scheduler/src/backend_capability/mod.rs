@@ -27,7 +27,7 @@ mod tests {
         admitted_wrong_s6_io_qos_security_scope_for_test,
     };
 
-    use crate::{admit_s5_1_security_scope_for_s6_io_qos, S6IoQosSecurityScopeHandoff};
+    use crate::{admit_security_scope_for_scheduler, SchedulerSecurityScopeEvidence};
 
     use super::*;
 
@@ -124,7 +124,7 @@ mod tests {
             admitted_store_internal_security_scope_for_s6_test(),
         );
 
-        let denial = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+        let denial = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
             .expect_err("wrong S.5.1 readiness family must not hand off to S.6 IoQos");
 
         assert!(matches!(
@@ -140,7 +140,7 @@ mod tests {
             admitted_wrong_s6_io_qos_security_scope_for_test(),
         );
 
-        let denial = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+        let denial = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
             .expect_err("wrong admitted security identity must not hand off to S.6 IoQos");
 
         assert!(matches!(
@@ -224,14 +224,14 @@ mod tests {
             .expect("baseline backend should admit")
     }
 
-    fn valid_security_scope() -> crate::IoSchedulerS6SecurityScopeAdmission {
+    fn valid_security_scope() -> crate::IoSchedulerSecurityScopeAdmission {
         let readiness = accept_s5_1_admitted_security_scope_readiness(
             S51SecurityScopeReadinessReservation::io_qos(),
             admitted_store_internal_security_scope_for_s6_test(),
         );
-        let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+        let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
             .expect("S.6 IoQos handoff should admit from S.5.1 readiness");
-        admit_s5_1_security_scope_for_s6_io_qos(handoff)
+        admit_security_scope_for_scheduler(handoff)
     }
 
     fn assert_evidence_denial(denial: IoSchedulerBackendCapabilityDenial) {

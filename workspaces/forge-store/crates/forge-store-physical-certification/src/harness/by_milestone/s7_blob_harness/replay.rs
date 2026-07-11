@@ -29,7 +29,7 @@ use forge_store_blob_chunks::certification_test_authority::{
 };
 
 pub fn replay_bundle_for_seed(seed: BlobHarnessScenarioSeed) -> SimulationReplayBundle {
-    execute_replay_artifacts_for_seed(seed).replay
+    blob_harness_replay_artifacts_for_certification(seed).replay
 }
 
 pub fn coverage_matrix_for_seed(seed: BlobHarnessScenarioSeed) -> GeneratedCoverageMatrix {
@@ -165,12 +165,12 @@ fn production_trace(
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ExecutedBlobHarnessReplayArtifacts {
-    pub(crate) replay: SimulationReplayBundle,
-    pub(crate) lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
+pub struct ExecutedBlobHarnessReplayArtifacts {
+    pub replay: SimulationReplayBundle,
+    pub lifecycle_evidence: S7ExecutedLifecycleEvidenceBundle,
 }
 
-pub(crate) fn execute_replay_artifacts_for_seed(
+pub fn blob_harness_replay_artifacts_for_certification(
     seed: BlobHarnessScenarioSeed,
 ) -> ExecutedBlobHarnessReplayArtifacts {
     let lowered = lower_blob_simulation_seed_plan(seed).unwrap();

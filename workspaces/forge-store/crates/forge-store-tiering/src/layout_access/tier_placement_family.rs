@@ -1,5 +1,5 @@
 use forge_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use forge_store_io_scheduler::IoSchedulerS6CounterSnapshot;
+use forge_store_io_scheduler::IoSchedulerIsolationCounterSnapshot;
 use forge_store_layout_indexes::access_planning::S8AccessShape;
 use forge_store_layout_indexes::layout_strategy_admission::{
     phase26_tier_placement_rule, AdmittedTierPlacementLayoutRule,
@@ -102,7 +102,7 @@ impl TierPlacementLayoutReport {
         }
     }
 
-    pub const fn exact_counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn exact_counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.seed.handoff().counters()
     }
 

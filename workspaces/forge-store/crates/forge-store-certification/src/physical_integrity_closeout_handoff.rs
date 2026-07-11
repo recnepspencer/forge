@@ -1,12 +1,12 @@
 use forge_store_contracts::StableDigest;
 use forge_store_recovery_physics::{
-    S4IntegrityHandoffCounters, S4RecoveryPhysicsIntegrityReadiness,
+    IntegrityHandoffCounters, S4RecoveryPhysicsIntegrityReadiness,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S3S4HandoffCloseoutEvidence {
     handoff_identity: StableDigest,
-    counters: S4IntegrityHandoffCounters,
+    counters: IntegrityHandoffCounters,
     no_raw_bytes_crossed: bool,
     recovery_claimed: bool,
 }
@@ -25,7 +25,7 @@ impl S3S4HandoffCloseoutEvidence {
         &self.handoff_identity
     }
 
-    pub const fn counters(&self) -> S4IntegrityHandoffCounters {
+    pub const fn counters(&self) -> IntegrityHandoffCounters {
         self.counters
     }
 

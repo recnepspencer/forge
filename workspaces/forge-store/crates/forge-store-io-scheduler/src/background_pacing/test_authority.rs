@@ -10,7 +10,7 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_security::{
     accept_s5_1_admitted_security_scope_readiness,
     admitted_store_internal_security_scope_for_s6_test, S51SecurityScopeReadinessReservation,
@@ -24,12 +24,12 @@ use crate::foreground_reservation::{
 };
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
-    admit_s5_1_security_scope_for_s6_io_qos, admit_store_published_s6_io_qos_isolation_readiness,
+    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
     BackgroundCapacityAdmission, BackgroundCapacityAdmissionRequest, BackgroundIoPressureShape,
     BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
-    BackgroundResourceBudget, IoSchedulerBackendCapabilityAdmission, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission, IoSchedulerS6SecurityScopeAdmission,
-    S6IoQosSecurityScopeHandoff,
+    BackgroundResourceBudget, IoSchedulerBackendCapabilityAdmission, IoSchedulerIsolationCounterSnapshot,
+    IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission,
+    SchedulerSecurityScopeEvidence,
 };
 
 mod blob_ingest_outcomes;
@@ -179,7 +179,7 @@ fn background_capacity_for_lane(
 
 fn apply_progression_evidence<'a>(
     request: BackgroundCapacityAdmissionRequest<'a>,
-    readiness: &IoSchedulerS6ReadinessAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
     drift: Option<BackgroundPacingProgressionDrift>,
 ) -> BackgroundCapacityAdmissionRequest<'a> {
     let Some(drift) = drift else {
@@ -196,32 +196,32 @@ fn apply_progression_evidence<'a>(
 }
 
 fn mismatched_readiness_counters(
-    counters: IoSchedulerS6CounterSnapshot,
-) -> IoSchedulerS6CounterSnapshot {
-    let alternate = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(
+    counters: IoSchedulerIsolationCounterSnapshot,
+) -> IoSchedulerIsolationCounterSnapshot {
+    let alternate = publish_scheduler_isolation_capability_for_certification_test(
         counters.wait_count() + 3,
         counters.retry_count() + 1,
     )
     .expect("alternate S.6 readiness should publish");
-    admit_store_published_s6_io_qos_isolation_readiness(&alternate)
+    admit_store_published_isolation_capability(&alternate)
         .expect("alternate scheduler readiness should admit")
         .counters()
 }
 
-fn readiness_admission() -> IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+fn readiness_admission() -> IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit S.6 readiness")
 }
-fn security_scope_admission() -> IoSchedulerS6SecurityScopeAdmission {
+fn security_scope_admission() -> IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         admitted_store_internal_security_scope_for_s6_test(),
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("S.5.1 handoff should admit");
-    admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    admit_security_scope_for_scheduler(handoff)
 }
 fn backend_admission(
     requirement: crate::IoSchedulerBackendCapabilityRequirement,

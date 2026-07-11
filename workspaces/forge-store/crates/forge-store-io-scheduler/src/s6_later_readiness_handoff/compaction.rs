@@ -1,4 +1,4 @@
-//! S.10 compaction I/O readiness handoff — admission evidence for background pacing and
+//! S.10 compaction I/O readiness handoff ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â admission evidence for background pacing and
 //! foreground yield cost during rewrite. Does not prove compaction equivalence or semantic
 //! validity of rewritten roots; carries explicit non-claims.
 
@@ -6,8 +6,8 @@ use forge_store_contracts::{S10CompactionReadinessNonClaim, S6LaterMilestoneDest
 
 use crate::{
     BackgroundPacingCounterSnapshot, IoSchedulerBackgroundMaintenanceAssumption,
-    IoSchedulerForegroundInterferenceSurface, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission,
+    IoSchedulerForegroundInterferenceSurface, IoSchedulerIsolationCounterSnapshot,
+    IoSchedulerIsolationAdmission,
 };
 
 use super::{
@@ -23,7 +23,7 @@ pub struct S10CompactionIoReadinessHandoff {
 }
 
 pub fn publish_s10_compaction_io_readiness_handoff(
-    readiness: &IoSchedulerS6ReadinessAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
     background_pacing: S10CompactionPacingEvidence,
 ) -> S10CompactionIoReadinessHandoff {
     S10CompactionIoReadinessHandoff {
@@ -44,7 +44,7 @@ impl S10CompactionIoReadinessHandoff {
         S6LaterMilestoneDestination::S10Compaction
     }
 
-    pub const fn counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.core.counters()
     }
 

@@ -3,10 +3,10 @@ use forge_store_physical_integrity::QuarantineRecord;
 
 use crate::{
     BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind, RecoveryIntegrityHandoffReceipt,
-    S4IntegrityHandoffDenial,
+    IntegrityHandoffDenial,
 };
 
-/// Readmission rebuilds current Store authority — deserialized quarantine records are not proof.
+/// Readmission rebuilds current Store authority ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â deserialized quarantine records are not proof.
 pub fn verify_store_authority_for_readmission(
     current_store_authority: &StoreCurrentAuthorityWitness,
 ) -> Result<(), BlobReplayAdmissionDenial> {
@@ -29,6 +29,6 @@ pub fn verify_store_authority_for_readmission(
 pub fn verify_quarantine_handoff_for_readmission(
     record: &QuarantineRecord,
     receipt: &RecoveryIntegrityHandoffReceipt,
-) -> Result<(), S4IntegrityHandoffDenial> {
+) -> Result<(), IntegrityHandoffDenial> {
     receipt.require_quarantine_record_basis(record)
 }

@@ -4,7 +4,7 @@ use crate::{
     S3AcceptanceSuiteKind, S3CloseoutEvidenceFamily,
 };
 use forge_store_contracts::StableDigest;
-use forge_store_recovery_physics::S4IntegrityHandoffCounters;
+use forge_store_recovery_physics::IntegrityHandoffCounters;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalIntegrityCloseoutReport {
@@ -13,7 +13,7 @@ pub struct PhysicalIntegrityCloseoutReport {
     harness_lane: RoadmapLaneFamily,
     suite_harnesses: Vec<S3CloseoutSuiteHarnessSummary>,
     s4_handoff_identity: StableDigest,
-    s4_counters: S4IntegrityHandoffCounters,
+    s4_counters: IntegrityHandoffCounters,
     no_raw_bytes_crossed: bool,
     recovery_claimed: bool,
     later_sequence_semantic_claimed: bool,
@@ -64,7 +64,7 @@ impl PhysicalIntegrityCloseoutReport {
     pub(crate) fn from_closeout(
         suite: &PhysicalIntegrityCloseoutSuite,
         s4_handoff_identity: StableDigest,
-        s4_counters: S4IntegrityHandoffCounters,
+        s4_counters: IntegrityHandoffCounters,
         no_raw_bytes_crossed: bool,
         recovery_claimed: bool,
         later_sequence_semantic_claimed: bool,
@@ -105,7 +105,7 @@ impl PhysicalIntegrityCloseoutReport {
         &self.s4_handoff_identity
     }
 
-    pub const fn s4_counters(&self) -> S4IntegrityHandoffCounters {
+    pub const fn s4_counters(&self) -> IntegrityHandoffCounters {
         self.s4_counters
     }
 

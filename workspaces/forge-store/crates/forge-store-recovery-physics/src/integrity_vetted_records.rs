@@ -1,4 +1,4 @@
-use crate::{RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenial};
+use crate::{RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenial};
 use forge_store_physical_format::{
     PhysicalGenerationOwner, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
@@ -23,7 +23,7 @@ impl IntegrityVettedWalFrame {
     pub fn from_integrity_report(
         report: &WalFrameIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::WalFrame(report.counters()))?;
         let expected = wal_frame_authority_digest(report).map_err(authority_basis_denial)?;
@@ -65,7 +65,7 @@ impl IntegrityVettedCheckpointRecord {
     pub fn from_integrity_report(
         report: &CheckpointRecordIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::WalFrame(report.counters()))?;
         let expected = checkpoint_authority_digest(report).map_err(authority_basis_denial)?;
@@ -107,7 +107,7 @@ impl IntegrityVettedRootManifestRecord {
     pub fn from_manifest_report(
         report: &ManifestIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_counters(IntegrityEvidenceCounters::Manifest(report.counters()))?;
         let expected = manifest_authority_digest(report).map_err(authority_basis_denial)?;
         receipt.require_physical_authority_basis(&expected)?;
@@ -147,7 +147,7 @@ impl IntegrityVettedSegmentManifestRecord {
     pub fn from_manifest_report(
         report: &ManifestIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_counters(IntegrityEvidenceCounters::Manifest(report.counters()))?;
         let expected = manifest_authority_digest(report).map_err(authority_basis_denial)?;
         receipt.require_physical_authority_basis(&expected)?;
@@ -190,7 +190,7 @@ impl IntegrityVettedPageFrameRecord {
     pub fn from_page_report(
         report: &PageIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::Container(report.counters()))?;
         let expected = page_authority_digest(report).map_err(authority_basis_denial)?;
@@ -207,7 +207,7 @@ impl IntegrityVettedPageFrameRecord {
     pub fn from_frame_report(
         report: &FrameIntegrityReport,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_scope(report.basis().scope())?;
         receipt.require_counters(IntegrityEvidenceCounters::Container(report.counters()))?;
         let expected = frame_authority_digest(report).map_err(authority_basis_denial)?;
@@ -244,6 +244,6 @@ impl IntegrityVettedPageFrameRecord {
 
 fn authority_basis_denial(
     _: forge_store_physical_integrity::PhysicalIntegrityEvidenceDenial,
-) -> S4IntegrityHandoffDenial {
-    S4IntegrityHandoffDenial::new(crate::S4IntegrityHandoffDenialKind::ReceiptBasisMismatch)
+) -> IntegrityHandoffDenial {
+    IntegrityHandoffDenial::new(crate::IntegrityHandoffDenialKind::ReceiptBasisMismatch)
 }

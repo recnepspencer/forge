@@ -1,15 +1,15 @@
 use forge_store_certification::certify_s6_later_readiness_handoffs;
 use forge_store_io_scheduler::{
-    admit_s5_1_security_scope_for_s6_io_qos,
+    admit_security_scope_for_scheduler,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_store_published_s6_io_qos_isolation_readiness,
+    admit_store_published_isolation_capability,
     background_pacing_outcome_for_later_readiness_certification_test,
     publish_s10_backup_export_io_readiness_handoff, publish_s10_compaction_io_readiness_handoff,
     publish_s10_repair_scan_io_readiness_handoff, publish_s11_operator_io_readiness_handoff,
     publish_s7_placement_io_readiness_handoff, BackgroundIoPressureClass,
-    IoSchedulerBackendCapabilityAdmission, IoSchedulerS6ReadinessAdmission,
-    IoSchedulerS6SecurityScopeAdmission, S10BackupExportPacingEvidence,
-    S10CompactionPacingEvidence, S10RepairScanPacingEvidence, S6IoQosSecurityScopeHandoff,
+    IoSchedulerBackendCapabilityAdmission, IoSchedulerIsolationAdmission,
+    IoSchedulerSecurityScopeAdmission, S10BackupExportPacingEvidence,
+    S10CompactionPacingEvidence, S10RepairScanPacingEvidence, SchedulerSecurityScopeEvidence,
     SecureIoOperation, SecureIoPosture, SecureIoPostureRequirement, SecureIoPreservationReceipt,
     SecureIoPreservationRequest,
 };
@@ -18,7 +18,7 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S10BackupExportReadinessNonClaim,
     S10CompactionReadinessNonClaim, S10RepairScanReadinessNonClaim, S11OperatorReadinessNonClaim,
@@ -157,25 +157,25 @@ fn certification_preserves_distinct_later_readiness_handoff_evidence() {
     );
 }
 
-fn scheduler_readiness() -> IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+fn scheduler_readiness() -> IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
         .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit Store-published S.6 readiness")
 }
 
-fn scheduler_security_scope() -> IoSchedulerS6SecurityScopeAdmission {
+fn scheduler_security_scope() -> IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         admitted_store_internal_security_scope_for_s6_test(),
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("S.5.1 handoff should admit");
-    admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    admit_security_scope_for_scheduler(handoff)
 }
 
 fn secure_io_receipt_with_posture(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
     backend: &IoSchedulerBackendCapabilityAdmission,
     operation: SecureIoOperation,
     posture: SecureIoPostureRequirement,
@@ -187,7 +187,7 @@ fn secure_io_receipt_with_posture(
 }
 
 fn secure_frame_backend_admission(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
 ) -> IoSchedulerBackendCapabilityAdmission {
     let request = BackendCapabilityAdmissionRequest::new(
         BackendTargetProfile::PosixFileFsyncDirSync,

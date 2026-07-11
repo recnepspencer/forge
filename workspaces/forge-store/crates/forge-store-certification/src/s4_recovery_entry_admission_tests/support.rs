@@ -25,7 +25,7 @@ use forge_store_recovery_physics::{
     RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoverySecurityScopePropagationInput,
     RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
-    S4IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
+    IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
 };
 use forge_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
@@ -55,7 +55,7 @@ pub(super) fn damaged_readiness() -> S4RecoveryPhysicsIntegrityReadiness {
         )
         .unwrap();
 
-    let payload = S4IntegrityHandoffPayload::declare()
+    let payload = IntegrityHandoffPayload::declare()
         .root_manifest(intact.payload().root_manifest().clone())
         .segment_manifest(intact.payload().segment_manifest().clone())
         .page_frame(intact.payload().page_frames()[0].clone())

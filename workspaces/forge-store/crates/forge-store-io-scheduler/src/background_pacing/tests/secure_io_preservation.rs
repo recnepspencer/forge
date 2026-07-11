@@ -48,7 +48,7 @@ fn secure_scope_pressure_rejects_wrong_security_scope_receipts() {
         forge_store_security::admitted_wrong_s6_io_qos_security_scope_for_test(),
     );
 
-    let denial = crate::S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let denial = crate::SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect_err("wrong S.5.1 scope must not mint an S.6 secure-I/O handoff");
     assert!(matches!(
         denial,

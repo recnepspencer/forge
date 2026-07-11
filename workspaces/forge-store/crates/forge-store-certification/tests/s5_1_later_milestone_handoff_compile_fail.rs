@@ -18,7 +18,7 @@ fn fixtures() -> [Fixture; 11] {
         Fixture {
             name: "raw_declaration_cannot_satisfy_s6_handoff.rs",
             expected: &[
-                "S6IoQosSecurityScopeHandoff",
+                "SchedulerSecurityScopeEvidence",
                 "from_s5_1_readiness",
                 "S51AdmittedSecurityScopeReadiness",
                 "StoreRawSecurityScopeDeclaration",
@@ -78,7 +78,7 @@ fn fixtures() -> [Fixture; 11] {
         },
         Fixture {
             name: "s7_handoff_cannot_satisfy_s6_handoff_api.rs",
-            expected: &["S6IoQosSecurityScopeHandoff", "S7BlobChunkSecurityHandoff"],
+            expected: &["SchedulerSecurityScopeEvidence", "S7BlobChunkSecurityHandoff"],
         },
         Fixture {
             name: "s7_handoff_cannot_satisfy_backup_handoff_api.rs",

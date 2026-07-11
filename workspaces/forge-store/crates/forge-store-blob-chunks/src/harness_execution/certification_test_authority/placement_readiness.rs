@@ -1,5 +1,5 @@
 use forge_store_io_scheduler::{
-    admit_store_published_s6_io_qos_isolation_readiness, publish_s7_placement_io_readiness_handoff,
+    admit_store_published_isolation_capability, publish_s7_placement_io_readiness_handoff,
     readmit_s7_placement_io_readiness_after_publication,
 };
 use forge_store_physical_format::{
@@ -8,7 +8,7 @@ use forge_store_physical_format::{
     PhysicalSegmentId, ReclaimedByteInterpretation,
 };
 use forge_store_physical_isolation::{
-    publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test,
+    publish_scheduler_isolation_capability_for_certification_test,
     GenerationCountedPhysicalReference, ReclaimEligibilityProof,
 };
 use forge_store_reclaim_policy::{
@@ -29,10 +29,10 @@ pub(in crate::harness_execution) fn placement_readiness(
     security_scope: StoreSecurityScopeIdentity,
 ) -> forge_store_tiering::S7PlacementIoReadinessSeed {
     let published_readiness =
-        publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1)
+        publish_scheduler_isolation_capability_for_certification_test(2, 1)
             .expect("published S6 readiness");
     let scheduler_readiness =
-        admit_store_published_s6_io_qos_isolation_readiness(&published_readiness)
+        admit_store_published_isolation_capability(&published_readiness)
             .expect("scheduler S6 readiness");
     let handoff = readmit_s7_placement_io_readiness_after_publication(
         publish_s7_placement_io_readiness_handoff(&scheduler_readiness),

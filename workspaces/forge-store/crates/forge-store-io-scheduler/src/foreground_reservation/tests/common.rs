@@ -10,7 +10,7 @@ use forge_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
 };
@@ -18,8 +18,8 @@ use forge_store_security::admitted_store_internal_security_scope_for_s6_test;
 
 use crate::{
     admit_backend_capability_for_scheduler_claim,
-    admit_store_published_s6_io_qos_isolation_readiness, IoSchedulerBackendCapabilityRequirement,
-    S6IoQosSecurityScopeHandoff,
+    admit_store_published_isolation_capability, IoSchedulerBackendCapabilityRequirement,
+    SchedulerSecurityScopeEvidence,
 };
 
 use super::super::*;
@@ -52,20 +52,20 @@ pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
     .expect("point read reservation should admit")
 }
 
-pub(super) fn s6_readiness_admission() -> crate::IoSchedulerS6ReadinessAdmission {
+pub(super) fn s6_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
     s6_readiness_admission_with_counts(2, 1)
 }
 
 pub(super) fn s6_readiness_admission_with_counts(
     wait_count: u64,
     retry_count: u64,
-) -> crate::IoSchedulerS6ReadinessAdmission {
-    let readiness = publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(
+) -> crate::IoSchedulerIsolationAdmission {
+    let readiness = publish_scheduler_isolation_capability_for_certification_test(
         wait_count,
         retry_count,
     )
     .expect("S.5 closeout should publish S.6 readiness through production path");
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness)
+    admit_store_published_isolation_capability(&readiness)
         .expect("scheduler should admit Store-published S.6 readiness")
 }
 
@@ -104,8 +104,8 @@ pub(super) fn full_capacity_budget() -> ForegroundResourceBudget {
 pub(super) fn capacity_admission(
     lane: ForegroundLaneDeclaration,
     backend: &crate::IoSchedulerBackendCapabilityAdmission,
-    readiness: &crate::IoSchedulerS6ReadinessAdmission,
-    security: &crate::IoSchedulerS6SecurityScopeAdmission,
+    readiness: &crate::IoSchedulerIsolationAdmission,
+    security: &crate::IoSchedulerSecurityScopeAdmission,
     arbitration: ForegroundArbitrationDeclaration,
     requested: ForegroundResourceBudget,
     available: ForegroundResourceBudget,
@@ -248,18 +248,18 @@ const fn backend_evidence_basis_for(
     }
 }
 
-pub(super) fn s6_security_scope_admission() -> crate::IoSchedulerS6SecurityScopeAdmission {
+pub(super) fn s6_security_scope_admission() -> crate::IoSchedulerSecurityScopeAdmission {
     s6_security_scope_admission_from(admitted_store_internal_security_scope_for_s6_test())
 }
 
 fn s6_security_scope_admission_from(
     scope: forge_store_security::StoreAdmittedSecurityScope,
-) -> crate::IoSchedulerS6SecurityScopeAdmission {
+) -> crate::IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         scope,
     );
-    let handoff = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness)
+    let handoff = SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness)
         .expect("S.5.1 IoQos handoff should admit");
-    crate::admit_s5_1_security_scope_for_s6_io_qos(handoff)
+    crate::admit_security_scope_for_scheduler(handoff)
 }

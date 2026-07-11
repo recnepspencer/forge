@@ -4,8 +4,8 @@ use forge_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
     IoSchedulerBackendCapabilityRequirement, IoSchedulerBackgroundMaintenanceAssumption,
-    IoSchedulerForegroundInterferenceSurface, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission, IoSchedulerS6SecurityScopeAdmission, SecureIoOperation,
+    IoSchedulerForegroundInterferenceSurface, IoSchedulerIsolationCounterSnapshot,
+    IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission, SecureIoOperation,
     SecureIoPosture, SecureIoPreservationCounterSnapshot, SecureIoPreservationReceipt,
     SecureIoScopeBasis,
 };
@@ -33,8 +33,8 @@ pub struct S11OperatorIoReadinessSeed {
 }
 
 pub fn publish_s11_operator_io_readiness_handoff(
-    readiness: &IoSchedulerS6ReadinessAdmission,
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
     secure_io: SecureIoPreservationReceipt,
 ) -> Result<S11OperatorIoReadinessHandoff, S6LaterReadinessHandoffDenial> {
     require_matching_security_scope(security, secure_io)?;
@@ -67,7 +67,7 @@ impl S11OperatorIoReadinessHandoff {
         S6LaterMilestoneDestination::S11OperatorReadiness
     }
 
-    pub const fn counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.core.counters()
     }
 
@@ -140,7 +140,7 @@ impl S11OperatorIoReadinessSeed {
 }
 
 fn require_matching_security_scope(
-    security: &IoSchedulerS6SecurityScopeAdmission,
+    security: &IoSchedulerSecurityScopeAdmission,
     secure_io: SecureIoPreservationReceipt,
 ) -> Result<(), S6LaterReadinessHandoffDenial> {
     if security.receipt().identity() != secure_io.identity() {

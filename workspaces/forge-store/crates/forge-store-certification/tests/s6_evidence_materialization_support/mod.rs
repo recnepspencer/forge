@@ -31,9 +31,9 @@ use forge_store_contracts::S6QueueProducerResourceShape;
 use forge_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use forge_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_s5_1_security_scope_for_s6_io_qos,
+    admit_security_scope_for_scheduler,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_store_published_s6_io_qos_isolation_readiness,
+    admit_store_published_isolation_capability,
     background_pacing_outcome_for_later_readiness_certification_test, execute_ready_queue_plan,
     lower_buffer_pool_queue_declaration, publish_s10_backup_export_io_readiness_handoff,
     publish_s10_compaction_io_readiness_handoff, publish_s10_repair_scan_io_readiness_handoff,
@@ -41,7 +41,7 @@ use forge_store_io_scheduler::{
     BackgroundIoPressureClass, BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
     IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
     QueueSlot, ReadAheadWindow, S10BackupExportPacingEvidence, S10CompactionPacingEvidence,
-    S10RepairScanPacingEvidence, S6IoQosSecurityScopeHandoff, SecureIoOperation,
+    S10RepairScanPacingEvidence, SchedulerSecurityScopeEvidence, SecureIoOperation,
     SecureIoPostureRequirement, SecureIoPreservationReceipt, SecureIoPreservationRequest,
     WorkerPermit,
 };
@@ -55,7 +55,7 @@ use forge_store_physical_certification::{
     s6_io_pressure_test_replay_bundle_for, PhysicalFaultEvidenceClass, PhysicalSimulationProfile,
     S6IoPressureHarnessEvidence, S6IoPressureHarnessScenario,
 };
-use forge_store_physical_isolation::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
+use forge_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use forge_store_readiness::{
     accept_s5_1_admitted_security_scope_readiness, S51SecurityScopeReadinessReservation,
 };
@@ -162,7 +162,7 @@ fn queue_outcome() -> QueueExecutionOutcome {
 }
 
 fn secure_io_preservation(
-    security: &forge_store_io_scheduler::IoSchedulerS6SecurityScopeAdmission,
+    security: &forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
 ) -> SecureIoPreservationReceipt {
     admit_secure_io_scope_for_scheduler(
         SecureIoPreservationRequest::new(
@@ -274,24 +274,24 @@ fn queue_backend_witness() -> AdmittedBackendCapabilityWitness {
         .unwrap()
 }
 
-fn scheduler_readiness() -> forge_store_io_scheduler::IoSchedulerS6ReadinessAdmission {
+fn scheduler_readiness() -> forge_store_io_scheduler::IoSchedulerIsolationAdmission {
     let readiness =
-        publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test(2, 1).unwrap();
-    admit_store_published_s6_io_qos_isolation_readiness(&readiness).unwrap()
+        publish_scheduler_isolation_capability_for_certification_test(2, 1).unwrap();
+    admit_store_published_isolation_capability(&readiness).unwrap()
 }
 
-fn security_scope() -> forge_store_io_scheduler::IoSchedulerS6SecurityScopeAdmission {
+fn security_scope() -> forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission {
     let readiness = accept_s5_1_admitted_security_scope_readiness(
         S51SecurityScopeReadinessReservation::io_qos(),
         admitted_store_internal_security_scope_for_s6_test(),
     );
-    admit_s5_1_security_scope_for_s6_io_qos(
-        S6IoQosSecurityScopeHandoff::from_s5_1_readiness(readiness).unwrap(),
+    admit_security_scope_for_scheduler(
+        SchedulerSecurityScopeEvidence::from_s5_1_readiness(readiness).unwrap(),
     )
 }
 
 fn secure_frame_backend(
-    security: &forge_store_io_scheduler::IoSchedulerS6SecurityScopeAdmission,
+    security: &forge_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
 ) -> IoSchedulerBackendCapabilityAdmission {
     admit_secure_frame_backend_capability_for_scheduler_claim(&backend_witness(), security).unwrap()
 }

@@ -15,15 +15,15 @@ use forge_store_physical_isolation::{
     compare_physical_epoch_vectors_with_evidence, lower_latch_acquisition_plan,
     CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
     CompactionProtectedReferenceSet, CompactionReadInterlockPlan, CompactionRewritePublication,
-    CompactionSourceIntegrityEvidence, EpochComparisonScope, ExecutedS5IsolationCloseout,
-    ExecutedS5IsolationCloseoutReceipts, HazardLeaseTable, HazardLeaseTableCapacity,
+    CompactionSourceIntegrityEvidence, EpochComparisonScope, ExecutedIsolationEvidence,
+    ExecutedIsolationReceipts, HazardLeaseTable, HazardLeaseTableCapacity,
     LatchAcquisitionRequest, LatchAcquisitionStep, PhysicalEpochVector,
     PhysicalIsolationCounterSnapshot, PhysicalLatchKey, PhysicalPublicationIntent,
     ReadDuringCompactionVerdict, StablePhysicalReadExecution,
 };
 use forge_store_recovery_physics::CompactionCutoverRecoveryPosture;
 
-pub(crate) fn honest_executed_s5_closeout() -> ExecutedS5IsolationCloseout {
+pub(crate) fn honest_executed_s5_closeout() -> ExecutedIsolationEvidence {
     let (stable_read, publication, compaction) = admitted_compaction_surfaces();
     let checkpoint = checkpoint_read::admitted_checkpoint_verdict();
     let reclaim_world = ReclaimFixture::new(981);
@@ -50,8 +50,8 @@ pub(crate) fn honest_executed_s5_closeout() -> ExecutedS5IsolationCloseout {
     .unwrap();
     let epoch_freshness =
         compare_physical_epoch_vectors_with_evidence(epoch_vector, epoch_vector).unwrap();
-    ExecutedS5IsolationCloseout::from_physical_isolation_receipts(
-        ExecutedS5IsolationCloseoutReceipts {
+    ExecutedIsolationEvidence::from_physical_isolation_receipts(
+        ExecutedIsolationReceipts {
             stable_read,
             latch_order_proof: latch_plan.order_proof(),
             epoch_freshness: &epoch_freshness,

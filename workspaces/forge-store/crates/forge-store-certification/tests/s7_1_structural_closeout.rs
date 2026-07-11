@@ -8,7 +8,7 @@ fn cleaned_phase_boundaries_stay_under_declared_file_count_caps() {
         DirectoryBoundary::new("workspaces/forge-store/crates/forge-store-blob-chunks/src", 1),
         DirectoryBoundary::new("workspaces/forge-store/crates/forge-store-physical-format/src", 1),
         DirectoryBoundary::new(
-            "workspaces/forge-store/crates/forge-store-recovery-physics/src/s4_integrity_handoff_payload",
+            "workspaces/forge-store/crates/forge-store-recovery-physics/src/integrity_handoff",
             4,
         ),
         DirectoryBoundary::new("workspaces/forge-store/crates/forge-store-test-support/src", 10),
@@ -26,7 +26,7 @@ fn aggregation_files_remain_aggregation_only() {
         "workspaces/forge-store/crates/forge-store-blob-chunks/src/lib.rs",
         "workspaces/forge-store/crates/forge-store-blob-chunks/src/exports/mod.rs",
         "workspaces/forge-store/crates/forge-store-physical-format/src/lib.rs",
-        "workspaces/forge-store/crates/forge-store-recovery-physics/src/s4_integrity_handoff_payload/mod.rs",
+        "workspaces/forge-store/crates/forge-store-recovery-physics/src/integrity_handoff/mod.rs",
         "workspaces/forge-store/crates/forge-store-test-support/src/lib.rs",
         "workspaces/forge-store/crates/forge-store-layout-indexes/src/lib.rs",
     ] {

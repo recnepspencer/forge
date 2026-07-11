@@ -24,8 +24,8 @@ use forge_store_recovery_physics::{
     BoundedInspectionEnvelopeEvidence, IntegrityVettedCheckpointRecord,
     IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
     IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineSummary,
-    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffAdmission,
-    S4IntegrityHandoffDenialKind, S4IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
+    IntegrityHandoffAdmission, RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
+    IntegrityHandoffDenialKind, IntegrityHandoffPayload, S4RecoveryPhysicsIntegrityReadiness,
 };
 
 pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadiness {
@@ -33,16 +33,16 @@ pub(crate) fn intact_readiness(label: &str) -> S4RecoveryPhysicsIntegrityReadine
 }
 
 pub(crate) fn admit_s4_handoff_payload(
-    payload: S4IntegrityHandoffPayload,
+    payload: IntegrityHandoffPayload,
 ) -> S4RecoveryPhysicsIntegrityReadiness {
-    S4IntegrityHandoffAdmission::admit(s3_integrity_readiness().payload(), payload)
+    IntegrityHandoffAdmission::admit(s3_integrity_readiness().payload(), payload)
         .expect("complete S.3 readiness admits S.4 integrity handoff")
 }
 
 pub(crate) fn manifest_receipt_swap_denial_kind(
     first_generation: u64,
     second_generation: u64,
-) -> S4IntegrityHandoffDenialKind {
+) -> IntegrityHandoffDenialKind {
     let first_manifest = inspect_manifest_for_generation(first_generation);
     let second_manifest = inspect_manifest_for_generation(second_generation);
     let first_receipt = receipt(StoreExecutedIntegrityEvidence::authoritative_manifest(
@@ -55,7 +55,7 @@ pub(crate) fn manifest_receipt_swap_denial_kind(
 
 pub(crate) fn forged_inspection_envelope_counter_denial_kind(
     label: &'static [u8],
-) -> S4IntegrityHandoffDenialKind {
+) -> IntegrityHandoffDenialKind {
     let payload = page_payload_with_record(label);
     let mut denial = None;
     with_checked_page(&payload, page_cell(1, 2, 7), |checked| {
@@ -74,7 +74,7 @@ pub(crate) fn forged_inspection_envelope_counter_denial_kind(
     denial.unwrap()
 }
 
-fn intact_handoff_payload(label: &str) -> S4IntegrityHandoffPayload {
+fn intact_handoff_payload(label: &str) -> IntegrityHandoffPayload {
     let page_payload = page_payload_with_record(label.as_bytes());
     let page = inspect_page_report(&page_payload);
     let wal = inspect_wal_frame(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
@@ -110,7 +110,7 @@ fn intact_handoff_payload(label: &str) -> S4IntegrityHandoffPayload {
     let segment =
         IntegrityVettedSegmentManifestRecord::from_manifest_report(&manifest, manifest_receipt)
             .unwrap();
-    S4IntegrityHandoffPayload::declare()
+    IntegrityHandoffPayload::declare()
         .root_manifest(root)
         .segment_manifest(segment)
         .page_frame(page_record)

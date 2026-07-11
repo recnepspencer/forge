@@ -1,10 +1,10 @@
 use forge_store_contracts::CorruptionHandoffDamageCase;
 
-use crate::{BlobReplayAdmissionDenial, S4IntegrityHandoffDenial};
+use crate::{BlobReplayAdmissionDenial, IntegrityHandoffDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecoveryCorruptionReadmissionDenial {
-    QuarantineHandoff(S4IntegrityHandoffDenial),
+    QuarantineHandoff(IntegrityHandoffDenial),
     StoreAuthority(BlobReplayAdmissionDenial),
 }
 

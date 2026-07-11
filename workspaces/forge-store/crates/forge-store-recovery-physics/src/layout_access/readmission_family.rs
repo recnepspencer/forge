@@ -8,7 +8,7 @@ use forge_store_physical_integrity::{
 
 use crate::{
     verify_store_authority_for_readmission, PersistedRecoveryArtifactDigest,
-    RecoveryIntegrityHandoffReceipt, ReopenedRecoveryArtifactAdmission, S4IntegrityHandoffDenial,
+    RecoveryIntegrityHandoffReceipt, ReopenedRecoveryArtifactAdmission, IntegrityHandoffDenial,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,7 +68,7 @@ pub enum RecoveryLayoutReadmissionAdmissionDenial {
     NoForegroundAuthority,
     UnexpectedOfflineClassification,
     QuarantineReceiptEvidence(PhysicalIntegrityEvidenceDenial),
-    QuarantineHandoff(S4IntegrityHandoffDenial),
+    QuarantineHandoff(IntegrityHandoffDenial),
     StoreAuthority(crate::BlobReplayAdmissionDenial),
     DerivedProjectionDamageCannotReadmit,
 }

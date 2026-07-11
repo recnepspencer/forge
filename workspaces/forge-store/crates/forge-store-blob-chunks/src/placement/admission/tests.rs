@@ -1,7 +1,7 @@
 use forge_store_budgets::CounterEvidenceStrength;
 use forge_store_io_scheduler::{
     publish_s7_placement_io_readiness_handoff,
-    s7_placement_io_readiness_handoff_for_certification_test, IoSchedulerS6ReadinessAdmission,
+    s7_placement_io_readiness_handoff_for_certification_test, IoSchedulerIsolationAdmission,
 };
 use forge_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
@@ -249,7 +249,7 @@ fn stale_readiness(
     reachability: &crate::BlobChunkReachabilityProofSet,
 ) -> forge_store_tiering::S7PlacementIoReadinessSeed {
     let handoff = publish_s7_placement_io_readiness_handoff(
-        &IoSchedulerS6ReadinessAdmission::for_certification_test(),
+        &IoSchedulerIsolationAdmission::for_certification_test(),
     );
     let cold = S6ColdTierIoPosture::for_certification_test_authority(
         reachability.security_metadata().identity(),

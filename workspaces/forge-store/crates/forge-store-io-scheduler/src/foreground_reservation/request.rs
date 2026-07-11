@@ -1,6 +1,6 @@
 use crate::{
-    IoSchedulerBackendCapabilityAdmission, IoSchedulerS6ReadinessAdmission,
-    IoSchedulerS6SecurityScopeAdmission,
+    IoSchedulerBackendCapabilityAdmission, IoSchedulerIsolationAdmission,
+    IoSchedulerSecurityScopeAdmission,
 };
 
 use super::{
@@ -12,8 +12,8 @@ use super::{
 pub struct ForegroundReservationAdmissionRequest<'a> {
     lane: ForegroundLaneDeclaration,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
-    stable_readiness: &'a IoSchedulerS6ReadinessAdmission,
-    security_scope: &'a IoSchedulerS6SecurityScopeAdmission,
+    stable_readiness: &'a IoSchedulerIsolationAdmission,
+    security_scope: &'a IoSchedulerSecurityScopeAdmission,
     arbitration: ForegroundArbitrationDeclaration,
     capacity_admission: &'a ForegroundReservationCapacityAdmission,
 }
@@ -22,8 +22,8 @@ impl<'a> ForegroundReservationAdmissionRequest<'a> {
     pub const fn new(
         lane: ForegroundLaneDeclaration,
         backend: &'a IoSchedulerBackendCapabilityAdmission,
-        stable_readiness: &'a IoSchedulerS6ReadinessAdmission,
-        security_scope: &'a IoSchedulerS6SecurityScopeAdmission,
+        stable_readiness: &'a IoSchedulerIsolationAdmission,
+        security_scope: &'a IoSchedulerSecurityScopeAdmission,
         arbitration: ForegroundArbitrationDeclaration,
         capacity_admission: &'a ForegroundReservationCapacityAdmission,
     ) -> Self {
@@ -45,11 +45,11 @@ impl<'a> ForegroundReservationAdmissionRequest<'a> {
         self.backend
     }
 
-    pub const fn stable_readiness(&self) -> &IoSchedulerS6ReadinessAdmission {
+    pub const fn stable_readiness(&self) -> &IoSchedulerIsolationAdmission {
         self.stable_readiness
     }
 
-    pub const fn security_scope(&self) -> &IoSchedulerS6SecurityScopeAdmission {
+    pub const fn security_scope(&self) -> &IoSchedulerSecurityScopeAdmission {
         self.security_scope
     }
 

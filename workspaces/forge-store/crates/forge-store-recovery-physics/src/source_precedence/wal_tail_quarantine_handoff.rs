@@ -1,5 +1,5 @@
 use crate::{
-    RecoveryIntegrityHandoffReceipt, S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind,
+    RecoveryIntegrityHandoffReceipt, IntegrityHandoffDenial, IntegrityHandoffDenialKind,
 };
 use forge_store_physical_integrity::{
     QuarantineRecord, WalFrameDamageDenial, WalFrameIntegrityCounters,
@@ -19,10 +19,10 @@ impl WalTailIntegrityQuarantineHandoff {
         denial: &WalFrameDamageDenial,
         record: &QuarantineRecord,
         receipt: RecoveryIntegrityHandoffReceipt,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         receipt.require_quarantine_record_basis(record)?;
         let basis = denial.basis().ok_or_else(|| {
-            S4IntegrityHandoffDenial::new(S4IntegrityHandoffDenialKind::ReceiptBasisMismatch)
+            IntegrityHandoffDenial::new(IntegrityHandoffDenialKind::ReceiptBasisMismatch)
         })?;
         Ok(Self {
             input_identity: WalFrameIntegrityInputIdentity::from_wal_damage_basis(basis),

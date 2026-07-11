@@ -2,8 +2,8 @@ use forge_store_contracts::{S10BackupExportReadinessNonClaim, S6LaterMilestoneDe
 
 use crate::{
     BackgroundPacingCounterSnapshot, IoSchedulerBackgroundMaintenanceAssumption,
-    IoSchedulerForegroundInterferenceSurface, IoSchedulerS6CounterSnapshot,
-    IoSchedulerS6ReadinessAdmission,
+    IoSchedulerForegroundInterferenceSurface, IoSchedulerIsolationCounterSnapshot,
+    IoSchedulerIsolationAdmission,
 };
 
 use super::{
@@ -19,7 +19,7 @@ pub struct S10BackupExportIoReadinessHandoff {
 }
 
 pub fn publish_s10_backup_export_io_readiness_handoff(
-    readiness: &IoSchedulerS6ReadinessAdmission,
+    readiness: &IoSchedulerIsolationAdmission,
     background_pacing: S10BackupExportPacingEvidence,
 ) -> S10BackupExportIoReadinessHandoff {
     S10BackupExportIoReadinessHandoff {
@@ -40,7 +40,7 @@ impl S10BackupExportIoReadinessHandoff {
         S6LaterMilestoneDestination::S10BackupExport
     }
 
-    pub const fn counters(&self) -> IoSchedulerS6CounterSnapshot {
+    pub const fn counters(&self) -> IoSchedulerIsolationCounterSnapshot {
         self.core.counters()
     }
 

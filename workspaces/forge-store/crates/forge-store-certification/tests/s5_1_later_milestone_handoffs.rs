@@ -10,7 +10,7 @@ use forge_store_authority::{require_current_store_authority, StoreCurrentAuthori
 use forge_store_blob_chunks::{BlobChunkSecurityScope, S7BlobChunkSecurityHandoff};
 use forge_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use forge_store_io_scheduler::{
-    admit_s5_1_security_scope_for_s6_io_qos, S6IoQosSecurityScopeHandoff,
+    admit_security_scope_for_scheduler, SchedulerSecurityScopeEvidence,
 };
 use forge_store_operations::{
     RepairBlastRadiusDeclaration, RepairBlastRadiusPlan, RepairBlastRadiusReadiness,
@@ -31,7 +31,7 @@ use forge_store_security::{
 fn phase_9_publishes_separate_downstream_handoffs_from_real_readiness() {
     let authority = current_authority("store.s51.phase9.handoffs");
 
-    let s6 = S6IoQosSecurityScopeHandoff::from_s5_1_readiness(admitted_readiness(
+    let s6 = SchedulerSecurityScopeEvidence::from_s5_1_readiness(admitted_readiness(
         &authority,
         S51SecurityScopeReadinessReservation::io_qos(),
         StoreKeyScope::StoreManagedRoot,
@@ -40,7 +40,7 @@ fn phase_9_publishes_separate_downstream_handoffs_from_real_readiness() {
         StoreCustodyPosture::InternalStoreCustody,
     ))
     .expect("S.6 security-scope handoff should publish");
-    let s6_admission = admit_s5_1_security_scope_for_s6_io_qos(s6);
+    let s6_admission = admit_security_scope_for_scheduler(s6);
     assert_eq!(
         s6_admission.permission().identity().key_scope(),
         StoreKeyScope::StoreManagedRoot
@@ -121,7 +121,7 @@ fn correct_family_scope_replay_cannot_publish_s6_or_s11_with_changed_requirement
     let authority = current_authority("store.s51.phase9.changed-scope-replay");
 
     assert_later_handoff_denial(
-        S6IoQosSecurityScopeHandoff::from_s5_1_readiness(admitted_readiness(
+        SchedulerSecurityScopeEvidence::from_s5_1_readiness(admitted_readiness(
             &authority,
             S51SecurityScopeReadinessReservation::io_qos(),
             StoreKeyScope::TenantEnvelope,
@@ -132,7 +132,7 @@ fn correct_family_scope_replay_cannot_publish_s6_or_s11_with_changed_requirement
         |denial| matches!(denial, S51LaterMilestoneHandoffDenial::WrongKeyScope { .. }),
     );
     assert_later_handoff_denial(
-        S6IoQosSecurityScopeHandoff::from_s5_1_readiness(admitted_readiness(
+        SchedulerSecurityScopeEvidence::from_s5_1_readiness(admitted_readiness(
             &authority,
             S51SecurityScopeReadinessReservation::io_qos(),
             StoreKeyScope::StoreManagedRoot,
@@ -148,7 +148,7 @@ fn correct_family_scope_replay_cannot_publish_s6_or_s11_with_changed_requirement
         },
     );
     assert_later_handoff_denial(
-        S6IoQosSecurityScopeHandoff::from_s5_1_readiness(admitted_readiness(
+        SchedulerSecurityScopeEvidence::from_s5_1_readiness(admitted_readiness(
             &authority,
             S51SecurityScopeReadinessReservation::io_qos(),
             StoreKeyScope::StoreManagedRoot,

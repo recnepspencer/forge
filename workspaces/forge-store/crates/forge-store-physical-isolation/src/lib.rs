@@ -31,7 +31,6 @@ mod reclaim_reachability;
 mod root_protocol;
 mod s5_harness_readiness;
 mod s6_background_pressure;
-mod s6_handoff;
 mod security_scope_propagation;
 mod stable_read_execution;
 
@@ -222,24 +221,26 @@ pub use s6_background_pressure::{
     physical_isolation_scrub_background_pressure, PhysicalIsolationBackgroundPressureKind,
 };
 #[cfg(any(test, feature = "certification-authority"))]
-pub use s6_handoff::publish_s6_io_qos_isolation_readiness_for_foreground_reservation_test;
-pub use s6_handoff::{
-    publish_s6_io_qos_isolation_readiness_from_s5_closeout,
-    reject_copied_closeout_report_as_s6_readiness,
-    reject_log_or_terminal_projection_as_s6_readiness,
-    reject_missing_latch_counters_as_s6_readiness,
-    reject_missing_protected_byte_footprint_as_s6_readiness,
-    reject_missing_reclaim_counters_as_s6_readiness, reject_qos_claim_as_s5_readiness,
-    reject_synthetic_wait_label_as_s6_readiness, BackgroundMaintenanceIsolationAssumption,
-    ExecutedS5IsolationCloseout, ExecutedS5IsolationCloseoutReceipts,
-    ForegroundInterferenceSurface, PhysicalIsolationCounterSnapshot, PhysicalStabilityAssumption,
-    S5PhysicalIsolationCloseoutBasis, S6ExecutedIsolationCounterKind, S6HandoffProjectionEvidence,
-    S6IoQosIsolationReadiness, S6IoQosIsolationReadinessBasis, S6IoQosIsolationReadinessDenial,
-    S6IoQosIsolationReadinessProofRequest, S6IsolationInterferenceCounterName,
-    S6IsolationInterferenceSnapshot, S6IsolationInterferenceSnapshotRow, S6ReadinessAdmittedRecipe,
-    S6ReadinessAuthorityPosture, S6ReadinessBoundaryBridgedRecipe, S6ReadinessFreshBasis,
-    S6ReadinessLoweredRecipe, S6ReadinessProofHandoff, S6ReadinessPublicationAuthority,
-    S6ReadinessResolvedRecipe, UnsupportedQoSClaim,
+pub use readiness::publish_scheduler_isolation_capability_for_certification_test;
+pub use readiness::{
+    publish_scheduler_isolation_capability_from_executed_evidence,
+    reject_copied_closeout_report_as_isolation_readiness,
+    reject_log_or_terminal_projection_as_isolation_readiness,
+    reject_missing_latch_counters_as_isolation_readiness,
+    reject_missing_protected_byte_footprint_as_isolation_readiness,
+    reject_missing_reclaim_counters_as_isolation_readiness, reject_unsupported_qos_claim_as_isolation_readiness,
+    reject_synthetic_wait_label_as_isolation_readiness,
+    SchedulerIsolationCapability, IsolationReadinessDenial, UnsupportedQoSClaim,
+};
+pub use readiness::interference::{
+    BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
+    PhysicalStabilityAssumption,
+};
+pub use executed_isolation_evidence::{
+    ExecutedIsolationEvidence, ExecutedIsolationReceipts,
+    PhysicalIsolationCounterSnapshot, ExecutedIsolationCounterKind,
+    IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
+    IsolationInterferenceSnapshotRow,
 };
 pub use security_scope_propagation::{
     preserve_s6_secure_io_stable_read_scope, LogicalDecodeSecurityScopeEntry,

@@ -14,7 +14,7 @@ use forge_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 use forge_store_recovery_physics::{
-    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, S4IntegrityHandoffDenialKind,
+    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, IntegrityHandoffDenialKind,
 };
 
 #[test]
@@ -107,8 +107,8 @@ fn with_wal_payload_input(
     });
 }
 
-fn assert_damage_map_source_mismatch(kind: S4IntegrityHandoffDenialKind) {
-    assert_eq!(kind, S4IntegrityHandoffDenialKind::DamageMapSourceMismatch);
+fn assert_damage_map_source_mismatch(kind: IntegrityHandoffDenialKind) {
+    assert_eq!(kind, IntegrityHandoffDenialKind::DamageMapSourceMismatch);
 }
 
 fn unresolved_authority_record() -> QuarantineRecord {

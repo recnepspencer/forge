@@ -11,7 +11,7 @@ use crate::{
     admit_recovery_corruption_readmission, RecoveryBlockedByIntegrityDamage,
     RecoveryBlockingIntegritySource, RecoveryCorruptionReadmissionDenial,
     RecoveryCorruptionReadmissionHandoff, RecoveryIntegrityHandoffReceipt,
-    S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind,
+    IntegrityHandoffDenial, IntegrityHandoffDenialKind,
 };
 
 pub use classify::classify_recovery_blocking_damage;
@@ -29,7 +29,7 @@ impl QuarantineSummary {
         record: &QuarantineRecord,
         receipt: RecoveryIntegrityHandoffReceipt,
         damage: &RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         crate::verify_quarantine_handoff_for_readmission(record, &receipt)?;
         Ok(Self {
             locality: record.locality(),
@@ -74,7 +74,7 @@ impl IntegrityDamageMap {
     pub fn with_wal_damage(
         mut self,
         damage: RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         require_source(&damage, RecoveryBlockingIntegritySource::WalFrame)?;
         self.record_recovery_blocking_damage(&damage);
         self.wal_damage.push(damage);
@@ -84,7 +84,7 @@ impl IntegrityDamageMap {
     pub fn with_checkpoint_damage(
         mut self,
         damage: RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         require_source(
             &damage,
             RecoveryBlockingIntegritySource::CheckpointAdjacentRecord,
@@ -97,7 +97,7 @@ impl IntegrityDamageMap {
     pub fn with_manifest_root_damage(
         mut self,
         damage: RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         require_source(&damage, RecoveryBlockingIntegritySource::ManifestRoot)?;
         self.record_recovery_blocking_damage(&damage);
         self.manifest_root_damage.push(damage);
@@ -107,7 +107,7 @@ impl IntegrityDamageMap {
     pub fn with_unresolved_authority_damage(
         mut self,
         damage: RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         require_source(
             &damage,
             RecoveryBlockingIntegritySource::UnresolvedAuthorityDamage,
@@ -122,7 +122,7 @@ impl IntegrityDamageMap {
         record: &QuarantineRecord,
         receipt: RecoveryIntegrityHandoffReceipt,
         damage: &RecoveryBlockedByIntegrityDamage,
-    ) -> Result<Self, S4IntegrityHandoffDenial> {
+    ) -> Result<Self, IntegrityHandoffDenial> {
         let summary = QuarantineSummary::from_recovery_blocking_damage(record, receipt, damage)?;
         self.quarantine_summaries.push(summary);
         Ok(self)
@@ -204,12 +204,12 @@ fn classify_recovery_blocking_case(
 fn require_source(
     damage: &RecoveryBlockedByIntegrityDamage,
     expected: RecoveryBlockingIntegritySource,
-) -> Result<(), S4IntegrityHandoffDenial> {
+) -> Result<(), IntegrityHandoffDenial> {
     if damage.source() == expected {
         Ok(())
     } else {
-        Err(S4IntegrityHandoffDenial::new(
-            S4IntegrityHandoffDenialKind::DamageMapSourceMismatch,
+        Err(IntegrityHandoffDenial::new(
+            IntegrityHandoffDenialKind::DamageMapSourceMismatch,
         ))
     }
 }

@@ -29,9 +29,6 @@ mod recovery_replay_entry_gate;
 mod redo_replay;
 mod replay_receipt;
 mod s4_closeout;
-mod s4_integrity_handoff_admission;
-mod s4_integrity_handoff_denial;
-mod s4_integrity_handoff_payload;
 mod s4_recovery_physics_integrity_readiness;
 mod s5_publication_recovery;
 mod s8_runtime_receipt;
@@ -205,12 +202,10 @@ pub use s4_closeout::{
     SyntheticRecoveryShortcutRejection, SyntheticRecoveryShortcutRejectionBoundary,
     SyntheticRecoveryShortcutRejectionReport, WalCheckpointLsnRecoveryPhysicsSuite,
 };
-pub use s4_integrity_handoff_admission::S4IntegrityHandoffAdmission;
-pub use s4_integrity_handoff_denial::{S4IntegrityHandoffDenial, S4IntegrityHandoffDenialKind};
-pub use s4_integrity_handoff_payload::{
-    BoundedInspectionEnvelopeEvidence, RawBytesExcludedFromRecoveryHandoff,
-    S4ChecksumAlgorithmScopeBasis, S4IntegrityHandoffCounters, S4IntegrityHandoffPayload,
-    S4IntegrityHandoffPayloadDeclaration,
+pub use integrity_handoff::{
+    BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmScopeBasis, IntegrityHandoffAdmission,
+    IntegrityHandoffCounters, IntegrityHandoffDeclaration, IntegrityHandoffDenial,
+    IntegrityHandoffDenialKind, IntegrityHandoffPayload, RawBytesExcludedFromRecoveryHandoff,
 };
 pub use s4_recovery_physics_integrity_readiness::S4RecoveryPhysicsIntegrityReadiness;
 pub use s5_publication_recovery::{

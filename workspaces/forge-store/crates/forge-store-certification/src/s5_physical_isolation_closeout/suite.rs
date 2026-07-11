@@ -11,7 +11,7 @@ use forge_store_physical_certification::{
     PhysicalSimulationScenarioFamily, Roadmap2HarnessSequence, S5HarnessReadinessReceipt,
 };
 use forge_store_physical_isolation::{
-    ExecutedS5IsolationCloseout, ProjectionArtifactKind, StorePhysicalAuthoritySurface,
+    ExecutedIsolationEvidence, ProjectionArtifactKind, StorePhysicalAuthoritySurface,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,7 +54,7 @@ pub struct PhysicalIsolationCloseoutSuite {
 #[derive(Debug, Clone)]
 pub struct PhysicalIsolationCloseoutHandoffEvidence {
     suite: PhysicalIsolationCloseoutSuite,
-    executed_closeout: ExecutedS5IsolationCloseout,
+    executed_closeout: ExecutedIsolationEvidence,
 }
 
 impl PhysicalIsolationCloseoutLaneEvidence {
@@ -272,7 +272,7 @@ impl PhysicalIsolationCloseoutSuite {
 
     pub fn seal_executed_closeout_handoff(
         self,
-        closeout: ExecutedS5IsolationCloseout,
+        closeout: ExecutedIsolationEvidence,
     ) -> Result<PhysicalIsolationCloseoutHandoffEvidence, PhysicalIsolationCloseoutDenial> {
         verify_executed_closeout_handoff_admissible(closeout.clone())
             .map_err(PhysicalIsolationCloseoutDenial::S6)?;
@@ -319,7 +319,7 @@ impl PhysicalIsolationCloseoutHandoffEvidence {
         &self.suite
     }
 
-    pub const fn executed_closeout(&self) -> &ExecutedS5IsolationCloseout {
+    pub const fn executed_closeout(&self) -> &ExecutedIsolationEvidence {
         &self.executed_closeout
     }
 }
