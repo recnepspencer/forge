@@ -129,16 +129,13 @@ impl WorthUiApp {
 
     /// Admit Query-backed measurement eligibility from an ordinary projection-fact
     /// consumption attempt without requiring callers to mint prerequisite artifacts.
-    pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &UiGraphTouchDescriptor,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
         self.admission()
-            .admit_query_measurement_eligibility_for_touch_from_projection_consumption(
-                touch,
-                consumption,
-            )
+            .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
     }
 
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {

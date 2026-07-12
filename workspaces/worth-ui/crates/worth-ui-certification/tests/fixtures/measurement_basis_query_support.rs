@@ -1,9 +1,7 @@
 #[path = "measurement_basis_projection_support.rs"]
 mod projection_consumption_support;
 
-use worth_query::facade::{
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, WorthQueryAuthoredAspectValue,
-};
+use worth_query::facade::{ProjectMaterializedFacts, WorthQueryAuthoredAspectValue};
 use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -16,6 +14,7 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
 };
 use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
+use worth_ui_query_binding::WorthUiQueryAuthorityHandle;
 
 use self::projection_consumption_support::{
     aspect_touch, measurement_projection_workspace, projection_consumption_attempt,
@@ -51,29 +50,29 @@ pub fn measurement_touch(app: &WorthUiApp, declaration_index: usize) -> UiGraphT
 
 pub fn target_bound_to_projection_consumption(
     touch: &UiGraphTouchDescriptor,
-    consumption: &ProjectionFactConsumptionAttempt,
+    authority: &WorthUiQueryAuthorityHandle,
 ) -> UiAdmissionTarget {
     available_measurement_target(touch)
-        .with_query_prerequisites_from_projection_consumption(consumption)
+        .with_query_prerequisites_from_query_authority(authority.authority())
         .expect("query-backed measurement target should bind real projection consumption authority")
 }
 
 pub fn display_field_projection_consumption(
     lane_label: &str,
-) -> (UiGraphWorldProfile, ProjectionFactConsumptionAttempt) {
+) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
     let (mut workspace, family, _) = measurement_projection_workspace(lane_label);
-    projection_consumption_attempt(
+    query_authority(projection_consumption_attempt(
         &mut workspace,
         &family,
         ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
-    )
+    ))
 }
 
 pub fn display_projection_consumptions_across_basis_generations(
     lane_label: &str,
 ) -> (
-    (UiGraphWorldProfile, ProjectionFactConsumptionAttempt),
-    (UiGraphWorldProfile, ProjectionFactConsumptionAttempt),
+    (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
+    (UiGraphWorldProfile, WorthUiQueryAuthorityHandle),
 ) {
     let (mut workspace, family, entity_identity) = measurement_projection_workspace(lane_label);
     let current = projection_consumption_attempt(
@@ -94,7 +93,18 @@ pub fn display_projection_consumptions_across_basis_generations(
         &family,
         ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
     );
-    (current, next)
+    (query_authority(current), query_authority(next))
+}
+
+fn query_authority(
+    (world, attempt): (
+        UiGraphWorldProfile,
+        worth_query::facade::ProjectionFactConsumptionAttempt,
+    ),
+) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
+    let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+        .expect("certification fixture must mint authority through Query");
+    (world, authority)
 }
 
 fn available_measurement_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {

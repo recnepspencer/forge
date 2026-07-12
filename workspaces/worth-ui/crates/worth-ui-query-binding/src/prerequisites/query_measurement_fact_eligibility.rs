@@ -1,6 +1,6 @@
 use worth_query::facade::{
-    CompletedProjectionFactConsumption, MaterializedProjectionContract,
-    ProjectionContractSourcePosture, ProjectionFactConsumptionAttempt, ProjectionFactKind,
+    MaterializedProjectionContract, ProjectionContractSourcePosture, ProjectionFactKind,
+    WorthQueryConsumedProjectionAuthority,
 };
 
 use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
@@ -53,21 +53,11 @@ impl WorthUiQueryMeasurementFactEligibility {
         })
     }
 
-    pub(crate) fn from_projection_consumption_attempt(
+    pub(crate) fn from_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &ProjectionFactConsumptionAttempt,
+        authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
-        let completed = consumption
-            .completed()
-            .ok_or(WorthUiQueryMeasurementFactEligibilityError::ProjectionConsumptionNotAdmitted)?;
-        Self::from_completed_projection_consumption(prerequisites, completed)
-    }
-
-    pub(crate) fn from_completed_projection_consumption(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        completed: &CompletedProjectionFactConsumption,
-    ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
-        Self::from_projection_contract(prerequisites, completed.contract())
+        Self::from_projection_contract(prerequisites, authority.contract())
     }
 
     pub(crate) fn bind_projection_contract(
@@ -78,14 +68,11 @@ impl WorthUiQueryMeasurementFactEligibility {
         Ok(prerequisites.bound_to_projection_contract(contract.contract_digest()))
     }
 
-    pub(crate) fn bind_projection_consumption_attempt(
+    pub(crate) fn bind_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &ProjectionFactConsumptionAttempt,
+        authority: &WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryMeasurementFactEligibilityError> {
-        let completed = consumption
-            .completed()
-            .ok_or(WorthUiQueryMeasurementFactEligibilityError::ProjectionConsumptionNotAdmitted)?;
-        Self::bind_projection_contract(prerequisites, completed.contract())
+        Self::bind_projection_contract(prerequisites, authority.contract())
     }
 
     #[cfg(feature = "certification-construction")]

@@ -151,11 +151,11 @@ pub(super) fn direct_measurement_view_for_graph_node(
     if let Some(report) = bundle.host_capability_report() {
         admission_target = admission_target.with_host_capability_report(report.clone());
     }
-    let consumption = bundle
-        .query_projection_consumption()
-        .expect("success parity path should carry query projection consumption");
+    let authority = bundle
+        .query_authority()
+        .expect("success parity path should carry Query authority");
     admission_target = admission_target
-        .with_query_prerequisites_from_projection_consumption(consumption)
+        .with_query_prerequisites_from_query_authority(authority.authority())
         .expect("query projection consumption should bind prerequisites");
 
     let selected = app
@@ -167,10 +167,10 @@ pub(super) fn direct_measurement_view_for_graph_node(
         .expect("success parity path should admit measurement requirement");
     let query_eligibility = app
         .admission()
-        .admit_query_measurement_eligibility_from_projection_consumption(
+        .admit_query_measurement_eligibility_from_query_authority(
             &selected,
             &measurement_admission,
-            consumption,
+            authority.clone(),
         )
         .expect("success parity path should admit query measurement eligibility");
     let projection_receipt = query_eligibility

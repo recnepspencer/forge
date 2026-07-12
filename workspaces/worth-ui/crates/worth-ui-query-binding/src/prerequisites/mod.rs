@@ -1,4 +1,5 @@
 mod prerequisite_assembly;
+mod query_authority_handle;
 mod query_basis_posture;
 mod query_lane;
 mod query_measurement_fact_eligibility;
@@ -12,6 +13,7 @@ mod query_prerequisite_boundary;
 mod query_prerequisite_evidence;
 mod receipt_construction;
 
+pub use query_authority_handle::WorthUiQueryAuthorityHandle;
 pub use query_basis_posture::WorthUiQueryBasisPosture;
 pub use query_lane::{
     WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
@@ -25,7 +27,7 @@ pub use query_measurement_fact_observation::{
     WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
 };
 pub use query_measurement_fact_receipt::{
-    WorthUiQueryMeasurementConsumptionIdentity, WorthUiQueryMeasurementFactReceipt,
+    WorthUiQueryAuthorityIndexKey, WorthUiQueryMeasurementFactReceipt,
     WorthUiQueryMeasurementFactReceiptError,
 };
 pub(crate) use query_measurement_fact_settlement::WorthUiQueryAllocationSourceAuthority;

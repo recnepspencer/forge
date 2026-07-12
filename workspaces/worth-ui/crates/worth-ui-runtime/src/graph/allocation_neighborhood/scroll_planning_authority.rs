@@ -1,4 +1,4 @@
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiGraphScrollPlanningAuthority {
     neighborhood_identity: crate::evidence::UiAllocationNeighborhoodIdentity,
     host_sources: Box<[crate::evidence::UiHostMeasurementAuthorityWitness]>,
@@ -15,7 +15,7 @@ impl UiGraphScrollPlanningAuthority {
     ) -> Self {
         host_sources.sort_unstable();
         host_sources.dedup();
-        query_sources.sort_unstable();
+        query_sources.sort_by_key(|source| source.identity_digest());
         query_sources.dedup();
         Self {
             neighborhood_identity,

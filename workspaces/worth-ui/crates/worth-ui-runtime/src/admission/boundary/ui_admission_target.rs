@@ -83,9 +83,9 @@ impl UiAdmissionTarget {
         self
     }
 
-    pub fn with_query_prerequisites_from_projection_consumption(
+    pub fn with_query_prerequisites_from_query_authority(
         mut self,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);
@@ -93,7 +93,7 @@ impl UiAdmissionTarget {
         self.query_prerequisites = Some(
             WorthUiQueryBindingSubsystem::bootstrap()
                 .prerequisites()
-                .bind_projection_consumption(query_prerequisites, consumption)?,
+                .bind_query_authority(query_prerequisites, authority)?,
         );
         Ok(self)
     }

@@ -75,7 +75,7 @@ impl WorthUiScrollOffsetTurnSource<'_> {
         self.runtime
             .allocation_invalidation_index
             .borrow()
-            .acquire_query_scroll_projection(query.query_consumption_identity(), allocation_receipt)
+            .acquire_query_scroll_projection(query.query_authority(), allocation_receipt)
     }
     pub fn project(
         &mut self,
@@ -161,13 +161,13 @@ impl WorthUiQueryProjectionTurnSource<'_> {
     pub fn admit_and_submit(
         &mut self,
         prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        authority: worth_query::facade::ProjectionAuthorityOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,
     > {
         self.runtime
-            .admit_and_submit_query_projection(prerequisites, consumption)
+            .admit_and_submit_query_projection(prerequisites, authority)
     }
 }
 

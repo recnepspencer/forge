@@ -9,8 +9,8 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactFieldPath,
-    ScalarPredicateValue, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
+    ProjectMaterializedFacts, ProjectionFactFieldPath, ScalarPredicateValue, WorthQueryAspectTouch,
+    WorthQueryAuthoredAspectValue,
 };
 
 use crate::graph::UiGraphWorldProfile;
@@ -19,7 +19,7 @@ pub(crate) fn display_field_plus_entity_identity_projection_context(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     UiGraphWorldProfile,
 ) {
     let (mut workspace, family) = measurement_projection_workspace(lane_label);
@@ -48,7 +48,10 @@ pub(crate) fn display_field_plus_entity_identity_projection_context(
         snapshot_resolution_report(&basis),
     )
     .expect("query world profile should align to basis resolution");
-    (prerequisites, attempt, world_profile)
+    let (authority, _) =
+        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+            .expect("real Query consumption should mint authority");
+    (prerequisites, authority, world_profile)
 }
 
 fn measurement_projection_workspace(

@@ -255,11 +255,7 @@ fn query_mapping_consumes_admitted_projection_receipt_and_neighborhood_proof() {
         .iter()
         .find_map(crate::evidence::MeasurementEvidenceInput::as_query_projection_fact)
         .expect("fixture carries projection-consumption evidence");
-    let source = receipt.projection_source_identity().to_owned();
-    let query_basis_digest = receipt.query_basis_digest().to_owned();
-    let projection_contract_digest = receipt.projection_contract_digest().to_owned();
-    let projection_consumption_receipt_digest =
-        receipt.projection_consumption_receipt_digest().to_owned();
+    let query_authority = receipt.query_authority().clone();
     let root = basis.graph_node_identity();
     let (graph, selected) = planning_graph_authority("phase6-query-mapping", "operator:stack");
     let neighborhood = selected
@@ -269,24 +265,10 @@ fn query_mapping_consumes_admitted_projection_receipt_and_neighborhood_proof() {
     install_graph_authority_fixture(&mut authority, authority_context(basis, neighborhood));
 
     let lookup = authority
-        .query_target(
-            &source,
-            &query_basis_digest,
-            &projection_contract_digest,
-            &projection_consumption_receipt_digest,
-        )
+        .query_target(&query_authority)
         .expect("settled Query mapping admits");
     assert_eq!(lookup.probes, 3);
     assert_eq!(lookup.target.unwrap().graph_node_identities(), &[root]);
-    assert!(matches!(
-        authority.query_target(
-            &source,
-            &query_basis_digest,
-            &projection_contract_digest,
-            "stale-consumption-receipt",
-        ),
-        Err(super::authority::UiInvalidationAuthorityLookupDenial::QueryConsumptionReceiptMismatch)
-    ));
 }
 
 #[test]

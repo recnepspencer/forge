@@ -33,8 +33,8 @@ pub(crate) enum UiAdmittedScrollExtentSource {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiAdmittedScrollQuerySource {
-    pub(super) query_consumption_identity:
-        worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity,
+    pub(super) query_authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    pub(super) authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     pub(super) target: crate::graph::UiGraphNodeIdentity,
 }
 
@@ -95,10 +95,14 @@ impl UiAdmittedScrollExtentSource {
 }
 
 impl UiAdmittedScrollQuerySource {
-    pub(crate) fn query_consumption_identity(
+    pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
+        &self.query_authority
+    }
+
+    pub(crate) fn authority_index_key(
         &self,
-    ) -> &worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity {
-        &self.query_consumption_identity
+    ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
+        &self.authority_index_key
     }
 
     pub(crate) fn target(&self) -> crate::graph::UiGraphNodeIdentity {
@@ -108,19 +112,17 @@ impl UiAdmittedScrollQuerySource {
     pub(super) fn identity_digest(&self) -> u64 {
         crate::declaration::stable_text_digest("worth-ui.scroll-query-source")
             ^ crate::declaration::stable_text_digest(
-                self.query_consumption_identity.projection_source_identity(),
+                self.authority_index_key.projection_source_identity(),
             )
             .rotate_left(7)
+            ^ crate::declaration::stable_text_digest(self.authority_index_key.query_basis_digest())
+                .rotate_left(17)
             ^ crate::declaration::stable_text_digest(
-                self.query_consumption_identity.query_basis_digest(),
-            )
-            .rotate_left(17)
-            ^ crate::declaration::stable_text_digest(
-                self.query_consumption_identity.projection_contract_digest(),
+                self.authority_index_key.projection_contract_digest(),
             )
             .rotate_left(29)
             ^ crate::declaration::stable_text_digest(
-                self.query_consumption_identity
+                self.authority_index_key
                     .projection_consumption_receipt_digest(),
             )
             .rotate_left(41)

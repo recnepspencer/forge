@@ -38,4 +38,4 @@ error: cannot construct `worth_query::facade::MaterializedProjectionContract` wi
 28 |         contract_digest: String::new(),
    |         ------------------------------ private field
    |
-   = note: ...and other private field `materialized_fact_posture` that was not provided
+   = note: ...and other private fields `basis_authority` and `materialized_fact_posture` that were not provided

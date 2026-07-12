@@ -5,7 +5,7 @@ pub use crate::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementEvidenceDenial,
     UiHostMeasurementExecutionDenial, UiHostMeasurementInvalidationReason, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext, UiHostMeasurementNormalizationDenial,
-    WorthUiHostMeasurementCollector,
+    UiPortalAnchorCoordinateSpacePosture, WorthUiHostMeasurementCollector,
 };
 pub use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,

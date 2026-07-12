@@ -27,4 +27,22 @@ impl ProjectionAuthorityOutcome {
             | Self::SourceMismatch(_) => None,
         }
     }
+
+    /// Moves the sealed authority into a downstream owner without exposing its
+    /// independently pairable construction inputs.
+    pub fn into_admitted(
+        self,
+    ) -> Result<
+        (
+            WorthQueryConsumedProjectionAuthority,
+            Option<ProjectionConsumptionWarnings>,
+        ),
+        Self,
+    > {
+        match self {
+            Self::Admitted(authority) => Ok((authority, None)),
+            Self::AdmittedWithWarnings(authority, warnings) => Ok((authority, Some(warnings))),
+            denied => Err(denied),
+        }
+    }
 }

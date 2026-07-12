@@ -226,20 +226,12 @@ fn narrow_source(
             if family == UiAllocationInvalidationFamily::ContentExtentChange {
                 let authority_ref = authority.borrow();
                 let scroll_lookup = authority_ref.scroll_query_target(
-                    basis
-                        .consumption_identity()
-                        .measurement_consumption_identity(),
+                    basis.query_authority(),
                 ).map_err(|denial| {
                     if counters.record_authority_probes(denial.probes).is_err() {
                         return UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal };
                     }
                     match denial.reason {
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryBasisMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryBasisMismatch { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryContractMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryContractMismatch { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryConsumptionReceiptMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryConsumptionReceiptMismatch { ordinal },
                     super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
                         UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
                     _ => unreachable!("Query lookup cannot return host denial"),
@@ -262,19 +254,8 @@ fn narrow_source(
             }
             let lookup = authority
                 .borrow()
-                .query_target(
-                    basis.source_identity().as_str(),
-                    basis.query_basis_digest(),
-                    basis.projection_contract_digest(),
-                    basis.projection_consumption_receipt_digest(),
-                )
+                .query_target(basis.query_authority())
                 .map_err(|denial| match denial {
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryBasisMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryBasisMismatch { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryContractMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryContractMismatch { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryConsumptionReceiptMismatch =>
-                        UiAllocationInvalidationNarrowingDenial::QueryConsumptionReceiptMismatch { ordinal },
                     super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
                         UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
                     super::authority::UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch

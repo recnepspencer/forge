@@ -217,7 +217,7 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
     let mut framework = framework_from_artifact(empty_artifact());
     let settlement = framework
         .query_admission()
-        .admit(prerequisites, &attempt)
+        .admit(prerequisites, attempt)
         .expect("Query source should admit before submission");
     let expected_source_identity = settlement.allocation_source_identity().as_str().to_string();
     let mut outcome = None;
@@ -252,13 +252,14 @@ fn query_gateway_derives_and_submits_real_projection_consumption() {
 
 #[test]
 fn query_burst_uses_binding_order_and_transport_bound() {
-    let (prerequisites, attempt) = query_projection_consumption("bounded-query-burst");
     let mut framework = framework_from_artifact(empty_artifact());
     let settlements = (0..=64)
-        .map(|_| {
+        .map(|index| {
+            let (prerequisites, authority) =
+                query_projection_consumption(&format!("bounded-query-burst-{index}"));
             framework
                 .query_admission()
-                .admit(prerequisites.clone(), &attempt)
+                .admit(prerequisites, authority)
                 .expect("Query source should admit before submission")
         })
         .collect::<Vec<_>>();
@@ -285,7 +286,7 @@ fn partial_query_settlement_enters_as_typed_source_fact() {
     let mut framework = framework_from_artifact(empty_artifact());
     let settlement = framework
         .query_admission()
-        .admit(prerequisites, &attempt)
+        .admit(prerequisites, attempt)
         .expect("partial Query source should admit before submission");
     let mut outcome = None;
     let turn_outcome = run_framework_turn(&mut framework, |turn| {
@@ -310,7 +311,7 @@ fn unsupported_query_settlement_denies_before_dispatcher_ingress() {
     let mut framework = framework_from_artifact(empty_artifact());
     let denial = framework
         .query_admission()
-        .admit(prerequisites, &attempt)
+        .admit(prerequisites, attempt)
         .expect_err("unsupported Query source must deny before submission");
     assert_eq!(
         denial,

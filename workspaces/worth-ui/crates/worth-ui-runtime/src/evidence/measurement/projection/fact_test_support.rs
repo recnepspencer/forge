@@ -20,6 +20,7 @@ use crate::host::{UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed};
 
 use crate::evidence::measurement::UiMeasurementResult;
 
+pub(crate) use super::query_context_test_support::display_field_projection_authority_outcome;
 pub(crate) use super::query_context_test_support::display_field_projection_consumption;
 pub(crate) use super::query_context_test_support::{
     display_field_projection_context, entity_identity_projection_context,

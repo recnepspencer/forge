@@ -1,13 +1,12 @@
 use std::sync::Arc;
-use worth_query::facade::{CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt};
 
 use super::receipt_construction::{
     collect_verified_partial_receipt_parts, collect_verified_receipt_parts,
     VerifiedMeasurementFactReceiptParts,
 };
 use super::{
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
-    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryAuthorityHandle, WorthUiQueryMeasurementFactObservation,
+    WorthUiQueryMeasurementFactObservationError, WorthUiQueryPrerequisiteEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,19 +19,17 @@ pub enum WorthUiQueryMeasurementFactReceiptError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryMeasurementFactReceipt {
-    consumption_identity: WorthUiQueryMeasurementConsumptionIdentity,
+    query_authority: WorthUiQueryAuthorityHandle,
+    authority_index_key: WorthUiQueryAuthorityIndexKey,
     prerequisites: WorthUiQueryPrerequisiteEvidence,
-    projection_contract_digest: Box<str>,
-    projection_consumption_declaration_digest: Box<str>,
-    projection_consumption_receipt_digest: Box<str>,
-    projection_fact_set_digest: Box<str>,
-    projection_source_identity: Box<str>,
     consumed_families: Arc<[super::WorthUiQueryMeasurementFactFamily]>,
     observations: Arc<[WorthUiQueryMeasurementFactObservation]>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct WorthUiQueryMeasurementConsumptionIdentity {
+/// Derived lookup key. This is never sufficient to mint or validate authority;
+/// operational consumers must retain [`WorthUiQueryAuthorityHandle`].
+pub struct WorthUiQueryAuthorityIndexKey {
     projection_source_identity: Box<str>,
     query_basis_digest: Box<str>,
     projection_contract_digest: Box<str>,
@@ -40,37 +37,24 @@ pub struct WorthUiQueryMeasurementConsumptionIdentity {
 }
 
 impl WorthUiQueryMeasurementFactReceipt {
-    pub(crate) fn from_projection_consumption_attempt(
+    pub(crate) fn from_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        consumption: &ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
+        partial: bool,
     ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
-        let completed = consumption
-            .completed()
-            .ok_or(WorthUiQueryMeasurementFactReceiptError::ProjectionConsumptionNotAdmitted)?;
-        Self::from_completed_projection_consumption(prerequisites, completed)
-    }
-
-    pub(crate) fn from_completed_projection_consumption(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        completed: &CompletedProjectionFactConsumption,
-    ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
-        Self::from_verified_parts(collect_verified_receipt_parts(prerequisites, completed)?)
-    }
-
-    pub(crate) fn from_partial_projection_consumption(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        completed: &CompletedProjectionFactConsumption,
-    ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
-        Self::from_verified_parts(collect_verified_partial_receipt_parts(
-            prerequisites,
-            completed,
-        )?)
+        let parts = if partial {
+            collect_verified_partial_receipt_parts(prerequisites, query_authority.authority())?
+        } else {
+            collect_verified_receipt_parts(prerequisites, query_authority.authority())?
+        };
+        Self::from_verified_parts(query_authority, parts)
     }
 
     fn from_verified_parts(
+        query_authority: WorthUiQueryAuthorityHandle,
         parts: VerifiedMeasurementFactReceiptParts,
     ) -> Result<Self, WorthUiQueryMeasurementFactReceiptError> {
-        let consumption_identity = WorthUiQueryMeasurementConsumptionIdentity {
+        let authority_index_key = WorthUiQueryAuthorityIndexKey {
             projection_source_identity: parts.projection_source_identity.clone().into(),
             query_basis_digest: parts
                 .prerequisites
@@ -85,17 +69,9 @@ impl WorthUiQueryMeasurementFactReceipt {
                 .into(),
         };
         Ok(Self {
-            consumption_identity,
+            query_authority,
+            authority_index_key,
             prerequisites: parts.prerequisites,
-            projection_contract_digest: parts.projection_contract_digest.into(),
-            projection_consumption_declaration_digest: parts
-                .projection_consumption_declaration_digest
-                .into(),
-            projection_consumption_receipt_digest: parts
-                .projection_consumption_receipt_digest
-                .into(),
-            projection_fact_set_digest: parts.projection_fact_set_digest.into(),
-            projection_source_identity: parts.projection_source_identity.into(),
             consumed_families: parts.consumed_families.into(),
             observations: parts.observations.into(),
         })
@@ -105,28 +81,38 @@ impl WorthUiQueryMeasurementFactReceipt {
         &self.prerequisites
     }
 
-    pub fn consumption_identity(&self) -> &WorthUiQueryMeasurementConsumptionIdentity {
-        &self.consumption_identity
+    pub fn query_authority(&self) -> &WorthUiQueryAuthorityHandle {
+        &self.query_authority
+    }
+
+    pub fn authority_index_key(&self) -> &WorthUiQueryAuthorityIndexKey {
+        &self.authority_index_key
     }
 
     pub fn projection_contract_digest(&self) -> &str {
-        &self.projection_contract_digest
+        self.query_authority
+            .authority()
+            .contract()
+            .contract_digest()
     }
 
     pub fn projection_consumption_declaration_digest(&self) -> &str {
-        &self.projection_consumption_declaration_digest
+        self.query_authority
+            .authority()
+            .receipt()
+            .declaration_digest()
     }
 
     pub fn projection_consumption_receipt_digest(&self) -> &str {
-        &self.projection_consumption_receipt_digest
+        self.query_authority.authority().receipt().receipt_digest()
     }
 
     pub fn projection_fact_set_digest(&self) -> &str {
-        &self.projection_fact_set_digest
+        self.query_authority.authority().receipt().fact_set_digest()
     }
 
     pub fn projection_source_identity(&self) -> &str {
-        &self.projection_source_identity
+        self.query_authority.authority().source_identity().as_str()
     }
 
     pub fn consumed_families(&self) -> &[super::WorthUiQueryMeasurementFactFamily] {
@@ -144,51 +130,9 @@ impl WorthUiQueryMeasurementFactReceipt {
     pub(crate) fn observations_arc(&self) -> Arc<[WorthUiQueryMeasurementFactObservation]> {
         Arc::clone(&self.observations)
     }
-
-    #[cfg(feature = "certification-construction")]
-    pub(crate) fn for_certification(
-        prerequisites: WorthUiQueryPrerequisiteEvidence,
-        projection_contract_digest: impl Into<Box<str>>,
-        projection_consumption_declaration_digest: impl Into<Box<str>>,
-        projection_consumption_receipt_digest: impl Into<Box<str>>,
-        projection_fact_set_digest: impl Into<Box<str>>,
-        projection_source_identity: impl Into<Box<str>>,
-        mut consumed_families: Vec<super::WorthUiQueryMeasurementFactFamily>,
-        observations: Vec<WorthUiQueryMeasurementFactObservation>,
-    ) -> Self {
-        consumed_families.sort_unstable();
-        consumed_families.dedup();
-        let projection_contract_digest = projection_contract_digest.into();
-        let prerequisites =
-            prerequisites.bound_to_projection_contract(projection_contract_digest.as_ref());
-        let projection_consumption_receipt_digest = projection_consumption_receipt_digest.into();
-        let projection_source_identity = projection_source_identity.into();
-        let consumption_identity = WorthUiQueryMeasurementConsumptionIdentity {
-            projection_source_identity: projection_source_identity.clone(),
-            query_basis_digest: prerequisites
-                .resolution_report()
-                .basis_digest()
-                .as_str()
-                .into(),
-            projection_contract_digest: projection_contract_digest.clone(),
-            projection_consumption_receipt_digest: projection_consumption_receipt_digest.clone(),
-        };
-        Self {
-            consumption_identity,
-            prerequisites,
-            projection_contract_digest,
-            projection_consumption_declaration_digest: projection_consumption_declaration_digest
-                .into(),
-            projection_consumption_receipt_digest,
-            projection_fact_set_digest: projection_fact_set_digest.into(),
-            projection_source_identity,
-            consumed_families: consumed_families.into(),
-            observations: observations.into(),
-        }
-    }
 }
 
-impl WorthUiQueryMeasurementConsumptionIdentity {
+impl WorthUiQueryAuthorityIndexKey {
     pub fn projection_source_identity(&self) -> &str {
         &self.projection_source_identity
     }

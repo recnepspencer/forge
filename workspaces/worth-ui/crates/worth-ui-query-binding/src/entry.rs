@@ -3,6 +3,18 @@ pub struct WorthUiQueryBindingSubsystem {
     allocation_source_authority: crate::prerequisites::WorthUiQueryAllocationSourceAuthority,
 }
 
+/// Allocation admission consumes a Query authority outcome; decomposed
+/// projection attempts are not an accepted boundary shape.
+///
+/// ```compile_fail
+/// fn legacy_attempt_cannot_admit(
+///     admission: &mut worth_ui_query_binding::WorthUiQueryAllocationAdmission<'_>,
+///     prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+///     attempt: &worth_query::facade::ProjectionFactConsumptionAttempt,
+/// ) {
+///     let _ = admission.admit(prerequisites, attempt);
+/// }
+/// ```
 pub struct WorthUiQueryAllocationAdmission<'a> {
     authority: &'a mut crate::prerequisites::WorthUiQueryAllocationSourceAuthority,
 }
@@ -29,11 +41,11 @@ impl WorthUiQueryAllocationAdmission<'_> {
     pub fn admit(
         &mut self,
         prerequisites: crate::WorthUiQueryPrerequisiteEvidence,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        outcome: worth_query::facade::ProjectionAuthorityOutcome,
     ) -> Result<
         crate::WorthUiQueryMeasurementFactSettlement,
         crate::WorthUiQueryMeasurementFactSettlementDenial,
     > {
-        self.authority.admit(prerequisites, consumption)
+        self.authority.admit(prerequisites, outcome)
     }
 }

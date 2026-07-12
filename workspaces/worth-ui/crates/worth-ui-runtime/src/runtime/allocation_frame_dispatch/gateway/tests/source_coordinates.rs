@@ -182,7 +182,7 @@ fn framework_turn_capability_routes_all_four_admitted_sources_once() {
         turn.query_projection(|source| {
             submissions.push(
                 source
-                    .admit_and_submit(prerequisites, &attempt)
+                    .admit_and_submit(prerequisites, attempt)
                     .expect("partial Query source admits"),
             );
         });

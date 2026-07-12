@@ -1,6 +1,6 @@
 use super::{
     WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceIdentity,
-    WorthUiQueryAllocationSourceOrder, WorthUiQueryMeasurementConsumptionIdentity,
+    WorthUiQueryAllocationSourceOrder, WorthUiQueryAuthorityHandle, WorthUiQueryAuthorityIndexKey,
     WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
     WorthUiQueryMeasurementFactSettlement,
 };
@@ -8,74 +8,51 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct WorthUiQueryAllocationConsumptionIdentity {
-    measurement_consumption_identity: WorthUiQueryMeasurementConsumptionIdentity,
+    authority_index_key: WorthUiQueryAuthorityIndexKey,
     source_identity: WorthUiQueryAllocationSourceIdentity,
     source_generation: WorthUiQueryAllocationSourceGeneration,
     source_order: WorthUiQueryAllocationSourceOrder,
-    query_basis_digest: Box<str>,
-    projection_contract_digest: Box<str>,
-    projection_consumption_receipt_digest: Box<str>,
 }
 
 /// Query-owned proof that allocation invalidation is derived from admitted
 /// projection consumption rather than a copied payload or digest.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiQueryAllocationInvalidationBasis {
+    query_authority: WorthUiQueryAuthorityHandle,
     consumption_identity: WorthUiQueryAllocationConsumptionIdentity,
     source_identity: WorthUiQueryAllocationSourceIdentity,
     source_generation: WorthUiQueryAllocationSourceGeneration,
     source_order: WorthUiQueryAllocationSourceOrder,
     partial: bool,
-    query_basis_digest: Box<str>,
-    projection_contract_digest: Box<str>,
     consumed_families: Arc<[WorthUiQueryMeasurementFactFamily]>,
-    projection_consumption_receipt_digest: Box<str>,
     observations: Arc<[WorthUiQueryMeasurementFactObservation]>,
 }
 
 impl WorthUiQueryAllocationInvalidationBasis {
     pub(crate) fn from_settlement(settlement: &WorthUiQueryMeasurementFactSettlement) -> Self {
-        let query_basis_digest: Box<str> = settlement
-            .receipt()
-            .prerequisites()
-            .resolution_report()
-            .basis_digest()
-            .as_str()
-            .into();
-        let projection_contract_digest: Box<str> =
-            settlement.receipt().projection_contract_digest().into();
-        let projection_consumption_receipt_digest: Box<str> = settlement
-            .receipt()
-            .projection_consumption_receipt_digest()
-            .into();
         Self {
+            query_authority: settlement.receipt().query_authority().clone(),
             consumption_identity: WorthUiQueryAllocationConsumptionIdentity {
-                measurement_consumption_identity: settlement
-                    .receipt()
-                    .consumption_identity()
-                    .clone(),
+                authority_index_key: settlement.receipt().authority_index_key().clone(),
                 source_identity: settlement.allocation_source_identity().clone(),
                 source_generation: settlement.allocation_source_generation(),
                 source_order: settlement.allocation_source_order(),
-                query_basis_digest: query_basis_digest.clone(),
-                projection_contract_digest: projection_contract_digest.clone(),
-                projection_consumption_receipt_digest: projection_consumption_receipt_digest
-                    .clone(),
             },
             source_identity: settlement.allocation_source_identity().clone(),
             source_generation: settlement.allocation_source_generation(),
             source_order: settlement.allocation_source_order(),
             partial: settlement.is_partial(),
-            query_basis_digest,
-            projection_contract_digest,
             consumed_families: settlement.receipt().consumed_families_arc(),
-            projection_consumption_receipt_digest,
             observations: settlement.receipt().observations_arc(),
         }
     }
 
     pub fn consumption_identity(&self) -> &WorthUiQueryAllocationConsumptionIdentity {
         &self.consumption_identity
+    }
+
+    pub fn query_authority(&self) -> &WorthUiQueryAuthorityHandle {
+        &self.query_authority
     }
 
     pub fn source_identity(&self) -> &WorthUiQueryAllocationSourceIdentity {
@@ -94,13 +71,20 @@ impl WorthUiQueryAllocationInvalidationBasis {
         &self.consumed_families
     }
     pub fn query_basis_digest(&self) -> &str {
-        &self.query_basis_digest
+        self.query_authority
+            .authority()
+            .contract()
+            .basis_digest()
+            .unwrap_or_default()
     }
     pub fn projection_contract_digest(&self) -> &str {
-        &self.projection_contract_digest
+        self.query_authority
+            .authority()
+            .contract()
+            .contract_digest()
     }
     pub fn projection_consumption_receipt_digest(&self) -> &str {
-        &self.projection_consumption_receipt_digest
+        self.query_authority.authority().receipt().receipt_digest()
     }
     pub fn observations(&self) -> &[WorthUiQueryMeasurementFactObservation] {
         &self.observations
@@ -108,8 +92,8 @@ impl WorthUiQueryAllocationInvalidationBasis {
 }
 
 impl WorthUiQueryAllocationConsumptionIdentity {
-    pub fn measurement_consumption_identity(&self) -> &WorthUiQueryMeasurementConsumptionIdentity {
-        &self.measurement_consumption_identity
+    pub fn authority_index_key(&self) -> &WorthUiQueryAuthorityIndexKey {
+        &self.authority_index_key
     }
     pub fn source_identity(&self) -> &WorthUiQueryAllocationSourceIdentity {
         &self.source_identity
@@ -121,12 +105,13 @@ impl WorthUiQueryAllocationConsumptionIdentity {
         self.source_order
     }
     pub fn query_basis_digest(&self) -> &str {
-        &self.query_basis_digest
+        self.authority_index_key.query_basis_digest()
     }
     pub fn projection_contract_digest(&self) -> &str {
-        &self.projection_contract_digest
+        self.authority_index_key.projection_contract_digest()
     }
     pub fn projection_consumption_receipt_digest(&self) -> &str {
-        &self.projection_consumption_receipt_digest
+        self.authority_index_key
+            .projection_consumption_receipt_digest()
     }
 }

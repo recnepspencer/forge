@@ -16,7 +16,7 @@ use worth_ui_runtime::facade::evidence::{
 };
 use worth_ui_runtime::facade::host_observation::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    UiHostMeasurementNormalizationContext, UiPortalAnchorCoordinateSpacePosture,
 };
 
 use self::measurement_basis_query_support::{
@@ -208,11 +208,11 @@ fn scroll_owned_scenario(
     artifact: &UiDeclarationArtifact,
     world_profile: UiGraphWorldProfile,
     generation: UiEvidenceAuthorityGeneration,
-    consumption: worth_query::facade::ProjectionFactConsumptionAttempt,
+    authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     host_requests: &[UiMeasurementBasisCertificationHostRequest],
 ) -> UiMeasurementBasisCertificationScenario {
     let capability_report = capability_report();
-    let target = admission_target(app, artifact, &consumption);
+    let target = admission_target(app, artifact, &authority);
     UiMeasurementBasisCertificationScenario::new(
         artifact.identity().clone(),
         graph_node_identity(app, artifact),
@@ -221,12 +221,12 @@ fn scroll_owned_scenario(
         measurement_policy(artifact),
         capability_report.clone(),
     )
-    .with_query_projection_consumption(
+    .with_query_authority(
         target
             .query_prerequisites()
             .expect("query-backed measurement target should carry prerequisites")
             .clone(),
-        consumption,
+        authority,
     )
     .with_host_requests(host_requests.to_vec().into_boxed_slice())
 }
@@ -252,9 +252,10 @@ fn portal_scenario(
             UiMeasurementRequestIdentity::new(request_identity),
             UiMeasurementEvidenceFamily::PortalAnchorRect,
             UiHostMeasurementNeed::PortalAnchorRect(UiPortalAnchorRectRequest::new(77)),
-            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact(assumption_profile(
-                &capability_report,
-            )),
+            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
+                UiPortalAnchorCoordinateSpacePosture::PortalLayer,
+                assumption_profile(&capability_report),
+            ),
         )]
         .into_boxed_slice(),
     )
@@ -273,7 +274,7 @@ fn measurement_policy(artifact: &UiDeclarationArtifact) -> UiDeclaredMeasurement
 fn admission_target(
     app: &WorthUiApp,
     artifact: &UiDeclarationArtifact,
-    consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+    authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) -> worth_ui::facade::admission::UiAdmissionTarget {
     let touch = measurement_touch(
         app,
@@ -282,7 +283,7 @@ fn admission_target(
             .source_provenance()
             .declaration_index(),
     );
-    target_bound_to_projection_consumption(&touch, consumption)
+    target_bound_to_projection_consumption(&touch, authority)
 }
 
 fn graph_node_identity(app: &WorthUiApp, artifact: &UiDeclarationArtifact) -> UiGraphNodeIdentity {

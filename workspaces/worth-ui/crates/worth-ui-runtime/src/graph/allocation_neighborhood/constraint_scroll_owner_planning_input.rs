@@ -157,7 +157,7 @@ fn admitted_sources(
     let before_dedup = (host_sources.len() + query_sources.len()) as u64;
     host_sources.sort_unstable();
     host_sources.dedup();
-    query_sources.sort_unstable();
+    query_sources.sort_by_key(|source| source.identity_digest());
     query_sources.dedup();
     let admitted = (host_sources.len() + query_sources.len()) as u64;
     (

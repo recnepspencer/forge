@@ -124,7 +124,7 @@ fn entity_identity_projection_consumption(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    worth_query::facade::ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) {
     projection_consumption(
         lane_label,
@@ -137,7 +137,7 @@ fn projection_consumption(
     requested: worth_query::facade::ProjectMaterializedFacts,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    worth_query::facade::ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) {
     let (mut workspace, family) = measurement_projection_workspace(lane_label);
     let read_result = workspace
@@ -160,7 +160,10 @@ fn projection_consumption(
             worth_query::facade::snapshot_resolution_report(&basis),
         )
         .expect("query prerequisites should admit");
-    (prerequisites, attempt)
+    let (authority, _) =
+        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+            .expect("entity identity consumption should mint Query authority");
+    (prerequisites, authority)
 }
 
 fn measurement_projection_workspace(

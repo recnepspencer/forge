@@ -96,13 +96,13 @@ fn phase_10_query_content_extent_replans_only_the_bound_scroll_neighborhood() {
         super::production_catalog_activation_test_support::runtime_with_scroll_catalog();
     let scroll_root = active_receipt.identity().graph_node_identity();
     let (prerequisites, attempt) =
-        crate::evidence::measurement::projection::fact_test_support::display_field_projection_consumption(
+        crate::evidence::measurement::projection::fact_test_support::display_field_projection_authority_outcome(
             "production-scroll-catalog-activation-scroll-1",
         );
     let completion = runtime.execute_framework_turn(|turn| {
         turn.query_projection(|source| {
             source
-                .admit_and_submit(prerequisites, &attempt)
+                .admit_and_submit(prerequisites, attempt)
                 .expect("ordinary Query settlement enters the allocation stream");
         });
     });

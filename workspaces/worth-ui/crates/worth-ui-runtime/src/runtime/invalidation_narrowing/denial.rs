@@ -122,6 +122,5 @@ pub(super) fn map_host_lookup_denial(
             UiAllocationInvalidationNarrowingDenial::HostNormalizationAuthorityMismatch { ordinal },
         super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
             UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
-        _ => unreachable!("host lookup cannot return Query denial"),
     }
 }

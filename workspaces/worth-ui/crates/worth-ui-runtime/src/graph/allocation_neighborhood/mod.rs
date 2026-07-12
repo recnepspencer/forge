@@ -48,7 +48,9 @@ mod constraint_summary;
 mod constraint_viewport_planning_input;
 mod scroll_planning_authority;
 
-pub(crate) use admitted_constraint_basis::{UiAdmittedAllocationConstraintBasis, UiAllocationConstraintProvenance};
+pub(crate) use admitted_constraint_basis::{
+    UiAdmittedAllocationConstraintBasis, UiAllocationConstraintProvenance,
+};
 pub(crate) use constraint_mint_authority::UiGraphConstraintMintAuthority;
 pub(crate) use scroll_planning_authority::UiGraphScrollPlanningAuthority;
 

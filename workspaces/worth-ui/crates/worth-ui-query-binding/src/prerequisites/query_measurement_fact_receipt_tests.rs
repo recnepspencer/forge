@@ -7,7 +7,7 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactFieldPath,
+    ProjectMaterializedFacts, ProjectionAuthorityOutcome, ProjectionFactFieldPath,
     ScalarPredicateValue, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
 };
 
@@ -22,13 +22,18 @@ fn ordinary_projection_consumption_preserves_settled_posture() {
     let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
     let settlement = binding
         .allocation_admission()
-        .admit(prerequisites, &attempt)
+        .admit(prerequisites, attempt)
         .expect("ordinary projection consumption should settle");
 
     assert!(!settlement.is_partial());
     assert!(!settlement.allocation_source_identity().as_str().is_empty());
     assert_ne!(settlement.allocation_source_generation().as_u64(), 0);
     assert_ne!(settlement.allocation_source_order().as_u64(), 0);
+    let invalidation_basis = settlement.allocation_invalidation_basis();
+    assert!(settlement
+        .receipt()
+        .query_authority()
+        .shares_authority_with(invalidation_basis.query_authority()));
 }
 
 #[test]
@@ -38,11 +43,11 @@ fn allocation_source_authority_separates_stable_identity_order_and_basis_generat
     let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
     let first = binding
         .allocation_admission()
-        .admit(first_prerequisites, &first_attempt)
+        .admit(first_prerequisites, first_attempt)
         .expect("first Query source should admit");
     let second = binding
         .allocation_admission()
-        .admit(second_prerequisites, &second_attempt)
+        .admit(second_prerequisites, second_attempt)
         .expect("second Query source should admit");
 
     assert_eq!(first.allocation_source_generation().as_u64(), 1);
@@ -64,11 +69,11 @@ fn equivalent_query_source_reuses_identity_without_reusing_order() {
     let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
     let first = binding
         .allocation_admission()
-        .admit(first_prerequisites, &first_attempt)
+        .admit(first_prerequisites, first_attempt)
         .unwrap();
     let second = binding
         .allocation_admission()
-        .admit(second_prerequisites, &second_attempt)
+        .admit(second_prerequisites, second_attempt)
         .unwrap();
 
     assert_eq!(
@@ -82,8 +87,8 @@ fn equivalent_query_source_reuses_identity_without_reusing_order() {
     assert_eq!(first.allocation_source_order().as_u64(), 1);
     assert_eq!(second.allocation_source_order().as_u64(), 2);
     assert_eq!(
-        first.receipt().consumption_identity(),
-        second.receipt().consumption_identity(),
+        first.receipt().authority_index_key(),
+        second.receipt().authority_index_key(),
         "equivalent Query measurement consumption retains one nominal receipt authority"
     );
     assert_ne!(
@@ -107,7 +112,7 @@ fn repeated_settlements_share_query_owned_identity_storage() {
                 display_field_projection_consumption("shared-source-identity");
             let settlement = binding
                 .allocation_admission()
-                .admit(prerequisites, &attempt)
+                .admit(prerequisites, attempt)
                 .expect("Query burst fact should admit");
             assert_eq!(
                 settlement.allocation_source_order().as_u64(),
@@ -126,9 +131,15 @@ fn repeated_settlements_share_query_owned_identity_storage() {
 fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_identity() {
     let (prerequisites, attempt) = display_field_projection_consumption("receipt-identity");
 
+    let (authority, _) = attempt
+        .into_admitted()
+        .expect("Query authority should admit");
     let receipt = WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
-        .measurement_fact_receipt_from_projection_consumption(prerequisites, &attempt)
+        .measurement_fact_receipt_from_query_authority(
+            prerequisites,
+            super::WorthUiQueryAuthorityHandle::retain(authority),
+        )
         .expect(
             "display-field projection consumption should admit a query measurement fact receipt",
         );
@@ -149,6 +160,14 @@ fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_ide
     assert!(!receipt.projection_consumption_receipt_digest().is_empty());
     assert!(!receipt.projection_fact_set_digest().is_empty());
     assert!(!receipt.projection_source_identity().is_empty());
+    assert_eq!(
+        receipt
+            .query_authority()
+            .authority()
+            .receipt()
+            .receipt_digest(),
+        receipt.projection_consumption_receipt_digest()
+    );
 }
 
 #[test]
@@ -156,25 +175,61 @@ fn equivalent_projection_consumption_paths_yield_equivalent_measurement_fact_rec
     let (left_prerequisites, left_attempt) = display_field_projection_consumption("equivalent");
     let (right_prerequisites, right_attempt) = display_field_projection_consumption("equivalent");
 
+    let (left_authority, _) = left_attempt
+        .into_admitted()
+        .expect("left authority should admit");
     let left = WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
-        .measurement_fact_receipt_from_projection_consumption(left_prerequisites, &left_attempt)
+        .measurement_fact_receipt_from_query_authority(
+            left_prerequisites,
+            super::WorthUiQueryAuthorityHandle::retain(left_authority),
+        )
         .expect("left display consumption should admit");
+    let (right_authority, _) = right_attempt
+        .into_admitted()
+        .expect("right authority should admit");
     let right = WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
-        .measurement_fact_receipt_from_projection_consumption(right_prerequisites, &right_attempt)
+        .measurement_fact_receipt_from_query_authority(
+            right_prerequisites,
+            super::WorthUiQueryAuthorityHandle::retain(right_authority),
+        )
         .expect("right display consumption should admit");
 
     assert_eq!(left, right);
 }
 
+#[test]
+fn foreign_query_basis_denies_before_worth_ui_settlement_exists() {
+    let (first_prerequisites, _) =
+        display_field_projection_consumption_with_extent("foreign-left", "240");
+    let (_, foreign_authority) =
+        display_field_projection_consumption_with_extent("foreign-right", "241");
+
+    let denial = WorthUiQueryBindingSubsystem::bootstrap()
+        .allocation_admission()
+        .admit(first_prerequisites, foreign_authority)
+        .expect_err("cross-basis authority must deny before settlement");
+
+    assert_eq!(
+        denial,
+        super::WorthUiQueryMeasurementFactSettlementDenial::Receipt(
+            super::WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch,
+        )
+    );
+}
+
 fn display_field_projection_consumption(
     lane_label: &str,
-) -> (
-    WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
-) {
-    let (mut workspace, family) = measurement_projection_workspace(lane_label);
+) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
+    display_field_projection_consumption_with_extent(lane_label, "240")
+}
+
+fn display_field_projection_consumption_with_extent(
+    lane_label: &str,
+    extent: &str,
+) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
+    let (mut workspace, family) = measurement_projection_workspace(lane_label, extent);
     let read_result = workspace
         .execute_read_family(&family)
         .expect("query read family should execute");
@@ -196,11 +251,12 @@ fn display_field_projection_consumption(
         .prerequisites()
         .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
         .expect("query prerequisites should admit");
-    (prerequisites, attempt)
+    (prerequisites, attempt.into_authority())
 }
 
 fn measurement_projection_workspace(
     lane_label: &str,
+    extent: &str,
 ) -> (WorthQueryWorkspace, WorthQueryReadFamily) {
     let schema = WorthQueryTestBackendSchema::single_collection("task")
         .aspect("identity.id", "identity.id")
@@ -219,10 +275,24 @@ fn measurement_projection_workspace(
             )
             .set_aspect(
                 aspect_touch("size.value"),
-                WorthQueryAuthoredAspectValue::string("240"),
+                WorthQueryAuthoredAspectValue::string(extent),
             )
         })
         .expect("fixture insert should admit");
+    if extent != "240" {
+        workspace
+            .insert("task", |task| {
+                task.set_aspect(
+                    aspect_touch("identity.id"),
+                    WorthQueryAuthoredAspectValue::string("unrelated"),
+                )
+                .set_aspect(
+                    aspect_touch("size.value"),
+                    WorthQueryAuthoredAspectValue::string("0"),
+                )
+            })
+            .expect("generation-drift fixture insert should admit");
+    }
     let family = workspace
         .define_read_family(
             &format!("worth-ui.phase8.query-fact-receipt.{lane_label}"),

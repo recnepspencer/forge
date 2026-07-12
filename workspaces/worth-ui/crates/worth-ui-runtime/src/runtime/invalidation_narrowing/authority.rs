@@ -77,9 +77,6 @@ pub(super) struct UiHostInvalidationTargetMapping {
 pub(crate) enum UiInvalidationAuthorityLookupDenial {
     HostEvidenceGenerationMismatch,
     HostNormalizationAuthorityMismatch,
-    QueryBasisMismatch,
-    QueryContractMismatch,
-    QueryConsumptionReceiptMismatch,
     AuthorityCounterExhausted,
 }
 
@@ -151,14 +148,14 @@ impl UiAllocationInvalidationAuthority {
     }
     pub(crate) fn acquire_query_scroll_projection(
         &self,
-        identity: &worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
         allocation_receipt: &crate::runtime::UiAllocationReceipt,
     ) -> Result<
         crate::runtime::UiActivatedScrollOwner,
         crate::runtime::UiScrollOwnerAcquisitionDenial,
     > {
         self.scroll_bindings
-            .projection_for_query(identity, allocation_receipt)
+            .projection_for_query(authority, allocation_receipt)
     }
     pub(crate) fn seal_replan_transaction_basis(
         &self,
@@ -228,10 +225,7 @@ impl UiAllocationInvalidationAuthority {
 
     pub(crate) fn query_target(
         &self,
-        source_identity: &str,
-        query_basis_digest: &str,
-        projection_contract_digest: &str,
-        projection_consumption_receipt_digest: &str,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Result<UiInvalidationAuthorityLookup, UiInvalidationAuthorityLookupDenial> {
         if self.active_contexts.is_empty() {
             return Ok(UiInvalidationAuthorityLookup {
@@ -239,6 +233,7 @@ impl UiAllocationInvalidationAuthority {
                 probes: 0,
             });
         }
+        let source_identity = authority.authority().source_identity().as_str();
         let Some(ordinals) = self.query_contexts.get(source_identity) else {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
@@ -258,18 +253,8 @@ impl UiAllocationInvalidationAuthority {
                 probes = probes
                     .checked_add(1)
                     .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
-                if mapping.query_basis_digest() != query_basis_digest {
+                if mapping.query_authority() != authority {
                     continue;
-                }
-                if mapping.projection_contract_digest() != projection_contract_digest {
-                    return Err(UiInvalidationAuthorityLookupDenial::QueryContractMismatch);
-                }
-                if mapping.projection_consumption_receipt_digest()
-                    != projection_consumption_receipt_digest
-                {
-                    return Err(
-                        UiInvalidationAuthorityLookupDenial::QueryConsumptionReceiptMismatch,
-                    );
                 }
                 if let Some(target) = self.graph_replan.target_set(mapping.target()) {
                     return Ok(UiInvalidationAuthorityLookup {

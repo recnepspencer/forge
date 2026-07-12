@@ -24,12 +24,12 @@ impl UiAllocationInvalidationAuthority {
 
     pub(crate) fn scroll_query_target(
         &self,
-        identity: &worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Result<UiScrollInvalidationAuthorityLookup<'_>, UiScrollInvalidationAuthorityLookupDenial>
     {
         let (bindings, probes) =
             self.scroll_bindings
-                .query_extent(identity)
+                .query_extent(authority)
                 .map_err(
                     |(reason, probes)| UiScrollInvalidationAuthorityLookupDenial { reason, probes },
                 )?;

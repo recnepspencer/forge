@@ -1,9 +1,9 @@
 use std::sync::Arc;
-use worth_query::facade::{ProjectionConsumptionWarningKind, ProjectionFactConsumptionAttempt};
+use worth_query::facade::{ProjectionAuthorityOutcome, ProjectionConsumptionWarningKind};
 
 use super::{
-    WorthUiQueryMeasurementFactReceipt, WorthUiQueryMeasurementFactReceiptError,
-    WorthUiQueryPrerequisiteEvidence,
+    WorthUiQueryAuthorityHandle, WorthUiQueryMeasurementFactReceipt,
+    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryPrerequisiteEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -62,7 +62,7 @@ impl WorthUiQueryAllocationSourceAuthority {
     pub(crate) fn admit(
         &mut self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        attempt: &ProjectionFactConsumptionAttempt,
+        outcome: ProjectionAuthorityOutcome,
     ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryMeasurementFactSettlementDenial>
     {
         let admitted_basis: Box<str> = prerequisites
@@ -78,23 +78,24 @@ impl WorthUiQueryAllocationSourceAuthority {
                 .ok_or(WorthUiQueryMeasurementFactSettlementDenial::SourceGenerationExhausted)?
         };
         let order = self.next_order;
-        let identity = settlement_source_identity(attempt)
-            .ok_or(WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch)?;
+        let (query_authority, warnings) =
+            WorthUiQueryAuthorityHandle::from_outcome(outcome).map_err(map_authority_denial)?;
+        let identity = query_authority.authority().source_identity().as_str();
         let canonical_identity = self.canonical_identity(identity);
         let next_order = self
             .next_order
             .checked_add(1)
             .ok_or(WorthUiQueryMeasurementFactSettlementDenial::SourceOrderExhausted)?;
-        let settlement =
-            WorthUiQueryMeasurementFactSettlement::from_projection_consumption_attempt(
-                prerequisites,
-                attempt,
-                WorthUiQueryAllocationSourceCoordinates {
-                    identity: canonical_identity.clone(),
-                    generation: WorthUiQueryAllocationSourceGeneration(generation),
-                    order: WorthUiQueryAllocationSourceOrder(order),
-                },
-            )?;
+        let settlement = WorthUiQueryMeasurementFactSettlement::from_query_authority(
+            prerequisites,
+            query_authority,
+            warnings,
+            WorthUiQueryAllocationSourceCoordinates {
+                identity: canonical_identity.clone(),
+                generation: WorthUiQueryAllocationSourceGeneration(generation),
+                order: WorthUiQueryAllocationSourceOrder(order),
+            },
+        )?;
         if self.basis_digest.as_deref() != Some(admitted_basis.as_ref()) {
             self.generation = generation;
             self.basis_digest = Some(admitted_basis);
@@ -114,15 +115,22 @@ impl WorthUiQueryAllocationSourceAuthority {
     }
 }
 
-fn settlement_source_identity(attempt: &ProjectionFactConsumptionAttempt) -> Option<&str> {
-    match attempt {
-        ProjectionFactConsumptionAttempt::Admitted(completed)
-        | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(completed, _) => {
-            Some(completed.receipt().source_identity())
+fn map_authority_denial(
+    outcome: ProjectionAuthorityOutcome,
+) -> WorthUiQueryMeasurementFactSettlementDenial {
+    match outcome {
+        ProjectionAuthorityOutcome::AuthorityDenied(_)
+        | ProjectionAuthorityOutcome::ConsumptionDenied(_) => {
+            WorthUiQueryMeasurementFactSettlementDenial::Denied
         }
-        ProjectionFactConsumptionAttempt::Denied(_)
-        | ProjectionFactConsumptionAttempt::Deferred(_)
-        | ProjectionFactConsumptionAttempt::SourceMismatch(_) => None,
+        ProjectionAuthorityOutcome::Deferred(_) => {
+            WorthUiQueryMeasurementFactSettlementDenial::Deferred
+        }
+        ProjectionAuthorityOutcome::SourceMismatch(_) => {
+            WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch
+        }
+        ProjectionAuthorityOutcome::Admitted(_)
+        | ProjectionAuthorityOutcome::AdmittedWithWarnings(_, _) => unreachable!(),
     }
 }
 
@@ -140,19 +148,20 @@ impl WorthUiQueryMeasurementFactSettlement {
     pub fn allocation_invalidation_basis(&self) -> super::WorthUiQueryAllocationInvalidationBasis {
         super::WorthUiQueryAllocationInvalidationBasis::from_settlement(self)
     }
-    fn from_projection_consumption_attempt(
+    fn from_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        attempt: &ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
+        warnings: Option<worth_query::facade::ProjectionConsumptionWarnings>,
         source_coordinates: WorthUiQueryAllocationSourceCoordinates,
     ) -> Result<Self, WorthUiQueryMeasurementFactSettlementDenial> {
-        match attempt {
-            ProjectionFactConsumptionAttempt::Admitted(completed) => {
-                let receipt =
-                    WorthUiQueryMeasurementFactReceipt::from_completed_projection_consumption(
-                        prerequisites,
-                        completed,
-                    )
-                    .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
+        match warnings {
+            None => {
+                let receipt = WorthUiQueryMeasurementFactReceipt::from_query_authority(
+                    prerequisites,
+                    query_authority,
+                    false,
+                )
+                .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
                 Ok(Self {
                     representation: WorthUiQueryMeasurementFactSettlementRepresentation::Settled(
                         receipt,
@@ -160,30 +169,23 @@ impl WorthUiQueryMeasurementFactSettlement {
                     source_coordinates,
                 })
             }
-            ProjectionFactConsumptionAttempt::AdmittedWithWarnings(completed, warnings) => {
-                let receipt =
-                    WorthUiQueryMeasurementFactReceipt::from_partial_projection_consumption(
-                        prerequisites,
-                        completed,
-                    )
-                    .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
+            Some(warnings) => {
+                let warning_kinds = warnings.warning_kinds().to_vec().into_boxed_slice();
+                let warning_digest = warnings.warning_digest().into();
+                let receipt = WorthUiQueryMeasurementFactReceipt::from_query_authority(
+                    prerequisites,
+                    query_authority,
+                    true,
+                )
+                .map_err(WorthUiQueryMeasurementFactSettlementDenial::Receipt)?;
                 Ok(Self {
                     representation: WorthUiQueryMeasurementFactSettlementRepresentation::Partial {
                         receipt,
-                        warning_kinds: warnings.warning_kinds().to_vec().into_boxed_slice(),
-                        warning_digest: warnings.warning_digest().into(),
+                        warning_kinds,
+                        warning_digest,
                     },
                     source_coordinates,
                 })
-            }
-            ProjectionFactConsumptionAttempt::Denied(_) => {
-                Err(WorthUiQueryMeasurementFactSettlementDenial::Denied)
-            }
-            ProjectionFactConsumptionAttempt::Deferred(_) => {
-                Err(WorthUiQueryMeasurementFactSettlementDenial::Deferred)
-            }
-            ProjectionFactConsumptionAttempt::SourceMismatch(_) => {
-                Err(WorthUiQueryMeasurementFactSettlementDenial::SourceMismatch)
             }
         }
     }

@@ -6,7 +6,7 @@ use super::{
 };
 use std::collections::BTreeMap;
 type HostWitness = crate::evidence::UiHostMeasurementAuthorityWitness;
-type QueryKey = worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity;
+type QueryKey = worth_ui_query_binding::WorthUiQueryAuthorityIndexKey;
 use super::scroll_binding_key_index::BindingKeyIndex;
 use super::scroll_owner_acquisition::acquire_exact;
 type QueryIndex = BTreeMap<QueryKey, BindingKeyIndex>;
@@ -106,7 +106,7 @@ impl UiScrollInvalidationBindingIndex {
                             let crate::runtime::UiAdmittedScrollExtentSource::QueryContent(query_source) = binding.contract().source() else {
                                 return Err(UiScrollInvalidationBindingDenial::ContradictorySource);
                             };
-                            let query_key = query_source.query_consumption_identity().clone();
+                            let query_key = query_source.authority_index_key().clone();
                             query.entry(query_key).or_default().push(binding);
                             bump(&mut counters.index_writes)?;
                         }
@@ -172,12 +172,29 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(super) fn query_extent(
         &self,
-        identity: &QueryKey,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     ) -> Result<
         (Option<&BindingKeyIndex>, u16),
         (super::authority::UiInvalidationAuthorityLookupDenial, u16),
     > {
-        Ok((self.query.get(identity), 1))
+        let mut probes = 0_u16;
+        for rows in self.query.values() {
+            probes = probes.checked_add(1).ok_or((
+                super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted,
+                u16::MAX,
+            ))?;
+            let matches = rows.values().next().is_some_and(|binding| {
+                matches!(
+                    binding.contract().source(),
+                    crate::runtime::UiAdmittedScrollExtentSource::QueryContent(source)
+                        if source.query_authority() == authority
+                )
+            });
+            if matches {
+                return Ok((Some(rows), probes));
+            }
+        }
+        Ok((None, probes))
     }
     pub(crate) fn projection_for_host(
         &self,
@@ -201,7 +218,7 @@ impl UiScrollInvalidationBindingIndex {
     }
     pub(crate) fn projection_for_query(
         &self,
-        identity: &QueryKey,
+        authority: &worth_ui_query_binding::WorthUiQueryAuthorityHandle,
         allocation_receipt: &crate::runtime::UiAllocationReceipt,
     ) -> Result<
         crate::runtime::UiActivatedScrollOwner,
@@ -209,7 +226,12 @@ impl UiScrollInvalidationBindingIndex {
     > {
         let mut probes = 0;
         record_acquisition_lookup(&mut probes)?;
-        let rows = self.query.get(identity);
+        let (rows, authority_probes) = self
+            .query_extent(authority)
+            .map_err(|_| crate::runtime::UiScrollOwnerAcquisitionDenial::ContradictorySource)?;
+        for _ in 0..authority_probes {
+            record_acquisition_lookup(&mut probes)?;
+        }
         let source_identity = rows
             .and_then(|rows| rows.values().next())
             .map(|binding| binding.contract().source().clone())

@@ -7,8 +7,8 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactConsumptionAttempt, ProjectionFactFieldPath,
-    ScalarPredicateValue, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
+    ProjectMaterializedFacts, ProjectionFactFieldPath, ScalarPredicateValue, WorthQueryAspectTouch,
+    WorthQueryAuthoredAspectValue,
 };
 
 use crate::graph::UiGraphWorldProfile;
@@ -17,7 +17,7 @@ pub(crate) fn display_field_projection_consumption(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) {
     projection_consumption(
         lane_label,
@@ -25,11 +25,24 @@ pub(crate) fn display_field_projection_consumption(
     )
 }
 
+pub(crate) fn display_field_projection_authority_outcome(
+    lane_label: &str,
+) -> (
+    worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    worth_query::facade::ProjectionAuthorityOutcome,
+) {
+    let (prerequisites, outcome, _) = projection_authority_with_world(
+        lane_label,
+        ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
+    );
+    (prerequisites, outcome)
+}
+
 pub(crate) fn display_field_projection_context(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     UiGraphWorldProfile,
 ) {
     projection_consumption_with_world(
@@ -42,7 +55,7 @@ pub(crate) fn entity_identity_projection_context(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     UiGraphWorldProfile,
 ) {
     projection_consumption_with_world(
@@ -56,7 +69,7 @@ fn projection_consumption(
     requested: ProjectMaterializedFacts,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) {
     let (prerequisites, attempt, _) = projection_consumption_with_world(lane_label, requested);
     (prerequisites, attempt)
@@ -67,7 +80,22 @@ fn projection_consumption_with_world(
     requested: ProjectMaterializedFacts,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
+    worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    UiGraphWorldProfile,
+) {
+    let (prerequisites, outcome, world_profile) =
+        projection_authority_with_world(lane_label, requested);
+    let (authority, _) = worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
+        .expect("real Query consumption should mint authority");
+    (prerequisites, authority, world_profile)
+}
+
+fn projection_authority_with_world(
+    lane_label: &str,
+    requested: ProjectMaterializedFacts,
+) -> (
+    worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
+    worth_query::facade::ProjectionAuthorityOutcome,
     UiGraphWorldProfile,
 ) {
     let (mut workspace, family) = measurement_projection_workspace(lane_label);
@@ -93,7 +121,7 @@ fn projection_consumption_with_world(
         snapshot_resolution_report(&basis),
     )
     .expect("query world profile should align to basis resolution");
-    (prerequisites, attempt, world_profile)
+    (prerequisites, attempt.into_authority(), world_profile)
 }
 
 fn measurement_projection_workspace(

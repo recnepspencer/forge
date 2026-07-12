@@ -115,7 +115,7 @@ fn graph_node_measurement_inspection_success_matches_direct_runtime_projection()
         "app/measurement_inspection.wui",
         0,
     )
-    .with_query_projection_consumption(consumption)
+    .with_query_authority(consumption)
     .with_host_capability_report(host_report)
     .with_host_measurement_results([host_result, scroll_container_viewport, viewport_extent]);
     let app = query_measurement_app_in_world(world_profile, Some(bundle.clone()));
@@ -163,7 +163,7 @@ fn graph_node_measurement_inspection_reports_compatibility_on_public_lane() {
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_projection_consumption(consumption)
+            .with_query_authority(consumption)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([stale_host_result]),
         ),
@@ -207,7 +207,7 @@ fn graph_node_measurement_inspection_reports_unsupported_query_posture_on_public
                 "app/measurement_inspection.wui",
                 0,
             )
-            .with_query_projection_consumption(consumption)
+            .with_query_authority(consumption)
             .with_host_capability_report(host_report)
             .with_host_measurement_results([host_result]),
         ),

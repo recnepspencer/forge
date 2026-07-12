@@ -4,7 +4,7 @@ use crate::runtime::{
     WorthUiExecutionPlanInput, WorthUiPendingActivation, WorthUiPlanLoweringBasis,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct WorthUiAllocationPlanningAdmission {
     constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
     portal_allocation_input: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
@@ -12,6 +12,10 @@ pub(crate) struct WorthUiAllocationPlanningAdmission {
 }
 
 impl WorthUiAllocationPlanningAdmission {
+    pub(crate) fn constraint_basis(&self) -> &crate::graph::UiAdmittedAllocationConstraintBasis {
+        &self.constraint_basis
+    }
+
     pub(crate) fn from_pending_activation(
         pending_activation: &WorthUiPendingActivation,
         constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
@@ -51,12 +55,18 @@ impl WorthUiAllocationPlanningAdmission {
         self.constraint_basis.constraint_set()
     }
 
-    pub(crate) fn into_parts(self) -> (
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
         crate::graph::UiAdmittedAllocationConstraintBasis,
         Option<crate::runtime::UiPortalAllocationPlanningBasis>,
         WorthUiExecutionPlanInputWitness,
     ) {
-        (self.constraint_basis, self.portal_allocation_input, self.expected_lowered_witness)
+        (
+            self.constraint_basis,
+            self.portal_allocation_input,
+            self.expected_lowered_witness,
+        )
     }
 
     pub(crate) fn portal_allocation_input(

@@ -11,17 +11,17 @@ use crate::evidence::{
     UiProjectionFactReceiptDenial,
 };
 use worth_ui_query_binding::{
-    WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactReceiptError,
+    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactReceiptError,
     WorthUiQueryPrerequisiteEvidence,
 };
 
 use super::UiAdmissionBoundary;
 
 impl<'a> UiAdmissionBoundary<'a> {
-    pub fn admit_query_measurement_eligibility_for_touch_from_projection_consumption(
+    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
     ) -> Option<UiQueryMeasurementEligibility> {
         let base_target = crate::admission::UiAdmissionTarget::graph_node(
             touch.target().graph_node_identity(),
@@ -31,22 +31,22 @@ impl<'a> UiAdmissionBoundary<'a> {
         );
         let target = base_target
             .clone()
-            .with_query_prerequisites_from_projection_consumption(consumption)
+            .with_query_prerequisites_from_query_authority(query_authority.authority())
             .unwrap_or(base_target);
         let selected = self.select_obligations_for_target(touch, target);
         let measurement_admission = self.admit_measurement_requirement(&selected)?;
-        self.admit_query_measurement_eligibility_from_projection_consumption(
+        self.admit_query_measurement_eligibility_from_query_authority(
             &selected,
             &measurement_admission,
-            consumption,
+            query_authority,
         )
     }
 
-    pub fn admit_query_measurement_eligibility_from_projection_consumption(
+    pub fn admit_query_measurement_eligibility_from_query_authority(
         &self,
         _selected: &crate::obligations::selection::UiSelectedObligationSet,
         measurement_admission: &UiMeasurementAdmission,
-        consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
+        query_authority: WorthUiQueryAuthorityHandle,
     ) -> Option<UiQueryMeasurementEligibility> {
         let declaration_identity = measurement_admission.declaration_identity()?.clone();
         let measurement_policy = measurement_policy_posture(self, measurement_admission)?;
@@ -129,35 +129,23 @@ impl<'a> UiAdmissionBoundary<'a> {
             WorthUiQueryBasisPosture::GraphAligned => {}
         }
 
+        let observed_authority = observed_basis_authority(query_authority.authority());
         let query_receipt = match worth_ui_query_binding::WorthUiQueryBindingSubsystem::bootstrap()
             .prerequisites()
-            .measurement_fact_receipt_from_projection_consumption(
+            .measurement_fact_receipt_from_query_authority(
                 current_prerequisites.clone(),
-                consumption,
+                query_authority,
             ) {
-            Ok(query_receipt) => query_receipt,
+            Ok(receipt) => receipt,
             Err(WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch) => {
-                let Some(posture) = stale_basis_posture_from_projection_consumption(
+                let posture = stale_basis_posture_from_query_authority(
                     target.world().clone(),
                     current_prerequisites,
-                    consumption,
-                ) else {
-                    return Some(admission(
-                        UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-                            world: target.world().clone(),
-                            reason:
-                                UiQueryMeasurementUnsupportedQueryReason::ProjectionConsumptionUnavailable,
-                        },
-                        None,
-                    ));
-                };
+                    observed_authority,
+                );
                 return Some(admission(posture, None));
             }
-            Err(
-                WorthUiQueryMeasurementFactReceiptError::Observation(_)
-                | WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource
-                | WorthUiQueryMeasurementFactReceiptError::ProjectionConsumptionNotAdmitted,
-            ) => {
+            Err(_) => {
                 return Some(admission(
                     UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
                         world: target.world().clone(),
@@ -276,22 +264,29 @@ fn stale_basis_posture(
     }
 }
 
-fn stale_basis_posture_from_projection_consumption(
+fn stale_basis_posture_from_query_authority(
     world: crate::admission::UiAdmissionWorld,
     current: &WorthUiQueryPrerequisiteEvidence,
-    consumption: &worth_query::facade::ProjectionFactConsumptionAttempt,
-) -> Option<UiQueryMeasurementEligibilityPosture> {
-    let completed = consumption.completed()?;
-    let contract = completed.contract();
-    let observed_basis_digest = contract.basis_digest()?;
-    Some(UiQueryMeasurementEligibilityPosture::StaleBasisGeneration {
+    observed: UiQueryMeasurementBasisAuthority,
+) -> UiQueryMeasurementEligibilityPosture {
+    UiQueryMeasurementEligibilityPosture::StaleBasisGeneration {
         world,
         expected: prerequisite_basis_authority(current),
-        observed: UiQueryMeasurementBasisAuthority::ProjectionConsumption {
-            basis_digest: observed_basis_digest.into(),
-            projection_contract_digest: contract.contract_digest().into(),
-        },
-    })
+        observed,
+    }
+}
+
+fn observed_basis_authority(
+    authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+) -> UiQueryMeasurementBasisAuthority {
+    UiQueryMeasurementBasisAuthority::ProjectionConsumption {
+        basis_digest: authority
+            .contract()
+            .basis_digest()
+            .unwrap_or_default()
+            .into(),
+        projection_contract_digest: authority.contract().contract_digest().into(),
+    }
 }
 
 fn prerequisite_basis_authority(

@@ -7,9 +7,10 @@ pub(crate) enum UiQueryAllocationPurpose {
     ScrollContentExtent,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiQueryAllocationTargetMapping {
-    query_consumption_identity: worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity,
+    query_authority: worth_ui_query_binding::WorthUiQueryAuthorityHandle,
+    authority_index_key: worth_ui_query_binding::WorthUiQueryAuthorityIndexKey,
     target: UiGraphNodeIdentity,
     purposes: Box<[UiQueryAllocationPurpose]>,
     identity_digest: u64,
@@ -49,7 +50,8 @@ impl UiQueryAllocationTargetMapping {
                         })
                 });
         Self {
-            query_consumption_identity: receipt.query_consumption_identity().clone(),
+            query_authority: receipt.query_authority().clone(),
+            authority_index_key: receipt.authority_index_key().clone(),
             target,
             purposes: purposes.into_boxed_slice(),
             identity_digest,
@@ -57,22 +59,15 @@ impl UiQueryAllocationTargetMapping {
     }
 
     pub(crate) fn source_identity(&self) -> &str {
-        self.query_consumption_identity.projection_source_identity()
+        self.authority_index_key.projection_source_identity()
     }
-    pub(crate) fn query_basis_digest(&self) -> &str {
-        self.query_consumption_identity.query_basis_digest()
+    pub(crate) fn query_authority(&self) -> &worth_ui_query_binding::WorthUiQueryAuthorityHandle {
+        &self.query_authority
     }
-    pub(crate) fn projection_contract_digest(&self) -> &str {
-        self.query_consumption_identity.projection_contract_digest()
-    }
-    pub(crate) fn projection_consumption_receipt_digest(&self) -> &str {
-        self.query_consumption_identity
-            .projection_consumption_receipt_digest()
-    }
-    pub(crate) fn query_consumption_identity(
+    pub(crate) fn authority_index_key(
         &self,
-    ) -> &worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity {
-        &self.query_consumption_identity
+    ) -> &worth_ui_query_binding::WorthUiQueryAuthorityIndexKey {
+        &self.authority_index_key
     }
     pub(crate) fn target(&self) -> UiGraphNodeIdentity {
         self.target

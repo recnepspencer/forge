@@ -11,7 +11,8 @@ pub(crate) use allocation_neighborhood::tests::{
 pub(crate) use allocation_neighborhood::UiAllocationNeighborhoodMintAuthority;
 pub(crate) use allocation_neighborhood::UiGraphConstraintMintAuthority;
 pub(crate) use allocation_neighborhood::{
-    UiAdmittedAllocationConstraintBasis, UiGraphScrollPlanningAuthority,
+    UiAdmittedAllocationConstraintBasis, UiAllocationConstraintProvenance,
+    UiGraphScrollPlanningAuthority,
 };
 #[cfg(test)]
 pub(crate) mod allocation_neighborhood_test_support;

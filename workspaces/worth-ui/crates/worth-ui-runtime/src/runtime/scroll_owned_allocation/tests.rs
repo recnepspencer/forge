@@ -67,7 +67,7 @@ fn query_extent_owner_is_acquired_from_admitted_receipt() {
     });
     let owner = owner.expect("active Query settlement acquires its scroll owner");
     let host_owner = host_owner.expect("active host witness acquires its scroll owner");
-    assert_eq!(owner.authority_probes(), 2);
+    assert_eq!(owner.authority_probes(), 3);
     assert_eq!(owner.target().target(), host_owner.target().target());
     assert_ne!(
         owner.target().owner_identity(),

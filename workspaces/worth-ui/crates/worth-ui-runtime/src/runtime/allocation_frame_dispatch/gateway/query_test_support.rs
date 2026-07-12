@@ -9,7 +9,7 @@ use worth_query::facade::{
     preflight_execution_basis, public_bridge_projection_artifacts_for_read_graph,
     resolve_runtime_current_snapshot_basis, snapshot_resolution_report, AspectFieldSelector,
     AuthoredResultShapeField, EqualityPredicate, ProjectMaterializedFacts,
-    ProjectionFactConsumptionAttempt, ProjectionFactFieldPath, QueryBasisContextRequest,
+    ProjectionAuthorityOutcome, ProjectionFactFieldPath, QueryBasisContextRequest,
     QueryContextBindingSource, ScalarPredicateValue, WorthQueryAspectTouch,
     WorthQueryAuthoredAspectValue,
 };
@@ -17,10 +17,7 @@ use worth_ui_query_binding::{WorthUiQueryBindingSubsystem, WorthUiQueryPrerequis
 
 pub(super) fn query_projection_consumption(
     label: &str,
-) -> (
-    WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
-) {
+) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
     let (mut workspace, family) = workspace_and_family(label);
     let read = workspace.execute_read_family(&family).expect("Query read");
     let (shape, projection) =
@@ -28,15 +25,12 @@ pub(super) fn query_projection_consumption(
     let attempt = read
         .consume_projection_facts(&shape, &projection, requested_facts())
         .expect("projection consumption");
-    (prerequisites(&workspace, &family), attempt)
+    (prerequisites(&workspace, &family), attempt.into_authority())
 }
 
 pub(super) fn partial_query_projection_consumption(
     label: &str,
-) -> (
-    WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
-) {
+) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
     let (workspace, family) = workspace_and_family(label);
     let basis = query_basis(&workspace, &family);
     let preflight =
@@ -53,15 +47,12 @@ pub(super) fn partial_query_projection_consumption(
     let attempt = execution
         .consume_projection_facts(&projection, requested_facts())
         .expect("warning-bearing projection consumption");
-    (prerequisites_from_basis(basis), attempt)
+    (prerequisites_from_basis(basis), attempt.into_authority())
 }
 
 pub(super) fn unsupported_query_projection_consumption(
     label: &str,
-) -> (
-    WorthUiQueryPrerequisiteEvidence,
-    ProjectionFactConsumptionAttempt,
-) {
+) -> (WorthUiQueryPrerequisiteEvidence, ProjectionAuthorityOutcome) {
     let (mut workspace, family) = workspace_and_family(label);
     let read = workspace.execute_read_family(&family).expect("Query read");
     let (shape, projection) =
@@ -73,7 +64,7 @@ pub(super) fn unsupported_query_projection_consumption(
             ProjectMaterializedFacts::declare().target_identity(),
         )
         .expect("unsupported projection consumption remains typed");
-    (prerequisites(&workspace, &family), attempt)
+    (prerequisites(&workspace, &family), attempt.into_authority())
 }
 
 fn workspace_and_family(label: &str) -> (WorthQueryWorkspace, WorthQueryReadFamily) {

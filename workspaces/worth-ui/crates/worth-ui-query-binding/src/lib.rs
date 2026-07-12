@@ -9,8 +9,8 @@ pub use entry::{WorthUiQueryAllocationAdmission, WorthUiQueryBindingSubsystem};
 pub use prerequisites::{
     WorthUiQueryAllocationConsumptionIdentity, WorthUiQueryAllocationInvalidationBasis,
     WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceIdentity,
-    WorthUiQueryAllocationSourceOrder, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
-    WorthUiQueryInspectionLane, WorthUiQueryMeasurementConsumptionIdentity,
+    WorthUiQueryAllocationSourceOrder, WorthUiQueryAuthorityHandle, WorthUiQueryAuthorityIndexKey,
+    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
     WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError,
     WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
     WorthUiQueryMeasurementFactObservationError, WorthUiQueryMeasurementFactReceipt,
