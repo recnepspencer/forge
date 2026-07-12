@@ -40,6 +40,35 @@ meaning from lower-runtime artifacts in caller code.
 
 ## Stable Entry Points
 
+### Downstream authority path
+
+When another runtime needs to retain Query authority rather than inspect facts
+immediately, declare one `ProjectionAuthorityContract` and call
+`consume_projection_authority(...)` on the result or retained binding. Query
+returns one non-cloneable `WorthQueryConsumedProjectionAuthority` or one typed
+non-admitted outcome. The authority binds the declaration, materialized
+contract, source lineage, consumed facts, receipt, consumer requirements, and
+operation counters; callers must not retain those pieces as an independently
+pairable authority tuple.
+
+```rust
+let outcome = write_receipt.consume_projection_authority(
+    result_shape_digest,
+    &authorized_projection,
+    ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
+        .require_target_identity()
+        .require_source_references(),
+)?;
+
+let authority = outcome.authority().expect("admitted authority");
+```
+
+Use `consume_projection_facts(...)` when the caller only needs immediate typed
+fact inspection. Do not turn its completed parts into a downstream authority;
+that decomposed compatibility surface is a Milestone 9.11 deletion obligation.
+
 Common path:
 
 - `WorthQueryReadResult::consume_projection_facts(...)`

@@ -1,7 +1,7 @@
 use super::{
-    ProjectionConsumptionSource, ProjectionSourceCapabilityProfile,
-    ProjectionSourceExecutionPosture, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
-    ProjectionWriteReceiptCapabilities,
+    certification_basis_identity, ProjectionConsumptionSource, ProjectionSourceBasisAuthority,
+    ProjectionSourceCapabilityProfile, ProjectionSourceExecutionPosture, ProjectionSourceFamily,
+    ProjectionSourceReferenceIdentity, ProjectionWriteReceiptCapabilities,
 };
 
 impl ProjectionConsumptionSource {
@@ -60,6 +60,9 @@ impl ProjectionConsumptionSource {
             capability_profile,
             query_digest: query_digest.map(str::to_string),
             basis_digest: basis_digest.map(str::to_string),
+            basis_authority: ProjectionSourceBasisAuthority::certification(
+                certification_basis_identity("projection-source-test-basis"),
+            ),
             result_digest: result_digest.map(str::to_string),
             result_shape_digest: result_shape_digest.map(str::to_string),
             source_identity: source_identity.to_string().into(),

@@ -3,7 +3,8 @@ use super::facts::ProjectionMaterializedFactPosture;
 use super::facts::{ProjectionFactFieldPath, ProjectionFactKind, ProjectionFactRequest};
 use super::identity::compose_materialized_projection_contract_digest;
 use super::source::{
-    ProjectionSourceFamily, ProjectionSourceIdentity, ProjectionSourceReferenceIdentity,
+    ProjectionSourceBasisAuthority, ProjectionSourceFamily, ProjectionSourceIdentity,
+    ProjectionSourceReferenceIdentity,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,6 +80,7 @@ pub struct MaterializedProjectionContract {
     eligibility_digest: String,
     query_digest: Option<String>,
     basis_digest: Option<String>,
+    basis_authority: ProjectionSourceBasisAuthority,
     result_digest: Option<String>,
     canonical_result_shape_digest: String,
     narrowed_result_shape_digest: String,
@@ -110,6 +112,10 @@ impl MaterializedProjectionContract {
 
     pub fn basis_digest(&self) -> Option<&str> {
         self.basis_digest.as_deref()
+    }
+
+    pub fn basis_authority(&self) -> &ProjectionSourceBasisAuthority {
+        &self.basis_authority
     }
 
     pub fn result_digest(&self) -> Option<&str> {
@@ -205,6 +211,7 @@ pub(crate) fn bind_materialized_projection_contract(
         eligibility_digest: admitted.eligibility_digest().to_string(),
         query_digest: source.query_digest().map(str::to_string),
         basis_digest: source.basis_digest().map(str::to_string),
+        basis_authority: source.basis_authority().clone(),
         result_digest: source.result_digest().map(str::to_string),
         canonical_result_shape_digest: declaration.binding().result_shape_digest().to_string(),
         narrowed_result_shape_digest: declaration

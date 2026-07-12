@@ -3,6 +3,7 @@ mod consumed;
 mod contracts;
 mod declaration;
 mod declaration_authoring;
+mod downstream_authority;
 mod dx;
 mod eligibility;
 mod envelope;
@@ -54,6 +55,14 @@ pub use declaration::{
 pub use declaration_authoring::{
     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
 };
+pub use downstream_authority::{
+    downstream_authority_closure_contract, ConsumedProjectionAuthorityCounters,
+    ConsumedProjectionAuthorityDenial, ConsumedProjectionAuthorityDenialKind,
+    ConsumedProjectionAuthorityEvidence, DownstreamAuthorityClosureContract,
+    DownstreamAuthorityClosureRole, DownstreamAuthorityClosureRow, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome, ProjectionAuthorityRequirement,
+    WorthQueryConsumedProjectionAuthority,
+};
 pub use dx::{
     CompletedProjectionFactConsumption, ProjectionFactConsumptionAttempt,
     ProjectionFactConsumptionPathError,
@@ -83,7 +92,8 @@ pub use receipt_transitions::{
     ProjectionConsumptionTransitionRules,
 };
 pub use source::{
-    ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
+    ProjectionConsumptionSource, ProjectionSourceBasisAuthority, ProjectionSourceFamily,
+    ProjectionSourceIdentity, ProjectionSourceReferenceIdentity,
 };
 pub use support::{
     discover_projection_consumption_support, ProjectionConsumptionSupportPosture,

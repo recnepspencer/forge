@@ -963,6 +963,21 @@ Read next:
 
 - [Basis Capability Lifecycle](./capabilities/basis-capability-lifecycle.md)
 - [Historical Diff And Basis](./capabilities/historical-diff-and-basis.md)
+
+### Downstream basis and projection authority
+
+If another runtime must carry Query-consumed meaning forward, do not hand it a
+basis digest, projection receipt, extracted facts, and source labels as separate
+authority inputs. Declare a `ProjectionAuthorityContract` and use the
+result-attached `consume_projection_authority(...)` path. Query mints one sealed
+`WorthQueryConsumedProjectionAuthority`; evidence projections and getters are
+for observation and cannot recreate it. Use the older
+`consume_projection_facts(...)` path only for immediate typed fact inspection.
+
+Read next:
+
+- [Projection Consumption](./capabilities/projection-consumption.md)
+- [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 
 ## State Readiness Vs Inspection
