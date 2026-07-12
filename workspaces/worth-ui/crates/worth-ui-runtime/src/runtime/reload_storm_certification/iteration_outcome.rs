@@ -3,14 +3,14 @@ use crate::runtime::{
     WorthUiReloadStormCandidateDenialReason, WorthUiReloadStormReceiptBinding,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum WorthUiReloadStormIterationOutcome {
     Activated(WorthUiReloadStormSuccessfulIteration),
     EquivalentNoOp(WorthUiReloadStormNoOpIteration),
     DeniedPreserved(WorthUiReloadStormDeniedIteration),
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiReloadStormSuccessfulIteration {
     label: String,
     binding: WorthUiReloadStormReceiptBinding,

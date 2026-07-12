@@ -3,8 +3,8 @@ use super::allocation_planning_test_support::allocation_planning;
 use crate::runtime::{
     WorthUiExecutionLane, WorthUiExecutionLaneSupport, WorthUiExecutionPlan,
     WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiPlanNodeInputFamily,
-    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocation, WorthUiRuntimeHost,
-    WorthUiVirtualizedDataPlan, WorthUiVirtualizedDataPlanDenial,
+    WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocation, WorthUiVirtualizedDataPlan,
+    WorthUiVirtualizedDataPlanDenial,
 };
 
 pub(super) fn virtualized_data_fixture() -> VirtualizedDataFixture {
@@ -18,14 +18,18 @@ pub(super) fn virtualized_data_denial_for_missing_support(
     let admission = if removed_lane == WorthUiExecutionLane::QueryBound {
         admission_without_query_bound(&context)
     } else {
+        let planning = allocation_planning(
+            &context.runtime,
+            &context.plan_input,
+            "virtualized-data.missing-support",
+        );
+        let receipt = context
+            .runtime
+            .detached_allocation_receipt_for_test(&planning);
         context
             .runtime
             .admit_execution_lanes(
-                &allocation_planning(
-                    &context.runtime,
-                    &context.plan_input,
-                    "virtualized-data.missing-support",
-                ),
+                &receipt,
                 &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
             )
             .expect("narrower lane admission succeeds")
@@ -41,15 +45,15 @@ pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtu
 {
     let context = virtualized_data_context();
     let drifted_plan_input = plan_input_with_duplicate_query_input(&context.plan_input);
+    let receipt_runtime = fresh_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "virtualized-data.stale-admission",
     );
-    let stale_admission = context
-        .runtime
+    let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &drifted_planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission still has data and Query support");
@@ -61,14 +65,14 @@ pub(super) fn virtualized_data_denial_for_stale_lane_admission() -> WorthUiVirtu
 }
 
 pub(super) struct VirtualizedDataFixture {
-    pub(super) runtime: WorthUiRuntimeHost,
+    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     pub(super) data_plan: WorthUiVirtualizedDataPlan,
     pub(super) allocation: WorthUiRuntimeHandleAllocation,
     pub(super) query_links: Vec<WorthUiQueryLaneSupportLinks>,
 }
 
 struct VirtualizedDataContext {
-    runtime: WorthUiRuntimeHost,
+    runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     plan_input: WorthUiExecutionPlanInput,
     allocation: WorthUiRuntimeHandleAllocation,
     execution_plan: WorthUiExecutionPlan,
@@ -95,14 +99,17 @@ fn virtualized_data_context() -> VirtualizedDataContext {
         .expect("execution plan input prepares");
     let planning = allocation_planning(&runtime, &plan_input, "virtualized-data.fixture");
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds");
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -129,17 +136,23 @@ fn admission_without_query_bound(context: &VirtualizedDataContext) -> WorthUiLan
         &context.plan_input,
         WorthUiPlanNodeInputFamily::QueryViewBinding,
     );
-    context
-        .runtime
+    let receipt_runtime = fresh_runtime();
+    let planning = allocation_planning(
+        &receipt_runtime,
+        &no_query_plan_input,
+        "virtualized-data.without-query-bound",
+    );
+    let receipt = receipt_runtime.detached_allocation_receipt_for_test(&planning);
+    receipt_runtime
         .admit_execution_lanes(
-            &allocation_planning(
-                &context.runtime,
-                &no_query_plan_input,
-                "virtualized-data.without-query-bound",
-            ),
+            &receipt,
             &WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound),
         )
         .expect("query-free input can be admitted without QueryBound support")
+}
+
+fn fresh_runtime() -> crate::runtime::WorthUiRuntimeFrameworkLoop {
+    activation_staging_inputs().into_runtime_and_pending().0
 }
 
 fn plan_input_without_family(

@@ -20,7 +20,7 @@ use crate::host::{UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed};
 
 use crate::evidence::measurement::UiMeasurementResult;
 
-pub(super) use super::query_context_test_support::display_field_projection_consumption;
+pub(crate) use super::query_context_test_support::display_field_projection_consumption;
 pub(crate) use super::query_context_test_support::{
     display_field_projection_context, entity_identity_projection_context,
 };
@@ -47,6 +47,17 @@ pub(crate) fn scroll_viewport_policy() -> UiDeclaredMeasurementPolicyPosture {
         ],
     )
     .expect("measurement policy should admit")
+}
+
+pub(crate) fn viewport_extent_policy() -> UiDeclaredMeasurementPolicyPosture {
+    UiDeclaredMeasurementPolicyPosture::new(
+        Some(UiDeclaredMeasurementMode::HugHeight),
+        Some(UiDeclaredMeasurementConstraintModifier::Bounded),
+        Some(UiDeclaredMeasurementBasisSource::ViewportExtent),
+        None,
+        Vec::new(),
+    )
+    .expect("viewport measurement policy should admit")
 }
 
 pub(crate) fn host_font_metrics_policy() -> UiDeclaredMeasurementPolicyPosture {
@@ -188,20 +199,30 @@ pub(crate) fn host_result_portal_anchor(
     report: &WorthUiHostCapabilityReport,
     generation: UiEvidenceAuthorityGeneration,
 ) -> UiMeasurementResult {
+    host_result_portal_anchor_at(request_seed, 44, [1.0, 2.0, 3.0, 4.0], report, generation)
+}
+
+pub(crate) fn host_result_portal_anchor_at(
+    request_seed: u64,
+    target_identity: u64,
+    rect: [f32; 4],
+    report: &WorthUiHostCapabilityReport,
+    generation: UiEvidenceAuthorityGeneration,
+) -> UiMeasurementResult {
     let request = UiMeasurementRequest::portal_anchor_rect(
         UiMeasurementRequestIdentity::new(request_seed),
         UiMeasurementEvidenceFamily::PortalAnchorRect,
-        UiPortalAnchorRectRequest::new(44),
+        UiPortalAnchorRectRequest::new(target_identity),
         report,
     )
     .expect("portal request should admit");
     host_result(
         &request,
         UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
-            x: 1.0,
-            y: 2.0,
-            width: 3.0,
-            height: 4.0,
+            x: rect[0],
+            y: rect[1],
+            width: rect[2],
+            height: rect[3],
         }),
         report,
         generation,

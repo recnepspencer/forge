@@ -1,11 +1,40 @@
 //! Lifecycle-grouped runtime exports.
 
+// --- graph-owned allocation locality ---
+pub use crate::graph::{
+    UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationInvalidationTargetSet,
+    UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet,
+    UiAllocationCatalogBasisAdmissionDenial, UiAllocationNeighborhoodDenial,
+    UiReplanLocalityDenial, UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters,
+    UiReplanOverlapDisposition, UiReplanRootPosture, UiReplanWidenReason,
+};
+
 // --- launch ---
 pub use super::active::WorthUiActiveRuntimeObservation;
+pub use super::allocation_frame_dispatch::{
+    UiAdmittedAllocationStreamIngress, UiAllocationFrameDispatchDenial,
+    UiAllocationFrameDispatcherCounters, UiAllocationFrameDuplicateWitness,
+    UiAllocationFrameGatewayOutcome, UiAllocationFrameIngressDescriptor,
+    UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
+    UiAllocationFrameSourceFact, UiAllocationFrameSourceFactPosture,
+    UiAllocationFrameSubmissionAssignment, UiAllocationFrameSubmissionOutcome,
+    WorthUiDurableResizeTurnSource, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
+    WorthUiFrameworkTurnExecution, WorthUiHostMeasurementTurnSource, WorthUiInteractionTurnSource,
+    WorthUiPreviewPaintFollowOn, WorthUiQueryProjectionTurnSource,
+    WorthUiResolvedPreviewPaintCompletion, WorthUiScrollOffsetTurnSource,
+};
+pub(crate) use super::allocation_frame_dispatch::{
+    UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,
+};
+#[cfg(test)]
+pub(crate) use super::allocation_frame_dispatch::{
+    WorthUiDurableResizeSubmission, WorthUiHostMeasurementSubmission, WorthUiInteractionSubmission,
+    WorthUiQueryProjectionSubmission,
+};
 pub use super::launch::{
-    WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle,
-    WorthUiRuntimeShutdownReceipt,
+    WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntime,
+    WorthUiRuntimeFrameEpoch, WorthUiRuntimeFrameworkLoop, WorthUiRuntimeLaunch,
+    WorthUiRuntimeLaunchDenial, WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
 };
 
 // --- replacement ---
@@ -66,22 +95,25 @@ pub use super::replacement::query_live_rebind::{
     WorthUiQueryRebindRequiredSurface,
 };
 pub use super::replacement::reconciliation::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
-    WorthUiDurableStateCarryForward, WorthUiDurableStateReconciliationCounters,
-    WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationOutcome,
-    WorthUiDurableStateReconciliationPlan, WorthUiDurableStateReconciliationReceipt,
-    WorthUiDurableStateReplacement, WorthUiFocusChainReconciliation,
-    WorthUiPanelVisibilityReconciliation, WorthUiScrollAnchorReconciliation,
-    WorthUiSelectionRangeReconciliation, WorthUiSplitterPositionReconciliation,
-    WorthUiTabStateReconciliation, WorthUiTextEditStateReconciliation,
+    WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableResizeInputPosture,
+    WorthUiDurableResizeSourceAdmissionDenial, WorthUiDurableStateCarryForward,
+    WorthUiDurableStateReconciliationCounters, WorthUiDurableStateReconciliationDenial,
+    WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReconciliationPlan,
+    WorthUiDurableStateReconciliationReceipt, WorthUiDurableStateReplacement,
+    WorthUiFocusChainReconciliation, WorthUiPanelVisibilityReconciliation,
+    WorthUiScrollAnchorReconciliation, WorthUiSelectionRangeReconciliation,
+    WorthUiSplitterPositionReconciliation, WorthUiTabStateReconciliation,
+    WorthUiTextEditStateReconciliation,
 };
 pub use super::replacement::state_inventory::{
-    WorthUiDurableStateEligibility, WorthUiDurableStateFamily, WorthUiDurableStateFamilyHook,
-    WorthUiDurableStateFamilyId, WorthUiDurableStateInventory, WorthUiDurableStateInventoryBuilder,
-    WorthUiDurableStateInventoryCounters, WorthUiDurableStateInventoryDenial,
-    WorthUiDurableStateReplacementPolicy, WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass,
-    WorthUiStatePersistencePosture, WorthUiTransientInteractionPolicy,
-    WorthUiTransientInteractionState,
+    WorthUiAdmittedTransientInteraction, WorthUiDurableStateEligibility, WorthUiDurableStateFamily,
+    WorthUiDurableStateFamilyHook, WorthUiDurableStateFamilyId, WorthUiDurableStateInventory,
+    WorthUiDurableStateInventoryBuilder, WorthUiDurableStateInventoryCounters,
+    WorthUiDurableStateInventoryDenial, WorthUiDurableStateReplacementPolicy,
+    WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass, WorthUiStatePersistencePosture,
+    WorthUiTransientInteractionAdmission, WorthUiTransientInteractionAdmissionDenial,
+    WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
 };
 pub use super::replacement::{
     WorthUiAmbiguousReplacementDenial, WorthUiNodeLifecycleTransition,
@@ -95,6 +127,48 @@ pub use super::replacement::{
 };
 
 // --- planning ---
+pub use super::allocation_frame_dispatch::{
+    UiAdmittedAllocationSourceOrder, UiAllocationFrameDispatcherState, UiAllocationFrameEpoch,
+    UiAllocationFrameIngressIdentity, UiAllocationFrameIngressKey,
+    UiAllocationFrameIngressSequence, UiAllocationFrameIngressView,
+    UiAllocationFrameMailboxStoragePosture, UiAllocationFramePauseReason,
+    UiAllocationFrameSourceGeneration, UiAllocationFrameSourceIdentity,
+    UiAllocationFrameSourceLane, UiAllocationFrameSourceLeaseIdentity,
+    UiAllocationFrameSubmissionDenial,
+};
+pub(crate) use super::allocation_receipt::UiCommittedAllocation;
+pub use super::allocation_receipt::{
+    UiAllocationAnchorPosture, UiAllocationAuthorityCounter,
+    UiAllocationAuthorityCounterExhaustion, UiAllocationAxis, UiAllocationAxisAlignedBounds,
+    UiAllocationCandidate, UiAllocationConstraintPayloadShape,
+    UiAllocationConstraintPropagationShape, UiAllocationDurableSemanticState,
+    UiAllocationEdgeReference, UiAllocationGeometryKnowledge, UiAllocationLeafRemeasureWitness,
+    UiAllocationPreviewCandidate, UiAllocationReceipt, UiAllocationReceiptCommitDenial,
+    UiAllocationReceiptCommitOutcome, UiAllocationReceiptConstraintShape,
+    UiAllocationReceiptDenialCause, UiAllocationReceiptDenialReport,
+    UiAllocationReceiptEquivalenceBasis, UiAllocationReceiptFreshnessPosture,
+    UiAllocationReceiptGeneration, UiAllocationReceiptIdentity, UiAllocationReceiptReport,
+    UiAllocationReplanTransaction, UiAllocationReplanTransactionCommitDenial,
+    UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionDenial,
+    UiAllocationReplanTransactionOutcome, UiAllocationReuseDenial, UiAllocationReuseVerdict,
+    UiAllocationTruthDelta, UiAllocationTruthRevision, UiCommittedAllocationEvidenceSet,
+    UiCommittedAllocationGeometryEvidence, UiCommittedAllocationLoweringInput,
+    UiCommittedAllocationReplan, UiCommittedPortalAnchorEvidence,
+    UiPortalAllocationCommitBindDenial, UiPortalAnchorObservationGeometryEvidence,
+    UiPreviewPaintIsolationOutcome, UiPreviewPaintIsolationReceipt,
+    UiPreviewPaintIsolationViolation,
+};
+pub(crate) use super::invalidation_narrowing::UiAdmittedAllocationPlanReference;
+pub use super::invalidation_narrowing::UiAdmittedPortalMovement;
+pub use super::invalidation_narrowing::{
+    UiAllocationInvalidationNarrowingCounters, UiAllocationInvalidationNarrowingDenial,
+    UiAllocationInvalidationNarrowingRejection, UiAllocationInvalidationTarget,
+    UiNarrowedAllocationFramePlan, UiNarrowedAllocationInvalidation,
+    UiPortalBindingSuccessionCounters, UiPortalBindingSuccessionDenial,
+    UiPortalBindingSuccessionLineage, UiPortalBindingSuccessionReceipt,
+    UiScrollBindingCatalogCounters, UiScrollCatalogSwapEvidence, UiScrollInvalidationBindingDenial,
+    UiScrollOwnerAcquisitionDenial, UiScrollOwnerCatalogDenialReport, UiScrollOwnerCatalogReceipt,
+};
 pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 pub use super::planning::allocation_planning::{
     WorthUiAllocationPlanning, WorthUiAllocationPlanningBasis, WorthUiAllocationPlanningCounters,
@@ -125,6 +199,34 @@ pub use super::planning::plan_topology::{
     WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
 pub use super::planning::WorthUiPlanningLaneInput;
+pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
+pub use super::portal_anchored_allocation::{
+    UiAdmittedPortalAnchorObservation, UiPortalAllocationPlanningBasis, UiPortalAnchorIdentity,
+    UiPortalAnchorIdentityTransition, UiPortalAnchorSuccessorDenial,
+};
+pub use super::scroll_owned_allocation::{
+    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, UiProjectedScrollOffset,
+    UiProjectedScrollOffsetDenial, UiProjectedScrollOffsetOutcome, UiScrollOffsetAllocationPosture,
+    UiScrollVirtualizationPosture,
+};
+pub use super::stream_policy::{
+    UiAllocationCadenceBudget, UiAllocationCadenceKind, UiAllocationCommitTarget,
+    UiAllocationDuplicatePosture, UiAllocationEvidenceCadence, UiAllocationFamilyPairOutcome,
+    UiAllocationFrameCadenceVerdict, UiAllocationFramePlanIdentity, UiAllocationFrameRejection,
+    UiAllocationFrameResolutionCounters, UiAllocationFrameResolutionDenial,
+    UiAllocationIngressPolicyVerdict, UiAllocationIntermediatePolicyVerdict,
+    UiAllocationInvalidationFamily, UiAllocationInvalidationIntent,
+    UiAllocationInvalidationReferenceDenial, UiAllocationPartialSettlementLaw,
+    UiAllocationSourceOrderVerdict, UiAllocationStreamCollapseLaw,
+    UiAllocationStreamCompositionCounters, UiAllocationStreamCompositionDenial,
+    UiAllocationStreamFamily, UiResolvedAllocationFramePlan, UiResolvedAllocationPolicyBranch,
+    UiResolvedAllocationStreamPolicy,
+};
+pub(crate) use super::viewport_resize::UiViewportResizeCommitBasis;
+pub use super::viewport_resize::{
+    UiViewportCommittedReplan, UiViewportReceiptCommitStrategy, UiViewportResizeCounters,
+    UiViewportResizeDenial, UiViewportResizeOutcome,
+};
 
 // --- activation ---
 pub use super::activation::activation_staging::{
@@ -132,16 +234,19 @@ pub use super::activation::activation_staging::{
     WorthUiActivationStagingDenialReason, WorthUiActivationStagingReport,
     WorthUiPendingExecutionPlanLoweringInput, WorthUiStagedReplacement,
 };
-pub use super::activation::atomic_plan_swap::{
-    WorthUiAtomicPlanSwapCounters, WorthUiPlanSwapDenialReason, WorthUiPlanSwapReceipt,
-    WorthUiPlanSwapRollback, WorthUiPriorValidPlanObservation,
-};
 pub use super::activation::frame_activation_gate::{
     WorthUiActivationGateCounters, WorthUiActivationGateDenial, WorthUiActivationGateDenialReason,
     WorthUiActivationGateReceipt, WorthUiFrameBoundary, WorthUiFrameBoundaryPosture,
-    WorthUiReadyActivation,
 };
-pub use super::activation::WorthUiActivationLaneInput;
+pub use super::activation::{
+    UiCommittedAllocationActivationCounterExhaustion, UiCommittedAllocationActivationCounters,
+    UiCommittedAllocationActivationDenial, UiCommittedAllocationActivationDenialEvidence,
+    UiCommittedAllocationActivationDenialReason, UiCommittedAllocationActivationInspection,
+    UiCommittedAllocationActivationInspectionDenialKind,
+    UiCommittedAllocationActivationInspectionOutcome, WorthUiActivationLaneInput,
+    WorthUiAllocationCatalogActivationDenial,
+};
+pub use super::activation::{WorthUiPlanSwapReceipt, WorthUiPriorValidPlanObservation};
 
 // --- execution ---
 pub use super::execution::canvas_spatial_lane::{

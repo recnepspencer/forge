@@ -5,15 +5,15 @@ use crate::evidence::{
     UiInspectionCostMetrics,
 };
 use crate::facade::inspection_bridge::UiInspectionReceipt;
-use crate::runtime::host::WorthUiRuntimeHost;
 use crate::runtime::WorthUiAllocationPlanning;
+use crate::runtime::WorthUiRuntime;
 use worth_ui_inspection::{
     UiEvidenceRichness, UiInspectionQuery, UiInspectionRelevanceOutcome, UiInspectionScope,
     RUNTIME_INSPECTION_SCOPE_INVENTORY,
 };
 
 pub(crate) fn register_allocation_planning_inspection(
-    host: &WorthUiRuntimeHost,
+    host: &WorthUiRuntime,
     allocation_planning: &WorthUiAllocationPlanning,
 ) -> UiAllocationPlanningInspectionReceipt {
     let receipt = project_allocation_planning_inspection_receipt(allocation_planning);
@@ -23,7 +23,7 @@ pub(crate) fn register_allocation_planning_inspection(
 }
 
 pub(crate) fn assemble_allocation_planning_inspection_receipt(
-    host: &WorthUiRuntimeHost,
+    host: &WorthUiRuntime,
     allocation_planning: &WorthUiAllocationPlanning,
     query: UiInspectionQuery,
 ) -> UiInspectionReceipt {
@@ -78,7 +78,7 @@ pub(crate) fn assemble_allocation_planning_inspection_receipt(
 }
 
 pub(crate) fn expand_retained_evidence_ref(
-    host: &WorthUiRuntimeHost,
+    host: &WorthUiRuntime,
     evidence_ref: UiEvidenceRef,
     requested_richness: UiEvidenceRichness,
 ) -> UiEvidenceExpansion {
@@ -113,7 +113,7 @@ pub(crate) fn expand_retained_evidence_ref(
 }
 
 pub(crate) fn discard_retained_evidence_slice(
-    host: &WorthUiRuntimeHost,
+    host: &WorthUiRuntime,
     slice_ref: UiEvidenceSliceRef,
 ) -> bool {
     host.retained_allocation_planning_evidence

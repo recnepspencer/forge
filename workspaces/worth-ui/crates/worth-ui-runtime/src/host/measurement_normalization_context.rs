@@ -14,6 +14,25 @@ pub struct UiHostMeasurementNormalizationContext {
     assumption_profile: UiHostMeasurementAssumptionProfile,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiPortalAnchorCoordinateSpacePosture {
+    PortalLayer,
+    Viewport,
+    Window,
+    HostSurface,
+}
+
+impl UiPortalAnchorCoordinateSpacePosture {
+    pub const fn coordinate_space(self) -> UiMeasurementCoordinateSpace {
+        match self {
+            Self::PortalLayer => UiMeasurementCoordinateSpace::PortalLayer,
+            Self::Viewport => UiMeasurementCoordinateSpace::Viewport,
+            Self::Window => UiMeasurementCoordinateSpace::Window,
+            Self::HostSurface => UiMeasurementCoordinateSpace::HostSurface,
+        }
+    }
+}
+
 impl UiHostMeasurementNormalizationContext {
     pub fn text_intrinsic_surface_logical_exact(
         assumption_profile: UiHostMeasurementAssumptionProfile,
@@ -95,13 +114,14 @@ impl UiHostMeasurementNormalizationContext {
         )
     }
 
-    pub fn portal_anchor_logical_exact(
+    pub fn portal_anchor_logical_exact_in(
+        coordinate_space: UiPortalAnchorCoordinateSpacePosture,
         assumption_profile: UiHostMeasurementAssumptionProfile,
     ) -> Self {
         Self::new(
             UiMeasurementEvidenceCategory::PortalAnchorRect,
             UiMeasurementUnitPosture::LogicalPx,
-            UiMeasurementCoordinateSpace::PortalLayer,
+            coordinate_space.coordinate_space(),
             UiMeasurementRoundingPosture::ExactFloat,
             assumption_profile,
         )

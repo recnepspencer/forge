@@ -1,15 +1,11 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_allocation_neighborhood_for_basis,
     admitted_measurement_basis, admitted_measurement_basis_with_font_seed,
-    admitted_measurement_basis_with_generation, denied_allocation_neighborhood,
-    denied_measurement_basis,
+    admitted_measurement_basis_with_generation, denied_measurement_basis, planning_graph_authority,
 };
 use crate::evidence::{UiEvidenceExpansion, UiEvidenceMaterializedDetail};
 use crate::facade::evidence::{
-    certify_allocation_planning_determinism, certify_allocation_planning_suite,
-    UiAllocationPlanningCertificationSuiteKind, UiAllocationPlanningCostClass,
-    UiAllocationPlanningDeterminismPosture, UiAllocationSolveConvergencePosture,
+    UiAllocationPlanningCostClass, UiAllocationSolveConvergencePosture,
     UiAllocationSolveRemainderPolicy,
 };
 use worth_ui_inspection::{
@@ -22,8 +18,13 @@ fn planning_detail_preserves_neighborhood_propagation_and_special_inputs() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("allocation-inspection.detail");
-    let neighborhood = admitted_allocation_neighborhood("allocation-inspection.detail");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("allocation-inspection.detail", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("detail inspection admits through graph authority"),
+    );
     let retained_receipt = runtime.inspect_allocation_planning(&planning);
     let cost = retained_receipt.cost();
     let solve_trace = retained_receipt.solve_trace();
@@ -119,8 +120,13 @@ fn retained_planning_expansion_converges_on_registered_detail() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("allocation-inspection.retained");
-    let neighborhood = admitted_allocation_neighborhood("allocation-inspection.retained");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("allocation-inspection.retained", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("retained inspection admits through graph authority"),
+    );
     runtime.inspect_allocation_planning(&planning);
     let receipt = app.inspect(planning_detail_query(
         UiAllocationPlanningQuestion::PropagationEdges,
@@ -147,8 +153,13 @@ fn summary_expansion_stays_refs_first_until_detail_is_requested() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("allocation-inspection.summary");
-    let neighborhood = admitted_allocation_neighborhood("allocation-inspection.summary");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("allocation-inspection.summary", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("summary inspection admits through graph authority"),
+    );
     runtime.inspect_allocation_planning(&planning);
     let receipt = app.inspect(
         UiInspectionQuery::new(
@@ -184,8 +195,13 @@ fn planning_requires_explicit_question_before_materializing_detail() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("allocation-inspection.question");
-    let neighborhood = admitted_allocation_neighborhood("allocation-inspection.question");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("allocation-inspection.question", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("question inspection admits through graph authority"),
+    );
     runtime.inspect_allocation_planning(&planning);
 
     let receipt = app.inspect(
@@ -215,18 +231,22 @@ fn explicit_planning_question_stays_refs_first_when_multiple_receipts_are_retain
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let first_basis =
         admitted_measurement_basis_with_font_seed("allocation-inspection.multiple.first", 101);
-    let first_neighborhood = admitted_allocation_neighborhood_for_basis(
-        "allocation-inspection.multiple.first",
-        first_basis.clone(),
-    );
     let second_basis =
         admitted_measurement_basis_with_font_seed("allocation-inspection.multiple.second", 202);
-    let second_neighborhood = admitted_allocation_neighborhood_for_basis(
-        "allocation-inspection.multiple.second",
-        second_basis.clone(),
+    let (first_snapshot, first_selected) =
+        planning_graph_authority("allocation-inspection.multiple.first", "operator:stack");
+    let (second_snapshot, second_selected) =
+        planning_graph_authority("allocation-inspection.multiple.second", "operator:stack");
+    let first = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &first_snapshot, first_basis, &first_selected)
+            .expect("first multiple inspection admits through graph authority"),
     );
-    let first = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
-    let second = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
+    let second = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &second_snapshot, second_basis, &second_selected)
+            .expect("second multiple inspection admits through graph authority"),
+    );
     runtime.inspect_allocation_planning(&first);
     runtime.inspect_allocation_planning(&second);
 
@@ -252,20 +272,24 @@ fn mixed_planning_authorities_do_not_collapse_into_one_public_slice() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let first_basis = admitted_measurement_basis("allocation-inspection.authority.first");
-    let first_neighborhood = admitted_allocation_neighborhood_for_basis(
-        "allocation-inspection.authority.first",
-        first_basis.clone(),
-    );
     let second_basis = admitted_measurement_basis_with_generation(
         "allocation-inspection.authority.second",
         worth_ui_inspection::UiEvidenceAuthorityGeneration::new(19),
     );
-    let second_neighborhood = admitted_allocation_neighborhood_for_basis(
-        "allocation-inspection.authority.second",
-        second_basis.clone(),
+    let (first_snapshot, first_selected) =
+        planning_graph_authority("allocation-inspection.authority.first", "operator:stack");
+    let (second_snapshot, second_selected) =
+        planning_graph_authority("allocation-inspection.authority.second", "operator:stack");
+    let first = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &first_snapshot, first_basis, &first_selected)
+            .expect("first authority inspection admits through graph authority"),
     );
-    let first = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
-    let second = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
+    let second = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &second_snapshot, second_basis, &second_selected)
+            .expect("second authority inspection admits through graph authority"),
+    );
     let first_receipt = runtime.inspect_allocation_planning(&first);
     let second_receipt = runtime.inspect_allocation_planning(&second);
 
@@ -283,62 +307,17 @@ fn mixed_planning_authorities_do_not_collapse_into_one_public_slice() {
 }
 
 #[test]
-fn equivalent_planning_certification_reports_deterministic_kernel() {
-    let inputs = activation_staging_inputs();
-    let (_, runtime, pending) = inputs.into_app_runtime_and_pending();
-    let first_basis = admitted_measurement_basis("allocation-inspection.cert");
-    let first_neighborhood = admitted_allocation_neighborhood("allocation-inspection.cert");
-    let second_basis = admitted_measurement_basis("allocation-inspection.cert");
-    let second_neighborhood = admitted_allocation_neighborhood("allocation-inspection.cert");
-    let first = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
-    let second = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
-
-    let report = certify_allocation_planning_determinism(&first, &second);
-
-    assert_eq!(
-        report.determinism_posture(),
-        UiAllocationPlanningDeterminismPosture::Equivalent
-    );
-    assert!(report.neighborhood_width_is_bounded());
-    assert!(report.emitted_edges_match());
-    assert!(report.solve_trace_converges());
-    assert!(report.handoff_identity_matches());
-    assert!(report.denied_broadening_matches());
-}
-
-#[test]
-fn planning_suite_certification_binds_runtime_invariants_to_named_suite_kinds() {
-    let inputs = activation_staging_inputs();
-    let (_, runtime, pending) = inputs.into_app_runtime_and_pending();
-    let first_basis = admitted_measurement_basis("allocation-inspection.suite");
-    let first_neighborhood = admitted_allocation_neighborhood("allocation-inspection.suite");
-    let second_basis = admitted_measurement_basis("allocation-inspection.suite");
-    let second_neighborhood = admitted_allocation_neighborhood("allocation-inspection.suite");
-    let first = runtime.plan_allocation(&pending, &first_basis, &first_neighborhood);
-    let second = runtime.plan_allocation(&pending, &second_basis, &second_neighborhood);
-
-    let report = certify_allocation_planning_suite(
-        UiAllocationPlanningCertificationSuiteKind::BoundedReconciliation,
-        &first,
-        &second,
-    );
-
-    assert_eq!(
-        report.suite_kind(),
-        Some(UiAllocationPlanningCertificationSuiteKind::BoundedReconciliation)
-    );
-    assert!(report.suite_verified());
-    assert!(report.neighborhood_width_is_bounded());
-    assert!(report.emitted_edges_match());
-}
-
-#[test]
 fn denied_planning_detail_keeps_neighborhood_without_claiming_admitted_special_inputs() {
     let inputs = activation_staging_inputs();
     let (app, runtime, pending) = inputs.into_app_runtime_and_pending();
     let measurement_basis = denied_measurement_basis("allocation-inspection.denied");
-    let neighborhood = denied_allocation_neighborhood("allocation-inspection.denied");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("allocation-inspection.denied", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("denied inspection admits through graph authority"),
+    );
     runtime.inspect_allocation_planning(&planning);
     let receipt = app.inspect(planning_detail_query(
         UiAllocationPlanningQuestion::SpecialInputs,

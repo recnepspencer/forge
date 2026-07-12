@@ -1,7 +1,7 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::{
     admitted_allocation_neighborhood, admitted_measurement_basis,
-    admitted_measurement_basis_with_font_seed, allocation_planning,
+    admitted_measurement_basis_with_font_seed, allocation_planning, planning_graph_authority,
 };
 use super::durable_state_inventory_test_support::platform_inventory;
 use super::identity_match_graph_test_support::{
@@ -11,7 +11,8 @@ use super::node_replacement_classification_test_support::{
     lane_affecting_impact_for, lane_narrowing_for,
 };
 use crate::runtime::{
-    WorthUiComponentLoweringHook, WorthUiNodeLifecycleTransition, WorthUiPlanNodeInputFamily,
+    UiAllocationReceiptCommitDenial, UiAllocationReuseDenial, WorthUiComponentLoweringHook,
+    WorthUiNodeLifecycleTransition, WorthUiPlanNodeInputFamily,
     WorthUiRuntimeHandleAllocationDenialReason,
 };
 
@@ -49,8 +50,13 @@ fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("handle-allocation.query-view-binding");
-    let neighborhood = admitted_allocation_neighborhood("handle-allocation.query-view-binding");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("handle-allocation.query-view-binding", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("query handle planning admits through graph authority"),
+    );
     let query_input_count = planning
         .node_inputs()
         .expect("admitted planning exposes node inputs")
@@ -61,7 +67,7 @@ fn query_view_binding_handle_preserves_query_owned_evidence_boundary() {
         .count();
 
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handles allocate");
 
     assert_eq!(query_input_count, allocation.view_binding_handles().len());
@@ -96,7 +102,7 @@ fn handle_allocation_reports_cardinality_and_collision_denials() {
     );
 
     let denial = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect_err("duplicate component handle claim denies");
 
     assert_eq!(
@@ -127,7 +133,7 @@ fn handle_allocation_rejects_non_component_plan_local_claim_collisions() {
     let planning = allocation_planning(&runtime, &plan_input, "handle-allocation.duplicate.token");
 
     let denial = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect_err("duplicate token handle claim denies");
 
     assert_eq!(
@@ -140,7 +146,7 @@ fn handle_allocation_rejects_non_component_plan_local_claim_collisions() {
 }
 
 #[test]
-fn same_lowered_topology_but_changed_planning_semantics_requires_distinct_plan_receipt() {
+fn same_lowered_topology_cannot_bypass_unsupported_partial_reuse() {
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let plan_input = runtime
@@ -160,36 +166,20 @@ fn same_lowered_topology_but_changed_planning_semantics_requires_distinct_plan_r
 
     assert_eq!(first_planning.node_inputs(), second_planning.node_inputs());
 
-    let first = runtime
-        .allocate_runtime_handles(&first_planning)
+    let first_receipt = runtime
+        .commit_allocation_candidate_for_test(first_planning)
+        .expect("first planning meaning commits");
+    runtime
+        .allocate_runtime_handles(&first_receipt)
         .expect("first handles allocate");
-    let second = runtime
-        .allocate_runtime_handles(&second_planning)
-        .expect("second handles allocate");
-
-    assert_eq!(
-        first.basis().active_artifact_digest(),
-        second.basis().active_artifact_digest()
-    );
-    assert_eq!(
-        first.basis().candidate_artifact_digest(),
-        second.basis().candidate_artifact_digest()
-    );
-    assert_eq!(first.basis().frame_epoch(), second.basis().frame_epoch());
-    assert_eq!(
-        first.basis().plan_node_input_count(),
-        second.basis().plan_node_input_count()
-    );
-    assert_eq!(
-        first.basis().query_binding_input_count(),
-        second.basis().query_binding_input_count()
-    );
-    assert_ne!(
-        first.basis().allocation_planning_identity_digest(),
-        second.basis().allocation_planning_identity_digest()
-    );
-    assert!(!first.receipt().certifies_basis(second.basis()));
-    assert_ne!(first.receipt(), second.receipt());
+    let denial = runtime
+        .commit_allocation_candidate_for_test(second_planning)
+        .expect_err("changed same-scope meaning must not mint a reusable receipt");
+    assert!(matches!(
+        denial,
+        UiAllocationReceiptCommitDenial::ReuseDenied(report)
+            if report.denial() == Some(UiAllocationReuseDenial::UnsupportedPartialReuse)
+    ));
 }
 
 #[test]
@@ -211,10 +201,15 @@ fn runtime_handle_allocation() -> crate::runtime::WorthUiRuntimeHandleAllocation
     let inputs = activation_staging_inputs();
     let (runtime, pending) = inputs.into_runtime_and_pending();
     let measurement_basis = admitted_measurement_basis("handle-allocation.runtime");
-    let neighborhood = admitted_allocation_neighborhood("handle-allocation.runtime");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("handle-allocation.runtime", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("runtime handle planning admits through graph authority"),
+    );
     runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handles allocate")
 }
 
@@ -268,10 +263,15 @@ fn runtime_handle_allocation_for_lane_change() -> crate::runtime::WorthUiRuntime
         )
         .expect("lane-change activation staging succeeds");
     let measurement_basis = admitted_measurement_basis("handle-allocation.lane-change");
-    let neighborhood = admitted_allocation_neighborhood("handle-allocation.lane-change");
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
+    let (snapshot, selected) =
+        planning_graph_authority("handle-allocation.lane-change", "operator:stack");
+    let planning = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(&pending, &snapshot, measurement_basis, &selected)
+            .expect("lane-change handle planning admits through graph authority"),
+    );
 
     runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("lane-change handles allocate")
 }

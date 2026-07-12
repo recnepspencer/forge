@@ -4,7 +4,7 @@ use crate::runtime::{
     WorthUiReplacementCandidateBasis, WorthUiRuntimeArtifactComparisonOutcome,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiFileRustReplacementPipelineReport {
     authoring_lane: WorthUiCandidateAuthoringLane,
     candidate_basis: WorthUiReplacementCandidateBasis,
@@ -88,11 +88,28 @@ impl WorthUiFileRustReplacementPipelineReport {
         self.plan_node_count
     }
 
-    pub fn swap_receipt(&self) -> WorthUiPlanSwapReceipt {
-        self.swap_receipt
+    pub fn swap_receipt(&self) -> &WorthUiPlanSwapReceipt {
+        &self.swap_receipt
     }
 
     pub fn counters(&self) -> WorthUiFileRustReplacementParityCounters {
         self.counters
+    }
+
+    #[cfg(test)]
+    pub(crate) fn into_parts(self) -> WorthUiFileRustReplacementPipelineReportParts {
+        WorthUiFileRustReplacementPipelineReportParts {
+            authoring_lane: self.authoring_lane,
+            candidate_basis: self.candidate_basis,
+            provenance_handle: self.provenance_handle,
+            active_artifact_digest: self.active_artifact_digest,
+            candidate_artifact_digest: self.candidate_artifact_digest,
+            artifact_comparison_outcome: self.artifact_comparison_outcome,
+            candidate_plan_digest: self.candidate_plan_digest,
+            lane_support_digest: self.lane_support_digest,
+            plan_node_count: self.plan_node_count,
+            swap_receipt: self.swap_receipt,
+            counters: self.counters,
+        }
     }
 }

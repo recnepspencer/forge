@@ -24,13 +24,15 @@ impl UiAllocationNeighborhood {
         dependency_map: UiMeasurementDependencyMap,
         neighborhood_class: UiAllocationNeighborhoodClass,
         members: Vec<UiAllocationNeighborhoodMember>,
+        _: &crate::graph::UiAllocationNeighborhoodMintAuthority,
     ) -> Self {
         let membership_rule =
             UiAllocationNeighborhoodMembershipRule::default_for_class(neighborhood_class);
-        Self::new_with_authority(
+        Self::construct(
             root_graph_node_identity,
             graph_generation,
             world_identity_digest,
+            world_identity_digest ^ graph_generation.as_u64().rotate_left(11),
             measurement_basis_identity_digest,
             UiLayoutOperatorPlanningContract::new(
                 crate::declaration::UiDeclarationPlanningOperatorKind::Control,
@@ -55,10 +57,38 @@ impl UiAllocationNeighborhood {
         )
     }
 
-    pub(crate) fn new_with_authority(
+    pub(crate) fn new_with_graph_authority(
         root_graph_node_identity: UiGraphNodeIdentity,
         graph_generation: UiGraphGeneration,
         world_identity_digest: u64,
+        graph_snapshot_authority_digest: u64,
+        measurement_basis_identity_digest: u64,
+        layout_operator_planning_contract: UiLayoutOperatorPlanningContract,
+        dependency_map: UiMeasurementDependencyMap,
+        neighborhood_class: UiAllocationNeighborhoodClass,
+        membership_rule: UiAllocationNeighborhoodMembershipRule,
+        members: Vec<UiAllocationNeighborhoodMember>,
+        _: &crate::graph::UiAllocationNeighborhoodMintAuthority,
+    ) -> Self {
+        Self::construct(
+            root_graph_node_identity,
+            graph_generation,
+            world_identity_digest,
+            graph_snapshot_authority_digest,
+            measurement_basis_identity_digest,
+            layout_operator_planning_contract,
+            dependency_map,
+            neighborhood_class,
+            membership_rule,
+            members,
+        )
+    }
+
+    fn construct(
+        root_graph_node_identity: UiGraphNodeIdentity,
+        graph_generation: UiGraphGeneration,
+        world_identity_digest: u64,
+        graph_snapshot_authority_digest: u64,
         measurement_basis_identity_digest: u64,
         layout_operator_planning_contract: UiLayoutOperatorPlanningContract,
         dependency_map: UiMeasurementDependencyMap,
@@ -71,6 +101,7 @@ impl UiAllocationNeighborhood {
             root_graph_node_identity,
             graph_generation,
             world_identity_digest,
+            graph_snapshot_authority_digest,
             measurement_basis_identity_digest,
             layout_operator_planning_contract.identity(),
             dependency_map.identity_digest(),
@@ -104,6 +135,10 @@ impl UiAllocationNeighborhood {
 
     pub fn world_identity_digest(&self) -> u64 {
         self.identity.world_identity_digest()
+    }
+
+    pub fn graph_snapshot_authority_digest(&self) -> u64 {
+        self.identity.graph_snapshot_authority_digest()
     }
 
     pub fn measurement_basis_identity_digest(&self) -> u64 {
@@ -142,20 +177,76 @@ impl UiAllocationNeighborhood {
         &self.members
     }
 
-    pub(crate) fn rebind_measurement_basis_identity(
-        &self,
+    #[cfg(test)]
+    pub(crate) fn new_for_evidence_test(
+        root_graph_node_identity: UiGraphNodeIdentity,
+        graph_generation: UiGraphGeneration,
+        world_identity_digest: u64,
         measurement_basis_identity_digest: u64,
+        layout_operator_planning_contract: UiLayoutOperatorPlanningContract,
+        dependency_map: UiMeasurementDependencyMap,
+        neighborhood_class: UiAllocationNeighborhoodClass,
+        membership_rule: UiAllocationNeighborhoodMembershipRule,
+        members: Vec<UiAllocationNeighborhoodMember>,
+        _: &super::UiAllocationNeighborhoodEvidenceTestAuthority,
     ) -> Self {
-        Self::new_with_authority(
+        Self::construct(
+            root_graph_node_identity,
+            graph_generation,
+            world_identity_digest,
+            world_identity_digest ^ graph_generation.as_u64().rotate_left(11),
+            measurement_basis_identity_digest,
+            layout_operator_planning_contract,
+            dependency_map,
+            neighborhood_class,
+            membership_rule,
+            members,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_graph_test(
+        root_graph_node_identity: UiGraphNodeIdentity,
+        graph_generation: UiGraphGeneration,
+        world_identity_digest: u64,
+        measurement_basis_identity_digest: u64,
+        layout_operator_planning_contract: UiLayoutOperatorPlanningContract,
+        dependency_map: UiMeasurementDependencyMap,
+        neighborhood_class: UiAllocationNeighborhoodClass,
+        membership_rule: UiAllocationNeighborhoodMembershipRule,
+        members: Vec<UiAllocationNeighborhoodMember>,
+        _: &crate::graph::UiAllocationNeighborhoodMintAuthority,
+    ) -> Self {
+        Self::construct(
+            root_graph_node_identity,
+            graph_generation,
+            world_identity_digest,
+            world_identity_digest ^ graph_generation.as_u64().rotate_left(11),
+            measurement_basis_identity_digest,
+            layout_operator_planning_contract,
+            dependency_map,
+            neighborhood_class,
+            membership_rule,
+            members,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_members_for_graph_test(
+        &self,
+        members: Vec<UiAllocationNeighborhoodMember>,
+    ) -> Self {
+        Self::construct(
             self.root_graph_node_identity(),
             self.graph_generation(),
             self.world_identity_digest(),
-            measurement_basis_identity_digest,
+            self.graph_snapshot_authority_digest(),
+            self.measurement_basis_identity_digest(),
             self.layout_operator_planning_contract.clone(),
             self.dependency_map.clone(),
             self.neighborhood_class(),
-            self.membership_rule(),
-            self.members.to_vec(),
+            self.membership_rule,
+            members,
         )
     }
 }

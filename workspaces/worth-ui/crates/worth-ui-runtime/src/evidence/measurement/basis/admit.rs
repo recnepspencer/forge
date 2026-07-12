@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::{
@@ -38,11 +39,19 @@ pub struct UiMeasurementBasis {
     declared_measurement_policy: UiDeclaredMeasurementPolicyPosture,
     basis_posture: UiMeasurementBasisPosture,
     evidence_inputs: Box<[MeasurementEvidenceInput]>,
+    evidence_index: UiMeasurementEvidenceIndex,
     generation_compatibility: UiMeasurementGenerationCompatibility,
     dependency_lineage: UiMeasurementDependencyLineage,
     dependency_map: UiMeasurementDependencyMap,
     neighborhood_class_hint: UiMeasurementNeighborhoodClassHint,
     denial_posture: Option<UiMeasurementBasisDenial>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct UiMeasurementEvidenceIndex {
+    query_by_source: BTreeMap<Box<str>, Vec<super::UiQueryAllocationTargetMapping>>,
+    host_by_request: BTreeMap<worth_ui_host_contract::UiMeasurementRequestIdentity, usize>,
+    durable_by_input: BTreeMap<u64, usize>,
 }
 
 pub fn admit_measurement_basis(
@@ -59,6 +68,7 @@ pub fn admit_measurement_basis(
         selected.generation_compatibility(&world_profile, declaration_support_authority_generation);
     let denial_posture = selected.denial_posture(&requirements, &generation_compatibility);
     let evidence_inputs = selected.admitted_inputs();
+    let evidence_index = UiMeasurementEvidenceIndex::build(&evidence_inputs, graph_node_identity);
     let dependency_lineage = selected.dependency_lineage();
     let dependency_map = derive_measurement_dependency_map(&dependency_lineage);
     let neighborhood_class_hint =
@@ -102,6 +112,7 @@ pub fn admit_measurement_basis(
         declared_measurement_policy: declared_measurement_policy.clone(),
         basis_posture,
         evidence_inputs,
+        evidence_index,
         generation_compatibility,
         dependency_lineage,
         dependency_map,
@@ -157,6 +168,68 @@ impl UiMeasurementBasis {
         &self.evidence_inputs
     }
 
+    pub(crate) fn query_allocation_mappings_for_source(
+        &self,
+        source_identity: &str,
+    ) -> &[super::UiQueryAllocationTargetMapping] {
+        self.evidence_index
+            .query_by_source
+            .get(source_identity)
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn host_measurement_result(
+        &self,
+        request_identity: worth_ui_host_contract::UiMeasurementRequestIdentity,
+    ) -> Option<&crate::evidence::UiMeasurementResult> {
+        self.evidence_index
+            .host_by_request
+            .get(&request_identity)
+            .and_then(|position| self.evidence_inputs.get(*position))
+            .and_then(MeasurementEvidenceInput::as_host_measurement_result)
+    }
+
+    pub(crate) fn host_allocation_target(
+        &self,
+        request_identity: worth_ui_host_contract::UiMeasurementRequestIdentity,
+    ) -> Option<UiGraphNodeIdentity> {
+        self.host_measurement_result(request_identity)
+            .map(|_| self.graph_node_identity)
+    }
+
+    pub(crate) fn durable_resize_support(
+        &self,
+        input_identity_digest: u64,
+    ) -> Option<&crate::evidence::UiMeasurementSiblingResizeSupport> {
+        self.evidence_index
+            .durable_by_input
+            .get(&input_identity_digest)
+            .and_then(|position| self.evidence_inputs.get(*position))
+            .and_then(MeasurementEvidenceInput::as_sibling_resize_support)
+    }
+
+    pub(crate) fn query_allocation_mappings(
+        &self,
+    ) -> impl Iterator<Item = (&str, &super::UiQueryAllocationTargetMapping)> {
+        self.evidence_index
+            .query_by_source
+            .iter()
+            .flat_map(|(source, mappings)| {
+                mappings.iter().map(|mapping| (source.as_ref(), mapping))
+            })
+    }
+
+    pub(crate) fn host_allocation_requests(
+        &self,
+    ) -> impl Iterator<Item = worth_ui_host_contract::UiMeasurementRequestIdentity> + '_ {
+        self.evidence_index.host_by_request.keys().copied()
+    }
+
+    pub(crate) fn durable_resize_inputs(&self) -> impl Iterator<Item = u64> + '_ {
+        self.evidence_index.durable_by_input.keys().copied()
+    }
+
     pub fn generation_compatibility(&self) -> &UiMeasurementGenerationCompatibility {
         &self.generation_compatibility
     }
@@ -179,5 +252,38 @@ impl UiMeasurementBasis {
 
     pub fn is_admitted(&self) -> bool {
         self.denial_posture.is_none()
+    }
+}
+
+impl UiMeasurementEvidenceIndex {
+    fn build(inputs: &[MeasurementEvidenceInput], query_target: UiGraphNodeIdentity) -> Self {
+        let mut index = Self::default();
+        for (position, input) in inputs.iter().enumerate() {
+            if let Some(receipt) = input.as_query_projection_fact() {
+                let mapping = super::UiQueryAllocationTargetMapping::from_admitted_receipt(
+                    receipt,
+                    query_target,
+                );
+                let rows = index
+                    .query_by_source
+                    .entry(mapping.source_identity().into())
+                    .or_default();
+                if !rows.iter().any(|row| row == &mapping) {
+                    rows.push(mapping);
+                    rows.sort_by_key(super::UiQueryAllocationTargetMapping::identity_digest);
+                }
+            }
+            if let Some(result) = input.as_host_measurement_result() {
+                index
+                    .host_by_request
+                    .insert(result.request_identity(), position);
+            }
+            if let Some(support) = input.as_sibling_resize_support().filter(|support| {
+                support.source() == crate::evidence::UiMeasurementSiblingResizeSupportSource::RuntimeDurableResizeWitness
+            }) {
+                index.durable_by_input.insert(support.source_identity_digest(), position);
+            }
+        }
+        index
     }
 }

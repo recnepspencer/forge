@@ -97,15 +97,18 @@ fn construct_allocation_neighborhood(
         .node_topology(expected)
         .expect("graph lookup node must have topology");
 
-    Ok(UiAllocationNeighborhood::new_with_authority(
+    let authority = super::UiAllocationNeighborhoodMintAuthority::mint();
+    Ok(UiAllocationNeighborhood::new_with_graph_authority(
         expected,
         snapshot.generation(),
         basis.world_profile().identity_digest(),
+        snapshot.authority_digest(),
         basis.identity_digest(),
         construct_allocation_neighborhood_operator_contract(basis, root_record, root_topology),
         basis.dependency_map().clone(),
         neighborhood_class,
         membership_rule,
         members,
+        &authority,
     ))
 }

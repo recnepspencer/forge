@@ -119,14 +119,14 @@ pub use worth_ui_runtime::facade::inspection_bridge::{
     classify_inspection_dispatch, InspectionDispatchLane,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
-    WorthUiActivationLaneInput, WorthUiExecutionLaneInput, WorthUiPlanningLaneInput,
-    WorthUiReplacementLoweringReady,
+    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, WorthUiActivationLaneInput,
+    WorthUiExecutionLaneInput, WorthUiPlanningLaneInput, WorthUiReplacementLoweringReady,
 };
 pub use worth_ui_runtime::facade::runtime_handoff::{
-    WorthUiActiveRuntimeObservation, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
-    WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
+    WorthUiActiveRuntimeObservation, WorthUiRuntime, WorthUiRuntimeDiagnostic,
+    WorthUiRuntimeDiagnosticCode, WorthUiRuntimeDiagnosticCounters, WorthUiRuntimeDiagnosticFamily,
     WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeDiagnosticReport,
     WorthUiRuntimeDiagnosticRequest, WorthUiRuntimeDiagnostics, WorthUiRuntimeFrameEpoch,
-    WorthUiRuntimeHandle, WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
+    WorthUiRuntimeHandle, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
     WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
 };

@@ -1,6 +1,6 @@
-use worth_ui::facade::{WorthUiLastValidRuntimeState, WorthUiRuntimeHost};
+use worth_ui::facade::{WorthUiLastValidRuntimeState, WorthUiRuntime};
 
 fn main() {
-    let _ = std::mem::size_of::<WorthUiRuntimeHost>();
+    let _ = std::mem::size_of::<WorthUiRuntime>();
     let _ = std::mem::size_of::<WorthUiLastValidRuntimeState>();
 }

@@ -46,6 +46,7 @@ pub enum UiHostMeasurementInvalidationReason {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiHostMeasurementEvidenceDenial {
+    SourceOrderExhausted,
     Execution(UiHostMeasurementExecutionDenial),
     Normalization(UiHostMeasurementNormalizationDenial),
     Stale(UiHostMeasurementInvalidationReason),

@@ -1,9 +1,9 @@
 use worth_ui::facade::{
-    WorthUiReplacementCandidate, WorthUiRuntimeHost, WorthUiRuntimeImpactNarrowing,
+    WorthUiReplacementCandidate, WorthUiRuntime, WorthUiRuntimeImpactNarrowing,
 };
 
 fn cannot_match_unadmitted_candidate(
-    host: &WorthUiRuntimeHost,
+    host: &WorthUiRuntime,
     narrowing: &WorthUiRuntimeImpactNarrowing,
     candidate: &WorthUiReplacementCandidate,
 ) {

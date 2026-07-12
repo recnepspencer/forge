@@ -12,8 +12,8 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::evidence::{UiMeasurementEvidenceCategory, UiMeasurementResult};
 use crate::host::{
-    collect_host_measurement_evidence, UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext, WorthUiHostMeasurementCollector,
 };
 
 pub(crate) struct CountingAdapter {
@@ -101,19 +101,20 @@ pub(crate) fn collected_text_result_for_request(
     generation: UiEvidenceAuthorityGeneration,
     context: UiHostMeasurementNormalizationContext,
 ) -> UiMeasurementResult {
-    collect_host_measurement_evidence(
-        &CountingAdapter::new(),
-        request_identity,
-        worth_ui_host_contract::UiMeasurementEvidenceFamily::TextIntrinsicSize,
-        UiHostMeasurementNeed::TextIntrinsicSize(UiTextIntrinsicSizeRequest::single_line(
-            "Inbox",
-            UiFontMeasurementKey::new("body-md"),
-        )),
-        report,
-        generation,
-        context,
-    )
-    .unwrap()
+    WorthUiHostMeasurementCollector::for_internal_proof()
+        .collect(
+            &CountingAdapter::new(),
+            request_identity,
+            worth_ui_host_contract::UiMeasurementEvidenceFamily::TextIntrinsicSize,
+            UiHostMeasurementNeed::TextIntrinsicSize(UiTextIntrinsicSizeRequest::single_line(
+                "Inbox",
+                UiFontMeasurementKey::new("body-md"),
+            )),
+            report,
+            generation,
+            context,
+        )
+        .unwrap()
 }
 
 pub(crate) fn normalized_viewport_result(
@@ -122,16 +123,17 @@ pub(crate) fn normalized_viewport_result(
     generation: UiEvidenceAuthorityGeneration,
     profile: UiHostMeasurementAssumptionProfile,
 ) -> UiMeasurementResult {
-    collect_host_measurement_evidence(
-        &CountingAdapter::new(),
-        request_identity,
-        worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
-        UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
-        report,
-        generation,
-        UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
-    )
-    .unwrap()
+    WorthUiHostMeasurementCollector::for_internal_proof()
+        .collect(
+            &CountingAdapter::new(),
+            request_identity,
+            worth_ui_host_contract::UiMeasurementEvidenceFamily::ViewportExtent,
+            UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+            report,
+            generation,
+            UiHostMeasurementNormalizationContext::viewport_logical_exact(profile),
+        )
+        .unwrap()
 }
 
 pub(crate) fn measurement_evidence_family_for(
@@ -191,7 +193,10 @@ pub(crate) fn normalization_context_for(
             UiHostMeasurementNormalizationContext::dpi_scale_window_exact(profile)
         }
         UiMeasurementEvidenceCategory::PortalAnchorRect => {
-            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact(profile)
+            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
+                crate::host::UiPortalAnchorCoordinateSpacePosture::PortalLayer,
+                profile,
+            )
         }
         UiMeasurementEvidenceCategory::ScrollContainerViewport => {
             UiHostMeasurementNormalizationContext::scroll_container_logical_exact(profile)

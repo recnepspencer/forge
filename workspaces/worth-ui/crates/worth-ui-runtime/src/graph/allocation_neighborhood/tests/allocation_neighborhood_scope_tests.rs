@@ -90,6 +90,7 @@ fn deferred_layout_peer_does_not_enter_container_neighborhood() {
 
 #[test]
 fn deferred_layout_participation_reason_does_not_count_as_neighborhood_membership() {
+    let authority = super::super::UiAllocationNeighborhoodMintAuthority::mint();
     let participation = crate::graph::UiGraphAxisParticipation::new(
         UiGraphParticipationStatus::Deferred,
         crate::graph::UiGraphParticipationReasonSource::ReservedRuntimeMutation,
@@ -97,13 +98,14 @@ fn deferred_layout_participation_reason_does_not_count_as_neighborhood_membershi
         crate::graph::UiGraphParticipationEvidenceHandle::ReservedRuntimeMutationLane,
     );
 
-    assert!(!UiAllocationNeighborhoodMember::new(
+    assert!(!UiAllocationNeighborhoodMember::new_for_graph_test(
         UiGraphNodeIdentity::new(900),
         900,
         crate::graph::UiRepeatedInstanceBasis::unavailable(),
         participation,
         crate::evidence::UiAllocationNeighborhoodMemberRole::ScopedParticipant,
         None,
+        &authority,
     )
     .layout_participates());
 }

@@ -6,13 +6,13 @@ use super::replacement_impact_test_support::{
 use crate::runtime::{
     WorthUiComponentLoweringHook, WorthUiExecutionLane, WorthUiExecutionLaneSupport,
     WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiLaneAdmission, WorthUiOrdinaryLanePlan,
-    WorthUiOrdinaryLanePlanDenial, WorthUiPlanNodeInputFamily, WorthUiRuntimeHandleAllocation,
-    WorthUiRuntimeHost,
+    WorthUiOrdinaryLanePlanDenial, WorthUiPlanNodeInputFamily, WorthUiRuntime,
+    WorthUiRuntimeHandleAllocation,
 };
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
 pub(super) fn ordinary_lane_fixture() -> (
-    WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiOrdinaryLanePlan,
     WorthUiRuntimeHandleAllocation,
 ) {
@@ -25,16 +25,18 @@ pub(super) fn ordinary_lane_denial_for_missing_family(
     removed_lane: WorthUiExecutionLane,
 ) -> WorthUiOrdinaryLanePlanDenial {
     let context = ordinary_execution_context();
-    let narrower_plan_input = plan_input_without_family(&context.plan_input, removed_family);
+    let admission_context = ordinary_execution_context();
+    let narrower_plan_input =
+        plan_input_without_family(&admission_context.plan_input, removed_family);
+    let receipt_runtime = fresh_ordinary_runtime();
     let narrower_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &narrower_plan_input,
         "ordinary-lane.missing-family",
     );
-    let narrower_admission = context
-        .runtime
+    let narrower_admission = receipt_runtime
         .admit_execution_lanes(
-            &narrower_planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&narrower_planning),
             &WorthUiExecutionLaneSupport::without_lane_for_test(removed_lane),
         )
         .expect("narrower input can be admitted without removed lane");
@@ -45,8 +47,13 @@ pub(super) fn ordinary_lane_denial_for_missing_family(
         .expect_err("ordinary plan refuses unrelated narrower admission")
 }
 
+fn fresh_ordinary_runtime() -> crate::runtime::WorthUiRuntimeFrameworkLoop {
+    let app = impact_test_app();
+    launch_runtime(&app, ordinary_source_artifact(&app))
+}
+
 struct OrdinaryExecutionContext {
-    runtime: WorthUiRuntimeHost,
+    runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     plan_input: WorthUiExecutionPlanInput,
     allocation: WorthUiRuntimeHandleAllocation,
     execution_plan: WorthUiExecutionPlan,
@@ -110,17 +117,15 @@ fn ordinary_execution_context() -> OrdinaryExecutionContext {
         )
         .expect("execution plan input prepares");
     let allocation = runtime
-        .allocate_runtime_handles(&allocation_planning(
-            &runtime,
-            &plan_input,
-            "ordinary-lane.fixture",
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(
+            &allocation_planning(&runtime, &plan_input, "ordinary-lane.fixture"),
         ))
         .expect("handle allocation succeeds");
     let planning = allocation_planning(&runtime, &plan_input, "ordinary-lane.fixture");
     let lane_admission = ordinary_lane_admission(&runtime, &planning);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -171,11 +176,12 @@ fn ordinary_component_hooks() -> [WorthUiComponentLoweringHook; 2] {
 }
 
 fn ordinary_lane_admission(
-    runtime: &WorthUiRuntimeHost,
-    planning: &crate::runtime::WorthUiAllocationPlanning,
+    runtime: &WorthUiRuntime,
+    planning: &crate::runtime::UiAllocationCandidate,
 ) -> WorthUiLaneAdmission {
+    let receipt = runtime.detached_allocation_receipt_for_test(planning);
     runtime
-        .admit_execution_lanes(planning, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(&receipt, &WorthUiExecutionLaneSupport::platform_default())
         .expect("lane admission succeeds")
 }
 

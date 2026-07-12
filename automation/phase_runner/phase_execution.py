@@ -12,6 +12,7 @@ STANDARD_REQUIRED_TURNS = (
     "plan",
     "implement",
     "review",
+    "repair_plan",
     "repair",
     "test_review",
     "test_repair_plan",

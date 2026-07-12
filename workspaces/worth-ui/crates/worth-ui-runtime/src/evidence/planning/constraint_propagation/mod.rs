@@ -36,7 +36,8 @@ pub use results::{
     UiConstraintSiblingNegotiationResult, UiConstraintSiblingNegotiationSolveOrder,
     UiConstraintViewportPlanningInputResult, UiPortalAnchorPlanningInputPosture,
     UiPortalAnchorPlanningInputSolveOrder, UiScrollOwnerPlanningInputPosture,
-    UiScrollOwnerPlanningInputSolveOrder, UiViewportPlanningInputPosture,
+    UiScrollOwnerPlanningInputSolveOrder, UiScrollOwnerSourceAdmissionCounters,
+    UiScrollOwnerSourceEvidence, UiScrollOwnerSourceKind, UiViewportPlanningInputPosture,
     UiViewportPlanningInputSolveOrder,
 };
 pub use sibling_negotiation_group::UiConstraintSiblingNegotiationGroup;

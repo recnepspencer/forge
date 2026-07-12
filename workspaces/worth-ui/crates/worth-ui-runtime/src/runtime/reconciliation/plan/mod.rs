@@ -4,8 +4,11 @@ mod worth_ui_durable_state_reconciliation_denial;
 mod worth_ui_durable_state_reconciliation_plan;
 mod worth_ui_durable_state_reconciliation_receipt;
 
+pub(crate) use worth_ui_admitted_durable_resize_input::WorthUiDurableResizeSourceAuthority;
 pub use worth_ui_admitted_durable_resize_input::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputPosture,
+    WorthUiAdmittedDurableResizeInput, WorthUiAdmittedDurableResizeSourceFact,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableResizeInputPosture,
+    WorthUiDurableResizeSourceAdmissionDenial,
 };
 pub use worth_ui_durable_state_reconciliation_counters::WorthUiDurableStateReconciliationCounters;
 pub use worth_ui_durable_state_reconciliation_denial::WorthUiDurableStateReconciliationDenial;

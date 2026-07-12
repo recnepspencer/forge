@@ -22,3 +22,18 @@ impl UiMeasurementBasis {
         admit_neighborhood_from_graph(snapshot, self)
     }
 }
+
+impl UiGraphSnapshot {
+    pub(crate) fn allocation_planning_node_identities(
+        &self,
+    ) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
+        self.nodes().iter().filter_map(|node| {
+            let identity = node.graph_node_identity();
+            let layout = node
+                .participation_posture()
+                .axis(crate::graph::UiGraphParticipationAxis::Layout);
+            super::membership::layout_participates_in_planning(self, identity, layout)
+                .then_some(identity)
+        })
+    }
+}

@@ -205,7 +205,8 @@ fn distinct_slot_participation_kinds_do_not_collapse_with_identical_family_and_p
 fn synthetic_neighborhood(
     layout_operator_contract_identity_digest: u64,
 ) -> UiAllocationNeighborhood {
-    UiAllocationNeighborhood::new_with_authority(
+    let authority = super::UiAllocationNeighborhoodEvidenceTestAuthority::mint();
+    UiAllocationNeighborhood::new_for_evidence_test(
         UiGraphNodeIdentity::new(801),
         UiGraphGeneration::initial(),
         77,
@@ -233,14 +234,16 @@ fn synthetic_neighborhood(
         UiMeasurementDependencyMap::new(vec![]),
         UiAllocationNeighborhoodClass::ContainerPeerGroup,
         UiAllocationNeighborhoodMembershipRule::ParentSlotPeerGroup,
-        vec![UiAllocationNeighborhoodMember::new(
+        vec![UiAllocationNeighborhoodMember::new_for_evidence_test(
             UiGraphNodeIdentity::new(801),
             801,
             UiRepeatedInstanceBasis::unavailable(),
             UiGraphAxisParticipation::runtime_mutation(UiGraphParticipationStatus::Admitted),
             UiAllocationNeighborhoodMemberRole::Root,
             None,
+            &authority,
         )],
+        &authority,
     )
 }
 

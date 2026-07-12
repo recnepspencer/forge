@@ -3,7 +3,7 @@ use crate::runtime::{
     WorthUiFileRustReplacementSemanticReceipt,
 };
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiFileRustReplacementParityReceipt {
     file_report: WorthUiFileRustReplacementPipelineReport,
     rust_report: WorthUiFileRustReplacementPipelineReport,

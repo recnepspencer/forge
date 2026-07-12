@@ -56,10 +56,11 @@ pub(crate) fn verify_planning_input_alignment(
 
 pub(crate) fn construct_verified_planning_input_handoff(
     pending_activation: &WorthUiPendingActivation,
-    measurement_basis: &UiMeasurementBasis,
-    allocation_neighborhood: &UiAllocationNeighborhood,
-    constraint_set: &UiAllocationConstraintSet,
+    constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
 ) -> Result<WorthUiVerifiedPlanningInputHandoff, WorthUiPlanningInputHandoffDenial> {
+    let measurement_basis = constraint_basis.measurement_basis();
+    let allocation_neighborhood = constraint_basis.neighborhood();
+    let constraint_set = constraint_basis.constraint_set();
     let witness = verify_planning_input_alignment(
         measurement_basis,
         allocation_neighborhood,
@@ -69,9 +70,7 @@ pub(crate) fn construct_verified_planning_input_handoff(
         _witness: witness,
         admission: WorthUiAllocationPlanningAdmission::from_pending_activation(
             pending_activation,
-            measurement_basis,
-            allocation_neighborhood,
-            constraint_set,
+            constraint_basis,
         ),
     })
 }

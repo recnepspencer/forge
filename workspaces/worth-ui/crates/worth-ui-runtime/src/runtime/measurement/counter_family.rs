@@ -24,7 +24,7 @@ pub enum WorthUiRuntimeCounterFamily {
     CanvasSpatialExecution,
     RealtimeOverlayExecution,
     Activation,
-    AtomicPlanSwap,
+    CommittedAllocationActivation,
     SteadyFrameRendering,
     DiagnosticsProjection,
 }
@@ -78,7 +78,7 @@ impl WorthUiRuntimeCounterFamily {
             Self::CanvasSpatialExecution => "lane.canvas_spatial.execution",
             Self::RealtimeOverlayExecution => "lane.realtime_overlay.execution",
             Self::Activation => "activation",
-            Self::AtomicPlanSwap => "activation.atomic_plan_swap",
+            Self::CommittedAllocationActivation => "activation.committed_allocation",
             Self::SteadyFrameRendering => "frame.steady_rendering",
             Self::DiagnosticsProjection => "diagnostics.projection",
         }
@@ -111,7 +111,9 @@ impl WorthUiRuntimeCounterFamily {
             Self::CanvasSpatialExecution => WorthUiMeasurementBoundary::CanvasSpatialExecution,
             Self::RealtimeOverlayExecution => WorthUiMeasurementBoundary::RealtimeOverlayExecution,
             Self::Activation => WorthUiMeasurementBoundary::Activation,
-            Self::AtomicPlanSwap => WorthUiMeasurementBoundary::AtomicPlanSwap,
+            Self::CommittedAllocationActivation => {
+                WorthUiMeasurementBoundary::CommittedAllocationActivation
+            }
             Self::SteadyFrameRendering => WorthUiMeasurementBoundary::SteadyFrameRendering,
             Self::DiagnosticsProjection => WorthUiMeasurementBoundary::DiagnosticsProjection,
         }

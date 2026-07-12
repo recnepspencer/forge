@@ -1,44 +1,83 @@
-use crate::runtime::frame_activation_gate::WorthUiFrameActivationGate;
-use crate::runtime::host::WorthUiRuntimeHost;
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
-    WorthUiActivationGateDenial, WorthUiActivationGateReceipt, WorthUiExecutionPlan,
-    WorthUiExecutionPlanInput, WorthUiFrameBoundary, WorthUiLaneParityReport,
-    WorthUiPendingActivation, WorthUiReadyActivation, WorthUiRuntimeHandleAllocation,
+    WorthUiExecutionPlan, WorthUiFrameBoundary, WorthUiLaneParityReport, WorthUiPendingActivation,
+    WorthUiPlanSwapReceipt,
 };
 
-impl WorthUiRuntimeHost {
-    pub fn safe_frame_boundary(&self) -> WorthUiFrameBoundary {
-        WorthUiFrameBoundary::safe_to_activate(self.frame_epoch())
-    }
+#[derive(Debug)]
+pub enum WorthUiAllocationCatalogActivationDenial {
+    Preparation,
+    PlanInput,
+    HandleAllocation,
+    TopologyAssembly,
+    Attempt(crate::runtime::UiCommittedAllocationActivationDenial),
+}
 
-    pub fn prepare_ready_activation(
-        &self,
+impl WorthUiRuntime {
+    pub fn activate_admitted_allocation_catalog_at_frame_boundary(
+        &mut self,
         pending_activation: WorthUiPendingActivation,
-        plan_input: &WorthUiExecutionPlanInput,
-        handle_allocation: &WorthUiRuntimeHandleAllocation,
-        candidate_plan: &WorthUiExecutionPlan,
-        lane_parity_report: Option<&WorthUiLaneParityReport>,
-    ) -> Result<WorthUiReadyActivation, WorthUiActivationGateDenial> {
-        WorthUiReadyActivation::prepare(
+        admitted_catalog: crate::graph::UiAdmittedAllocationCatalogBasisSet,
+        boundary: WorthUiFrameBoundary,
+        lane_parity_report: Option<WorthUiLaneParityReport>,
+    ) -> Result<WorthUiPlanSwapReceipt, WorthUiAllocationCatalogActivationDenial> {
+        self.activate_admitted_allocation_catalog_with_boundary_source(
             pending_activation,
-            plan_input,
-            handle_allocation,
-            candidate_plan,
-            lane_parity_report,
+            admitted_catalog,
+            |_, _, _, _| Ok((boundary, lane_parity_report)),
         )
     }
 
-    pub fn activate_ready_at_frame_boundary(
-        &self,
-        ready_activation: WorthUiReadyActivation,
-        boundary: WorthUiFrameBoundary,
-    ) -> Result<WorthUiActivationGateReceipt, WorthUiActivationGateDenial> {
-        WorthUiFrameActivationGate::activate_at_boundary(
-            self.inspect_active(),
-            &ready_activation,
+    pub(crate) fn activate_admitted_allocation_catalog_with_boundary_source<F>(
+        &mut self,
+        pending_activation: WorthUiPendingActivation,
+        admitted_catalog: crate::graph::UiAdmittedAllocationCatalogBasisSet,
+        boundary_source: F,
+    ) -> Result<WorthUiPlanSwapReceipt, WorthUiAllocationCatalogActivationDenial>
+    where
+        F: FnOnce(
+            &mut WorthUiRuntime,
+            &crate::runtime::UiAllocationReceipt,
+            &WorthUiExecutionPlan,
+            &crate::runtime::WorthUiAllocationPlanning,
+        ) -> Result<
+            (WorthUiFrameBoundary, Option<WorthUiLaneParityReport>),
+            WorthUiAllocationCatalogActivationDenial,
+        >,
+    {
+        let plan_input = self
+            .prepare_execution_plan_input(&pending_activation)
+            .map_err(|_| WorthUiAllocationCatalogActivationDenial::PlanInput)?;
+        let prepared = self
+            .prepare_allocation_catalog_activation(&pending_activation, admitted_catalog)
+            .map_err(|_| WorthUiAllocationCatalogActivationDenial::Preparation)?;
+        let receipt = prepared.primary_receipt().clone();
+        let handles = self
+            .allocate_runtime_handles(&receipt)
+            .map_err(|_| WorthUiAllocationCatalogActivationDenial::HandleAllocation)?;
+        let candidate_plan = match self.assemble_execution_plan_topology(&receipt, &handles) {
+            Ok(plan) => plan,
+            Err(_) => return Err(WorthUiAllocationCatalogActivationDenial::TopologyAssembly),
+        };
+        let (boundary, lane_parity_report) =
+            boundary_source(self, &receipt, &candidate_plan, prepared.primary_planning())?;
+        match prepared.activate(
+            self,
+            pending_activation,
+            &plan_input,
+            &handles,
+            candidate_plan,
             boundary,
-            self.frame_epoch(),
-        )
+            lane_parity_report.as_ref(),
+        ) {
+            Ok(receipt) => Ok(receipt),
+            Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(denial)),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn safe_frame_boundary(&self) -> WorthUiFrameBoundary {
+        WorthUiFrameBoundary::safe_to_activate(self.frame_epoch())
     }
 
     #[cfg(test)]

@@ -17,6 +17,37 @@ pub enum UiScrollOwnerPlanningInputPosture {
     IncompatibleMeasurementPosture,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct UiScrollOwnerSourceAdmissionCounters {
+    source_inputs_visited: u64,
+    admitted_sources: u64,
+    duplicates_elided: u64,
+}
+
+impl UiScrollOwnerSourceAdmissionCounters {
+    pub(crate) const fn new(
+        source_inputs_visited: u64,
+        admitted_sources: u64,
+        duplicates_elided: u64,
+    ) -> Self {
+        Self {
+            source_inputs_visited,
+            admitted_sources,
+            duplicates_elided,
+        }
+    }
+
+    pub const fn source_inputs_visited(self) -> u64 {
+        self.source_inputs_visited
+    }
+    pub const fn admitted_sources(self) -> u64 {
+        self.admitted_sources
+    }
+    pub const fn duplicates_elided(self) -> u64 {
+        self.duplicates_elided
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiConstraintScrollOwnerPlanningInputResult {
     neighborhood_identity_digest: u64,
@@ -28,12 +59,15 @@ pub struct UiConstraintScrollOwnerPlanningInputResult {
     coordinate_space: Option<UiMeasurementCoordinateSpace>,
     rounding_posture: Option<UiMeasurementRoundingPosture>,
     planning_time_only: bool,
+    source_evidence: Box<[super::UiScrollOwnerSourceEvidence]>,
+    source_admission_counters: UiScrollOwnerSourceAdmissionCounters,
     identity_digest: u64,
 }
 
 impl UiConstraintScrollOwnerPlanningInputResult {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        mint_authority: &crate::graph::UiGraphConstraintMintAuthority,
         neighborhood_identity_digest: u64,
         solve_order: UiScrollOwnerPlanningInputSolveOrder,
         posture: UiScrollOwnerPlanningInputPosture,
@@ -43,7 +77,16 @@ impl UiConstraintScrollOwnerPlanningInputResult {
         coordinate_space: Option<UiMeasurementCoordinateSpace>,
         rounding_posture: Option<UiMeasurementRoundingPosture>,
         planning_time_only: bool,
+        mut source_evidence: Vec<super::UiScrollOwnerSourceEvidence>,
+        source_admission_counters: UiScrollOwnerSourceAdmissionCounters,
     ) -> Self {
+        let _ = mint_authority;
+        source_evidence.sort_unstable();
+        source_evidence.dedup();
+        let source_set_digest = source_evidence.iter().fold(
+            stable_text_digest("worth-ui.scroll-source-set"),
+            |digest, source| digest.rotate_left(7) ^ source.identity_digest(),
+        );
         let identity_digest = stable_text_digest("worth-ui.constraint-scroll-owner-planning-input")
             ^ neighborhood_identity_digest.rotate_left(7)
             ^ solve_order_digest(solve_order).rotate_left(13)
@@ -61,7 +104,15 @@ impl UiConstraintScrollOwnerPlanningInputResult {
             ^ unit_posture_digest(unit_posture).rotate_left(31)
             ^ coordinate_space_digest(coordinate_space).rotate_left(37)
             ^ rounding_posture_digest(rounding_posture).rotate_left(41)
-            ^ bool_digest(planning_time_only).rotate_left(43);
+            ^ bool_digest(planning_time_only).rotate_left(43)
+            ^ source_set_digest.rotate_left(47)
+            ^ source_admission_counters
+                .source_inputs_visited()
+                .rotate_left(17)
+            ^ source_admission_counters.admitted_sources().rotate_left(31)
+            ^ source_admission_counters
+                .duplicates_elided()
+                .rotate_left(53);
         Self {
             neighborhood_identity_digest,
             solve_order,
@@ -72,6 +123,8 @@ impl UiConstraintScrollOwnerPlanningInputResult {
             coordinate_space,
             rounding_posture,
             planning_time_only,
+            source_evidence: source_evidence.into_boxed_slice(),
+            source_admission_counters,
             identity_digest,
         }
     }
@@ -118,6 +171,19 @@ impl UiConstraintScrollOwnerPlanningInputResult {
 
     pub fn identity_digest(&self) -> u64 {
         self.identity_digest
+    }
+    pub fn source_evidence(&self) -> &[super::UiScrollOwnerSourceEvidence] {
+        &self.source_evidence
+    }
+    pub fn source_set_digest(&self) -> u64 {
+        self.source_evidence.iter().fold(
+            stable_text_digest("worth-ui.scroll-source-set"),
+            |digest, source| digest.rotate_left(7) ^ source.identity_digest(),
+        )
+    }
+
+    pub fn source_admission_counters(&self) -> UiScrollOwnerSourceAdmissionCounters {
+        self.source_admission_counters
     }
 }
 

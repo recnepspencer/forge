@@ -2,6 +2,7 @@ use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::active::{
     WorthUiActiveArtifact, WorthUiActiveExecutionPlan, WorthUiActiveRuntimeObservation,
 };
+use crate::runtime::allocation_frame_dispatch::UiAllocationFrameEpochAssignment;
 use crate::runtime::{
     WorthUiRuntimeActivationStatus, WorthUiRuntimeDiagnosticPolicy, WorthUiRuntimeFrameEpoch,
     WorthUiRuntimeLifecycle,
@@ -96,16 +97,15 @@ impl WorthUiActiveRuntimeState {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn replace_artifact_for_swap_injection_for_test(
+    pub(crate) fn apply_allocation_frame_epoch_assignment(
         &mut self,
-        active_artifact: WorthUiActiveArtifact,
+        assignment: UiAllocationFrameEpochAssignment,
     ) {
-        self.active_artifact = active_artifact;
+        self.frame_epoch = assignment.epoch();
     }
 
     #[cfg(test)]
-    pub(crate) fn advance_frame_epoch_for_test(&mut self, frame_epoch: WorthUiRuntimeFrameEpoch) {
-        self.frame_epoch = frame_epoch;
+    pub(crate) fn advance_frame_epoch_for_test(&mut self) {
+        self.frame_epoch = self.frame_epoch.next();
     }
 }

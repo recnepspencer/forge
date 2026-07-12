@@ -25,14 +25,14 @@ fn equivalent_realtime_plans_produce_equivalent_hud_receipts() {
             &left.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(left_surface),
         )
-        .expect("left realtime frame executes");
+        .expect("runtime frame execution succeeds");
     let right_receipt = right
         .runtime
         .execute_realtime_frame(
             &right.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(right_surface),
         )
-        .expect("right realtime frame executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(
         left.hud_plan.hud_plan_digest(),
@@ -63,7 +63,7 @@ fn renderer_surface_handle_does_not_bypass_platform_identity() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(surface),
         )
-        .expect("renderer surface executes through HUD lane");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(receipt.renderer_surface_admission().handle(), surface);
     assert_eq!(
@@ -199,7 +199,7 @@ fn realtime_lane_rejects_ordinary_widget_fallback() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::ordinary_widget_fallback_for_test(component),
         )
-        .expect_err("ordinary widget fallback cannot execute realtime lane");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -221,7 +221,7 @@ fn realtime_lane_rejects_stale_renderer_surface_generation() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(stale_surface),
         )
-        .expect_err("stale renderer surface generation cannot execute");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -245,7 +245,7 @@ fn realtime_lane_rejects_renderer_surface_not_in_hud_plan() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(absent_surface),
         )
-        .expect_err("absent renderer surface cannot execute");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -267,7 +267,7 @@ fn realtime_lane_counter_detects_hidden_ordinary_layout_pass() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::hidden_ordinary_layout_pass_for_test(surface),
         )
-        .expect_err("hidden ordinary layout pass fails certification");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),
@@ -287,7 +287,7 @@ fn custom_realtime_hook_cannot_suppress_forbidden_work_counters() {
             &fixture.hud_plan,
             WorthUiRealtimeFrameTarget::forbidden_work_suppression_for_test(surface),
         )
-        .expect_err("forbidden work counters cannot be suppressed");
+        .expect_err("runtime frame execution denies");
 
     assert_eq!(
         denial.reason(),

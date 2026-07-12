@@ -15,31 +15,31 @@ use crate::runtime::diagnostics::mapping::replacement::{
     diagnostic_for_identity_matching, diagnostic_for_impact_narrowing,
     diagnostic_for_invalid_candidate, diagnostic_for_replacement_impact,
 };
-use crate::runtime::diagnostics::mapping::swap::diagnostic_for_plan_swap;
-use crate::runtime::host::WorthUiRuntimeHost;
+use crate::runtime::diagnostics::mapping::swap::diagnostic_for_committed_allocation_denial;
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiActivationGateDenial, WorthUiActivationStagingDenial, WorthUiCandidateAdmissionDenial,
     WorthUiDiagnosticRichnessPolicy, WorthUiDiagnosticSource,
     WorthUiDurableStateReconciliationDenial, WorthUiIdentityMatchDenial,
     WorthUiLaneAdmissionDenial, WorthUiPlanInspectionDenial, WorthUiPlanLoweringDenial,
-    WorthUiPlanSwapRollback, WorthUiQueryBindingDriftDenial, WorthUiQueryLiveRebindPlanDenial,
-    WorthUiReloadFailure, WorthUiReplacementCandidateDenial, WorthUiReplacementImpactDenial,
+    WorthUiQueryBindingDriftDenial, WorthUiQueryLiveRebindPlanDenial, WorthUiReloadFailure,
+    WorthUiReplacementCandidateDenial, WorthUiReplacementImpactDenial,
     WorthUiRuntimeArtifactComparisonDenial, WorthUiRuntimeDiagnostic, WorthUiRuntimeDiagnosticCode,
     WorthUiRuntimeDiagnosticFamily, WorthUiRuntimeDiagnosticReport,
     WorthUiRuntimeImpactNarrowingDenial,
 };
 
 pub struct WorthUiRuntimeDiagnostics<'a> {
-    runtime: &'a WorthUiRuntimeHost,
+    runtime: &'a WorthUiRuntime,
 }
 
 pub struct WorthUiRuntimeDiagnosticRequest<'a> {
-    runtime: &'a WorthUiRuntimeHost,
+    runtime: &'a WorthUiRuntime,
     rows: Vec<WorthUiRuntimeDiagnostic>,
     policy: WorthUiDiagnosticRichnessPolicy,
 }
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn diagnostics(&self) -> WorthUiRuntimeDiagnostics<'_> {
         WorthUiRuntimeDiagnostics { runtime: self }
     }
@@ -144,11 +144,11 @@ impl<'a> WorthUiRuntimeDiagnostics<'a> {
         self.request(vec![diagnostic_for_activation_gate(denial)])
     }
 
-    pub fn for_plan_swap(
+    pub fn for_committed_allocation_denial(
         self,
-        rollback: WorthUiPlanSwapRollback,
+        denial: &crate::runtime::UiCommittedAllocationActivationDenial,
     ) -> WorthUiRuntimeDiagnosticRequest<'a> {
-        self.request(vec![diagnostic_for_plan_swap(rollback)])
+        self.request(vec![diagnostic_for_committed_allocation_denial(denial)])
     }
 
     pub fn for_plan_inspection(

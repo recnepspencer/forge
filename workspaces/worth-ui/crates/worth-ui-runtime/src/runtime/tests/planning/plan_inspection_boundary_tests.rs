@@ -6,7 +6,6 @@ use super::plan_inspection_expected_provenance::{
 use crate::runtime::{
     WorthUiAllocationPlanning, WorthUiExecutionPlan, WorthUiExecutionPlanInput,
     WorthUiPlanInspectionDenialReason, WorthUiPlanNodeInputFamily, WorthUiPlanProvenanceSource,
-    WorthUiRuntimeHandleAllocation,
 };
 
 #[test]
@@ -203,7 +202,7 @@ fn plan_inspection_rejects_mismatched_plan_input_before_provenance() {
         allocation_planning(&runtime, &mismatched_input, "plan-inspection.mismatch");
 
     let denial = runtime
-        .inspect_execution_plan(&plan, &mismatched_planning)
+        .inspect_execution_plan(&plan, mismatched_planning.planning())
         .expect_err("mismatched plan input denies inspection");
 
     assert_eq!(
@@ -227,7 +226,7 @@ fn plan_inspection_rejects_same_shape_wrong_plan_input_receipt() {
     );
 
     let denial = runtime
-        .inspect_execution_plan(&plan, &wrong_provenance_planning)
+        .inspect_execution_plan(&plan, wrong_provenance_planning.planning())
         .expect_err("same-shape wrong provenance input denies inspection");
 
     assert_eq!(
@@ -241,7 +240,7 @@ fn plan_inspection_rejects_same_shape_wrong_plan_input_receipt() {
 }
 
 fn inspection_fixture() -> (
-    crate::runtime::WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiExecutionPlanInput,
     WorthUiAllocationPlanning,
     WorthUiExecutionPlan,
@@ -251,27 +250,30 @@ fn inspection_fixture() -> (
     let plan_input = runtime
         .prepare_execution_plan_input(&pending)
         .expect("plan input prepares");
-    let measurement_basis = super::allocation_planning_test_support::admitted_measurement_basis(
-        "plan-inspection.fixture",
+    let (measurement_basis, graph_snapshot, selected_obligations) =
+        super::allocation_planning_test_support::admitted_planning_admission(
+            "plan-inspection.fixture",
+            "operator:stack",
+        );
+    let candidate = runtime.plan_allocation(
+        runtime
+            .admit_planning_lane_input(
+                &pending,
+                &graph_snapshot,
+                measurement_basis,
+                &selected_obligations,
+            )
+            .expect("inspection fixture admits through graph authority"),
     );
-    let neighborhood = super::allocation_planning_test_support::admitted_allocation_neighborhood(
-        "plan-inspection.fixture",
-    );
-    let planning = runtime.plan_allocation(&pending, &measurement_basis, &neighborhood);
-    let allocation = allocate_handles(&runtime, &planning);
+    let planning = candidate.planning().clone();
+    let receipt = runtime.detached_allocation_receipt_for_test(&candidate);
+    let allocation = runtime
+        .allocate_runtime_handles(&receipt)
+        .expect("handles allocate");
     let plan = runtime
-        .assemble_execution_plan_topology(&planning, &allocation)
+        .assemble_execution_plan_topology(&receipt, &allocation)
         .expect("topology assembles");
     (runtime, plan_input, planning, plan)
-}
-
-fn allocate_handles(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
-    planning: &WorthUiAllocationPlanning,
-) -> WorthUiRuntimeHandleAllocation {
-    runtime
-        .allocate_runtime_handles(planning)
-        .expect("handles allocate")
 }
 
 fn plan_input_with_first_different_family(

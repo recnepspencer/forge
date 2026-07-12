@@ -11,6 +11,35 @@ pub(crate) fn measurement_result_identity_digest(result: &UiMeasurementResult) -
             .assumption_profile()
             .profile_identity_digest()
             .rotate_left(31)
+        ^ measurement_value_digest(result.value()).rotate_left(37)
+}
+
+fn measurement_value_digest(value: &super::UiMeasurementValue) -> u64 {
+    use super::UiMeasurementValue;
+    match value {
+        UiMeasurementValue::TextIntrinsicSize(value) => pair(value.width, value.height),
+        UiMeasurementValue::TextBaselineMetrics(value) => {
+            triple(value.ascent, value.descent, value.baseline)
+        }
+        UiMeasurementValue::FontMetrics(value) => {
+            triple(value.ascent, value.descent, value.line_gap)
+        }
+        UiMeasurementValue::NativeControlIntrinsicSize(value) => pair(value.width, value.height),
+        UiMeasurementValue::ViewportExtent(value) => pair(value.width, value.height),
+        UiMeasurementValue::DpiScaleFactor(value) => u64::from(value.scale_factor.to_bits()),
+        UiMeasurementValue::PortalAnchorRect(value) => {
+            pair(value.x, value.y) ^ pair(value.width, value.height).rotate_left(29)
+        }
+        UiMeasurementValue::ScrollContainerViewport(value) => pair(value.width, value.height),
+    }
+}
+
+fn pair(first: f32, second: f32) -> u64 {
+    u64::from(first.to_bits()) ^ u64::from(second.to_bits()).rotate_left(32)
+}
+
+fn triple(first: f32, second: f32, third: f32) -> u64 {
+    pair(first, second) ^ u64::from(third.to_bits()).rotate_left(17)
 }
 
 fn stable_text_digest(text: &str) -> u64 {

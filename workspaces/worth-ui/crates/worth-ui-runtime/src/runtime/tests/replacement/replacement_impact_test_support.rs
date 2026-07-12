@@ -10,7 +10,7 @@ use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiReplacementCause,
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch,
+    WorthUiRuntime, WorthUiRuntimeLaunch,
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
@@ -25,7 +25,7 @@ use crate::source::{
 
 pub(super) fn admitted_candidate(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     artifact: WorthUiArtifact,
 ) -> WorthUiAdmittedReplacementCandidate {
     let candidate = rust_authored_replacement_candidate(
@@ -39,7 +39,10 @@ pub(super) fn admitted_candidate(
         .expect("candidate admits")
 }
 
-pub(super) fn launch_runtime(app: &WorthUiApp, artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+pub(super) fn launch_runtime(
+    app: &WorthUiApp,
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(artifact))
         .expect("runtime launches")
 }

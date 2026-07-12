@@ -12,6 +12,7 @@ pub(super) fn admit_portal_anchor_planning_input(
     neighborhood: &UiAllocationNeighborhood,
     portal_anchor_required: bool,
     allowed_families: &[UiConstraintPropagationEdgeFamily],
+    successor: Option<&crate::runtime::UiPortalAllocationPlanningBasis>,
 ) -> Result<Option<UiConstraintPortalAnchorPlanningInputResult>, UiConstraintPropagationDenial> {
     if !allowed_families.contains(&UiConstraintPropagationEdgeFamily::PortalAnchorInput) {
         return Ok(None);
@@ -25,7 +26,10 @@ pub(super) fn admit_portal_anchor_planning_input(
         .layout_operator_planning_contract()
         .identity()
         .identity_digest();
-    let result = match portal_anchor_source(measurement_basis) {
+    let result = match successor
+        .map(portal_successor_source)
+        .or_else(|| portal_anchor_source(measurement_basis))
+    {
         Some((source_identity_digest, source_generation_digest, unit, coordinate, rounding)) => {
             let posture = if measurement_basis.generation_compatibility().is_compatible() {
                 UiPortalAnchorPlanningInputPosture::AdmittedPlanningTimeOnly
@@ -78,6 +82,25 @@ pub(super) fn admit_portal_anchor_planning_input(
             ))
         }
     }
+}
+
+fn portal_successor_source(
+    successor: &crate::runtime::UiPortalAllocationPlanningBasis,
+) -> (
+    u64,
+    u64,
+    UiMeasurementUnitPosture,
+    UiMeasurementCoordinateSpace,
+    UiMeasurementRoundingPosture,
+) {
+    let observation = successor.observation();
+    (
+        successor.identity_digest(),
+        observation.evidence_generation().as_u64(),
+        observation.unit_posture(),
+        observation.identity().coordinate_space(),
+        observation.rounding_posture(),
+    )
 }
 
 fn portal_anchor_source(

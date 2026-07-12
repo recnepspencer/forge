@@ -105,6 +105,7 @@ impl MeasurementEvidenceInput {
             Self::HostMeasurementResult(result) => {
                 stable_text_digest("measurement-evidence-input:host-measurement-result")
                     ^ result.request_identity().as_u64().rotate_left(7)
+                    ^ result.request_shape_digest().rotate_left(11)
                     ^ measurement_category_digest(result.evidence_category()).rotate_left(13)
                     ^ result
                         .assumption_profile()

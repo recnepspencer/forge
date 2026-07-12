@@ -1,5 +1,9 @@
 use super::allocation_planning_test_support::allocation_planning;
 use super::realtime_overlay_lane_pending_activation_fixture::pending_plan_input;
+use super::realtime_overlay_plan_input_fixture::{
+    plan_input_with_drifted_diagnostics_ref, plan_input_with_duplicate_render_ref,
+    plan_input_without_family,
+};
 use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime,
 };
@@ -7,8 +11,8 @@ use crate::runtime::{
     WorthUiComponentLoweringHook, WorthUiExecutionLane, WorthUiExecutionLaneSupport,
     WorthUiExecutionPlan, WorthUiExecutionPlanInput, WorthUiExtensionHookAdmission,
     WorthUiHighFrequencyFramePolicy, WorthUiHudPlan, WorthUiHudPlanDenial, WorthUiLaneAdapterHook,
-    WorthUiLaneAdmission, WorthUiPlanNodeInputFamily, WorthUiRealtimeFramePriority,
-    WorthUiRuntimeHandleAllocation, WorthUiRuntimeHost,
+    WorthUiLaneAdmission, WorthUiPlanNodeInputFamily, WorthUiRealtimeFramePriority, WorthUiRuntime,
+    WorthUiRuntimeHandleAllocation,
 };
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
@@ -56,16 +60,17 @@ pub(super) fn realtime_denial_for_missing_realtime_support() -> WorthUiHudPlanDe
     let support = WorthUiExecutionLaneSupport::without_lane_for_test(
         WorthUiExecutionLane::RealtimeOverlayHud,
     );
+    let planning = allocation_planning(
+        &context.runtime,
+        &context.plan_input,
+        "realtime-overlay.missing-support",
+    );
+    let receipt = context
+        .runtime
+        .detached_allocation_receipt_for_test(&planning);
     let lane_admission = context
         .runtime
-        .admit_execution_lanes(
-            &allocation_planning(
-                &context.runtime,
-                &context.plan_input,
-                "realtime-overlay.missing-support",
-            ),
-            &support,
-        )
+        .admit_execution_lanes(&receipt, &support)
         .expect("plan input can admit without realtime support row");
     context
         .runtime
@@ -82,15 +87,15 @@ pub(super) fn realtime_denial_for_missing_realtime_support() -> WorthUiHudPlanDe
 pub(super) fn realtime_denial_for_stale_lane_admission() -> WorthUiHudPlanDenial {
     let context = realtime_overlay_context();
     let drifted_plan_input = plan_input_with_duplicate_render_ref(&context.plan_input);
+    let receipt_runtime = fresh_realtime_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "realtime-overlay.stale-admission",
     );
-    let stale_admission = context
-        .runtime
+    let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &drifted_planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission succeeds");
@@ -113,15 +118,15 @@ pub(super) fn realtime_denial_for_stale_lane_admission_without_render_rows() -> 
         &context.plan_input,
         WorthUiPlanNodeInputFamily::RenderResourceRef,
     );
+    let receipt_runtime = fresh_realtime_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "realtime-overlay.stale-admission.no-render",
     );
-    let stale_admission = context
-        .runtime
+    let stale_admission = receipt_runtime
         .admit_execution_lanes(
-            &drifted_planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
             &WorthUiExecutionLaneSupport::platform_default(),
         )
         .expect("drifted lane admission without render rows succeeds");
@@ -140,14 +145,16 @@ pub(super) fn realtime_denial_for_stale_lane_admission_without_render_rows() -> 
 pub(super) fn realtime_denial_for_mismatched_handle_allocation() -> WorthUiHudPlanDenial {
     let context = realtime_overlay_context();
     let drifted_plan_input = plan_input_with_drifted_diagnostics_ref(&context.plan_input);
+    let receipt_runtime = fresh_realtime_runtime();
     let drifted_planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &drifted_plan_input,
         "realtime-overlay.drifted-allocation",
     );
-    let drifted_allocation = context
-        .runtime
-        .allocate_runtime_handles(&drifted_planning)
+    let drifted_allocation = receipt_runtime
+        .allocate_runtime_handles(
+            &receipt_runtime.detached_allocation_receipt_for_test(&drifted_planning),
+        )
         .expect("drifted handle allocation succeeds");
     context
         .runtime
@@ -167,30 +174,30 @@ pub(super) fn realtime_denial_for_no_hud_rows() -> WorthUiHudPlanDenial {
         &context.plan_input,
         WorthUiPlanNodeInputFamily::RenderResourceRef,
     );
+    let receipt_runtime = fresh_realtime_runtime();
     let planning = allocation_planning(
-        &context.runtime,
+        &receipt_runtime,
         &plan_input,
         "realtime-overlay.no-hud-rows",
     );
-    let allocation = context
-        .runtime
-        .allocate_runtime_handles(&planning)
+    let allocation = receipt_runtime
+        .allocate_runtime_handles(&receipt_runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handle allocation succeeds without render resource rows");
-    let lane_admission = context
-        .runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
+    let lane_admission = receipt_runtime
+        .admit_execution_lanes(
+            &receipt_runtime.detached_allocation_receipt_for_test(&planning),
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds without render resource rows");
-    let execution_plan = context
-        .runtime
+    let execution_plan = receipt_runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &receipt_runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
         .expect("execution plan topology assembles without render resource rows");
-    let hook_admissions = realtime_hook_admissions(&context.runtime, &lane_admission);
-    context
-        .runtime
+    let hook_admissions = realtime_hook_admissions(&receipt_runtime, &lane_admission);
+    receipt_runtime
         .prepare_hud_plan(
             &execution_plan,
             &allocation,
@@ -201,14 +208,19 @@ pub(super) fn realtime_denial_for_no_hud_rows() -> WorthUiHudPlanDenial {
         .expect_err("HUD plan rejects plan with no render resource rows")
 }
 
+fn fresh_realtime_runtime() -> crate::runtime::WorthUiRuntimeFrameworkLoop {
+    let app = impact_test_app();
+    launch_runtime(&app, realtime_source_artifact(&app))
+}
+
 pub(super) struct RealtimeOverlayFixture {
-    pub(super) runtime: WorthUiRuntimeHost,
+    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     pub(super) hud_plan: WorthUiHudPlan,
     pub(super) allocation: WorthUiRuntimeHandleAllocation,
 }
 
 struct RealtimeOverlayContext {
-    runtime: WorthUiRuntimeHost,
+    runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     plan_input: WorthUiExecutionPlanInput,
     allocation: WorthUiRuntimeHandleAllocation,
     execution_plan: WorthUiExecutionPlan,
@@ -243,15 +255,18 @@ fn realtime_overlay_context() -> RealtimeOverlayContext {
         .expect("execution plan input prepares");
     let planning = allocation_planning(&runtime, &plan_input, "realtime-overlay.fixture");
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("handle allocation succeeds");
     let lane_admission = runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &WorthUiExecutionLaneSupport::platform_default(),
+        )
         .expect("lane admission succeeds");
     let hook_admissions = realtime_hook_admissions(&runtime, &lane_admission);
     let execution_plan = runtime
         .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
+            &runtime.detached_allocation_receipt_for_test(&planning),
             &allocation,
             &lane_admission,
         )
@@ -321,7 +336,7 @@ fn realtime_component_hooks() -> [WorthUiComponentLoweringHook; 5] {
 }
 
 fn realtime_hook_admissions(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     lane_admission: &WorthUiLaneAdmission,
 ) -> Vec<WorthUiExtensionHookAdmission> {
     [WorthUiLaneAdapterHook::realtime_overlay_mechanics(
@@ -334,61 +349,4 @@ fn realtime_hook_admissions(
             .expect("realtime hook admits against platform support")
     })
     .collect()
-}
-
-fn plan_input_with_duplicate_render_ref(
-    plan_input: &WorthUiExecutionPlanInput,
-) -> WorthUiExecutionPlanInput {
-    let duplicated = plan_input
-        .node_inputs()
-        .iter()
-        .find(|input| input.family() == WorthUiPlanNodeInputFamily::RenderResourceRef)
-        .expect("fixture has render resource ref")
-        .clone()
-        .with_identity_basis_for_test("realtime.fixture.render_ref.drift");
-    let mut node_inputs = plan_input.node_inputs().to_vec();
-    node_inputs.push(duplicated);
-    WorthUiExecutionPlanInput::new(
-        plan_input.basis().clone(),
-        plan_input.context().clone(),
-        node_inputs,
-        plan_input.counters(),
-    )
-}
-
-fn plan_input_with_drifted_diagnostics_ref(
-    plan_input: &WorthUiExecutionPlanInput,
-) -> WorthUiExecutionPlanInput {
-    let mut node_inputs = plan_input.node_inputs().to_vec();
-    let diagnostics_index = node_inputs
-        .iter()
-        .position(|input| input.family() == WorthUiPlanNodeInputFamily::DiagnosticsRef)
-        .expect("fixture has diagnostics ref");
-    node_inputs[diagnostics_index] = node_inputs[diagnostics_index]
-        .clone()
-        .with_identity_basis_for_test("realtime.fixture.diagnostics.allocation_drift");
-    WorthUiExecutionPlanInput::new(
-        plan_input.basis().clone(),
-        plan_input.context().clone(),
-        node_inputs,
-        plan_input.counters(),
-    )
-}
-
-fn plan_input_without_family(
-    plan_input: &WorthUiExecutionPlanInput,
-    removed_family: WorthUiPlanNodeInputFamily,
-) -> WorthUiExecutionPlanInput {
-    let node_inputs = plan_input
-        .node_inputs()
-        .iter()
-        .filter(|input| input.family() != removed_family)
-        .cloned()
-        .collect();
-    WorthUiExecutionPlanInput::new(
-        plan_input.basis().clone(),
-        plan_input.context().clone(),
-        node_inputs,
-        plan_input.counters(),
-    )
 }

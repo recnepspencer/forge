@@ -6,9 +6,7 @@ use crate::facade::registry::{
     ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass,
 };
-use crate::runtime::{
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatcherEvent,
-};
+use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatcherEvent};
 use crate::source::{
     WorthUiArtifact, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
     WorthUiIdentitySeedLowerer, WorthUiRustAuthoredArtifactInput,
@@ -82,7 +80,10 @@ pub(super) fn replacement_candidate(
         .into_candidate()
 }
 
-pub(super) fn launch_runtime(app: &WorthUiApp, artifact: WorthUiArtifact) -> WorthUiRuntimeHost {
+pub(super) fn launch_runtime(
+    app: &WorthUiApp,
+    artifact: WorthUiArtifact,
+) -> crate::runtime::WorthUiRuntime {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(artifact))
         .expect("runtime launches")
 }

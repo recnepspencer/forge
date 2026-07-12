@@ -125,7 +125,7 @@ fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrame
             &ordinary_plan,
             WorthUiOrdinaryFrameTarget::component(ordinary_handle),
         )
-        .expect("ordinary frame executes");
+        .expect("runtime frame execution succeeds");
 
     let virtualized = virtualized_data_fixture();
     let data_handle = first_view_binding_handle(&virtualized.allocation);
@@ -136,7 +136,7 @@ fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrame
             &virtualized.data_plan,
             WorthUiVirtualizedDataFrameTarget::view_binding(data_handle, range),
         )
-        .expect("virtualized frame executes");
+        .expect("runtime frame execution succeeds");
 
     let canvas = canvas_spatial_fixture();
     let canvas_lane = canvas.canvas_plan.rows()[0].lane_handle();
@@ -151,7 +151,7 @@ fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrame
                 ),
             ),
         )
-        .expect("canvas frame executes");
+        .expect("runtime frame execution succeeds");
 
     let realtime = realtime_overlay_fixture();
     let surface = realtime.hud_plan.renderer_surfaces()[0].handle();
@@ -161,7 +161,7 @@ fn complete_platform_lane_frame_receipt(active_plan_digest: u64) -> WorthUiFrame
             &realtime.hud_plan,
             WorthUiRealtimeFrameTarget::renderer_surface(surface),
         )
-        .expect("realtime frame executes");
+        .expect("runtime frame execution succeeds");
 
     assert_eq!(
         virtualized_receipt.lane(),

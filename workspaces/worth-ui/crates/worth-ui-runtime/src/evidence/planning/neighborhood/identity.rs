@@ -7,6 +7,7 @@ pub struct UiAllocationNeighborhoodIdentity {
     root_graph_node_identity: UiGraphNodeIdentity,
     graph_generation: UiGraphGeneration,
     world_identity_digest: u64,
+    graph_snapshot_authority_digest: u64,
     measurement_basis_identity_digest: u64,
     layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
     dependency_map_identity_digest: u64,
@@ -20,6 +21,7 @@ impl UiAllocationNeighborhoodIdentity {
         root_graph_node_identity: UiGraphNodeIdentity,
         graph_generation: UiGraphGeneration,
         world_identity_digest: u64,
+        graph_snapshot_authority_digest: u64,
         measurement_basis_identity_digest: u64,
         layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
         dependency_map_identity_digest: u64,
@@ -32,6 +34,7 @@ impl UiAllocationNeighborhoodIdentity {
                 ^ root_graph_node_identity.digest().rotate_left(7)
                 ^ graph_generation.as_u64().rotate_left(13)
                 ^ world_identity_digest.rotate_left(17)
+                ^ graph_snapshot_authority_digest.rotate_left(19)
                 ^ measurement_basis_identity_digest.rotate_left(23)
                 ^ layout_operator_contract_identity
                     .identity_digest()
@@ -45,6 +48,7 @@ impl UiAllocationNeighborhoodIdentity {
             root_graph_node_identity,
             graph_generation,
             world_identity_digest,
+            graph_snapshot_authority_digest,
             measurement_basis_identity_digest,
             layout_operator_contract_identity,
             dependency_map_identity_digest,
@@ -64,6 +68,10 @@ impl UiAllocationNeighborhoodIdentity {
 
     pub fn world_identity_digest(&self) -> u64 {
         self.world_identity_digest
+    }
+
+    pub fn graph_snapshot_authority_digest(&self) -> u64 {
+        self.graph_snapshot_authority_digest
     }
 
     pub fn measurement_basis_identity_digest(&self) -> u64 {

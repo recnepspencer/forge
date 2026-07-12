@@ -5,10 +5,10 @@ use crate::runtime::{
     WorthUiActivationStagingDenial, WorthUiAdmittedReplacementCandidate,
     WorthUiDurableStateReconciliationPlan, WorthUiNodeReplacementPlan, WorthUiPendingActivation,
     WorthUiPendingExecutionPlanLoweringInput, WorthUiQueryLiveRebindPlan,
-    WorthUiReplacementImpactClassification, WorthUiRuntimeHost, WorthUiRuntimeImpactNarrowing,
+    WorthUiReplacementImpactClassification, WorthUiRuntimeImpactNarrowing,
 };
 
-pub(super) fn activation_staging_inputs() -> ActivationStagingInputs {
+pub(crate) fn activation_staging_inputs() -> ActivationStagingInputs {
     let app = standard_query_app();
     let active = query_artifact(&app, "workspace.view_binding.selection");
     let candidate = query_artifact(&app, "workspace.view_binding.selection");
@@ -62,9 +62,9 @@ pub(super) fn activation_staging_inputs() -> ActivationStagingInputs {
     }
 }
 
-pub(super) struct ActivationStagingInputs {
+pub(crate) struct ActivationStagingInputs {
     pub(super) app: WorthUiApp,
-    pub(super) runtime: WorthUiRuntimeHost,
+    pub(super) runtime: crate::runtime::WorthUiRuntimeFrameworkLoop,
     pub(super) admitted: WorthUiAdmittedReplacementCandidate,
     pub(super) impact: WorthUiReplacementImpactClassification,
     pub(super) narrowing: WorthUiRuntimeImpactNarrowing,
@@ -77,7 +77,11 @@ pub(super) struct ActivationStagingInputs {
 impl ActivationStagingInputs {
     pub(super) fn into_app_runtime_and_pending(
         self,
-    ) -> (WorthUiApp, WorthUiRuntimeHost, WorthUiPendingActivation) {
+    ) -> (
+        WorthUiApp,
+        crate::runtime::WorthUiRuntimeFrameworkLoop,
+        WorthUiPendingActivation,
+    ) {
         let pending = self
             .runtime
             .stage_replacement_activation(
@@ -93,7 +97,12 @@ impl ActivationStagingInputs {
         (self.app, self.runtime, pending)
     }
 
-    pub(super) fn into_runtime_and_pending(self) -> (WorthUiRuntimeHost, WorthUiPendingActivation) {
+    pub(crate) fn into_runtime_and_pending(
+        self,
+    ) -> (
+        crate::runtime::WorthUiRuntimeFrameworkLoop,
+        WorthUiPendingActivation,
+    ) {
         let pending = self
             .runtime
             .stage_replacement_activation(

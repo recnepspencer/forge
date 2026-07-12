@@ -3,9 +3,9 @@ use crate::runtime::activation_staging::WorthUiActivationStager;
 use crate::runtime::replacement::WorthUiReplacementLoweringReady;
 use crate::runtime::{WorthUiActivationStagingDenial, WorthUiPendingActivation};
 
-use super::host::WorthUiRuntimeHost;
+use super::runtime_instance::WorthUiRuntime;
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn stage_replacement_activation_from_lowering(
         &self,
         lowering: WorthUiReplacementLoweringReady,

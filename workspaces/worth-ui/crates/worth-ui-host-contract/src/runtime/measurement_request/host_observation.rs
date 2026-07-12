@@ -76,9 +76,7 @@ pub enum UiHostObservationContractDenial {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiHostObservation {
-    request_identity: UiMeasurementRequestIdentity,
-    family: UiMeasurementRequestFamily,
-    evidence_family: UiMeasurementEvidenceFamily,
+    request: UiMeasurementRequest,
     value: UiHostObservationValue,
 }
 
@@ -113,23 +111,25 @@ impl UiHostObservation {
         }
 
         Ok(Self {
-            request_identity: request.identity(),
-            family: request.family(),
-            evidence_family: request.evidence_family(),
+            request: request.clone(),
             value,
         })
     }
 
     pub fn request_identity(&self) -> UiMeasurementRequestIdentity {
-        self.request_identity
+        self.request.identity()
     }
 
     pub fn family(&self) -> UiMeasurementRequestFamily {
-        self.family
+        self.request.family()
     }
 
     pub fn evidence_family(&self) -> UiMeasurementEvidenceFamily {
-        self.evidence_family
+        self.request.evidence_family()
+    }
+
+    pub fn request(&self) -> &UiMeasurementRequest {
+        &self.request
     }
 
     pub fn value(&self) -> &UiHostObservationValue {

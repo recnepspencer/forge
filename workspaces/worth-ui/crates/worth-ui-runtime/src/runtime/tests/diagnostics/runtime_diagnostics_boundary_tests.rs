@@ -1,6 +1,5 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::allocation_planning_test_support::allocation_planning;
-use super::frame_activation_gate_test_support::ready_activation_fixture;
 use super::query_binding_comparison_test_support::{
     denial_presentation_drift_query_app, phase11_pipeline, query_artifact, standard_query_app,
 };
@@ -14,7 +13,7 @@ use crate::runtime::{
 
 #[test]
 fn same_reload_failure_produces_same_diagnostic_codes_and_ordering() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let left = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -48,7 +47,7 @@ fn same_reload_failure_produces_same_diagnostic_codes_and_ordering() {
 
 #[test]
 fn diagnostic_richness_does_not_change_active_plan_or_digest() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let failure = fixture
         .runtime
@@ -137,7 +136,7 @@ fn query_diagnostics_preserve_checked_stop_and_recovery_posture() {
 
 #[test]
 fn diagnostic_richness_tiers_gate_report_materialization() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let failure = fixture
         .runtime
         .preserve_invalid_candidate_reload(missing_artifact_candidate_denial());
@@ -189,7 +188,10 @@ fn diagnostics_never_depend_on_error_message_substrings() {
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(&planning, &support_without_query)
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &support_without_query,
+        )
         .expect_err("unsupported Query lane denies");
 
     let report = runtime
@@ -218,7 +220,7 @@ fn diagnostics_never_depend_on_error_message_substrings() {
 
 #[test]
 fn diagnostic_projection_hook_cannot_create_runtime_truth() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let active_before = fixture.runtime.inspect_active();
     let hook = WorthUiDiagnosticProjectionHook::projection("workspace.diagnostics.panel");
 
@@ -245,7 +247,7 @@ fn diagnostic_projection_hook_cannot_create_runtime_truth() {
 
 #[test]
 fn typed_candidate_admission_diagnostic_family_is_not_a_reload_string() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let denial = WorthUiCandidateAdmissionDenial::SnapshotMismatch {
         candidate_snapshot_digest: 1,
         active_snapshot_digest: 2,

@@ -21,7 +21,7 @@ pub struct UiHostMeasurementFreshnessWitness {
 }
 
 impl UiHostMeasurementFreshnessWitness {
-    pub fn new(
+    pub(crate) fn new(
         current_generation: UiEvidenceAuthorityGeneration,
         current_profile: UiHostMeasurementAssumptionProfile,
     ) -> Self {

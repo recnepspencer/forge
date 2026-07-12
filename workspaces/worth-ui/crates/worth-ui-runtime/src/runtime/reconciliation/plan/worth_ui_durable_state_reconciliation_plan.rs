@@ -1,5 +1,6 @@
 use crate::runtime::{
-    WorthUiAdmittedDurableResizeInput, WorthUiDurableStateFamilyId,
+    WorthUiAdmittedDurableResizeInput, WorthUiDurableResizeInputDisposition,
+    WorthUiDurableResizeInputPosture, WorthUiDurableStateFamilyId,
     WorthUiDurableStateReconciliationCounters, WorthUiDurableStateReconciliationReceipt,
 };
 
@@ -8,11 +9,22 @@ pub struct WorthUiDurableStateReconciliationPlan {
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     receipts: Vec<WorthUiDurableStateReconciliationReceipt>,
-    durable_resize_inputs: Vec<WorthUiAdmittedDurableResizeInput>,
+    durable_resize_dispositions: Vec<WorthUiDurableResizeInputDisposition>,
+    admitted_durable_resize_inputs: Vec<WorthUiAdmittedDurableResizeInput>,
+    authority_generation: u64,
     counters: WorthUiDurableStateReconciliationCounters,
 }
 
 impl WorthUiDurableStateReconciliationPlan {
+    pub fn allocation_durable_semantic_state(
+        &self,
+    ) -> crate::runtime::UiAllocationDurableSemanticState {
+        crate::runtime::UiAllocationDurableSemanticState::from_reconciliation(
+            self.clone(),
+            crate::runtime::reconciliation::UiAllocationDurableSemanticStateMintAuthority::new(),
+        )
+    }
+
     #[cfg(test)]
     pub(crate) fn new(
         active_artifact_digest: u64,
@@ -33,7 +45,7 @@ impl WorthUiDurableStateReconciliationPlan {
         active_artifact_digest: u64,
         candidate_artifact_digest: u64,
         mut receipts: Vec<WorthUiDurableStateReconciliationReceipt>,
-        mut durable_resize_inputs: Vec<WorthUiAdmittedDurableResizeInput>,
+        mut durable_resize_dispositions: Vec<WorthUiDurableResizeInputDisposition>,
         counters: WorthUiDurableStateReconciliationCounters,
     ) -> Self {
         receipts.sort_by(|left, right| {
@@ -42,17 +54,33 @@ impl WorthUiDurableStateReconciliationPlan {
                 .then_with(|| left.family_id().cmp(right.family_id()))
                 .then_with(|| left.outcome().cmp(&right.outcome()))
         });
-        durable_resize_inputs.sort_by(|left, right| {
+        durable_resize_dispositions.sort_by(|left, right| {
             left.identity_basis()
                 .cmp(right.identity_basis())
                 .then_with(|| left.family_id().cmp(right.family_id()))
                 .then_with(|| left.identity_digest().cmp(&right.identity_digest()))
         });
+        let authority_generation = durable_resize_dispositions.iter().fold(
+            active_artifact_digest.rotate_left(7) ^ candidate_artifact_digest.rotate_left(19),
+            |digest, input| digest ^ input.identity_digest().rotate_left(23),
+        );
+        let admitted_durable_resize_inputs = durable_resize_dispositions
+            .iter()
+            .filter(|input| {
+                input.posture() == WorthUiDurableResizeInputPosture::AdmittedPlanningTimeOnly
+            })
+            .cloned()
+            .map(|input| {
+                WorthUiAdmittedDurableResizeInput::from_reconciliation(input, authority_generation)
+            })
+            .collect();
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
             receipts,
-            durable_resize_inputs,
+            durable_resize_dispositions,
+            admitted_durable_resize_inputs,
+            authority_generation,
             counters,
         }
     }
@@ -64,13 +92,16 @@ impl WorthUiDurableStateReconciliationPlan {
     pub fn candidate_artifact_digest(&self) -> u64 {
         self.candidate_artifact_digest
     }
+    pub fn authority_generation(&self) -> u64 {
+        self.authority_generation
+    }
 
     pub fn receipts(&self) -> &[WorthUiDurableStateReconciliationReceipt] {
         &self.receipts
     }
 
     pub fn durable_resize_inputs(&self) -> &[WorthUiAdmittedDurableResizeInput] {
-        &self.durable_resize_inputs
+        &self.admitted_durable_resize_inputs
     }
 
     pub fn receipt_for(
@@ -92,8 +123,8 @@ impl WorthUiDurableStateReconciliationPlan {
     pub fn durable_resize_input(
         &self,
         identity_basis: &str,
-    ) -> Option<&WorthUiAdmittedDurableResizeInput> {
-        self.durable_resize_inputs
+    ) -> Option<&WorthUiDurableResizeInputDisposition> {
+        self.durable_resize_dispositions
             .iter()
             .find(|input| input.identity_basis() == identity_basis)
     }
@@ -102,8 +133,9 @@ impl WorthUiDurableStateReconciliationPlan {
         &self,
         identity_basis: &str,
     ) -> Option<&WorthUiAdmittedDurableResizeInput> {
-        self.durable_resize_input(identity_basis)
-            .filter(|input| input.is_admitted())
+        self.admitted_durable_resize_inputs
+            .iter()
+            .find(|input| input.identity_basis() == identity_basis)
     }
 
     pub fn counters(&self) -> WorthUiDurableStateReconciliationCounters {

@@ -9,6 +9,7 @@
 # AI / agent state
 .gemini/
 .claude/
+.codex-tmp/
 
 # IDE
 .idea/

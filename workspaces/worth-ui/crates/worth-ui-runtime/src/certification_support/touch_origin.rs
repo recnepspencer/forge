@@ -1,4 +1,4 @@
-//! SUPPORT AUTHORITY â€” runtime-origin touch fixture for certification consumers.
+//! SUPPORT AUTHORITY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â runtime-origin touch fixture for certification consumers.
 
 use crate::certification_support::layout_admission::snapshot_after_layout_admission_support;
 use crate::certification_support::touch_origin_source::{
@@ -10,15 +10,11 @@ use crate::declaration::{
 };
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
 use crate::facade::entry::WorthUiApp;
-use crate::runtime::execution_plan_input::WorthUiExecutionPlanInputPreparer;
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiCandidateAdmission, WorthUiComponentLoweringHook,
-    WorthUiDiagnosticProjectionHook, WorthUiDurableStateFamily, WorthUiExecutionLaneSupport,
-    WorthUiExecutionPlanInspection, WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneFrameReceipt,
-    WorthUiPendingActivation, WorthUiPlanLoweringDenial, WorthUiPlanNodeInputFamily,
-    WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport, WorthUiRuntimeHost,
+    WorthUiCandidateAdmission, WorthUiDiagnosticProjectionHook, WorthUiDurableStateFamily,
+    WorthUiExecutionLaneSupport, WorthUiExecutionPlanInspection, WorthUiOrdinaryFrameTarget,
+    WorthUiOrdinaryLaneFrameReceipt, WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport,
 };
-use std::borrow::Borrow;
 use worth_ui_host_contract::{
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
 };
@@ -28,7 +24,7 @@ pub use crate::certification_support::touch_origin_source::WorthUiTouchOriginFix
 
 pub struct WorthUiTouchOriginCertificationFixture {
     pub app: WorthUiApp,
-    pub runtime: WorthUiRuntimeHost,
+    pub runtime: crate::runtime::WorthUiRuntime,
     pub inspection: WorthUiExecutionPlanInspection,
     pub frame_receipt: WorthUiOrdinaryLaneFrameReceipt,
     pub intent_candidate: WorthUiReplacementCandidate,
@@ -115,41 +111,62 @@ pub fn runtime_origin_fixture(
             Some(&pending_input),
         )
         .expect("activation staging succeeds");
-    let planning = honest_planning_for_pending(&app, &runtime, &pending);
-    let plan_input = prepare_execution_plan_input_with_component_hooks(
-        &runtime,
-        &pending,
-        &component_hooks_for_variant(variant),
-    )
-    .expect("plan input prepares");
-    let allocation = runtime
-        .allocate_runtime_handles(&planning)
-        .expect("runtime handle allocation succeeds");
-    let lane_admission = runtime
-        .admit_execution_lanes(&planning, &WorthUiExecutionLaneSupport::platform_default())
-        .expect("lane admission succeeds");
-    let plan = runtime
-        .assemble_execution_plan_topology_with_lane_admission(
-            &planning,
-            &allocation,
-            &lane_admission,
+    let (planning_snapshot, planning_basis, planning_obligations) =
+        honest_planning_catalog_basis(&app);
+    let admitted_catalog = planning_snapshot
+        .admit_allocation_catalog_basis_set(vec![(
+            planning_basis.clone(),
+            planning_obligations.clone(),
+        )])
+        .expect("graph admits complete catalog basis");
+    let planning_input = runtime
+        .admit_planning_lane_input(
+            &pending,
+            &planning_snapshot,
+            planning_basis,
+            &planning_obligations,
         )
-        .expect("execution plan topology assembles");
-    let inspection = runtime
-        .inspect_execution_plan(&plan, &planning)
-        .expect("plan inspection succeeds");
-    let ordinary_plan = runtime
-        .prepare_ordinary_lane_plan(&plan, &lane_admission)
-        .expect("ordinary lane plan prepares");
-    let frame_receipt = runtime
-        .execute_ordinary_lane_frame(&ordinary_plan, WorthUiOrdinaryFrameTarget::root_shell())
-        .expect("ordinary lane frame executes");
-    let ready = runtime
-        .prepare_ready_activation(pending, &plan_input, &allocation, &plan, None)
-        .expect("ready activation prepares");
+        .expect("certification enters planning through canonical graph admission");
+    let planning = runtime.plan_allocation(planning_input);
+    let mut inspection = None;
+    let mut frame_receipt = None;
     runtime
-        .swap_ready_activation_at_frame_boundary(ready, plan, runtime.safe_frame_boundary())
-        .expect("ready activation swaps candidate plan into active runtime truth");
+        .activate_admitted_allocation_catalog_with_boundary_source(
+            pending,
+            admitted_catalog,
+            |runtime, allocation_receipt, plan, _planning| {
+                let lane_admission = runtime
+                    .admit_execution_lanes(
+                        allocation_receipt,
+                        &WorthUiExecutionLaneSupport::platform_default(),
+                    )
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                inspection = Some(
+                    runtime
+                        .inspect_execution_plan(plan, planning.planning())
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                );
+                let ordinary_plan = runtime
+                    .prepare_ordinary_lane_plan(plan, &lane_admission)
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                let execution = runtime
+                    .execute_framework_turn(|_| {})
+                    .into_execution()
+                    .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                frame_receipt = Some(
+                    execution
+                        .execute_ordinary_lane_frame(
+                            &ordinary_plan,
+                            WorthUiOrdinaryFrameTarget::root_shell(),
+                        )
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?,
+                );
+                Ok((execution.into_activation_boundary(), None))
+            },
+        )
+        .expect("production catalog activation swaps active runtime truth");
+    let inspection = inspection.expect("canonical activation inspects the candidate plan");
+    let frame_receipt = frame_receipt.expect("canonical activation executes the candidate frame");
     let diagnostic_report = runtime
         .diagnostics()
         .for_projection_hook(&WorthUiDiagnosticProjectionHook::projection(
@@ -167,42 +184,14 @@ pub fn runtime_origin_fixture(
     }
 }
 
-fn component_hooks_for_variant(
-    variant: WorthUiTouchOriginFixtureVariant,
-) -> Vec<WorthUiComponentLoweringHook> {
-    match variant {
-        WorthUiTouchOriginFixtureVariant::Baseline
-        | WorthUiTouchOriginFixtureVariant::OverlayArtifact => Vec::new(),
-        WorthUiTouchOriginFixtureVariant::SameArtifactExtraPlanHook => {
-            vec![WorthUiComponentLoweringHook::registered(
-                "touch.origin.extra",
-                WorthUiPlanNodeInputFamily::DiagnosticsRef,
-            )]
-        }
-    }
-}
-
-fn prepare_execution_plan_input_with_component_hooks<P>(
-    runtime: &WorthUiRuntimeHost,
-    pending_activation: P,
-    component_hooks: &[WorthUiComponentLoweringHook],
-) -> Result<crate::runtime::WorthUiExecutionPlanInput, WorthUiPlanLoweringDenial>
-where
-    P: Borrow<WorthUiPendingActivation>,
-{
-    WorthUiExecutionPlanInputPreparer::prepare(
-        pending_activation.borrow(),
-        runtime.inspect_active().frame_epoch(),
-        component_hooks,
-    )
-}
-
 /// Production `plan_allocation` with real declaration identity from the frozen app.
-fn honest_planning_for_pending(
+fn honest_planning_catalog_basis(
     app: &WorthUiApp,
-    runtime: &WorthUiRuntimeHost,
-    pending: &WorthUiPendingActivation,
-) -> WorthUiAllocationPlanning {
+) -> (
+    crate::graph::UiGraphSnapshot,
+    crate::evidence::UiMeasurementBasis,
+    crate::obligations::selection::UiSelectedObligationSet,
+) {
     let control = artifact_from_file_provenance(app, "app/graph_touch_origin_runtime.wui", 0);
     let root = graph_node_identity(app, control);
     let generation = UiEvidenceAuthorityGeneration::new(17);
@@ -229,12 +218,24 @@ fn honest_planning_for_pending(
         &[MeasurementEvidenceInput::host_capability_report(&report)],
     );
     let snapshot = snapshot_after_layout_admission_support(app, &[root]);
-    let neighborhood = basis
-        .admit_allocation_neighborhood_from_graph(&snapshot)
-        .expect(
-            "touch-origin neighborhood admits through measurement basis + layout-admitted graph",
-        );
-    runtime.plan_allocation(pending, &basis, &neighborhood)
+    let origin = app
+        .graph()
+        .touches()
+        .declaration_change_receipt(control)
+        .expect("touch-origin declaration must admit structural change authority");
+    let touch = app
+        .graph()
+        .touches()
+        .from_node(
+            origin,
+            crate::obligations::touch::UiGraphTouchTiming::PostMutation,
+            root,
+            crate::obligations::touch::UiGraphTouchAspects::new()
+                .structural(crate::obligations::touch::UiGraphTouchAspectPosture::Invalidated),
+        )
+        .expect("touch-origin structural change must admit a graph touch");
+    let selected = app.admission().select_obligations(&touch);
+    (snapshot, basis, selected)
 }
 
 fn graph_node_identity(

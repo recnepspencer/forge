@@ -25,11 +25,18 @@ impl WorthUiRuntimeFrameEpoch {
         self.value
     }
 
+    pub(crate) fn checked_next(self) -> Option<Self> {
+        self.value.checked_add(1).map(|value| Self { value })
+    }
+
     #[cfg(test)]
     pub(crate) fn next(self) -> Self {
-        Self {
-            value: self.value + 1,
-        }
+        self.checked_next().expect("test epoch must not exhaust")
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(value: u64) -> Self {
+        Self { value }
     }
 }
 
@@ -74,17 +81,28 @@ impl WorthUiPendingActivation {
 }
 
 /// Receipt emitted when the runtime host is consumed during shutdown.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
+    queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
-    pub(crate) fn new(final_frame_epoch: WorthUiRuntimeFrameEpoch) -> Self {
-        Self { final_frame_epoch }
+    pub(crate) fn new(
+        final_frame_epoch: WorthUiRuntimeFrameEpoch,
+        queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+    ) -> Self {
+        Self {
+            final_frame_epoch,
+            queue_disposition,
+        }
     }
 
     pub fn final_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
         self.final_frame_epoch
+    }
+
+    pub(crate) fn queue_disposition(&self) -> &crate::runtime::UiAllocationFrameQueueDisposition {
+        &self.queue_disposition
     }
 }

@@ -5,7 +5,7 @@ use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiPendingActivation,
-    WorthUiReplacementCause, WorthUiRuntimeHost, WorthUiRuntimeLaunch,
+    WorthUiReplacementCause, WorthUiRuntime, WorthUiRuntimeLaunch,
 };
 use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
@@ -30,12 +30,37 @@ pub(super) fn planning_pair_from_runtime_fixture(
     basis_source: Option<UiDeclaredMeasurementBasisSource>,
 ) -> (WorthUiAllocationPlanning, WorthUiAllocationPlanning) {
     let (runtime, pending) = planning_runtime_fixture();
-    let (first_basis, first_neighborhood) = planning_scenario(operator_token, shape, basis_source);
-    let (second_basis, second_neighborhood) =
+    let (first_basis, first_snapshot, first_selected) =
+        planning_scenario(operator_token, shape, basis_source);
+    let (second_basis, second_snapshot, second_selected) =
         planning_scenario(operator_token, shape, basis_source);
     (
-        runtime.plan_allocation(&pending, &first_basis, &first_neighborhood),
-        runtime.plan_allocation(&pending, &second_basis, &second_neighborhood),
+        runtime
+            .plan_allocation(
+                runtime
+                    .admit_planning_lane_input(
+                        &pending,
+                        &first_snapshot,
+                        first_basis,
+                        &first_selected,
+                    )
+                    .expect("certification planning input admits through graph authority"),
+            )
+            .planning()
+            .clone(),
+        runtime
+            .plan_allocation(
+                runtime
+                    .admit_planning_lane_input(
+                        &pending,
+                        &second_snapshot,
+                        second_basis,
+                        &second_selected,
+                    )
+                    .expect("certification replay input admits through graph authority"),
+            )
+            .planning()
+            .clone(),
     )
 }
 
@@ -45,7 +70,8 @@ fn planning_scenario(
     basis_source: Option<UiDeclaredMeasurementBasisSource>,
 ) -> (
     crate::evidence::UiMeasurementBasis,
-    crate::evidence::UiAllocationNeighborhood,
+    crate::graph::UiGraphSnapshot,
+    crate::obligations::selection::UiSelectedObligationSet,
 ) {
     let generation = UiEvidenceAuthorityGeneration::new(17);
     let world_profile = crate::facade::WorthUi::app()
@@ -87,10 +113,11 @@ fn planning_scenario(
         }
         _ => container_basis(&app, root, generation, bounded),
     };
-    let neighborhood = basis
-        .admit_allocation_neighborhood_from_graph(&snapshot)
-        .expect("suite scenario neighborhood should admit through runtime planning owner lane");
-    (basis, neighborhood)
+    let touch = app
+        .try_query_touch_for_node(root)
+        .expect("certification planning root must admit a query touch");
+    let selected = app.admission().select_obligations(&touch);
+    (basis, snapshot, selected)
 }
 
 fn scroll_viewport_basis(
@@ -133,7 +160,7 @@ fn portal_anchor_basis(
     )
 }
 
-fn planning_runtime_fixture() -> (WorthUiRuntimeHost, WorthUiPendingActivation) {
+fn planning_runtime_fixture() -> (crate::runtime::WorthUiRuntime, WorthUiPendingActivation) {
     let app = query_app();
     let active = artifact_from_modules(
         &app,
@@ -163,7 +190,7 @@ fn planning_runtime_fixture() -> (WorthUiRuntimeHost, WorthUiPendingActivation) 
 }
 
 fn stage_pending_activation(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     admitted: WorthUiAdmittedReplacementCandidate,
 ) -> WorthUiPendingActivation {
     let comparison = runtime

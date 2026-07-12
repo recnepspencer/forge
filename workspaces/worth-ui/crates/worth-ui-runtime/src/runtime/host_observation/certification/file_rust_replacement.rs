@@ -1,8 +1,6 @@
 use crate::runtime::file_rust_replacement_parity::WorthUiFileRustReplacementPipelineReportParts;
-use crate::runtime::host::WorthUiRuntimeHost;
-use crate::runtime::tests::allocation_planning_test_support::{
-    admitted_allocation_neighborhood, admitted_measurement_basis,
-};
+use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiDurableStateFamily,
     WorthUiExecutionLaneSupport, WorthUiFileRustReplacementParityCounters,
@@ -11,7 +9,7 @@ use crate::runtime::{
     WorthUiRuntimeArtifactComparison,
 };
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn activate_replacement_for_file_rust_parity_report(
         &mut self,
         candidate: WorthUiReplacementCandidate,
@@ -160,83 +158,52 @@ impl WorthUiRuntimeHost {
             })?;
 
         counters.record_plan_lowering();
-        let measurement_basis = admitted_measurement_basis("file-rust-parity.activation");
-        let allocation_neighborhood =
-            admitted_allocation_neighborhood("file-rust-parity.activation");
-        let allocation_planning =
-            self.plan_allocation(&pending, &measurement_basis, &allocation_neighborhood);
-        let plan_input = allocation_planning.lowered_input().ok_or_else(|| {
-            denial(
-                WorthUiFileRustReplacementParityDenialReason::PlanLoweringDenied,
-                counters,
-            )
-        })?;
-
+        let (measurement_basis, graph_snapshot, selected_obligations) =
+            admitted_planning_admission("file-rust-parity.activation", "operator:stack");
+        let admitted_catalog = graph_snapshot
+            .admit_allocation_catalog_basis_set(vec![(
+                measurement_basis.clone(),
+                selected_obligations.clone(),
+            )])
+            .map_err(|_| {
+                denial(
+                    WorthUiFileRustReplacementParityDenialReason::PlanLoweringDenied,
+                    counters,
+                )
+            })?;
         counters.record_handle_allocation();
-        let handles = self
-            .allocate_runtime_handles(&allocation_planning)
-            .map_err(|_| {
-                denial(
-                    WorthUiFileRustReplacementParityDenialReason::HandleAllocationDenied,
-                    counters,
-                )
-            })?;
-
+        let boundary = self.safe_frame_boundary();
         counters.record_lane_admission();
-        let lane_admission = self
-            .admit_execution_lanes(
-                &allocation_planning,
-                &WorthUiExecutionLaneSupport::platform_default(),
-            )
-            .map_err(|_| {
-                denial(
-                    WorthUiFileRustReplacementParityDenialReason::LaneAdmissionDenied,
-                    counters,
-                )
-            })?;
-
         counters.record_topology_assembly();
-        let candidate_plan = self
-            .assemble_execution_plan_topology_with_lane_admission(
-                &allocation_planning,
-                &handles,
-                &lane_admission,
-            )
-            .map_err(|_| {
-                denial(
-                    WorthUiFileRustReplacementParityDenialReason::TopologyAssemblyDenied,
-                    counters,
-                )
-            })?;
-        let candidate_plan_digest = self.digest_execution_plan(&candidate_plan).raw();
-        let plan_node_count = candidate_plan.topology().traversal_order().len();
-
+        let mut candidate_plan_digest = 0;
+        let mut lane_support_digest = 0;
+        let mut plan_node_count = 0;
         counters.record_ready_activation();
-        let ready = self
-            .prepare_ready_activation(pending, &plan_input, &handles, &candidate_plan, None)
+        let swap_receipt = self
+            .activate_admitted_allocation_catalog_with_boundary_source(
+                pending,
+                admitted_catalog,
+                |runtime, allocation_receipt, candidate_plan, _planning| {
+                    let lane_admission = runtime
+                        .admit_execution_lanes(
+                            allocation_receipt,
+                            &WorthUiExecutionLaneSupport::platform_default(),
+                        )
+                        .map_err(|_| crate::runtime::WorthUiAllocationCatalogActivationDenial::TopologyAssembly)?;
+                    candidate_plan_digest =
+                        runtime.digest_execution_plan(candidate_plan).raw();
+                    lane_support_digest = lane_admission.support_digest();
+                    plan_node_count = candidate_plan.topology().traversal_order().len();
+                    Ok((boundary, None))
+                },
+            )
             .map_err(|_| {
                 denial(
                     WorthUiFileRustReplacementParityDenialReason::ReadyActivationDenied,
                     counters,
                 )
             })?;
-        let boundary = self.safe_frame_boundary();
-
         counters.record_plan_swap();
-        let swap_receipt = self
-            .swap_ready_activation_at_frame_boundary(ready, candidate_plan, boundary)
-            .map_err(|_| {
-                denial(
-                    WorthUiFileRustReplacementParityDenialReason::PlanSwapDenied,
-                    counters,
-                )
-            })?;
-        let swap_counters = swap_receipt.counters();
-        counters.record_swap_forbidden_work(
-            swap_counters.source_reparse_count(),
-            swap_counters.registry_rebuild_count(),
-        );
-
         Ok(WorthUiFileRustReplacementPipelineReport::new(
             WorthUiFileRustReplacementPipelineReportParts {
                 authoring_lane,
@@ -246,7 +213,7 @@ impl WorthUiRuntimeHost {
                 candidate_artifact_digest: comparison.candidate_artifact_digest(),
                 artifact_comparison_outcome: comparison.outcome(),
                 candidate_plan_digest,
-                lane_support_digest: lane_admission.support_digest(),
+                lane_support_digest,
                 plan_node_count,
                 swap_receipt,
                 counters,
@@ -256,7 +223,7 @@ impl WorthUiRuntimeHost {
 }
 
 fn platform_inventory(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
 ) -> crate::runtime::WorthUiDurableStateInventoryBuilder {
     runtime
         .durable_state_inventory()

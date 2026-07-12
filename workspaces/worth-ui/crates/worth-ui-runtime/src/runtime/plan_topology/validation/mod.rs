@@ -1,17 +1,18 @@
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiExecutionLaneDescriptor, WorthUiLaneAdmission,
+    UiCommittedAllocation, WorthUiExecutionLaneDescriptor, WorthUiLaneAdmission,
     WorthUiPlanNodeInput, WorthUiPlanNodeInputFamily, WorthUiPlanTopologyCounters,
     WorthUiPlanTopologyDenial, WorthUiPlanTopologyDenialReason, WorthUiRuntimeHandleAllocation,
     WorthUiRuntimeHandleAllocationBasis,
 };
 
 pub(crate) fn verify_handle_allocation_receipt(
-    allocation_planning: &WorthUiAllocationPlanning,
+    committed_allocation: &UiCommittedAllocation,
     handle_allocation: &WorthUiRuntimeHandleAllocation,
     counters: &mut WorthUiPlanTopologyCounters,
 ) -> Result<(), WorthUiPlanTopologyDenial> {
     counters.record_validation();
-    let basis = WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning);
+    let basis =
+        WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation);
     if handle_allocation.receipt().certifies_basis(&basis) {
         Ok(())
     } else {

@@ -9,8 +9,7 @@ use worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence;
 use crate::declaration::{UiDeclarationIdentity, UiDeclaredMeasurementPolicyPosture};
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
 use crate::host::{
-    collect_host_measurement_evidence, UiHostMeasurementEvidenceDenial, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    UiHostMeasurementEvidenceDenial, UiHostMeasurementNeed, UiHostMeasurementNormalizationContext,
 };
 
 use super::{
@@ -194,17 +193,20 @@ fn materialize_measurement_basis_for_certification<Adapter: WorthUiMeasurementHo
         &scenario.host_capability_report,
     ));
 
+    let host_measurement_collector =
+        crate::host::WorthUiHostMeasurementCollector::for_internal_proof();
     for host_request in scenario.host_requests.iter() {
-        let result = collect_host_measurement_evidence(
-            host_adapter,
-            host_request.request_identity,
-            host_request.evidence_family,
-            host_request.need.clone(),
-            &scenario.host_capability_report,
-            scenario.declaration_support_authority_generation,
-            host_request.normalization_context,
-        )
-        .map_err(UiMeasurementBasisCertificationScenarioError::HostMeasurementEvidenceDenied)?;
+        let result = host_measurement_collector
+            .collect(
+                host_adapter,
+                host_request.request_identity,
+                host_request.evidence_family,
+                host_request.need.clone(),
+                &scenario.host_capability_report,
+                scenario.declaration_support_authority_generation,
+                host_request.normalization_context,
+            )
+            .map_err(UiMeasurementBasisCertificationScenarioError::HostMeasurementEvidenceDenied)?;
         inputs.push(MeasurementEvidenceInput::host_measurement_result(&result));
     }
 

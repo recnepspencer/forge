@@ -76,6 +76,10 @@ impl UiGraphSnapshot {
         &self.core_indexes
     }
 
+    pub(crate) fn authority_digest(&self) -> u64 {
+        self.snapshot_authority_digest
+    }
+
     pub(crate) fn mounted_receipt_slot_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,

@@ -34,7 +34,7 @@ fn file_and_rust_replacements_with_same_meaning_activate_equivalent_plans() {
         semantic.file_query_rebind_basis_digest(),
         semantic.rust_query_rebind_basis_digest()
     );
-    assert_eq!(semantic.file_swap_receipt(), semantic.rust_swap_receipt());
+    assert!(semantic.activation_receipts_match());
     assert_eq!(receipt.counters().file_candidate_count(), 1);
     assert_eq!(receipt.counters().rust_candidate_count(), 1);
     assert_eq!(receipt.counters().candidate_admission_count(), 2);
@@ -57,10 +57,7 @@ fn file_and_rust_meaningful_replacements_activate_equivalent_swap_receipts() {
     let receipt = WorthUiFileRustReplacementParityBoundary::compare(file_report, rust_report)
         .expect("meaningful file and rust replacements have parity");
 
-    assert_eq!(
-        receipt.semantic_receipt().file_swap_receipt(),
-        receipt.semantic_receipt().rust_swap_receipt()
-    );
+    assert!(receipt.semantic_receipt().activation_receipts_match());
 }
 
 #[test]
@@ -192,7 +189,7 @@ fn parity_denies_candidate_basis_drift_before_comparing_artifacts() {
 fn parity_denies_artifact_comparison_outcome_drift() {
     let file_report = replacement_report_from_provider(file_import_provider());
     let rust_report = report_with_artifact_comparison_outcome(
-        &replacement_report_from_provider(rust_import_provider()),
+        replacement_report_from_provider(rust_import_provider()),
         WorthUiRuntimeArtifactComparisonOutcome::MeaningfullyDifferent,
     );
 
@@ -210,10 +207,8 @@ fn parity_denies_artifact_comparison_outcome_drift() {
 #[test]
 fn parity_denies_lane_receipt_drift_after_plan_equivalence_holds() {
     let (file_report, rust_report) = meaningful_token_parity_reports();
-    let rust_report = report_with_lane_support_digest(
-        &rust_report,
-        rust_report.lane_support_digest().wrapping_add(1),
-    );
+    let drifted_digest = rust_report.lane_support_digest().wrapping_add(1);
+    let rust_report = report_with_lane_support_digest(rust_report, drifted_digest);
 
     let denial = WorthUiFileRustReplacementParityBoundary::compare(file_report, rust_report)
         .expect_err("lane receipt drift must deny parity");
@@ -229,7 +224,7 @@ fn parity_denies_lane_receipt_drift_after_plan_equivalence_holds() {
 #[test]
 fn parity_denies_activation_receipt_drift_beyond_next_plan_digest() {
     let (file_report, rust_report) = meaningful_token_parity_reports();
-    let rust_report = report_with_previous_active_artifact_receipt_drift(&rust_report);
+    let rust_report = report_with_previous_active_artifact_receipt_drift(rust_report);
 
     let denial = WorthUiFileRustReplacementParityBoundary::compare(file_report, rust_report)
         .expect_err("full swap receipt drift must deny parity");

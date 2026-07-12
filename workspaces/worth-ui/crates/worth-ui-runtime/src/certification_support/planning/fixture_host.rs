@@ -9,8 +9,8 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::evidence::UiMeasurementResult;
 use crate::host::{
-    collect_host_measurement_evidence, UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext, WorthUiHostMeasurementCollector,
 };
 
 pub(super) fn capability_report(generation: u64) -> WorthUiHostCapabilityReport {
@@ -106,16 +106,17 @@ fn measurement_result_from_request(
         UiHostMeasurementAssumptionProfile::from_capability_report(report, 11, 22, 33, 44);
     let normalization_context =
         suite_normalization_context_for_request(request, assumption_profile);
-    collect_host_measurement_evidence(
-        &SuiteValueStubAdapter { value },
-        request.identity(),
-        request.evidence_family(),
-        suite_host_need_from_request(request),
-        report,
-        generation,
-        normalization_context,
-    )
-    .expect("suite host lane collection should admit")
+    WorthUiHostMeasurementCollector::for_internal_proof()
+        .collect(
+            &SuiteValueStubAdapter { value },
+            request.identity(),
+            request.evidence_family(),
+            suite_host_need_from_request(request),
+            report,
+            generation,
+            normalization_context,
+        )
+        .expect("suite host lane collection should admit")
 }
 
 struct SuiteValueStubAdapter {
@@ -174,7 +175,10 @@ fn suite_normalization_context_for_request(
             )
         }
         worth_ui_host_contract::UiMeasurementRequestFamily::PortalAnchorRect => {
-            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact(assumption_profile)
+            UiHostMeasurementNormalizationContext::portal_anchor_logical_exact_in(
+                crate::host::UiPortalAnchorCoordinateSpacePosture::PortalLayer,
+                assumption_profile,
+            )
         }
         other => panic!("suite fixture does not model normalization for {other:?}"),
     }

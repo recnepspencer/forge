@@ -2,6 +2,7 @@
 //!
 //! Lifecycle order: construction → measurement → planning → obligation.
 
+pub mod allocation;
 pub(crate) mod construction;
 pub(crate) mod layout_operator;
 pub(crate) mod measurement;
@@ -9,6 +10,11 @@ pub(crate) mod obligation;
 pub(crate) mod planning;
 pub(crate) mod shared;
 
+pub use allocation::{
+    UiAllocationReplanTransactionEvidence, UiAllocationSourceGatewayEvidence, UiDragResizeEvidence,
+    UiDragResizeStrategy, UiPortalAnchorMovementEvidence, UiScrollOwnedAllocationEvidence,
+    UiScrollOwnedExtentCause, UiViewportResizeEvidence,
+};
 pub(crate) use construction::cost_receipt::UiInspectionCostMetrics;
 pub(crate) use construction::{
     evidence_authority_binding, evidence_handle, evidence_identity, evidence_ref, order_refs,
@@ -24,10 +30,13 @@ pub use layout_operator::{
 };
 #[cfg(test)]
 pub(crate) use measurement::dependency::UiMeasurementDependencyMapEntry;
+pub(crate) use measurement::host_measurement_request_shape_digest;
+#[cfg(test)]
+pub(crate) use measurement::measurement_result_identity_digest;
 pub(crate) use measurement::{
     admit_declared_measurement_projection_fact_receipt,
     project_measurement_inspection_compatibility_view, project_measurement_inspection_denial_view,
-    project_measurement_inspection_view,
+    project_measurement_inspection_view, UiHostMeasurementAuthorityWitness,
 };
 pub use measurement::{
     admit_measurement_basis, certify_measurement_basis_determinism,
@@ -45,10 +54,6 @@ pub use measurement::{
     UiMeasurementSiblingResizeSupportSource, UiMeasurementUnitPosture, UiMeasurementValue,
     UiProjectionFactReceipt, UiProjectionFactReceiptDenial,
 };
-#[cfg(test)]
-pub(crate) use measurement::{
-    host_measurement_request_shape_digest, measurement_result_identity_digest,
-};
 pub use obligation::{
     UiInspectionObligationEvidenceReceipt, UiInspectionObligationReasonProjection,
 };
@@ -59,13 +64,14 @@ pub use planning::{
     UiAllocationConstraintSet, UiAllocationConstraintSetIdentity, UiAllocationConstraintSummary,
     UiAllocationNeighborhood, UiAllocationNeighborhoodClass, UiAllocationNeighborhoodIdentity,
     UiAllocationNeighborhoodMember, UiAllocationNeighborhoodMemberRole,
-    UiAllocationNeighborhoodMembershipRule, UiAllocationPlanningCertificationReport,
-    UiAllocationPlanningCertificationSuiteKind, UiAllocationPlanningCostClass,
-    UiAllocationPlanningCostReceipt, UiAllocationPlanningDeniedBroadeningReason,
-    UiAllocationPlanningDeterminismPosture, UiAllocationPlanningEvidenceDetail,
-    UiAllocationPlanningInspectionReceipt, UiAllocationSolveConvergencePosture,
-    UiAllocationSolvePass, UiAllocationSolveRemainderPolicy, UiAllocationSolveTrace,
-    UiBoundReconciliationPosture, UiBoundReconciliationSolveOrder,
+    UiAllocationNeighborhoodMembershipRule, UiAllocationNeighborhoodScope,
+    UiAllocationPlanningCertificationReport, UiAllocationPlanningCertificationSuiteKind,
+    UiAllocationPlanningCostClass, UiAllocationPlanningCostReceipt,
+    UiAllocationPlanningDeniedBroadeningReason, UiAllocationPlanningDeterminismPosture,
+    UiAllocationPlanningEvidenceDetail, UiAllocationPlanningInspectionReceipt,
+    UiAllocationReceiptDenialInspectionReceipt, UiAllocationReceiptInspectionReceipt,
+    UiAllocationSolveConvergencePosture, UiAllocationSolvePass, UiAllocationSolveRemainderPolicy,
+    UiAllocationSolveTrace, UiBoundReconciliationPosture, UiBoundReconciliationSolveOrder,
     UiConstraintAvailableSpacePosture, UiConstraintAxisScope,
     UiConstraintBoundReconciliationMember, UiConstraintBoundReconciliationResult,
     UiConstraintBoundedMinMaxRequirement, UiConstraintChildIntrinsicContribution,
@@ -84,12 +90,20 @@ pub use planning::{
     UiConstraintSiblingNegotiationSolveOrder, UiConstraintSpecialInputPosture,
     UiConstraintViewportPlanningInputResult, UiPortalAnchorPlanningInputPosture,
     UiPortalAnchorPlanningInputSolveOrder, UiScrollOwnerPlanningInputPosture,
-    UiScrollOwnerPlanningInputSolveOrder, UiViewportPlanningInputPosture,
+    UiScrollOwnerPlanningInputSolveOrder, UiScrollOwnerSourceAdmissionCounters,
+    UiScrollOwnerSourceEvidence, UiScrollOwnerSourceKind, UiViewportPlanningInputPosture,
     UiViewportPlanningInputSolveOrder,
 };
 pub(crate) use planning::{
     convergence_posture_for_cycle_and_denial, project_allocation_planning_inspection_receipt,
     remainder_policy_for_equal_share,
+};
+pub(crate) use planning::{
+    project_allocation_receipt_denial_inspection, project_allocation_receipt_inspection,
+};
+pub use planning::{
+    UiAllocationStreamPolicyDenialEvidenceReceipt, UiAllocationStreamPolicyEvidenceOutcome,
+    UiAllocationStreamPolicyEvidenceReceipt, UiAllocationStreamPolicyPayloadCounters,
 };
 pub use shared::evidence_expansion::UiEvidenceExpansion;
 pub use shared::evidence_family::UiEvidenceFamily;

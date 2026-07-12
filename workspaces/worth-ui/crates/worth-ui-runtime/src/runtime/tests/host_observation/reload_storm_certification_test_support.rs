@@ -16,9 +16,7 @@ use crate::capability::{
     ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::runtime::{
-    WorthUiRuntimeHost, WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput,
-};
+use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput};
 use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
 
 pub(super) fn storm_app() -> WorthUiApp {
@@ -50,14 +48,20 @@ pub(super) fn rich_artifact(app: &WorthUiApp, token_id: &str) -> WorthUiArtifact
     )
 }
 
-pub(super) fn runtime_with_token(app: &WorthUiApp, token_id: &str) -> WorthUiRuntimeHost {
+pub(super) fn runtime_with_token(
+    app: &WorthUiApp,
+    token_id: &str,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(
         token_artifact(app, token_id),
     ))
     .expect("runtime launches")
 }
 
-pub(super) fn runtime_with_rich_artifact(app: &WorthUiApp, token_id: &str) -> WorthUiRuntimeHost {
+pub(super) fn runtime_with_rich_artifact(
+    app: &WorthUiApp,
+    token_id: &str,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     app.launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(
         rich_artifact(app, token_id),
     ))

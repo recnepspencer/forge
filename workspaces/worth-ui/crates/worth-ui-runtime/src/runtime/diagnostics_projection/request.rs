@@ -9,17 +9,17 @@ use crate::runtime::diagnostics_projection::{
     WorthUiReloadStatusSurface,
 };
 use crate::runtime::{
-    WorthUiExecutionPlanInspection, WorthUiRuntimeDiagnosticReport, WorthUiRuntimeHost,
+    WorthUiExecutionPlanInspection, WorthUiRuntime, WorthUiRuntimeDiagnosticReport,
 };
 
 #[derive(Debug)]
 pub struct WorthUiRuntimeDiagnosticsProjection<'a> {
-    runtime: &'a WorthUiRuntimeHost,
+    runtime: &'a WorthUiRuntime,
 }
 
 #[derive(Debug)]
 pub struct WorthUiDiagnosticsProjectionRequest<'a> {
-    runtime: &'a WorthUiRuntimeHost,
+    runtime: &'a WorthUiRuntime,
     report: Option<&'a WorthUiRuntimeDiagnosticReport>,
     plan_inspection: Option<&'a WorthUiExecutionPlanInspection>,
     frame_costs: WorthUiFrameCostSurface,
@@ -27,7 +27,7 @@ pub struct WorthUiDiagnosticsProjectionRequest<'a> {
     counters: WorthUiDiagnosticsProjectionCounters,
 }
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn diagnostics_projection(&self) -> WorthUiRuntimeDiagnosticsProjection<'_> {
         WorthUiRuntimeDiagnosticsProjection { runtime: self }
     }

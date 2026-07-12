@@ -1,12 +1,12 @@
 use crate::capability::CapabilitySnapshot;
-use crate::runtime::host::WorthUiRuntimeHost;
+use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
     WorthUiIdentityStateCertification, WorthUiIdentityStateQueryCertificationDenial,
     WorthUiIdentityStateQueryCertificationDenialReason,
     WorthUiIdentityStateQueryCertificationScenario,
 };
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn certify_identity_state_and_query_drift_against_snapshot(
         &self,
         scenario: WorthUiIdentityStateQueryCertificationScenario,

@@ -17,6 +17,112 @@ use crate::{
 };
 
 #[test]
+fn ordinary_projection_consumption_preserves_settled_posture() {
+    let (prerequisites, attempt) = display_field_projection_consumption("settled-posture");
+    let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
+    let settlement = binding
+        .allocation_admission()
+        .admit(prerequisites, &attempt)
+        .expect("ordinary projection consumption should settle");
+
+    assert!(!settlement.is_partial());
+    assert!(!settlement.allocation_source_identity().as_str().is_empty());
+    assert_ne!(settlement.allocation_source_generation().as_u64(), 0);
+    assert_ne!(settlement.allocation_source_order().as_u64(), 0);
+}
+
+#[test]
+fn allocation_source_authority_separates_stable_identity_order_and_basis_generation() {
+    let (first_prerequisites, first_attempt) = display_field_projection_consumption("order-one");
+    let (second_prerequisites, second_attempt) = display_field_projection_consumption("order-two");
+    let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
+    let first = binding
+        .allocation_admission()
+        .admit(first_prerequisites, &first_attempt)
+        .expect("first Query source should admit");
+    let second = binding
+        .allocation_admission()
+        .admit(second_prerequisites, &second_attempt)
+        .expect("second Query source should admit");
+
+    assert_eq!(first.allocation_source_generation().as_u64(), 1);
+    assert_eq!(first.allocation_source_order().as_u64(), 1);
+    assert_eq!(second.allocation_source_generation().as_u64(), 1);
+    assert_eq!(second.allocation_source_order().as_u64(), 2);
+    assert_eq!(
+        first.allocation_source_identity(),
+        second.allocation_source_identity()
+    );
+}
+
+#[test]
+fn equivalent_query_source_reuses_identity_without_reusing_order() {
+    let (first_prerequisites, first_attempt) =
+        display_field_projection_consumption("stable-source");
+    let (second_prerequisites, second_attempt) =
+        display_field_projection_consumption("stable-source");
+    let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
+    let first = binding
+        .allocation_admission()
+        .admit(first_prerequisites, &first_attempt)
+        .unwrap();
+    let second = binding
+        .allocation_admission()
+        .admit(second_prerequisites, &second_attempt)
+        .unwrap();
+
+    assert_eq!(
+        first.allocation_source_identity(),
+        second.allocation_source_identity()
+    );
+    assert_eq!(
+        first.allocation_source_generation(),
+        second.allocation_source_generation()
+    );
+    assert_eq!(first.allocation_source_order().as_u64(), 1);
+    assert_eq!(second.allocation_source_order().as_u64(), 2);
+    assert_eq!(
+        first.receipt().consumption_identity(),
+        second.receipt().consumption_identity(),
+        "equivalent Query measurement consumption retains one nominal receipt authority"
+    );
+    assert_ne!(
+        first.allocation_invalidation_basis().consumption_identity(),
+        second
+            .allocation_invalidation_basis()
+            .consumption_identity(),
+        "allocation settlement order remains part of the richer Query authority"
+    );
+    assert!(first
+        .allocation_source_identity()
+        .shares_storage_with(second.allocation_source_identity()));
+}
+
+#[test]
+fn repeated_settlements_share_query_owned_identity_storage() {
+    let mut binding = WorthUiQueryBindingSubsystem::bootstrap();
+    let settlements = (1..=64)
+        .map(|expected_order| {
+            let (prerequisites, attempt) =
+                display_field_projection_consumption("shared-source-identity");
+            let settlement = binding
+                .allocation_admission()
+                .admit(prerequisites, &attempt)
+                .expect("Query burst fact should admit");
+            assert_eq!(
+                settlement.allocation_source_order().as_u64(),
+                expected_order
+            );
+            settlement
+        })
+        .collect::<Vec<_>>();
+    let canonical_identity = settlements[0].allocation_source_identity();
+
+    assert!(settlements.iter().all(|settlement| canonical_identity
+        .shares_storage_with(settlement.allocation_source_identity())));
+}
+
+#[test]
 fn measurement_fact_receipts_follow_real_projection_consumption_and_preserve_identity() {
     let (prerequisites, attempt) = display_field_projection_consumption("receipt-identity");
 

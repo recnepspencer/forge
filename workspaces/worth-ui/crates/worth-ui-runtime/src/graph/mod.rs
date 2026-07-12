@@ -8,6 +8,11 @@ pub(crate) use allocation_neighborhood::tests::{
     allocation_constraint_equal_share_test_support, allocation_constraint_projection_tests,
     allocation_constraint_sibling_support_test_support,
 };
+pub(crate) use allocation_neighborhood::UiAllocationNeighborhoodMintAuthority;
+pub(crate) use allocation_neighborhood::UiGraphConstraintMintAuthority;
+pub(crate) use allocation_neighborhood::{
+    UiAdmittedAllocationConstraintBasis, UiGraphScrollPlanningAuthority,
+};
 #[cfg(test)]
 pub(crate) mod allocation_neighborhood_test_support;
 mod closeout;
@@ -34,7 +39,22 @@ pub use admission::{
 };
 
 // --- allocation neighborhood (graph → planning handoff; admission sealed pub(crate)) ---
-pub use allocation_neighborhood::UiAllocationNeighborhoodDenial;
+pub(crate) use allocation_neighborhood::select_replan_neighborhoods;
+pub(crate) use allocation_neighborhood::UiGraphNeighborhoodActivationTransition;
+pub(crate) use allocation_neighborhood::UiGraphReplanConsequences;
+pub(crate) use allocation_neighborhood::UiGraphReplanTransactionBasis;
+pub use allocation_neighborhood::{
+    UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationInvalidationTargetSet,
+    UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet,
+    UiAllocationCatalogBasisAdmissionDenial, UiAllocationNeighborhoodDenial,
+    UiReplanLocalityDenial, UiReplanLocalityProof, UiReplanNeighborhoodSelectionCounters,
+    UiReplanOverlapDisposition, UiReplanRootPosture, UiReplanWidenReason,
+};
+pub(crate) use allocation_neighborhood::{
+    UiAdmittedAllocationInvalidationTarget, UiAdmittedAllocationPlanReference,
+    UiGraphReplanAdmission, UiGraphReplanAuthority, UiGraphReplanTargetDisposition,
+    UiReplanGenerationKey,
+};
 
 // --- closeout ---
 pub use closeout::{

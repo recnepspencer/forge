@@ -1,12 +1,12 @@
-use crate::runtime::host::WorthUiRuntimeHost;
 use crate::runtime::realtime_overlay_lane::{WorthUiHudPlanBuilder, WorthUiRealtimeFrameExecutor};
 use crate::runtime::{
     WorthUiExecutionPlan, WorthUiExtensionHookAdmission, WorthUiHighFrequencyFramePolicy,
     WorthUiHudPlan, WorthUiHudPlanDenial, WorthUiLaneAdmission, WorthUiRealtimeFrameDenial,
     WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameTarget, WorthUiRuntimeHandleAllocation,
 };
+use crate::runtime::{WorthUiFrameworkTurnExecution, WorthUiRuntime};
 
-impl WorthUiRuntimeHost {
+impl WorthUiRuntime {
     pub fn prepare_hud_plan(
         &self,
         execution_plan: &WorthUiExecutionPlan,
@@ -24,6 +24,17 @@ impl WorthUiRuntimeHost {
         )
     }
 
+    #[cfg(test)]
+    pub fn execute_realtime_frame(
+        &self,
+        hud_plan: &WorthUiHudPlan,
+        target: WorthUiRealtimeFrameTarget,
+    ) -> Result<WorthUiRealtimeFrameReceipt, WorthUiRealtimeFrameDenial> {
+        WorthUiRealtimeFrameExecutor::execute(hud_plan, target)
+    }
+}
+
+impl WorthUiFrameworkTurnExecution<'_> {
     pub fn execute_realtime_frame(
         &self,
         hud_plan: &WorthUiHudPlan,

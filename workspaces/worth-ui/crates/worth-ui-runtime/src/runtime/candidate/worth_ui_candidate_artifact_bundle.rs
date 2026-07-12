@@ -74,6 +74,10 @@ impl WorthUiCandidateArtifactBundle {
         &self.artifact
     }
 
+    pub(crate) fn into_artifact(self) -> WorthUiArtifact {
+        self.artifact
+    }
+
     pub(crate) fn artifact_digest(&self) -> WorthUiArtifactDigest {
         self.artifact_digest
     }

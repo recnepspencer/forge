@@ -248,8 +248,10 @@ meaning
 -> obligations
 -> inspection evidence
 -> measurement
--> execution plans
--> receipts
+-> allocation frame dispatch
+-> stream/invalidation resolution
+-> allocation receipts
+-> lowered execution plans
 -> visual snapshots
 -> observations
 -> rebind
@@ -606,7 +608,9 @@ Detailed spec: [milestone-3.8.md](./milestone-3.8.md)
 
 This slice closes committed allocation truth and churn-heavy measurement
 behavior after 3.6a and 3.6b planning semantics already exist **and after 3.7
-cleaned the runtime topology**.
+cleaned the runtime topology**. It also owns the runtime frame-dispatch
+boundary that turns admitted continuous-source facts into ordinary allocation
+transitions; stream policy without that dispatcher is incomplete.
 
 **Prerequisite consumption (non-reopen)**
 
@@ -628,6 +632,9 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 - `UiAllocationReceipt`
 - allocation equivalence and reuse basis
+- runtime-owned frame epochs, sealed admitted stream frames, and one ordinary
+  dispatcher from source-to-frame gateways through policy resolution and typed
+  allocation transition outcome
 - invalidation and affected-neighborhood replanning rules for:
   - viewport resize
   - local resize and splitter drag
@@ -643,13 +650,16 @@ trees, helper-only authority, host-owned UI semantics, or certification-as-law.
 
 **Acceptance evidence**
 
-- viewport resize enters as host observation and replans only the affected
-  allocation neighborhood
+- viewport resize enters as host observation, is admitted into a runtime-owned
+  stream frame, and replans only the affected allocation neighborhood
 - mosaic resize and local composition allocation use the same measurement lane
 - scroll-owned and portal-anchored measurement remain runtime-owned rather than
   adapter-owned
 - continuous resize and drag pressure stay bounded without broad unrelated
   replanning
+- replay of the same admitted source facts produces the same sealed frame and
+  policy/transition outcome; late ingress, duplicate dispatch, and overflow
+  deny through typed dispatcher evidence
 - new receipts attach to verified planning/measurement transitions, not host
   folklore or reconstructed booleans
 

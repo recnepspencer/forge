@@ -1,5 +1,5 @@
-use worth_ui::facade::WorthUiAtomicPlanSwapCounters;
+use worth_ui::facade::UiCommittedAllocationActivationCounters;
 
 fn main() {
-    let _ = WorthUiAtomicPlanSwapCounters::new();
+    let _ = UiCommittedAllocationActivationCounters::new();
 }

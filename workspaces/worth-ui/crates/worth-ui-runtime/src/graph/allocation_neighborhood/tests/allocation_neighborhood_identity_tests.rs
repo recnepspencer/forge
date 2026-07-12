@@ -69,6 +69,7 @@ fn admitted() -> UiGraphAxisParticipation {
 fn synthetic_neighborhood<const N: usize>(
     members: [UiAllocationNeighborhoodMember; N],
 ) -> UiAllocationNeighborhood {
+    let authority = super::super::UiAllocationNeighborhoodMintAuthority::mint();
     UiAllocationNeighborhood::new(
         UiGraphNodeIdentity::new(801),
         crate::graph::UiGraphGeneration::initial(),
@@ -77,6 +78,7 @@ fn synthetic_neighborhood<const N: usize>(
         UiMeasurementDependencyMap::new(vec![]),
         UiAllocationNeighborhoodClass::ContainerPeerGroup,
         members.into_iter().collect(),
+        &authority,
     )
 }
 
@@ -86,7 +88,8 @@ fn synthetic_member(
     role: UiAllocationNeighborhoodMemberRole,
     layout_participation: UiGraphAxisParticipation,
 ) -> UiAllocationNeighborhoodMember {
-    UiAllocationNeighborhoodMember::new(
+    let authority = super::super::UiAllocationNeighborhoodMintAuthority::mint();
+    UiAllocationNeighborhoodMember::new_for_graph_test(
         UiGraphNodeIdentity::new(node_digest),
         declaration_digest,
         UiRepeatedInstanceBasis::declaration_keyed(
@@ -95,5 +98,6 @@ fn synthetic_member(
         layout_participation,
         role,
         None,
+        &authority,
     )
 }

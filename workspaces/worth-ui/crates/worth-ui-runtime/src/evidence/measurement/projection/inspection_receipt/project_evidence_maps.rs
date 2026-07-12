@@ -103,6 +103,9 @@ pub(crate) fn project_basis_source(
     basis_source: UiDeclaredMeasurementBasisSource,
 ) -> UiInspectionMeasurementBasisSource {
     match basis_source {
+        UiDeclaredMeasurementBasisSource::ViewportExtent => {
+            UiInspectionMeasurementBasisSource::ViewportExtent
+        }
         UiDeclaredMeasurementBasisSource::ScrollViewport => {
             UiInspectionMeasurementBasisSource::ScrollViewport
         }

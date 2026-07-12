@@ -30,7 +30,7 @@ from runtime_paths import clear_stop_requested, mark_stop_requested, stop_reques
 
 class DurableRunnerTests(unittest.TestCase):
     def test_real_config_validates(self) -> None:
-        config_path = RUNNER_DIR / "config" / "worth-ui-milestone-3.3.json"
+        config_path = RUNNER_DIR / "config" / "worth-ui-milestone-3.8.json"
         config = load_config(config_path)
         self.assertEqual(validate_config(config, config_path), [])
 
@@ -563,6 +563,7 @@ def minimal_config_public(phase_count: int = 2) -> dict:
             "plan": "templates/plan.md",
             "implement": "templates/implement.md",
             "review": "templates/review_test_hardening.md",
+            "repair_plan": "templates/plan.md",
             "repair": "templates/repair.md",
             "test_review": "templates/test_review.md",
             "test_repair_plan": "templates/test_repair_plan.md",

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::runtime::{
-    WorthUiAllocationPlanning, WorthUiExecutionLane, WorthUiExecutionLaneDescriptor,
+    UiCommittedAllocation, WorthUiExecutionLane, WorthUiExecutionLaneDescriptor,
     WorthUiExecutionLaneSupport, WorthUiLaneAdmission, WorthUiLaneAdmissionCounters,
     WorthUiLaneAdmissionDenial, WorthUiLaneAdmissionDenialReason, WorthUiLaneSupportDiagnostic,
     WorthUiLaneSupportStatus, WorthUiQueryLaneSupportLinks, WorthUiRuntimeHandleAllocationBasis,
@@ -17,19 +17,12 @@ struct WorthUiPlanLaneAdmissionEvidence {
 
 impl WorthUiLaneAdmissionPlanner {
     pub(crate) fn admit(
-        allocation_planning: &WorthUiAllocationPlanning,
+        committed_allocation: &UiCommittedAllocation,
         support: &WorthUiExecutionLaneSupport,
     ) -> Result<WorthUiLaneAdmission, WorthUiLaneAdmissionDenial> {
         let mut counters = WorthUiLaneAdmissionCounters::default();
         counters.record_admission();
-        let node_inputs = allocation_planning.node_inputs().ok_or_else(|| {
-            denial(
-                WorthUiLaneAdmissionDenialReason::UnsupportedLaneReference,
-                None,
-                None,
-                counters,
-            )
-        })?;
+        let node_inputs = committed_allocation.node_inputs();
 
         let lane_evidence = collect_plan_lane_admission_evidence(node_inputs, &mut counters);
         counters.record_distinct_lanes(lane_evidence.descriptors.len());
@@ -40,7 +33,7 @@ impl WorthUiLaneAdmissionPlanner {
         Ok(WorthUiLaneAdmission::new(
             support.rows().cloned().collect(),
             lane_evidence.query_support_links,
-            WorthUiRuntimeHandleAllocationBasis::from_allocation_planning(allocation_planning)
+            WorthUiRuntimeHandleAllocationBasis::from_committed_allocation(committed_allocation)
                 .digest(),
             counters,
         ))

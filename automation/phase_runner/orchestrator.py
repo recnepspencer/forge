@@ -13,6 +13,7 @@ from config_schema import load_config
 from event_log import EventLogDecodeError, append_event, load_events, validate_event_log
 from event_types import validate_runner_outcome
 from legacy_importer import import_legacy_run as import_legacy_run_impl
+from phase_execution import supported_outcome_event_types_for_cursor
 from projector import project_run, write_projection
 from prompts import render_prompt
 from runtime_paths import (
@@ -142,7 +143,6 @@ def drive_run(
             )
             refresh_projection(config_path, run_id)
             return 0
-
         if maybe_reset_stuck_session(config_path, run_id, projection):
             projection = refresh_projection(config_path, run_id)
 
@@ -473,6 +473,13 @@ def build_recovery_prompt(
     reason: str,
     turn_instance_id: str | None,
 ) -> str:
+    current = projection.get("current")
+    allowed_event_types = "the normal completion event for this turn"
+    if isinstance(current, dict):
+        phase = current_phase_for_projection(projection)
+        allowed_event_types = ", ".join(
+            sorted(supported_outcome_event_types_for_cursor(phase, current["turn"]))
+        )
     return f"""The automated durable phase runner hit a failure on the current turn.
 
 Run id: {projection['run_id']}
@@ -484,8 +491,18 @@ Failure reason: {reason}
 Continue in the same persistent agent session when available. Re-read the current phase context if needed,
 then finish the same turn honestly. Do not mutate any runner files directly.
 
+If this is a structural repair, do a root-boundary audit before editing: name
+the canonical owner; search and enumerate every constructor, export, caller,
+test seam, and duplicate state in the authority family; then implement the
+complete cutover. Do not fix only the nearest symptom or emit completion while
+any visible sibling bypass survives.
+
 If the prior agent turn already completed the work, do not redo the work. Emit the correct
-typed RUNNER_EVENT for that already-completed turn.
+typed RUNNER_EVENT for that already-completed turn. Its event_type must be exactly one of:
+{allowed_event_types}
+
+`codex_turn_failed`, `runner_fault`, and recovery events are runner-owned telemetry, never
+valid agent outcomes. Do not emit them.
 
 Expected turn instance id: {turn_instance_id}
 Your RUNNER_EVENT payload must include exactly "turn_instance_id":"{turn_instance_id}".

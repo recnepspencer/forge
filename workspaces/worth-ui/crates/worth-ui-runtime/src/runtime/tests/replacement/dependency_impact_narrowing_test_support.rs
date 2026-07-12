@@ -95,14 +95,14 @@ pub(super) fn lower_rust_authored_artifact<const N: usize>(
 }
 
 pub(super) fn candidate_with_forged_query_support(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     artifact: WorthUiArtifact,
 ) -> crate::runtime::WorthUiAdmittedReplacementCandidate {
     candidate_with_forged_query_support_hook_count(runtime, artifact, 1)
 }
 
 pub(super) fn candidate_with_forged_query_support_hook_count(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     artifact: WorthUiArtifact,
     runtime_hook_count: usize,
 ) -> crate::runtime::WorthUiAdmittedReplacementCandidate {

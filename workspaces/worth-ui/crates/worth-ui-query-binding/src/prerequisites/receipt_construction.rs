@@ -89,3 +89,24 @@ pub(crate) fn collect_verified_receipt_parts(
         observations,
     })
 }
+
+pub(crate) fn collect_verified_partial_receipt_parts(
+    prerequisites: WorthUiQueryPrerequisiteEvidence,
+    completed: &CompletedProjectionFactConsumption,
+) -> Result<VerifiedMeasurementFactReceiptParts, WorthUiQueryMeasurementFactReceiptError> {
+    verify_projection_contract(&prerequisites, completed)?;
+    Ok(VerifiedMeasurementFactReceiptParts {
+        prerequisites: prerequisites
+            .bound_to_projection_contract(completed.contract().contract_digest()),
+        projection_contract_digest: completed.contract().contract_digest().to_string(),
+        projection_consumption_declaration_digest: completed
+            .receipt()
+            .declaration_digest()
+            .to_string(),
+        projection_consumption_receipt_digest: completed.receipt().receipt_digest().to_string(),
+        projection_fact_set_digest: completed.receipt().fact_set_digest().to_string(),
+        projection_source_identity: completed.receipt().source_identity().to_string(),
+        consumed_families: classify_consumed_fact_families(completed),
+        observations: Vec::new(),
+    })
+}

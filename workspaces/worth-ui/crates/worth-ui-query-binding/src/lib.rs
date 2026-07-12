@@ -4,14 +4,18 @@ pub mod entry;
 pub mod prerequisites;
 
 // Subsystem entry lane
-pub use entry::WorthUiQueryBindingSubsystem;
+pub use entry::{WorthUiQueryAllocationAdmission, WorthUiQueryBindingSubsystem};
 // Prerequisite boundary lane
 pub use prerequisites::{
-    WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane, WorthUiQueryInspectionLane,
+    WorthUiQueryAllocationConsumptionIdentity, WorthUiQueryAllocationInvalidationBasis,
+    WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceIdentity,
+    WorthUiQueryAllocationSourceOrder, WorthUiQueryBasisPosture, WorthUiQueryCausalExplanationLane,
+    WorthUiQueryInspectionLane, WorthUiQueryMeasurementConsumptionIdentity,
     WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError,
     WorthUiQueryMeasurementFactFamily, WorthUiQueryMeasurementFactObservation,
     WorthUiQueryMeasurementFactObservationError, WorthUiQueryMeasurementFactReceipt,
-    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryPrerequisiteBoundary,
+    WorthUiQueryMeasurementFactReceiptError, WorthUiQueryMeasurementFactSettlement,
+    WorthUiQueryMeasurementFactSettlementDenial, WorthUiQueryPrerequisiteBoundary,
     WorthUiQueryPrerequisiteEvidence, WorthUiQueryPrerequisiteEvidenceError,
     WorthUiQueryProjectionConsumptionLane,
 };

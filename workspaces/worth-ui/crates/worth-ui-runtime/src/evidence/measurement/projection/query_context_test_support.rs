@@ -13,7 +13,7 @@ use worth_query::facade::{
 
 use crate::graph::UiGraphWorldProfile;
 
-pub(super) fn display_field_projection_consumption(
+pub(crate) fn display_field_projection_consumption(
     lane_label: &str,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,

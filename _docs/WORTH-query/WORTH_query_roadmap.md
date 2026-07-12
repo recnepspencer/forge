@@ -264,6 +264,10 @@ cross-feature proof gates before final certification:
   access requirements,
   budgets, and typed execution postures before execution, making hidden N+1 and
   unbounded background indexing impossible on covered read lanes
+- `Milestone 9.11` must prove downstream basis and projection authority is one
+  Query-owned canonical artifact: consumers declare required meaning through
+  fluent facade DX and cannot pair, reconstruct, restamp, or promote authority
+  from independently valid bases, receipts, facts, labels, or digests
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -288,8 +292,8 @@ Critical path:
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
-  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 10` -> `Milestone 11` ->
-  `Milestone 12` -> `Milestone 13`
+  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 9.11` -> `Milestone 10` ->
+  `Milestone 11` -> `Milestone 12` -> `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -396,6 +400,9 @@ Store-gated completion tracks:
   bounded index provisioning, budget denial, streaming/materialization postures,
   and reference-consumer no-N+1 adoption before store-backed execution inherits
   the read model
+- `Milestone 9.11` closes runtime-backed downstream basis/projection authority,
+  declarative consumer DX, and Worth UI reference adoption before store-backed
+  execution introduces additional source and reload postures
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3689,6 +3696,109 @@ closes last.
   required-capability, materialization, store-owned, and typed-denial graph read
   access postures
 
+## Milestone 9.11: Declarative Downstream Basis Authority And Consumer DX
+
+### Goal
+
+Make Query mint one canonical downstream authority artifact that binds the
+exact scoped basis, projection contract, consumption receipt, source lineage,
+settlement posture, and admitted typed facts. Consumers declare required
+meaning through one fluent facade path instead of reconstructing Query
+authority from separately pairable lifecycle artifacts.
+
+### Adversarial Constraint
+
+Two evaluations may expose equal labels, digests, target values, or projection
+shapes while differing in basis generation, source lineage, contract,
+settlement, or consumption receipt. No downstream crate may construct or admit
+a hybrid of those evaluations, promote evidence into authority, or pay work
+proportional to unrelated Query or consumer state.
+
+### Why This Milestone Exists
+
+Basis capability lifecycle, declared projection consumption, and Consumer Kit
+proof already exist, but demanding consumers still have to pair their outputs.
+Worth UI demonstrated that individually typed artifacts can still become an
+unsafe aggregate when their exact shared provenance is not owned by one Query
+product. Query needs the same declarative, authority-first product standard for
+downstream basis handoff that `9.10` establishes for graph access admission.
+
+### Must Ship
+
+- sealed Query-owned consumed-projection authority artifact
+- structural basis, contract, receipt, source, settlement, and fact binding
+- closed declarative authority contract and typed denial taxonomy
+- result-attached fluent facade DX and equivalent explicit phase API
+- converged public basis/downstream-authority facade vocabulary
+- support rows, inspection projections, exact operation counters, and docs
+- Consumer Kit prohibition, compile-fail, adoption, and residue proof
+- Worth UI Query-binding adoption and deletion of local basis reconstruction
+- hostile cross-basis, collision, stale-settlement, replay, and bounded-work
+  certification
+
+### Must Preserve
+
+- Query remains Query basis and projection-consumption authority
+- lower runtimes and downstream domains retain their own truth and execution
+  authority
+- evidence labels and digests remain derived, inspectable, and non-promotable
+- unsupported source and fact families fail closed through typed support posture
+- convenience and explicit lifecycle paths share one semantic transition
+
+### Complexity / Proof Obligations
+
+- admission is `O(declared_requirements + consumed_facts)`
+- exact counters cover normalization, requirement checks, source binding,
+  settlement checks, fact visits, canonicalization, and authority construction
+- unrelated workspace rows, historical basis inventory, and consumer graph size
+  do not affect Query authority-admission counters
+- replayed equivalent consumption produces equivalent structural authority and
+  evidence
+
+### Allowed Debt
+
+- no authority-capable tuple, digest promotion, raw identity re-entry, local
+  compatibility scan, or legacy constructor may survive closeout
+- store-backed and durable sources may remain typed Milestone `10`/`11`
+  postures, but the authority product must already have explicit extension
+  points and fail-closed support rows for them
+- documentation-only migration history may remain; callable compatibility
+  authority may not
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.11.md](./milestone-9.11.md).
+This milestone belongs after `9.10` because it applies the declarative-admission
+product standard to downstream basis authority, and before `10` because
+store-backed execution must inherit one canonical handoff rather than multiply
+consumer-side pairing folklore.
+
+### Parallelization Notes
+
+Closure inventory and DX prototyping may overlap. The canonical artifact and
+denial taxonomy freeze before public fluent DX. Query integration precedes
+consumer cutover; architectural certification and legacy deletion close last.
+
+### Store Dependency
+
+- Runtime-backed canonical downstream authority and Worth UI adoption are not
+  blocked on `worth-store`.
+- Store-backed source admission and durable authority reload remain Milestone
+  `10`/`11` owners and must enter through explicit typed postures.
+
+### Acceptance Evidence
+
+- cross-basis and cross-receipt hybrid construction is unrepresentable or
+  uncompilable
+- fluent, explicit, replayed, and serialized contract paths are equivalent
+- every admitted source yields one authority; every failed relationship yields
+  one typed denial and no partial successor
+- Worth UI scroll and portal paths preserve exact Query authority without
+  local reconstruction
+- Consumer Kit residue and public-boundary audits report zero legacy authority
+  seams
+- docs, AI orientation, support rows, DX transcripts, and implementation agree
+
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
 ### Goal
@@ -4153,6 +4263,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Subgraph-scoped queries | Milestone 4 | Scope/traversal boundary descriptors | Traversal breadth remains bounded and explainable | Milestone 13 geometry/chip domain suites |
 | Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 13 validation rejection + domain suites |
 | Graph read access planning and declarative index admission | Milestone 9.10 | Operation-resolution descriptors, access-shape descriptors, access requirement sets, intrinsic/supported budget estimates, access admission envelopes, graph access receipts | Covered graph reads execute through admitted access postures, with no hidden N+1 traversal and no unbounded background indexing | Milestone 9.10 no-N+1, memory-budget, and access-plan replay certification + Milestone 13 execution parity |
+| Declarative downstream basis authority and consumer DX | Milestone 9.11 | Consumed projection authority artifacts, declarative authority contracts, typed authority denials, DX transcripts, consumer adoption receipts | Downstream runtimes consume one Query-owned basis/projection authority product and cannot reconstruct or recombine authority from receipts, facts, labels, or digests | Milestone 9.11 cross-basis, facade-DX, consumer-residue, and Worth UI adoption certification + Milestone 13 projection/domain parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
@@ -4240,6 +4351,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.4.md](./milestone-9.4.md)
 - [milestone-9.5.md](./milestone-9.5.md)
 - [milestone-9.10.md](./milestone-9.10.md)
+- [milestone-9.11.md](./milestone-9.11.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)

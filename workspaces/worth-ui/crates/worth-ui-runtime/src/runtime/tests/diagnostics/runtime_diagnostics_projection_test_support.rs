@@ -1,5 +1,5 @@
 use crate::facade::WorthUi;
-use crate::runtime::{WorthUiRuntimeHost, WorthUiRuntimeLaunch};
+use crate::runtime::WorthUiRuntimeLaunch;
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
     WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactInputReference,
@@ -92,7 +92,9 @@ pub(super) fn foundational_frame_report(
     .materialize()
 }
 
-pub(super) fn runtime_from_import_target(target: &str) -> WorthUiRuntimeHost {
+pub(super) fn runtime_from_import_target(
+    target: &str,
+) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     WorthUi::app()
         .freeze()
         .launch_runtime(WorthUiRuntimeLaunch::from_canonical_artifact(

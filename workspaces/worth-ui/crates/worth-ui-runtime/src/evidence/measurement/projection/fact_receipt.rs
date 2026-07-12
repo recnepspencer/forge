@@ -33,6 +33,7 @@ pub struct UiProjectionFactObservation {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiProjectionFactReceipt {
+    query_consumption_identity: worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity,
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     query_basis_digest: Box<str>,
@@ -78,6 +79,11 @@ impl UiProjectionFactObservation {
 }
 
 impl UiProjectionFactReceipt {
+    pub(crate) fn query_consumption_identity(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiQueryMeasurementConsumptionIdentity {
+        &self.query_consumption_identity
+    }
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
         &self.declaration_identity
     }
@@ -208,6 +214,7 @@ fn receipt_from_query_fact_receipt(
     dependencies: UiDeclaredMeasurementQueryDependencySet,
     query_receipt: WorthUiQueryMeasurementFactReceipt,
 ) -> UiProjectionFactReceipt {
+    let query_consumption_identity = query_receipt.consumption_identity().clone();
     let required_query_fact_family_set_digest =
         query_measurement_fact_family_set_digest(dependencies.fact_families());
     let consumed_fact_family_set_digest =
@@ -223,6 +230,7 @@ fn receipt_from_query_fact_receipt(
         |digest, observation| digest ^ observation.identity_digest().rotate_left(17),
     );
     UiProjectionFactReceipt {
+        query_consumption_identity,
         declaration_identity,
         declaration_support_authority_generation,
         query_basis_digest: query_receipt

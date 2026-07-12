@@ -49,6 +49,65 @@ fn scroll_owner_basis_admits_as_typed_planning_input() {
     let neighborhood = basis
         .admit_allocation_neighborhood_from_graph(&snapshot)
         .expect("scroll-owner neighborhood should admit");
+    let constraint_basis = basis
+        .admit_allocation_constraint_basis(&neighborhood)
+        .expect("scroll constraint basis should admit");
+    let planning_basis =
+        crate::runtime::WorthUiAllocationPlanningBasis::from_admitted(constraint_basis, None);
+    let planning =
+        crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority::seal(
+            &planning_basis,
+        )
+        .expect("declared scroll owner should seal planning authority");
+    let planning = planning.expect("declared scroll owner has admitted sources");
+    let witness = basis
+        .evidence_inputs()
+        .iter()
+        .find_map(MeasurementEvidenceInput::as_host_measurement_result)
+        .filter(|result| {
+            result.evidence_category()
+                == crate::evidence::UiMeasurementEvidenceCategory::ScrollContainerViewport
+        })
+        .expect("basis carries exact scroll viewport result")
+        .authority_witness();
+    let disposable_evidence = planning_basis
+        .allocation_constraint_set()
+        .and_then(crate::evidence::UiAllocationConstraintSet::scroll_owner_planning_input)
+        .cloned();
+    drop(disposable_evidence);
+    assert_eq!(
+        planning_basis.scroll_authority().unwrap().host_sources(),
+        &[witness]
+    );
+    assert_eq!(
+        planning_basis
+            .scroll_authority()
+            .unwrap()
+            .counters()
+            .admitted_sources(),
+        1
+    );
+    let committed_sources = planning.committed_sources();
+    let runtime_contract = match &committed_sources[0] {
+        crate::runtime::UiCommittedScrollActivationSource::Host {
+            witness: retained,
+            contract,
+        } if *retained == witness => contract,
+        source => panic!("exact host witness must survive graph admission: {source:?}"),
+    };
+    assert_eq!(
+        runtime_contract.virtualization(),
+        crate::runtime::UiScrollVirtualizationPosture::NonVirtualized
+    );
+    assert_eq!(
+        runtime_contract.offset_allocation(),
+        crate::runtime::UiScrollOffsetAllocationPosture::ProjectedInteractionOnly
+    );
+    assert!(matches!(
+        runtime_contract.source(),
+        crate::runtime::UiAdmittedScrollExtentSource::HostViewport { witness: retained }
+            if *retained == witness
+    ));
     let constraints = basis
         .admit_allocation_constraint_set(&neighborhood)
         .expect("scroll-owner planning should admit");
@@ -66,6 +125,30 @@ fn scroll_owner_basis_admits_as_typed_planning_input() {
     );
     assert!(scroll_input.is_planning_time_only());
     assert!(scroll_input.source_evidence_identity_digest().is_some());
+    assert_eq!(
+        scroll_input.source_admission_counters().admitted_sources(),
+        1
+    );
+    assert_eq!(
+        scroll_input
+            .source_admission_counters()
+            .source_inputs_visited(),
+        2
+    );
+    assert_eq!(
+        scroll_input.source_admission_counters().duplicates_elided(),
+        0
+    );
+    assert_eq!(
+        planning_basis.scroll_authority().unwrap().host_sources(),
+        &[witness]
+    );
+    assert!(matches!(
+        scroll_input.source_evidence(),
+        [evidence]
+            if evidence.is_host_container_viewport()
+                && evidence.identity_digest() != 0
+    ));
     assert!(constraints.propagation_edges().iter().any(|edge| matches!(
         edge.payload(),
         UiConstraintPropagationEdgePayload::ScrollViewportInput {

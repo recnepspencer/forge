@@ -1,7 +1,7 @@
-use worth_ui::facade::WorthUiRuntimeHost;
+use worth_ui::facade::WorthUiRuntime;
 
 fn requires_clone<T: Clone>() {}
 
 fn main() {
-    requires_clone::<WorthUiRuntimeHost>();
+    requires_clone::<WorthUiRuntime>();
 }

@@ -13,11 +13,14 @@ use super::{
 use crate::runtime::{
     WorthUiDurableStateInventory, WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition,
     WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
-    WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindPlan, WorthUiRuntimeHost,
+    WorthUiNodeReplacementPlan, WorthUiQueryLiveRebindPlan, WorthUiRuntime,
     WorthUiRuntimeImpactNarrowing,
 };
 
-pub(super) fn ui_local_drift_rebind_plan() -> (WorthUiRuntimeHost, WorthUiQueryLiveRebindPlan) {
+pub(super) fn ui_local_drift_rebind_plan() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiQueryLiveRebindPlan,
+) {
     let active_app = standard_query_app();
     let candidate_app = denial_presentation_drift_query_app();
     let active = query_artifact(&active_app, "workspace.view_binding.selection");
@@ -27,7 +30,10 @@ pub(super) fn ui_local_drift_rebind_plan() -> (WorthUiRuntimeHost, WorthUiQueryL
     (runtime, rebind_plan)
 }
 
-pub(super) fn preserved_query_rebind_plan() -> (WorthUiRuntimeHost, WorthUiQueryLiveRebindPlan) {
+pub(super) fn preserved_query_rebind_plan() -> (
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
+    WorthUiQueryLiveRebindPlan,
+) {
     let app = standard_query_app();
     let active = query_artifact(&app, "workspace.view_binding.selection");
     let candidate = query_artifact(&app, "workspace.view_binding.selection");
@@ -37,7 +43,7 @@ pub(super) fn preserved_query_rebind_plan() -> (WorthUiRuntimeHost, WorthUiQuery
 }
 
 pub(super) fn single_active_state_lifecycle_inputs() -> (
-    WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
 ) {
@@ -72,7 +78,7 @@ pub(super) fn single_active_state_lifecycle_inputs() -> (
 }
 
 pub(super) fn query_runtime_state_and_rebind_inputs() -> (
-    WorthUiRuntimeHost,
+    crate::runtime::WorthUiRuntimeFrameworkLoop,
     WorthUiNodeReplacementPlan,
     WorthUiDurableStateInventory,
     WorthUiQueryLiveRebindPlan,
@@ -120,7 +126,7 @@ pub(super) fn ambiguous_plan_for_same_active(
 }
 
 fn query_rebind_plan(
-    runtime: &WorthUiRuntimeHost,
+    runtime: &WorthUiRuntime,
     plan: &WorthUiNodeReplacementPlan,
     narrowing: &WorthUiRuntimeImpactNarrowing,
     admitted: &crate::runtime::WorthUiAdmittedReplacementCandidate,

@@ -17,7 +17,7 @@ pub enum WorthUiMeasurementBoundary {
     CanvasSpatialExecution,
     RealtimeOverlayExecution,
     Activation,
-    AtomicPlanSwap,
+    CommittedAllocationActivation,
     SteadyFrameRendering,
     DiagnosticsProjection,
 }
@@ -52,7 +52,7 @@ impl WorthUiMeasurementBoundary {
             Self::CanvasSpatialExecution => "lane.canvas_spatial.execution",
             Self::RealtimeOverlayExecution => "lane.realtime_overlay.execution",
             Self::Activation => "activation",
-            Self::AtomicPlanSwap => "activation.atomic_plan_swap",
+            Self::CommittedAllocationActivation => "activation.committed_allocation",
             Self::SteadyFrameRendering => "frame.steady_rendering",
             Self::DiagnosticsProjection => "diagnostics.projection",
         }

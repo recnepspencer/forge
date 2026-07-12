@@ -182,7 +182,7 @@ impl UiAllocationConstraintSet {
         summary: UiAllocationConstraintSummary,
         propagation_edges: Vec<UiConstraintPropagationEdge>,
     ) -> Self {
-        Self::new_with_sibling_negotiation(
+        Self::construct(
             neighborhood_identity_digest,
             layout_operator_contract_identity,
             summary,
@@ -197,6 +197,34 @@ impl UiAllocationConstraintSet {
     }
 
     pub(crate) fn new_with_sibling_negotiation(
+        _: crate::graph::UiGraphConstraintMintAuthority,
+        neighborhood_identity_digest: u64,
+        layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
+        summary: UiAllocationConstraintSummary,
+        viewport_planning_input: Option<UiConstraintViewportPlanningInputResult>,
+        scroll_owner_planning_input: Option<UiConstraintScrollOwnerPlanningInputResult>,
+        portal_anchor_planning_input: Option<UiConstraintPortalAnchorPlanningInputResult>,
+        sibling_negotiation: Option<UiConstraintSiblingNegotiationResult>,
+        equal_share_distribution: Option<UiConstraintEqualShareDistributionResult>,
+        bound_reconciliation: Option<UiConstraintBoundReconciliationResult>,
+        propagation_edges: Vec<UiConstraintPropagationEdge>,
+    ) -> Self {
+        Self::construct(
+            neighborhood_identity_digest,
+            layout_operator_contract_identity,
+            summary,
+            viewport_planning_input,
+            scroll_owner_planning_input,
+            portal_anchor_planning_input,
+            sibling_negotiation,
+            equal_share_distribution,
+            bound_reconciliation,
+            propagation_edges,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn construct(
         neighborhood_identity_digest: u64,
         layout_operator_contract_identity: UiLayoutOperatorContractIdentity,
         summary: UiAllocationConstraintSummary,

@@ -3,7 +3,6 @@ use super::allocation_planning_test_support::allocation_planning;
 use super::durable_state_reconciliation_test_support::{
     deterministic_reconciliation_inputs, stale_inventory_for,
 };
-use super::frame_activation_gate_test_support::ready_activation_fixture;
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, identity_match_app, runtime_and_narrowing, surface_node,
 };
@@ -15,7 +14,6 @@ use super::replacement_impact_test_support::{
     admitted_candidate, artifact_from_modules, impact_test_app, launch_runtime, surface_module,
     token_module,
 };
-use crate::runtime::atomic_plan_swap::WorthUiPlanSwapFailureInjection;
 use crate::runtime::{
     WorthUiCandidateAdmissionDenial, WorthUiDiagnosticProjectionHook, WorthUiExecutionLane,
     WorthUiExecutionLaneSupport, WorthUiExecutionPlanInput, WorthUiNodeReplacementPlan,
@@ -25,7 +23,7 @@ use std::collections::BTreeSet;
 
 #[test]
 fn every_replacement_phase_denial_maps_to_specific_diagnostic_family() {
-    let fixture = ready_activation_fixture();
+    let fixture = activation_staging_inputs();
     let admission_denial = WorthUiCandidateAdmissionDenial::SnapshotMismatch {
         candidate_snapshot_digest: 10,
         active_snapshot_digest: 20,
@@ -52,7 +50,7 @@ fn every_replacement_phase_denial_maps_to_specific_diagnostic_family() {
     let lowering = plan_lowering_report();
     let activation_staging = activation_staging_report();
     let activation_gate = activation_gate_report();
-    let swap = plan_swap_report();
+    let committed_activation = committed_allocation_activation_report();
     let projection = fixture
         .runtime
         .diagnostics()
@@ -74,7 +72,7 @@ fn every_replacement_phase_denial_maps_to_specific_diagnostic_family() {
         first_family(&lane),
         first_family(&activation_staging),
         first_family(&activation_gate),
-        first_family(&swap),
+        first_family(&committed_activation),
         first_family(&plan_inspection),
         first_family(&projection),
     ];
@@ -96,7 +94,7 @@ fn every_replacement_phase_denial_maps_to_specific_diagnostic_family() {
             WorthUiRuntimeDiagnosticFamily::LaneAdmission,
             WorthUiRuntimeDiagnosticFamily::ActivationStaging,
             WorthUiRuntimeDiagnosticFamily::ActivationGate,
-            WorthUiRuntimeDiagnosticFamily::AtomicPlanSwap,
+            WorthUiRuntimeDiagnosticFamily::CommittedAllocationActivation,
             WorthUiRuntimeDiagnosticFamily::PlanInspection,
             WorthUiRuntimeDiagnosticFamily::DiagnosticsProjection,
         ])
@@ -262,10 +260,13 @@ fn plan_inspection_report() -> WorthUiRuntimeDiagnosticReport {
     let planning =
         allocation_planning(&runtime, &plan_input, "runtime-diagnostics.plan-inspection");
     let allocation = runtime
-        .allocate_runtime_handles(&planning)
+        .allocate_runtime_handles(&runtime.detached_allocation_receipt_for_test(&planning))
         .expect("runtime handles allocate");
     let plan = runtime
-        .assemble_execution_plan_topology(&planning, &allocation)
+        .assemble_execution_plan_topology(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &allocation,
+        )
         .expect("execution plan topology assembles");
     let wrong_receipt_input = plan_input_with_first_family_changed(plan_input);
     let wrong_planning = allocation_planning(
@@ -274,7 +275,7 @@ fn plan_inspection_report() -> WorthUiRuntimeDiagnosticReport {
         "runtime-diagnostics.plan-inspection.wrong",
     );
     let denial = runtime
-        .inspect_execution_plan(&plan, &wrong_planning)
+        .inspect_execution_plan(&plan, wrong_planning.planning())
         .expect_err("wrong plan input receipt denies inspection");
     runtime
         .diagnostics()
@@ -314,7 +315,10 @@ fn lane_admission_report() -> WorthUiRuntimeDiagnosticReport {
     let support_without_query =
         WorthUiExecutionLaneSupport::without_lane_for_test(WorthUiExecutionLane::QueryBound);
     let denial = runtime
-        .admit_execution_lanes(&planning, &support_without_query)
+        .admit_execution_lanes(
+            &runtime.detached_allocation_receipt_for_test(&planning),
+            &support_without_query,
+        )
         .expect_err("unsupported Query lane denies");
     runtime
         .diagnostics()
@@ -332,36 +336,53 @@ fn activation_staging_report() -> WorthUiRuntimeDiagnosticReport {
 }
 
 fn activation_gate_report() -> WorthUiRuntimeDiagnosticReport {
-    let mut fixture = ready_activation_fixture();
-    let stale_boundary = fixture.runtime.safe_frame_boundary();
-    fixture.runtime.advance_frame_epoch_for_test();
-    let denial = fixture
-        .runtime
-        .activate_ready_at_frame_boundary(fixture.ready, stale_boundary)
-        .expect_err("stale frame boundary denies");
-    fixture
-        .runtime
+    let inputs = activation_staging_inputs();
+    let (mut runtime, pending) = inputs.into_runtime_and_pending();
+    let (snapshot, first, second) =
+        crate::runtime::tests::allocation_catalog_test_support::admitted_disjoint_planning_admissions(
+            "diagnostics.activation-gate",
+        );
+    let admitted = snapshot
+        .admit_allocation_catalog_basis_set(vec![first, second])
+        .expect("graph admits complete diagnostic catalog");
+    let boundary = runtime.traversal_frame_boundary_for_test();
+    let denial = runtime
+        .activate_admitted_allocation_catalog_at_frame_boundary(pending, admitted, boundary, None)
+        .expect_err("unsafe boundary denies");
+    let crate::runtime::WorthUiAllocationCatalogActivationDenial::Attempt(denial) = denial else {
+        panic!("post-mint denial carries canonical evidence")
+    };
+    let crate::runtime::UiCommittedAllocationActivationDenialReason::FrameBoundary(gate) =
+        denial.reason()
+    else {
+        panic!("canonical denial retains frame reason")
+    };
+    runtime
         .diagnostics()
-        .for_activation_gate(&denial)
+        .for_activation_gate(gate)
         .materialize()
 }
 
-fn plan_swap_report() -> WorthUiRuntimeDiagnosticReport {
-    let mut swap_fixture = ready_activation_fixture();
-    let boundary = swap_fixture.runtime.safe_frame_boundary();
-    let rollback = swap_fixture
-        .runtime
-        .swap_ready_activation_at_frame_boundary_with_injection_for_test(
-            swap_fixture.ready,
-            swap_fixture.candidate_plan,
-            boundary,
-            WorthUiPlanSwapFailureInjection::AfterArtifactMutation,
-        )
-        .expect_err("injected partial swap rolls back");
-    swap_fixture
-        .runtime
+fn committed_allocation_activation_report() -> WorthUiRuntimeDiagnosticReport {
+    let inputs = activation_staging_inputs();
+    let (mut runtime, pending) = inputs.into_runtime_and_pending();
+    let (snapshot, first, second) =
+        crate::runtime::tests::allocation_catalog_test_support::admitted_disjoint_planning_admissions(
+            "diagnostics.committed-allocation",
+        );
+    let admitted = snapshot
+        .admit_allocation_catalog_basis_set(vec![first, second])
+        .expect("graph admits complete diagnostic catalog");
+    let boundary = runtime.traversal_frame_boundary_for_test();
+    let denial = runtime
+        .activate_admitted_allocation_catalog_at_frame_boundary(pending, admitted, boundary, None)
+        .expect_err("unsafe boundary denies canonical activation");
+    let crate::runtime::WorthUiAllocationCatalogActivationDenial::Attempt(denial) = denial else {
+        panic!("post-mint denial carries canonical evidence")
+    };
+    runtime
         .diagnostics()
-        .for_plan_swap(rollback)
+        .for_committed_allocation_denial(&denial)
         .materialize()
 }
 

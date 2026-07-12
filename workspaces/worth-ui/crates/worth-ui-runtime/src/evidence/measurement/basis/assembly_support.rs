@@ -29,6 +29,14 @@ pub(super) fn basis_source_denial(
     host_results: &HostResultSlots<'_>,
 ) -> Option<UiMeasurementBasisDenial> {
     match basis_source {
+        Some(UiDeclaredMeasurementBasisSource::ViewportExtent)
+            if host_results.viewport_extent.is_none() =>
+        {
+            Some(UiMeasurementBasisDenial::MissingBasisSourceEvidence {
+                basis_source: UiDeclaredMeasurementBasisSource::ViewportExtent,
+                slot: UiMeasurementEvidenceSlot::ViewportExtent,
+            })
+        }
         Some(UiDeclaredMeasurementBasisSource::ScrollViewport)
             if host_results.viewport_extent.is_none() =>
         {

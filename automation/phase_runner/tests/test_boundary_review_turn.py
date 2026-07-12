@@ -17,6 +17,12 @@ class BoundaryReviewTurnTests(unittest.TestCase):
     def test_s7_config_accepts_boundary_review_turn(self) -> None:
         config_path = RUNNER_DIR / "config" / "worth-store-s7.json"
         config = load_config(config_path)
+        # This fixture exercises the S.7 boundary-review schema, not the
+        # availability of the retired checkout recorded by that archived run.
+        config["project"]["cwd"] = str(RUNNER_DIR.parents[1])
+        config["project"]["spec_file"] = "AGENTS.md"
+        config["project"]["context_files"] = ["AGENTS.md"]
+        config["turn_templates"]["repair_plan"] = "templates/plan.md"
         self.assertEqual(validate_config(config, config_path), [])
 
     def test_configured_boundary_review_starts_and_advances_phases(self) -> None:

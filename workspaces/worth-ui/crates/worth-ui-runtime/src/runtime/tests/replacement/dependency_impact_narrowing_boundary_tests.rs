@@ -261,7 +261,7 @@ fn lane_affecting_change_preserves_dependency_narrowing_scope() {
 }
 
 fn classify_and_narrow(
-    runtime: &crate::runtime::WorthUiRuntimeHost,
+    runtime: &crate::runtime::WorthUiRuntime,
     candidate: &crate::runtime::WorthUiAdmittedReplacementCandidate,
 ) -> crate::runtime::WorthUiRuntimeImpactNarrowing {
     let comparison = runtime

@@ -1,4 +1,4 @@
-use crate::runtime::{WorthUiAllocationPlanning, WorthUiRuntimeFrameEpoch};
+use crate::runtime::{UiCommittedAllocation, WorthUiAllocationPlanning, WorthUiRuntimeFrameEpoch};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeHandleAllocationBasis {
@@ -20,13 +20,35 @@ impl WorthUiRuntimeHandleAllocationBasis {
         let node_inputs = allocation_planning
             .node_inputs()
             .expect("allocation planning basis requires lowered input");
+        Self::from_lowered_parts(
+            lowering_basis,
+            node_inputs,
+            allocation_planning.planning_identity_digest(),
+        )
+    }
+
+    pub(crate) fn from_committed_allocation(allocation: &UiCommittedAllocation) -> Self {
+        let lowering_basis = allocation.lowering_basis();
+        let node_inputs = allocation.node_inputs();
+        Self::from_lowered_parts(
+            lowering_basis,
+            node_inputs,
+            allocation.allocation_identity_digest(),
+        )
+    }
+
+    fn from_lowered_parts(
+        lowering_basis: &crate::runtime::WorthUiPlanLoweringBasis,
+        node_inputs: &[crate::runtime::WorthUiPlanNodeInput],
+        allocation_planning_identity_digest: u64,
+    ) -> Self {
         Self {
             active_artifact_digest: lowering_basis.active_artifact_digest(),
             candidate_artifact_digest: lowering_basis.candidate_artifact_digest(),
             frame_epoch: lowering_basis.frame_epoch(),
             plan_node_input_count: node_inputs.len(),
             query_binding_input_count: lowering_basis.staged_query_rebind_entry_count(),
-            allocation_planning_identity_digest: allocation_planning.planning_identity_digest(),
+            allocation_planning_identity_digest,
         }
     }
 
