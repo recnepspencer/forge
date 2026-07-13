@@ -972,10 +972,8 @@ basis digest, projection receipt, extracted facts, and source labels as separate
 authority inputs. Declare a `ProjectionAuthorityContract` and use the
 result-attached `consume_projection_authority(...)` path. Query mints one sealed
 `WorthQueryConsumedProjectionAuthority`; evidence projections and getters are
-for observation and cannot recreate it. The older fact-consumption and
-declaration methods and the projection-consumption intent entry point are not
-public, including for immediate inspection. Move
-admitted proof with `ProjectionAuthorityOutcome::into_admitted()`. If the
+for observation and cannot recreate it. Move admitted proof with
+`ProjectionAuthorityOutcome::into_admitted()`. If the
 declaration must cross a terminal boundary, serialize
 `ProjectionAuthorityContract` with `to_terminal_json_document()` and reload it
 with `load_projection_authority_contract_document(...)`; never serialize or
@@ -1560,14 +1558,13 @@ must still pass the canonical authority transition against a real source; a
 serialized declaration is not serialized authority.
 
 Typed inspection also goes through `consume_projection_authority(...)`, then
-reads `facts()` or `receipt()` from admitted authority. The decomposed
-fact-consumption lifecycle is crate-internal and must not be recreated.
+reads `facts()` or `receipt()` from admitted authority.
 
 The mistakes to avoid are fishing in lower-runtime truth for IDs or passing a
 basis digest, receipt digest, source label, and fact list as a replacement
 authority tuple.
 
-Retained derived-artifact bindings and live-artifact bindings now participate as
+Retained derived-artifact bindings and live-artifact bindings participate as
 first-class projection-consumption declaration, support-discovery, and
 authority sources. Ordinary downstream callers should use their
 `consume_projection_authority(...)` methods.
@@ -1869,9 +1866,6 @@ Need public DX:
 - Do not persist, clone, mirror, or decompose
   `WorthQueryConsumedProjectionAuthority`; persist the declarative contract and
   reacquire authority through Query.
-- Do not import legacy projection-consumption attempt or completed-part types
-  from internal module paths after the curated facade rejects them.
-
 ## AI Checklist Before Editing Code
 
 Before building on a Query category, answer these:
