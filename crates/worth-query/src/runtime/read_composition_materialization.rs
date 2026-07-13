@@ -12,7 +12,7 @@ use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
 mod projection;
 
-use projection::project_rows_to_request;
+pub(in crate::runtime) use projection::project_rows_to_request;
 
 use super::read_composition_row_selection::{
     materialize_collection_rows_from_request, materialize_detail_rows_from_request,
@@ -44,19 +44,28 @@ pub(in crate::runtime) fn materialize_read_rows(
     ensure_materialized_read_view(runtime, &target, &view_name, read_graph)?;
     let source_rows = runtime.backend.live_entities_for_target(&target);
     let records_examined_count = source_rows.len();
-    let rows = match read_graph.family() {
-        WorthQueryReadGraphFamily::Detail => {
-            materialize_detail_rows_from_request(read_graph, &request, &source_rows)
-                .unwrap_or_else(|| synthetic_detail_rows_for_request(&request))
-        }
-        WorthQueryReadGraphFamily::Collection => {
-            materialize_collection_rows_from_request(read_graph, &request, &source_rows)
-        }
-    };
+    let rows = materialize_source_rows_for_read_graph(read_graph, &request, &source_rows);
     Ok(WorthQueryMaterializedReadRows {
-        rows: project_rows_to_request(rows, &request),
+        rows,
         records_examined_count,
     })
+}
+
+pub(in crate::runtime) fn materialize_source_rows_for_read_graph(
+    read_graph: &WorthQueryReadGraph,
+    request: &DeclarativeLiveQueryRequest,
+    source_rows: &[WorthQueryEntity],
+) -> Vec<WorthQueryEntity> {
+    let rows = match read_graph.family() {
+        WorthQueryReadGraphFamily::Detail => {
+            materialize_detail_rows_from_request(read_graph, request, source_rows)
+                .unwrap_or_else(|| synthetic_detail_rows_for_request(request))
+        }
+        WorthQueryReadGraphFamily::Collection => {
+            materialize_collection_rows_from_request(read_graph, request, source_rows)
+        }
+    };
+    project_rows_to_request(rows, request)
 }
 
 pub(in crate::runtime) fn materialize_query_context_rows(

@@ -30,6 +30,33 @@ pub(super) fn lower_runtime_live_subscription_request(
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
+    lower_runtime_live_subscription_session(view_name, request, session)
+}
+
+pub(super) fn lower_runtime_live_subscription_read_binding(
+    backend: &dyn WorthQueryRuntimeBackend,
+    view_name: &str,
+    binding: &WorthQueryReadExecutionBinding,
+) -> Result<LoweredRuntimeLiveSubscriptionRequest, WorthQueryRuntimeError> {
+    let read_graph = binding.read_family().read_graph();
+    let request = read_graph.declarative_request();
+    let session = crate::declarative_live::declare_runtime_live_query_session_from_admitted_read(
+        request.clone(),
+        read_graph.canonical().clone(),
+        read_graph.validated().clone(),
+        read_graph.execution_plan().clone(),
+        backend.current_snapshot_identity(),
+        grouped_baseline_members_or_error(backend, view_name, request)?,
+    )
+    .map_err(|error| live_subscription_error(view_name, "admitted-read-live-lowering", error))?;
+    lower_runtime_live_subscription_session(view_name, request, session)
+}
+
+fn lower_runtime_live_subscription_session(
+    view_name: &str,
+    request: &DeclarativeLiveQueryRequest,
+    session: crate::declarative_live::DeclarativeLiveQuerySession,
+) -> Result<LoweredRuntimeLiveSubscriptionRequest, WorthQueryRuntimeError> {
     let view_family = session.live_view().lowering().family();
     let dimensions = subscription_dimensions_for_request(request, view_family)?;
     let scoped_declaration_basis = crate::basis_lifecycle::basis_lifecycle()
@@ -78,8 +105,13 @@ pub(super) fn lower_runtime_live_subscription_request(
 
     Ok(LoweredRuntimeLiveSubscriptionRequest {
         query_identity: live_subscription_source_identity(
-            "query",
-            admission.query_declaration_identity(),
+            "query_execution_plan",
+            &session
+                .view_plan()
+                .execution_plan()
+                .query()
+                .plan_digest()
+                .evidence_identity(),
         ),
         live_view_identity: live_subscription_source_identity(
             "live_view",

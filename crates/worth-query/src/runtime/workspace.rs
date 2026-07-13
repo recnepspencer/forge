@@ -18,10 +18,15 @@ use super::{
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::program::WorthQueryDerivedView;
 use crate::session_label::WorthQuerySessionLabel;
+use std::sync::Arc;
+
+#[derive(Debug)]
+pub(crate) struct WorthQueryManagedLiveWorkspaceCapability;
 
 pub struct WorthQueryWorkspace {
     pub(super) name: String,
     pub(super) runtime: WorthQueryRuntime,
+    capability: Arc<WorthQueryManagedLiveWorkspaceCapability>,
 }
 
 impl WorthQueryWorkspace {
@@ -37,11 +42,34 @@ impl WorthQueryWorkspace {
                 ),
             ));
         }
-        Ok(Self { name, runtime })
+        Ok(Self {
+            name,
+            runtime,
+            capability: Arc::new(WorthQueryManagedLiveWorkspaceCapability),
+        })
     }
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub(crate) fn managed_live_capability(&self) -> Arc<WorthQueryManagedLiveWorkspaceCapability> {
+        Arc::clone(&self.capability)
+    }
+
+    pub(crate) fn admit_managed_live_capability(
+        &self,
+        capability: &Arc<WorthQueryManagedLiveWorkspaceCapability>,
+        resource_name: &str,
+    ) -> Result<(), WorthQueryRuntimeError> {
+        if Arc::ptr_eq(&self.capability, capability) {
+            return Ok(());
+        }
+        Err(WorthQueryRuntimeError::LiveSubscriptionInstallation {
+            view_name: resource_name.to_string(),
+            stage: "managed-workspace-capability-admission",
+            message: "managed live handle belongs to a different workspace instance".to_string(),
+        })
     }
 
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {

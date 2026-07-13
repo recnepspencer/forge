@@ -76,6 +76,10 @@ impl WorthQueryRuntimeBackend for SupportSnapshotRuntimeBackend {
         panic!("support snapshot tests only exercise workspace support matrix projection")
     }
 
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        panic!("support snapshot tests only exercise workspace support matrix projection")
+    }
+
     fn write(
         &mut self,
         _mutation: WorthQueryBackendAdmissibleMutation,

@@ -1,5 +1,6 @@
 use crate::authoring::WorthQueryGraphReadDomainOperationDeclaration;
 use crate::basis::QuerySchemaBasisAuthority;
+use crate::canonicalization::CanonicalQueryBundle;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
@@ -14,6 +15,7 @@ use crate::relationship_proof::{RelationshipProofAdmission, RelationshipProofSup
 use crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch;
 use crate::runtime::WorthQueryIntentExecutionProvenance;
 use crate::schema_view::QuerySchemaView;
+use crate::validation::ValidatedQueryBundle;
 
 use super::{WorthQueryReadBreadth, WorthQueryReadBuiltInOperator, WorthQueryReadOperatorFamily};
 
@@ -93,6 +95,8 @@ pub struct WorthQueryReadGraph {
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
     policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+    canonical: CanonicalQueryBundle,
+    validated: ValidatedQueryBundle,
     declarative_request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
     execution_plan: ExecutionPlanBundle,
@@ -146,6 +150,14 @@ impl WorthQueryReadGraph {
         &self.execution_plan
     }
 
+    pub(crate) fn canonical(&self) -> &CanonicalQueryBundle {
+        &self.canonical
+    }
+
+    pub(crate) fn validated(&self) -> &ValidatedQueryBundle {
+        &self.validated
+    }
+
     pub fn declarative_request(&self) -> &DeclarativeLiveQueryRequest {
         &self.declarative_request
     }
@@ -190,6 +202,8 @@ impl WorthQueryReadGraph {
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
         policy_aware_plan: Option<PolicyAwareCurrentPlan>,
+        canonical: CanonicalQueryBundle,
+        validated: ValidatedQueryBundle,
         declarative_request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
         execution_plan: ExecutionPlanBundle,
@@ -251,6 +265,8 @@ impl WorthQueryReadGraph {
             declared_traversal_depth_limit,
             relationship_proof_admission,
             policy_aware_plan,
+            canonical,
+            validated,
             declarative_request,
             schema_view,
             execution_plan,

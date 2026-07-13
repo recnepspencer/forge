@@ -27,6 +27,10 @@ impl WorthQueryRuntimeBackend for StringSnapshotBackend {
         panic!("not executed")
     }
 
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        panic!("not executed")
+    }
+
     fn write(
         &mut self,
         _command: WorthQueryBackendAdmissibleMutation,

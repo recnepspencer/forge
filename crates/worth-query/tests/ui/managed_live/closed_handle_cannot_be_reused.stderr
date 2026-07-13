@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `handle`
+ --> tests/ui/managed_live/closed_handle_cannot_be_reused.rs:6:19
+  |
+4 | fn close_twice(handle: WorthQueryManagedLiveHandle, workspace: &mut WorthQueryWorkspace) {
+  |                ------ move occurs because `handle` has type `WorthQueryManagedLiveHandle`, which does not implement the `Copy` trait
+5 |     let _first = handle.close(workspace);
+  |                         ---------------- `handle` moved due to this method call
+6 |     let _second = handle.close(workspace);
+  |                   ^^^^^^ value used here after move
+  |
+note: `worth_query::ordinary::live::disposal::<impl WorthQueryManagedLiveHandle>::close` takes ownership of the receiver `self`, which moves `handle`
+ --> src/ordinary/live/disposal.rs
+  |
+  |     pub fn close(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryManagedLiveCloseOutcome {
+  |                  ^^^^

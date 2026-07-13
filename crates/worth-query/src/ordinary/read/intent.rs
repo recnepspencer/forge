@@ -168,6 +168,8 @@ impl WorthQueryDeclaredReadIntent {
             self.declared_traversal_depth_limit,
             relationship_proof_admission,
             policy_aware_plan,
+            self.canonical,
+            self.validated,
             declarative_request,
             self.schema_view,
             execution_plan,

@@ -232,6 +232,12 @@ impl WorthQueryRuntimeSourceAdapter for CountCollectionSourceAdapter {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.declared_targets
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
+    }
+
     fn live_entities_for_target(
         &self,
         target: &WorthQueryLiveArtifactTarget,

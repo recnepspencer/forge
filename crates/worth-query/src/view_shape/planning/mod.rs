@@ -97,6 +97,49 @@ pub fn plan_admitted_view_shape(
         )
     })?;
 
+    finish_view_shape_plan(validated_view, execution_plan)
+}
+
+pub(crate) fn plan_admitted_view_shape_from_execution_plan(
+    validated_view: ViewShapeValidatedBundle,
+    execution_plan: ExecutionPlanBundle,
+) -> Result<ViewShapePlanArtifact, ViewShapeError> {
+    execution_plan.check_invariants().map_err(|error| {
+        ViewShapeError::new(
+            ViewShapeFailureClass::PlanningInvariantRejected,
+            format!("admitted read execution plan is internally inconsistent: {error:?}"),
+        )
+    })?;
+    let query_matches = execution_plan.query().validated_query_digest()
+        == validated_view.validated().query().digest();
+    let result_shape_matches = execution_plan
+        .result_shape()
+        .validated_result_shape_digest()
+        == validated_view.validated().result_shape().digest();
+    let canonical_query_matches =
+        execution_plan.query().canonical_query_digest() == validated_view.canonical_query_digest();
+    let canonical_result_shape_matches = execution_plan
+        .result_shape()
+        .canonical_result_shape_digest()
+        == validated_view.canonical_result_shape_digest();
+    if !(query_matches
+        && result_shape_matches
+        && canonical_query_matches
+        && canonical_result_shape_matches)
+    {
+        return Err(ViewShapeError::new(
+            ViewShapeFailureClass::PlanningInvariantRejected,
+            "admitted read execution plan does not belong to the supplied canonical and validated query evidence",
+        ));
+    }
+
+    finish_view_shape_plan(validated_view, execution_plan)
+}
+
+fn finish_view_shape_plan(
+    validated_view: ViewShapeValidatedBundle,
+    execution_plan: ExecutionPlanBundle,
+) -> Result<ViewShapePlanArtifact, ViewShapeError> {
     let posture = planning_posture_for_validated_view(&validated_view, &execution_plan)?;
     let complexity = ViewShapeComplexityReport::new(
         runtime_backed_view_shape_complexity_status(validated_view.admitted().family()),

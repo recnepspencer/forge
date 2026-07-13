@@ -67,6 +67,8 @@ pub trait WorthQueryRuntimeBackend {
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError>;
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError>;
+
     fn write(
         &mut self,
         mutation: WorthQueryBackendAdmissibleMutation,
@@ -206,6 +208,8 @@ pub trait WorthQueryRuntimeSourceAdapter {
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
     ) -> Result<WorthQueryLiveViewHandle, WorthQueryWorkspaceError>;
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError>;
 
     fn live_entities_for_target(
         &self,

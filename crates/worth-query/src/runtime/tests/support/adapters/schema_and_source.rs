@@ -54,6 +54,7 @@ impl WorthQueryRuntimeSchemaAdapter for DriftingSchemaReceiptAdapter {
 pub(in crate::runtime::tests) struct TestSourceAdapter {
     live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
     fail_declare: bool,
+    fail_close: bool,
 }
 
 impl TestSourceAdapter {
@@ -61,6 +62,15 @@ impl TestSourceAdapter {
         Self {
             live_views: BTreeMap::new(),
             fail_declare: true,
+            fail_close: false,
+        }
+    }
+
+    pub(in crate::runtime::tests) fn fail_close() -> Self {
+        Self {
+            live_views: BTreeMap::new(),
+            fail_declare: false,
+            fail_close: true,
         }
     }
 }
@@ -81,6 +91,17 @@ impl WorthQueryRuntimeSourceAdapter for TestSourceAdapter {
         self.live_views
             .insert(live_target, request.target_collection_identity());
         Ok(WorthQueryLiveViewHandle::new(name))
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        if self.fail_close {
+            return Err(WorthQueryWorkspaceError::new(
+                "source close denied by test adapter",
+            ));
+        }
+        self.live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
     }
 
     fn live_entities_for_target(
@@ -147,6 +168,10 @@ impl WorthQueryRuntimeSourceAdapter for CountingSourceAdapter {
         self.declared_live_views
             .set(self.declared_live_views.get().saturating_add(1));
         self.inner.declare_live_view(name, request, schema_view)
+    }
+
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.inner.close_live_view(name)
     }
 
     fn live_entities_for_target(

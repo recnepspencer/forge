@@ -13,6 +13,10 @@ impl WorthQueryRuntimeSourceAdapter for StringSnapshotSource {
         panic!("not executed")
     }
 
+    fn close_live_view(&mut self, _name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        panic!("not executed")
+    }
+
     fn live_entities_for_target(
         &self,
         _target: &WorthQueryLiveArtifactTarget,

@@ -226,6 +226,7 @@ mod inspection;
 mod intent;
 mod journal_position;
 mod journal_replay;
+mod live_resource_disposal;
 mod live_subscription;
 mod live_subscription_accessors;
 mod live_subscription_delivery_routing;
@@ -858,6 +859,7 @@ pub use surface::{
     WorthQueryUnifiedInspectionResult, WorthQueryVerificationReadSetBreadth,
     WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
+pub(crate) use workspace::WorthQueryManagedLiveWorkspaceCapability;
 pub use workspace::WorthQueryWorkspace;
 pub use workspace_declaration::{
     WorthQueryComputedBuilder, WorthQueryEffectBuilder, WorthQueryLiveViewBuilder,

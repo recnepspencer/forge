@@ -33,6 +33,7 @@ pub use grouped_policy::{
 pub use identity::{ViewShapeIdentityBinding, ViewShapeIdentityConsumption};
 pub use performance::{ViewShapeComplexityReport, ViewShapeComplexityStatus, ViewShapeCostClass};
 pub use plan_artifact::{ViewShapePlanArtifact, ViewShapePlanDigest, ViewShapeValidatedBundle};
+pub(crate) use planning::plan_admitted_view_shape_from_execution_plan;
 pub use planning::{plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape};
 pub(crate) use support::runtime_backed_view_shape_temporal_async_support_posture;
 pub use support::{

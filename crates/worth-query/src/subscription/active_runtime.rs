@@ -236,6 +236,21 @@ pub fn close_subscription_lifecycle(
     handle: &ActiveSubscriptionLaneHandle,
     request: SubscriptionLifecycleCloseRequest,
 ) -> Result<SubscriptionLifecycleCloseout, SubscriptionLifecycleCloseError> {
+    validate_subscription_lifecycle_close(runtime, handle, &request)?;
+    let lane_terminal = runtime
+        .registry
+        .close_attachment(handle, request.attachment_digest())
+        .map_err(map_lifecycle_close_error)?;
+    let closeout = SubscriptionLifecycleCloseout::new(request, lane_terminal);
+    runtime.counters = closeout.counters().clone();
+    Ok(closeout)
+}
+
+pub(crate) fn validate_subscription_lifecycle_close(
+    runtime: &ActiveSubscriptionRuntime,
+    handle: &ActiveSubscriptionLaneHandle,
+    request: &SubscriptionLifecycleCloseRequest,
+) -> Result<(), SubscriptionLifecycleCloseError> {
     runtime.registry.validate_handle(handle).map_err(|error| {
         let mut counters = error.counters().clone();
         counters.subscription_lifecycle_closeout_denial_count = 1;
@@ -256,23 +271,24 @@ pub fn close_subscription_lifecycle(
             counters,
         ));
     }
-    let lane_terminal = runtime
+    runtime
         .registry
-        .close_attachment(handle, request.attachment_digest())
-        .map_err(|error| {
-            let denial_kind = closeout_denial_kind_from_lifecycle(error.denial_kind());
-            let mut counters = error.counters().clone();
-            counters.subscription_lifecycle_closeout_denial_count = 1;
-            SubscriptionLifecycleCloseError::new(
-                denial_kind,
-                error.message(),
-                error.source_identity().clone(),
-                counters,
-            )
-        })?;
-    let closeout = SubscriptionLifecycleCloseout::new(request, lane_terminal);
-    runtime.counters = closeout.counters().clone();
-    Ok(closeout)
+        .validate_attachment_close(handle, request.attachment_digest())
+        .map_err(map_lifecycle_close_error)
+}
+
+fn map_lifecycle_close_error(
+    error: ActiveSubscriptionLifecycleError,
+) -> SubscriptionLifecycleCloseError {
+    let denial_kind = closeout_denial_kind_from_lifecycle(error.denial_kind());
+    let mut counters = error.counters().clone();
+    counters.subscription_lifecycle_closeout_denial_count = 1;
+    SubscriptionLifecycleCloseError::new(
+        denial_kind,
+        error.message(),
+        error.source_identity().clone(),
+        counters,
+    )
 }
 
 fn closeout_denial_kind_from_lifecycle(

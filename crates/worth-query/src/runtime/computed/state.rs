@@ -105,6 +105,15 @@ impl WorthQueryComputedDependencyIndex {
         candidates
     }
 
+    pub(in crate::runtime) fn has_live_dependents(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+    ) -> bool {
+        self.live_to_computed
+            .get(target)
+            .is_some_and(|dependents| !dependents.is_empty())
+    }
+
     pub(in crate::runtime) fn dependents(
         &self,
         computed_target: &WorthQueryDerivedMaterializationTarget,

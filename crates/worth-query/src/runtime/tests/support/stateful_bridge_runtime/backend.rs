@@ -81,6 +81,14 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.state
+            .borrow_mut()
+            .live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
+    }
+
     fn write(
         &mut self,
         mutation: WorthQueryBackendAdmissibleMutation,

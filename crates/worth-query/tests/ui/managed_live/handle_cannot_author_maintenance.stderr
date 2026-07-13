@@ -1,0 +1,5 @@
+error[E0599]: no method named `advance_maintenance` found for mutable reference `&mut WorthQueryManagedLiveHandle` in the current scope
+ --> tests/ui/managed_live/handle_cannot_author_maintenance.rs:4:12
+  |
+4 |     handle.advance_maintenance();
+  |            ^^^^^^^^^^^^^^^^^^^ method not found in `&mut WorthQueryManagedLiveHandle`

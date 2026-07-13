@@ -70,6 +70,12 @@ impl WorthQueryRuntimeSourceAdapter for PublicSourceAdapter {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        let target = WorthQueryLiveArtifactTarget::from_source_adapter_declared_view_name(name);
+        self.state.borrow_mut().live_views.remove(&target);
+        Ok(())
+    }
+
     fn live_entities_for_target(
         &self,
         target: &WorthQueryLiveArtifactTarget,

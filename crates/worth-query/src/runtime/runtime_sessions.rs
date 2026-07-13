@@ -1,7 +1,8 @@
 use super::evidence_identities::runtime_live_view_consumer_attachment_identity;
 use super::live_subscription::live_subscription_source_identity;
 use super::runtime_session_lowering::{
-    install_live_subscription_activation, lower_runtime_live_subscription_request,
+    install_live_subscription_activation, lower_runtime_live_subscription_read_binding,
+    lower_runtime_live_subscription_request, LoweredRuntimeLiveSubscriptionRequest,
 };
 use super::*;
 
@@ -215,6 +216,36 @@ impl WorthQueryRuntime {
             request,
             schema_view,
         )?;
+        self.install_lowered_live_subscription(view_name, request, lowered_subscription, None)
+    }
+
+    pub(super) fn install_live_subscription_for_read_binding(
+        &mut self,
+        view_name: &str,
+        binding: WorthQueryReadExecutionBinding,
+    ) -> Result<WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeError> {
+        let lowered_subscription =
+            lower_runtime_live_subscription_read_binding(&*self.backend, view_name, &binding)?;
+        let request = binding
+            .read_family()
+            .read_graph()
+            .declarative_request()
+            .clone();
+        self.install_lowered_live_subscription(
+            view_name,
+            &request,
+            lowered_subscription,
+            Some(binding),
+        )
+    }
+
+    fn install_lowered_live_subscription(
+        &mut self,
+        view_name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        lowered_subscription: LoweredRuntimeLiveSubscriptionRequest,
+        read_authority_binding: Option<WorthQueryReadExecutionBinding>,
+    ) -> Result<WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeError> {
         let activation = lowered_subscription.activation.clone();
         let counters = activation.counters().clone();
         let activation_receipt =
@@ -292,6 +323,7 @@ impl WorthQueryRuntime {
             consumer_attachment,
             request: request.clone(),
             remask_posture,
+            read_authority_binding,
         })
     }
 }

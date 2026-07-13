@@ -5,6 +5,9 @@ use super::fixtures::{
 };
 use super::policy_runtime::read_runtime_with_permissive_policy_row;
 use crate::authorized_projection::{AuthorizedProjectionFailureClass, PolicyAspectMask};
+use crate::ordinary::live::{
+    declare_live, WorthQueryLiveOpenOutcome, WorthQueryManagedLiveCloseOutcome,
+};
 use crate::ordinary::read::{
     current, declare, WorthQueryReadCompletion, WorthQueryReadContextDenialSource,
     WorthQueryReadContextKind, WorthQueryReadNextAction,
@@ -96,6 +99,44 @@ fn query_enforces_authorized_projection_against_a_permissive_source_adapter() {
             .execution_query_projection_count(),
         1
     );
+}
+
+#[test]
+fn managed_live_promotion_preserves_the_policy_narrowed_read_graph() {
+    let context = narrowed_context(narrowing_policy_tenant_inputs(
+        1,
+        PolicyAspectMask::allow_all()
+            .with_masked(display_name_field().source_field_key().clone())
+            .with_masked(handle_field().source_field_key().clone()),
+    ));
+    let mut workspace = read_runtime_with_permissive_policy_row()
+        .workspace("managed-live-policy-narrowing")
+        .expect("managed policy workspace should open");
+    let opened = match declare_live("users.narrowed", local_policy_projection_read)
+        .expect("managed policy read should declare")
+        .using(context)
+        .open(&mut workspace)
+    {
+        WorthQueryLiveOpenOutcome::Opened(opened) => opened,
+        WorthQueryLiveOpenOutcome::Stopped(stop) => {
+            panic!("managed policy live open stopped: {:?}", stop.source())
+        }
+    };
+    let read = opened
+        .handle()
+        .read(&mut workspace)
+        .expect("managed policy live read should execute");
+    let delivered_fields = read.rows()[0]
+        .terminal_field_value_projection()
+        .into_keys()
+        .collect::<Vec<_>>();
+
+    assert_eq!(delivered_fields, ["identity.id"]);
+    assert!(opened.context_receipt().policy_narrowing_digest().is_some());
+    assert!(matches!(
+        opened.into_handle().close(&mut workspace),
+        WorthQueryManagedLiveCloseOutcome::Closed(_)
+    ));
 }
 
 #[test]

@@ -177,6 +177,12 @@ impl WorthQueryRuntimeSourceAdapter for CertificationSourceAdapter {
         Ok(WorthQueryLiveViewHandle::new(name))
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.live_views
+            .remove(&WorthQueryLiveArtifactTarget::from_view_name(name));
+        Ok(())
+    }
+
     fn live_entities_for_target(
         &self,
         _target: &WorthQueryLiveArtifactTarget,

@@ -18,10 +18,13 @@ use crate::canonicalization::CanonicalQueryBundle;
 use crate::identity::hash_parts;
 use crate::identity_evolution::{InspectorIdentityArtifact, InspectorIdentityClassification};
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
+use crate::planning::ExecutionPlanBundle;
 use crate::schema_view::QuerySchemaView;
+use crate::validation::ValidatedQueryBundle;
 use crate::view_shape::{
-    admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
-    ViewShapeDescriptor, ViewShapePlanArtifact,
+    admit_view_shape, plan_admitted_view_shape, plan_admitted_view_shape_from_execution_plan,
+    validate_canonical_bundle_for_admitted_view_shape, ViewShapeDescriptor, ViewShapePlanArtifact,
+    ViewShapeValidatedBundle,
 };
 use crate::view_shape_live::{
     lower_view_shape_plan_to_live, materialize_authoritative_grouped_baseline_from_members,
@@ -992,15 +995,52 @@ pub fn declare_runtime_live_query_session_with_grouped_baseline(
     snapshot_identity: WorthQuerySnapshotIdentity,
     grouped_baseline_members: Option<impl IntoIterator<Item = WorthQueryGroupedBaselineMember>>,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
-    let basis_intent = ExecutionBasisIntent::new(
-        BasisAuthorityFamily::Runtime,
-        SnapshotLineageClass::CurrentHead,
-        false,
-    );
+    let basis_intent = runtime_current_basis_intent();
     validate_declared_traversal_contract(&request, &schema_view)?;
     let canonical = canonicalize_declarative_request(&request)?;
     let view_plan =
         plan_declarative_request(&request, &canonical, schema_view, basis_intent.clone())?;
+    let basis = resolve_runtime_current_basis(&view_plan, snapshot_identity, basis_intent)?;
+    let grouped_baseline =
+        materialize_optional_grouped_baseline(&view_plan, &basis, grouped_baseline_members)?;
+
+    finish_declarative_live_query_session(request, canonical, view_plan, basis, grouped_baseline)
+}
+
+pub(crate) fn declare_runtime_live_query_session_from_admitted_read(
+    request: DeclarativeLiveQueryRequest,
+    canonical: CanonicalQueryBundle,
+    validated: ValidatedQueryBundle,
+    execution_plan: ExecutionPlanBundle,
+    snapshot_identity: WorthQuerySnapshotIdentity,
+    grouped_baseline_members: Option<impl IntoIterator<Item = WorthQueryGroupedBaselineMember>>,
+) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
+    let basis_intent = runtime_current_basis_intent();
+    let admitted = admit_view_shape(&canonical, request.view_shape().view_shape_descriptor())
+        .map_err(|error| DeclarativeLiveQueryError::ViewShape(format!("{error:?}")))?;
+    let validated_view = ViewShapeValidatedBundle::new(canonical.clone(), admitted, validated);
+    let view_plan = plan_admitted_view_shape_from_execution_plan(validated_view, execution_plan)
+        .map_err(|error| DeclarativeLiveQueryError::ViewShape(format!("{error:?}")))?;
+    let basis = resolve_runtime_current_basis(&view_plan, snapshot_identity, basis_intent)?;
+    let grouped_baseline =
+        materialize_optional_grouped_baseline(&view_plan, &basis, grouped_baseline_members)?;
+
+    finish_declarative_live_query_session(request, canonical, view_plan, basis, grouped_baseline)
+}
+
+fn runtime_current_basis_intent() -> ExecutionBasisIntent {
+    ExecutionBasisIntent::new(
+        BasisAuthorityFamily::Runtime,
+        SnapshotLineageClass::CurrentHead,
+        false,
+    )
+}
+
+fn resolve_runtime_current_basis(
+    view_plan: &ViewShapePlanArtifact,
+    snapshot_identity: WorthQuerySnapshotIdentity,
+    basis_intent: ExecutionBasisIntent,
+) -> Result<ResolvedSnapshotBasis, DeclarativeLiveQueryError> {
     let identity = ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
         None,
@@ -1008,21 +1048,28 @@ pub fn declare_runtime_live_query_session_with_grouped_baseline(
         view_plan.validated().query().schema_basis().clone(),
         SnapshotLineageClass::CurrentHead,
     );
-    let basis = resolve_snapshot_basis(basis_intent, identity, BasisResolutionMode::RuntimeDirect)
-        .map_err(|error| DeclarativeLiveQueryError::BasisResolution(format!("{error:?}")))?;
+    resolve_snapshot_basis(basis_intent, identity, BasisResolutionMode::RuntimeDirect)
+        .map_err(|error| DeclarativeLiveQueryError::BasisResolution(format!("{error:?}")))
+}
 
-    let grouped_baseline = grouped_baseline_members
+fn materialize_optional_grouped_baseline<I>(
+    view_plan: &ViewShapePlanArtifact,
+    basis: &ResolvedSnapshotBasis,
+    grouped_baseline_members: Option<I>,
+) -> Result<Option<AuthoritativeGroupedBaselineArtifact>, DeclarativeLiveQueryError>
+where
+    I: IntoIterator<Item = WorthQueryGroupedBaselineMember>,
+{
+    grouped_baseline_members
         .map(|members| {
             materialize_authoritative_grouped_baseline_from_members(
-                &view_plan,
+                view_plan,
                 basis.clone(),
                 members,
             )
             .map_err(|error| DeclarativeLiveQueryError::LiveLowering(format!("{error:?}")))
         })
-        .transpose()?;
-
-    finish_declarative_live_query_session(request, canonical, view_plan, basis, grouped_baseline)
+        .transpose()
 }
 
 pub fn declare_live_query_session(

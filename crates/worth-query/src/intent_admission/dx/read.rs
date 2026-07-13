@@ -265,4 +265,12 @@ impl<'a> WorthQueryAdmittedWorkspaceReadIntent<'a> {
         self.workspace
             .execute_bound_count_read_execution(self.execution_binding)
     }
+
+    pub(crate) fn open_managed_live<T>(
+        self,
+        name: impl Into<String>,
+    ) -> Result<crate::runtime::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.workspace
+            .open_admitted_live_binding(name, self.execution_binding)
+    }
 }

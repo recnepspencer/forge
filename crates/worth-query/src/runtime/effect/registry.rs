@@ -101,6 +101,15 @@ impl WorthQueryEffectIndex {
             }
         }
     }
+
+    pub(in crate::runtime) fn has_live_dependents(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+    ) -> bool {
+        self.live_to_effects
+            .get(target)
+            .is_some_and(|dependents| !dependents.is_empty())
+    }
     fn unregister(&mut self, effect_target: &WorthQueryEffectTarget) {
         remove_from_index(&mut self.live_to_effects, effect_target);
         remove_from_index(&mut self.computed_to_effects, effect_target);

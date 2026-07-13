@@ -4,7 +4,7 @@ use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::WorthQueryEntity;
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
-pub(super) fn project_rows_to_request(
+pub(in crate::runtime) fn project_rows_to_request(
     rows: Vec<WorthQueryEntity>,
     request: &DeclarativeLiveQueryRequest,
 ) -> Vec<WorthQueryEntity> {

@@ -10,6 +10,29 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
+    pub(crate) fn open_declared_live_graph<T>(
+        &mut self,
+        name: impl Into<String>,
+        read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_live_resource", read_graph);
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .admit()?
+            .open_managed_live(name)
+    }
+
+    pub(crate) fn open_admitted_live_binding<T>(
+        &mut self,
+        name: impl Into<String>,
+        binding: crate::intent_admission::WorthQueryReadExecutionBinding,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .declare_live_view_from_read_binding(name, binding)
+    }
+
     pub(crate) fn execute_declared_read_graph_in_authority(
         &mut self,
         read_graph: WorthQueryReadGraph,

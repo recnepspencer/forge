@@ -123,6 +123,7 @@ pub use active_posture::{
     ActiveLaneLookupClass, ActiveSubscriptionDeliveryPosture, ActiveSubscriptionLifecyclePosture,
 };
 pub use active_runtime::emit_query_time_only_delivery_batch;
+pub(crate) use active_runtime::validate_subscription_lifecycle_close;
 pub use active_runtime::{
     advance_subscription_acknowledgement, apply_active_subscription_continuation,
     attach_subscription_consumer, build_active_delivery_work_packet, close_subscription_lifecycle,

@@ -11,6 +11,39 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
+    pub(crate) fn close_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<crate::subscription::SubscriptionLifecycleCloseout, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.runtime.close_managed_live_view(view)
+    }
+
+    pub(crate) fn read_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        self.read_live_result(view)
+    }
+
+    pub(crate) fn drain_managed_live_view<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        capability: &std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability>,
+    ) -> Result<WorthQueryPatchBatch, WorthQueryRuntimeError> {
+        self.admit_managed_live_capability(capability, view.name())?;
+        let target = self.resolve_live_artifact_target(view.name())?;
+        if target.subscription_installation() != Some(view.subscription_installation()) {
+            return Err(WorthQueryRuntimeError::MissingLiveSubscription(
+                view.name().to_string(),
+            ));
+        }
+        Ok(self.runtime.drain_patches(view))
+    }
+
     pub fn resolve_live_artifact_target(
         &self,
         view_name: &str,

@@ -96,6 +96,10 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
             .declare_live_view(name, request, schema_view)
     }
 
+    fn close_live_view(&mut self, name: &str) -> Result<(), WorthQueryWorkspaceError> {
+        self.source_adapter.close_live_view(name)
+    }
+
     fn admit_live_view_declaration(
         &self,
         name: &str,
