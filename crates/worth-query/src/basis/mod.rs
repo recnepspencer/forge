@@ -230,6 +230,15 @@ pub struct SnapshotResolutionReport {
 }
 
 impl SnapshotResolutionReport {
+    /// Returns whether this report was emitted for the exact resolved basis.
+    ///
+    /// Consumers should ask Query to certify this relationship instead of
+    /// reconstructing it from rendered basis digests.
+    pub fn certifies(&self, basis: &ResolvedSnapshotBasis) -> bool {
+        self.basis_digest == *basis.proof().digest()
+            && self.resolution_mode == *basis.resolution_mode()
+    }
+
     pub fn basis_digest(&self) -> &BasisDigest {
         &self.basis_digest
     }

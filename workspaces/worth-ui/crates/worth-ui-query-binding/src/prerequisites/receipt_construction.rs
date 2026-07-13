@@ -16,9 +16,7 @@ pub(crate) fn verify_projection_contract(
     {
         return Err(WorthUiQueryMeasurementFactReceiptError::NonQueryOwnedProjectionSource);
     }
-    if authority.contract().basis_digest()
-        != Some(prerequisites.resolution_report().basis_digest().as_str())
-    {
+    if !authority.binds_resolved_basis(prerequisites.basis()) {
         return Err(WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch);
     }
     Ok(())

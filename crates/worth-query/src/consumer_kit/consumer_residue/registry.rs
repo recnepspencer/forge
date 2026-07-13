@@ -19,6 +19,12 @@ pub enum WorthQueryConsumerResidueClass {
     DebugDerivedQueryProof,
     DelimiterJoinedQueryProof,
     DelimiterFormattedQueryProof,
+    DecomposedProjectionConsumptionAttempt,
+    LocalQueryMeasurementConsumptionIdentity,
+    LocalProjectionContractBinding,
+    LocalQueryBasisDigestCompatibility,
+    LegacyProjectionPrerequisiteAssembly,
+    DirectInternalQueryImport,
 }
 
 impl WorthQueryConsumerResidueClass {
@@ -43,6 +49,16 @@ impl WorthQueryConsumerResidueClass {
             Self::DebugDerivedQueryProof => "debug-derived-query-proof",
             Self::DelimiterJoinedQueryProof => "delimiter-joined-query-proof",
             Self::DelimiterFormattedQueryProof => "delimiter-formatted-query-proof",
+            Self::DecomposedProjectionConsumptionAttempt => {
+                "decomposed-projection-consumption-attempt"
+            }
+            Self::LocalQueryMeasurementConsumptionIdentity => {
+                "local-query-measurement-consumption-identity"
+            }
+            Self::LocalProjectionContractBinding => "local-projection-contract-binding",
+            Self::LocalQueryBasisDigestCompatibility => "local-query-basis-digest-compatibility",
+            Self::LegacyProjectionPrerequisiteAssembly => "legacy-projection-prerequisite-assembly",
+            Self::DirectInternalQueryImport => "direct-internal-query-import",
         }
     }
 
@@ -281,6 +297,48 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         "delimiter-formatted-query-proof",
         "consumer derives Query proof from delimiter-formatted strings",
         "evidence-report-kit",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "ProjectionFactConsumptionAttempt",
+        "consumer accepts a decomposed attempt instead of Query's sealed authority outcome",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "WorthUiQueryMeasurementConsumptionIdentity",
+        "consumer mints a local mirror of Query consumption identity",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "bind_projection_contract(",
+        "consumer binds a decomposed projection contract instead of retaining Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "contract.basis_digest() != Some(",
+        "consumer reopens Query basis compatibility through a reporting digest",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "with_query_prerequisites_from_projection_consumption",
+        "consumer reconstructs prerequisites from decomposed projection consumption",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "worth_query::projection_consumption",
+        "consumer imports Query implementation topology instead of the curated facade",
+        "downstream-authority-adoption",
     ),
 ];
 

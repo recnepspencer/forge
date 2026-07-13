@@ -224,6 +224,30 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         WorthQueryConsumerResidueClass::DelimiterFormattedQueryProof,
         "fn residue(left: String, right: String) { let query_proof = format!(\"{}||{}\", left, right); let _ = query_proof; }",
     ),
+    (
+        WorthQueryConsumerResidueClass::DecomposedProjectionConsumptionAttempt,
+        "fn residue(value: ProjectionFactConsumptionAttempt) { let _ = value; }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
+        "struct WorthUiQueryMeasurementConsumptionIdentity;",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalProjectionContractBinding,
+        "fn bind_projection_contract() {}",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
+        "fn residue(contract: Contract) { let _ = contract.basis_digest() != Some(\"basis\"); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
+        "fn with_query_prerequisites_from_projection_consumption() {}",
+    ),
+    (
+        WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        "use worth_query::projection_consumption::ProjectionConsumptionReceipt;",
+    ),
 ];
 
 const FALSE_POSITIVE_CERTIFICATION_SOURCES: &[&str] = &[

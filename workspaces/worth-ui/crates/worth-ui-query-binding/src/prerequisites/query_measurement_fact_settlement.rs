@@ -1,5 +1,7 @@
 use std::sync::Arc;
-use worth_query::facade::{ProjectionAuthorityOutcome, ProjectionConsumptionWarningKind};
+use worth_query::facade::{
+    ProjectionAuthorityOutcome, ProjectionConsumptionWarningKind, ProjectionSourceBasisAuthority,
+};
 
 use super::{
     WorthUiQueryAuthorityHandle, WorthUiQueryMeasurementFactReceipt,
@@ -43,7 +45,7 @@ struct WorthUiQueryAllocationSourceCoordinates {
 pub(crate) struct WorthUiQueryAllocationSourceAuthority {
     next_order: u64,
     generation: u64,
-    basis_digest: Option<Box<str>>,
+    basis_authority: Option<ProjectionSourceBasisAuthority>,
     canonical_identity: Option<WorthUiQueryAllocationSourceIdentity>,
 }
 
@@ -52,7 +54,7 @@ impl Default for WorthUiQueryAllocationSourceAuthority {
         Self {
             next_order: 1,
             generation: 0,
-            basis_digest: None,
+            basis_authority: None,
             canonical_identity: None,
         }
     }
@@ -65,12 +67,10 @@ impl WorthUiQueryAllocationSourceAuthority {
         outcome: ProjectionAuthorityOutcome,
     ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryMeasurementFactSettlementDenial>
     {
-        let admitted_basis: Box<str> = prerequisites
-            .resolution_report()
-            .basis_digest()
-            .as_str()
-            .into();
-        let generation = if self.basis_digest.as_deref() == Some(admitted_basis.as_ref()) {
+        let (query_authority, warnings) =
+            WorthUiQueryAuthorityHandle::from_outcome(outcome).map_err(map_authority_denial)?;
+        let admitted_basis = query_authority.authority().basis_authority().clone();
+        let generation = if self.basis_authority.as_ref() == Some(&admitted_basis) {
             self.generation
         } else {
             self.generation
@@ -78,8 +78,6 @@ impl WorthUiQueryAllocationSourceAuthority {
                 .ok_or(WorthUiQueryMeasurementFactSettlementDenial::SourceGenerationExhausted)?
         };
         let order = self.next_order;
-        let (query_authority, warnings) =
-            WorthUiQueryAuthorityHandle::from_outcome(outcome).map_err(map_authority_denial)?;
         let identity = query_authority.authority().source_identity().as_str();
         let canonical_identity = self.canonical_identity(identity);
         let next_order = self
@@ -96,9 +94,9 @@ impl WorthUiQueryAllocationSourceAuthority {
                 order: WorthUiQueryAllocationSourceOrder(order),
             },
         )?;
-        if self.basis_digest.as_deref() != Some(admitted_basis.as_ref()) {
+        if self.basis_authority.as_ref() != Some(&admitted_basis) {
             self.generation = generation;
-            self.basis_digest = Some(admitted_basis);
+            self.basis_authority = Some(admitted_basis);
         }
         self.next_order = next_order;
         if self.canonical_identity.as_ref() != Some(&canonical_identity) {

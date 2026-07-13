@@ -1,3 +1,4 @@
+mod basis_authority_binding;
 mod constructors;
 
 use crate::evidence_identity::{

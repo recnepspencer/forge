@@ -3,6 +3,7 @@ use super::{
     ConsumedProjectionAuthorityDenialKind, ConsumedProjectionAuthorityEvidence,
     ProjectionAuthorityContract, ProjectionAuthorityRequirement,
 };
+use crate::basis::ResolvedSnapshotBasis;
 use crate::projection_consumption::{
     CompletedProjectionFactConsumption, ConsumedProjectionFactSet, MaterializedProjectionContract,
     ProjectionConsumptionReceipt, ProjectionSourceBasisAuthority, ProjectionSourceFamily,
@@ -27,6 +28,13 @@ impl WorthQueryConsumedProjectionAuthority {
 
     pub fn basis_authority(&self) -> &ProjectionSourceBasisAuthority {
         self.completed.contract().basis_authority()
+    }
+
+    /// Certifies that `basis` is the exact runtime snapshot basis retained by
+    /// this authority. Consumers must not recreate this relationship from a
+    /// terminal digest projection.
+    pub fn binds_resolved_basis(&self, basis: &ResolvedSnapshotBasis) -> bool {
+        self.basis_authority().binds_resolved_basis(basis)
     }
 
     pub fn source_references(&self) -> &[ProjectionSourceReferenceIdentity] {

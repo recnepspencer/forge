@@ -135,7 +135,10 @@ fn registry_rows_are_complete_unique_and_point_to_consumer_kit_lanes() {
         assert!(!row.explanation().is_empty());
         assert!(matches!(
             row.replacement_lane(),
-            "evidence-report-kit" | "support-pinning" | "in-memory-test-backend"
+            "evidence-report-kit"
+                | "support-pinning"
+                | "in-memory-test-backend"
+                | "downstream-authority-adoption"
         ));
         if case.class.is_proof_folklore_for_test() {
             assert_eq!(row.detection(), WorthQueryConsumerResidueDetection::Ast);

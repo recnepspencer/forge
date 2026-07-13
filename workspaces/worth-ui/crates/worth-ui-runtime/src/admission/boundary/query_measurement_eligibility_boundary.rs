@@ -242,14 +242,7 @@ fn query_prerequisite_authority_matches(
     current: &WorthUiQueryPrerequisiteEvidence,
     observed: &WorthUiQueryPrerequisiteEvidence,
 ) -> bool {
-    current.basis_posture() == observed.basis_posture()
-        && current.resolution_report().basis_digest() == observed.resolution_report().basis_digest()
-        && current.resolution_report().resolution_mode()
-            == observed.resolution_report().resolution_mode()
-        && current.projection_consumption_lane() == observed.projection_consumption_lane()
-        && current.inspection_lane() == observed.inspection_lane()
-        && current.causal_explanation_lane() == observed.causal_explanation_lane()
-        && current.projection_contract_digest() == observed.projection_contract_digest()
+    current == observed
 }
 
 fn stale_basis_posture(
