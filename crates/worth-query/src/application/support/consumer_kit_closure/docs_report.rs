@@ -104,6 +104,6 @@ fn family_obligation_present(
     .iter()
     .all(|required| combined.contains(required));
     direct_requirements_present
-        && combined.contains("Milestone `9.9`")
-        && combined.contains("graph-obligation local ceremony audit")
+        && combined.contains("graph-obligation audit is a narrower specialized lane")
+        && combined.contains("graph obligation ceremony")
 }

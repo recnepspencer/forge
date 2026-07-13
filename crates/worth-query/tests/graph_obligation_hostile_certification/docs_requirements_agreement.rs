@@ -1,5 +1,3 @@
-use worth_query::facade::runtime::WorthQueryGraphObligationSupportMatrix;
-
 const TEST_REQUIREMENTS: &str = include_str!("../../../../_docs/worth-query/test-requirements.md");
 const AI_README: &str = include_str!("../../docs/AI_README.md");
 
@@ -17,15 +15,17 @@ fn phase_20_named_suite_is_published_in_test_requirements() {
 }
 
 #[test]
-fn phase_20_closeout_uses_same_public_certification_name_as_docs() {
+fn public_orientation_teaches_the_certified_authority_contract_without_history() {
     assert_contains_all(
         AI_README,
         &[
-            WorthQueryGraphObligationSupportMatrix::MILESTONE_9_9_AUTHORITY_CERTIFICATION_MATRIX_NAME,
             "Graph Touch Obligation Authority",
             "Consumer Kit",
+            "The covered lane vocabulary is:",
+            "BudgetExceeded",
         ],
     );
+    assert!(!AI_README.contains("Milestone 9.9"));
 }
 
 fn assert_contains_all(haystack: &str, needles: &[&str]) {

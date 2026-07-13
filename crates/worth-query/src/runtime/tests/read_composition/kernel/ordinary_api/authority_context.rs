@@ -1,0 +1,218 @@
+use super::super::super::support::*;
+use super::fixtures::{
+    admitted_policy_tenant_inputs, local_identity_read, local_manager_relationship_read,
+    run_policy_context, run_relationship_context,
+};
+use crate::ordinary::read::{
+    current, declare, WorthQueryReadNextAction, WorthQueryReadRelationshipProof,
+    WorthQueryReadRelationshipProofs,
+};
+use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
+use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
+
+#[test]
+fn ordinary_read_lowers_policy_tenant_and_relationship_authority_once() {
+    let declaration = declare(local_manager_relationship_read)
+        .expect("relationship declaration should canonicalize");
+    let policy_tenant = admitted_policy_tenant_inputs(1, true);
+    let relationships = WorthQueryReadRelationshipProofs::bounded(
+        [WorthQueryReadRelationshipProof::direct_edge(
+            manager_relation_name(),
+        )],
+        1,
+        1,
+    )
+    .expect("bounded relationship proof should declare");
+    let context = current()
+        .under_policy_tenant(
+            policy_tenant.policy,
+            policy_tenant.tenant,
+            policy_tenant.branch,
+            policy_tenant.schema,
+        )
+        .with_relationship_proofs(relationships);
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-policy-tenant-relationship")
+        .expect("ordinary workspace should open");
+
+    let completion = declaration
+        .using(context)
+        .run(&mut workspace)
+        .into_result()
+        .expect("fully admitted read should execute");
+    let context_receipt = completion.context_receipt();
+    let context_counters = context_receipt.counters();
+    let executed_authority_receipt = completion
+        .result()
+        .receipt()
+        .graph_read_access_admission()
+        .expect("executed graph read must carry its admitted access plan")
+        .authority_receipt();
+
+    assert_eq!(context_counters.canonical_query_identity_read_count(), 1);
+    assert_eq!(context_counters.policy_tenant_admission_attempt_count(), 1);
+    assert_eq!(context_counters.policy_tenant_admitted_count(), 1);
+    assert_eq!(
+        context_counters.relationship_proof_admission_attempt_count(),
+        1
+    );
+    assert_eq!(context_counters.relationship_proof_admitted_count(), 1);
+    assert_eq!(
+        context_counters.graph_authority_admission_attempt_count(),
+        1
+    );
+    assert_eq!(context_counters.graph_authority_admitted_count(), 1);
+    assert_eq!(
+        executed_authority_receipt.policy_tenant_digest(),
+        context_receipt.policy_tenant_admission_digest()
+    );
+    assert_eq!(
+        executed_authority_receipt.relationship_proof_digest(),
+        context_receipt.relationship_proof_admission_digest()
+    );
+    assert_eq!(
+        executed_authority_receipt.digest(),
+        context_receipt.graph_authority_admission_digest()
+    );
+}
+
+#[test]
+fn equivalent_relationship_declaration_order_converges_on_context_identity() {
+    let first_receipt = run_relationship_context([
+        WorthQueryReadRelationshipProof::direct_edge(manager_relation_name()),
+        WorthQueryReadRelationshipProof::tenant_membership(),
+    ]);
+    let second_receipt = run_relationship_context([
+        WorthQueryReadRelationshipProof::tenant_membership(),
+        WorthQueryReadRelationshipProof::direct_edge(manager_relation_name()),
+    ]);
+
+    assert_eq!(first_receipt.digest(), second_receipt.digest());
+    assert_eq!(
+        first_receipt.relationship_proof_admission_digest(),
+        second_receipt.relationship_proof_admission_digest()
+    );
+}
+
+#[test]
+fn denied_policy_stops_before_graph_authority_admission() {
+    let declaration = declare(local_identity_read).expect("read declaration should canonicalize");
+    let policy_tenant = admitted_policy_tenant_inputs(1, false);
+    let context = current().under_policy_tenant(
+        policy_tenant.policy,
+        policy_tenant.tenant,
+        policy_tenant.branch,
+        policy_tenant.schema,
+    );
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-policy-denied")
+        .expect("ordinary workspace should open");
+
+    let stop = declaration
+        .using(context)
+        .run(&mut workspace)
+        .into_result()
+        .expect_err("denied policy must stop the read");
+    let counters = stop
+        .context_denial()
+        .expect("policy denial must remain a context denial")
+        .counters();
+
+    assert_eq!(
+        stop.next_action(),
+        WorthQueryReadNextAction::SupplyPolicyAuthority
+    );
+    assert_eq!(counters.canonical_query_identity_read_count(), 1);
+    assert_eq!(counters.policy_tenant_admission_attempt_count(), 1);
+    assert_eq!(counters.policy_tenant_admitted_count(), 0);
+    assert_eq!(counters.relationship_proof_admission_attempt_count(), 0);
+    assert_eq!(counters.relationship_proof_admitted_count(), 0);
+    assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
+    assert_eq!(counters.graph_authority_admitted_count(), 0);
+    assert!(stop.context_receipt().is_none());
+}
+
+#[test]
+fn narrowing_policy_stops_until_narrowing_context_is_declared() {
+    let declaration = declare(local_identity_read).expect("read declaration should canonicalize");
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
+        "ordinary-narrowing-policy",
+        "ordinary-narrowing-rules",
+        PolicyEpoch::Synthetic(1),
+        true,
+        true,
+        false,
+    );
+    let context = current().under_policy_tenant(
+        policy.clone(),
+        TenantBindingSnapshot::synthetic_direct(
+            "tenant-a",
+            "main",
+            "schema-a",
+            TenantBasisEpoch::Synthetic(7),
+        ),
+        BranchAccessGrant::synthetic_granted("main", &policy),
+        SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "exact"),
+    );
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-policy-narrowing-context-required")
+        .expect("ordinary workspace should open");
+
+    let stop = declaration
+        .using(context)
+        .run(&mut workspace)
+        .into_result()
+        .expect_err("narrowing policy must not execute without narrowing context");
+    let counters = stop
+        .context_denial()
+        .expect("missing narrowing context must remain a context denial")
+        .counters();
+
+    assert_eq!(
+        stop.next_action(),
+        WorthQueryReadNextAction::SupplyPolicyNarrowingContext
+    );
+    assert_eq!(counters.policy_tenant_admission_attempt_count(), 1);
+    assert_eq!(counters.policy_tenant_admitted_count(), 1);
+    assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
+}
+
+#[test]
+fn relationship_read_without_relationship_authority_stops_before_other_admission() {
+    let declaration = declare(local_manager_relationship_read)
+        .expect("relationship read declaration should canonicalize");
+    let mut workspace = read_runtime()
+        .workspace("ordinary-read-missing-relationship-authority")
+        .expect("ordinary workspace should open");
+
+    let stop = declaration
+        .using(current())
+        .run(&mut workspace)
+        .into_result()
+        .expect_err("relationship read must require relationship authority");
+    let counters = stop
+        .context_denial()
+        .expect("missing relationship authority must be a context denial")
+        .counters();
+
+    assert_eq!(
+        stop.next_action(),
+        WorthQueryReadNextAction::SupplyRelationshipProofAuthority
+    );
+    assert_eq!(counters.canonical_query_identity_read_count(), 1);
+    assert_eq!(counters.policy_tenant_admission_attempt_count(), 0);
+    assert_eq!(counters.relationship_proof_admission_attempt_count(), 0);
+    assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
+}
+
+#[test]
+fn changed_policy_epoch_invalidates_only_context_identity() {
+    let first = run_policy_context(1);
+    let second = run_policy_context(2);
+
+    assert_ne!(first.digest(), second.digest());
+    assert_eq!(
+        first.canonical_query_digest(),
+        second.canonical_query_digest()
+    );
+}

@@ -10,8 +10,8 @@ pub use crate::ordinary::read::{
     WorthQueryReadContextAdmissionCounters, WorthQueryReadContextDeclaration,
     WorthQueryReadContextDenial, WorthQueryReadContextDenialSource, WorthQueryReadContextKind,
     WorthQueryReadContextReceipt, WorthQueryReadDeclaration, WorthQueryReadDeclarationIdentity,
-    WorthQueryReadDeclarationStop, WorthQueryReadNextAction, WorthQueryReadOutcome,
-    WorthQueryReadRelationshipDepth, WorthQueryReadRelationshipProof,
+    WorthQueryReadDeclarationStop, WorthQueryReadJourneyCounters, WorthQueryReadNextAction,
+    WorthQueryReadOutcome, WorthQueryReadRelationshipDepth, WorthQueryReadRelationshipProof,
     WorthQueryReadRelationshipProofDeclarationError, WorthQueryReadRelationshipProofs,
     WorthQueryReadRequest, WorthQueryReadStop, WorthQueryReadStopSource,
 };

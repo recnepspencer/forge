@@ -9,13 +9,14 @@ const FLUENT_GOLDEN: &str =
 const CLOSEOUT: &str = include_str!("../../../_docs/WORTH-query/milestone-9.11-closeout.md");
 
 #[test]
-fn docs_lead_from_ordinary_authority_to_migration_in_required_order() {
+fn docs_lead_from_ordinary_authority_to_execution_in_required_order() {
     let headings = [
         "### Ordinary fluent path",
         "### Contract reference",
         "### Denial and inspection",
         "### Advanced lifecycle",
-        "### Migration history",
+        "## Core Mental Model",
+        "## How It Executes",
     ];
     let positions =
         headings.map(|heading| FEATURE_DOC.find(heading).expect("required docs section"));

@@ -1,6 +1,7 @@
 mod context;
 mod declaration;
 mod execution;
+mod journey_counters;
 mod outcome;
 mod request;
 
@@ -9,6 +10,7 @@ pub use declaration::{
     declare, WorthQueryReadDeclaration, WorthQueryReadDeclarationIdentity,
     WorthQueryReadDeclarationStop,
 };
+pub use journey_counters::WorthQueryReadJourneyCounters;
 pub use outcome::{
     WorthQueryReadCompletion, WorthQueryReadNextAction, WorthQueryReadOutcome, WorthQueryReadStop,
     WorthQueryReadStopSource,

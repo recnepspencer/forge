@@ -132,7 +132,7 @@ fn closeout_docs_do_not_teach_magic_or_panic_flow() {
     }
     assert!(GRAPH_READ_ACCESS_DOC.contains("execute_read_family_with_access_plan"));
     assert!(GRAPH_READ_ACCESS_DOC.contains("graph_read_access_plan_consumption"));
-    assert!(AI_README.contains("graph read access planning"));
+    assert!(AI_README.contains("## Graph Read Access Planning"));
 }
 
 fn assert_doc_and_ai_contain(term: &str) {

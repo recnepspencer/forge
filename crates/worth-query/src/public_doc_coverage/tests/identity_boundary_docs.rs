@@ -30,9 +30,10 @@ fn identity_boundary_docs_teach_canonical_identity_typed_stop_classes_and_typed_
     assert!(audit.surfaces_missing_goldens().is_empty());
     assert!(audit.readme_discovery_gaps().is_empty());
 
-    assert!(AI_README.contains("WorthQueryEvidenceIdentity::compose"));
-    assert!(AI_README.contains("error.stop_class()"));
-    assert!(AI_README.contains("messages are presentation"));
+    assert!(AI_README.contains("ordinary runtime-backed identity boundary"));
+    assert!(AI_README.contains("typed stops"));
+    assert!(AI_README.contains("./foundations/workspace-overview.md"));
+    assert!(AI_README.contains("./foundations/downstream-runtime-integration.md"));
     assert!(AI_README.contains("WorthQuerySessionLabel"));
     assert!(WORKSPACE_OVERVIEW.contains("WorthQueryEvidenceIdentity::compose"));
     assert!(WORKSPACE_OVERVIEW.contains("error.stop_class()"));

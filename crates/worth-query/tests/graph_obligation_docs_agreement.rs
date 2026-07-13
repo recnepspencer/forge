@@ -99,18 +99,15 @@ fn graph_obligation_docs_share_production_support_and_budget_vocabulary() {
     ] {
         assert_contains_all(doc, &expected_budget_terms);
     }
-    for doc in [
-        AI_README,
-        AUTHORITY_DOC,
-        CONSUMER_KIT_DOC,
-        SUPPORT_MATRIX_DOC,
-    ] {
+    for doc in [AUTHORITY_DOC, CONSUMER_KIT_DOC, SUPPORT_MATRIX_DOC] {
         assert_contains_all(
             doc,
-            &[WorthQueryGraphObligationSupportMatrix::MILESTONE_9_9_AUTHORITY_CERTIFICATION_MATRIX_NAME],
+            &["graph touch obligation hostile certification matrix"],
         );
         assert_contains_all(doc, &expected_lane_labels);
     }
+    assert_contains_all(AI_README, &expected_lane_labels);
+    assert!(!AI_README.contains("Milestone 9.9"));
 }
 
 #[test]
@@ -126,8 +123,9 @@ fn graph_composition_docs_demote_manual_invariant_packs() {
     assert_contains_all(
         AI_README,
         &[
-            "Manual invariant packs are compatibility/custom extension surfaces",
-            "registered graph obligations are the covered path",
+            "describing manual invariant packs as the primary",
+            "Registered graph obligations are the ordinary",
+            "manual packs are advanced custom-extension surfaces",
         ],
     );
 }
