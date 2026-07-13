@@ -12,9 +12,8 @@ use crate::facade::policy::{
 };
 use crate::facade::runtime::validate_canonical_bundle;
 use crate::planning::{
-    plan_validated_bundle_for_requested_aggregate_family,
-    plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,
-    RequestedDerivedFieldFamily,
+    plan_validated_bundle_for_count_aggregate,
+    plan_validated_bundle_for_requested_derived_field_family, RequestedDerivedFieldFamily,
 };
 
 fn direct_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
@@ -386,12 +385,7 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
         planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
     let ordinary = plan_validated_bundle(&bundle, ordinary_request).unwrap();
-    let aggregate = plan_validated_bundle_for_requested_aggregate_family(
-        &bundle,
-        aggregate_request,
-        RequestedAggregateFamily::CountRows,
-    )
-    .unwrap();
+    let aggregate = plan_validated_bundle_for_count_aggregate(&bundle, aggregate_request).unwrap();
 
     assert_ne!(
         ordinary.query().plan_digest(),
@@ -401,6 +395,15 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
         ordinary.collection().unwrap().digest(),
         aggregate.collection().unwrap().digest()
     );
+    assert_ne!(
+        ordinary.result_shape().validated_result_shape_digest(),
+        aggregate.result_shape().validated_result_shape_digest()
+    );
+    assert_ne!(
+        ordinary.result_shape().canonical_result_shape_digest(),
+        aggregate.result_shape().canonical_result_shape_digest()
+    );
+    assert_eq!(aggregate.result_shape().binding_count(), 1);
     assert_eq!(
         aggregate
             .collection()
@@ -418,6 +421,14 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
             .rollup_shape()
             .edge_class(),
         &crate::facade::foundation::RollupEdgeClass::RootCollection
+    );
+    assert_eq!(
+        aggregate
+            .collection()
+            .unwrap()
+            .planning_context()
+            .result_family(),
+        &CollectionResultFamily::CountAggregate
     );
 }
 
@@ -689,15 +700,10 @@ fn cdc_collection_execution_emits_distinct_payload_and_cdc_counters() {
 }
 
 #[test]
-fn aggregate_rollup_execution_emits_distinct_payload_and_rollup_counters() {
+fn aggregate_preflight_carries_distinct_family_and_rollup_shape() {
     let bundle = collection_validated_bundle();
     let request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
-    let planned = plan_validated_bundle_for_requested_aggregate_family(
-        &bundle,
-        request,
-        RequestedAggregateFamily::CountRows,
-    )
-    .unwrap();
+    let planned = plan_validated_bundle_for_count_aggregate(&bundle, request).unwrap();
     let basis = resolve_snapshot_basis(
         runtime_basis_intent(),
         runtime_resolved_identity(bundle.query().schema_basis().clone()),
@@ -710,7 +716,16 @@ fn aggregate_rollup_execution_emits_distinct_payload_and_rollup_counters() {
     assert!(envelope
         .rows()
         .iter()
-        .all(|entry| entry.starts_with("aggregate:count_rows:")));
+        .all(|entry| entry.starts_with("result:")));
+    assert_eq!(
+        preflight
+            .plan()
+            .collection()
+            .unwrap()
+            .planning_context()
+            .result_family(),
+        &CollectionResultFamily::CountAggregate
+    );
     assert_eq!(envelope.counters().cursor_advance_count(), 1);
     assert_eq!(envelope.counters().rollup_input_count(), 1);
 }

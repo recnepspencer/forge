@@ -3,23 +3,93 @@ use crate::planning::{FallbackDisposition, PlannedExecutionRoute};
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::read_composition_relationship_proof::support_profile_for_relationship_proof;
 
-use super::read_receipt_support::materialized_result_digest;
+use super::read_receipt_support::{materialized_count_result_digest, materialized_result_digest};
 use super::{
     WorthQueryReadBreadth, WorthQueryReadExecutionEngine, WorthQueryReadFallbackClass,
     WorthQueryReadGraph, WorthQueryReadReceipt, WorthQueryReadRelationshipProofPosture,
 };
 
 impl WorthQueryReadReceipt {
+    pub(in crate::runtime) fn from_materialized_count(
+        read_graph: &WorthQueryReadGraph,
+        snapshot_identity: WorthQuerySnapshotIdentity,
+        execution: &crate::execution::ExecutionResultEnvelope,
+        records_examined_count: usize,
+        input_row_count: usize,
+        count: u64,
+    ) -> Self {
+        let execution_counters = execution
+            .counters()
+            .clone()
+            .with_count_aggregate_input(records_examined_count, input_row_count);
+        let breadth = WorthQueryReadBreadth {
+            planned_read_surface_count: read_graph
+                .execution_plan()
+                .counters()
+                .planned_read_surface_count(),
+            planned_traversal_clause_count: read_graph
+                .execution_plan()
+                .counters()
+                .planned_traversal_clause_count()
+                .max(read_graph.declared_traversal_clause_count()),
+            planned_traversal_depth_limit: read_graph
+                .execution_plan()
+                .counters()
+                .planned_traversal_depth_limit()
+                .max(read_graph.declared_traversal_depth_limit()),
+            execution_query_projection_count: read_graph
+                .declarative_request()
+                .query_projection()
+                .len(),
+            execution_read_operation_count: execution_counters.execution_read_operation_count(),
+            execution_records_examined_count: records_examined_count,
+            execution_records_emitted_count: 1,
+            execution_page_width: 1,
+            execution_page_truncation_count: 0,
+            execution_cursor_advance_count: execution_counters.cursor_advance_count(),
+            execution_materialized_relation_count: execution_counters.materialized_relation_count(),
+            execution_aggregate_input_count: input_row_count,
+            execution_rollup_input_count: input_row_count,
+        };
+        let result_digest = materialized_count_result_digest(
+            execution.report().query_digest().as_str(),
+            execution.report().basis_digest().as_str(),
+            input_row_count,
+            count,
+        )
+        .as_str()
+        .to_string();
+        Self::from_parts(
+            read_graph,
+            execution.report().query_digest().as_str(),
+            execution.report().basis_digest().as_str(),
+            snapshot_identity,
+            execution_engine_for_planned_route(read_graph),
+            fallback_class_for_planned_route(read_graph),
+            execution_counters.execution_fallback_taken_count(),
+            breadth,
+            result_digest,
+        )
+    }
+
     pub(in crate::runtime) fn from_materialized_rows(
         read_graph: &WorthQueryReadGraph,
         snapshot_identity: WorthQuerySnapshotIdentity,
         execution: &crate::execution::ExecutionResultEnvelope,
         rows: &[WorthQueryEntity],
+        records_examined_count: usize,
     ) -> Self {
         let execution_counters = execution
             .counters()
             .clone()
-            .with_materialized_row_count(rows.len());
+            .with_materialized_rows(records_examined_count, rows.len());
+        let result_digest = materialized_result_digest(
+            execution.report().query_digest().as_str(),
+            execution.report().basis_digest().as_str(),
+            rows,
+        )
+        .as_str()
+        .to_string();
         Self::from_parts(
             read_graph,
             execution.report().query_digest().as_str(),
@@ -57,8 +127,10 @@ impl WorthQueryReadReceipt {
                 execution_cursor_advance_count: execution_counters.cursor_advance_count(),
                 execution_materialized_relation_count: execution_counters
                     .materialized_relation_count(),
+                execution_aggregate_input_count: execution_counters.aggregate_input_count(),
+                execution_rollup_input_count: execution_counters.rollup_input_count(),
             },
-            rows,
+            result_digest,
         )
     }
 
@@ -68,6 +140,13 @@ impl WorthQueryReadReceipt {
         context_execution: &QueryContextExecutionArtifact,
         rows: &[WorthQueryEntity],
     ) -> Self {
+        let result_digest = materialized_result_digest(
+            context_execution.query_digest(),
+            context_execution.basis_digest(),
+            rows,
+        )
+        .as_str()
+        .to_string();
         let mut receipt = Self::from_parts(
             read_graph,
             context_execution.query_digest(),
@@ -106,8 +185,10 @@ impl WorthQueryReadReceipt {
                 execution_page_truncation_count: 0,
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: rows.len(),
+                execution_aggregate_input_count: 0,
+                execution_rollup_input_count: 0,
             },
-            rows,
+            result_digest,
         );
         receipt.materialized_fact_posture = context_execution.materialized_fact_posture().cloned();
         receipt
@@ -122,7 +203,7 @@ impl WorthQueryReadReceipt {
         fallback_class: WorthQueryReadFallbackClass,
         fallback_count: usize,
         breadth: WorthQueryReadBreadth,
-        rows: &[WorthQueryEntity],
+        result_digest: String,
     ) -> Self {
         let relationship_proof_admission = read_graph.relationship_proof_admission().cloned();
         let relationship_proof_support_profile = relationship_proof_admission
@@ -132,6 +213,10 @@ impl WorthQueryReadReceipt {
         Self {
             read_graph_digest: read_graph.digest().to_string(),
             graph_family: read_graph.family().clone(),
+            collection_result_family: read_graph
+                .execution_plan()
+                .collection()
+                .map(|collection| collection.planning_context().result_family().clone()),
             execution_plan_digest: read_graph
                 .execution_plan()
                 .query()
@@ -140,9 +225,7 @@ impl WorthQueryReadReceipt {
                 .to_string(),
             query_digest: query_digest.to_string(),
             basis_digest: basis_digest.to_string(),
-            result_digest: materialized_result_digest(query_digest, basis_digest, rows)
-                .as_str()
-                .to_string(),
+            result_digest,
             snapshot_identity,
             scope_class: read_graph.scope_class().clone(),
             execution_engine,

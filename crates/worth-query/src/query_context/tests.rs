@@ -59,6 +59,26 @@ fn current_branch_head_context_binding_preserves_runtime_digests() {
 }
 
 #[test]
+fn legacy_query_basis_execution_cannot_fabricate_count_aggregate_results() {
+    let preflight = execution_preflights::aggregate_rollup_collection_preflight();
+    let binding = bind_legacy_query_basis_context(
+        QueryBasisContextRequest::current_branch_head(),
+        QueryContextBindingSource::RuntimeCurrent(&preflight),
+    )
+    .expect("count preflight should remain bindable for inspection");
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("count context should remain inspectable");
+
+    let error = execute_query_basis_context(&admitted)
+        .expect_err("legacy query-basis execution must not produce a count result");
+
+    assert_eq!(
+        error.failure_class(),
+        &QueryContextAdmissionFailureClass::UnsupportedHistoricalBasis
+    );
+}
+
+#[test]
 fn alternate_branch_head_context_binding_is_explicitly_distinct() {
     let preflight = execution_preflights::alternate_basis_runtime_preflight();
     let binding = bind_legacy_query_basis_context(

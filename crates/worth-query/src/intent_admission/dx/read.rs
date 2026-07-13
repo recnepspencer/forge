@@ -6,10 +6,11 @@ use crate::intent_admission::{
 };
 use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphIndexInventoryMatchReport,
-    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessPlanExplanation, WorthQueryIntentConsumerInspection,
-    WorthQueryReadFamily, WorthQueryReadResult, WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryCountResult,
+    WorthQueryGraphIndexInventoryMatchReport, WorthQueryGraphReadAccessAdmission,
+    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessPlanExplanation,
+    WorthQueryIntentConsumerInspection, WorthQueryReadFamily, WorthQueryReadResult,
+    WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 
 pub struct WorthQueryWorkspaceReadIntentAuthoring<'a> {
@@ -258,5 +259,10 @@ impl<'a> WorthQueryAdmittedWorkspaceReadIntent<'a> {
     pub fn execute(self) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.workspace
             .execute_bound_read_execution(self.execution_binding)
+    }
+
+    pub(crate) fn execute_count(self) -> Result<WorthQueryCountResult, WorthQueryRuntimeError> {
+        self.workspace
+            .execute_bound_count_read_execution(self.execution_binding)
     }
 }

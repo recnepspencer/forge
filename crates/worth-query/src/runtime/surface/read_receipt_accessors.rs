@@ -25,6 +25,10 @@ impl WorthQueryReadReceipt {
         &self.graph_family
     }
 
+    pub fn collection_result_family(&self) -> Option<&crate::collection::CollectionResultFamily> {
+        self.collection_result_family.as_ref()
+    }
+
     /// Canonical identity of the admitted execution plan consumed by Query.
     ///
     /// This is derived evidence. It does not expose planner construction or
@@ -246,6 +250,9 @@ impl WorthQueryReadReceipt {
         Self {
             read_graph_digest: read_graph_digest.into(),
             graph_family: WorthQueryReadGraphFamily::Collection,
+            collection_result_family: Some(
+                crate::collection::CollectionResultFamily::OrdinaryCollection,
+            ),
             execution_plan_digest: "test-execution-plan".to_string(),
             query_digest: query_digest.into(),
             basis_digest: basis_digest.into(),
@@ -278,6 +285,8 @@ impl WorthQueryReadReceipt {
                 execution_page_truncation_count: 0,
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: 0,
+                execution_aggregate_input_count: 0,
+                execution_rollup_input_count: 0,
             },
             materialized_fact_posture: None,
             graph_read_access_plan: None,

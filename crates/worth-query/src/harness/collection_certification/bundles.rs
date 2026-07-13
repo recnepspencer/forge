@@ -8,9 +8,8 @@ use crate::facade::policy::{
     planning_request_context_for_direct, PlanningError,
 };
 use crate::planning::{
-    plan_validated_bundle_for_requested_aggregate_family,
-    plan_validated_bundle_for_requested_traversal_bound, RequestedAggregateFamily,
-    RequestedTraversalBound,
+    plan_validated_bundle_for_requested_traversal_bound, reject_unsupported_aggregate_family,
+    RequestedAggregateFamily, RequestedTraversalBound,
 };
 
 use super::super::collection_matrix::{
@@ -208,7 +207,7 @@ pub(super) fn unsupported_aggregate_family_hostile() -> Result<(), PlanningError
         ),
     )
     .unwrap();
-    plan_validated_bundle_for_requested_aggregate_family(
+    reject_unsupported_aggregate_family(
         &bundle,
         request,
         RequestedAggregateFamily::GroupedIntegerSum,

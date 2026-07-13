@@ -8,8 +8,9 @@ use crate::evidence_identity::{
 };
 use crate::identity::{CanonicalQueryDigest, SchemaBasisDigest};
 use crate::planning::{
-    plan_validated_bundle, plan_validated_bundle_with_policy_authority,
-    planning_request_context_for_direct,
+    plan_validated_bundle, plan_validated_bundle_for_count_aggregate,
+    plan_validated_bundle_for_count_aggregate_with_policy_authority,
+    plan_validated_bundle_with_policy_authority, planning_request_context_for_direct,
 };
 use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
 use crate::policy_plan::lower_policy_aware_current_plan;
@@ -70,6 +71,10 @@ impl WorthQueryDeclaredReadIntent {
         self.canonical.query().digest()
     }
 
+    pub(crate) fn family(&self) -> &WorthQueryReadGraphFamily {
+        &self.family
+    }
+
     pub(crate) fn canonical(&self) -> &CanonicalQueryBundle {
         &self.canonical
     }
@@ -89,6 +94,21 @@ impl WorthQueryDeclaredReadIntent {
     pub(crate) fn plan(
         self,
         authority: WorthQueryReadPlanningAuthority,
+    ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+        self.plan_result_family(authority, WorthQueryDeclaredReadResultFamily::Rows)
+    }
+
+    pub(crate) fn plan_count(
+        self,
+        authority: WorthQueryReadPlanningAuthority,
+    ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+        self.plan_result_family(authority, WorthQueryDeclaredReadResultFamily::CountRows)
+    }
+
+    fn plan_result_family(
+        self,
+        authority: WorthQueryReadPlanningAuthority,
+        result_family: WorthQueryDeclaredReadResultFamily,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
         let mut declarative_request = self.declarative_request;
         let (relationship_proof_admission, policy_aware_plan) = match authority {
@@ -115,13 +135,27 @@ impl WorthQueryDeclaredReadIntent {
         );
         let request_context = planning_request_context_for_direct(&self.validated, basis_intent)
             .map_err(planning_denial)?;
-        let execution_plan = match policy_aware_plan.as_ref() {
-            Some(policy_plan) => plan_validated_bundle_with_policy_authority(
-                &self.validated,
-                request_context,
-                policy_plan,
-            ),
-            None => plan_validated_bundle(&self.validated, request_context),
+        let execution_plan = match (result_family, policy_aware_plan.as_ref()) {
+            (WorthQueryDeclaredReadResultFamily::Rows, Some(policy_plan)) => {
+                plan_validated_bundle_with_policy_authority(
+                    &self.validated,
+                    request_context,
+                    policy_plan,
+                )
+            }
+            (WorthQueryDeclaredReadResultFamily::Rows, None) => {
+                plan_validated_bundle(&self.validated, request_context)
+            }
+            (WorthQueryDeclaredReadResultFamily::CountRows, Some(policy_plan)) => {
+                plan_validated_bundle_for_count_aggregate_with_policy_authority(
+                    &self.validated,
+                    request_context,
+                    policy_plan,
+                )
+            }
+            (WorthQueryDeclaredReadResultFamily::CountRows, None) => {
+                plan_validated_bundle_for_count_aggregate(&self.validated, request_context)
+            }
         }
         .map_err(planning_denial)?;
         Ok(WorthQueryReadGraph::new(
@@ -189,6 +223,12 @@ impl WorthQueryDeclaredReadIntent {
             validated,
         }
     }
+}
+
+#[derive(Clone, Copy)]
+enum WorthQueryDeclaredReadResultFamily {
+    Rows,
+    CountRows,
 }
 
 fn planning_denial(error: impl std::fmt::Debug) -> WorthQueryReadDenial {

@@ -1,4 +1,5 @@
 mod authority_context;
+mod count;
 mod declaration_denials;
 mod fixtures;
 mod journey_counters;

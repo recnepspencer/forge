@@ -293,6 +293,48 @@ impl PlannedResultShapeArtifact {
             binding_count,
         }
     }
+
+    fn from_validated_bundle_for_collection_mode(
+        bundle: &ValidatedQueryBundle,
+        collection_mode: &CollectionPlanningMode,
+    ) -> Self {
+        if matches!(collection_mode, CollectionPlanningMode::CountRows) {
+            let validated_parts = vec![
+                format!(
+                    "source_validated_result_shape:{}",
+                    bundle.result_shape().digest().as_str()
+                ),
+                "result_family:count_aggregate".to_string(),
+                "aggregate:count_rows".to_string(),
+            ];
+            let canonical_parts = vec![
+                format!(
+                    "source_canonical_result_shape:{}",
+                    bundle
+                        .result_shape()
+                        .canonical_result_shape_digest()
+                        .as_str()
+                ),
+                "result_family:count_aggregate".to_string(),
+                "aggregate:count_rows".to_string(),
+            ];
+
+            return Self::new(
+                ValidatedResultShapeDigest::from_parts(&validated_parts),
+                CanonicalResultShapeDigest::from_parts(&canonical_parts),
+                1,
+            );
+        }
+
+        Self::new(
+            bundle.result_shape().digest().clone(),
+            bundle
+                .result_shape()
+                .canonical_result_shape_digest()
+                .clone(),
+            bundle.result_shape().bindings().len(),
+        )
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -494,7 +536,6 @@ pub(crate) enum RequestedTraversalBound {
 #[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum RequestedAggregateFamily {
-    CountRows,
     GroupedIntegerSum,
 }
 
@@ -720,6 +761,10 @@ fn seed_execution_plan_for_collection_mode(
     let planned_projection_count = policy_plan
         .map(|plan| plan.core().work_budget().authorized_field_width())
         .unwrap_or_else(|| bundle.query().projection().len());
+    let result_shape = PlannedResultShapeArtifact::from_validated_bundle_for_collection_mode(
+        bundle,
+        &collection_mode,
+    );
     let collection = CollectionPlanBundle::from_validated_bundle_for_mode(
         bundle,
         collection_mode,
@@ -728,7 +773,7 @@ fn seed_execution_plan_for_collection_mode(
     let query = PlannedQueryArtifact::new(
         bundle.query().digest().clone(),
         bundle.query().canonical_query_digest().clone(),
-        bundle.result_shape().digest(),
+        result_shape.validated_result_shape_digest(),
         route.clone(),
         fallback.clone(),
         planned_projection_count,
@@ -738,14 +783,6 @@ fn seed_execution_plan_for_collection_mode(
         collection.as_ref().map(CollectionPlanBundle::digest),
         binding_digest,
         policy_plan.map(|plan| plan.core().seam().source_narrowed_artifact_digest()),
-    );
-    let result_shape = PlannedResultShapeArtifact::new(
-        bundle.result_shape().digest().clone(),
-        bundle
-            .result_shape()
-            .canonical_result_shape_digest()
-            .clone(),
-        bundle.result_shape().bindings().len(),
     );
     let counters = PlanningCounters::new(
         planned_projection_count,
@@ -846,6 +883,31 @@ pub(crate) fn plan_validated_bundle_with_policy_authority(
     )
 }
 
+pub(crate) fn plan_validated_bundle_for_count_aggregate(
+    bundle: &ValidatedQueryBundle,
+    request_context: PlanningRequestContext,
+) -> Result<ExecutionPlanBundle, PlanningError> {
+    plan_validated_bundle_for_collection_family_with_policy_authority(
+        bundle,
+        request_context,
+        CollectionResultFamily::CountAggregate,
+        None,
+    )
+}
+
+pub(crate) fn plan_validated_bundle_for_count_aggregate_with_policy_authority(
+    bundle: &ValidatedQueryBundle,
+    request_context: PlanningRequestContext,
+    policy_plan: &PolicyAwareCurrentPlan,
+) -> Result<ExecutionPlanBundle, PlanningError> {
+    plan_validated_bundle_for_collection_family_with_policy_authority(
+        bundle,
+        request_context,
+        CollectionResultFamily::CountAggregate,
+        Some(policy_plan),
+    )
+}
+
 pub fn plan_validated_bundle_for_collection_family(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,
@@ -886,6 +948,7 @@ fn plan_validated_bundle_for_collection_family_with_policy_authority(
     let collection_mode = match collection_result_family {
         CollectionResultFamily::OrdinaryCollection => CollectionPlanningMode::Ordinary,
         CollectionResultFamily::CdcCollection => CollectionPlanningMode::Cdc,
+        CollectionResultFamily::CountAggregate => CollectionPlanningMode::CountRows,
     };
     seed_execution_plan_for_collection_mode(
         bundle,
@@ -978,32 +1041,12 @@ pub(crate) fn plan_validated_bundle_for_requested_traversal_bound(
 }
 
 #[cfg(test)]
-pub(crate) fn plan_validated_bundle_for_requested_aggregate_family(
-    bundle: &ValidatedQueryBundle,
-    request_context: PlanningRequestContext,
+pub(crate) fn reject_unsupported_aggregate_family(
+    _bundle: &ValidatedQueryBundle,
+    _request_context: PlanningRequestContext,
     requested_aggregate: RequestedAggregateFamily,
 ) -> Result<ExecutionPlanBundle, PlanningError> {
     match requested_aggregate {
-        RequestedAggregateFamily::CountRows => {
-            if request_context.semantic().basis_intent().fallback_allowed() {
-                return Err(PlanningError::UnsupportedFallbackShape);
-            }
-            if matches!(
-                request_context.semantic().basis_intent().authority_family(),
-                crate::basis::BasisAuthorityFamily::Store
-            ) {
-                return Err(PlanningError::UnsupportedBackendParityRequest);
-            }
-            let route = select_route(bundle, &request_context);
-            seed_execution_plan_for_collection_mode(
-                bundle,
-                request_context,
-                route,
-                FallbackDisposition::Forbidden,
-                CollectionPlanningMode::AggregateRollupCount,
-                None,
-            )
-        }
         RequestedAggregateFamily::GroupedIntegerSum => {
             Err(PlanningError::UnsupportedAggregateFamily)
         }

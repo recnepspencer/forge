@@ -1625,12 +1625,7 @@ impl PreviewComparisonShapeContract {
             })
             .unwrap_or_else(|| preflight.plan().result_shape().binding_count().max(1));
         let result_family = collection
-            .map(
-                |collection| match collection.planning_context().result_family() {
-                    CollectionResultFamily::OrdinaryCollection => "ordinary_collection",
-                    CollectionResultFamily::CdcCollection => "cdc_collection",
-                },
-            )
+            .map(|collection| collection.planning_context().result_family().digest_label())
             .unwrap_or("detail")
             .to_string();
 

@@ -241,6 +241,7 @@ mod published_artifacts;
 mod read_composition;
 mod read_composition_builder_shared;
 mod read_composition_builder_walks;
+mod read_composition_current_execution;
 mod read_composition_frontier;
 mod read_composition_frontier_search;
 mod read_composition_hooks;
@@ -250,6 +251,7 @@ mod read_composition_operator_builders;
 mod read_composition_phase_gate;
 mod read_composition_phase_one_closeout;
 mod read_composition_relationship_proof;
+mod read_composition_row_selection;
 mod read_composition_runtime;
 mod read_composition_shared;
 mod read_composition_successor;
@@ -282,7 +284,7 @@ mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
 mod runtime_session_lowering;
 
-pub use read_composition_materialization::worth_query_materialized_relation_field_key;
+pub use read_composition_row_selection::worth_query_materialized_relation_field_key;
 mod runtime_sessions;
 mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
@@ -808,12 +810,13 @@ pub use support::{
 pub use support_matrix::{
     WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimePublicSupportMatrixRow,
 };
+pub(in crate::runtime) use surface::WorthQueryReadExecutionProduct;
 #[allow(unused_imports)]
 pub use surface::{
     WorthQueryArtifactInspector, WorthQueryBatchMutationEvidence, WorthQueryBatchWriteReceipt,
     WorthQueryBatchWriteRetainedArtifact, WorthQueryContinuityClass,
     WorthQueryContinuityMutationEvidence, WorthQueryContinuityOutcomeClass,
-    WorthQueryContinuityRejectionClass, WorthQueryDerivedArtifactBinding,
+    WorthQueryContinuityRejectionClass, WorthQueryCountResult, WorthQueryDerivedArtifactBinding,
     WorthQueryDerivedInspectionReceipt, WorthQueryDerivedInspectionResult,
     WorthQueryDerivedMaterializationBundle, WorthQueryDerivedMaterializationReceipt,
     WorthQueryDerivedMaterializationResult, WorthQueryDerivedMaterializationTarget,

@@ -4,6 +4,11 @@ pub use crate::authoring::{
     FieldName, OrderingSelector, PresencePredicate, RelationName, RootEntityKey,
     ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
 };
+pub use crate::ordinary::count::{
+    declare_count, WorthQueryCountCompletion, WorthQueryCountDeclaration,
+    WorthQueryCountDeclarationIdentity, WorthQueryCountDeclarationStop, WorthQueryCountOutcome,
+    WorthQueryCountRequest,
+};
 pub use crate::ordinary::read::{
     current, declare, WorthQueryCurrentPolicyTenantReadContext, WorthQueryCurrentReadContext,
     WorthQueryCurrentRelationshipReadContext, WorthQueryReadCompletion,
@@ -17,7 +22,7 @@ pub use crate::ordinary::read::{
 };
 pub use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 pub use crate::runtime::{
-    WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
+    WorthQueryCountResult, WorthQueryReadBreadth, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraphFamily, WorthQueryReadOperatorFamily, WorthQueryReadReceipt,
     WorthQueryReadResult, WorthQueryReadScopeClass,
 };

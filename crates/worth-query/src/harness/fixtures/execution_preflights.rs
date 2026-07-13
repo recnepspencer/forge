@@ -8,9 +8,8 @@ use crate::facade::policy::{
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::planning::{
-    plan_validated_bundle_for_requested_aggregate_family,
-    plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,
-    RequestedDerivedFieldFamily,
+    plan_validated_bundle_for_count_aggregate,
+    plan_validated_bundle_for_requested_derived_field_family, RequestedDerivedFieldFamily,
 };
 
 pub fn direct_runtime_preflight() -> ExecutionPreflightBundle {
@@ -236,10 +235,9 @@ pub fn cdc_collection_preflight() -> ExecutionPreflightBundle {
 
 pub fn aggregate_rollup_collection_preflight() -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::ordered_collection_bundle();
-    let plan = plan_validated_bundle_for_requested_aggregate_family(
+    let plan = plan_validated_bundle_for_count_aggregate(
         &bundle,
         super::planning_requests::direct_runtime_request(&bundle),
-        RequestedAggregateFamily::CountRows,
     )
     .unwrap();
     preflight_execution_basis(

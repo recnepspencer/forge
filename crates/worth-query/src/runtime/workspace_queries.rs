@@ -2,9 +2,9 @@ use super::read_composition_hooks::{
     WorthQueryReadInvariantPackContext, WorthQueryReadInvariantPackViolation,
 };
 use super::{
-    WorthQueryGenericInspectionIntentTarget, WorthQueryInspection, WorthQueryInspectionTarget,
-    WorthQueryInstalledProgram, WorthQueryProgram, WorthQueryReadBuilder,
-    WorthQueryReadDomainInvariantDenial, WorthQueryReadFamily,
+    WorthQueryCountResult, WorthQueryGenericInspectionIntentTarget, WorthQueryInspection,
+    WorthQueryInspectionTarget, WorthQueryInstalledProgram, WorthQueryProgram,
+    WorthQueryReadBuilder, WorthQueryReadDomainInvariantDenial, WorthQueryReadFamily,
     WorthQueryReadFamilyInvariantEvidence, WorthQueryReadGraph, WorthQueryReadResult,
     WorthQueryRuntimeError, WorthQueryUnifiedInspectionResult, WorthQueryWorkspace,
 };
@@ -20,6 +20,19 @@ impl WorthQueryWorkspace {
         let family = WorthQueryReadFamily::new_kernel_only("declared_read", read_graph);
         self.read_family_intent_in_graph_read_authority(&family, authority)
             .execute()
+    }
+
+    pub(crate) fn execute_declared_count_graph_in_authority(
+        &mut self,
+        read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
+    ) -> Result<WorthQueryCountResult, WorthQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
+        let family = WorthQueryReadFamily::new_kernel_only("declared_count", read_graph);
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .admit()?
+            .execute_count()
     }
 
     pub fn compose_read(

@@ -11,6 +11,8 @@ pub struct WorthQueryReadBreadth {
     pub(crate) execution_page_truncation_count: usize,
     pub(crate) execution_cursor_advance_count: usize,
     pub(crate) execution_materialized_relation_count: usize,
+    pub(crate) execution_aggregate_input_count: usize,
+    pub(crate) execution_rollup_input_count: usize,
 }
 
 impl WorthQueryReadBreadth {
@@ -56,5 +58,13 @@ impl WorthQueryReadBreadth {
 
     pub fn execution_materialized_relation_count(&self) -> usize {
         self.execution_materialized_relation_count
+    }
+
+    pub fn execution_aggregate_input_count(&self) -> usize {
+        self.execution_aggregate_input_count
+    }
+
+    pub fn execution_rollup_input_count(&self) -> usize {
+        self.execution_rollup_input_count
     }
 }

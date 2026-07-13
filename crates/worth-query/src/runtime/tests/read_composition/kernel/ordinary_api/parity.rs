@@ -83,7 +83,7 @@ fn ordinary_collection_preserves_family_and_matches_internal_phase_chain() {
         result.receipt().graph_family(),
         &WorthQueryReadGraphFamily::Collection
     );
-    assert!(!result.rows().is_empty());
+    assert!(result.rows().is_empty());
     assert_eq!(
         result.receipt().breadth().planned_traversal_clause_count(),
         0

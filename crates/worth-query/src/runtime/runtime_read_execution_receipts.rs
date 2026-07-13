@@ -17,12 +17,14 @@ pub(crate) fn provision_graph_indexes_for_read_binding(
     })
 }
 
-pub(crate) fn attach_graph_read_access_receipt(
-    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadGraph,
+pub(crate) fn attach_graph_read_access_receipt<Product>(
+    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadProduct<Product>,
     binding: &WorthQueryReadExecutionBinding,
     snapshot_identity_digest: &str,
     ephemeral_graph_index_receipt: Option<WorthQueryEphemeralGraphIndexReceipt>,
-) {
+) where
+    Product: WorthQueryReadExecutionProduct,
+{
     let graph_read_access_plan_consumption =
         WorthQueryGraphReadAccessPlanConsumption::from_plan_binding_and_execution_counters(
             binding.graph_read_access_plan(),
@@ -32,10 +34,10 @@ pub(crate) fn attach_graph_read_access_receipt(
     let graph_read_streaming_receipt = streaming_receipt_for_admitted_read_result(
         binding.graph_read_access_plan(),
         snapshot_identity_digest,
-        executed_read.result().receipt().result_digest(),
-        executed_read.result().rows().len(),
+        executed_read.product().receipt().result_digest(),
+        executed_read.product().output_cardinality(),
     );
-    executed_read.result_mut().attach_graph_read_access_plan(
+    executed_read.product_mut().attach_graph_read_access_plan(
         binding.graph_read_access_plan().clone(),
         graph_read_access_plan_consumption,
         ephemeral_graph_index_receipt,
@@ -43,20 +45,24 @@ pub(crate) fn attach_graph_read_access_receipt(
     );
 }
 
-pub(crate) fn attach_graph_obligation_dispatch(
-    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadGraph,
+pub(crate) fn attach_graph_obligation_dispatch<Product>(
+    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadProduct<Product>,
     binding: &WorthQueryReadExecutionBinding,
-) {
+) where
+    Product: WorthQueryReadExecutionProduct,
+{
     executed_read
-        .result_mut()
+        .product_mut()
         .attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
 }
 
-pub(crate) fn attach_read_intent_execution_evidence(
-    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadGraph,
+pub(crate) fn attach_read_intent_execution_evidence<Product>(
+    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadProduct<Product>,
     binding: &WorthQueryReadExecutionBinding,
     snapshot_identity: &crate::WorthQueryEvidenceIdentity,
-) {
+) where
+    Product: WorthQueryReadExecutionProduct,
+{
     let obligation_dispatch_envelope_digest = binding
         .graph_obligation_dispatch()
         .and_then(|dispatch| dispatch.envelope_digest());
@@ -72,7 +78,7 @@ pub(crate) fn attach_read_intent_execution_evidence(
             binding.execution_seam(),
             obligation_dispatch_envelope_digest,
             binding.read_family().family_name(),
-            executed_read.result().receipt().result_digest(),
+            executed_read.product().receipt().result_digest(),
             binding.execution_seam().as_str(),
         );
     let execution_provenance =
@@ -83,10 +89,10 @@ pub(crate) fn attach_read_intent_execution_evidence(
             binding.handoff().decision_digest(),
             binding.handoff().handoff_digest(),
             binding.binding_digest(),
-            executed_read.result().receipt().result_digest(),
+            executed_read.product().receipt().result_digest(),
             snapshot_identity,
         );
     executed_read
-        .result_mut()
+        .product_mut()
         .attach_intent_admission_evidence(decision_trace_envelope, execution_provenance);
 }

@@ -179,6 +179,22 @@ impl QueryContextExecutionArtifact {
 pub(crate) fn execute_legacy_query_basis_context(
     context: &AdmittedQueryBasisContext,
 ) -> Result<QueryContextExecutionArtifact, QueryContextAdmissionError> {
+    let carries_count_aggregate_plan = match context.binding().evidence() {
+        super::basis::QueryBasisBindingEvidenceView::Runtime { preflight } => {
+            preflight_is_count_aggregate(preflight)
+        }
+        super::basis::QueryBasisBindingEvidenceView::Historical {
+            query_preflight, ..
+        } => preflight_is_count_aggregate(query_preflight),
+        super::basis::QueryBasisBindingEvidenceView::PreviewDerived { .. } => false,
+    };
+    if carries_count_aggregate_plan {
+        return Err(QueryContextAdmissionError::new(
+            QueryContextAdmissionFailureClass::UnsupportedHistoricalBasis,
+            "legacy query-basis execution cannot produce aggregate results",
+            QueryContextCounters::for_denial(false, false),
+        ));
+    }
     match context.binding().evidence() {
         super::basis::QueryBasisBindingEvidenceView::Runtime { preflight } => {
             let execution = execute_preflight_bundle(preflight)
@@ -372,6 +388,15 @@ pub(crate) fn execute_legacy_query_basis_context(
             })
         }
     }
+}
+
+fn preflight_is_count_aggregate(preflight: &crate::basis::ExecutionPreflightBundle) -> bool {
+    preflight.plan().collection().is_some_and(|collection| {
+        matches!(
+            collection.planning_context().result_family(),
+            crate::collection::CollectionResultFamily::CountAggregate
+        )
+    })
 }
 
 #[cfg(test)]

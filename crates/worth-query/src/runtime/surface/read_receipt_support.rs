@@ -23,6 +23,21 @@ pub(super) fn materialized_result_digest(
     )
 }
 
+pub(super) fn materialized_count_result_digest(
+    query_digest: &str,
+    basis_digest: &str,
+    input_row_count: usize,
+    count: u64,
+) -> ResultDigest {
+    ResultDigest::from_parts(&[
+        "result_family:count_aggregate".to_string(),
+        format!("query:{query_digest}"),
+        format!("basis:{basis_digest}"),
+        format!("aggregate_input_rows:{input_row_count}"),
+        format!("count:{count}"),
+    ])
+}
+
 pub(super) fn relationship_proof_support_surface_count(
     profile: Option<&RelationshipProofSupportProfile>,
     status: RelationshipProofSupportStatus,
