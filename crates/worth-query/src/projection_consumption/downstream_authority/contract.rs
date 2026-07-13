@@ -108,4 +108,14 @@ impl ProjectionAuthorityContract {
             requested_facts,
         }
     }
+
+    pub(in crate::projection_consumption) fn certification(
+        requested_facts: ProjectMaterializedFacts,
+        requirements: impl IntoIterator<Item = ProjectionAuthorityRequirement>,
+    ) -> Self {
+        Self {
+            requirements: requirements.into_iter().collect(),
+            requested_facts,
+        }
+    }
 }

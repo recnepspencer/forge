@@ -36,6 +36,20 @@ pub struct CompletedProjectionFactConsumption {
 }
 
 impl CompletedProjectionFactConsumption {
+    pub(super) fn certification(
+        declaration: ProjectionConsumptionDeclaration,
+        contract: MaterializedProjectionContract,
+        facts: ConsumedProjectionFactSet,
+        receipt: ProjectionConsumptionReceipt,
+    ) -> Self {
+        Self {
+            declaration,
+            contract,
+            facts,
+            receipt,
+        }
+    }
+
     pub fn declaration(&self) -> &ProjectionConsumptionDeclaration {
         &self.declaration
     }

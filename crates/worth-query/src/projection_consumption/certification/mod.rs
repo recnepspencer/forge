@@ -1,8 +1,11 @@
 mod audits;
 mod bundle;
 mod bundle_outputs;
+mod downstream_authority_bundle;
+mod downstream_authority_support;
 mod fixtures;
 mod grouped_projection_contract;
+mod intent_admission_fixtures;
 mod oracle;
 mod proof_artifacts;
 mod seeded;
@@ -25,7 +28,16 @@ pub use bundle::{
     certify_projection_consumption_closeout_core, ProjectionConsumptionCertificationBundle,
     ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
 };
-pub(crate) use fixtures::{
+pub use downstream_authority_bundle::{
+    certify_consumed_projection_authority, ConsumedProjectionAuthorityCertificationBundle,
+    ConsumedProjectionAuthorityCertificationLane, ConsumedProjectionAuthorityCertificationRow,
+    ConsumedProjectionAuthorityComplexityEvidence,
+};
+pub use downstream_authority_support::{
+    consumed_projection_authority_support_matrix, ConsumedProjectionAuthoritySupportMatrix,
+    ConsumedProjectionAuthoritySupportRow, ConsumedProjectionAuthoritySupportStatus,
+};
+pub(crate) use intent_admission_fixtures::{
     intent_admission_admitted_projection_declaration,
     intent_admission_warning_projection_declaration,
 };

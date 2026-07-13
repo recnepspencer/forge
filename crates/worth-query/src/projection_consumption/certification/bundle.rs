@@ -1,4 +1,6 @@
-use crate::projection_consumption::identity::compose_certification_bundle_digest;
+use crate::projection_consumption::identity::{
+    compose_certification_bundle_digest, compose_certification_row_digest,
+};
 
 use super::audits::{
     projection_consumption_family_inventory, projection_consumption_forbidden_fallback_audit,
@@ -21,6 +23,9 @@ use super::slopes::{
     projection_consumption_slope_report, ProjectionConsumptionCertificationCounterSnapshot,
     ProjectionConsumptionSlopeReport,
 };
+use super::{
+    certify_consumed_projection_authority, ConsumedProjectionAuthorityCertificationBundle,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionCertificationLane {
@@ -32,6 +37,7 @@ pub enum ProjectionConsumptionCertificationLane {
     CompileFailBoundary,
     OracleSurface,
     SeededReplaySurface,
+    DownstreamAuthoritySurface,
 }
 
 impl ProjectionConsumptionCertificationLane {
@@ -46,6 +52,7 @@ impl ProjectionConsumptionCertificationLane {
             Self::CompileFailBoundary => "compile_fail_boundary",
             Self::OracleSurface => "oracle_surface",
             Self::SeededReplaySurface => "seeded_replay_surface",
+            Self::DownstreamAuthoritySurface => "downstream_authority_surface",
         }
     }
 }
@@ -77,6 +84,7 @@ pub struct ProjectionConsumptionCertificationBundle {
     oracle_report: ProjectionConsumptionOracleReport,
     seeded_report: ProjectionConsumptionSeededCertificationReport,
     slope_report: ProjectionConsumptionSlopeReport,
+    consumed_authority_certification: ConsumedProjectionAuthorityCertificationBundle,
     rows: Vec<ProjectionConsumptionCertificationRow>,
     outputs: Vec<(&'static str, String)>,
     certification_bundle_digest: String,
@@ -115,6 +123,12 @@ impl ProjectionConsumptionCertificationBundle {
         self.slope_report.counter_snapshot()
     }
 
+    pub fn consumed_authority_certification(
+        &self,
+    ) -> &ConsumedProjectionAuthorityCertificationBundle {
+        &self.consumed_authority_certification
+    }
+
     pub fn rows(&self) -> &[ProjectionConsumptionCertificationRow] {
         &self.rows
     }
@@ -148,7 +162,8 @@ pub fn certify_projection_consumption_closeout_core() -> ProjectionConsumptionCe
     let oracle_report = projection_consumption_oracle_report();
     let seeded_report = projection_consumption_seeded_certification_report();
     let slope_report = projection_consumption_slope_report();
-    let assembled = assemble_closeout_bundle_outputs(
+    let consumed_authority_certification = certify_consumed_projection_authority();
+    let mut assembled = assemble_closeout_bundle_outputs(
         &lifecycle,
         &family_inventory,
         &support_matrix,
@@ -161,6 +176,19 @@ pub fn certify_projection_consumption_closeout_core() -> ProjectionConsumptionCe
         compile_fail_boundary_bundle_digest(),
         golden_transcript_bundle_digest(),
     );
+    let authority_detail = consumed_authority_certification.bundle_digest().to_string();
+    assembled.rows.push(ProjectionConsumptionCertificationRow {
+        lane: ProjectionConsumptionCertificationLane::DownstreamAuthoritySurface,
+        evidence_detail: authority_detail.clone(),
+        row_digest: compose_certification_row_digest(
+            "projection_consumption_downstream_authority_closeout_row_v1",
+            &[("authority_bundle", authority_detail.as_str())],
+        ),
+    });
+    assembled.outputs.push((
+        "consumed_projection_authority_certification_bundle",
+        authority_detail,
+    ));
     let certification_bundle_digest = compose_certification_bundle_digest(
         assembled.rows.iter().map(|row| row.row_digest()),
         assembled
@@ -177,6 +205,7 @@ pub fn certify_projection_consumption_closeout_core() -> ProjectionConsumptionCe
         oracle_report,
         seeded_report,
         slope_report,
+        consumed_authority_certification,
         rows: assembled.rows,
         outputs: assembled.outputs,
         certification_bundle_digest,

@@ -174,10 +174,9 @@ impl WorthQueryConsumedProjectionAuthority {
             let satisfied = match requirement {
                 ProjectionAuthorityRequirement::SettledConsumption => true,
                 ProjectionAuthorityRequirement::SourceAuthority => true,
-                ProjectionAuthorityRequirement::BasisGeneration => !contract
-                    .basis_authority()
-                    .terminal_projection_for_reporting()
-                    .is_empty(),
+                ProjectionAuthorityRequirement::BasisGeneration => {
+                    contract.basis_authority().has_basis_generation()
+                }
                 ProjectionAuthorityRequirement::TargetIdentity => {
                     !facts.target_identities().is_empty()
                 }

@@ -25,4 +25,5 @@ pub use support_matrix::{
     ProjectionConsumptionFamilyInventory, ProjectionConsumptionFamilyInventoryRow,
     ProjectionConsumptionSupportMatrix, ProjectionConsumptionSupportMatrixRow,
 };
+pub(super) use surfaces::representative_source;
 pub use surfaces::ProjectionConsumptionCertifiedSourceSurface;

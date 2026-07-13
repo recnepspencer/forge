@@ -85,7 +85,7 @@ fn closeout_bundle_still_binds_real_transcript_and_compile_fail_catalogs() {
     let golden_digest = golden_transcript_bundle_digest();
     let compile_fail_digest = compile_fail_boundary_bundle_digest();
     assert_eq!(projection_consumption_golden_transcripts().len(), 4);
-    assert_eq!(projection_consumption_compile_fail_proofs().len(), 12);
+    assert_eq!(projection_consumption_compile_fail_proofs().len(), 15);
     assert_eq!(
         bundle.output_digest("projection_golden_transcript_digest"),
         Some(golden_digest.as_str())

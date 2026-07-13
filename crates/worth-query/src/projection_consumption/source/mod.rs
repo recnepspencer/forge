@@ -216,7 +216,7 @@ impl ProjectionSourceBasisAuthority {
     pub fn terminal_projection_for_reporting(&self) -> String {
         match &self.kind {
             ProjectionSourceBasisAuthorityKind::RuntimeSnapshot(identity) => {
-                identity.terminal_projection_for_reporting()
+                identity.evidence_identity().as_str().to_string()
             }
             ProjectionSourceBasisAuthorityKind::QueryContext { basis_digest, .. } => {
                 basis_digest.clone()

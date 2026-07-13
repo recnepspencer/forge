@@ -43,6 +43,9 @@ fn projection_consumption_compile_fail_boundaries_hold() {
         "tests/ui/projection_consumption/construction/consumed_projection_authority_constructor_private.rs",
     );
     t.compile_fail(
+        "tests/ui/projection_consumption/construction/consumed_projection_authority_certification_bundle_constructor_private.rs",
+    );
+    t.compile_fail(
         "tests/ui/projection_consumption/boundaries/consumed_projection_authority_not_cloneable.rs",
     );
 }
