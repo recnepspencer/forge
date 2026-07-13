@@ -8,8 +8,3 @@ error[E0382]: borrow of moved value: `declaration`
   |                    ----------- value moved here
 9 |     let _identity = declaration.identity();
   |                     ^^^^^^^^^^^ value borrowed here after move
-  |
-help: consider cloning the value if the performance cost is acceptable
-  |
-8 |     let _outcome = declaration.clone().using(current()).run(workspace);
-  |                               ++++++++

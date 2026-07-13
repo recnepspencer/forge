@@ -6,9 +6,9 @@ use crate::ordinary::read::{
 use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
-pub(super) fn local_identity_read(
-    read: crate::runtime::WorthQueryReadBuilder,
-) -> Result<crate::runtime::WorthQueryReadGraph, crate::runtime::WorthQueryReadDenial> {
+pub(super) fn local_identity_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
     read.local_detail(
         "user",
         manager_schema(),
@@ -27,9 +27,9 @@ pub(super) fn local_identity_read(
     )
 }
 
-pub(super) fn local_manager_relationship_read(
-    read: crate::runtime::WorthQueryReadBuilder,
-) -> Result<crate::runtime::WorthQueryReadGraph, crate::runtime::WorthQueryReadDenial> {
+pub(super) fn local_manager_relationship_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
     read.local_direct_edge_detail(
         "user",
         manager_schema(),
@@ -106,7 +106,7 @@ pub(super) fn run_policy_context(
 
 pub(super) fn run_relationship_context<const PROOF_COUNT: usize>(
     proofs: [WorthQueryReadRelationshipProof; PROOF_COUNT],
-) -> crate::ordinary::read::WorthQueryReadContextReceipt {
+) -> crate::ordinary::read::WorthQueryReadCompletion {
     let declaration = declare(local_manager_relationship_read)
         .expect("relationship read declaration should canonicalize");
     let policy_tenant = admitted_policy_tenant_inputs(1, true);
@@ -128,6 +128,4 @@ pub(super) fn run_relationship_context<const PROOF_COUNT: usize>(
         .run(&mut workspace)
         .into_result()
         .expect("relationship context should execute")
-        .context_receipt()
-        .clone()
 }

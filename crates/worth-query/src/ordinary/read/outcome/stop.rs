@@ -1,14 +1,17 @@
-use crate::runtime::WorthQueryRuntimeError;
+use crate::runtime::{WorthQueryReadDenial, WorthQueryRuntimeError};
 
 use super::super::{
     WorthQueryReadContextDenial, WorthQueryReadContextReceipt, WorthQueryReadJourneyCounters,
 };
-use super::next_action::{classify_context_next_action, classify_runtime_next_action};
+use super::next_action::{
+    classify_context_next_action, classify_planning_next_action, classify_runtime_next_action,
+};
 use super::WorthQueryReadNextAction;
 
 #[derive(Debug)]
 pub enum WorthQueryReadStopSource {
     Context(WorthQueryReadContextDenial),
+    Planning(WorthQueryReadDenial),
     Runtime(WorthQueryRuntimeError),
 }
 
@@ -32,14 +35,35 @@ impl WorthQueryReadStop {
     pub fn context_denial(&self) -> Option<&WorthQueryReadContextDenial> {
         match &self.source {
             WorthQueryReadStopSource::Context(denial) => Some(denial),
-            WorthQueryReadStopSource::Runtime(_) => None,
+            WorthQueryReadStopSource::Planning(_) | WorthQueryReadStopSource::Runtime(_) => None,
+        }
+    }
+
+    pub fn planning_denial(&self) -> Option<&WorthQueryReadDenial> {
+        match &self.source {
+            WorthQueryReadStopSource::Planning(denial) => Some(denial),
+            WorthQueryReadStopSource::Context(_) | WorthQueryReadStopSource::Runtime(_) => None,
         }
     }
 
     pub fn runtime_error(&self) -> Option<&WorthQueryRuntimeError> {
         match &self.source {
             WorthQueryReadStopSource::Runtime(error) => Some(error),
-            WorthQueryReadStopSource::Context(_) => None,
+            WorthQueryReadStopSource::Context(_) | WorthQueryReadStopSource::Planning(_) => None,
+        }
+    }
+
+    pub(crate) fn planning(
+        source: WorthQueryReadDenial,
+        context_receipt: WorthQueryReadContextReceipt,
+        journey_counters: WorthQueryReadJourneyCounters,
+    ) -> Self {
+        let next_action = classify_planning_next_action(&source);
+        Self {
+            next_action,
+            source: WorthQueryReadStopSource::Planning(source),
+            context_receipt: Some(context_receipt),
+            journey_counters,
         }
     }
 

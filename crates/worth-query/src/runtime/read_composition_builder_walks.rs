@@ -1,13 +1,13 @@
 use super::read_composition_walks::{
-    build_bounded_descendant_collection_read_graph, build_bounded_descendant_detail_read_graph,
+    build_bounded_descendant_collection_read_intent, build_bounded_descendant_detail_read_intent,
 };
-use super::{QuerySchemaView, WorthQueryReadBuilder, WorthQueryReadDenial, WorthQueryReadGraph};
+use super::{QuerySchemaView, WorthQueryReadBuilder, WorthQueryReadDenial};
 use crate::authoring::{CollectionResultShapeBuilder, DetailResultShapeBuilder, RelationName};
 use crate::runtime::read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
 
-impl WorthQueryReadBuilder {
+impl<Output> WorthQueryReadBuilder<Output> {
     pub fn anchored_bounded_descendant_collection(
         self,
         root: impl Into<String>,
@@ -18,15 +18,15 @@ impl WorthQueryReadBuilder {
             CollectionReadOperatorQueryBuilder,
         ) -> CollectionReadOperatorQueryBuilder,
         declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-    ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-        build_bounded_descendant_collection_read_graph(
+    ) -> Result<Output, WorthQueryReadDenial> {
+        self.finish(build_bounded_descendant_collection_read_intent(
             root,
             schema_view,
             relation,
             max_depth,
             declare_query,
             declare_result_shape,
-        )
+        ))
     }
 
     pub fn anchored_bounded_descendant_detail(
@@ -37,14 +37,14 @@ impl WorthQueryReadBuilder {
         max_depth: u8,
         declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
         declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-    ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
-        build_bounded_descendant_detail_read_graph(
+    ) -> Result<Output, WorthQueryReadDenial> {
+        self.finish(build_bounded_descendant_detail_read_intent(
             root,
             schema_view,
             relation,
             max_depth,
             declare_query,
             declare_result_shape,
-        )
+        ))
     }
 }

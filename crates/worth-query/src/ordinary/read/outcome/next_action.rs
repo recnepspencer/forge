@@ -117,3 +117,9 @@ fn next_action_for_read_denial(kind: &WorthQueryReadDenialKind) -> WorthQueryRea
         }
     }
 }
+
+pub(super) fn classify_planning_next_action(
+    denial: &crate::runtime::WorthQueryReadDenial,
+) -> WorthQueryReadNextAction {
+    next_action_for_read_denial(denial.kind())
+}

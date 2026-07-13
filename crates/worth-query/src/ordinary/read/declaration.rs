@@ -1,4 +1,5 @@
-use crate::runtime::{WorthQueryReadBuilder, WorthQueryReadDenial, WorthQueryReadGraph};
+use super::WorthQueryDeclaredReadIntent;
+use crate::runtime::{WorthQueryReadBuilder, WorthQueryReadDenial};
 
 /// Stable identity for one canonical read declaration.
 ///
@@ -12,8 +13,8 @@ impl WorthQueryReadDeclarationIdentity {
         &self.0
     }
 
-    pub(crate) fn from_read_graph(read_graph: &WorthQueryReadGraph) -> Self {
-        Self(read_graph.digest().to_string())
+    fn from_declared_intent(intent: &WorthQueryDeclaredReadIntent) -> Self {
+        Self(intent.digest().to_string())
     }
 }
 
@@ -21,10 +22,10 @@ impl WorthQueryReadDeclarationIdentity {
 ///
 /// Its fields are private so consumers can inspect canonical identity without
 /// manufacturing or replacing the graph Query admitted during authoring.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryReadDeclaration {
     identity: WorthQueryReadDeclarationIdentity,
-    read_graph: WorthQueryReadGraph,
+    intent: WorthQueryDeclaredReadIntent,
 }
 
 impl WorthQueryReadDeclaration {
@@ -32,16 +33,13 @@ impl WorthQueryReadDeclaration {
         &self.identity
     }
 
-    pub(crate) fn into_read_graph(self) -> WorthQueryReadGraph {
-        self.read_graph
+    pub(crate) fn into_declared_intent(self) -> WorthQueryDeclaredReadIntent {
+        self.intent
     }
 
-    fn from_read_graph(read_graph: WorthQueryReadGraph) -> Self {
-        let identity = WorthQueryReadDeclarationIdentity::from_read_graph(&read_graph);
-        Self {
-            identity,
-            read_graph,
-        }
+    fn from_declared_intent(intent: WorthQueryDeclaredReadIntent) -> Self {
+        let identity = WorthQueryReadDeclarationIdentity::from_declared_intent(&intent);
+        Self { identity, intent }
     }
 }
 
@@ -69,12 +67,15 @@ impl WorthQueryReadDeclarationStop {
 /// path.
 ///
 /// The closure receives only read-family vocabulary. Canonicalization,
-/// validation, and plan construction occur inside the selected read operation;
-/// no raw canonical bundle or planning context is returned to the consumer.
+/// and validation occur inside the selected read operation. Planning remains
+/// mechanically unavailable until the declaration is paired with an admitted
+/// authority context.
 pub fn declare(
-    author: impl FnOnce(WorthQueryReadBuilder) -> Result<WorthQueryReadGraph, WorthQueryReadDenial>,
+    author: impl FnOnce(
+        WorthQueryReadBuilder<WorthQueryDeclaredReadIntent>,
+    ) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial>,
 ) -> Result<WorthQueryReadDeclaration, WorthQueryReadDeclarationStop> {
-    author(WorthQueryReadBuilder::standalone())
-        .map(WorthQueryReadDeclaration::from_read_graph)
+    author(WorthQueryReadBuilder::declaration())
+        .map(WorthQueryReadDeclaration::from_declared_intent)
         .map_err(WorthQueryReadDeclarationStop::new)
 }

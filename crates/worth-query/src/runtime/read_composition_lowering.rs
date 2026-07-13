@@ -10,7 +10,7 @@ use crate::declarative_live::{
     DeclarativePresenceFilter, DeclarativeProjectionField, DeclarativeSetMembershipFilter,
     DeclarativeStringContainsFilter,
 };
-use crate::planning::{plan_validated_bundle, planning_request_context_for_direct};
+use crate::ordinary::read::WorthQueryDeclaredReadIntent;
 use crate::runtime::{
     QuerySchemaView, WorthQueryReadBuiltInOperator, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraph, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
@@ -21,18 +21,18 @@ use super::read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
 use super::read_composition_relationship_proof::admit_read_relationship_proof;
-use super::read_composition_runtime::{classify_scope_shape_with_operators, runtime_basis_intent};
+use super::read_composition_runtime::classify_scope_shape_with_operators;
 
-pub(in crate::runtime) fn build_collection_read_graph(
+pub(in crate::runtime) fn build_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     declare_query: impl FnOnce(CollectionQueryBuilder) -> CollectionQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
     expected_scope_class: WorthQueryReadScopeClass,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,
@@ -42,16 +42,16 @@ pub(in crate::runtime) fn build_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_detail_read_graph(
+pub(in crate::runtime) fn build_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     declare_query: impl FnOnce(DetailQueryBuilder) -> DetailQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
     expected_scope_class: WorthQueryReadScopeClass,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query,
         result_shape,
         schema_view,
@@ -61,16 +61,16 @@ pub(in crate::runtime) fn build_detail_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_direct_edge_collection_read_graph(
+pub(in crate::runtime) fn build_direct_edge_collection_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     relation: RelationName,
     declare_query: impl FnOnce(CollectionReadOperatorQueryBuilder) -> CollectionReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(CollectionResultShapeBuilder) -> CollectionResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_collection_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query.with_traversal(traversal_selector(relation, 1)?),
         result_shape,
         schema_view,
@@ -80,16 +80,16 @@ pub(in crate::runtime) fn build_direct_edge_collection_read_graph(
     )
 }
 
-pub(in crate::runtime) fn build_direct_edge_detail_read_graph(
+pub(in crate::runtime) fn build_direct_edge_detail_read_intent(
     root: impl Into<String>,
     schema_view: QuerySchemaView,
     relation: RelationName,
     declare_query: impl FnOnce(DetailReadOperatorQueryBuilder) -> DetailReadOperatorQueryBuilder,
     declare_result_shape: impl FnOnce(DetailResultShapeBuilder) -> DetailResultShapeBuilder,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let (query, result_shape) =
         build_detail_operator_authored_inputs(root, declare_query, declare_result_shape)?;
-    build_scoped_read_graph_from_authored(
+    build_scoped_read_intent_from_authored(
         query.with_traversal(traversal_selector(relation, 1)?),
         result_shape,
         schema_view,
@@ -173,22 +173,22 @@ pub(super) fn build_detail_operator_authored_inputs(
     Ok((query, result_shape))
 }
 
-pub(super) fn build_scoped_read_graph_from_authored(
+pub(super) fn build_scoped_read_intent_from_authored(
     query: RawAuthoredQuery,
     result_shape: RawAuthoredResultShape,
     schema_view: QuerySchemaView,
     family: WorthQueryReadGraphFamily,
     expected_scope_class: WorthQueryReadScopeClass,
     built_in_operators: Vec<WorthQueryReadBuiltInOperator>,
-) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+) -> Result<WorthQueryDeclaredReadIntent, WorthQueryReadDenial> {
     let domain_graph_operations = query.domain_graph_operations().to_vec();
     let request =
         declarative_request_from_authored_shape(query, result_shape).map_err(declarative_denial)?;
     validate_declared_traversal_contract(&request, &schema_view).map_err(declarative_denial)?;
     let canonical = canonicalize_declarative_request(&request).map_err(declarative_denial)?;
-    let canonical_query = canonical.query().clone();
     let schema_view_for_runtime = schema_view.clone();
-    let validated = validate_canonical_bundle(canonical, schema_view).map_err(validation_denial)?;
+    let validated =
+        validate_canonical_bundle(canonical.clone(), schema_view).map_err(validation_denial)?;
     let scope_class = classify_scope_shape_with_operators(&validated, &built_in_operators);
     if scope_class != expected_scope_class {
         return Err(WorthQueryReadDenial::new_scope_shape_denied(
@@ -196,17 +196,7 @@ pub(super) fn build_scoped_read_graph_from_authored(
             scope_class,
         ));
     }
-    let relationship_proof_admission = admit_read_relationship_proof(
-        &canonical_query,
-        validated.query().schema_basis(),
-        validated.query().traversal(),
-        &built_in_operators,
-    )?;
-    let request_context = planning_request_context_for_direct(&validated, runtime_basis_intent())
-        .map_err(planning_denial)?;
-    let execution_plan =
-        plan_validated_bundle(&validated, request_context).map_err(planning_denial)?;
-    Ok(WorthQueryReadGraph::new(
+    Ok(WorthQueryDeclaredReadIntent::new(
         family,
         scope_class,
         validated.query().schema_basis().clone(),
@@ -220,11 +210,23 @@ pub(super) fn build_scoped_read_graph_from_authored(
             .map(|entry| usize::from(entry.depth()))
             .max()
             .unwrap_or(0),
-        relationship_proof_admission,
         request,
         schema_view_for_runtime,
-        execution_plan,
+        canonical,
+        validated,
     ))
+}
+
+pub(in crate::runtime) fn plan_standalone_read_intent(
+    intent: WorthQueryDeclaredReadIntent,
+) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+    let relationship_proof_admission = admit_read_relationship_proof(
+        intent.canonical().query(),
+        intent.validated().query().schema_basis(),
+        intent.validated().query().traversal(),
+        intent.built_in_operators(),
+    )?;
+    intent.plan(relationship_proof_admission)
 }
 
 pub(in crate::runtime) fn declarative_request_from_authored_shape(
@@ -345,13 +347,6 @@ fn declarative_denial(error: DeclarativeLiveQueryError) -> WorthQueryReadDenial 
         _ => WorthQueryReadDenialKind::PlanningDenied,
     };
     WorthQueryReadDenial::new(kind, format!("{error:?}"))
-}
-
-fn planning_denial(error: impl std::fmt::Debug) -> WorthQueryReadDenial {
-    WorthQueryReadDenial::new(
-        WorthQueryReadDenialKind::PlanningDenied,
-        format!("{error:?}"),
-    )
 }
 
 fn validation_denial(error: impl std::fmt::Debug) -> WorthQueryReadDenial {

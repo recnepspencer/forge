@@ -78,20 +78,25 @@ fn ordinary_read_lowers_policy_tenant_and_relationship_authority_once() {
 
 #[test]
 fn equivalent_relationship_declaration_order_converges_on_context_identity() {
-    let first_receipt = run_relationship_context([
+    let first = run_relationship_context([
         WorthQueryReadRelationshipProof::direct_edge(manager_relation_name()),
         WorthQueryReadRelationshipProof::tenant_membership(),
     ]);
-    let second_receipt = run_relationship_context([
+    let second = run_relationship_context([
         WorthQueryReadRelationshipProof::tenant_membership(),
         WorthQueryReadRelationshipProof::direct_edge(manager_relation_name()),
     ]);
 
-    assert_eq!(first_receipt.digest(), second_receipt.digest());
+    assert_eq!(first.context_receipt(), second.context_receipt());
     assert_eq!(
-        first_receipt.relationship_proof_admission_digest(),
-        second_receipt.relationship_proof_admission_digest()
+        first
+            .context_receipt()
+            .relationship_proof_admission_digest(),
+        second
+            .context_receipt()
+            .relationship_proof_admission_digest()
     );
+    assert_eq!(first.result(), second.result());
 }
 
 #[test]
@@ -129,6 +134,8 @@ fn denied_policy_stops_before_graph_authority_admission() {
     assert_eq!(counters.relationship_proof_admitted_count(), 0);
     assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
     assert_eq!(counters.graph_authority_admitted_count(), 0);
+    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
+    assert_eq!(stop.journey_counters().planning_completed_count(), 0);
     assert!(stop.context_receipt().is_none());
 }
 
@@ -175,6 +182,8 @@ fn narrowing_policy_stops_until_narrowing_context_is_declared() {
     assert_eq!(counters.policy_tenant_admission_attempt_count(), 1);
     assert_eq!(counters.policy_tenant_admitted_count(), 1);
     assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
+    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
+    assert_eq!(stop.journey_counters().planning_completed_count(), 0);
 }
 
 #[test]
@@ -203,6 +212,8 @@ fn relationship_read_without_relationship_authority_stops_before_other_admission
     assert_eq!(counters.policy_tenant_admission_attempt_count(), 0);
     assert_eq!(counters.relationship_proof_admission_attempt_count(), 0);
     assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
+    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
+    assert_eq!(stop.journey_counters().planning_completed_count(), 0);
 }
 
 #[test]

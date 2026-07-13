@@ -1,6 +1,8 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryReadJourneyCounters {
     context_admission_attempt_count: usize,
+    planning_attempt_count: usize,
+    planning_completed_count: usize,
     lower_runtime_execution_attempt_count: usize,
     lower_runtime_execution_completed_count: usize,
 }
@@ -14,6 +16,14 @@ impl WorthQueryReadJourneyCounters {
         self.lower_runtime_execution_attempt_count
     }
 
+    pub fn planning_attempt_count(&self) -> usize {
+        self.planning_attempt_count
+    }
+
+    pub fn planning_completed_count(&self) -> usize {
+        self.planning_completed_count
+    }
+
     pub fn lower_runtime_execution_completed_count(&self) -> usize {
         self.lower_runtime_execution_completed_count
     }
@@ -21,9 +31,21 @@ impl WorthQueryReadJourneyCounters {
     pub(crate) fn begin_context_admission() -> Self {
         Self {
             context_admission_attempt_count: 1,
+            planning_attempt_count: 0,
+            planning_completed_count: 0,
             lower_runtime_execution_attempt_count: 0,
             lower_runtime_execution_completed_count: 0,
         }
+    }
+
+    pub(crate) fn record_planning_attempt(mut self) -> Self {
+        self.planning_attempt_count += 1;
+        self
+    }
+
+    pub(crate) fn record_planning_completed(mut self) -> Self {
+        self.planning_completed_count += 1;
+        self
     }
 
     pub(crate) fn record_lower_runtime_execution_attempt(mut self) -> Self {

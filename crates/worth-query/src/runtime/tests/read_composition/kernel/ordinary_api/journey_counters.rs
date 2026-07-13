@@ -21,6 +21,8 @@ fn successful_read_records_each_journey_boundary_once() {
     let counters = completion.journey_counters();
 
     assert_eq!(counters.context_admission_attempt_count(), 1);
+    assert_eq!(counters.planning_attempt_count(), 1);
+    assert_eq!(counters.planning_completed_count(), 1);
     assert_eq!(counters.lower_runtime_execution_attempt_count(), 1);
     assert_eq!(counters.lower_runtime_execution_completed_count(), 1);
 }
@@ -47,6 +49,8 @@ fn context_denial_records_zero_lower_runtime_work() {
     let counters = stop.journey_counters();
 
     assert_eq!(counters.context_admission_attempt_count(), 1);
+    assert_eq!(counters.planning_attempt_count(), 0);
+    assert_eq!(counters.planning_completed_count(), 0);
     assert_eq!(counters.lower_runtime_execution_attempt_count(), 0);
     assert_eq!(counters.lower_runtime_execution_completed_count(), 0);
     assert!(stop.runtime_error().is_none());
@@ -76,6 +80,8 @@ fn runtime_stop_records_attempt_without_completion() {
     let counters = stop.journey_counters();
 
     assert_eq!(counters.context_admission_attempt_count(), 1);
+    assert_eq!(counters.planning_attempt_count(), 1);
+    assert_eq!(counters.planning_completed_count(), 1);
     assert_eq!(counters.lower_runtime_execution_attempt_count(), 1);
     assert_eq!(counters.lower_runtime_execution_completed_count(), 0);
     assert!(stop.context_receipt().is_some());

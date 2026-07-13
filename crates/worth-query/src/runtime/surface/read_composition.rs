@@ -174,7 +174,7 @@ impl WorthQueryReadGraph {
         families
     }
 
-    pub(in crate::runtime) fn new(
+    pub(crate) fn new(
         family: WorthQueryReadGraphFamily,
         scope_class: WorthQueryReadScopeClass,
         schema_basis: SchemaBasisDigest,

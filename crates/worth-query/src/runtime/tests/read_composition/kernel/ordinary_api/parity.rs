@@ -31,7 +31,7 @@ fn ordinary_read_matches_internal_phase_chain_result_and_receipt_identity() {
         .execute()
         .expect("internal phase-chain oracle should execute");
 
-    assert_eq!(declaration_identity, ordinary.receipt().read_graph_digest());
+    assert_ne!(declaration_identity, ordinary.receipt().read_graph_digest());
     assert_eq!(
         ordinary
             .receipt()

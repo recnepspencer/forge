@@ -1,3 +1,4 @@
+use crate::ordinary::read::WorthQueryDeclaredReadIntent;
 use crate::policy_basis::{
     admit_policy_tenant_context_for_query_identity, AdmittedPolicyTenantContext,
     PolicyExecutionModeRequest,
@@ -7,7 +8,7 @@ use crate::relationship_proof::{
 };
 use crate::runtime::{
     admit_graph_read_access_authority, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessAuthorityRequest, WorthQueryReadGraph,
+    WorthQueryGraphReadAccessAuthorityRequest,
 };
 
 use super::{
@@ -18,28 +19,31 @@ use super::{
 
 pub(crate) struct WorthQueryAdmittedReadContext {
     authority: WorthQueryGraphReadAccessAuthorityContext,
+    relationship_proof: Option<RelationshipProofAdmission>,
     receipt: WorthQueryReadContextReceipt,
 }
 
 impl WorthQueryAdmittedReadContext {
-    pub(crate) fn authority(&self) -> &WorthQueryGraphReadAccessAuthorityContext {
-        &self.authority
-    }
-
-    pub(crate) fn into_receipt(self) -> WorthQueryReadContextReceipt {
-        self.receipt
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        WorthQueryGraphReadAccessAuthorityContext,
+        Option<RelationshipProofAdmission>,
+        WorthQueryReadContextReceipt,
+    ) {
+        (self.authority, self.relationship_proof, self.receipt)
     }
 }
 
 pub(crate) fn admit_read_context_declaration(
-    read_graph: &WorthQueryReadGraph,
+    intent: &WorthQueryDeclaredReadIntent,
     declaration: WorthQueryReadContextDeclaration,
 ) -> Result<WorthQueryAdmittedReadContext, WorthQueryReadContextDenial> {
     let context_kind = declaration.kind();
-    let canonical_query_digest = read_graph.execution_plan().query().canonical_query_digest();
+    let canonical_query_digest = intent.canonical_query_digest();
     let mut counters = WorthQueryReadContextAdmissionCounters::begin();
 
-    if read_graph.relationship_proof_admission().is_some()
+    if intent.requires_relationship_proof()
         && context_kind != super::WorthQueryReadContextKind::CurrentPolicyTenantRelationship
     {
         return Err(WorthQueryReadContextDenial::missing_relationship_proof(
@@ -47,35 +51,38 @@ pub(crate) fn admit_read_context_declaration(
         ));
     }
 
-    let (authority_request, policy_tenant_digest, relationship_proof_digest) = match declaration {
-        WorthQueryReadContextDeclaration::Current(_) => (
-            WorthQueryGraphReadAccessAuthorityRequest::current_head(),
-            None,
-            None,
-        ),
-        WorthQueryReadContextDeclaration::CurrentPolicyTenant(context) => {
-            let admitted_policy_tenant =
-                admit_policy_tenant_context(canonical_query_digest, context, &mut counters)?;
-            let policy_tenant_digest = admitted_policy_tenant
-                .bundle()
-                .digest()
-                .as_str()
-                .to_string();
-            (
-                WorthQueryGraphReadAccessAuthorityRequest::current_head()
-                    .with_policy_tenant(admitted_policy_tenant),
-                Some(policy_tenant_digest),
+    let (authority_request, policy_tenant_digest, relationship_proof, relationship_proof_digest) =
+        match declaration {
+            WorthQueryReadContextDeclaration::Current(_) => (
+                WorthQueryGraphReadAccessAuthorityRequest::current_head(),
                 None,
-            )
-        }
-        WorthQueryReadContextDeclaration::CurrentPolicyTenantRelationship(context) => {
-            admit_policy_tenant_relationship_context(
-                canonical_query_digest,
-                context,
-                &mut counters,
-            )?
-        }
-    };
+                None,
+                None,
+            ),
+            WorthQueryReadContextDeclaration::CurrentPolicyTenant(context) => {
+                let admitted_policy_tenant =
+                    admit_policy_tenant_context(canonical_query_digest, context, &mut counters)?;
+                let policy_tenant_digest = admitted_policy_tenant
+                    .bundle()
+                    .digest()
+                    .as_str()
+                    .to_string();
+                (
+                    WorthQueryGraphReadAccessAuthorityRequest::current_head()
+                        .with_policy_tenant(admitted_policy_tenant),
+                    Some(policy_tenant_digest),
+                    None,
+                    None,
+                )
+            }
+            WorthQueryReadContextDeclaration::CurrentPolicyTenantRelationship(context) => {
+                admit_policy_tenant_relationship_context(
+                    canonical_query_digest,
+                    context,
+                    &mut counters,
+                )?
+            }
+        };
 
     counters.record_graph_authority_admission_attempt();
     let authority = admit_graph_read_access_authority(authority_request)
@@ -89,7 +96,11 @@ pub(crate) fn admit_read_context_declaration(
         authority.receipt().digest().to_string(),
         counters,
     );
-    Ok(WorthQueryAdmittedReadContext { authority, receipt })
+    Ok(WorthQueryAdmittedReadContext {
+        authority,
+        relationship_proof,
+        receipt,
+    })
 }
 
 fn admit_policy_tenant_context(
@@ -129,6 +140,7 @@ fn admit_policy_tenant_relationship_context(
     (
         WorthQueryGraphReadAccessAuthorityRequest,
         Option<String>,
+        Option<RelationshipProofAdmission>,
         Option<String>,
     ),
     WorthQueryReadContextDenial,
@@ -147,11 +159,13 @@ fn admit_policy_tenant_relationship_context(
         counters,
     )?;
     let relationship_proof_digest = relationship_proof.identity().as_str().to_string();
+    let authority_request = WorthQueryGraphReadAccessAuthorityRequest::current_head()
+        .with_policy_tenant(admitted_policy_tenant)
+        .with_relationship_proofs(relationship_proof.clone());
     Ok((
-        WorthQueryGraphReadAccessAuthorityRequest::current_head()
-            .with_policy_tenant(admitted_policy_tenant)
-            .with_relationship_proofs(relationship_proof),
+        authority_request,
         Some(policy_tenant_digest),
+        Some(relationship_proof),
         Some(relationship_proof_digest),
     ))
 }

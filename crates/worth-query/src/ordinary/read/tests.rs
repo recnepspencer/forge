@@ -32,9 +32,9 @@ fn invalid_scope_shape_stops_during_declaration_without_a_workspace() {
     );
 }
 
-fn local_identity_read(
-    read: crate::runtime::WorthQueryReadBuilder,
-) -> Result<crate::runtime::WorthQueryReadGraph, crate::runtime::WorthQueryReadDenial> {
+fn local_identity_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
     read.local_detail(
         "user",
         identity_schema(),
