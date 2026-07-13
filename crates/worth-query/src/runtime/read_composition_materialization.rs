@@ -13,6 +13,10 @@ use worth_foundational::facade::{
     AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
 };
 
+mod projection;
+
+use projection::project_rows_to_request;
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct WorthQueryReadMaterializedRowIdentity {
     value: String,
@@ -35,10 +39,9 @@ pub(in crate::runtime) fn materialize_read_rows(
     let request = read_graph.declarative_request().clone();
     ensure_materialized_read_view(runtime, &target, &view_name, read_graph)?;
     let source_rows = runtime.backend.live_entities_for_target(&target);
-    Ok(
-        materialize_rows_from_request(read_graph, &request, &source_rows)
-            .unwrap_or_else(|| synthetic_rows_for_request(&request)),
-    )
+    let rows = materialize_rows_from_request(read_graph, &request, &source_rows)
+        .unwrap_or_else(|| synthetic_rows_for_request(&request));
+    Ok(project_rows_to_request(rows, &request))
 }
 
 pub(in crate::runtime) fn materialize_query_context_rows(

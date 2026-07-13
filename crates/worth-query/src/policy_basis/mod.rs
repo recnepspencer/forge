@@ -1,8 +1,10 @@
 mod admission;
 mod artifacts;
 mod authority;
+mod branch_access;
 mod counters;
 mod errors;
+mod projection;
 mod saved_reuse;
 mod support;
 
@@ -14,11 +16,12 @@ pub use artifacts::{
     PolicyExecutionModeRequest, PolicyTenantAdmissionBundle, PolicyTenantAdmissionDigest,
 };
 pub use authority::{
-    BranchAccessGrant, BranchAccessGrantClass, PolicyCostPosture, PolicyEpoch, PolicyRuleSnapshot,
-    PolicyWorkBudget,
+    BranchAccessGrantClass, PolicyCostPosture, PolicyEpoch, PolicyRuleSnapshot, PolicyWorkBudget,
 };
+pub use branch_access::BranchAccessGrant;
 pub use counters::{PolicyBasisCounters, PolicyTenantAdmissionCounters};
 pub use errors::{PolicyTenantAdmissionError, PolicyTenantAdmissionFailureClass};
+pub use projection::{PolicyAspectMask, ProjectionVisibility};
 pub(crate) use saved_reuse::{
     build_saved_query_policy_reuse_evaluation, saved_query_policy_reuse_artifact_digest,
     saved_query_policy_reuse_disposition, saved_query_policy_reuse_surface_posture,

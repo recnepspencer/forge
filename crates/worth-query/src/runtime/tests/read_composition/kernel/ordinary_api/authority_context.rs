@@ -7,8 +7,6 @@ use crate::ordinary::read::{
     current, declare, WorthQueryReadNextAction, WorthQueryReadRelationshipProof,
     WorthQueryReadRelationshipProofs,
 };
-use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
-use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
 #[test]
 fn ordinary_read_lowers_policy_tenant_and_relationship_authority_once() {
@@ -137,53 +135,6 @@ fn denied_policy_stops_before_graph_authority_admission() {
     assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
     assert_eq!(stop.journey_counters().planning_completed_count(), 0);
     assert!(stop.context_receipt().is_none());
-}
-
-#[test]
-fn narrowing_policy_stops_until_narrowing_context_is_declared() {
-    let declaration = declare(local_identity_read).expect("read declaration should canonicalize");
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
-        "ordinary-narrowing-policy",
-        "ordinary-narrowing-rules",
-        PolicyEpoch::Synthetic(1),
-        true,
-        true,
-        false,
-    );
-    let context = current().under_policy_tenant(
-        policy.clone(),
-        TenantBindingSnapshot::synthetic_direct(
-            "tenant-a",
-            "main",
-            "schema-a",
-            TenantBasisEpoch::Synthetic(7),
-        ),
-        BranchAccessGrant::synthetic_granted("main", &policy),
-        SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "exact"),
-    );
-    let mut workspace = read_runtime()
-        .workspace("ordinary-read-policy-narrowing-context-required")
-        .expect("ordinary workspace should open");
-
-    let stop = declaration
-        .using(context)
-        .run(&mut workspace)
-        .into_result()
-        .expect_err("narrowing policy must not execute without narrowing context");
-    let counters = stop
-        .context_denial()
-        .expect("missing narrowing context must remain a context denial")
-        .counters();
-
-    assert_eq!(
-        stop.next_action(),
-        WorthQueryReadNextAction::SupplyPolicyNarrowingContext
-    );
-    assert_eq!(counters.policy_tenant_admission_attempt_count(), 1);
-    assert_eq!(counters.policy_tenant_admitted_count(), 1);
-    assert_eq!(counters.graph_authority_admission_attempt_count(), 0);
-    assert_eq!(stop.journey_counters().planning_attempt_count(), 0);
-    assert_eq!(stop.journey_counters().planning_completed_count(), 0);
 }
 
 #[test]

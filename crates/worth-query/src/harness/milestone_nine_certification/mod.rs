@@ -661,14 +661,21 @@ fn canonical_query_with_secret_ordering() -> crate::canonicalization::CanonicalQ
 }
 
 fn base_policy(narrowed: bool) -> PolicyRuleSnapshot {
-    PolicyRuleSnapshot::synthetic_authority_with_posture(
-        "runtime-policy",
-        "rules-v1",
-        PolicyEpoch::Synthetic(7),
-        true,
-        narrowed,
-        false,
-    )
+    if narrowed {
+        PolicyRuleSnapshot::synthetic_authority_with_projection(
+            "runtime-policy",
+            "rules-v1",
+            PolicyEpoch::Synthetic(7),
+            crate::authorized_projection::PolicyAspectMask::allow_all()
+                .with_masked(secret_salary_key()),
+        )
+    } else {
+        PolicyRuleSnapshot::synthetic_authority(
+            "runtime-policy",
+            "rules-v1",
+            PolicyEpoch::Synthetic(7),
+        )
+    }
 }
 
 fn tenant() -> TenantBindingSnapshot {
@@ -1342,8 +1349,6 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         "rules-v1",
         PolicyEpoch::Synthetic(7),
         true,
-        false,
-        false,
         PolicyCostPosture::UnknownCost,
         Some(PolicyWorkBudget::bounded(1, 1, 1)),
     );

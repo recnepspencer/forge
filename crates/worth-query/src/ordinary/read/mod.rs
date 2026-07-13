@@ -11,7 +11,7 @@ pub use declaration::{
     declare, WorthQueryReadDeclaration, WorthQueryReadDeclarationIdentity,
     WorthQueryReadDeclarationStop,
 };
-pub(crate) use intent::WorthQueryDeclaredReadIntent;
+pub(crate) use intent::{WorthQueryDeclaredReadIntent, WorthQueryReadPlanningAuthority};
 pub use journey_counters::WorthQueryReadJourneyCounters;
 pub use outcome::{
     WorthQueryReadCompletion, WorthQueryReadNextAction, WorthQueryReadOutcome, WorthQueryReadStop,

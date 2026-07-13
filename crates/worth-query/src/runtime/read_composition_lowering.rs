@@ -10,7 +10,7 @@ use crate::declarative_live::{
     DeclarativePresenceFilter, DeclarativeProjectionField, DeclarativeSetMembershipFilter,
     DeclarativeStringContainsFilter,
 };
-use crate::ordinary::read::WorthQueryDeclaredReadIntent;
+use crate::ordinary::read::{WorthQueryDeclaredReadIntent, WorthQueryReadPlanningAuthority};
 use crate::runtime::{
     QuerySchemaView, WorthQueryReadBuiltInOperator, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadGraph, WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
@@ -226,7 +226,9 @@ pub(in crate::runtime) fn plan_standalone_read_intent(
         intent.validated().query().traversal(),
         intent.built_in_operators(),
     )?;
-    intent.plan(relationship_proof_admission)
+    intent.plan(WorthQueryReadPlanningAuthority::canonical(
+        relationship_proof_admission,
+    ))
 }
 
 pub(in crate::runtime) fn declarative_request_from_authored_shape(

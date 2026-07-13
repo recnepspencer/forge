@@ -20,9 +20,9 @@ impl WorthQueryReadRequest {
                 ));
             }
         };
-        let (authority, relationship_proof, context_receipt) = admitted_context.into_parts();
+        let (authority, planning_authority, context_receipt) = admitted_context.into_parts();
         let journey_counters = journey_counters.record_planning_attempt();
-        let read_graph = match intent.plan(relationship_proof) {
+        let read_graph = match intent.plan(planning_authority) {
             Ok(read_graph) => read_graph,
             Err(denial) => {
                 return WorthQueryReadOutcome::Stopped(WorthQueryReadStop::planning(

@@ -1,4 +1,5 @@
 use crate::authoring::WorthQueryGraphReadDomainOperationDeclaration;
+use crate::authorized_projection::reconcile_authorized_declarative_projection;
 use crate::basis::{BasisAuthorityFamily, ExecutionBasisIntent, SnapshotLineageClass};
 use crate::canonicalization::CanonicalQueryBundle;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
@@ -6,7 +7,12 @@ use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::identity::{CanonicalQueryDigest, SchemaBasisDigest};
-use crate::planning::{plan_validated_bundle, planning_request_context_for_direct};
+use crate::planning::{
+    plan_validated_bundle, plan_validated_bundle_with_policy_authority,
+    planning_request_context_for_direct,
+};
+use crate::policy_narrowing::NarrowedPolicyQueryArtifact;
+use crate::policy_plan::lower_policy_aware_current_plan;
 use crate::relationship_proof::RelationshipProofAdmission;
 use crate::runtime::{
     WorthQueryReadBuiltInOperator, WorthQueryReadDenial, WorthQueryReadDenialKind,
@@ -37,6 +43,24 @@ pub struct WorthQueryDeclaredReadIntent {
     validated: ValidatedQueryBundle,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum WorthQueryReadPlanningAuthority {
+    Canonical {
+        relationship_proof: Option<RelationshipProofAdmission>,
+    },
+    PolicyNarrowed(NarrowedPolicyQueryArtifact),
+}
+
+impl WorthQueryReadPlanningAuthority {
+    pub(crate) fn canonical(relationship_proof: Option<RelationshipProofAdmission>) -> Self {
+        Self::Canonical { relationship_proof }
+    }
+
+    pub(crate) fn policy_narrowed(artifact: NarrowedPolicyQueryArtifact) -> Self {
+        Self::PolicyNarrowed(artifact)
+    }
+}
+
 impl WorthQueryDeclaredReadIntent {
     pub(crate) fn digest(&self) -> &str {
         &self.digest
@@ -64,8 +88,26 @@ impl WorthQueryDeclaredReadIntent {
 
     pub(crate) fn plan(
         self,
-        relationship_proof_admission: Option<RelationshipProofAdmission>,
+        authority: WorthQueryReadPlanningAuthority,
     ) -> Result<WorthQueryReadGraph, WorthQueryReadDenial> {
+        let mut declarative_request = self.declarative_request;
+        let (relationship_proof_admission, policy_aware_plan) = match authority {
+            WorthQueryReadPlanningAuthority::Canonical { relationship_proof } => {
+                (relationship_proof, None)
+            }
+            WorthQueryReadPlanningAuthority::PolicyNarrowed(artifact) => {
+                let authorized_request_projection = reconcile_authorized_declarative_projection(
+                    &declarative_request,
+                    artifact.authorized_projection(),
+                )
+                .map_err(planning_denial)?;
+                declarative_request = declarative_request
+                    .with_authorized_query_projection(authorized_request_projection);
+                let relationship_proof = Some(artifact.relationship_proof().clone());
+                let plan = Some(lower_policy_aware_current_plan(&artifact));
+                (relationship_proof, plan)
+            }
+        };
         let basis_intent = ExecutionBasisIntent::new(
             BasisAuthorityFamily::Runtime,
             SnapshotLineageClass::CurrentHead,
@@ -73,8 +115,15 @@ impl WorthQueryDeclaredReadIntent {
         );
         let request_context = planning_request_context_for_direct(&self.validated, basis_intent)
             .map_err(planning_denial)?;
-        let execution_plan =
-            plan_validated_bundle(&self.validated, request_context).map_err(planning_denial)?;
+        let execution_plan = match policy_aware_plan.as_ref() {
+            Some(policy_plan) => plan_validated_bundle_with_policy_authority(
+                &self.validated,
+                request_context,
+                policy_plan,
+            ),
+            None => plan_validated_bundle(&self.validated, request_context),
+        }
+        .map_err(planning_denial)?;
         Ok(WorthQueryReadGraph::new(
             self.family,
             self.scope_class,
@@ -84,7 +133,8 @@ impl WorthQueryDeclaredReadIntent {
             self.declared_traversal_clause_count,
             self.declared_traversal_depth_limit,
             relationship_proof_admission,
-            self.declarative_request,
+            policy_aware_plan,
+            declarative_request,
             self.schema_view,
             execution_plan,
         ))

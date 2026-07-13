@@ -1,5 +1,5 @@
-use crate::policy_basis::PolicyAdmissionDisposition;
 use crate::policy_basis::PolicyTenantAdmissionError;
+use crate::policy_narrowing::PolicyNarrowingError;
 use crate::relationship_proof::RelationshipProofError;
 use crate::runtime::WorthQueryGraphReadAccessAuthorityDenial;
 
@@ -8,8 +8,8 @@ use super::WorthQueryReadContextAdmissionCounters;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryReadContextDenialSource {
     MissingRelationshipProof,
-    PolicyNarrowingContextRequired(PolicyAdmissionDisposition),
     PolicyTenant(PolicyTenantAdmissionError),
+    PolicyNarrowing(PolicyNarrowingError),
     RelationshipProof(RelationshipProofError),
     GraphAuthority(WorthQueryGraphReadAccessAuthorityDenial),
 }
@@ -26,16 +26,6 @@ impl WorthQueryReadContextDenial {
     ) -> Self {
         Self {
             source: WorthQueryReadContextDenialSource::MissingRelationshipProof,
-            counters,
-        }
-    }
-
-    pub(crate) fn policy_narrowing_context_required(
-        disposition: PolicyAdmissionDisposition,
-        counters: WorthQueryReadContextAdmissionCounters,
-    ) -> Self {
-        Self {
-            source: WorthQueryReadContextDenialSource::PolicyNarrowingContextRequired(disposition),
             counters,
         }
     }
@@ -64,6 +54,16 @@ impl WorthQueryReadContextDenial {
     ) -> Self {
         Self {
             source: WorthQueryReadContextDenialSource::RelationshipProof(source),
+            counters,
+        }
+    }
+
+    pub(crate) fn policy_narrowing(
+        source: PolicyNarrowingError,
+        counters: WorthQueryReadContextAdmissionCounters,
+    ) -> Self {
+        Self {
+            source: WorthQueryReadContextDenialSource::PolicyNarrowing(source),
             counters,
         }
     }

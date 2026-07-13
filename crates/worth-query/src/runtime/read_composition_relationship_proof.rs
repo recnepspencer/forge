@@ -230,8 +230,6 @@ mod tests {
             "schema-a",
             PolicyEpoch::Synthetic(1),
             true,
-            false,
-            false,
             crate::policy_basis::PolicyCostPosture::UnknownCost,
             Some(crate::policy_basis::PolicyWorkBudget::bounded(1, 1, 1)),
         );

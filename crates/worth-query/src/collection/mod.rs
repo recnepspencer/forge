@@ -634,6 +634,7 @@ impl CollectionPlanBundle {
     pub(crate) fn from_validated_bundle_for_mode(
         bundle: &ValidatedQueryBundle,
         mode: CollectionPlanningMode,
+        planned_projection_count: usize,
     ) -> Option<Self> {
         if bundle.query().family() != &QueryFamily::Collection {
             return None;
@@ -683,7 +684,7 @@ impl CollectionPlanBundle {
                 MaterializationBreadthClass::RootPlusTraversal
             },
         );
-        let input_breadth = bundle.query().projection().len()
+        let input_breadth = planned_projection_count
             + bundle.query().predicates().entries().len()
             + bundle.query().traversal().len()
             + bundle.query().ordering().entries().len();

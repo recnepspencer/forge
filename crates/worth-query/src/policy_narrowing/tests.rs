@@ -76,13 +76,11 @@ fn canonical_with_masked_ordering() -> crate::canonicalization::CanonicalQueryBu
 fn admitted(
     canonical: &crate::canonicalization::CanonicalQueryBundle,
 ) -> crate::policy_basis::AdmittedPolicyTenantContext {
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_projection(
         "runtime-policy",
         "rules-v1",
         PolicyEpoch::Synthetic(7),
-        true,
-        true,
-        false,
+        PolicyAspectMask::allow_all().with_masked(secret_salary_key()),
     );
     let tenant = TenantBindingSnapshot::synthetic_direct(
         "tenant-a",

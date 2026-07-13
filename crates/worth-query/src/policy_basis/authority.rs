@@ -1,5 +1,7 @@
 use crate::identity::hash_parts;
 
+use super::PolicyAspectMask;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum PolicyEpoch {
     Synthetic(u64),
@@ -106,6 +108,7 @@ pub struct PolicyRuleSnapshot {
     admits_non_disclosing_use: bool,
     cost_posture: PolicyCostPosture,
     work_budget: Option<PolicyWorkBudget>,
+    projection_mask: Option<PolicyAspectMask>,
     digest: String,
 }
 
@@ -115,39 +118,28 @@ impl PolicyRuleSnapshot {
         rule_set_label: impl Into<String>,
         policy_epoch: PolicyEpoch,
     ) -> Self {
-        Self::synthetic_authority_with_posture(
+        Self::synthetic_authority_with_budget(
             policy_basis_label,
             rule_set_label,
             policy_epoch,
             true,
-            false,
-            false,
+            PolicyCostPosture::ConstantProof,
+            Some(PolicyWorkBudget::bounded(1, 1, 1)),
         )
     }
 
-    pub fn synthetic_authority_with_posture(
+    pub fn synthetic_authority_with_query_admission(
         policy_basis_label: impl Into<String>,
         rule_set_label: impl Into<String>,
         policy_epoch: PolicyEpoch,
         admits_query_family: bool,
-        narrows_projection: bool,
-        admits_non_disclosing_use: bool,
     ) -> Self {
-        let cost_posture = if admits_non_disclosing_use {
-            PolicyCostPosture::NonDisclosingFieldUse
-        } else if narrows_projection {
-            PolicyCostPosture::BoundedRelationshipProof
-        } else {
-            PolicyCostPosture::ConstantProof
-        };
         Self::synthetic_authority_with_budget(
             policy_basis_label,
             rule_set_label,
             policy_epoch,
             admits_query_family,
-            narrows_projection,
-            admits_non_disclosing_use,
-            cost_posture,
+            PolicyCostPosture::ConstantProof,
             Some(PolicyWorkBudget::bounded(1, 1, 1)),
         )
     }
@@ -158,15 +150,91 @@ impl PolicyRuleSnapshot {
         rule_set_label: impl Into<String>,
         policy_epoch: PolicyEpoch,
         admits_query_family: bool,
+        cost_posture: PolicyCostPosture,
+        work_budget: Option<PolicyWorkBudget>,
+    ) -> Self {
+        Self::synthetic_authority_with_budget_and_projection(
+            policy_basis_label,
+            rule_set_label,
+            policy_epoch,
+            admits_query_family,
+            false,
+            false,
+            cost_posture,
+            work_budget,
+            None,
+        )
+    }
+
+    pub fn synthetic_authority_with_projection(
+        policy_basis_label: impl Into<String>,
+        rule_set_label: impl Into<String>,
+        policy_epoch: PolicyEpoch,
+        projection_mask: PolicyAspectMask,
+    ) -> Self {
+        let narrows_projection = projection_mask.has_restricted_fields();
+        let admits_non_disclosing_use = projection_mask.has_non_disclosing_fields();
+        let cost_posture = if admits_non_disclosing_use {
+            PolicyCostPosture::NonDisclosingFieldUse
+        } else if narrows_projection {
+            PolicyCostPosture::BoundedRelationshipProof
+        } else {
+            PolicyCostPosture::ConstantProof
+        };
+        Self::synthetic_authority_with_budget_and_projection(
+            policy_basis_label,
+            rule_set_label,
+            policy_epoch,
+            true,
+            narrows_projection,
+            admits_non_disclosing_use,
+            cost_posture,
+            Some(PolicyWorkBudget::bounded(1, 1, 1)),
+            Some(projection_mask),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn synthetic_authority_with_projection_budget(
+        policy_basis_label: impl Into<String>,
+        rule_set_label: impl Into<String>,
+        policy_epoch: PolicyEpoch,
+        admits_query_family: bool,
+        cost_posture: PolicyCostPosture,
+        work_budget: Option<PolicyWorkBudget>,
+        projection_mask: PolicyAspectMask,
+    ) -> Self {
+        let narrows_projection = projection_mask.has_restricted_fields();
+        let admits_non_disclosing_use = projection_mask.has_non_disclosing_fields();
+        Self::synthetic_authority_with_budget_and_projection(
+            policy_basis_label,
+            rule_set_label,
+            policy_epoch,
+            admits_query_family,
+            narrows_projection,
+            admits_non_disclosing_use,
+            cost_posture,
+            work_budget,
+            Some(projection_mask),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn synthetic_authority_with_budget_and_projection(
+        policy_basis_label: impl Into<String>,
+        rule_set_label: impl Into<String>,
+        policy_epoch: PolicyEpoch,
+        admits_query_family: bool,
         narrows_projection: bool,
         admits_non_disclosing_use: bool,
         cost_posture: PolicyCostPosture,
         work_budget: Option<PolicyWorkBudget>,
+        projection_mask: Option<PolicyAspectMask>,
     ) -> Self {
         let policy_basis_label = policy_basis_label.into();
         let rule_set_label = rule_set_label.into();
         let rule_set_digest = hash_parts(&["policy_rule_set".to_string(), rule_set_label]);
-        let digest = hash_parts(&[
+        let mut digest_parts = vec![
             format!("policy_basis:{policy_basis_label}"),
             format!("rule_set:{rule_set_digest}"),
             format!("epoch:{}", policy_epoch.as_u64()),
@@ -181,7 +249,13 @@ impl PolicyRuleSnapshot {
                     .map(PolicyWorkBudget::digest_part)
                     .unwrap_or_else(|| "missing".to_string())
             ),
-        ]);
+        ];
+        if let Some(mask) = projection_mask.as_ref() {
+            digest_parts.extend(mask.digest_parts());
+        } else {
+            digest_parts.push("policy_aspect_mask:unspecified".to_string());
+        }
+        let digest = hash_parts(&digest_parts);
         Self {
             policy_basis_label,
             rule_set_digest,
@@ -191,6 +265,7 @@ impl PolicyRuleSnapshot {
             admits_non_disclosing_use,
             cost_posture,
             work_budget,
+            projection_mask,
             digest,
         }
     }
@@ -227,83 +302,8 @@ impl PolicyRuleSnapshot {
         self.work_budget
     }
 
-    pub fn digest(&self) -> &str {
-        &self.digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BranchAccessGrant {
-    branch_identity: String,
-    grant_class: BranchAccessGrantClass,
-    denial_class: Option<String>,
-    policy_digest: String,
-    digest: String,
-}
-
-impl BranchAccessGrant {
-    pub fn synthetic_granted(
-        branch_identity: impl Into<String>,
-        policy: &PolicyRuleSnapshot,
-    ) -> Self {
-        Self::synthetic(
-            branch_identity,
-            BranchAccessGrantClass::Granted,
-            None,
-            policy,
-        )
-    }
-
-    pub fn synthetic_denied(
-        branch_identity: impl Into<String>,
-        denial_class: impl Into<String>,
-        policy: &PolicyRuleSnapshot,
-    ) -> Self {
-        Self::synthetic(
-            branch_identity,
-            BranchAccessGrantClass::Denied,
-            Some(denial_class.into()),
-            policy,
-        )
-    }
-
-    fn synthetic(
-        branch_identity: impl Into<String>,
-        grant_class: BranchAccessGrantClass,
-        denial_class: Option<String>,
-        policy: &PolicyRuleSnapshot,
-    ) -> Self {
-        let branch_identity = branch_identity.into();
-        let policy_digest = policy.digest().to_string();
-        let digest = hash_parts(&[
-            format!("branch:{branch_identity}"),
-            format!("grant:{}", grant_class.as_str()),
-            format!("denial:{}", denial_class.as_deref().unwrap_or("none")),
-            format!("policy:{policy_digest}"),
-        ]);
-        Self {
-            branch_identity,
-            grant_class,
-            denial_class,
-            policy_digest,
-            digest,
-        }
-    }
-
-    pub fn branch_identity(&self) -> &str {
-        &self.branch_identity
-    }
-
-    pub fn grant_class(&self) -> BranchAccessGrantClass {
-        self.grant_class
-    }
-
-    pub fn denial_class(&self) -> Option<&str> {
-        self.denial_class.as_deref()
-    }
-
-    pub fn policy_digest(&self) -> &str {
-        &self.policy_digest
+    pub(crate) fn projection_mask(&self) -> Option<&PolicyAspectMask> {
+        self.projection_mask.as_ref()
     }
 
     pub fn digest(&self) -> &str {

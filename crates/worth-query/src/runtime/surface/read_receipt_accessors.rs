@@ -90,6 +90,22 @@ impl WorthQueryReadReceipt {
         self.relationship_proof_support_profile.as_ref()
     }
 
+    pub fn policy_narrowing_digest(&self) -> Option<&str> {
+        self.policy_narrowing_digest.as_deref()
+    }
+
+    pub fn policy_aware_plan_digest(&self) -> Option<&str> {
+        self.policy_aware_plan_digest.as_deref()
+    }
+
+    pub fn policy_execution_seam_identity(&self) -> Option<&str> {
+        self.policy_execution_seam_identity.as_deref()
+    }
+
+    pub fn policy_executor_semantic_rediscovery_count(&self) -> usize {
+        self.policy_executor_semantic_rediscovery_count
+    }
+
     pub fn relationship_proof_support_profile_digest(&self) -> Option<&str> {
         self.relationship_proof_support_profile
             .as_ref()
@@ -237,10 +253,15 @@ impl WorthQueryReadReceipt {
             relationship_proof_posture: WorthQueryReadRelationshipProofPosture::NotRequired,
             relationship_proof_admission: None,
             relationship_proof_support_profile: None,
+            policy_narrowing_digest: None,
+            policy_aware_plan_digest: None,
+            policy_execution_seam_identity: None,
+            policy_executor_semantic_rediscovery_count: 0,
             breadth: WorthQueryReadBreadth {
                 planned_read_surface_count: 0,
                 planned_traversal_clause_count: 0,
                 planned_traversal_depth_limit: 0,
+                execution_query_projection_count: 0,
                 execution_read_operation_count: 0,
                 execution_records_examined_count: 0,
                 execution_records_emitted_count: 0,

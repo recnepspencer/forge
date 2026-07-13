@@ -147,6 +147,7 @@ fn admit_policy_basis(
             policy.policy_basis_label(),
             policy.rule_set_digest(),
             policy.policy_epoch(),
+            policy.digest(),
         ),
         policy.policy_epoch(),
         policy.rule_set_digest().to_string(),
@@ -155,6 +156,7 @@ fn admit_policy_basis(
         policy
             .work_budget()
             .expect("checked above: policy work budget exists"),
+        policy.projection_mask().cloned(),
     ))
 }
 

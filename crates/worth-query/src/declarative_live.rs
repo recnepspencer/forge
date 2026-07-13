@@ -8,6 +8,7 @@ use crate::authoring::{
     OrderingSelector, PresencePredicate, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
     ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
 };
+use crate::authorized_projection::AuthorizedDeclarativeProjection;
 use crate::basis::{
     preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode,
     ExecutionBasisIntent, ExecutionPreflightBundle, ResolvedSnapshotBasis,
@@ -492,6 +493,14 @@ impl DeclarativeLiveQueryRequest {
 
     pub(crate) fn result_field(mut self, field: DeclarativeProjectionField) -> Self {
         self.result_fields.push(field);
+        self
+    }
+
+    pub(crate) fn with_authorized_query_projection(
+        mut self,
+        authorized: AuthorizedDeclarativeProjection,
+    ) -> Self {
+        self.query_projection = authorized.into_fields();
         self
     }
 }

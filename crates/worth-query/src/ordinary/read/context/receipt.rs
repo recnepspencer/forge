@@ -7,6 +7,7 @@ pub struct WorthQueryReadContextReceipt {
     context_kind: WorthQueryReadContextKind,
     canonical_query_digest: String,
     policy_tenant_admission_digest: Option<String>,
+    policy_narrowing_digest: Option<String>,
     relationship_proof_admission_digest: Option<String>,
     graph_authority_admission_digest: String,
     counters: WorthQueryReadContextAdmissionCounters,
@@ -30,6 +31,10 @@ impl WorthQueryReadContextReceipt {
         self.relationship_proof_admission_digest.as_deref()
     }
 
+    pub fn policy_narrowing_digest(&self) -> Option<&str> {
+        self.policy_narrowing_digest.as_deref()
+    }
+
     pub fn graph_authority_admission_digest(&self) -> &str {
         &self.graph_authority_admission_digest
     }
@@ -46,14 +51,19 @@ impl WorthQueryReadContextReceipt {
         context_kind: WorthQueryReadContextKind,
         canonical_query_digest: String,
         policy_tenant_admission_digest: Option<String>,
+        policy_narrowing_digest: Option<String>,
         relationship_proof_admission_digest: Option<String>,
         graph_authority_admission_digest: String,
         counters: WorthQueryReadContextAdmissionCounters,
     ) -> Self {
         let digest = hash_parts(&[
-            "worth_query_read_context_receipt_v1".to_string(),
+            "worth_query_read_context_receipt_v2".to_string(),
             format!("context:{}", context_kind.as_str()),
             format!("query:{canonical_query_digest}"),
+            format!(
+                "policy_narrowing:{}",
+                policy_narrowing_digest.as_deref().unwrap_or("none")
+            ),
             format!(
                 "policy_tenant:{}",
                 policy_tenant_admission_digest.as_deref().unwrap_or("none")
@@ -71,6 +81,7 @@ impl WorthQueryReadContextReceipt {
             context_kind,
             canonical_query_digest,
             policy_tenant_admission_digest,
+            policy_narrowing_digest,
             relationship_proof_admission_digest,
             graph_authority_admission_digest,
             counters,

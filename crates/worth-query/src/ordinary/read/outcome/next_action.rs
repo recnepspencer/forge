@@ -10,7 +10,6 @@ pub enum WorthQueryReadNextAction {
     ReviseDeclaration,
     SupplyFreshBasis,
     SupplyPolicyAuthority,
-    SupplyPolicyNarrowingContext,
     SupplyTenantAuthority,
     SupplyBranchAuthority,
     SupplyRelationshipProofAuthority,
@@ -48,15 +47,13 @@ pub(super) fn classify_context_next_action(
 ) -> WorthQueryReadNextAction {
     use super::super::WorthQueryReadContextDenialSource;
     use crate::policy_basis::PolicyTenantAdmissionFailureClass as PolicyFailure;
+    use crate::policy_narrowing::PolicyNarrowingFailureClass as NarrowingFailure;
     use crate::relationship_proof::RelationshipProofFailureClass as RelationshipFailure;
     use crate::runtime::WorthQueryGraphReadAccessAuthorityDenialKind as AuthorityFailure;
 
     match denial.source() {
         WorthQueryReadContextDenialSource::MissingRelationshipProof => {
             WorthQueryReadNextAction::SupplyRelationshipProofAuthority
-        }
-        WorthQueryReadContextDenialSource::PolicyNarrowingContextRequired(_) => {
-            WorthQueryReadNextAction::SupplyPolicyNarrowingContext
         }
         WorthQueryReadContextDenialSource::PolicyTenant(error) => match error.failure_class() {
             PolicyFailure::BranchAccessDenied => WorthQueryReadNextAction::SupplyBranchAuthority,
@@ -68,6 +65,20 @@ pub(super) fn classify_context_next_action(
             | PolicyFailure::RawMiddlewarePolicySourceForbidden
             | PolicyFailure::PolicyWorkBudgetDenied
             | PolicyFailure::SavedQueryPolicyTenantBypassForbidden => {
+                WorthQueryReadNextAction::SupplyPolicyAuthority
+            }
+        },
+        WorthQueryReadContextDenialSource::PolicyNarrowing(error) => match error.failure_class() {
+            NarrowingFailure::RelationshipProofDenied(_) => {
+                WorthQueryReadNextAction::SupplyRelationshipProofAuthority
+            }
+            NarrowingFailure::CanonicalQueryDigestMismatch
+            | NarrowingFailure::PolicyMaskAuthorityMismatch
+            | NarrowingFailure::AuthorizedProjectionDenied(_)
+            | NarrowingFailure::UnknownNarrowingCost
+            | NarrowingFailure::UnboundedDerivedInfluence
+            | NarrowingFailure::UnboundedProofTopology
+            | NarrowingFailure::DigestPartBudgetExceeded => {
                 WorthQueryReadNextAction::SupplyPolicyAuthority
             }
         },

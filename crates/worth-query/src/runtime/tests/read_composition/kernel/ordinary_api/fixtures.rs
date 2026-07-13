@@ -1,9 +1,11 @@
 use super::super::super::support::*;
-use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
+use crate::authoring::{AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName};
+use crate::authorized_projection::PolicyAspectMask;
 use crate::ordinary::read::{
     current, declare, WorthQueryReadRelationshipProof, WorthQueryReadRelationshipProofs,
 };
 use crate::policy_basis::{BranchAccessGrant, PolicyEpoch, PolicyRuleSnapshot};
+use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView};
 use crate::tenant_basis::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
 pub(super) fn local_identity_read<Output>(
@@ -49,6 +51,52 @@ pub(super) fn local_manager_relationship_read<Output>(
     )
 }
 
+pub(super) fn local_policy_projection_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
+    read.local_detail(
+        "user",
+        policy_projection_schema(),
+        |query| {
+            query
+                .project(identity_field())
+                .project(display_name_field())
+                .project(handle_field())
+        },
+        |shape| {
+            shape.field(
+                AuthoredResultShapeField::new("identity", "id", "id")
+                    .expect("identity result field should build"),
+            )
+        },
+    )
+}
+
+pub(super) fn local_policy_result_read<Output>(
+    read: crate::runtime::WorthQueryReadBuilder<Output>,
+) -> Result<Output, crate::runtime::WorthQueryReadDenial> {
+    read.local_detail(
+        "user",
+        policy_projection_schema(),
+        |query| {
+            query
+                .project(identity_field())
+                .project(display_name_field())
+        },
+        |shape| {
+            shape
+                .field(
+                    AuthoredResultShapeField::new("identity", "id", "id")
+                        .expect("identity result field should build"),
+                )
+                .field(
+                    AuthoredResultShapeField::new("profile", "display_name", "display_name")
+                        .expect("profile result field should build"),
+                )
+        },
+    )
+}
+
 pub(super) struct PolicyTenantInputs {
     pub(super) policy: PolicyRuleSnapshot,
     pub(super) tenant: TenantBindingSnapshot,
@@ -57,13 +105,11 @@ pub(super) struct PolicyTenantInputs {
 }
 
 pub(super) fn admitted_policy_tenant_inputs(epoch: u64, admits_query: bool) -> PolicyTenantInputs {
-    let policy = PolicyRuleSnapshot::synthetic_authority_with_posture(
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_query_admission(
         "ordinary-policy",
         "ordinary-rules",
         PolicyEpoch::Synthetic(epoch),
         admits_query,
-        false,
-        false,
     );
     let tenant = TenantBindingSnapshot::synthetic_direct(
         "tenant-a",
@@ -79,6 +125,65 @@ pub(super) fn admitted_policy_tenant_inputs(epoch: u64, admits_query: bool) -> P
         branch,
         schema,
     }
+}
+
+pub(super) fn narrowing_policy_tenant_inputs(
+    epoch: u64,
+    projection_mask: PolicyAspectMask,
+) -> PolicyTenantInputs {
+    let policy = PolicyRuleSnapshot::synthetic_authority_with_projection(
+        "ordinary-narrowing-policy",
+        "ordinary-narrowing-rules",
+        PolicyEpoch::Synthetic(epoch),
+        projection_mask,
+    );
+    let tenant = TenantBindingSnapshot::synthetic_direct(
+        "tenant-a",
+        "main",
+        "schema-a",
+        TenantBasisEpoch::Synthetic(7),
+    );
+    let branch = BranchAccessGrant::synthetic_granted("main", &policy);
+    let schema = SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "exact");
+    PolicyTenantInputs {
+        policy,
+        tenant,
+        branch,
+        schema,
+    }
+}
+
+pub(super) fn display_name_field() -> AspectFieldSelector {
+    AspectFieldSelector::new("profile", "display_name")
+        .expect("display-name field selector should build")
+}
+
+pub(super) fn handle_field() -> AspectFieldSelector {
+    AspectFieldSelector::new("profile", "handle").expect("handle field selector should build")
+}
+
+fn identity_field() -> AspectFieldSelector {
+    AspectFieldSelector::new("identity", "id").expect("identity field selector should build")
+}
+
+fn policy_projection_schema() -> QuerySchemaView {
+    QuerySchemaView::new(
+        "ordinary-policy-projection",
+        [
+            schema_field("identity", "id"),
+            schema_field("profile", "display_name"),
+            schema_field("profile", "handle"),
+        ],
+        [],
+    )
+}
+
+fn schema_field(aspect: &str, field: &str) -> SchemaFieldView {
+    SchemaFieldView::new(
+        AspectName::new(aspect).expect("policy schema aspect should be valid"),
+        FieldName::new(field).expect("policy schema field should be valid"),
+        SchemaFieldKind::String,
+    )
 }
 
 pub(super) fn run_policy_context(

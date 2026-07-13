@@ -9,6 +9,7 @@ use crate::identity::{
     CollectionPlanDigest, PlanDigest, ValidatedQueryDigest, ValidatedResultShapeDigest,
 };
 use crate::live::LivePromotionDescriptor;
+use crate::policy_plan::PolicyAwareCurrentPlan;
 use crate::validation::ValidatedQueryBundle;
 
 #[cfg(test)]
@@ -158,6 +159,7 @@ pub struct PlannedQueryArtifact {
     traversal_count: usize,
     predicate_count: usize,
     ordering_count: usize,
+    policy_narrowing_digest: Option<String>,
     plan_digest: PlanDigest,
 }
 
@@ -204,6 +206,10 @@ impl PlannedQueryArtifact {
         self.ordering_count
     }
 
+    pub fn policy_narrowing_digest(&self) -> Option<&str> {
+        self.policy_narrowing_digest.as_deref()
+    }
+
     pub(crate) fn new(
         validated_query_digest: ValidatedQueryDigest,
         canonical_query_digest: CanonicalQueryDigest,
@@ -216,6 +222,7 @@ impl PlannedQueryArtifact {
         ordering_count: usize,
         collection_digest: Option<&CollectionPlanDigest>,
         binding_digest: Option<&BindingFulfillmentDigest>,
+        policy_narrowing_digest: Option<&str>,
     ) -> Self {
         let mut parts = vec![
             format!("validated_query:{}", validated_query_digest.as_str()),
@@ -236,6 +243,9 @@ impl PlannedQueryArtifact {
         if let Some(binding_digest) = binding_digest {
             parts.push(format!("binding:{}", binding_digest.as_str()));
         }
+        if let Some(policy_narrowing_digest) = policy_narrowing_digest {
+            parts.push(format!("policy_narrowing:{policy_narrowing_digest}"));
+        }
 
         Self {
             validated_query_digest,
@@ -246,6 +256,7 @@ impl PlannedQueryArtifact {
             traversal_count,
             predicate_count,
             ordering_count,
+            policy_narrowing_digest: policy_narrowing_digest.map(str::to_string),
             plan_digest: PlanDigest::from_parts(&parts),
         }
     }
@@ -677,6 +688,7 @@ pub fn seed_execution_plan(
         route,
         fallback,
         CollectionPlanningMode::Ordinary,
+        None,
     )
 }
 
@@ -686,6 +698,7 @@ fn seed_execution_plan_for_collection_mode(
     route: PlannedExecutionRoute,
     fallback: FallbackDisposition,
     collection_mode: CollectionPlanningMode,
+    policy_plan: Option<&PolicyAwareCurrentPlan>,
 ) -> Result<ExecutionPlanBundle, PlanningError> {
     if !bundle.query().identity_bindings().is_empty()
         && request_context.semantic().binding_resolution().is_none()
@@ -704,19 +717,27 @@ fn seed_execution_plan_for_collection_mode(
             }
         });
     reject_unsupported_collection_shape(bundle, &collection_mode)?;
-    let collection = CollectionPlanBundle::from_validated_bundle_for_mode(bundle, collection_mode);
+    let planned_projection_count = policy_plan
+        .map(|plan| plan.core().work_budget().authorized_field_width())
+        .unwrap_or_else(|| bundle.query().projection().len());
+    let collection = CollectionPlanBundle::from_validated_bundle_for_mode(
+        bundle,
+        collection_mode,
+        planned_projection_count,
+    );
     let query = PlannedQueryArtifact::new(
         bundle.query().digest().clone(),
         bundle.query().canonical_query_digest().clone(),
         bundle.result_shape().digest(),
         route.clone(),
         fallback.clone(),
-        bundle.query().projection().len(),
+        planned_projection_count,
         bundle.query().traversal().len(),
         bundle.query().predicates().entries().len(),
         bundle.query().ordering().entries().len(),
         collection.as_ref().map(CollectionPlanBundle::digest),
         binding_digest,
+        policy_plan.map(|plan| plan.core().seam().source_narrowed_artifact_digest()),
     );
     let result_shape = PlannedResultShapeArtifact::new(
         bundle.result_shape().digest().clone(),
@@ -727,12 +748,12 @@ fn seed_execution_plan_for_collection_mode(
         bundle.result_shape().bindings().len(),
     );
     let counters = PlanningCounters::new(
-        bundle.query().projection().len(),
+        planned_projection_count,
         bundle.query().traversal().len(),
         route_candidate_count(&route),
         planned_read_surface_count(
             &route,
-            bundle.query().projection().len(),
+            planned_projection_count,
             bundle.query().traversal().len(),
             bundle.query().predicates().entries().len(),
             bundle.query().ordering().entries().len(),
@@ -812,10 +833,37 @@ pub fn plan_validated_bundle(
     )
 }
 
+pub(crate) fn plan_validated_bundle_with_policy_authority(
+    bundle: &ValidatedQueryBundle,
+    request_context: PlanningRequestContext,
+    policy_plan: &PolicyAwareCurrentPlan,
+) -> Result<ExecutionPlanBundle, PlanningError> {
+    plan_validated_bundle_for_collection_family_with_policy_authority(
+        bundle,
+        request_context,
+        CollectionResultFamily::OrdinaryCollection,
+        Some(policy_plan),
+    )
+}
+
 pub fn plan_validated_bundle_for_collection_family(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,
     collection_result_family: CollectionResultFamily,
+) -> Result<ExecutionPlanBundle, PlanningError> {
+    plan_validated_bundle_for_collection_family_with_policy_authority(
+        bundle,
+        request_context,
+        collection_result_family,
+        None,
+    )
+}
+
+fn plan_validated_bundle_for_collection_family_with_policy_authority(
+    bundle: &ValidatedQueryBundle,
+    request_context: PlanningRequestContext,
+    collection_result_family: CollectionResultFamily,
+    policy_plan: Option<&PolicyAwareCurrentPlan>,
 ) -> Result<ExecutionPlanBundle, PlanningError> {
     if request_context.semantic().basis_intent().fallback_allowed() {
         return Err(PlanningError::UnsupportedFallbackShape);
@@ -845,6 +893,7 @@ pub fn plan_validated_bundle_for_collection_family(
         route,
         fallback,
         collection_mode,
+        policy_plan,
     )
 }
 
@@ -952,6 +1001,7 @@ pub(crate) fn plan_validated_bundle_for_requested_aggregate_family(
                 route,
                 FallbackDisposition::Forbidden,
                 CollectionPlanningMode::AggregateRollupCount,
+                None,
             )
         }
         RequestedAggregateFamily::GroupedIntegerSum => {
@@ -984,6 +1034,7 @@ pub(crate) fn plan_validated_bundle_for_requested_derived_field_family(
                 route,
                 FallbackDisposition::Forbidden,
                 CollectionPlanningMode::DerivedDisplayLabel,
+                None,
             )
         }
     }

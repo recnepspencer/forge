@@ -1,5 +1,6 @@
 mod artifacts;
 mod counters;
+mod declarative_request;
 mod errors;
 mod field_path;
 mod influence;
@@ -9,6 +10,9 @@ mod support;
 pub(crate) use artifacts::derive_authorized_projection;
 pub use artifacts::AuthorizedProjectionArtifact;
 pub use counters::AuthorizedProjectionCounters;
+pub(crate) use declarative_request::{
+    reconcile_authorized_declarative_projection, AuthorizedDeclarativeProjection,
+};
 pub use errors::{AuthorizedProjectionError, AuthorizedProjectionFailureClass};
 pub use field_path::{
     AuthorizedProjectionFieldPath, AuthorizedProjectionIdentity, MaskedProjectionArtifact,

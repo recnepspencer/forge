@@ -8,6 +8,7 @@ use crate::identity::SchemaBasisDigest;
 use crate::intent_admission::WorthQueryIntentDecisionTraceEnvelope;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::planning::ExecutionPlanBundle;
+use crate::policy_plan::PolicyAwareCurrentPlan;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{RelationshipProofAdmission, RelationshipProofSupportProfile};
 use crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch;
@@ -91,6 +92,7 @@ pub struct WorthQueryReadGraph {
     declared_traversal_clause_count: usize,
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
+    policy_aware_plan: Option<PolicyAwareCurrentPlan>,
     declarative_request: DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
     execution_plan: ExecutionPlanBundle,
@@ -152,6 +154,10 @@ impl WorthQueryReadGraph {
         self.relationship_proof_admission.as_ref()
     }
 
+    pub(crate) fn policy_aware_plan(&self) -> Option<&PolicyAwareCurrentPlan> {
+        self.policy_aware_plan.as_ref()
+    }
+
     pub fn schema_view(&self) -> &QuerySchemaView {
         &self.schema_view
     }
@@ -183,6 +189,7 @@ impl WorthQueryReadGraph {
         declared_traversal_clause_count: usize,
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
+        policy_aware_plan: Option<PolicyAwareCurrentPlan>,
         declarative_request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
         execution_plan: ExecutionPlanBundle,
@@ -224,6 +231,12 @@ impl WorthQueryReadGraph {
                     .as_ref()
                     .map(|admission| admission.identity().as_str()),
             )
+            .optional_value(
+                WorthQueryEvidenceTag::new("policy_aware_plan"),
+                policy_aware_plan
+                    .as_ref()
+                    .map(|plan| plan.core().digest().as_str()),
+            )
             .seal()
             .as_str()
             .to_string();
@@ -237,6 +250,7 @@ impl WorthQueryReadGraph {
             declared_traversal_clause_count,
             declared_traversal_depth_limit,
             relationship_proof_admission,
+            policy_aware_plan,
             declarative_request,
             schema_view,
             execution_plan,
@@ -261,6 +275,10 @@ pub struct WorthQueryReadReceipt {
     pub(super) relationship_proof_posture: WorthQueryReadRelationshipProofPosture,
     pub(super) relationship_proof_admission: Option<RelationshipProofAdmission>,
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
+    pub(super) policy_narrowing_digest: Option<String>,
+    pub(super) policy_aware_plan_digest: Option<String>,
+    pub(super) policy_execution_seam_identity: Option<String>,
+    pub(super) policy_executor_semantic_rediscovery_count: usize,
     pub(super) breadth: WorthQueryReadBreadth,
     pub(super) materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) graph_read_access_plan:

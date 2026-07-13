@@ -3,6 +3,8 @@ pub struct WorthQueryReadContextAdmissionCounters {
     canonical_query_identity_read_count: usize,
     policy_tenant_admission_attempt_count: usize,
     policy_tenant_admitted_count: usize,
+    policy_narrowing_attempt_count: usize,
+    policy_narrowing_admitted_count: usize,
     relationship_proof_admission_attempt_count: usize,
     relationship_proof_admitted_count: usize,
     graph_authority_admission_attempt_count: usize,
@@ -24,6 +26,14 @@ impl WorthQueryReadContextAdmissionCounters {
 
     pub fn relationship_proof_admission_attempt_count(&self) -> usize {
         self.relationship_proof_admission_attempt_count
+    }
+
+    pub fn policy_narrowing_attempt_count(&self) -> usize {
+        self.policy_narrowing_attempt_count
+    }
+
+    pub fn policy_narrowing_admitted_count(&self) -> usize {
+        self.policy_narrowing_admitted_count
     }
 
     pub fn relationship_proof_admitted_count(&self) -> usize {
@@ -57,6 +67,14 @@ impl WorthQueryReadContextAdmissionCounters {
         self.relationship_proof_admission_attempt_count += 1;
     }
 
+    pub(crate) fn record_policy_narrowing_attempt(&mut self) {
+        self.policy_narrowing_attempt_count += 1;
+    }
+
+    pub(crate) fn record_policy_narrowing_admitted(&mut self) {
+        self.policy_narrowing_admitted_count += 1;
+    }
+
     pub(crate) fn record_relationship_proof_admitted(&mut self) {
         self.relationship_proof_admitted_count += 1;
     }
@@ -71,10 +89,12 @@ impl WorthQueryReadContextAdmissionCounters {
 
     pub(crate) fn digest_part(&self) -> String {
         format!(
-            "context-counters:{}:{}:{}:{}:{}:{}:{}",
+            "context-counters:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             self.canonical_query_identity_read_count,
             self.policy_tenant_admission_attempt_count,
             self.policy_tenant_admitted_count,
+            self.policy_narrowing_attempt_count,
+            self.policy_narrowing_admitted_count,
             self.relationship_proof_admission_attempt_count,
             self.relationship_proof_admitted_count,
             self.graph_authority_admission_attempt_count,

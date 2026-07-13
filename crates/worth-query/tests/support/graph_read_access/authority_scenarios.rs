@@ -1,6 +1,6 @@
 use worth_query::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, CanonicalQueryBundle, DetailQueryBuilder,
-    DetailResultShapeBuilder, GuidedAuthoringPath, RootEntityKey,
+    DetailResultShapeBuilder, GuidedAuthoringPath, PolicyAspectMask, RootEntityKey,
 };
 use worth_query::facade::policy::{
     admit_policy_tenant_context, AdmittedPolicyTenantContext, BranchAccessGrant, PolicyCostPosture,
@@ -78,15 +78,19 @@ pub fn session_label(name: &str) -> WorthQuerySessionLabel {
 }
 
 fn phase_fourteen_policy(admits_query_family: bool) -> PolicyRuleSnapshot {
-    PolicyRuleSnapshot::synthetic_authority_with_budget(
+    PolicyRuleSnapshot::synthetic_authority_with_projection_budget(
         "phase-fourteen-runtime-policy",
         "rules-v1",
         PolicyEpoch::Synthetic(7),
         admits_query_family,
-        true,
-        true,
         PolicyCostPosture::BoundedRelationshipProof,
         Some(PolicyWorkBudget::bounded(1, 1, 1)),
+        PolicyAspectMask::allow_all().with_non_disclosing_use_only(
+            AspectFieldSelector::new("identity", "id")
+                .unwrap()
+                .source_field_key()
+                .clone(),
+        ),
     )
 }
 

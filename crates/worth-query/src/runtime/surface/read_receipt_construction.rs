@@ -43,6 +43,10 @@ impl WorthQueryReadReceipt {
                     .counters()
                     .planned_traversal_depth_limit()
                     .max(read_graph.declared_traversal_depth_limit()),
+                execution_query_projection_count: read_graph
+                    .declarative_request()
+                    .query_projection()
+                    .len(),
                 execution_read_operation_count: execution_counters.execution_read_operation_count(),
                 execution_records_examined_count: execution_counters
                     .execution_records_examined_count(),
@@ -87,6 +91,10 @@ impl WorthQueryReadReceipt {
                     .counters()
                     .planned_traversal_depth_limit()
                     .max(read_graph.declared_traversal_depth_limit()),
+                execution_query_projection_count: read_graph
+                    .declarative_request()
+                    .query_projection()
+                    .len(),
                 execution_read_operation_count: context_execution
                     .counters()
                     .context_execution_count(),
@@ -120,6 +128,7 @@ impl WorthQueryReadReceipt {
         let relationship_proof_support_profile = relationship_proof_admission
             .as_ref()
             .map(support_profile_for_relationship_proof);
+        let policy_aware_plan = read_graph.policy_aware_plan();
         Self {
             read_graph_digest: read_graph.digest().to_string(),
             graph_family: read_graph.family().clone(),
@@ -142,6 +151,19 @@ impl WorthQueryReadReceipt {
             },
             relationship_proof_admission,
             relationship_proof_support_profile,
+            policy_narrowing_digest: policy_aware_plan.map(|plan| {
+                plan.core()
+                    .seam()
+                    .source_narrowed_artifact_digest()
+                    .to_string()
+            }),
+            policy_aware_plan_digest: policy_aware_plan
+                .map(|plan| plan.core().digest().as_str().to_string()),
+            policy_execution_seam_identity: policy_aware_plan
+                .map(|plan| plan.core().seam().identity().as_str().to_string()),
+            policy_executor_semantic_rediscovery_count: policy_aware_plan
+                .map(|plan| plan.core().report().executor_semantic_rediscovery_count())
+                .unwrap_or(0),
             breadth,
             materialized_fact_posture: None,
             graph_read_access_plan: None,
