@@ -6,6 +6,7 @@ const RECIPE: &str = include_str!(
 const FACADE_EXPORTS: &str = include_str!("../src/facade/exports_foundation.rs");
 const FLUENT_GOLDEN: &str =
     include_str!("ui/projection_consumption/golden/projection_authority_fluent_path_compiles.rs");
+const CLOSEOUT: &str = include_str!("../../../_docs/WORTH-query/milestone-9.11-closeout.md");
 
 #[test]
 fn docs_lead_from_ordinary_authority_to_migration_in_required_order() {
@@ -29,8 +30,29 @@ fn docs_ai_orientation_and_compile_golden_teach_the_same_facade_path() {
     }
     assert!(FEATURE_DOC.contains("WorthQueryConsumedProjectionAuthority"));
     assert!(FEATURE_DOC.contains("load_projection_authority_contract_document"));
+    assert!(FEATURE_DOC.contains("ProjectionAuthorityOutcome::into_admitted()"));
     assert!(AI_ORIENTATION.contains("WorthQueryConsumedProjectionAuthority"));
+    assert!(AI_ORIENTATION.contains("to_terminal_json_document()"));
     assert!(FLUENT_GOLDEN.contains("use worth_query::facade::"));
+}
+
+#[test]
+fn closeout_records_authority_deletion_complexity_and_consumer_proof() {
+    for required in [
+        "WorthQueryConsumedProjectionAuthority",
+        "WorthQueryDownstreamAuthorityDeletionReceipt",
+        "requirement width",
+        "fact width",
+        "unrelated Query workspace growth",
+        "historical basis growth",
+        "downstream consumer graph growth",
+        "Worth UI",
+    ] {
+        assert!(
+            CLOSEOUT.contains(required),
+            "missing closeout proof: {required}"
+        );
+    }
 }
 
 #[test]

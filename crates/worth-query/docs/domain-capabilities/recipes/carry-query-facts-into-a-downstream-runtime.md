@@ -13,26 +13,39 @@ whose correctness depends on the exact Query basis and source lineage.
 ## The Smallest Useful Path
 
 ```rust
-let outcome = write_receipt.consume_projection_authority(
-    result_shape_digest,
-    &authorized_projection,
-    ProjectionAuthorityContract::declare()
-        .require_settled_consumption()
-        .require_source_authority()
-        .require_target_identity()
-        .require_source_references(),
-)?;
+use worth_query::facade::{
+    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
+    WorthQueryWriteReceipt,
+};
 
-let (authority, warnings) = outcome
-    .into_admitted()
-    .map_err(|non_admitted| format!("cannot hand off: {non_admitted:?}"))?;
+fn query_authority_outcome(
+    write_receipt: &WorthQueryWriteReceipt,
+    authorized_projection: &AuthorizedProjectionArtifact,
+    result_shape_digest: &str,
+) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
+    let outcome = write_receipt.consume_projection_authority(
+        result_shape_digest,
+        authorized_projection,
+        ProjectionAuthorityContract::declare()
+            .require_settled_consumption()
+            .require_source_authority()
+            .require_target_identity()
+            .require_source_references(),
+    )?;
 
-downstream_runtime.accept_query_authority(authority, warnings)?;
+    Ok(outcome)
+}
 ```
 
 Declare only the guarantees the consumer needs. Handle a non-admitted outcome
 as the terminal result; do not retry by extracting raw IDs or comparing basis
 digests locally.
+
+When the downstream owner is ready to take the proof, call
+`ProjectionAuthorityOutcome::into_admitted()`. It moves the non-cloneable
+authority and its optional warnings together; an error returns the original
+typed non-admitted outcome for matching.
 
 ## Durable Contract Replay
 
@@ -45,6 +58,10 @@ let replayed = load_projection_authority_contract_document(&document.to_external
 
 The loaded contract enters the same canonical transition. Unknown schemas,
 requirements, facts, and malformed field paths fail closed.
+
+Do not serialize `WorthQueryConsumedProjectionAuthority`. It proves one
+admitted consumption and must remain with the downstream operation that relies
+on it.
 
 ## What To Retain
 

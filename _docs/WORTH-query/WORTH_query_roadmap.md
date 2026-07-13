@@ -3698,6 +3698,11 @@ closes last.
 
 ## Milestone 9.11: Declarative Downstream Basis Authority And Consumer DX
 
+Status:
+Closed on 2026-07-12. See
+[milestone-9.11-closeout.md](./milestone-9.11-closeout.md) for the shipped
+artifact, deletion, consumer-adoption, and verification record.
+
 ### Goal
 
 Make Query mint one canonical downstream authority artifact that binds the
@@ -4352,6 +4357,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.5.md](./milestone-9.5.md)
 - [milestone-9.10.md](./milestone-9.10.md)
 - [milestone-9.11.md](./milestone-9.11.md)
+- [milestone-9.11-closeout.md](./milestone-9.11-closeout.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)

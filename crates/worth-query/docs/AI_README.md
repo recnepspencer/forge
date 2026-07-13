@@ -974,6 +974,11 @@ result-attached `consume_projection_authority(...)` path. Query mints one sealed
 `WorthQueryConsumedProjectionAuthority`; evidence projections and getters are
 for observation and cannot recreate it. Use the older
 `consume_projection_facts(...)` path only for immediate typed fact inspection.
+Move admitted proof with `ProjectionAuthorityOutcome::into_admitted()`. If the
+declaration must cross a terminal boundary, serialize
+`ProjectionAuthorityContract` with `to_terminal_json_document()` and reload it
+with `load_projection_authority_contract_document(...)`; never serialize or
+reconstruct the authority object itself.
 
 Read next:
 
@@ -1547,6 +1552,12 @@ non-admitted outcome. The authority keeps basis, source lineage, consumed
 facts, receipt, and downstream requirements together; its getters are
 inspection surfaces, not ingredients for reconstructing authority.
 
+Use `ProjectionAuthorityOutcome::into_admitted()` to transfer admitted proof to
+its downstream owner. Persist a terminal JSON `ProjectionAuthorityContract`
+when declarations must replay across a process boundary. The loaded declaration
+must still pass the canonical authority transition against a real source; a
+serialized declaration is not serialized authority.
+
 Use `consume_projection_facts(...)` only when facts are inspected immediately
 and no downstream operation will treat them as authority. Its decomposed
 completion types are intentionally not part of the curated facade.
@@ -1853,6 +1864,11 @@ Need public DX:
   journal order.
 - Do not let public-bridge readers bypass projection consumption to read
   materialization rows directly.
+- Do not persist, clone, mirror, or decompose
+  `WorthQueryConsumedProjectionAuthority`; persist the declarative contract and
+  reacquire authority through Query.
+- Do not import legacy projection-consumption attempt or completed-part types
+  from internal module paths after the curated facade rejects them.
 
 ## AI Checklist Before Editing Code
 
@@ -1873,6 +1889,9 @@ Before building on a Query category, answer these:
    and inventing a local runtime path?
 9. If this is downstream consumer proof, am I using the Consumer Kit instead of
    a local report, grep, pinning, adapter, or receipt-fabrication path?
+10. If another runtime depends on Query facts, am I transferring one
+    `WorthQueryConsumedProjectionAuthority` rather than pairing basis, receipt,
+    source, fact, label, or digest projections locally?
 
 If you cannot answer those, read the owning docs before writing code.
 

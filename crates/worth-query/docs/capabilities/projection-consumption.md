@@ -31,6 +31,7 @@ The ordinary path is result-attached:
 - `WorthQueryLiveArtifactBinding::consume_projection_authority(...)`
 - `ProjectionAuthorityContract::declare()`
 - `ProjectionAuthorityOutcome`
+- `ProjectionAuthorityOutcome::into_admitted()`
 - `WorthQueryConsumedProjectionAuthority`
 
 ### Contract reference
@@ -41,7 +42,9 @@ source references. Query checks those requirements during the one canonical
 transition. For a durable handoff, serialize the declaration with
 `to_terminal_json_document()` and reload it with
 `load_projection_authority_contract_document(...)`; replay still enters the
-same transition and unknown schemas fail closed.
+same transition and unknown schemas fail closed. Persist the contract document,
+not `WorthQueryConsumedProjectionAuthority`: the authority is operational proof
+for one admitted consumption and is intentionally not a serialization DTO.
 
 ### Denial and inspection
 
@@ -92,8 +95,8 @@ cannot recreate the product.
 2. Call `consume_projection_authority(...)` on the source result or binding.
 3. Query performs source extraction and the canonical authority transition.
 4. Receive one `ProjectionAuthorityOutcome`.
-5. Continue only with its admitted authority; otherwise handle its typed
-   warning, denial, deferral, or source mismatch.
+5. Move admitted authority into the downstream owner with `into_admitted()`;
+   otherwise handle the typed denial, deferral, or source mismatch.
 
 The fluent and explicit paths use the same transition. Adapters may extract
 from different source artifacts, but they do not own separate authority logic.
@@ -198,6 +201,13 @@ On an admitted authority, inspect:
 - `evidence()` for a derived diagnostic projection
 - `counters()` for bounded-work evidence
 
+For adoption and migration audits, Consumer Kit exposes
+`WorthQueryDownstreamAuthorityAdoptionProof`. A zero-residue audit carries a
+`WorthQueryDownstreamAuthorityDeletionReceipt` whose rows prove the closure
+contract's four authority-reconstruction families are absent from the audited
+source inventory. This receipt certifies consumer cutover; it is not a way to
+mint projection authority.
+
 Before consumption, inspect
 `consumed_projection_authority_support_matrix()` when source support is
 unclear. A denial, deferral, or mismatch is a terminal typed outcome; do not
@@ -208,6 +218,8 @@ fall back to raw facts.
 - Passing a basis digest, receipt digest, source label, and fact list as an
   authority tuple.
 - Comparing consumer-local digests to decide whether Query authority is valid.
+- Persisting or serializing the authority object instead of the declarative
+  contract.
 - Reconstructing a projection contract or source identity in downstream code.
 - Importing Query's internal `projection_consumption` module.
 - Treating evidence getters as constructors or promotion inputs.
@@ -220,6 +232,10 @@ fall back to raw facts.
   depends on the requested facts and source evidence.
 - Store-backed and durable neighbors remain deferred or unsupported where the
   support matrix says so. Query does not guess missing lineage.
+- Authority admission work is certified across requirement width, fact width,
+  unrelated workspace growth, historical basis growth, and consumer graph
+  growth. Only declared requirements and consumed facts may grow the Query
+  transition's work.
 - Immediate typed-fact inspection remains supported through opaque
   `consume_projection_facts(...)` results, but those decomposed parts cannot be
   named through the curated facade as downstream authority.

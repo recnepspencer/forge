@@ -1,5 +1,9 @@
 # Milestone 9.11: Declarative Downstream Basis Authority And Consumer DX
 
+Status:
+Closed on 2026-07-12. The implementation and verification record is
+[milestone-9.11-closeout.md](./milestone-9.11-closeout.md).
+
 ## Goal
 
 Make Query produce one canonical, proof-bearing downstream authority artifact
@@ -140,9 +144,9 @@ contract and residue registry before introducing the replacement type.
 
 **Open questions**
 
-- Decide the final public product name after testing it against Query, Worth UI,
-  and at least one non-UI downstream vocabulary; use
-  `WorthQueryConsumedProjectionAuthority` as the working name.
+- Resolved: `WorthQueryConsumedProjectionAuthority` is the frozen public
+  product name. Worth UI adoption and facade-only compile transcripts proved
+  the name outside the internal lifecycle vocabulary.
 
 ### Phase 2: Canonical Consumed Projection Authority
 
@@ -202,9 +206,9 @@ cannot be reproduced from getters.
 
 **Open questions**
 
-- Determine whether single-use downstream transfer requires a strict move-only
-  token or an opaque `Arc`-backed authority reference with non-public inner
-  construction. Choose the least cloneable shape that supports real fanout.
+- Resolved: the authority is move-only and does not implement `Clone`. Borrowed
+  observation and derived evidence support inspection without creating a
+  second consumable authority token.
 
 ### Phase 3: Declarative Consumer Contract And Fluent DX
 
@@ -276,9 +280,9 @@ but implement both surfaces through the same transition core.
 
 **Open questions**
 
-- Validate naming through DX fixtures before freezing `consume`, `bind`, or
-  `admit` as the primary verb; the chosen verb must communicate that Query, not
-  the caller, mints authority.
+- Resolved: result-attached `consume_projection_authority(...)` is the ordinary
+  verb. It returns `ProjectionAuthorityOutcome`, making Query construction and
+  typed non-admission explicit.
 
 ### Phase 4: Ordinary Query Integration And Facade Convergence
 
@@ -339,8 +343,10 @@ one transition implementation.
 
 **Open questions**
 
-- Decide which advanced lifecycle types remain public facade vocabulary versus
-  rustdoc-linked implementation concepts after convergence.
+- Resolved: the curated facade retains the declarative contract, outcome,
+  sealed authority, denials, support, inspection, counters, and certification.
+  Independently pairable completion and attempt types are absent from the
+  facade and covered by compile-fail tests.
 
 ### Phase 5: Consumer Enforcement And Worth UI Cutover
 
@@ -407,8 +413,9 @@ delete every local mechanism that reopens Query basis meaning.
 
 **Open questions**
 
-- Identify a second lightweight reference consumer for facade-shape proof if
-  Worth UI-specific requirements threaten to overfit the generic contract.
+- Resolved: Worth UI remains the demanding reference consumer, while
+  facade-only golden transcripts and the public-bridge reader lane provide the
+  consumer-neutral shape proof without adding a synthetic second runtime.
 
 ### Phase 6: Architectural Certification And Legacy Deletion
 
@@ -473,6 +480,26 @@ unit tests.
 **Open questions**
 
 - None.
+
+## Implementation Closeout
+
+All six phases are closed. The shipped surface includes:
+
+- the sealed, move-only `WorthQueryConsumedProjectionAuthority`
+- `ProjectionAuthorityContract`, typed `ProjectionAuthorityOutcome`, and
+  fail-closed terminal JSON contract replay
+- one canonical transition shared by fluent and explicit lifecycle paths
+- a distinct authority-product support matrix and five-axis exact complexity
+  evidence
+- Consumer Kit residue classification, Worth UI adoption proof, and a sealed
+  four-obligation deletion receipt bound to the audited source inventory
+- compile-fail removal of independently pairable legacy types from the curated
+  facade
+- ordinary-first feature docs, a downstream-runtime recipe, AI orientation,
+  and executable documentation/API agreement checks
+
+The authoritative artifact and verification inventory is recorded in
+[milestone-9.11-closeout.md](./milestone-9.11-closeout.md).
 
 ## Must Ship
 
