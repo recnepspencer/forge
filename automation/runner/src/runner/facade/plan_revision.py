@@ -152,6 +152,8 @@ def diff_plan(run_id: str, revised_config_path: Path) -> dict[str, Any]:
         completed,
         current_key,
     )
+    if current_plan["config_hash"] != revised_plan["config_hash"] and not changes:
+        changes.append(change("run_configuration", current_key or "run", "current_restart_required"))
     return {
         "run_id": run_id,
         "from_plan_version": current_plan["plan_version"],
@@ -320,13 +322,61 @@ def revise_plan(run_id: str, revised_config_path: Path, *, allow_current_restart
     return diff
 
 
-def fork_plan(parent_run_id: str, revised_config_path: Path, new_run_id: str, reason: str) -> dict[str, Any]:
+def fork_plan(
+    parent_run_id: str,
+    revised_config_path: Path,
+    new_run_id: str,
+    reason: str,
+    *,
+    resume_phase_key: str | None = None,
+    resume_turn: str | None = None,
+) -> dict[str, Any]:
     from runner.facade.runtime_state import initialize_runtime_events, refresh_projection_for_run
+    from runner.authority.projections import project_run
+    from runner.phase_programs import lower_phase_program
 
     parent_events = load_events(RuntimePaths(parent_run_id).events)
     if not parent_events:
         raise ValueError(f"parent run {parent_run_id!r} does not exist")
     revised_config = load_validated_config(revised_config_path)
+    if (resume_phase_key is None) != (resume_turn is None):
+        raise ValueError("plan fork resume requires both --resume-phase-key and --resume-turn")
+    fork_payload: dict[str, Any] = {"parent_run_id": parent_run_id, "fork_reason": reason}
+    if resume_phase_key is not None and resume_turn is not None:
+        phase = next(
+            (
+                item
+                for item in revised_config["phases"]
+                if (item.get("phase_key") or f"phase_{item['id']}") == resume_phase_key
+            ),
+            None,
+        )
+        if phase is None:
+            raise ValueError(f"resume phase key {resume_phase_key!r} does not exist in revised config")
+        if not lower_phase_program(revised_config, phase).supports_turn(resume_turn):
+            raise ValueError(f"resume turn {resume_turn!r} is not supported by phase {resume_phase_key!r}")
+        # Forking is the authorized response to a changed config at the same
+        # path. Do not reload the parent through config-hash admission here;
+        # project its immutable event history onto the already validated,
+        # phase-compatible revised plan solely to copy phase state.
+        parent_projection = project_run(revised_config, parent_events, parent_run_id)
+        parent_phase = next(
+            (item for item in parent_projection["phases"] if item.get("phase_key") == resume_phase_key),
+            None,
+        )
+        if parent_phase is None:
+            raise ValueError(f"parent run has no phase state for {resume_phase_key!r}")
+        fork_payload["resume_cursor"] = {"phase_key": resume_phase_key, "turn": resume_turn}
+        fork_payload["phase_states"] = [
+            {
+                "phase_key": item["phase_key"],
+                "status": item["status"],
+                "qa_status": item["qa_status"],
+                "notes": item["notes"],
+            }
+            for item in parent_projection["phases"]
+            if item["id"] <= parent_phase["id"]
+        ]
     paths = RuntimePaths(new_run_id)
     if paths.events.exists():
         raise ValueError(f"run {new_run_id!r} already exists")
@@ -335,9 +385,14 @@ def fork_plan(parent_run_id: str, revised_config_path: Path, new_run_id: str, re
         [
             ("run_started", {"config_path": str(revised_config_path.resolve())}),
             ("plan_adopted", adopt_plan_payload(revised_config_path, revised_config)),
-            ("run_forked", {"parent_run_id": parent_run_id, "fork_reason": reason}),
+            ("run_forked", fork_payload),
         ],
     )
     refresh_projection_for_run(new_run_id)
-    return {"parent_run_id": parent_run_id, "run_id": new_run_id, "config_path": str(revised_config_path.resolve())}
+    return {
+        "parent_run_id": parent_run_id,
+        "run_id": new_run_id,
+        "config_path": str(revised_config_path.resolve()),
+        "resume_cursor": fork_payload.get("resume_cursor"),
+    }
 

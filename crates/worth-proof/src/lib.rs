@@ -2,6 +2,7 @@
 
 mod artifact;
 mod assumption;
+mod band;
 mod collections;
 mod composition;
 mod dx;
@@ -14,3 +15,6 @@ mod recipe;
 mod transition;
 
 pub use facade::*;
+
+#[doc(hidden)]
+pub use band::__band_guard_package_matches_any_prefix;

@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::AspectKey;
 use worth_foundational::{AspectContract, FieldKey};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclaredAspectContractBinding {

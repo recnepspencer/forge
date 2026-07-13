@@ -1,9 +1,9 @@
+use serde_json::json;
 use worth_foundational::{
     aspects, compatibility, AspectLocator, AspectValue, BoundarySourceLocator, LocatorAuthority,
     ScalarAspectType,
 };
 use worth_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::json_lowering_fixtures::task_summary_contract;
 

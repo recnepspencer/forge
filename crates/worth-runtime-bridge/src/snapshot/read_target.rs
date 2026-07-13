@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     aspects, AspectContract, AspectFieldLocator, AspectLocator, AspectMask, AspectShape,
     LocatorAuthority, ProjectionMask,
 };
-use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, SnapshotReadTargetIdentityTag};
 use crate::snapshot::SnapshotReadContract;

@@ -2,8 +2,8 @@ mod source_loci;
 mod state_lowering;
 mod struct_lowering;
 
-use worth_proof::TransitionOutcome;
 use serde_json::Value;
+use worth_proof::TransitionOutcome;
 
 use super::{JsonCompatibilityLoweringDenial, JsonCompatibilityLoweringOutcome};
 use crate::aspects::{

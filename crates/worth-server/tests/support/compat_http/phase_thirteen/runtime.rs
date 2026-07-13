@@ -16,8 +16,8 @@ use worth_server::{
 use crate::{
     compat_http_phase_eight_runtime, compat_http_phase_four_assertions,
     compat_http_phase_four_runtime, compat_http_phase_nine_runtime, compat_http_phase_ten_runtime,
-    compat_http_phase_three_runtime, compat_http_phase_two_runtime, worth_native_assertions,
-    query_handoff_runtime,
+    compat_http_phase_three_runtime, compat_http_phase_two_runtime, query_handoff_runtime,
+    worth_native_assertions,
 };
 
 pub(crate) fn phase_thirteen_server() -> WorthServer {

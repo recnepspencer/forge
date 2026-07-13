@@ -2,16 +2,16 @@
 
 use std::sync::{Arc, Mutex};
 
-use worth_server::{
-    WorthServer, WorthServerCompatibilityPreparedRequest, WorthServerWorthNativeSession,
-    WorthServerProductAdapterExecutionError, WorthServerProductApplicationAdapter,
-    WorthServerProductApplicationAdapterRegistration, WorthServerProductOperationDeclaration,
-    WorthServerProductOperationDenial, WorthServerProductOperationErrorMaps,
-    WorthServerProductOperationInput, WorthServerProductOperationPayload,
-    WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductSession, WorthServerProductSessionCreationRequest,
-};
 use serde_json::{json, Value};
+use worth_server::{
+    WorthServer, WorthServerCompatibilityPreparedRequest, WorthServerProductAdapterExecutionError,
+    WorthServerProductApplicationAdapter, WorthServerProductApplicationAdapterRegistration,
+    WorthServerProductOperationDeclaration, WorthServerProductOperationDenial,
+    WorthServerProductOperationErrorMaps, WorthServerProductOperationInput,
+    WorthServerProductOperationPayload, WorthServerProductOperationSuccess,
+    WorthServerProductOperationSupportSnapshot, WorthServerProductSession,
+    WorthServerProductSessionCreationRequest, WorthServerWorthNativeSession,
+};
 
 #[path = "../product_adapter_phase_nine/fixture.rs"]
 mod product_adapter_phase_nine_fixture;

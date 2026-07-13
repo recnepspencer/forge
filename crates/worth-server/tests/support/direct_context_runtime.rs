@@ -1,14 +1,14 @@
+use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryEvidenceIdentity, WorthQueryLivePatch,
-    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryRuntime,
+    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SubscriptionActivationInput, SubscriptionActivationReceipt,
+    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryEvidenceIdentity,
+    WorthQueryLiveArtifactTarget, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryRuntime,
     WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryBackendAdmissibleMutation,
-    WorthQueryRuntimeRemaskProjection, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity, WorthQueryWorkspace,
-    WorthQueryWorkspaceError, WorthQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeRemaskProjection,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
+    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    WorthQueryWorkspace, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
@@ -16,7 +16,6 @@ use worth_server::{
     WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceBindingTarget,
     WorthServerQueryWorkspaceProvider,
 };
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
 #[derive(Clone, Debug)]
 pub(crate) struct RemaskWorkspaceProvider {
@@ -130,25 +129,32 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
         panic!("unused in direct context remask tests")
     }
 
-    fn live_entities_for_target(&self, target: &WorthQueryLiveArtifactTarget) -> Vec<WorthQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryEntity> {
         self.declared_live_views
             .contains(target.terminal_view_name_projection())
             .then(|| {
-            vec![WorthQueryEntity::from_native_field_values(
-                worth_query::facade::admit_authored_entity_token(
-                    worth_query::facade::QueryExternalIdentityToken::new(
-                        std::sync::Arc::from("user-1"),
+                vec![WorthQueryEntity::from_native_field_values(
+                    worth_query::facade::admit_authored_entity_token(
+                        worth_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(
+                            "user-1",
+                        )),
                     ),
-                ),
-                std::collections::BTreeMap::from([
-                    (field_path("identity.id"), AspectValue::String("user-1".into())),
-                    (
-                        field_path("profile.display_name"),
-                        AspectValue::String("Ada WORTH".into()),
-                    ),
-                ]),
-            )]
-        }).unwrap_or_default()
+                    std::collections::BTreeMap::from([
+                        (
+                            field_path("identity.id"),
+                            AspectValue::String("user-1".into()),
+                        ),
+                        (
+                            field_path("profile.display_name"),
+                            AspectValue::String("Ada WORTH".into()),
+                        ),
+                    ]),
+                )]
+            })
+            .unwrap_or_default()
     }
 
     fn drain_live_patches_for_target(
@@ -245,7 +251,9 @@ fn aspect_field_key(aspect: &str, field: &str) -> worth_query::facade::AspectFie
 fn field_path(path: &str) -> CanonicalFieldPath {
     let fields = path
         .split('.')
-        .map(|field| FieldKey::new(field).expect("direct context field segments should be foundational"))
+        .map(|field| {
+            FieldKey::new(field).expect("direct context field segments should be foundational")
+        })
         .collect::<Vec<_>>();
     CanonicalFieldPath::new(fields).expect("direct context field path should be non-empty")
 }

@@ -102,11 +102,30 @@ def dispatch_appended_event(paths: RuntimePaths, event: dict[str, Any]) -> None:
         try:
             _, config, _ = load_admitted_projection_inputs(paths.run_id)
         except ValueError:
-            return
+            config = load_config_for_fault_notification(paths, event)
+            if config is None:
+                return
     if "notification_policy" not in config:
         return
     from runner.operator_signals import dispatch_authority_event
     dispatch_authority_event(paths, config, event)
+
+
+def load_config_for_fault_notification(paths: RuntimePaths, event: dict[str, Any]) -> dict[str, Any] | None:
+    if event["event_type"] != "runner_fault":
+        return None
+    from runner.authority.events import load_events
+
+    for prior_event in load_events(paths.events):
+        if prior_event.get("event_type") != "plan_adopted":
+            continue
+        config_path = prior_event.get("payload", {}).get("config_path")
+        if not isinstance(config_path, str) or not config_path:
+            continue
+        from runner.authority.config import load_config
+
+        return load_config(Path(config_path))
+    return None
 
 
 def config_path_for_run(run_id: str) -> Path:

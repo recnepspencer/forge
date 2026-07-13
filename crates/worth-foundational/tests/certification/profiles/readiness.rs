@@ -1,18 +1,17 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     certify_foundational_profile_milestone3_production_test_readiness,
     foundational_profile_milestone3_readiness_report, profiles_api::FoundationalProfilePublicLane,
     require_foundational_profile_milestone3_production_test_readiness,
     FoundationalProfileCertifiedSurface, FoundationalProfileCompileFailBoundary,
-    FoundationalProfileWORTHProofApi, FoundationalProfileWORTHProofForbiddenSurface,
-    FoundationalProfileWORTHProofSurface, FoundationalProfileMilestone3PhaseGate,
-    FoundationalProfileProductionReadinessCertified,
+    FoundationalProfileMilestone3PhaseGate, FoundationalProfileProductionReadinessCertified,
     FoundationalProfileProductionTestReadyArtifact, FoundationalProfileResidualDebt,
     FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
-    FoundationalProfileSyntheticRuntimePressure,
+    FoundationalProfileSyntheticRuntimePressure, FoundationalProfileWORTHProofApi,
+    FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_profile_readiness_artifact(_: &FoundationalProfileProductionTestReadyArtifact) {}
 fn accepts_profile_readiness_proof(

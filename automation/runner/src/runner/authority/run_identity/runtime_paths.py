@@ -16,8 +16,8 @@ def runtime_root_from_env(env_var: str, default: str) -> Path:
 
 
 CANONICAL_RUNTIME_ROOT = runtime_root_from_env("AUTOMATION_RUNNER_RUNTIME_ROOT", "automation/runner/runtime")
-RUNTIME_SUBDIRECTORIES = ("events", "projections", "checkpoints", "instantiations", "notifications", "telegram", "logs", "locks", "archives")
-AUTHORITY_RUNTIME_SUBDIRECTORIES = ("events",)
+RUNTIME_SUBDIRECTORIES = ("events", "executions", "projections", "checkpoints", "instantiations", "notifications", "telegram", "logs", "locks", "archives")
+AUTHORITY_RUNTIME_SUBDIRECTORIES = ("events", "executions")
 DERIVED_RUNTIME_SUBDIRECTORIES = ("projections", "instantiations", "notifications", "telegram", "logs")
 CONTINUITY_RUNTIME_SUBDIRECTORIES = ("checkpoints",)
 PROCESS_CONTROL_RUNTIME_SUBDIRECTORIES = ("locks",)
@@ -46,6 +46,10 @@ class RuntimePaths:
     @property
     def instantiations(self) -> Path:
         return self.runtime_root / "instantiations" / self.run_id
+
+    @property
+    def executions(self) -> Path:
+        return self.runtime_root / "executions" / self.run_id
 
     @property
     def notifications(self) -> Path:
@@ -101,6 +105,7 @@ def runtime_lane_descriptions(run_id: str) -> tuple[dict[str, str], ...]:
     paths = RuntimePaths(run_id)
     return (
         runtime_lane_description("events", "authoritative_event_ledger", paths.events),
+        runtime_lane_description("executions", "authoritative_provider_execution_receipts", paths.executions),
         runtime_lane_description("projections", "derived_operator_projection", paths.projection),
         runtime_lane_description("checkpoints", "execution_continuity_only", paths.checkpoints),
         runtime_lane_description("instantiations", "derived_prompt_instantiation", paths.instantiations),

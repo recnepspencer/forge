@@ -1,5 +1,5 @@
-use worth_signal::facade::history::{RuntimeBranch, RuntimeSnapshot};
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::history::{RuntimeBranch, RuntimeSnapshot};
 
 use crate::boundary::serde::{from_js, to_js};
 use crate::runtime::worker_host::{

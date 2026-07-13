@@ -1,10 +1,10 @@
 use super::vocabulary::{
-    FoundationalPerformanceWORTHProofApi, FoundationalPerformanceWORTHProofForbiddenSurface,
-    FoundationalPerformanceWORTHProofSurface,
     FoundationalPerformancePublicSurfaceDocumentationCoverage, FoundationalPerformanceResidualDebt,
     FoundationalPerformanceRuntimeAdoptionPressure,
     FoundationalPerformanceRuntimeAdoptionPressureEvidence,
     FoundationalPerformanceRuntimeAssumption, FoundationalPerformanceRuntimeNonAssumption,
+    FoundationalPerformanceWORTHProofApi, FoundationalPerformanceWORTHProofForbiddenSurface,
+    FoundationalPerformanceWORTHProofSurface,
 };
 use crate::performance_api::{
     performance_public_surface_inventory, FoundationalPerformancePublicSurfaceEntry,

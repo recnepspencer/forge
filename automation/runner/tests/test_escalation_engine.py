@@ -11,6 +11,7 @@ from runner.graph_runtime.recovery_disposition import execute_exhausted_recovery
 from runner.generation.scaffold_templates import scaffold_config
 from runner.generation.scaffold_types import ScaffoldRequest
 from runner.graph_runtime.continuation.recovery_planning import plan_recovery_attempt
+from runner.graph_runtime.continuation.recovery_planning import exhausted_recovery_reason
 from runner.phase_programs.policy_bindings import (
     EscalationFamilyPolicy,
     EscalationStage,
@@ -41,12 +42,24 @@ LADDER = EscalationFamilyPolicy(
 )
 
 
-def escalation_recovery_event(phase_id: int, turn: str) -> dict:
+def escalation_recovery_event(
+    phase_id: int,
+    turn: str,
+    *,
+    turn_instance_id: str | None = None,
+    failure_family: str = "same_phase_loop_exceeded",
+    attempt_index: int | None = None,
+) -> dict:
     return {
         "event_type": "recovery_requested",
         "phase_id": phase_id,
         "turn": turn,
-        "payload": {"recovery_kind": "escalation_recovery", "failure_family": "same_phase_loop_exceeded"},
+        "payload": {
+            "recovery_kind": "escalation_recovery",
+            "failure_family": failure_family,
+            "turn_instance_id": turn_instance_id,
+            "attempt_index": attempt_index,
+        },
     }
 
 
@@ -67,6 +80,15 @@ def plan(events: list[dict]):
 
 
 class LadderCadenceTests(unittest.TestCase):
+    def test_exhaustion_message_separates_provider_attempts_from_review_threshold(self) -> None:
+        provider = exhausted_recovery_reason("provider_crash", 6, "review", 1, None, "notify_and_pause")
+        review = exhausted_recovery_reason("same_phase_loop_exceeded", 6, "review", 2, 6, "notify_and_pause")
+
+        self.assertIn("after 1 attempt(s)", provider)
+        self.assertIn("review-loop threshold was not involved", provider)
+        self.assertIn("threshold of 6 failed review turns", review)
+        self.assertIn("recovery ladder exhausted after 2 attempt(s)", review)
+
     def test_stages_walk_in_order_then_exhaust(self) -> None:
         # 0 priors -> stage 0; 1 prior -> stage 1; 2 priors -> exhausted.
         first = plan([])
@@ -82,6 +104,44 @@ class LadderCadenceTests(unittest.TestCase):
         third = plan([escalation_recovery_event(6, "review"), escalation_recovery_event(6, "review")])
         self.assertEqual(third.attempt_action, "notify_and_pause")
         self.assertEqual(third.exhausted_disposition, "notify_and_pause")
+
+    def test_fresh_turn_instance_ids_do_not_reset_the_ladder(self) -> None:
+        first = escalation_recovery_event(6, "review", turn_instance_id="fresh-a")
+        second = escalation_recovery_event(6, "review", turn_instance_id="fresh-b")
+
+        request = plan([first, second])
+
+        self.assertEqual(request.attempt_index, 3)
+        self.assertEqual(request.attempt_action, "notify_and_pause")
+
+    def test_other_failure_family_does_not_consume_this_ladder(self) -> None:
+        unrelated = escalation_recovery_event(
+            6,
+            "review",
+            turn_instance_id="crash-a",
+            failure_family="provider_crash",
+        )
+
+        request = plan([unrelated])
+
+        self.assertEqual(request.attempt_index, 1)
+        self.assertEqual(request.attempt_action, "start_fresh_session")
+
+    def test_duplicate_attempt_one_events_resume_at_stage_two(self) -> None:
+        duplicated = [
+            escalation_recovery_event(
+                6,
+                "review",
+                turn_instance_id=f"fresh-{index}",
+                attempt_index=1,
+            )
+            for index in range(5)
+        ]
+
+        request = plan(duplicated)
+
+        self.assertEqual(request.attempt_index, 2)
+        self.assertEqual(request.attempt_action, "override_model")
 
 
 class ModelOverrideTests(unittest.TestCase):

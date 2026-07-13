@@ -3,13 +3,13 @@ use super::scoped_inventory;
 use super::vocabulary::{
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCertifiedSurfaceEvidence,
     FoundationalTransitionCompileFailBoundary, FoundationalTransitionCompileFailEvidence,
-    FoundationalTransitionWORTHProofApi, FoundationalTransitionWORTHProofApiEvidence,
-    FoundationalTransitionWORTHProofForbiddenSurface, FoundationalTransitionWORTHProofSurface,
     FoundationalTransitionMilestone5PhaseGate, FoundationalTransitionPhaseGateEvidence,
     FoundationalTransitionProductionReadinessScope, FoundationalTransitionResidualDebt,
     FoundationalTransitionRuntimeAssumption, FoundationalTransitionRuntimeNonAssumption,
     FoundationalTransitionSyntheticPressureEvidence,
-    FoundationalTransitionSyntheticRuntimePressure,
+    FoundationalTransitionSyntheticRuntimePressure, FoundationalTransitionWORTHProofApi,
+    FoundationalTransitionWORTHProofApiEvidence, FoundationalTransitionWORTHProofForbiddenSurface,
+    FoundationalTransitionWORTHProofSurface,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

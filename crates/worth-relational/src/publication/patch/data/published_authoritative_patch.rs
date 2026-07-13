@@ -1,5 +1,5 @@
-use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 
 use super::ordered_aspect_keys;
 

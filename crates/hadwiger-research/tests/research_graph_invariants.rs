@@ -1,3 +1,4 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryApplicationFacade, WORTHQueryAspectMutationBuilder, WORTHQueryCommitIdentity,
     WORTHQueryContributionComposedOrchestrationInput, WORTHQueryEntityIdentity,
@@ -8,7 +9,6 @@ use worth_query::facade::{
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
 };
-use hadwiger_research::facade::*;
 #[path = "research_graph_invariants/registration.rs"]
 mod registration;
 fn handle() -> HadwigerResearchHandle {

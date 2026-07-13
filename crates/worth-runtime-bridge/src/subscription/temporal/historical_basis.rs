@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_signal::facade::TemporalPreviousValueReference;
 use sha2::{Digest, Sha256};
+use worth_signal::facade::TemporalPreviousValueReference;
 
 use crate::input::envelope::TruthBranchIdentity;
 use crate::snapshot::TruthSnapshotIdentity;

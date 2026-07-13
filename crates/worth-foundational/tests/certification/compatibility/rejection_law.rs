@@ -1,9 +1,9 @@
+use serde_json::json;
 use worth_foundational::{
     lower_json_record_aspect_state, AspectContract, ContractValidationDenial, FieldKey,
     JsonCompatibilityAspectInput, JsonCompatibilityLoweringDenial, ScalarAspectType,
 };
 use worth_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::json_lowering_fixtures::{
     field_source_for, scalar_input, source_for, task_summary_contract,

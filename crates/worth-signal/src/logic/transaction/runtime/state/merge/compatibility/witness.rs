@@ -1,9 +1,9 @@
+use serde::{Deserialize, Serialize};
 use worth_proof::{
     Artifact, AssumptionBasis, AuthorityMarker, AuthorityWitness,
     BoundaryBridgedAuthorityRevalidationRequiredBasis, CurrentValidity, FreshnessScopedBasis,
     NoProofs, PhaseMarker,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::logic::transaction::runtime::state::merge::proof::canonical_digest;
 use crate::logic::transaction::runtime::state::SignalBranchBasisIdentity;

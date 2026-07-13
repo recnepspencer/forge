@@ -1,10 +1,10 @@
+use sha2::{Digest, Sha256};
 use worth_foundational::{
     prepare_canonical_basis_sequence, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
     CanonicalDigestId, CanonicalIntegerWidth, CanonicalizationRuleVersion,
 };
 use worth_proof::TransitionOutcome;
-use sha2::{Digest, Sha256};
 
 use crate::merge::data::{
     RelationalMergeAdmittedSurfaceRow, RelationalMergeProofPacket,

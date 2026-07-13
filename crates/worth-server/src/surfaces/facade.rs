@@ -2,8 +2,8 @@ use crate::registration::WorthServerSurfaceRegistry;
 
 use super::{
     binary::BinarySurfaceRoot, compat_http::CompatHttpSurfaceRoot,
-    worth_native::WorthNativeSurfaceRoot, integration::IntegrationSurfaceRoot,
-    lease::LeaseSurfaceRoot, sync::SyncSurfaceRoot,
+    integration::IntegrationSurfaceRoot, lease::LeaseSurfaceRoot, sync::SyncSurfaceRoot,
+    worth_native::WorthNativeSurfaceRoot,
 };
 
 #[derive(Clone, Debug)]

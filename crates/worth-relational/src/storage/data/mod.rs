@@ -1,5 +1,5 @@
-use worth_foundational::facade::AuthoritativeRecordAspectState;
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::AuthoritativeRecordAspectState;
 
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
 use crate::query::data::{

@@ -1,12 +1,12 @@
 use super::vocabulary::{
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCertifiedSurfaceEvidence,
     FoundationalTransitionCompileFailBoundary, FoundationalTransitionCompileFailEvidence,
-    FoundationalTransitionWORTHProofApi, FoundationalTransitionWORTHProofApiEvidence,
-    FoundationalTransitionWORTHProofForbiddenSurface, FoundationalTransitionWORTHProofSurface,
     FoundationalTransitionMilestone5PhaseGate, FoundationalTransitionPhaseGateEvidence,
     FoundationalTransitionResidualDebt, FoundationalTransitionRuntimeAssumption,
     FoundationalTransitionRuntimeNonAssumption, FoundationalTransitionSyntheticPressureEvidence,
-    FoundationalTransitionSyntheticRuntimePressure,
+    FoundationalTransitionSyntheticRuntimePressure, FoundationalTransitionWORTHProofApi,
+    FoundationalTransitionWORTHProofApiEvidence, FoundationalTransitionWORTHProofForbiddenSurface,
+    FoundationalTransitionWORTHProofSurface,
 };
 
 pub(super) fn certified_surfaces() -> Vec<FoundationalTransitionCertifiedSurface> {

@@ -79,7 +79,7 @@ def drive_graph_run(
                 return 1
             time.sleep(sleep_seconds)
             continue
-        if status != 0 or not loop:
+        if not loop:
             return status
         time.sleep(sleep_seconds)
 

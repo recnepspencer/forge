@@ -204,6 +204,44 @@ class PlanRevisionTests(unittest.TestCase):
             self.assertEqual([event["event_type"] for event in fork_events], ["run_started", "plan_adopted", "run_forked"])
             self.assertEqual(fork_events[-1]["payload"]["parent_run_id"], parent)
 
+    def test_fork_can_resume_at_validated_parent_cursor_without_copying_history(self) -> None:
+        with plan_world() as world:
+            parent = world.adopt_run()
+            phase_key = "phase_1"
+
+            result = fork_plan(
+                parent,
+                world.scaffold.config_path,
+                "resumed-fork",
+                "clean recovery lineage",
+                resume_phase_key=phase_key,
+                resume_turn="single_prompt",
+            )
+
+            self.assertEqual(
+                result["resume_cursor"],
+                {"phase_key": phase_key, "turn": "single_prompt"},
+            )
+            projection = refresh_projection_for_run("resumed-fork")
+            self.assertEqual(projection["current"], {"phase": 1, "turn": "single_prompt"})
+            self.assertEqual(
+                [event["event_type"] for event in load_events(RuntimePaths("resumed-fork").events)],
+                ["run_started", "plan_adopted", "run_forked"],
+            )
+
+    def test_fork_resume_requires_phase_and_turn_together(self) -> None:
+        with plan_world() as world:
+            parent = world.adopt_run()
+
+            with self.assertRaisesRegex(ValueError, "requires both"):
+                fork_plan(
+                    parent,
+                    world.scaffold.config_path,
+                    "invalid-resume-fork",
+                    "missing turn",
+                    resume_phase_key="phase_1",
+                )
+
     def test_fork_rejects_missing_parent(self) -> None:
         with plan_world() as world:
             revised = world.write_revised_config(lambda config: config["phases"].append(world.phase(2, "fork work")))
@@ -227,6 +265,22 @@ class PlanRevisionTests(unittest.TestCase):
                 [event["event_type"] for event in load_events(child_paths.events)],
                 ["run_started", "plan_adopted", "run_forked"],
             )
+
+    def test_resumed_fork_accepts_revised_config_at_parent_path(self) -> None:
+        with plan_world() as world:
+            parent = world.adopt_run_with_phases(1, 2)
+            world.mutate_config(lambda config: config["session_defaults"].update(model="revised-model"))
+
+            result = fork_plan(
+                parent,
+                world.scaffold.config_path,
+                "same-path-child",
+                "provider revision",
+                resume_phase_key="phase_2",
+                resume_turn="single_prompt",
+            )
+
+            self.assertEqual(result["resume_cursor"], {"phase_key": "phase_2", "turn": "single_prompt"})
 
     def test_config_rejects_duplicate_phase_keys(self) -> None:
         with plan_world() as world:

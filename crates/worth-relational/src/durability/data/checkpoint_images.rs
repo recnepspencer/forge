@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
-use worth_foundational::facade::AuthoritativeRecordAspectState;
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::AuthoritativeRecordAspectState;
 
 use super::CheckpointCoverage;
 use crate::history::data::BranchHead;

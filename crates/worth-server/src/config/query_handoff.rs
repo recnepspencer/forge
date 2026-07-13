@@ -1,6 +1,6 @@
 use std::{fmt, sync::Arc};
 
-use crate::query_handoff::{WorthServerQueryWorkspaceProvider, UnavailableWorkspaceProvider};
+use crate::query_handoff::{UnavailableWorkspaceProvider, WorthServerQueryWorkspaceProvider};
 
 #[derive(Clone)]
 pub struct WorthServerQueryHandoffConfig {

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use worth_foundational::{
     FoundationalAdmittedMergeScopeEvidence, FoundationalDeniedScopeLocus,
     FoundationalMergeAdmissionDenial, FoundationalMergeConstructionDenial, FoundationalMergeScope,
@@ -6,7 +7,6 @@ use worth_foundational::{
     FoundationalSelectedScopeNoOpCause, FoundationalSkippedOutOfScopeEvidence,
 };
 use worth_proof::TransitionOutcome;
-use std::fmt::Debug;
 
 use super::fixtures::branch::branch_id;
 use super::fixtures::merge::merge_summary;

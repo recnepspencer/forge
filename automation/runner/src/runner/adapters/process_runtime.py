@@ -28,6 +28,7 @@ def run_agent(
     log_path: Path | None,
     stop_requested_fn=None,
     progress_watchdog_fn: Callable[[], dict[str, str] | None] | None = None,
+    process_started_fn: Callable[[int], None] | None = None,
 ) -> tuple[int, dict[str, Any]]:
     capture: dict[str, Any] = {"agent_messages": []}
     prompt_file: Path | None = None
@@ -57,6 +58,8 @@ def run_agent(
             errors="replace",
             env=build_process_env(state),
         )
+        if process_started_fn is not None:
+            process_started_fn(process.pid)
         if provider != "grok":
             assert process.stdin is not None
             process.stdin.write(prompt)
@@ -230,7 +233,21 @@ def update_capture_from_stream_line(capture: dict[str, Any], line: str) -> None:
     except json.JSONDecodeError:
         capture.setdefault("agent_messages", []).append(stripped)
         return
+    if not isinstance(payload, dict):
+        capture.setdefault("agent_messages", []).append(stripped)
+        return
     message_type = payload.get("type")
+    if message_type == "text":
+        data = payload.get("data")
+        if isinstance(data, str):
+            capture["streaming_agent_text"] = capture.get("streaming_agent_text", "") + data
+        return
+    if message_type == "end":
+        flush_streaming_agent_text(capture)
+        session_id = payload.get("sessionId")
+        if isinstance(session_id, str) and session_id:
+            capture["session_id"] = session_id
+        return
     if message_type in {"session.created", "session.resumed"}:
         capture["session_id"] = payload.get("session_id")
         return
@@ -253,6 +270,12 @@ def update_capture_from_stream_line(capture: dict[str, Any], line: str) -> None:
         return
     if payload.get("thread_id"):
         capture["thread_id"] = payload["thread_id"]
+
+
+def flush_streaming_agent_text(capture: dict[str, Any]) -> None:
+    text = capture.pop("streaming_agent_text", "")
+    if isinstance(text, str) and text:
+        capture.setdefault("agent_messages", []).append(text)
 
 
 def extract_message_text(payload: dict[str, Any]) -> str:

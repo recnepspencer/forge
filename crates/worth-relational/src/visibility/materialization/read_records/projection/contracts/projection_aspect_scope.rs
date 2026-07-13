@@ -1,8 +1,8 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use worth_foundational::facade::{
     AspectKey, AspectMask, AspectMaskLocator, CanonicalFieldPath, FieldKey, LocatorAuthority,
     ProjectionMask,
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::projection_mask_basis::{
     prepare_projection_mask_for_canonical_basis, ProjectionMaskCanonicalBasis,

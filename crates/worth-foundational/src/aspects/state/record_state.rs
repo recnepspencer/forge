@@ -1,5 +1,5 @@
-use worth_proof::{Artifact, PhaseMarker};
 use serde::{Deserialize, Serialize};
+use worth_proof::{Artifact, PhaseMarker};
 
 use super::{AuthoritativeStateAdmissionDenial, CanonicalAspectStateMap};
 use crate::aspects::keys::AspectKey;

@@ -21,6 +21,7 @@ from runner.graph_runtime.nodes.node_ids import (
     EXECUTE_ROLE_TURN_NODE_ID,
     LOAD_RUN_AUTHORITY_NODE_ID,
     MATERIALIZE_PHASE_ASSET_PROMPT_NODE_ID,
+    MATERIALIZE_TERMINAL_RECOVERY_NODE_ID,
     MATERIALIZE_TURN_ASSEMBLY_PROMPT_NODE_ID,
     LOWER_PHASE_PROGRAM_NODE_ID,
     PUBLISH_PROJECTION_NODE_ID,
@@ -30,6 +31,7 @@ from runner.graph_runtime.nodes.node_ids import (
 )
 from runner.graph_runtime.nodes.outcome_nodes import classify_turn_outcome, route_outcome_repair_or_recovery
 from runner.graph_runtime.nodes.prompt_nodes import materialize_phase_asset_prompt, materialize_turn_assembly_prompt
+from runner.graph_runtime.nodes.terminal_recovery_node import materialize_terminal_recovery
 from runner.graph_runtime.nodes.projection_nodes import publish_projection
 from runner.graph_runtime.routes.continuation_routes import next_graph_destination, next_prompt_materialization_node
 from runner.graph_runtime.state import (
@@ -45,6 +47,7 @@ from runner.graph_runtime.state import (
     TURN_EXECUTION_KEY,
     TURN_OUTCOME_KEY,
     TURN_TRANSITION_KEY,
+    RELOAD_CURRENT_TURN_TRANSITION,
 )
 from runner.graph_runtime.subgraphs import prompt_materialization_destinations, prompt_materialization_edges
 
@@ -72,13 +75,15 @@ def compile_graph_plan(plan: GraphExecutionPlan, saver: SqliteSaver):
     builder.add_conditional_edges(
         SELECT_ROLE_SESSION_NODE_ID,
         next_prompt_materialization_node,
-        plan.prompt_destinations,
+        {**plan.prompt_destinations, MATERIALIZE_TERMINAL_RECOVERY_NODE_ID: MATERIALIZE_TERMINAL_RECOVERY_NODE_ID},
     )
+    builder.add_edge(MATERIALIZE_TERMINAL_RECOVERY_NODE_ID, END)
     builder.add_conditional_edges(
         ROUTE_NEXT_STEP_NODE_ID,
         next_graph_destination,
         {
             "finish": END,
+            RELOAD_CURRENT_TURN_TRANSITION: END,
             **plan.prompt_destinations,
         },
     )
@@ -102,6 +107,7 @@ def graph_node_handlers(node_ids: tuple[str, ...]) -> dict[str, GraphNodeHandler
         "select_role_session": select_role_session,
         MATERIALIZE_TURN_ASSEMBLY_PROMPT_NODE_ID: materialize_turn_assembly_prompt,
         MATERIALIZE_PHASE_ASSET_PROMPT_NODE_ID: materialize_phase_asset_prompt,
+        MATERIALIZE_TERMINAL_RECOVERY_NODE_ID: materialize_terminal_recovery,
         "execute_role_turn": execute_role_turn,
         "classify_turn_outcome": classify_turn_outcome,
         ROUTE_OUTCOME_REPAIR_OR_RECOVERY_NODE_ID: route_outcome_repair_or_recovery,
@@ -132,6 +138,8 @@ def pending_checkpoint_requires_reset(plan: GraphExecutionPlan) -> bool:
     values = getattr(snapshot, "values", {}) or {}
     if any(values.get(key) is None for key in required_keys):
         return True
+    if checkpoint_turn_differs_from_authority(values, plan.run_id):
+        return True
     return authoritative_pending_turn_requires_checkpoint_reset(plan.run_id)
 
 
@@ -146,6 +154,17 @@ def authoritative_pending_turn_requires_checkpoint_reset(run_id: str) -> bool:
     if current_turn_instance_id is None:
         return False
     return pending_recovery_reason(events, current, current_turn_instance_id) is not None
+
+
+def checkpoint_turn_differs_from_authority(values: dict[str, object], run_id: str) -> bool:
+    _, _, events = load_admitted_run_projection_inputs(run_id)
+    current = current_turn_for_events(events)
+    checkpoint_turn = values.get(CURRENT_TURN_AUTHORITY_KEY)
+    checkpoint_phase = getattr(checkpoint_turn, "phase_id", None)
+    checkpoint_turn_name = getattr(checkpoint_turn, "turn", None)
+    if current is None:
+        return checkpoint_turn is not None
+    return (checkpoint_phase, checkpoint_turn_name) != (current["phase"], current["turn"])
 
 
 def current_turn_for_events(events: tuple[dict[str, object], ...]) -> dict[str, object] | None:
@@ -199,6 +218,12 @@ def required_checkpoint_keys_for_node(node_id: str) -> tuple[str, ...]:
             CURRENT_TURN_AUTHORITY_KEY,
             LOWERED_PHASE_PROGRAM_KEY,
             ROLE_SESSION_KEY,
+            TURN_CONTINUATION_KEY,
+        ),
+        MATERIALIZE_TERMINAL_RECOVERY_NODE_ID: (
+            RUN_CONTEXT_KEY,
+            RUN_AUTHORITY_KEY,
+            CURRENT_TURN_AUTHORITY_KEY,
             TURN_CONTINUATION_KEY,
         ),
         EXECUTE_ROLE_TURN_NODE_ID: (

@@ -1,10 +1,10 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryDeclarationFamilyMarker, WORTHQueryDeclarationLegalityClass,
     WORTHQueryDeclarationPrimaryAuthorityFamily, WORTHQueryDeclarationRelationalTruthClaim,
     WORTHQueryGroupedDeclarationPosture, WORTHQueryLowerAuthorityRouteFamily,
     WORTHQuerySignalCompatibilityPosture,
 };
-use hadwiger_research::facade::*;
 
 #[test]
 fn relational_declaration_families_encode_phase1_authority_contracts() {

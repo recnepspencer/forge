@@ -20,6 +20,20 @@ from runner.generation import ScaffoldRequest, generate_scaffold
 
 
 class RuntimeInspectionTests(unittest.TestCase):
+    def test_operator_pause_is_unhealthy_paused_state(self) -> None:
+        status = {
+            "notification_delivery_failure": None,
+            "telegram": {},
+            "current": {"phase": 1, "turn": "plan"},
+            "last_event": {"event_type": "operator_pause"},
+            "stopped": False,
+            "awaiting_operator": {"reason": "spent"},
+        }
+        from runner.facade.runtime_inspection import doctor_findings, classify_run_state
+
+        self.assertEqual(classify_run_state(status), "paused")
+        self.assertEqual(doctor_findings(status)[0]["code"], "awaiting_operator")
+
     def test_report_artifacts_doctor_and_archive_are_authority_first(self) -> None:
         with inspection_world() as world:
             run_id = world.start_run("inspection-active")

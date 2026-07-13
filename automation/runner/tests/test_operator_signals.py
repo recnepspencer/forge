@@ -75,6 +75,21 @@ class OperatorSignalTests(unittest.TestCase):
         event = {"run_id": "signals", "sequence": 6, "event_type": "recovery_completed", "phase_id": 7, "turn": "implement", "payload": {}}
         self.assertEqual(replay_signal_fanout(policy(), [event]), ())
 
+    def test_blocker_signal_preserves_distinct_recovery_counters(self) -> None:
+        event = {
+            "run_id": "signals", "sequence": 7, "event_type": "operator_pause",
+            "phase_id": 7, "turn": "review",
+            "payload": {
+                "reason": "provider recovery exhausted",
+                "failure_family": "provider_crash",
+                "recovery_attempt_count": 1,
+                "review_failure_threshold": None,
+            },
+        }
+        signal = signals_for_event(event)[0]
+        self.assertEqual(signal.details["recovery_attempt_count"], 1)
+        self.assertIsNone(signal.details["review_failure_threshold"])
+
 
 if __name__ == "__main__":
     unittest.main()

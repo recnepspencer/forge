@@ -1,9 +1,9 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryApplicationFacade, WORTHQueryCapabilityFamily, WORTHQueryConfigSectionFamily,
     WORTHQueryDeclarationEntryCrossingSurface, WORTHQueryDeclaredFamilyChecked,
     WORTHQueryDomainOperatingContext, WORTHQueryOrdinaryOutcome,
 };
-use hadwiger_research::facade::*;
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())

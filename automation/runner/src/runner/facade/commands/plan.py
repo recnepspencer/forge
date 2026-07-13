@@ -25,7 +25,14 @@ def run_plan_command(args) -> int:
         print(json.dumps(result, indent=2))
         return 0
     if args.plan_command == "fork":
-        result = fork_plan(args.run_id, Path(args.config), args.new_run_id, args.reason)
+        result = fork_plan(
+            args.run_id,
+            Path(args.config),
+            args.new_run_id,
+            args.reason,
+            resume_phase_key=args.resume_phase_key,
+            resume_turn=args.resume_turn,
+        )
         print(json.dumps(result, indent=2))
         return 0
     if args.plan_command == "override-prompt":

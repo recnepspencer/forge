@@ -2139,6 +2139,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-query-decl"
+version = "0.1.0"
+dependencies = [
+ "worth-query",
+]
+
+[[package]]
+name = "worth-query-host"
+version = "0.1.0"
+dependencies = [
+ "worth-query",
+]
+
+[[package]]
+name = "worth-query-replay"
+version = "0.1.0"
+dependencies = [
+ "worth-query",
+]
+
+[[package]]
 name = "worth-relational"
 version = "0.1.0"
 dependencies = [

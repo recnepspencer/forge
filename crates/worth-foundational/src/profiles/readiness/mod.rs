@@ -14,12 +14,12 @@ pub use certification::{
 pub use report::FoundationalProfileProductionReadinessReport;
 pub use vocabulary::{
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
-    FoundationalProfileCompileFailBoundary, FoundationalProfileWORTHProofApi,
-    FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
-    FoundationalProfileMilestone3PhaseGate, FoundationalProfilePhaseGateEvidence,
-    FoundationalProfileProductionReadinessScope, FoundationalProfileResidualDebt,
-    FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
-    FoundationalProfileSyntheticRuntimePressure,
+    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone3PhaseGate,
+    FoundationalProfilePhaseGateEvidence, FoundationalProfileProductionReadinessScope,
+    FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
+    FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
+    FoundationalProfileWORTHProofApi, FoundationalProfileWORTHProofForbiddenSurface,
+    FoundationalProfileWORTHProofSurface,
 };
 
 #[cfg(test)]

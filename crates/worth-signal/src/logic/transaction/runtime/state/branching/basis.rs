@@ -1,11 +1,11 @@
 use std::convert::Infallible;
 
+use serde::{Deserialize, Serialize};
 use worth_proof::{
     Artifact, AssumptionBasis, AuthorityMarker, AuthorityWitness,
     BoundaryBridgedAuthorityRevalidationRequiredBasis, CurrentValidity, FreshnessScopedBasis,
     NoProofs, PhaseMarker, StaleReadableBasis, TransitionOutcome,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::logic::transaction::canonical_digest;
 use crate::state::{

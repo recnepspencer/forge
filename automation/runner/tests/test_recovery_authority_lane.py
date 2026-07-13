@@ -6,18 +6,26 @@ import tempfile
 from unittest.mock import patch
 
 from runner.authority.events import load_events
+from runner.authority.projections.projector import project_run
 from runner.authority.run_identity import runtime_paths
 from runner.authority.run_identity import RuntimePaths
 from runner.graph_runtime.continuation.recovery_planning import plan_recovery_attempt
-from runner.graph_runtime.continuation.requests import RecoveryTurnRequest, ordinary_turn_continuation
+from runner.graph_runtime.continuation.requests import RecoveryTurnRequest, ordinary_turn_continuation, recovery_turn_continuation
 from runner.graph_runtime.authority import CurrentTurnAuthority, LoadedRunAuthority
 from runner.graph_runtime.nodes.authority_event_nodes import append_runner_event
+from runner.graph_runtime.nodes.node_ids import MATERIALIZE_TERMINAL_RECOVERY_NODE_ID
+from runner.graph_runtime.nodes.terminal_recovery_node import materialize_terminal_recovery
+from runner.graph_runtime.routes.continuation_routes import next_prompt_materialization_node
+from runner.graph_runtime.routes.continuation_routes import next_graph_destination
+from runner.graph_runtime.nodes.projection_nodes import mark_projection_updated
 from runner.graph_runtime.recovery_disposition import execute_exhausted_recovery_disposition
 from runner.graph_runtime.recovery_events import record_recovery_attempt
 from runner.graph_runtime.qualifying_edits import qualifying_git_diff_exists
 from runner.graph_runtime.recovery_runtime import maybe_handle_no_edit_stall, open_preflight_fault_exists
 from runner.graph_runtime.orchestrator import drive_graph_run
 from runner.phase_programs.policy_bindings import EscalationFamilyPolicy, EscalationStage, QualifyingEditPolicy, StallSignalPolicy
+from runner.generation.scaffold_templates import scaffold_config
+from runner.generation.scaffold_types import ScaffoldRequest
 from runner.graph_runtime.state import (
     PROMPT_TURN_KEY,
     RUN_AUTHORITY_KEY,
@@ -30,10 +38,106 @@ from runner.graph_runtime.state import (
     PromptTurnDelivery,
     RunContext,
     TurnExecutionCapture,
+    ReloadCurrentTurnTransition,
 )
 
 
 class RecoveryAuthorityLaneTests(unittest.TestCase):
+    def test_stale_authority_reload_terminates_graph_invocation(self) -> None:
+        transition = mark_projection_updated(ReloadCurrentTurnTransition())
+        self.assertIsInstance(transition, ReloadCurrentTurnTransition)
+        self.assertTrue(transition.projection_updated)
+        state = {TURN_TRANSITION_KEY: transition}
+        self.assertEqual(next_graph_destination(state), "reload_current_turn")
+
+    def test_exhausted_recovery_routes_to_terminal_node_not_prompt_materialization(self) -> None:
+        request = RecoveryTurnRequest(
+            reason="ladder exhausted",
+            failure_family="same_phase_loop_exceeded",
+            attempt_action="notify_and_pause",
+            exhausted_disposition="notify_and_pause",
+        )
+        state = {TURN_CONTINUATION_KEY: recovery_turn_continuation(request)}
+
+        self.assertEqual(next_prompt_materialization_node(state), MATERIALIZE_TERMINAL_RECOVERY_NODE_ID)
+
+    def test_terminal_recovery_node_publishes_disposition_without_provider_state(self) -> None:
+        request = RecoveryTurnRequest(
+            reason="ladder exhausted",
+            failure_family="same_phase_loop_exceeded",
+            attempt_action="notify_and_pause",
+            exhausted_disposition="notify_and_pause",
+        )
+        state = {
+            RUN_CONTEXT_KEY: RunContext("recovery-test", Path("config.json"), None),
+            RUN_AUTHORITY_KEY: LoadedRunAuthority({}, {"session": {"thread_id": None}}),
+            "current_turn_authority": CurrentTurnAuthority(6, "review"),
+            TURN_CONTINUATION_KEY: recovery_turn_continuation(request),
+        }
+        with patch(
+            "runner.graph_runtime.nodes.terminal_recovery_node.execute_exhausted_recovery_disposition"
+        ) as execute:
+            result = materialize_terminal_recovery(state)
+
+        self.assertEqual(result, {})
+        execute.assert_called_once()
+
+    def test_executable_recovery_request_owns_the_current_turn_identity(self) -> None:
+        config = scaffold_config(ScaffoldRequest("single_prompt", "recovery", str(Path.cwd()), "spec.md"))
+        events = [
+            {
+                "event_type": "run_started",
+                "at": "2026-01-01T00:00:00+00:00",
+                "payload": {"config_path": "config.json"},
+            },
+            {
+                "event_type": "recovery_requested",
+                "at": "2026-01-01T00:00:01+00:00",
+                "phase_id": 1,
+                "turn": "single_prompt",
+                "payload": {
+                    "reason": "recover",
+                    "failure_family": "provider_crash",
+                    "recovery_kind": "escalation_recovery",
+                    "attempt_index": 1,
+                    "attempt_action": "start_fresh_session",
+                    "turn_instance_id": "recovery-turn-1",
+                },
+            },
+        ]
+
+        projection = project_run(config, events, "recovery-projection")
+
+        self.assertEqual(projection["current_turn_instance_id"], "recovery-turn-1")
+
+    def test_terminal_recovery_disposition_does_not_claim_execution_identity(self) -> None:
+        config = scaffold_config(ScaffoldRequest("single_prompt", "recovery", str(Path.cwd()), "spec.md"))
+        events = [
+            {
+                "event_type": "run_started",
+                "at": "2026-01-01T00:00:00+00:00",
+                "payload": {"config_path": "config.json"},
+            },
+            {
+                "event_type": "recovery_requested",
+                "at": "2026-01-01T00:00:01+00:00",
+                "phase_id": 1,
+                "turn": "single_prompt",
+                "payload": {
+                    "reason": "exhausted",
+                    "failure_family": "provider_crash",
+                    "recovery_kind": "escalation_recovery",
+                    "attempt_index": 2,
+                    "attempt_action": "notify_and_pause",
+                    "turn_instance_id": "not-an-execution",
+                },
+            },
+        ]
+
+        projection = project_run(config, events, "recovery-projection")
+
+        self.assertIsNone(projection["current_turn_instance_id"])
+
     def test_loop_ladder_walks_stages_and_forces_fresh_session(self) -> None:
         policy = EscalationFamilyPolicy(
             family_name="same_phase_loop_exceeded",

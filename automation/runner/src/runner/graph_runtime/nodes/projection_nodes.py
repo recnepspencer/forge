@@ -16,6 +16,7 @@ from runner.graph_runtime.state import (
     RepairMalformedRunnerEventTransition,
     RepairMissingRunnerEventTransition,
     RecoverPreOutcomeFailureTransition,
+    ReloadCurrentTurnTransition,
     TurnTransitionCase,
 )
 
@@ -39,4 +40,6 @@ def mark_projection_updated(transition: TurnTransitionCase) -> TurnTransitionCas
         return RepairMissingRunnerEventTransition(result_code=transition.result_code, projection_updated=True)
     if isinstance(transition, RepairMalformedRunnerEventTransition):
         return RepairMalformedRunnerEventTransition(result_code=transition.result_code, projection_updated=True)
+    if isinstance(transition, ReloadCurrentTurnTransition):
+        return ReloadCurrentTurnTransition(result_code=transition.result_code, projection_updated=True)
     return RecoverPreOutcomeFailureTransition(result_code=transition.result_code, projection_updated=True)

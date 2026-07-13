@@ -1,5 +1,5 @@
-use worth_foundational::facade::AspectValue;
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::AspectValue;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct AuthoritativeFieldComparisonKey {

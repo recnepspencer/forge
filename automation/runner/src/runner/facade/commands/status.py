@@ -30,6 +30,7 @@ def status_view(projection: dict) -> dict:
         "current": projection["current"],
         "completed_at": projection["completed_at"],
         "stopped": projection["stopped"],
+        "awaiting_operator": projection.get("awaiting_operator"),
         "stop_reason": projection["stop_reason"],
         "thread_id": projection["session"].get("thread_id"),
         "session_threads": projection["session"].get("threads", {}),

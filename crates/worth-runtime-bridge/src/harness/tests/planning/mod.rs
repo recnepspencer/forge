@@ -1,7 +1,7 @@
-use worth_harness::facade::{ExecutionProfile, ExecutionRequest, ScenarioPlan};
-use worth_harness::runtime::HarnessAdapter;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use worth_harness::facade::{ExecutionProfile, ExecutionRequest, ScenarioPlan};
+use worth_harness::runtime::HarnessAdapter;
 
 use crate::facade::{
     BridgeBulkDecisionRecordKind, BridgeBulkPlanningFailureKind, BridgeBulkWorkloadRequest,

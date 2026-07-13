@@ -8,12 +8,12 @@ use std::sync::{
     Arc,
 };
 
+use serde_json::json;
 use worth_query::facade::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerQueryHandoffDenialCode, WorthServerQueryWorkspaceBindingError,
     WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceProvider,
 };
-use serde_json::json;
 
 use compat_http_phase_three_runtime::{
     build_phase_three_server, build_phase_three_server_with_workspace_provider,

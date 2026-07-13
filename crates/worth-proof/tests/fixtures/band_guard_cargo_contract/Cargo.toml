@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "guarded-query-surface",
+    "empty-prefix-consumer",
+    "worth-cert-consumer",
+    "worth-entry-consumer",
+    "worth-entry-cert-consumer",
+    "worthy-entry-consumer",
+    "worth-schema-consumer",
+]

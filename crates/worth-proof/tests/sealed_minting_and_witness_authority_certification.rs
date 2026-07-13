@@ -2,12 +2,12 @@ mod support;
 
 use std::any::type_name;
 
+use support::compile_fail::run_compile_fail_bundle;
+use support::milestone2;
 use worth_proof::{
     Admitted, AssumptionBasis, AuthorityWitness, CanonicalOrder, CanonicalVec, CapabilityWitness,
     DisjointPair, Lowered, Proof, Recipe, Resolved, StructuralProofAuthority, UniqueVec,
 };
-use support::compile_fail::run_compile_fail_bundle;
-use support::milestone2;
 
 #[test]
 fn sealed_minting_and_witness_authority_certification() {

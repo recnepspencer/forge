@@ -9,12 +9,12 @@ use super::type_shapes::{
 use std::any::type_name;
 use std::mem::{align_of, needs_drop, size_of};
 
+pub use representatives::RawPhase;
 use worth_proof::{
     Artifact, ArtifactParts, ArtifactView, AssumptionBasis, CanonicalOrder, CanonicalVec,
     DisjointPair, ExactlyOne, NoAssumptionBasis, NoProofs, NonEmpty, Pair, Proof,
     StructuralProofAuthority, UniqueVec,
 };
-pub use representatives::RawPhase;
 
 pub fn compile_fail_bundle() -> CompileFailBundle {
     CompileFailBundle::new(

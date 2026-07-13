@@ -1,8 +1,8 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryBindingAspectConflict, WORTHQueryBindingMissingRequiredAspect,
     WORTHQueryBindingRebindRequired, WORTHQueryBindingStale,
 };
-use hadwiger_research::facade::*;
 
 #[test]
 fn query_aspect_contract_mapping_uses_exact_hadwiger_paths() {

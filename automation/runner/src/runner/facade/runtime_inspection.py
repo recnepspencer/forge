@@ -72,7 +72,7 @@ def active_runs() -> dict[str, Any]:
             active.append({"run_id": run_id, "state": "unreadable", "reason": str(error)})
             continue
         state = classify_run_state(projection)
-        if state in {"active", "stopped"}:
+        if state in {"active", "paused", "stopped"}:
             active.append({"run_id": run_id, "state": state, "current": projection.get("current")})
     return {"active": active}
 
@@ -106,6 +106,8 @@ def classify_run_state(projection: dict[str, Any]) -> str:
         return "completed"
     if projection.get("stopped"):
         return "stopped"
+    if projection.get("awaiting_operator"):
+        return "paused"
     if projection.get("current") is not None:
         return "active"
     return "idle"
@@ -116,6 +118,8 @@ def next_operator_action(status: dict[str, Any]) -> str:
         return "archive when inspection is complete"
     if status["stopped"]:
         return "resume or inspect stop_reason"
+    if status.get("awaiting_operator"):
+        return "provide operator direction or revise recovery policy"
     if status["notification_delivery_failure"] is not None:
         return "inspect notification delivery failure"
     telegram = status["telegram"]
@@ -138,6 +142,14 @@ def doctor_findings(status: dict[str, Any]) -> list[dict[str, str]]:
         findings.append({"severity": "warning", "code": "active_without_events", "message": "projection has a cursor but no event evidence"})
     if status["stopped"]:
         findings.append({"severity": "info", "code": "run_stopped", "message": str(status.get("stop_reason"))})
+    if status.get("awaiting_operator"):
+        findings.append(
+            {
+                "severity": "error",
+                "code": "awaiting_operator",
+                "message": "run is paused because automatic recovery was exhausted",
+            }
+        )
     if not findings:
         findings.append({"severity": "info", "code": "no_findings", "message": "no obvious runner health issue found"})
     return findings

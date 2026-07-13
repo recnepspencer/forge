@@ -16,5 +16,5 @@ typed RUNNER_EVENT for that already-completed turn.
 Expected turn instance id: {expected_turn_instance_id}
 Your RUNNER_EVENT payload must include exactly "turn_instance_id":"{expected_turn_instance_id}".
 
-Your final line must be exactly one compact JSON marker:
-RUNNER_EVENT: {"event_type":"event_name","payload":{"turn_instance_id":"{expected_turn_instance_id}"}}
+Your final line must be exactly one of the allowed compact markers below:
+{expected_runner_event_markers}

@@ -30,6 +30,8 @@ is either execution continuity, diagnostics, or derived operator state.
 - Telegram setup and reply routing: read
   [Telegram Operator Bridge](telegram-operator-bridge.md).
 - Config fields: read [Config Reference](config-reference.md).
+- Running CAD Road 1 Milestone 1B: read
+  [Road 1 M1B Runbook](road1-m1b-runbook.md).
 - Incident response: read [Troubleshooting](troubleshooting.md).
 
 ## Stable Commands

@@ -6,10 +6,10 @@ use super::production_test_contract::{
 use super::report::FoundationalDiagnosticProductionReadinessReport;
 use super::vocabulary::{
     FoundationalDiagnosticCertifiedSurface, FoundationalDiagnosticCompileFailBoundary,
-    FoundationalDiagnosticWORTHProofApi, FoundationalDiagnosticWORTHProofForbiddenSurface,
-    FoundationalDiagnosticWORTHProofSurface, FoundationalDiagnosticMilestone6PhaseGate,
-    FoundationalDiagnosticResidualDebt, FoundationalDiagnosticRuntimeAssumption,
-    FoundationalDiagnosticRuntimeNonAssumption, FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticMilestone6PhaseGate, FoundationalDiagnosticResidualDebt,
+    FoundationalDiagnosticRuntimeAssumption, FoundationalDiagnosticRuntimeNonAssumption,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
 };
 use std::collections::BTreeSet;
 

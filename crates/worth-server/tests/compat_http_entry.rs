@@ -8,8 +8,8 @@ use worth_server::{
 };
 
 use compat_http_entry_runtime::{
-    compat_http_entry_test_server, compat_http_prepared_request,
-    worth_native_request_context_input, ready_context,
+    compat_http_entry_test_server, compat_http_prepared_request, ready_context,
+    worth_native_request_context_input,
 };
 
 #[test]

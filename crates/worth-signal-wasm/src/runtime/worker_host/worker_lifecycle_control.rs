@@ -1,5 +1,5 @@
-use worth_signal::facade::runtime::ObservationHandle;
 use serde::{Deserialize, Serialize};
+use worth_signal::facade::runtime::ObservationHandle;
 
 use crate::boundary::errors::WorthSignalJsError;
 

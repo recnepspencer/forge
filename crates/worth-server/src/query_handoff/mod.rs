@@ -24,7 +24,7 @@ pub use operation::{
 pub use outcome::WorthServerQueryHandoffOutcome;
 pub use support_posture::WorthServerQuerySupportPosture;
 pub use workspace_binding::{
-    WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
-    WorthServerQueryWorkspaceBindingTarget, WorthServerQueryWorkspaceProvider,
-    UnavailableWorkspaceProvider,
+    UnavailableWorkspaceProvider, WorthServerQueryWorkspaceBindingError,
+    WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceBindingTarget,
+    WorthServerQueryWorkspaceProvider,
 };

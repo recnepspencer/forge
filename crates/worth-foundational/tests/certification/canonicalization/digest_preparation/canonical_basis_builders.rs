@@ -1,3 +1,4 @@
+use serde_json::json;
 use worth_foundational::{
     admit_authoritative_record_aspect_state, lower_json_record_aspect_state,
     prepare_aspect_contract_for_canonical_basis, prepare_aspect_mask_for_canonical_basis,
@@ -9,7 +10,6 @@ use worth_foundational::{
     StructAspectValue,
 };
 use worth_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::readiness_fixtures::{
     admitted_state, task_summary_contract, task_summary_contract_with_reversed_declaration_order,

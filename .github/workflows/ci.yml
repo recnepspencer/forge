@@ -51,11 +51,12 @@ jobs:
       - name: Workspace Rust line caps
         run: bash scripts/ci/check_workspace_rust_line_caps.sh
 
-      - name: Road 1 boundary enforcement
-        run: cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root . --config tools/boundary-check/config/road1.toml
+      - name: Constitution
+        shell: pwsh
+        run: pwsh -File scripts/check-constitution.ps1 --format json
 
-      - name: Generated crate contexts are fresh
-        run: cargo run --manifest-path tools/agent-context/Cargo.toml -- check --root . --config tools/boundary-check/config/road1.toml
+      - name: Road 1 adoption certification corpus
+        run: cargo test --manifest-path cad/workspaces/worth-certification/Cargo.toml -p worth-cert-adoption --test compile_fail
 
       - name: Build workspace
         run: cargo build --workspace

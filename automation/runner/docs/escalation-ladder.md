@@ -129,7 +129,8 @@ handing back to review. For grok this appends `--check`; for codex it enables th
 experimental `goals` feature (`--enable goals`). It is set two ways:
 
 - **Config default**: any turn's `model_policy` may carry `"goal_mode": true`.
-  The M1B repair turns default to goal mode (`GOAL_MODE_REPAIR`).
+  M1B deliberately keeps `GOAL_MODE_REPAIR` false, so all of its configured
+  turns run in normal mode.
 - **Operator toggle**: a Telegram reply prefixed with `goal` (e.g.
   `goal finish the repair`, `goal codex land the cutover`) runs that one custom
   turn in goal mode with the named/default model.

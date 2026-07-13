@@ -18,7 +18,11 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 
 Machine fences:
 - Must not depend on worthy-* crates.
-- Must not depend on worth-query.
+- Must not depend on Query engine `worth-query` directly; consume only through configured audience facades.
+- No Query audience facade is legal for this band; derived and other ordinary bands have no Query audience in this milestone.
+- Must not depend on Query audience facade `worth-query-decl` (allowed bands: entry, cert).
+- Must not depend on Query audience facade `worth-query-host` (allowed bands: entry, cert).
+- Must not depend on Query audience facade `worth-query-replay` (allowed bands: cert).
 - Must not depend on replay surface families such as certification replay [worth-cert-replay, worthy-cert-replay; cert domains: replay, reconstruction].
 
 Skeleton fence:

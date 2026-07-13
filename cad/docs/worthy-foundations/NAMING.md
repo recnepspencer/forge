@@ -30,6 +30,28 @@ There is no fourth segment. If a crate feels like it needs one
 (`worthy-solver-curve-nurbs`), that is the signal to either stay in the
 parent crate or propose a new domain noun - not to invent sub-grammar.
 
+### Framework-family exception: Query audience facades
+
+The Query engine and its audience facades are **platform framework crates** in
+the root workspace. They are a reviewed exception to the ordinary
+`{tier}-{band}-{domain}` birth grammar and are **not** a precedent for other
+ungrammatical names:
+
+| Package | Kind | Legal consumers | Everyone else |
+|---|---|---|---|
+| `worth-query` | framework engine | audience facades only | denied |
+| `worth-query-decl` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
+| `worth-query-host` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
+| `worth-query-replay` | audience facade | `cert` band only | denied |
+
+Machine authority for this matrix is
+`tools/boundary-check/config/road1.toml` under
+`[rule_contracts.query_audience]`. Ordinary crates must not depend on the
+engine; they consume Query only through the legal audience facade for their
+work. Derived has **no** Query audience in this milestone — any derived
+consumption path requires a visible amendment to this matrix and the machine
+constitution. Do not treat other `worth-query-*` names as reserved by analogy.
+
 ---
 
 ## Tiers
@@ -60,7 +82,7 @@ Rules:
 |---|---|---|---|
 | `schema` | shared truth grammar, contract nouns | nothing in the tree | executing anything |
 | `dsl` | language: syntax, AST, binding, lowering | `schema-*` | runtime execution |
-| `entry` | Query-native runtime entry & orchestration | `schema-*`, `resolver-*`, `derived-*`, `worth-query` | replay surfaces (Fence 2) |
+| `entry` | Query-native runtime entry & orchestration | `schema-*`, `resolver-*`, `derived-*`, `worth-query-decl`, `worth-query-host` | direct `worth-query`, replay surfaces (Fence 2) |
 | `resolver` | domain semantic decisions | `schema-*`, `solver-*` | Query entry, publication folklore |
 | `solver` | pure computation kernels | `schema-*` | `worth-query`, any entry surface |
 | `derived` | published derived artifacts | `schema-*`, `solver-*` (math only) | minting source authority |
@@ -87,7 +109,7 @@ Legend: â—‹ reserved name only Â· â— reserved, presumed pack content
 | `core` | â—‹ | | | | | identity, naming, units, tolerance, measure vocabulary. **Size-fenced** - the sole sanctioned "core" |
 | `graph` | â—‹ | | | | | the graph constitution: layers, edge classes, spine grammar, aspect rules, promotion grammar. Reserved until the first graph crate is actually born in code. |
 | `registry` | | | | â—‹ | | the pack seam itself |
-| `adoption` | | â—‹ | | | â—‹ | entry home for declaration handles, lowering, and obligation/contribution adoption when those surfaces are born later; cert home for Query adoption proof harness (Consumer Kit backed). Both are reserved until later milestones actually birth code. |
+| `adoption` | | â—‹ | | | **born: `worth-cert-adoption`** | entry home for declaration handles, lowering, and obligation/contribution adoption when those surfaces are born later; cert home for the Query adoption proof harness. The entry tenant remains reserved; the platform cert tenant is born in Milestone 1b Phase 8. |
 | `publication` | | | â—‹ | | | retained/publication grammar and projection-consumption-facing posture for the platform tier. Reserved until Milestone 4 proves the real `worth-derived-*` surface. |
 
 This table records naming legality and reservation posture only. It does not

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_signal::facade::{ClockTick, TemporalWakeId, WakeOrdinal};
 use sha2::{Digest, Sha256};
+use worth_signal::facade::{ClockTick, TemporalWakeId, WakeOrdinal};
 
 use crate::input::envelope::TruthPatchIdentity;
 use crate::subscription::{

@@ -1,3 +1,7 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 use worth_proof::TransitionOutcome;
 use worth_server::{
     surfaces::{CompatHttpSurface, WorthNativeSurface},
@@ -7,10 +11,6 @@ use worth_server::{
     WorthServerOperationRegistration, WorthServerQueryHandoffConfig,
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
     WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
-};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
 };
 
 #[test]

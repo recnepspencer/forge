@@ -1,27 +1,25 @@
+use std::collections::BTreeSet;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryIntentDeclaration,
-    WorthQueryIntentExecution, WorthQueryLivePatch, WorthQueryLiveViewHandle,
-    WorthQueryLiveArtifactTarget,
-    WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission, WorthQueryRuntime,
-    WorthQueryBackendAdmissibleMutation,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity, WorthQueryWorkspace,
-    WorthQueryWorkspaceError, WorthQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
+    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SubscriptionActivationInput, SubscriptionActivationReceipt,
+    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryIntentDeclaration,
+    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryLivePatch,
+    WorthQueryLiveViewHandle, WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission,
+    WorthQueryRuntime, WorthQueryRuntimeBackend, WorthQueryRuntimeError,
+    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeInspectionEvidence,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
+    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    WorthQueryWorkspace, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
     WorthServerQueryWorkspaceProvider,
-};
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use std::collections::BTreeSet;
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
 };
 
 use super::runtime_mutation_support::{test_mutation_receipt, TestSubscriptionActivation};
@@ -252,7 +250,10 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
         panic!("unused in query handoff phase tests")
     }
 
-    fn live_entities_for_target(&self, target: &WorthQueryLiveArtifactTarget) -> Vec<WorthQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryEntity> {
         assert!(
             !self.panic_on_live_reads,
             "live entity reads must not execute for this hostile denial seam"
@@ -271,7 +272,10 @@ impl WorthQueryRuntimeBackend for TestQueryRuntimeBackend {
                 )),
             ),
             std::collections::BTreeMap::from([
-                (field_path("identity.id"), AspectValue::String("user-1".into())),
+                (
+                    field_path("identity.id"),
+                    AspectValue::String("user-1".into()),
+                ),
                 (
                     field_path("profile.display_name"),
                     AspectValue::String("Ada WORTH".into()),
@@ -350,7 +354,9 @@ impl WorthQueryRuntimeSchemaAdapter for TestSchemaAdapter {
 fn field_path(path: &str) -> CanonicalFieldPath {
     let fields = path
         .split('.')
-        .map(|field| FieldKey::new(field).expect("synthetic runtime field segments should be foundational"))
+        .map(|field| {
+            FieldKey::new(field).expect("synthetic runtime field segments should be foundational")
+        })
         .collect::<Vec<_>>();
     CanonicalFieldPath::new(fields).expect("synthetic runtime field path should be non-empty")
 }

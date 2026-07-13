@@ -42,6 +42,16 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
                 and intervention.get("current") == {"phase": event.get("phase_id"), "turn": event.get("turn")}
             ):
                 projection["operator_intervention"] = None
+        if event["event_type"] == "recovery_requested":
+            payload = event["payload"]
+            # Executable recovery prompts own the cursor exactly as ordinary
+            # prompt selections do. Without this identity transition, the
+            # returning provider result is rejected as stale and the same
+            # recovery stage is replayed forever.
+            if payload.get("attempt_action") not in {"notify", "notify_and_pause"}:
+                turn_instance_id = payload.get("turn_instance_id")
+                if turn_instance_id:
+                    projection["current_turn_instance_id"] = turn_instance_id
         if event["event_type"] == "model_escalation_activated":
             payload = event["payload"]
             projection["model_overrides"].append(
@@ -57,6 +67,8 @@ def project_run(config: dict[str, Any], events: list[dict[str, Any]], run_id: st
         if event["event_type"] == "run_resumed":
             projection["stopped"] = False
             projection["stop_reason"] = None
+        if event["event_type"] == "run_forked":
+            apply_fork_resume(projection, event["payload"])
         if event["event_type"] == "run_stopped":
             projection["stopped"] = True
             projection["stop_reason"] = event["payload"].get("reason")
@@ -268,6 +280,25 @@ def apply_external_phase_completion(projection: dict[str, Any], payload: dict[st
     for evidence in payload.get("evidence", []):
         phase["notes"]["verification"].append(evidence)
     projection["external_completions"].append(payload)
+
+
+def apply_fork_resume(projection: dict[str, Any], payload: dict[str, Any]) -> None:
+    cursor = payload.get("resume_cursor")
+    if not isinstance(cursor, dict):
+        return
+    for carried in payload.get("phase_states", []):
+        if not isinstance(carried, dict):
+            continue
+        phase = phase_by_key(projection, carried.get("phase_key"))
+        if phase is None:
+            continue
+        phase["status"] = carried["status"]
+        phase["qa_status"] = carried["qa_status"]
+        phase["notes"] = carried["notes"]
+    phase = phase_by_key(projection, cursor.get("phase_key"))
+    if phase is not None:
+        projection["current"] = {"phase": phase["id"], "turn": cursor["turn"]}
+        projection["current_turn_instance_id"] = None
 
 
 def phase_by_key(projection: dict[str, Any], phase_key: Any) -> dict[str, Any] | None:

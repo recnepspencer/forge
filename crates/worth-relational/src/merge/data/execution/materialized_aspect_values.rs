@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     AspectKey, AspectLocator, AspectValue, AspectValueLocator, LocatorAuthority,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::aspect_wire::serde_canonical_aspect_value_locator;
 use crate::transactions::data::RecordRef;

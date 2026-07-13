@@ -14,6 +14,7 @@ classified as a revision, prompt override, external completion, or fork.
 python -m runner.facade.cli plan diff <run_id> --config automation/runner/config/revised.json
 python -m runner.facade.cli plan revise <run_id> --config automation/runner/config/revised.json
 python -m runner.facade.cli plan fork <run_id> --config automation/runner/config/revised.json --new-run-id revised-run
+python -m runner.facade.cli plan fork <run_id> --config automation/runner/config/revised.json --new-run-id recovered-run --resume-phase-key phase_6 --resume-turn test_repair_implement
 python -m runner.facade.cli plan override-prompt <run_id> --phase-key phase_6 --assembly-id turns/custom
 python -m runner.facade.cli plan mark-external <run_id> --phase-key phase_6 --agent manual-codex-thread --summary "Manual agent completed it" --evidence "commit abc123"
 ```
@@ -47,6 +48,11 @@ prompt/provider manifests with explicit current restart approval when needed.
 `plan fork` supports inserting phases before completed work, modifying
 completed phase definitions, modifying completed prompt/provider bindings, and
 deleting completed phases.
+
+Pass `--resume-phase-key` and `--resume-turn` together to create a clean run
+lineage at an unfinished parent cursor. The fork carries the parent phase state
+through that phase but does not copy recovery attempts, provider sessions, or
+runtime checkpoints.
 
 `plan override-prompt` records an operator prompt override for a phase. The
 next prompt render for the matching phase, and optional turn, uses that binding.

@@ -17,7 +17,7 @@ Do not write the implementation plan yet. This turn exists to sharpen the
 runtime boundary the phase must preserve and the weaker paths it must replace.
 
 Review the milestone spec, this phase's scope paths, the relevant public APIs,
-and the Worth UI architecture docs. Then post a concise boundary brief covering:
+and the WORTH platform architecture docs. Then post a concise boundary brief covering:
 
 1. What semantic truth enters this phase.
    Name the exact incoming authority lanes, such as declaration artifacts,

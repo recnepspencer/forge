@@ -21,6 +21,7 @@ these commands. Installed environments do not need that line.
 
 ```powershell
 python -m runner.facade.cli active
+python -m runner.facade.cli stability-canary
 python -m runner.facade.cli report <run_id>
 python -m runner.facade.cli doctor <run_id>
 python -m runner.facade.cli status <run_id>
@@ -53,6 +54,11 @@ Typical operator loop:
 `doctor` exits nonzero when it finds an error-level health issue. That is
 intentional so agents and scripts can stop instead of summarizing a bad run as
 healthy.
+
+Run `stability-canary` after changing provider execution, checkpoint recovery,
+or process ownership. It proves that completed results are reused, interrupted
+executions are not relaunched, and recovery prompts receive distinct execution
+authority even when they retain the semantic turn id.
 
 Run ids are execution histories, not config names. If you do not know the run
 id, start with `active`. See [Run Lifecycle](run-lifecycle.md) for start,

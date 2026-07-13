@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+use serde_json::json;
 use worth_server::{
     WorthServer, WorthServerProductOperationInput, WorthServerProductOperationPayload,
 };
-use serde_json::json;
 
 #[path = "../product_adapter_phase_nine/fixture.rs"]
 mod product_fixture;

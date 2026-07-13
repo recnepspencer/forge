@@ -1,9 +1,9 @@
+use std::{fmt, sync::Mutex};
 use worth_query::facade::{
-    ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
-    WorthQueryLiveReadResult, WorthQueryRuntimeError, WorthQueryRuntimePublicApiFamilyContract,
+    ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError, WorthQueryLiveReadResult,
+    WorthQueryRuntimeError, WorthQueryRuntimePublicApiFamilyContract,
     WorthQueryRuntimeStateSnapshot, WorthQueryUnifiedInspectionResult, WorthQueryWorkspace,
 };
-use std::{fmt, sync::Mutex};
 
 use crate::{WorthServerAdmission, WorthServerResolvedRequestContext};
 
@@ -168,7 +168,8 @@ impl WorthServerAdmittedDirectDeclaration {
         &self,
     ) -> Result<WorthQueryLiveReadResult, WorthQueryRuntimeError> {
         self.with_workspace_mut(|workspace| {
-            let live_target = workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
+            let live_target =
+                workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
             workspace.read_live_target(&live_target)
         })
     }
@@ -177,7 +178,8 @@ impl WorthServerAdmittedDirectDeclaration {
         &self,
     ) -> Result<WorthQueryRuntimeStateSnapshot, WorthQueryRuntimeError> {
         self.with_workspace(|workspace| {
-            let live_target = workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
+            let live_target =
+                workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
             workspace.state_live_target(&live_target)
         })
     }
@@ -186,14 +188,16 @@ impl WorthServerAdmittedDirectDeclaration {
         &self,
     ) -> Result<WorthQueryUnifiedInspectionResult, WorthQueryRuntimeError> {
         self.with_workspace(|workspace| {
-            let live_target = workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
+            let live_target =
+                workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
             workspace.inspect_live_target(&live_target)
         })
     }
 
     pub(crate) fn subscription_basis_digest(&self) -> Result<String, WorthQueryRuntimeError> {
         self.with_workspace(|workspace| {
-            let live_target = workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
+            let live_target =
+                workspace.resolve_live_artifact_target(self.declaration_binding_label())?;
             workspace.subscription_basis_digest_for_target(&live_target)
         })
     }
@@ -203,16 +207,14 @@ impl WorthServerAdmittedDirectDeclaration {
         request: &WorthServerDirectProjectionRequest,
     ) -> Result<ProjectionFactConsumptionAttempt, WorthServerNamedLiveProjectionExecutionError>
     {
-        let live_read = self
-            .with_workspace_mut(|workspace| {
-                let live_target = workspace
-                    .resolve_live_artifact_target(self.declaration_binding_label())
-                    .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)?;
-                workspace
-                    .read_live_target(&live_target)
-                    .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)
-            })
-            ?;
+        let live_read = self.with_workspace_mut(|workspace| {
+            let live_target = workspace
+                .resolve_live_artifact_target(self.declaration_binding_label())
+                .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)?;
+            workspace
+                .read_live_target(&live_target)
+                .map_err(WorthServerNamedLiveProjectionExecutionError::Runtime)
+        })?;
         live_read
             .consume_projection_facts_with_binding(
                 request.binding_context(

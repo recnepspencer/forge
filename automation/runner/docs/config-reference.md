@@ -94,6 +94,15 @@ Supported providers:
 `config`, and `env` are available for provider adapters that need local process
 customization.
 
+### Goal mode
+
+`goal_mode` is an optional boolean in a turn `model_policy`. When true, the
+provider adapter enables its self-verification mode (`--enable goals` for
+Codex; `--check` for Grok). Omit it, or set it to false, for normal turns.
+Goal mode is opt-in: M1B keeps it disabled for every configured turn, while an
+operator may explicitly request it for one custom turn with the `goal` reply
+prefix.
+
 Supported roles:
 
 - `implementer`

@@ -1,7 +1,7 @@
 {
   "kind": "assembly",
   "parts": [
-    { "asset_id": "turns/code_quality_review" },
+    { "asset_id": "turns/m1b_code_quality_review" },
     { "asset_id": "handoff/write_findings" }
   ]
 }

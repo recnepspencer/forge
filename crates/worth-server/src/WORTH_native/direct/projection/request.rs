@@ -147,8 +147,8 @@ fn admit_authorized_projection_field_path(
     let Some((aspect, terminal_field)) = field.split_once('.') else {
         return Err("field must use `aspect.field` form".to_string());
     };
-    let aspect_key =
-        AspectKey::new(aspect.to_string()).ok_or_else(|| "aspect is not foundational".to_string())?;
+    let aspect_key = AspectKey::new(aspect.to_string())
+        .ok_or_else(|| "aspect is not foundational".to_string())?;
     let field_key = FieldKey::new(terminal_field.to_string())
         .ok_or_else(|| "field is not foundational".to_string())?;
     Ok(AuthorizedProjectionFieldPath::from_native_keys(

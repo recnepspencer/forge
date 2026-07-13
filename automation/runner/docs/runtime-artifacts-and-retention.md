@@ -19,6 +19,19 @@ receipts, or checkpoint files.
 From a source checkout, set `PYTHONPATH='automation/runner/src'` before running
 these commands. Installed environments do not need that line.
 
+## Provider Execution Receipts
+
+`runtime/executions/<run_id>/` is the authoritative provider-execution lane.
+Each receipt is keyed by the semantic turn id plus a digest of the immutable
+delivery prompt and progresses through `claimed`, `launched`, and `finished`.
+
+Graph checkpoints may replay orchestration, but they may not create a second
+provider launch for an existing execution receipt. A finished receipt supplies
+the captured result to replay. An unfinished receipt becomes an interrupted
+execution failure and enters normal recovery. A recovery prompt has a distinct
+prompt digest, so it receives new execution authority without changing the
+semantic turn id expected in `RUNNER_EVENT`.
+
 ```powershell
 python -m runner.facade.cli artifacts <run_id>
 python -m runner.facade.cli archive <run_id>

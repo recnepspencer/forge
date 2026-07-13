@@ -462,6 +462,14 @@ tools/boundary-check/tests/fixtures/
 - Do not attempt full type resolution; name-based detection plus the Phase 6
   manifest freeze covers the alias gap honestly. State what the pass cannot
   see rather than implying it sees everything.
+- **Reviewed enforcement amendment:** authority sealing is definition-resolved
+  across the compiled local module graph and path-dependency graph. This is a
+  deliberately stronger closure for proof-carrying authority ceremonies, not
+  general Rust type resolution and not Query-type inference. Query signature
+  detection remains name-based over the committed facade vocabulary. The
+  stronger authority closure is required because aliases, re-exports, blanket
+  bounds, and exported macros otherwise create caller-mintable constitutional
+  bypasses while still looking concrete at the governed surface.
 - Do not merge the AST pass into the manifest pass; they are separate rule
   families with separate failure modes.
 

@@ -1,10 +1,10 @@
+use std::fmt::Debug;
 use worth_foundational::{
     FoundationalMergeAdmissionDenial, FoundationalMergeConstructionDenial, FoundationalMergeScope,
     FoundationalScopedMergeUnavailableOutcomeCategory, FoundationalScopedMergeUnavailablePosture,
     FoundationalScopedMergeUnavailableReason,
 };
 use worth_proof::TransitionOutcome;
-use std::fmt::Debug;
 
 use super::fixtures::branch::branch_id;
 use super::fixtures::scoped_merge::{scoped_candidate, selected_aspect, selected_node};

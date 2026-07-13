@@ -1,21 +1,20 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     certify_foundational_diagnostic_milestone6_production_test_readiness,
     foundational_diagnostic_milestone6_readiness_report,
     require_foundational_diagnostic_milestone6_production_test_readiness,
     FoundationalDiagnosticAdoptionShapedFollowthrough,
     FoundationalDiagnosticCanonicalGoldenArtifact, FoundationalDiagnosticCertifiedSurface,
-    FoundationalDiagnosticCompileFailBoundary, FoundationalDiagnosticWORTHProofApi,
-    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
-    FoundationalDiagnosticHarnessExpansionPoint, FoundationalDiagnosticMilestone6PhaseGate,
-    FoundationalDiagnosticProductionReadinessCertified,
+    FoundationalDiagnosticCompileFailBoundary, FoundationalDiagnosticHarnessExpansionPoint,
+    FoundationalDiagnosticMilestone6PhaseGate, FoundationalDiagnosticProductionReadinessCertified,
     FoundationalDiagnosticProductionTestReadyArtifact, FoundationalDiagnosticPropertySeed,
     FoundationalDiagnosticResidualDebt, FoundationalDiagnosticRuntimeAdoptionFailurePressure,
     FoundationalDiagnosticRuntimeAssumption, FoundationalDiagnosticRuntimeNonAssumption,
-    FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_diagnostic_readiness_artifact(_: &FoundationalDiagnosticProductionTestReadyArtifact) {}
 fn accepts_diagnostic_readiness_proof(

@@ -1,5 +1,5 @@
-use worth_query::facade::WORTHQueryOrdinaryOutcome;
 use hadwiger_research::facade::*;
+use worth_query::facade::WORTHQueryOrdinaryOutcome;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
     let handle =

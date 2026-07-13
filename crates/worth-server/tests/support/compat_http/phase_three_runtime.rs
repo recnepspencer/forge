@@ -1,19 +1,24 @@
 #![allow(dead_code)]
 
+use serde_json::{json, Value};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{
-    WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationDelta,
-    WorthQueryMutationKind,
-};
-use worth_query::facade::{
+    SubscriptionActivationInput, SubscriptionActivationReceipt,
     WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryIntentDeclaration,
     WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryLivePatch,
     WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission, WorthQueryRuntime,
     WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
     WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel,
     WorthQuerySnapshotIdentity, WorthQueryWorkspace, WorthQueryWorkspaceError,
-    WorthQueryWriteCommand, WorthQueryWriteReceipt, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
+    WorthQueryWriteCommand, WorthQueryWriteReceipt,
+};
+use worth_query::facade::{
+    WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationDelta,
+    WorthQueryMutationKind,
 };
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
@@ -26,11 +31,6 @@ use worth_server::{
     WorthServerConfig, WorthServerMiddlewareConfig, WorthServerQueryHandoffConfig,
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
     WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
-};
-use serde_json::{json, Value};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
 };
 
 pub(crate) fn build_phase_three_server() -> WorthServer {
@@ -336,7 +336,10 @@ impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
         panic!("phase three mutation runtime does not execute generic intents")
     }
 
-    fn live_entities_for_target(&self, _target: &WorthQueryLiveArtifactTarget) -> Vec<WorthQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        _target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryEntity> {
         Vec::new()
     }
 

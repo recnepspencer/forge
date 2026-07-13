@@ -1,10 +1,10 @@
 use super::vocabulary::{
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
-    FoundationalProfileCompileFailBoundary, FoundationalProfileWORTHProofApi,
+    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone3PhaseGate,
+    FoundationalProfilePhaseGateEvidence, FoundationalProfileResidualDebt,
+    FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
+    FoundationalProfileSyntheticRuntimePressure, FoundationalProfileWORTHProofApi,
     FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
-    FoundationalProfileMilestone3PhaseGate, FoundationalProfilePhaseGateEvidence,
-    FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
-    FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
 };
 use crate::profiles_api::{
     profile_public_surface_inventory, FoundationalProfilePublicSurfaceEntry,

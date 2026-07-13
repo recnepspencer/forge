@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_signal::facade::{ClockTick, TemporalWakeId};
 use sha2::{Digest, Sha256};
+use worth_signal::facade::{ClockTick, TemporalWakeId};
 
 use crate::subscription::BridgeSubscriptionCounters;
 

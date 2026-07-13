@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use serde_json::{json, Value};
 use worth_harness::facade::{
     AdapterSupport, ArtifactBundle, ArtifactClass, ArtifactSurface, CheckpointSemantics,
     DifferentialMatrixCapability, FailureInjectionPoint, InvariantCheck, InvariantReport,
@@ -9,7 +10,6 @@ use worth_harness::facade::{
     WorkflowCheckpoint, WorkflowFailureContext, WorkflowPlan, WorkflowRuntimeProfile,
     WorkflowState, WorkflowStep, WorkflowStepOutcome,
 };
-use serde_json::{json, Value};
 
 #[allow(unused_imports)]
 use crate::facade::*;

@@ -1,11 +1,12 @@
-mod boundary_model;
+mod authority_inputs;
 mod config;
 mod freshness;
+mod orientation;
 mod render;
 
-use crate::boundary_model::load_orientations;
 use crate::config::{parse_args, CliConfig, Mode};
 use crate::freshness::{check_freshness, write_contexts};
+use crate::orientation::load_orientations;
 use std::fs;
 use std::path::{Path, PathBuf};
 

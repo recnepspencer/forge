@@ -1,5 +1,5 @@
-use worth_proof::TransitionOutcome;
 use serde::Serialize;
+use worth_proof::TransitionOutcome;
 
 use super::declaration_candidate::PlacementDeclarationCandidate;
 use super::declaration_classification::{

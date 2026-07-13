@@ -1,18 +1,20 @@
 #![allow(dead_code)]
 
+use serde_json::Value;
+use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryEvidenceIdentity,
-    WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLivePatch,
-    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
-    WorthQueryPreviewBasisAdmission, WorthQueryBackendAdmissibleMutation,
-    WorthQueryRuntime, WorthQueryRuntimeBackend, WorthQueryRuntimeError,
-    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
-    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
-    WorthQueryWorkspace, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
+    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+    SubscriptionActivationInput, SubscriptionActivationReceipt,
+    WorthQueryBackendAdmissibleMutation, WorthQueryEntity, WorthQueryEvidenceIdentity,
+    WorthQueryIntentDeclaration, WorthQueryIntentExecution, WorthQueryLiveArtifactTarget,
+    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
+    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeBackend,
+    WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSchemaAdapter,
+    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
+    WorthQuerySessionLabel, WorthQuerySnapshotIdentity, WorthQueryWorkspace,
+    WorthQueryWorkspaceError, WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
@@ -25,8 +27,6 @@ use worth_server::{
     WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig, WorthServerStreamSelection,
     WorthServerStreamingResponse,
 };
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use serde_json::Value;
 
 use crate::query_handoff_runtime::TestWorkspaceProvider;
 
@@ -354,7 +354,9 @@ impl WorthQueryRuntimeBackend for StreamingDatasetRuntimeBackend {
 fn field_path(path: &str) -> CanonicalFieldPath {
     let fields = path
         .split('.')
-        .map(|field| FieldKey::new(field).expect("streaming runtime field segments should be foundational"))
+        .map(|field| {
+            FieldKey::new(field).expect("streaming runtime field segments should be foundational")
+        })
         .collect::<Vec<_>>();
     CanonicalFieldPath::new(fields).expect("streaming runtime field path should be non-empty")
 }

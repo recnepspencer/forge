@@ -26,13 +26,13 @@ pub use report::FoundationalDiagnosticProductionReadinessReport;
 pub use vocabulary::{
     FoundationalDiagnosticCertifiedSurface, FoundationalDiagnosticCertifiedSurfaceEvidence,
     FoundationalDiagnosticCompileFailBoundary, FoundationalDiagnosticCompileFailEvidence,
-    FoundationalDiagnosticWORTHProofApi, FoundationalDiagnosticWORTHProofApiEvidence,
-    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
     FoundationalDiagnosticMilestone6PhaseGate, FoundationalDiagnosticPhaseGateEvidence,
     FoundationalDiagnosticProductionReadinessScope, FoundationalDiagnosticResidualDebt,
     FoundationalDiagnosticRuntimeAssumption, FoundationalDiagnosticRuntimeNonAssumption,
     FoundationalDiagnosticSyntheticPressureEvidence,
-    FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofApiEvidence, FoundationalDiagnosticWORTHProofForbiddenSurface,
+    FoundationalDiagnosticWORTHProofSurface,
 };
 
 #[cfg(test)]

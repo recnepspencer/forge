@@ -1,3 +1,6 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     certify_foundational_transition_milestone5_production_test_readiness,
     certify_foundational_transition_milestone9_scoped_merge_production_test_readiness,
@@ -6,16 +9,12 @@ use worth_foundational::{
     require_foundational_transition_milestone5_production_test_readiness,
     require_foundational_transition_milestone9_scoped_merge_production_test_readiness,
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCompileFailBoundary,
-    FoundationalTransitionWORTHProofApi, FoundationalTransitionWORTHProofForbiddenSurface,
-    FoundationalTransitionWORTHProofSurface, FoundationalTransitionMilestone5PhaseGate,
-    FoundationalTransitionProductionReadinessCertified,
+    FoundationalTransitionMilestone5PhaseGate, FoundationalTransitionProductionReadinessCertified,
     FoundationalTransitionProductionTestReadyArtifact, FoundationalTransitionResidualDebt,
     FoundationalTransitionRuntimeAssumption, FoundationalTransitionRuntimeNonAssumption,
-    FoundationalTransitionSyntheticRuntimePressure,
+    FoundationalTransitionSyntheticRuntimePressure, FoundationalTransitionWORTHProofApi,
+    FoundationalTransitionWORTHProofForbiddenSurface, FoundationalTransitionWORTHProofSurface,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_transition_readiness_artifact(_: &FoundationalTransitionProductionTestReadyArtifact) {}
 fn accepts_transition_readiness_proof(

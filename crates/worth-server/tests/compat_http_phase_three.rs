@@ -1,19 +1,19 @@
 #[path = "support/compat_http/phase_three_runtime.rs"]
 mod compat_http_phase_three_runtime;
+#[path = "support/query_handoff/runtime.rs"]
+mod query_handoff_runtime;
 #[path = "support/worth_native/assertions.rs"]
 mod worth_native_assertions;
 #[path = "support/worth_native/runtime.rs"]
 mod worth_native_runtime;
-#[path = "support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;
 
 use std::sync::atomic::Ordering;
 
+use serde_json::json;
 use worth_query::facade::{
     WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport, WorthQueryRuntimeSupportProfile,
 };
 use worth_server::{WorthServerQueryHandoffDenialCode, WorthServerSuccessKind};
-use serde_json::json;
 
 use compat_http_phase_three_runtime::{
     build_phase_three_server, build_phase_three_server_with_workspace_provider,
@@ -21,10 +21,10 @@ use compat_http_phase_three_runtime::{
     direct_mutation_success, insert_task, mutation_input, mutation_request_input_for_workspace,
     prepared_mutation_request, single_insert_body,
 };
-use worth_native_assertions::{
-    family_contract_digest, worth_native_session, response_provenance_digest,
-};
 use query_handoff_runtime::ProfiledCountingTestWorkspaceProvider;
+use worth_native_assertions::{
+    family_contract_digest, response_provenance_digest, worth_native_session,
+};
 
 #[test]
 fn compat_http_single_insert_matches_worth_native_mutation_on_shared_query_artifacts() {

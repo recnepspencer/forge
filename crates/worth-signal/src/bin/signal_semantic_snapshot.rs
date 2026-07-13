@@ -2,6 +2,8 @@
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "parallel")]
+use serde_json::json;
+#[cfg(feature = "parallel")]
 use worth_signal::facade::diagnostics::{DiagnosticsAvailability, DiagnosticsLevel};
 #[cfg(feature = "parallel")]
 use worth_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
@@ -12,8 +14,6 @@ use worth_signal::facade::{
     Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
     NodeId, SignalGraph,
 };
-#[cfg(feature = "parallel")]
-use serde_json::json;
 
 #[cfg(feature = "parallel")]
 const ASPECT_A: Aspect = Aspect::new(0);

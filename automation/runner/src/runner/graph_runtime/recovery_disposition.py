@@ -36,6 +36,11 @@ def execute_exhausted_recovery_disposition(
             event_type,
             phase_id=current["phase"],
             turn=current["turn"],
-            payload={"reason": recovery.reason},
+            payload={
+                "reason": recovery.reason,
+                "failure_family": recovery.failure_family,
+                "recovery_attempt_count": max(0, recovery.attempt_index - 1),
+                "review_failure_threshold": recovery.session_reset_threshold,
+            },
             thread_id=thread_id,
         )

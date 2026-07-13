@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AuthoritativePatchApplicationDenial,
     AuthoritativePatchConstructionDenial, ContractValidationDenial,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::identity::data::KindId;
 

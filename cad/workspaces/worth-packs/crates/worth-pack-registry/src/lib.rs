@@ -15,6 +15,7 @@
 //! let registration = PackRegistration::new(descriptor);
 //!
 //! assert_eq!(registration.contribution_kind(), ContributionKind::Component);
+//! assert_eq!(registration.pack_name().as_str(), "worth-pack-wall-basic");
 //! ```
 //!
 //! ```compile_fail
@@ -24,6 +25,6 @@
 pub mod facade;
 
 mod contribution_descriptor;
-mod contribution_kinds;
+mod contribution_kind;
 mod pack_name;
 mod registration;

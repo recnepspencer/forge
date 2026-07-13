@@ -3,11 +3,11 @@ use std::sync::{
     Arc,
 };
 
+use serde_json::json;
 use worth_server::{
     WorthServerOperationReadinessDenialCode, WorthServerProductOperationInput,
     WorthServerProductOperationPayload, WorthServerProductOperationSurfaceDenialCode,
 };
-use serde_json::json;
 
 #[path = "support/product_adapter_phase_nine/fixture.rs"]
 mod fixture;

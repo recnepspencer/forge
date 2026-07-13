@@ -12,9 +12,9 @@ mod query_handoff_fixture;
 #[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
 
-use worth_proof::TransitionOutcome;
 use query_handoff_fixture::resolve_request_context;
 use query_handoff_runtime::RealMutationWorkspaceProvider;
+use worth_proof::TransitionOutcome;
 
 #[test]
 fn submission_and_product_mutation_order_is_deterministic() {

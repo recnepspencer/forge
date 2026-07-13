@@ -89,8 +89,6 @@ pub use readiness::{
     require_foundational_transition_milestone9_scoped_merge_production_test_readiness,
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCertifiedSurfaceEvidence,
     FoundationalTransitionCompileFailBoundary, FoundationalTransitionCompileFailEvidence,
-    FoundationalTransitionWORTHProofApi, FoundationalTransitionWORTHProofApiEvidence,
-    FoundationalTransitionWORTHProofForbiddenSurface, FoundationalTransitionWORTHProofSurface,
     FoundationalTransitionMilestone5PhaseGate, FoundationalTransitionPhaseGateEvidence,
     FoundationalTransitionProductionReadinessAuthority,
     FoundationalTransitionProductionReadinessReport,
@@ -98,7 +96,9 @@ pub use readiness::{
     FoundationalTransitionProductionTestReadyArtifact, FoundationalTransitionResidualDebt,
     FoundationalTransitionRuntimeAssumption, FoundationalTransitionRuntimeNonAssumption,
     FoundationalTransitionSyntheticPressureEvidence,
-    FoundationalTransitionSyntheticRuntimePressure,
+    FoundationalTransitionSyntheticRuntimePressure, FoundationalTransitionWORTHProofApi,
+    FoundationalTransitionWORTHProofApiEvidence, FoundationalTransitionWORTHProofForbiddenSurface,
+    FoundationalTransitionWORTHProofSurface,
 };
 pub use receipts::{
     foundational_commit_receipt_issuance, FoundationalBranchCloseoutCause,

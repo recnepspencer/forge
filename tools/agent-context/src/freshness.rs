@@ -1,4 +1,4 @@
-use crate::boundary_model::CrateOrientation;
+use crate::orientation::CrateOrientation;
 use crate::render::render_context;
 use std::fs;
 use std::path::Path;

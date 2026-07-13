@@ -15,7 +15,26 @@ band = "schema"
 domains = ["core"]
 
 [rule_contracts]
-query_host_bands = ["entry"]
+[rule_contracts.query_audience]
+engine_package = "worth-query"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-decl"
+label = "declaration"
+allowed_bands = ["entry", "cert"]
+guidance = "declaration artifacts and handles"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-host"
+label = "host"
+allowed_bands = ["entry", "cert"]
+guidance = "admission, lowering, and execution"
+
+[[rule_contracts.query_audience.audiences]]
+package = "worth-query-replay"
+label = "replay"
+allowed_bands = ["cert"]
+guidance = "cert-only reconstruction and replay"
 
 [[rule_contracts.replay_surfaces]]
 label = "certification replay"
@@ -53,3 +72,10 @@ path = "cad/workspaces/worth-entry"
 allowed_crate_prefixes = ["worth-entry-"]
 member_lane = "crates/*"
 
+
+[legacy_reference_ratchet]
+governed_roots = []
+forbidden_fragments = []
+snapshot = "tools/boundary-check/snapshots/legacy-references.toml"
+exclude_paths = []
+replacement_guidance = "Use the corresponding worth_/worth- spelling instead of the retired name."

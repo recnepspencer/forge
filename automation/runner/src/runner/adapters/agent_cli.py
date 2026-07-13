@@ -38,6 +38,7 @@ def run_agent(
     log_path: Path | None,
     stop_requested_fn=None,
     progress_watchdog_fn=None,
+    process_started_fn=None,
 ) -> tuple[int, dict[str, Any]]:
     return run_process_agent(
         state,
@@ -46,6 +47,7 @@ def run_agent(
         log_path=log_path,
         stop_requested_fn=stop_requested_fn,
         progress_watchdog_fn=progress_watchdog_fn,
+        process_started_fn=process_started_fn,
     )
 
 

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     AspectContract, AspectContractRevision, AspectIdentity, AspectKey, ScalarAspectType,
 };
-use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadContract {

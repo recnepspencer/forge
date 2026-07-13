@@ -1,8 +1,8 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryDeclarationCanonicalEntry, WORTHQueryDeclarationCanonicalEntryKind,
     WORTHQueryDeclarationCanonicalValue, WORTHQueryDeclarationInput,
 };
-use hadwiger_research::facade::*;
 
 #[test]
 fn all_declaration_inputs_publish_exact_canonical_entry_sequences() {

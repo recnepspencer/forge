@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,7 @@ def prepare_recovery_prompt_turn(
     recovery_kind: str = "escalation_recovery",
     recovery_route_guidance: str = "",
     prompt_override: str | None = None,
+    supported_event_types: frozenset[str] = frozenset(),
 ) -> PreparedPromptTurn:
     prompt_artifact_path = ""
     contract_artifact_path = ""
@@ -78,6 +80,9 @@ def prepare_recovery_prompt_turn(
             "expected_turn_instance_id": turn_instance_id or "",
             "artifact_block": recovery_artifact_block(prompt_artifact_path, contract_artifact_path),
             "recovery_route_guidance": recovery_route_guidance,
+            "expected_runner_event_markers": expected_runner_event_markers(
+                supported_event_types, turn_instance_id
+            ),
         },
     )
 
@@ -93,6 +98,7 @@ def build_recovery_prompt(
     recovery_kind: str = "escalation_recovery",
     recovery_route_guidance: str = "",
     prompt_override: str | None = None,
+    supported_event_types: frozenset[str] = frozenset(),
 ) -> str:
     prepared = prepare_recovery_prompt_turn(
         config,
@@ -104,6 +110,7 @@ def build_recovery_prompt(
         recovery_kind=recovery_kind,
         recovery_route_guidance=recovery_route_guidance,
         prompt_override=prompt_override,
+        supported_event_types=supported_event_types,
     )
     return prepared.rendered_prompt
 
@@ -147,3 +154,19 @@ def current_cursor_text(projection: dict[str, Any]) -> str:
     if not isinstance(current, dict):
         return "not set"
     return f"phase {current.get('phase')}, turn {current.get('turn')}"
+
+
+def expected_runner_event_markers(
+    supported_event_types: frozenset[str], turn_instance_id: str | None
+) -> str:
+    if not supported_event_types:
+        raise ValueError("recovery prompt requires at least one supported runner outcome")
+    payload = {"turn_instance_id": turn_instance_id or ""}
+    return "\n".join(
+        "RUNNER_EVENT: "
+        + json.dumps(
+            {"event_type": event_type, "payload": payload},
+            separators=(",", ":"),
+        )
+        for event_type in sorted(supported_event_types)
+    )

@@ -1,11 +1,11 @@
 mod support;
 
-use worth_proof::{
-    AssumptionBasis, CurrentValidity, ExecutedRecipe, ExecutionReadyRecipe, FreshnessScopedBasis,
-};
 use support::compile_fail::run_compile_fail_bundle;
 use support::compile_pass::run_compile_pass_bundle;
 use support::milestone5;
+use worth_proof::{
+    AssumptionBasis, CurrentValidity, ExecutedRecipe, ExecutionReadyRecipe, FreshnessScopedBasis,
+};
 
 #[test]
 fn lowering_and_execution_readiness_boundary_certification() {

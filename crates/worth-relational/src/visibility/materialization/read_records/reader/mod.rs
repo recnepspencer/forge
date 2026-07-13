@@ -42,9 +42,9 @@ use crate::visibility::snapshot_states::{
     build_visibility_state, read_view_from_snapshot_state, resolve_snapshot_handle,
     resolve_snapshot_inspection, resolve_snapshot_state,
 };
-use worth_foundational::facade::AspectKey;
 use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};
+use worth_foundational::facade::AspectKey;
 
 use super::materialization::{
     materialize_authoritative_entity_record_at_version,

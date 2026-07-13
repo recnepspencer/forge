@@ -10,9 +10,9 @@ use crate::facade::{
     TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
+use std::collections::BTreeSet;
 use worth_harness::facade::{ExecutionProfile, ScenarioPlan};
 use worth_harness::runtime::HarnessAdapter;
-use std::collections::BTreeSet;
 
 fn execute(target: StructuralHarnessTarget) -> StructuralHarnessExecution {
     let adapter = crate::harness::adapter::BridgeHarnessAdapter;

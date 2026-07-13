@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project": {
     "name": "Road 1 Milestone 1B: Query Constitution Enforcement",
-    "cwd": "C:\\forge",
+    "cwd": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worktree_2",
     "spec_file": "cad/docs/road-1/road-1_milestone-1b.md",
     "context_files": [
       "_docs/coding_guidelines/MENTALITY.md",
@@ -72,7 +72,7 @@
   },
   "session_defaults": {
     "provider": "codex",
-    "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+    "command": "C:/nvm4w/nodejs/codex.cmd",
     "model": "gpt-5.6-sol",
     "reasoning_effort": "high",
     "config": {}
@@ -88,7 +88,7 @@
           "test_review",
           "code_quality_review"
         ],
-        "threshold": 3,
+        "threshold": 6,
         "action": "start_fresh_session"
       }
     }
@@ -108,10 +108,10 @@
           ],
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high",
-            "goal_mode": true
+            "goal_mode": false
           },
           "scope": "phase"
         }
@@ -185,14 +185,14 @@
       "qa_focus": "No redesign beyond the named cleanups; the rename ratchet governs only constitutional surfaces, not _docs history or non-governed legacy code.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -208,12 +208,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -223,12 +223,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -239,7 +240,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -254,13 +255,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -271,7 +272,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -286,13 +287,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -303,7 +304,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -318,13 +319,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -356,14 +357,14 @@
       "qa_focus": "Facades re-export only; no engine-internal split; no facade re-exports another facade; no speculative bridge nouns.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -379,12 +380,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -394,12 +395,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -410,7 +412,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -425,13 +427,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -442,7 +444,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -457,13 +459,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -474,7 +476,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -489,13 +491,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -523,14 +525,14 @@
       "qa_focus": "worth-proof stays open; only the platform's vocabulary is sealed; no temporary generic authority bounds on governed surfaces.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -546,12 +548,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -561,12 +563,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -577,7 +580,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -592,13 +595,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -609,7 +612,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -624,13 +627,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -641,7 +644,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -656,13 +659,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -689,14 +692,14 @@
       "qa_focus": "The band list is passed as macro arguments, not encoded in worth-proof; the guard backstops macro-carried surfaces, it does not replace DAG rules.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -712,12 +715,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -727,12 +730,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -743,7 +747,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -758,13 +762,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -775,7 +779,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -790,13 +794,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -807,7 +811,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -822,13 +826,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -855,14 +859,14 @@
       "qa_focus": "No full type resolution; the pass states what it cannot see; it runs only over governed crates and stays edit-loop fast.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -878,12 +882,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -893,12 +897,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -909,7 +914,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -924,13 +929,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -941,7 +946,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -956,13 +961,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -973,7 +978,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -988,13 +993,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1022,14 +1027,14 @@
       "qa_focus": "Exact-set equality, not subset; snapshots are writer-flag-gated and never hand-edited; only governed crates are snapshotted.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1045,12 +1050,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1060,12 +1065,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1076,7 +1082,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1091,13 +1097,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1108,7 +1114,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1123,13 +1129,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1140,7 +1146,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1155,13 +1161,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1190,14 +1196,14 @@
       "qa_focus": "Hook, CI, and terminal share one entrypoint and one config; the hook stays within a stated time budget; pointers name a machine artifact first.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1213,12 +1219,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1228,12 +1234,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1244,7 +1251,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1259,13 +1266,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1276,7 +1283,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1291,13 +1298,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1308,7 +1315,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1323,13 +1330,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1357,14 +1364,14 @@
       "qa_focus": "The corpus proves denial, not features; no parity/scale/regression tree here (Milestone 5 owns those); nothing ordinary depends back on cert.",
       "program_id": "standard_loop",
       "contract_template": {
-        "asset_id": "contracts/default"
+        "asset_id": "contracts/m1b_simple"
       },
       "role_bindings": {
         "boundary_review": {
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1380,12 +1387,12 @@
           "role_id": "implementer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
-            "reasoning_effort": "high"
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "oversight",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1395,12 +1402,13 @@
         "implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5"
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1411,7 +1419,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1426,13 +1434,13 @@
         "repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1443,7 +1451,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1458,13 +1466,13 @@
         "test_repair_implement": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1475,7 +1483,7 @@
           "role_id": "reviewer",
           "model_policy": {
             "provider": "codex",
-            "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
             "model": "gpt-5.6-sol",
             "reasoning_effort": "high"
           },
@@ -1490,13 +1498,13 @@
         "code_quality_repair": {
           "role_id": "implementer",
           "model_policy": {
-            "provider": "grok",
-            "command": "C:/Users/shepworth/.grok/bin/grok.exe",
-            "model": "grok-4.5",
-            "goal_mode": true
+            "provider": "codex",
+            "command": "C:/nvm4w/nodejs/codex.cmd",
+            "model": "gpt-5.6-sol",
+            "reasoning_effort": "medium"
           },
           "session_policy": {
-            "continuity_family": "build",
+            "continuity_family": "implementer",
             "reuse_session": true
           },
           "prompt_template": {
@@ -1506,21 +1514,80 @@
       }
     }
   ],
+  "notification_policy": {
+    "command_hook": [
+      "python",
+      "-m",
+      "runner.telegram_bridge",
+      "send"
+    ],
+    "signals": {
+      "blocker": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "crash": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "invalid_outcome": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "wall_timeout": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "idle_timeout": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "no_edit_stall": {
+        "enabled": true,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      },
+      "same_phase_loop_exceeded": {
+        "enabled": false,
+        "delivery": "immediate",
+        "sinks": [
+          "command_hook"
+        ]
+      }
+    }
+  },
   "operator_custom_turn": {
     "aliases": {
       "codex": {
         "provider": "codex",
-        "command": "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe",
+        "command": "C:/nvm4w/nodejs/codex.cmd",
         "model": "gpt-5.6-sol",
-        "reasoning_effort": "high"
+        "reasoning_effort": "medium"
       },
       "grok": {
         "provider": "grok",
-        "command": "C:/Users/shepworth/.grok/bin/grok.exe",
+        "command": "C:/Users/Esther/.grok/bin/grok.exe",
         "model": "grok-4.5"
       }
     },
-    "default_alias": "grok",
+    "default_alias": "codex",
     "max_ladders_per_phase": 2
   }
 }

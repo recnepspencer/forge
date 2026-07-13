@@ -1,12 +1,12 @@
 mod support;
 
+use support::compile_fail::run_compile_fail_bundle;
+use support::compile_pass::run_compile_pass_bundle;
+use support::milestone4;
 use worth_proof::{
     DeferredTransitionOutcome, DenialTransitionOutcome, FreshnessTransitionOutcome,
     PreConstructionGate, TransitionOutcome, TransitionReadiness,
 };
-use support::compile_fail::run_compile_fail_bundle;
-use support::compile_pass::run_compile_pass_bundle;
-use support::milestone4;
 
 #[test]
 fn transition_outcome_algebra_certification() {

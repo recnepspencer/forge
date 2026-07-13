@@ -1,7 +1,7 @@
-use worth_query::facade::runtime::{
-    WORTHQueryRuntime, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::runtime::{
+    InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, WORTHQueryRuntime,
+};
 
 use super::corpus_frontier_and_suppressed_plans;
 

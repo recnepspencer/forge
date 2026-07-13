@@ -1,9 +1,9 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use worth_foundational::facade::{
     prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
     CanonicalBasisReadyArtifact, CanonicalizationRuleVersion,
 };
 use worth_proof::TransitionOutcome;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::canonical_basis_ready_sequence::canonical_basis_ready_sequence;
 

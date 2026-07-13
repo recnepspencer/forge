@@ -3,7 +3,7 @@
 use worth_proof::{TransitionOutcome, TransitionReadiness};
 use worth_server::{
     request_context::DiagnosticRichnessProfile,
-    surfaces::{CompatHttpSurface, WorthNativeSurface, SyncSurface},
+    surfaces::{CompatHttpSurface, SyncSurface, WorthNativeSurface},
     WorthServer, WorthServerAdmission, WorthServerConfig, WorthServerMiddlewareConfig,
     WorthServerOperationAdmissionPosture, WorthServerOperationFamily,
     WorthServerOperationRequestInput, WorthServerQueryHandoff, WorthServerQueryHandoffConfig,

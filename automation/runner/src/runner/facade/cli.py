@@ -17,6 +17,7 @@ from runner.facade.commands.status import run_status_command
 from runner.facade.commands.stop import run_stop_command
 from runner.facade.commands.validate import run_validate_command
 from runner.facade.commands.generate import run_generate_command
+from runner.facade.commands.stability_canary import run_stability_canary_command
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -65,6 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--prune-derived", action="store_true")
 
     subcommands.add_parser("active")
+    subcommands.add_parser("stability-canary")
 
     stop = subcommands.add_parser("stop")
     stop.add_argument("run_id")
@@ -94,6 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
     plan_fork.add_argument("--config", required=True)
     plan_fork.add_argument("--new-run-id", required=True)
     plan_fork.add_argument("--reason", default="plan revision fork")
+    plan_fork.add_argument("--resume-phase-key")
+    plan_fork.add_argument("--resume-turn")
 
     prompt_override = plan_subcommands.add_parser("override-prompt")
     prompt_override.add_argument("run_id")
@@ -143,6 +147,8 @@ def main() -> int:
         return run_archive_command(args)
     if args.command == "active":
         return run_active_command(args)
+    if args.command == "stability-canary":
+        return run_stability_canary_command(args)
     if args.command == "stop":
         return run_stop_command(args)
     if args.command == "inject":

@@ -1,0 +1,39 @@
+schema_version = 1
+
+[[facades]]
+package = "worth-cert-adoption"
+exports = []
+
+[[facades]]
+package = "worth-pack-registry"
+exports = [
+    "ContributionDescriptor",
+    "ContributionKind",
+    "InvalidPackName",
+    "PackName",
+    "PackRegistration",
+]
+
+[[facades]]
+package = "worth-query-decl"
+exports = ["CanonicalQueryArtifact"]
+
+[[facades]]
+package = "worth-query-host"
+exports = ["WorthQueryApplicationFacade"]
+
+[[facades]]
+package = "worth-query-replay"
+exports = ["ReplayBasisCapability"]
+
+[[facades]]
+package = "worth-schema-core"
+exports = [
+    "Identity",
+    "IdentityName",
+    "InvalidName",
+    "InvalidTolerance",
+    "Name",
+    "Tolerance",
+    "Unit",
+]

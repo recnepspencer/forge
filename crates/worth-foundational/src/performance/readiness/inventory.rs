@@ -1,9 +1,9 @@
 pub(super) use super::closure_inventory::{
-    documentation_surface_inventory, worth_proof_api_appendix, worth_proof_forbidden_surfaces,
-    worth_proof_required_surfaces, public_surface_compile_fail_path,
+    documentation_surface_inventory, public_surface_compile_fail_path,
     public_surface_documentation_coverage, public_surface_evidence_path, public_surface_inventory,
     residual_debt, runtime_adoption_pressure_evidence, runtime_adoption_pressures,
-    runtime_assumptions, runtime_non_assumptions,
+    runtime_assumptions, runtime_non_assumptions, worth_proof_api_appendix,
+    worth_proof_forbidden_surfaces, worth_proof_required_surfaces,
 };
 pub(super) use super::phase_inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries,

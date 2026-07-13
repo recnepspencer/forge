@@ -10,6 +10,7 @@ from runner.authority.run_identity import (
     clear_stop_requested,
     mark_stop_requested,
 )
+from runner.authority.run_identity.process_ownership import stop_owned_processes
 from runner.graph_runtime.resume_runtime import resume_run_with_reason as resume_graph_run_with_reason
 from runner.facade.runtime_state import (
     append_runtime_event,
@@ -69,6 +70,7 @@ def stop_run(run_id: str, reason: str) -> None:
     mark_stop_requested(paths)
     append_runtime_event(paths, "run_stopped", payload={"reason": reason})
     refresh_projection_for_run(run_id)
+    stop_owned_processes(paths)
 
 
 def inject_operator_override(

@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::aspect_wire::{
     decode_aspect_field_patch_canonical_bytes, encode_aspect_field_patch_canonical_bytes,

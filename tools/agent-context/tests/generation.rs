@@ -14,6 +14,10 @@ fn test_root() -> PathBuf {
         &root.join("tools/boundary-check/config"),
     );
     copy_dir(
+        &workspace_root().join("tools/boundary-check/snapshots"),
+        &root.join("tools/boundary-check/snapshots"),
+    );
+    copy_dir(
         &workspace_root().join("cad/workspaces/worth-contracts/crates/worth-schema-core"),
         &root.join("cad/workspaces/worth-contracts/crates/worth-schema-core"),
     );
@@ -21,38 +25,54 @@ fn test_root() -> PathBuf {
         &workspace_root().join("cad/workspaces/worth-packs/crates/worth-pack-registry"),
         &root.join("cad/workspaces/worth-packs/crates/worth-pack-registry"),
     );
+    // Framework Query audience facades are configured in road1.toml and must exist
+    // at crates/<package> for orientation generation.
+    for package in ["worth-query-decl", "worth-query-host", "worth-query-replay"] {
+        copy_dir(
+            &workspace_root().join("crates").join(package),
+            &root.join("crates").join(package),
+        );
+    }
     root
 }
 
-fn write_discovered_unrouted_crate(root: &Path) {
-    let crate_root = root.join("cad/workspaces/worth-derived/crates/worth-derived-shadow");
-    fs::create_dir_all(crate_root.join("src")).expect("create discovered crate");
-    fs::write(
-        crate_root.join("Cargo.toml"),
-        r#"[package]
-name = "worth-derived-shadow"
-version = "0.1.0"
-edition = "2021"
+#[test]
+fn facade_exports_are_rendered_from_snapshot() {
+    let root = test_root();
+    let snapshot = root.join("tools/boundary-check/snapshots/facades.toml");
+    let text = fs::read_to_string(&snapshot)
+        .expect("read facade snapshot")
+        .replace("CanonicalQueryArtifact", "SnapshotOwnedExport");
+    fs::write(&snapshot, text).expect("write divergent snapshot");
+    let generate = run_tool(&root, "generate");
+    assert!(
+        generate.status.success(),
+        "{}",
+        String::from_utf8_lossy(&generate.stderr)
+    );
+    let context = fs::read_to_string(root.join("crates/worth-query-decl/AGENT_CONTEXT.md"))
+        .expect("read context");
+    assert!(context.contains("SnapshotOwnedExport"));
+    assert!(!context.contains("CanonicalQueryArtifact"));
+}
 
-[dependencies]
-"#,
-    )
-    .expect("write discovered manifest");
-    fs::write(
-        crate_root.join("src/lib.rs"),
-        "pub mod facade;\n\nmod projection;\n",
-    )
-    .expect("write discovered lib");
-    fs::write(
-        crate_root.join("src/facade.rs"),
-        "pub use crate::projection::ShadowProjection;\n",
-    )
-    .expect("write discovered facade");
-    fs::write(
-        crate_root.join("src/projection.rs"),
-        "pub struct ShadowProjection;\n",
-    )
-    .expect("write discovered module");
+#[test]
+fn missing_facade_snapshot_row_fails_closed() {
+    let root = test_root();
+    let snapshot = root.join("tools/boundary-check/snapshots/facades.toml");
+    let text = fs::read_to_string(&snapshot).expect("read facade snapshot");
+    let start = text
+        .find("[[facades]]\npackage = \"worth-query-decl\"")
+        .expect("decl row");
+    let end = text[start + 1..]
+        .find("[[facades]]")
+        .map(|offset| start + 1 + offset)
+        .unwrap_or(text.len());
+    fs::write(&snapshot, format!("{}{}", &text[..start], &text[end..])).expect("remove row");
+    let output = run_tool(&root, "generate");
+    assert!(!output.status.success());
+    let error = String::from_utf8_lossy(&output.stderr);
+    assert!(error.contains("facades.toml") && error.contains("worth-query-decl"));
 }
 
 fn workspace_root() -> PathBuf {
@@ -94,7 +114,6 @@ fn run_tool(root: &Path, mode: &str) -> std::process::Output {
 #[test]
 fn generation_is_stable_and_check_passes() {
     let root = test_root();
-    write_discovered_unrouted_crate(&root);
     let generate = run_tool(&root, "generate");
     assert!(
         generate.status.success(),
@@ -116,15 +135,6 @@ fn generation_is_stable_and_check_passes() {
         "`worth-entry-adoption` -> Query-native declaration/adoption facade (Milestone 3)"
     ));
     assert!(first.contains("Public surface: facade-only"));
-
-    let discovered_path =
-        root.join("cad/workspaces/worth-derived/crates/worth-derived-shadow/AGENT_CONTEXT.md");
-    let discovered = fs::read_to_string(&discovered_path).expect("read discovered context");
-    assert!(discovered.contains("# worth-derived-shadow"));
-    assert!(discovered.contains("Road 1 exemplar role: No exemplar route assigned yet."));
-    assert!(discovered.contains(
-        "No seed-specific skeleton allowlist is declared for this born crate; general Road 1 boundary law still applies."
-    ));
 
     let generate_again = run_tool(&root, "generate");
     assert!(

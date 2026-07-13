@@ -1,17 +1,16 @@
 use super::inventory::{
-    certified_surface_evidence, certified_surfaces, compile_fail_boundaries,
+    certified_surface_evidence, certified_surfaces, compile_fail_boundaries, phase_gates,
+    public_surface_compile_fail_path, public_surface_evidence_path, public_surface_inventory,
+    residual_debt, runtime_assumptions, runtime_non_assumptions, synthetic_pressures,
     worth_proof_api_appendix, worth_proof_forbidden_surfaces, worth_proof_required_surfaces,
-    phase_gates, public_surface_compile_fail_path, public_surface_evidence_path,
-    public_surface_inventory, residual_debt, runtime_assumptions, runtime_non_assumptions,
-    synthetic_pressures,
 };
 use super::vocabulary::{
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
-    FoundationalProfileCompileFailBoundary, FoundationalProfileWORTHProofApi,
+    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone3PhaseGate,
+    FoundationalProfilePhaseGateEvidence, FoundationalProfileResidualDebt,
+    FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
+    FoundationalProfileSyntheticRuntimePressure, FoundationalProfileWORTHProofApi,
     FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
-    FoundationalProfileMilestone3PhaseGate, FoundationalProfilePhaseGateEvidence,
-    FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
-    FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
 };
 use crate::profiles_api::{FoundationalProfilePublicLane, FoundationalProfilePublicSurfaceEntry};
 use std::collections::BTreeSet;

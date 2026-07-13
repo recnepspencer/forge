@@ -1,7 +1,7 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryGroupedDeclarationInput, WORTHQuerySupportContributionAuthoring,
 };
-use hadwiger_research::facade::*;
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())

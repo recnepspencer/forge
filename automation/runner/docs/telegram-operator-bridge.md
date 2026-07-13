@@ -56,6 +56,10 @@ For one polling pass:
 python -m runner.telegram_bridge poll-once
 ```
 
+`poll` and `poll-once` share a process lock. Only one may consume the bot's
+update stream at a time; `poll-once` refuses to run while the long-lived poller
+is active.
+
 ## Core Mental Model
 
 Telegram is a transport, not authority. The bridge records which Telegram
@@ -144,6 +148,7 @@ Receipt statuses:
   the same command-hook pattern.
 - Replies are text-only today.
 - The poller is a local process and should be supervised by the operator.
+- Exactly one poller may consume a bot update stream for this runtime root.
 
 ## Related Docs
 

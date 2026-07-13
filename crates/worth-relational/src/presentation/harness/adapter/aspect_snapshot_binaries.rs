@@ -1,9 +1,9 @@
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
     StructAspectValue,
 };
 use worth_harness::facade::{BinaryValue, SnapshotPayload};
-use sha2::{Digest, Sha256};
 
 use crate::facade::harness::RelationalHarnessError;
 use crate::identity::data::{EntityId, RelationId};

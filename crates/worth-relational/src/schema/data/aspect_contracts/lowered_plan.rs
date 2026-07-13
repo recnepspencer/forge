@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
+use smallvec::SmallVec;
 use worth_foundational::facade::AspectKey;
 use worth_foundational::{AspectContract, FieldKey};
-use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
 

@@ -19,7 +19,12 @@ def signals_for_event(event: dict[str, Any]) -> tuple[CanonicalSignal, ...]:
         signal_id=f"{event['run_id']}:{event['sequence']}:{kind}", signal_kind=kind,
         source_sequence=event["sequence"], run_id=event["run_id"], phase_id=event.get("phase_id"),
         turn=event.get("turn"), summary=summary if isinstance(summary, str) else kind,
-        details={"failure_family": family, "turn_instance_id": payload.get("turn_instance_id") if isinstance(payload, dict) else None},
+        details={
+            "failure_family": family,
+            "turn_instance_id": payload.get("turn_instance_id") if isinstance(payload, dict) else None,
+            "recovery_attempt_count": payload.get("recovery_attempt_count") if isinstance(payload, dict) else None,
+            "review_failure_threshold": payload.get("review_failure_threshold") if isinstance(payload, dict) else None,
+        },
     ),)
 
 

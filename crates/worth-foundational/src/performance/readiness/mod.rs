@@ -17,15 +17,15 @@ pub use certification::{
 pub use report::FoundationalPerformanceProductionReadinessReport;
 pub use vocabulary::{
     FoundationalPerformanceCertifiedSurface, FoundationalPerformanceCertifiedSurfaceEvidence,
-    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceWORTHProofApi,
-    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
-    FoundationalPerformanceHarnessExpansionPoint, FoundationalPerformanceMilestone8PhaseGate,
-    FoundationalPerformancePhaseGateEvidence, FoundationalPerformanceProductionReadinessScope,
+    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceHarnessExpansionPoint,
+    FoundationalPerformanceMilestone8PhaseGate, FoundationalPerformancePhaseGateEvidence,
+    FoundationalPerformanceProductionReadinessScope,
     FoundationalPerformancePublicSurfaceDocumentationCoverage, FoundationalPerformanceResidualDebt,
     FoundationalPerformanceRuntimeAdoptionPressure,
     FoundationalPerformanceRuntimeAdoptionPressureEvidence,
     FoundationalPerformanceRuntimeAssumption, FoundationalPerformanceRuntimeNonAssumption,
-    FoundationalPerformanceSyntheticRuntimePressure,
+    FoundationalPerformanceSyntheticRuntimePressure, FoundationalPerformanceWORTHProofApi,
+    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
 };
 
 #[cfg(test)]

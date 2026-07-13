@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from runner.authority.events import load_events
 from runner.authority.run_identity import RuntimePaths, new_run_id
 from runner.graph_runtime.authority import (
     CURRENT_TURN_AUTHORITY_KEY,
@@ -29,6 +30,7 @@ from runner.graph_runtime.state import (
 )
 from runner.phase_programs.lowered_program import PHASE_ASSET_PROMPT_BINDING, TURN_ASSEMBLY_PROMPT_BINDING
 from runner.prompt_library.registry import prompt_registry
+from runner.prompt_library.rendering.turn_preparation import append_turn_instance_requirement
 
 
 def materialize_turn_assembly_prompt(state: GraphState) -> GraphState:
@@ -56,20 +58,28 @@ def materialize_ordinary_prompt(state: GraphState, *, expected_binding_mode: str
         )
     run_context = state[RUN_CONTEXT_KEY]
     role_session = state[ROLE_SESSION_KEY]
+    paths = RuntimePaths(run_context.run_id)
+    replayed_prompt = replayable_ordinary_prompt(
+        paths,
+        current_turn.phase_id,
+        current_turn.turn,
+    )
+    if replayed_prompt is not None:
+        return prompt_delivery_state(state, run_authority, current_turn, replayed_prompt)
     turn_instance_id = new_run_id()
     prepared_prompt = prepare_execution_prompt_turn(
         run_authority.config,
         run_authority.projection,
         run_context.config_path,
-        RuntimePaths(run_context.run_id).projection,
-        RuntimePaths(run_context.run_id).events,
+        paths.projection,
+        paths.events,
         prompt_template_override=role_session.role_policy.prompt_template_override,
         expected_turn_instance_id=turn_instance_id,
         record_run_id=run_context.run_id,
         record_turn_instance_id=turn_instance_id,
     )
     append_runtime_event(
-        RuntimePaths(run_context.run_id),
+        paths,
         "prompt_selected",
         phase_id=current_turn.phase_id,
         turn=current_turn.turn,
@@ -82,12 +92,46 @@ def materialize_ordinary_prompt(state: GraphState, *, expected_binding_mode: str
         ),
         thread_id=projection_session_thread_id(run_authority),
     )
-    prompt_state = {
-        PROMPT_TURN_KEY: PromptTurnDelivery(
-            turn_instance_id=turn_instance_id,
-            delivery_prompt=prepared_prompt.delivery_prompt,
+    return prompt_delivery_state(
+        state,
+        run_authority,
+        current_turn,
+        PromptTurnDelivery(turn_instance_id, prepared_prompt.delivery_prompt),
+    )
+
+
+def replayable_ordinary_prompt(
+    paths: RuntimePaths,
+    phase_id: int,
+    turn: str,
+) -> PromptTurnDelivery | None:
+    """Recover publication when a node replay precedes its checkpoint commit."""
+    later_bound_turns: set[str] = set()
+    for event in reversed(load_events(paths.events)):
+        payload_turn_id = event.get("payload", {}).get("turn_instance_id")
+        if event.get("event_type") != "prompt_selected":
+            if isinstance(payload_turn_id, str) and payload_turn_id:
+                later_bound_turns.add(payload_turn_id)
+            continue
+        if event.get("phase_id") != phase_id or event.get("turn") != turn:
+            continue
+        turn_instance_id = event.get("payload", {}).get("turn_instance_id")
+        if not isinstance(turn_instance_id, str) or not turn_instance_id:
+            return None
+        if turn_instance_id in later_bound_turns:
+            return None
+        prompt_path = paths.instantiations / turn_instance_id / "prompt.md"
+        if not prompt_path.exists():
+            return None
+        return PromptTurnDelivery(
+            turn_instance_id,
+            append_turn_instance_requirement(prompt_path.read_text(encoding="utf-8"), turn_instance_id),
         )
-    }
+    return None
+
+
+def prompt_delivery_state(state, run_authority, current_turn, delivery: PromptTurnDelivery) -> GraphState:
+    prompt_state = {PROMPT_TURN_KEY: delivery}
     if CURRENT_TURN_AUTHORITY_KEY not in state:
         prompt_state[CURRENT_TURN_AUTHORITY_KEY] = current_turn
     if RUN_AUTHORITY_KEY not in state or state.get(RUN_AUTHORITY_KEY) is None:
@@ -138,6 +182,7 @@ def materialize_recovery_prompt(state: GraphState) -> GraphState:
                 recovery_kind="outcome_repair" if outcome_repair is not None else "escalation_recovery",
                 recovery_route_guidance=recovery_route_guidance(continuation),
                 prompt_override=(recovery.attempt_params or {}).get("prompt") if recovery is not None else None,
+                supported_event_types=state[LOWERED_PHASE_PROGRAM_KEY].supported_outcomes,
             ),
         )
     }

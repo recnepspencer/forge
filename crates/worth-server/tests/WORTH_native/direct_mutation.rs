@@ -1,23 +1,23 @@
+use std::sync::atomic::Ordering;
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{
-    admit_authored_entity_token, WorthQueryAspectMutationBuilder, WorthQueryExistingEntityTarget,
-    WorthQueryExistingTruthBindingAuthorityLabel, WorthQueryExistingTruthTargetBinding,
-    WorthQueryMutationAuthorityIdentity, WorthQueryRuntimeBackendPosture,
-    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport, WorthQueryRuntimeSupportProfile,
-    WorthQueryWriteCommand, QueryExternalIdentityToken,
+    admit_authored_entity_token, QueryExternalIdentityToken, WorthQueryAspectMutationBuilder,
+    WorthQueryExistingEntityTarget, WorthQueryExistingTruthBindingAuthorityLabel,
+    WorthQueryExistingTruthTargetBinding, WorthQueryMutationAuthorityIdentity,
+    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
+    WorthQueryRuntimeSupportProfile, WorthQueryWriteCommand,
 };
 use worth_server::{
     WorthServerDirectMutationOutcome, WorthServerQueryHandoffDenialCode, WorthServerQueryOperation,
     WorthServerResponseInput, WorthServerSuccessKind,
 };
-use std::sync::atomic::Ordering;
 
+use crate::query_handoff_runtime::RealMutationWorkspaceProvider;
 use crate::worth_native_assertions::{
-    family_contract_digest, worth_native_session, operator_evidence_record,
-    response_provenance_digest,
+    family_contract_digest, operator_evidence_record, response_provenance_digest,
+    worth_native_session,
 };
 use crate::worth_native_runtime::{build_server, build_server_with_profiled_counting_workspace};
-use crate::query_handoff_runtime::RealMutationWorkspaceProvider;
 
 #[test]
 fn direct_single_mutation_returns_provenance_bearing_result_boundary() {

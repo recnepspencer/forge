@@ -4,6 +4,8 @@ use std::num::NonZeroUsize;
 use std::time::Instant;
 
 #[cfg(feature = "parallel")]
+use serde::Serialize;
+#[cfg(feature = "parallel")]
 use worth_signal::facade::runtime::{mark_dirty_batch, RuntimePolicy};
 #[cfg(feature = "parallel")]
 use worth_signal::facade::specialist::{
@@ -14,8 +16,6 @@ use worth_signal::facade::{
     Aspect, AspectVersion, BatchChange, ChangedRegion, DependencyEdge, NodeEvaluationResult,
     SignalGraph,
 };
-#[cfg(feature = "parallel")]
-use serde::Serialize;
 
 #[cfg(feature = "parallel")]
 const ASPECT_A: Aspect = Aspect::new(0);

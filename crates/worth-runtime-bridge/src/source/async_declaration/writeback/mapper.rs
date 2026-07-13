@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
 use sha2::{Digest, Sha256};
+use worth_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
 
 use crate::identity::{AsyncWritebackMapperOutputIdentityTag, BridgeIdentity};
 use crate::writeback::BridgeWritebackEffectIntent;

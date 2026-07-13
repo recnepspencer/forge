@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use serde_json::json;
 use worth_server::{
     WorthServerProductAdapterExecutionError, WorthServerProductApplicationAdapter,
     WorthServerProductApplicationAdapterRegistration, WorthServerProductOperationBasisKind,
@@ -7,7 +8,6 @@ use worth_server::{
     WorthServerProductOperationPayload, WorthServerProductOperationSuccess,
     WorthServerProductOperationSupportSnapshot,
 };
-use serde_json::json;
 
 #[derive(Clone, Debug)]
 pub struct StatefulProductEditorBackend {

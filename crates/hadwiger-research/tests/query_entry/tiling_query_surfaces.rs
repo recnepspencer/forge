@@ -1,3 +1,4 @@
+use hadwiger_research::facade::*;
 use worth_query::facade::{
     WORTHQueryDeclarationEntryCrossingSurface, WORTHQueryDeclarationFamilyMarker,
     WORTHQueryDeclarationLegalityClass, WORTHQueryDeclarationPrimaryAuthorityFamily,
@@ -5,7 +6,6 @@ use worth_query::facade::{
     WORTHQueryGroupedDeclarationPosture, WORTHQueryLowerAuthorityRouteFamily,
     WORTHQueryOrdinaryOutcome, WORTHQuerySignalCompatibilityPosture,
 };
-use hadwiger_research::facade::*;
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())

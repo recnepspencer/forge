@@ -1,9 +1,9 @@
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     canonicalization, AspectFieldLocator, AspectLocator, AspectMask, CanonicalBasisReadyArtifact,
     CanonicalizationRuleVersion, ProjectionMask,
 };
 use worth_proof::TransitionOutcome;
-use sha2::{Digest, Sha256};
 
 use crate::canonical_basis::canonical_basis_ready_text;
 

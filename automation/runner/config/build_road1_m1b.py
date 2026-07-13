@@ -2,8 +2,8 @@
 
 Encodes the multi-model policy in one place so it is easy to audit and tweak:
 
-- OVERSIGHT family (planner, boundary reviewer, all reviewers): codex / gpt-5.6-sol / high
-- BUILD family (implementer, all repair turns): grok / grok-4.5
+- REVIEW family (boundary reviewer and review turns): codex / gpt-5.6-sol / high
+- IMPLEMENTER family (plan, implement, and repair turns): codex / gpt-5.6-sol / medium
 
 Both families persist their own provider session (reuse_session) thanks to the
 family-keyed thread store in the projector. Cross-provider handoffs (plan and
@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from runner.generation.scaffold_templates import scaffold_config
+from runner.generation.scaffold_templates import scaffold_config, telegram_notification_policy
 from runner.generation.scaffold_types import ScaffoldRequest
 
 CONFIG_PATH = Path("automation/runner/config/road1-m1b-query-constitution.json")
@@ -35,23 +35,24 @@ SPEC_FILE = "cad/docs/road-1/road-1_milestone-1b.md"
 # Explicit command paths: neither CLI is on PATH on this machine, and the
 # adapters default to bare "codex"/"grok". Both model ids are confirmed against
 # the local CLIs' model caches (codex slug gpt-5.6-sol, grok id grok-4.5).
-CODEX_CMD = "C:/Users/shepworth/AppData/Local/OpenAI/Codex/bin/codex.exe"
-GROK_CMD = "C:/Users/shepworth/.grok/bin/grok.exe"
+CODEX_CMD = "C:/nvm4w/nodejs/codex.cmd"
+GROK_CMD = "C:/Users/Esther/.grok/bin/grok.exe"
 
 OVERSIGHT = {"provider": "codex", "command": CODEX_CMD, "model": "gpt-5.6-sol", "reasoning_effort": "high"}
-BUILD = {"provider": "grok", "command": GROK_CMD, "model": "grok-4.5"}
+IMPLEMENTER = {"provider": "codex", "command": CODEX_CMD, "model": "gpt-5.6-sol", "reasoning_effort": "medium"}
+GROK = {"provider": "grok", "command": GROK_CMD, "model": "grok-4.5"}
 
 # turn -> (continuity_family, model_policy, overlay assembly id)
 TURNS = {
     "boundary_review":        ("oversight", OVERSIGHT, "turns/boundary_review_m1b"),
-    "plan":                   ("oversight", OVERSIGHT, "turns/plan_m1b"),
-    "implement":              ("build",     BUILD,     "turns/implement_m1b"),
+    "plan":                   ("implementer", IMPLEMENTER, "turns/plan_m1b"),
+    "implement":              ("implementer", IMPLEMENTER, "turns/implement_m1b"),
     "review":                 ("oversight", OVERSIGHT, "turns/review_m1b"),
-    "repair":                 ("build",     BUILD,     "turns/repair_m1b"),
+    "repair":                 ("implementer", IMPLEMENTER, "turns/repair_m1b"),
     "test_review":            ("oversight", OVERSIGHT, "turns/test_review_m1b"),
-    "test_repair_implement":  ("build",     BUILD,     "turns/test_repair_implement_m1b"),
+    "test_repair_implement":  ("implementer", IMPLEMENTER, "turns/test_repair_implement_m1b"),
     "code_quality_review":    ("oversight", OVERSIGHT, "turns/code_quality_review_m1b"),
-    "code_quality_repair":    ("build",     BUILD,     "turns/code_quality_repair_m1b"),
+    "code_quality_repair":    ("implementer", IMPLEMENTER, "turns/code_quality_repair_m1b"),
 }
 
 CONTEXT_FILES = [
@@ -175,11 +176,10 @@ PHASES = [
 ]
 
 
-# Repair turns default to goal mode: the provider's self-verification loop drives
-# the repair to completion before review. Flip GOAL_MODE_REPAIR to disable the
-# default; the operator can still toggle it live per turn with a "goal ..." reply.
+# M1B runs every configured turn in normal mode. Goal mode remains available
+# only through an explicit operator custom turn prefixed with "goal".
 REPAIR_TURNS = {"repair", "test_repair_implement", "code_quality_repair"}
-GOAL_MODE_REPAIR = True
+GOAL_MODE_REPAIR = False
 
 
 def role_binding(turn: str) -> dict:
@@ -211,7 +211,7 @@ def build_phase(index: int, phase: dict) -> dict:
         ),
         "qa_focus": phase["qa_focus"],
         "program_id": "standard_loop",
-        "contract_template": {"asset_id": "contracts/default"},
+        "contract_template": {"asset_id": "contracts/m1b_simple"},
         "role_bindings": {turn: role_binding(turn) for turn in TURNS},
     }
 
@@ -233,6 +233,13 @@ def main() -> None:
         "allow_direct_file_binding": False,
     }
     config["session_defaults"] = {**OVERSIGHT, "config": {}}
+    notification_policy = telegram_notification_policy()
+    # Routine faults stay silent while the configured recovery ladder still has
+    # an automatic next step. Exhausted recovery becomes an operator_pause,
+    # which is delivered through the blocker signal below.
+    for signal_kind in ("crash", "invalid_outcome", "same_phase_loop_exceeded"):
+        notification_policy["signals"][signal_kind]["enabled"] = False
+    config["notification_policy"] = notification_policy
     config["runner_control"] = {"boundary_review_start_phase": 1}
     config["turn_templates"] = {turn: {"assembly_id": assembly} for turn, (_f, _m, assembly) in TURNS.items()}
     config["phases"] = [build_phase(i + 1, phase) for i, phase in enumerate(PHASES)]
@@ -245,7 +252,7 @@ def main() -> None:
         "families": {
             "review_loop": {
                 "turns": ["review", "test_review", "code_quality_review"],
-                "threshold": 3,
+                "threshold": 6,
                 "action": "start_fresh_session",
             }
         }
@@ -272,8 +279,8 @@ def main() -> None:
     # instructions, then the standard runner resumes. The per-phase cap bounds
     # how many times the ladder resets before it stays paged and paused.
     config["operator_custom_turn"] = {
-        "aliases": {"codex": dict(OVERSIGHT), "grok": dict(BUILD)},
-        "default_alias": "grok",
+        "aliases": {"codex": dict(IMPLEMENTER), "grok": dict(GROK)},
+        "default_alias": "codex",
         "max_ladders_per_phase": 2,
     }
 

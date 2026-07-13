@@ -8,6 +8,7 @@ from typing import Any
 
 from runner.telegram_bridge.routing import load_offset, record_alert, route_reply, save_offset
 from runner.telegram_bridge.settings import load_settings
+from runner.telegram_bridge.single_consumer import acquire_telegram_update_consumer
 from runner.telegram_bridge.transport import get_updates, send_message
 
 
@@ -25,15 +26,17 @@ def main() -> int:
         record_alert(payload, message_id, settings.chat_id)
         return 0
     if args.command == "poll-once":
-        return poll_once(settings.chat_id, settings)
-    while True:
-        try:
-            poll_once(settings.chat_id, settings)
-        except Exception as error:
-            write_poller_health(False, str(error))
-        else:
-            write_poller_health(True, None)
-        time.sleep(5)
+        with acquire_telegram_update_consumer():
+            return poll_once(settings.chat_id, settings)
+    with acquire_telegram_update_consumer():
+        while True:
+            try:
+                poll_once(settings.chat_id, settings)
+            except Exception as error:
+                write_poller_health(False, str(error))
+            else:
+                write_poller_health(True, None)
+            time.sleep(5)
 
 
 def poll_once(chat_id: str, settings) -> int:

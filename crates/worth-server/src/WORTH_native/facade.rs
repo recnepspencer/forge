@@ -1,23 +1,23 @@
-use worth_proof::{TransitionOutcome, TransitionReadiness};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
+use worth_proof::{TransitionOutcome, TransitionReadiness};
 
 use crate::{
     declaration_intake::WorthServerDirectDeclarationIntakeFacade,
+    operation_registry::WorthServerOperationRegistry,
+    product_operation_contract::WorthServerStoredProductOperation,
     worth_native::{
         denial::{
             WorthServerWorthNativeDeferred, WorthServerWorthNativeFailure,
             WorthServerWorthNativeRebindRequired, WorthServerWorthNativeSessionDenial,
             WorthServerWorthNativeSessionDenialCode, WorthServerWorthNativeStale,
         },
-        input::{WorthServerWorthNativeSessionInput, RawWorthServerWorthNativeBranchTarget},
+        input::{RawWorthServerWorthNativeBranchTarget, WorthServerWorthNativeSessionInput},
         WorthServerWorthNativePreparedSession, WorthServerWorthNativeSession,
         WorthServerWorthNativeSurfaceRoot,
     },
-    operation_registry::WorthServerOperationRegistry,
-    product_operation_contract::WorthServerStoredProductOperation,
     WorthServerMiddlewareFacade, WorthServerPipelineInput, WorthServerPipelineIntent,
     WorthServerProductAdapterRegistry, WorthServerProductSessionRegistry,
     WorthServerQueryHandoffFacade, WorthServerRequestContextFacade, WorthServerRequestContextInput,

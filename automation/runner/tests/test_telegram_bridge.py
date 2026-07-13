@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from runner.telegram_bridge.cli import format_signal
 from runner.telegram_bridge.routing import route_reply
+from runner.telegram_bridge.single_consumer import acquire_telegram_update_consumer
 
 
 def reply_update(message_id: int = 81, update_id: int = 901) -> dict:
@@ -19,6 +22,16 @@ def reply_update(message_id: int = 81, update_id: int = 901) -> dict:
 
 
 class TelegramBridgeTests(unittest.TestCase):
+    def test_update_stream_has_one_process_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "runner.telegram_bridge.single_consumer.CANONICAL_RUNTIME_ROOT",
+            Path(temp_dir),
+        ):
+            with acquire_telegram_update_consumer():
+                with self.assertRaisesRegex(RuntimeError, "already have an active poller"):
+                    with acquire_telegram_update_consumer():
+                        pass
+
     def test_reply_routes_by_recorded_message_not_human_metadata(self) -> None:
         alert = {"signal_id": "run:4:crash", "run_id": "run", "phase_id": 6, "turn": "review"}
         with (

@@ -1,7 +1,7 @@
 {
   "kind": "assembly",
   "parts": [
-    { "asset_id": "turns/boundary_review" },
+    { "asset_id": "turns/m1b_boundary_review" },
     { "asset_id": "handoff/boundary_enforcement" }
   ]
 }

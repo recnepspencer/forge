@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use serde_json::{json, Value};
 use worth_harness::facade::{
     bench, parity_suite, run_id, scenario_id, snapshot_id, AdapterSupport, AttachmentRecord,
     CaptureDepth, ClockDomain, ComparisonMode, DiagnosticsLevel, ExecutionMode, ExecutionPhase,
@@ -9,7 +10,6 @@ use worth_harness::facade::{
     ScenarioFixture, SnapshotObservation, SnapshotPayload, SnapshotRecord, StructuredValue,
     TargetStatusRecord,
 };
-use serde_json::{json, Value};
 
 use crate::facade::*;
 

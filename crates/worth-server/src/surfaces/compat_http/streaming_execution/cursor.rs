@@ -80,7 +80,9 @@ impl WorthServerStreamCursor {
             }
             let row = &read.read_result().rows()[self.row_index];
             self.pending_fragment = WorthServerPendingFragment::Row {
-                bytes: serde_json::to_vec(&external_row_json(row.terminal_field_value_projection()))?,
+                bytes: serde_json::to_vec(&external_row_json(
+                    row.terminal_field_value_projection(),
+                ))?,
                 offset: 0,
             };
             self.row_index += 1;
@@ -130,7 +132,8 @@ pub(super) fn estimate_payload_bytes(
         if index > 0 {
             bytes += 1;
         }
-        bytes += serde_json::to_vec(&external_row_json(row.terminal_field_value_projection()))?.len();
+        bytes +=
+            serde_json::to_vec(&external_row_json(row.terminal_field_value_projection()))?.len();
     }
     Ok(bytes)
 }
@@ -157,7 +160,11 @@ fn external_row_json(
 ) -> Value {
     let mut root = Map::new();
     for (field_path, value) in terminal_projection {
-        insert_field_value(&mut root, field_path.split('.').collect(), aspect_value_json(&value));
+        insert_field_value(
+            &mut root,
+            field_path.split('.').collect(),
+            aspect_value_json(&value),
+        );
     }
     Value::Object(root)
 }
