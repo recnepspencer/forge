@@ -10,14 +10,16 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
-    pub(crate) fn execute_declared_read_graph(
+    pub(crate) fn execute_declared_read_graph_in_authority(
         &mut self,
         read_graph: WorthQueryReadGraph,
+        authority: &super::WorthQueryGraphReadAccessAuthorityContext,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
         let family = WorthQueryReadFamily::new_kernel_only("declared_read", read_graph);
-        self.read_family_intent(&family).execute()
+        self.read_family_intent_in_graph_read_authority(&family, authority)
+            .execute()
     }
 
     pub fn compose_read(

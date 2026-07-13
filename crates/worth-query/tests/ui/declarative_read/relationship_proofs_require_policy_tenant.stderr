@@ -1,0 +1,5 @@
+error[E0599]: no method named `with_relationship_proofs` found for struct `WorthQueryCurrentReadContext` in the current scope
+ --> tests/ui/declarative_read/relationship_proofs_require_policy_tenant.rs:6:30
+  |
+6 |     let _context = current().with_relationship_proofs(proofs);
+  |                              ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryCurrentReadContext`

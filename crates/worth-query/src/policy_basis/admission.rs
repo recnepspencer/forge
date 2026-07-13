@@ -1,4 +1,5 @@
 use crate::canonicalization::CanonicalQueryArtifact;
+use crate::identity::CanonicalQueryDigest;
 use crate::policy_basis::artifacts::policy_basis_identity;
 use crate::tenant_basis::{
     admit_tenant_bases as admit_tenant_bases_inner, SchemaVariantSnapshot, TenantBindingSnapshot,
@@ -14,6 +15,24 @@ use super::{
 
 pub fn admit_policy_tenant_context(
     query: &CanonicalQueryArtifact,
+    policy: PolicyRuleSnapshot,
+    tenant: TenantBindingSnapshot,
+    branch: BranchAccessGrant,
+    schema: SchemaVariantSnapshot,
+    mode: PolicyExecutionModeRequest,
+) -> Result<AdmittedPolicyTenantContext, PolicyTenantAdmissionError> {
+    admit_policy_tenant_context_for_query_identity(
+        query.digest(),
+        policy,
+        tenant,
+        branch,
+        schema,
+        mode,
+    )
+}
+
+pub(crate) fn admit_policy_tenant_context_for_query_identity(
+    canonical_query_digest: &CanonicalQueryDigest,
     policy: PolicyRuleSnapshot,
     tenant: TenantBindingSnapshot,
     branch: BranchAccessGrant,
@@ -38,7 +57,7 @@ pub fn admit_policy_tenant_context(
     let counters =
         PolicyTenantAdmissionCounters::admitted(PolicyBasisCounters::admitted(), tenant_counters);
     let bundle = PolicyTenantAdmissionBundle::admitted(
-        query.digest().as_str().to_string(),
+        canonical_query_digest.as_str().to_string(),
         &policy_basis,
         &tenant_truth_basis,
         &tenant_schema_basis,

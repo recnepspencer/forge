@@ -1,4 +1,5 @@
 use crate::canonicalization::CanonicalQueryArtifact;
+use crate::identity::CanonicalQueryDigest;
 use crate::policy_basis::AdmittedPolicyTenantContext;
 
 use super::{
@@ -9,6 +10,14 @@ use super::{
 
 pub fn admit_relationship_proofs(
     query: &CanonicalQueryArtifact,
+    admitted: &AdmittedPolicyTenantContext,
+    descriptor_set: &RelationshipProofDescriptorSet,
+) -> Result<(RelationshipProofAdmission, RelationshipProofCounters), RelationshipProofError> {
+    admit_relationship_proofs_for_query_identity(query.digest(), admitted, descriptor_set)
+}
+
+pub(crate) fn admit_relationship_proofs_for_query_identity(
+    canonical_query_digest: &CanonicalQueryDigest,
     admitted: &AdmittedPolicyTenantContext,
     descriptor_set: &RelationshipProofDescriptorSet,
 ) -> Result<(RelationshipProofAdmission, RelationshipProofCounters), RelationshipProofError> {
@@ -110,7 +119,7 @@ pub fn admit_relationship_proofs(
             RelationshipProofDescriptor::QueryShapeMismatch {
                 expected_query_digest,
             } => {
-                if expected_query_digest != query.digest().as_str() {
+                if expected_query_digest != canonical_query_digest.as_str() {
                     counters.deny();
                     return Err(RelationshipProofError::new(
                         RelationshipProofFailureClass::QueryShapeMismatch,
@@ -149,7 +158,7 @@ pub fn admit_relationship_proofs(
 
     Ok((
         RelationshipProofAdmission::new(
-            query.digest().as_str(),
+            canonical_query_digest.as_str(),
             admitted.bundle().policy_digest(),
             admitted.bundle().tenant_schema_basis_digest(),
             descriptor_set.descriptors(),

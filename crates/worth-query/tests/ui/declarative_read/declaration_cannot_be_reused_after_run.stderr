@@ -1,20 +1,15 @@
 error[E0382]: borrow of moved value: `declaration`
- --> tests/ui/declarative_read/declaration_cannot_be_reused_after_run.rs:8:21
+ --> tests/ui/declarative_read/declaration_cannot_be_reused_after_run.rs:9:21
   |
-4 |     declaration: WorthQueryReadDeclaration,
+5 |     declaration: WorthQueryReadDeclaration,
   |     ----------- move occurs because `declaration` has type `WorthQueryReadDeclaration`, which does not implement the `Copy` trait
 ...
-7 |     let _outcome = declaration.run(workspace);
-  |                                -------------- `declaration` moved due to this method call
-8 |     let _identity = declaration.identity();
+8 |     let _outcome = declaration.using(current()).run(workspace);
+  |                    ----------- value moved here
+9 |     let _identity = declaration.identity();
   |                     ^^^^^^^^^^^ value borrowed here after move
   |
-note: `worth_query::ordinary::read::execution::<impl WorthQueryReadDeclaration>::run` takes ownership of the receiver `self`, which moves `declaration`
- --> src/ordinary/read/execution.rs
+help: consider cloning the value if the performance cost is acceptable
   |
-  |     pub fn run(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryReadOutcome {
-  |                ^^^^
-help: you can `clone` the value and consume it, but this might not be your desired behavior
-  |
-7 |     let _outcome = declaration.clone().run(workspace);
+8 |     let _outcome = declaration.clone().using(current()).run(workspace);
   |                               ++++++++

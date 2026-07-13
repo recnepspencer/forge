@@ -1,17 +1,32 @@
-use super::{WorthQueryReadDeclaration, WorthQueryReadOutcome, WorthQueryReadStop};
+use super::{
+    admit_read_context_declaration, WorthQueryReadCompletion, WorthQueryReadOutcome,
+    WorthQueryReadRequest, WorthQueryReadStop,
+};
 use crate::runtime::WorthQueryWorkspace;
 
-impl WorthQueryReadDeclaration {
-    /// Execute this declaration through Query-owned admission, planning,
-    /// routing, and receipt assembly.
-    ///
-    /// Consuming the declaration makes post-execution refinement or replay by
-    /// accidental value reuse mechanically unavailable. A fresh declaration is
-    /// required for a distinct execution request.
+impl WorthQueryReadRequest {
+    /// Admit the declared authority context and execute the read through
+    /// Query-owned planning, routing, and receipt assembly.
     pub fn run(self, workspace: &mut WorthQueryWorkspace) -> WorthQueryReadOutcome {
-        match workspace.execute_declared_read_graph(self.into_read_graph()) {
-            Ok(result) => WorthQueryReadOutcome::Completed(result),
-            Err(error) => WorthQueryReadOutcome::Stopped(WorthQueryReadStop::new(error)),
+        let (declaration, context) = self.into_parts();
+        let read_graph = declaration.into_read_graph();
+        let admitted_context = match admit_read_context_declaration(&read_graph, context) {
+            Ok(context) => context,
+            Err(denial) => {
+                return WorthQueryReadOutcome::Stopped(WorthQueryReadStop::context(denial));
+            }
+        };
+        let runtime_result = workspace
+            .execute_declared_read_graph_in_authority(read_graph, admitted_context.authority());
+        let context_receipt = admitted_context.into_receipt();
+        match runtime_result {
+            Ok(result) => WorthQueryReadOutcome::Completed(WorthQueryReadCompletion::new(
+                result,
+                context_receipt,
+            )),
+            Err(error) => {
+                WorthQueryReadOutcome::Stopped(WorthQueryReadStop::runtime(error, context_receipt))
+            }
         }
     }
 }

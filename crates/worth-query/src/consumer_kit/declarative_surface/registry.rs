@@ -6,6 +6,8 @@ use super::model::{
 
 const ORDINARY_READ_DECLARATION: &str = "src/ordinary/read/declaration.rs";
 const ORDINARY_READ_EXECUTION: &str = "src/ordinary/read/execution.rs";
+const ORDINARY_READ_REQUEST: &str = "src/ordinary/read/request.rs";
+const ORDINARY_READ_CONTEXT: &str = "src/ordinary/read/context/declaration.rs";
 const WORKSPACE_QUERIES: &str = "src/runtime/workspace_queries.rs";
 const DECLARATION_ORCHESTRATION: &str =
     "src/application/domain_handle/admitted_handle/declaration_entry/orchestration.rs";
@@ -28,6 +30,46 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         "facade::read::declare",
     ),
     Row::new(
+        ORDINARY_READ_REQUEST,
+        "using",
+        Family::Read,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary read consumer",
+        "WorthQueryReadDeclaration::using",
+    ),
+    Row::new(
+        ORDINARY_READ_CONTEXT,
+        "current",
+        Family::Read,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary read consumer",
+        "facade::read::current",
+    ),
+    Row::new(
+        ORDINARY_READ_CONTEXT,
+        "under_policy_tenant",
+        Family::Read,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary read consumer",
+        "WorthQueryCurrentReadContext::under_policy_tenant",
+    ),
+    Row::new(
+        ORDINARY_READ_CONTEXT,
+        "with_relationship_proofs",
+        Family::Read,
+        Phase::Refine,
+        Class::OrdinaryDeclaration,
+        Class::OrdinaryDeclaration,
+        "ordinary read consumer",
+        "WorthQueryCurrentPolicyTenantReadContext::with_relationship_proofs",
+    ),
+    Row::new(
         ORDINARY_READ_EXECUTION,
         "run",
         Family::Read,
@@ -35,7 +77,7 @@ const DECLARATIVE_SURFACE_ROWS: &[Row] = &[
         Class::OrdinaryDeclaration,
         Class::OrdinaryDeclaration,
         "ordinary read consumer",
-        "WorthQueryReadDeclaration::run",
+        "WorthQueryReadRequest::run",
     ),
     read_mechanism("compose_read", Phase::Declare),
     read_mechanism("compose_read_with_invariant_pack", Phase::Declare),

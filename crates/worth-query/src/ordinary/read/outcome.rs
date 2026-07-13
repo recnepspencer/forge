@@ -3,10 +3,17 @@ use crate::runtime::{
     WorthQueryRuntimeMissingComponent, WorthQueryStopClass,
 };
 
+use super::{WorthQueryReadContextDenial, WorthQueryReadContextReceipt};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryReadNextAction {
     ReviseDeclaration,
     SupplyFreshBasis,
+    SupplyPolicyAuthority,
+    SupplyPolicyNarrowingContext,
+    SupplyTenantAuthority,
+    SupplyBranchAuthority,
+    SupplyRelationshipProofAuthority,
     ConfigureRuntime(WorthQueryRuntimeMissingComponent),
     SelectSupportedCapability,
     ResolveDomainInvariant,
@@ -14,9 +21,16 @@ pub enum WorthQueryReadNextAction {
 }
 
 #[derive(Debug)]
+pub enum WorthQueryReadStopSource {
+    Context(WorthQueryReadContextDenial),
+    Runtime(WorthQueryRuntimeError),
+}
+
+#[derive(Debug)]
 pub struct WorthQueryReadStop {
     next_action: WorthQueryReadNextAction,
-    source: WorthQueryRuntimeError,
+    source: WorthQueryReadStopSource,
+    context_receipt: Option<WorthQueryReadContextReceipt>,
 }
 
 impl WorthQueryReadStop {
@@ -24,27 +38,88 @@ impl WorthQueryReadStop {
         self.next_action
     }
 
-    pub fn source(&self) -> &WorthQueryRuntimeError {
+    pub fn source(&self) -> &WorthQueryReadStopSource {
         &self.source
     }
 
-    pub(crate) fn new(source: WorthQueryRuntimeError) -> Self {
-        let next_action = classify_next_action(&source);
+    pub fn context_denial(&self) -> Option<&WorthQueryReadContextDenial> {
+        match &self.source {
+            WorthQueryReadStopSource::Context(denial) => Some(denial),
+            WorthQueryReadStopSource::Runtime(_) => None,
+        }
+    }
+
+    pub fn runtime_error(&self) -> Option<&WorthQueryRuntimeError> {
+        match &self.source {
+            WorthQueryReadStopSource::Runtime(error) => Some(error),
+            WorthQueryReadStopSource::Context(_) => None,
+        }
+    }
+
+    pub fn context_receipt(&self) -> Option<&WorthQueryReadContextReceipt> {
+        self.context_receipt.as_ref()
+    }
+
+    pub(crate) fn context(source: WorthQueryReadContextDenial) -> Self {
+        let next_action = classify_context_next_action(&source);
         Self {
             next_action,
-            source,
+            source: WorthQueryReadStopSource::Context(source),
+            context_receipt: None,
+        }
+    }
+
+    pub(crate) fn runtime(
+        source: WorthQueryRuntimeError,
+        context_receipt: WorthQueryReadContextReceipt,
+    ) -> Self {
+        let next_action = classify_runtime_next_action(&source);
+        Self {
+            next_action,
+            source: WorthQueryReadStopSource::Runtime(source),
+            context_receipt: Some(context_receipt),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct WorthQueryReadCompletion {
+    result: WorthQueryReadResult,
+    context_receipt: WorthQueryReadContextReceipt,
+}
+
+impl WorthQueryReadCompletion {
+    pub fn result(&self) -> &WorthQueryReadResult {
+        &self.result
+    }
+
+    pub fn context_receipt(&self) -> &WorthQueryReadContextReceipt {
+        &self.context_receipt
+    }
+
+    pub fn into_result(self) -> WorthQueryReadResult {
+        self.result
+    }
+
+    pub(crate) fn new(
+        result: WorthQueryReadResult,
+        context_receipt: WorthQueryReadContextReceipt,
+    ) -> Self {
+        Self {
+            result,
+            context_receipt,
         }
     }
 }
 
 #[derive(Debug)]
 pub enum WorthQueryReadOutcome {
-    Completed(WorthQueryReadResult),
+    Completed(WorthQueryReadCompletion),
     Stopped(WorthQueryReadStop),
 }
 
 impl WorthQueryReadOutcome {
-    pub fn completed(&self) -> Option<&WorthQueryReadResult> {
+    pub fn completed(&self) -> Option<&WorthQueryReadCompletion> {
         match self {
             Self::Completed(result) => Some(result),
             Self::Stopped(_) => None,
@@ -58,7 +133,7 @@ impl WorthQueryReadOutcome {
         }
     }
 
-    pub fn into_result(self) -> Result<WorthQueryReadResult, WorthQueryReadStop> {
+    pub fn into_result(self) -> Result<WorthQueryReadCompletion, WorthQueryReadStop> {
         match self {
             Self::Completed(result) => Ok(result),
             Self::Stopped(stop) => Err(stop),
@@ -66,7 +141,7 @@ impl WorthQueryReadOutcome {
     }
 }
 
-fn classify_next_action(error: &WorthQueryRuntimeError) -> WorthQueryReadNextAction {
+fn classify_runtime_next_action(error: &WorthQueryRuntimeError) -> WorthQueryReadNextAction {
     match error.stop_class() {
         WorthQueryStopClass::ReadCompositionDenied { denial } => {
             next_action_for_read_denial(denial.kind())
@@ -84,6 +159,59 @@ fn classify_next_action(error: &WorthQueryRuntimeError) -> WorthQueryReadNextAct
             WorthQueryReadNextAction::SelectSupportedCapability
         }
         _ => WorthQueryReadNextAction::InspectOperationalFailure,
+    }
+}
+
+fn classify_context_next_action(denial: &WorthQueryReadContextDenial) -> WorthQueryReadNextAction {
+    use super::WorthQueryReadContextDenialSource;
+    use crate::policy_basis::PolicyTenantAdmissionFailureClass as PolicyFailure;
+    use crate::relationship_proof::RelationshipProofFailureClass as RelationshipFailure;
+    use crate::runtime::WorthQueryGraphReadAccessAuthorityDenialKind as AuthorityFailure;
+
+    match denial.source() {
+        WorthQueryReadContextDenialSource::MissingRelationshipProof => {
+            WorthQueryReadNextAction::SupplyRelationshipProofAuthority
+        }
+        WorthQueryReadContextDenialSource::PolicyNarrowingContextRequired(_) => {
+            WorthQueryReadNextAction::SupplyPolicyNarrowingContext
+        }
+        WorthQueryReadContextDenialSource::PolicyTenant(error) => match error.failure_class() {
+            PolicyFailure::BranchAccessDenied => WorthQueryReadNextAction::SupplyBranchAuthority,
+            PolicyFailure::TenantAdmissionDenied => WorthQueryReadNextAction::SupplyTenantAuthority,
+            PolicyFailure::UnsupportedExecutionMode => {
+                WorthQueryReadNextAction::SelectSupportedCapability
+            }
+            PolicyFailure::PolicyQueryFamilyDenied
+            | PolicyFailure::RawMiddlewarePolicySourceForbidden
+            | PolicyFailure::PolicyWorkBudgetDenied
+            | PolicyFailure::SavedQueryPolicyTenantBypassForbidden => {
+                WorthQueryReadNextAction::SupplyPolicyAuthority
+            }
+        },
+        WorthQueryReadContextDenialSource::RelationshipProof(error) => {
+            match error.failure_class() {
+                RelationshipFailure::QueryShapeMismatch
+                | RelationshipFailure::PolicyMismatch
+                | RelationshipFailure::TenantSchemaMismatch
+                | RelationshipFailure::MissingProofBasis
+                | RelationshipFailure::HostCallbackForbidden
+                | RelationshipFailure::UnboundedRecursiveWalk
+                | RelationshipFailure::RelationshipProofBudgetExceeded
+                | RelationshipFailure::UnboundedProofTopology => {
+                    WorthQueryReadNextAction::SupplyRelationshipProofAuthority
+                }
+            }
+        }
+        WorthQueryReadContextDenialSource::GraphAuthority(error) => match error.kind() {
+            AuthorityFailure::PolicyTenantDenied => WorthQueryReadNextAction::SupplyPolicyAuthority,
+            AuthorityFailure::PolicyTenantBasisScopeMismatch => {
+                WorthQueryReadNextAction::SupplyFreshBasis
+            }
+            AuthorityFailure::RelationshipProofRequiresPolicyTenantContext
+            | AuthorityFailure::RelationshipProofPolicyTenantMismatch => {
+                WorthQueryReadNextAction::SupplyRelationshipProofAuthority
+            }
+        },
     }
 }
 

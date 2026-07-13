@@ -5,6 +5,7 @@ mod errors;
 mod support;
 
 pub use admission::admit_relationship_proofs;
+pub(crate) use admission::admit_relationship_proofs_for_query_identity;
 pub use counters::RelationshipProofCounters;
 pub use descriptors::{
     RelationshipProofAdmission, RelationshipProofAdmissionIdentity, RelationshipProofBudget,

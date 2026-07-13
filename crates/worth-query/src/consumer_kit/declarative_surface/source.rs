@@ -1,20 +1,23 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDeclarativeSurfaceSource {
-    path: &'static str,
-    text: &'static str,
+    path: String,
+    text: String,
 }
 
 impl WorthQueryDeclarativeSurfaceSource {
-    pub const fn new(path: &'static str, text: &'static str) -> Self {
-        Self { path, text }
+    pub fn new(path: impl Into<String>, text: impl Into<String>) -> Self {
+        Self {
+            path: path.into(),
+            text: text.into(),
+        }
     }
 
-    pub fn path(&self) -> &'static str {
-        self.path
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
-    pub fn text(&self) -> &'static str {
-        self.text
+    pub fn text(&self) -> &str {
+        &self.text
     }
 }
 

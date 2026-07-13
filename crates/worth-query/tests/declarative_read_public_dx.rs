@@ -1,6 +1,6 @@
 use worth_query::facade::read::{
-    declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName, QuerySchemaView,
-    SchemaFieldKind, SchemaFieldView,
+    current, declare, AspectFieldSelector, AspectName, AuthoredResultShapeField, FieldName,
+    QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadContextKind,
 };
 
 #[test]
@@ -33,4 +33,6 @@ fn read_declaration_uses_only_the_read_capability_namespace() {
     .expect("declaration should canonicalize");
 
     assert!(!declaration.identity().as_str().is_empty());
+    let request = declaration.using(current());
+    assert_eq!(request.context_kind(), WorthQueryReadContextKind::Current);
 }
