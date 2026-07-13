@@ -111,8 +111,8 @@ Good to know:
   runtime owns both materialization and binding in one seam
 - when a historical proof or comparison step needs typed identity, membership,
   provenance, continuity, or other declared facts from retained derived/live
-  artifacts, downstream crates should use `consume_projection_facts(...)` on
-  those retained artifact bindings instead of reopening older helper seams
+  artifacts, downstream crates should use `consume_projection_authority(...)`
+  on those retained artifact bindings instead of reopening older helper seams
 - retained scalar/bundle helpers still exist as expert historical utilities
   when the exact named artifact contract itself is the product surface, but
   they are no longer the ordinary typed-fact lane after the retained/live

@@ -3,7 +3,7 @@ use std::sync::{
     Arc,
 };
 
-use crate::projection_consumption::ProjectionFactConsumptionAttempt;
+use crate::projection_consumption::ProjectionAuthorityOutcome;
 use crate::runtime::tests::support::*;
 use worth_foundational::facade::InternedString;
 
@@ -255,7 +255,7 @@ impl HostileExecutionState {
             .published_derived_artifact(&self.derived)
             .expect("declared derived handle should mint");
         let pending_state = match hostile_consume_title_attempt(&unpublished) {
-            WorthQueryPublishedProjectionConsumption::ResultState(state) => state,
+            WorthQueryPublishedProjectionAuthorityOutcome::ResultState(state) => state,
             other => panic!("expected pending published artifact posture, got {other:?}"),
         };
         self.reader_results
@@ -421,8 +421,8 @@ impl HostileExecutionState {
     ) -> String {
         let before = self.invocations.load(Ordering::SeqCst);
         let title = match hostile_consume_title_attempt(artifact) {
-            WorthQueryPublishedProjectionConsumption::Current(
-                ProjectionFactConsumptionAttempt::Admitted(completed),
+            WorthQueryPublishedProjectionAuthorityOutcome::Current(
+                ProjectionAuthorityOutcome::Admitted(completed),
             ) => completed
                 .facts()
                 .display_fields()

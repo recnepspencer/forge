@@ -7,7 +7,7 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionAuthorityOutcome, ScalarPredicateValue,
+    ProjectionAuthorityContract, ProjectionAuthorityOutcome, ScalarPredicateValue,
     WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryEntityIdentity,
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
@@ -67,7 +67,7 @@ pub(super) fn measurement_projection_workspace_with_graph(
 pub(super) fn projection_consumption_attempt(
     workspace: &mut WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
-    requested: ProjectMaterializedFacts,
+    contract: ProjectionAuthorityContract,
 ) -> (UiGraphWorldProfile, ProjectionAuthorityOutcome) {
     let read_result = workspace
         .execute_read_family(family)
@@ -84,10 +84,10 @@ pub(super) fn projection_consumption_attempt(
     .expect("query snapshot basis world should admit");
     let (result_shape, authorized_projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
-    (world_profile, attempt.into_authority())
+    let outcome = read_result
+        .consume_projection_authority(&result_shape, &authorized_projection, contract)
+        .expect("real query read should consume projection authority");
+    (world_profile, outcome)
 }
 
 pub(super) fn identity_only_family_graph(

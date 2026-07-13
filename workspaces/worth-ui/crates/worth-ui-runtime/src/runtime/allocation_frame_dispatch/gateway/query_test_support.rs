@@ -8,7 +8,7 @@ use worth_query::facade::{
     admit_query_basis_context, bind_query_basis_context, execute_query_basis_context,
     preflight_execution_basis, public_bridge_projection_artifacts_for_read_graph,
     resolve_runtime_current_snapshot_basis, snapshot_resolution_report, AspectFieldSelector,
-    AuthoredResultShapeField, EqualityPredicate, ProjectMaterializedFacts,
+    AuthoredResultShapeField, EqualityPredicate, ProjectionAuthorityContract,
     ProjectionAuthorityOutcome, ProjectionFactFieldPath, QueryBasisContextRequest,
     QueryContextBindingSource, ScalarPredicateValue, WorthQueryAspectTouch,
     WorthQueryAuthoredAspectValue,
@@ -22,10 +22,10 @@ pub(super) fn query_projection_consumption(
     let read = workspace.execute_read_family(&family).expect("Query read");
     let (shape, projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read
-        .consume_projection_facts(&shape, &projection, requested_facts())
-        .expect("projection consumption");
-    (prerequisites(&workspace, &family), attempt.into_authority())
+    let outcome = read
+        .consume_projection_authority(&shape, &projection, requested_authority())
+        .expect("projection authority consumption");
+    (prerequisites(&workspace, &family), outcome)
 }
 
 pub(super) fn partial_query_projection_consumption(
@@ -44,10 +44,10 @@ pub(super) fn partial_query_projection_consumption(
     let context = admit_query_basis_context(binding).expect("Query context admission");
     let execution = execute_query_basis_context(&context).expect("Query context execution");
     let (_, projection) = public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = execution
-        .consume_projection_facts(&projection, requested_facts())
-        .expect("warning-bearing projection consumption");
-    (prerequisites_from_basis(basis), attempt.into_authority())
+    let outcome = execution
+        .consume_projection_authority(&projection, requested_authority())
+        .expect("warning-bearing projection authority consumption");
+    (prerequisites_from_basis(basis), outcome)
 }
 
 pub(super) fn unsupported_query_projection_consumption(
@@ -57,14 +57,14 @@ pub(super) fn unsupported_query_projection_consumption(
     let read = workspace.execute_read_family(&family).expect("Query read");
     let (shape, projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read
-        .consume_projection_facts(
+    let outcome = read
+        .consume_projection_authority(
             &shape,
             &projection,
-            ProjectMaterializedFacts::declare().target_identity(),
+            authority_contract().require_target_identity(),
         )
-        .expect("unsupported projection consumption remains typed");
-    (prerequisites(&workspace, &family), attempt.into_authority())
+        .expect("unsupported projection authority remains typed");
+    (prerequisites(&workspace, &family), outcome)
 }
 
 fn workspace_and_family(label: &str) -> (WorthQueryWorkspace, WorthQueryReadFamily) {
@@ -122,8 +122,14 @@ fn prerequisites_from_basis(
         .expect("Query prerequisites")
 }
 
-fn requested_facts() -> ProjectMaterializedFacts {
-    ProjectMaterializedFacts::declare().display_field_path(query_size_path())
+fn requested_authority() -> ProjectionAuthorityContract {
+    authority_contract().require_display_field(query_size_path())
+}
+
+fn authority_contract() -> ProjectionAuthorityContract {
+    ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
 }
 
 fn query_size_graph(

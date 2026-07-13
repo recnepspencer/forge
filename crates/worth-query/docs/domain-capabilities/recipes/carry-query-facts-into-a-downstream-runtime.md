@@ -69,8 +69,8 @@ on it.
   on the authoritative relationship.
 - Use `source_identity()`, `receipt()`, and `evidence()` for inspection or
   indexing only.
-- Use `consume_projection_facts(...)` only for immediate inspection that does
-  not become downstream authority.
+- Use admitted authority's `facts()` for immediate typed inspection. The old
+  decomposed fact-consumption call is not a public fallback.
 
 ## Related Docs
 

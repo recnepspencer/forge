@@ -55,15 +55,15 @@ parts.
 
 ### Advanced lifecycle
 
-Use `consume_projection_facts(...)` only for immediate typed inspection. Its
-completion type is deliberately absent from the curated facade: decomposed
-facts, receipts, and digests are not a second downstream-authority API.
+There is no public explicit lifecycle. `consume_projection_facts(...)`,
+`declare_projection_fact_consumption(...)`, and eligibility-to-extraction
+choreography are crate-internal implementation details. They are unavailable
+even for immediate inspection because their intermediate values can be paired
+outside the canonical authority transition.
 
-The explicit lifecycle remains available for framework code that needs to
-observe declaration, eligibility, contract binding, extraction, and receipt
-issuance separately. Start with
-`declare_projection_fact_consumption(...)` and
-`evaluate_projection_consumption_eligibility(...)`.
+For typed inspection, call `consume_projection_authority(...)` and inspect the
+admitted authority's `facts()` or `receipt()`. This keeps inspection on the same
+sealed path as every downstream use.
 
 Support discovery is available through source-local
 `discover_projection_fact_consumption_support(...)` methods and
@@ -98,8 +98,8 @@ cannot recreate the product.
 5. Move admitted authority into the downstream owner with `into_admitted()`;
    otherwise handle the typed denial, deferral, or source mismatch.
 
-The fluent and explicit paths use the same transition. Adapters may extract
-from different source artifacts, but they do not own separate authority logic.
+Source adapters may extract from different artifacts, but only the public
+authority path may cross the crate boundary.
 
 ## Small Example
 
@@ -156,7 +156,7 @@ fn admitted_authority(
 
     match outcome {
         ProjectionAuthorityOutcome::Admitted(authority)
-        | ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, _) => Ok(authority),
+        | ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, _) => Ok(*authority),
         ProjectionAuthorityOutcome::AuthorityDenied(denial) => {
             Err(format!("authority denied: {:?}", denial.kind()))
         }
@@ -222,6 +222,8 @@ fall back to raw facts.
   contract.
 - Reconstructing a projection contract or source identity in downstream code.
 - Importing Query's internal `projection_consumption` module.
+- Calling the legacy fact-consumption or declaration methods, including for
+  tests or one-shot inspection.
 - Treating evidence getters as constructors or promotion inputs.
 - Falling back to raw rows after a typed denial or unsupported posture.
 
@@ -236,9 +238,8 @@ fall back to raw facts.
   unrelated workspace growth, historical basis growth, and consumer graph
   growth. Only declared requirements and consumed facts may grow the Query
   transition's work.
-- Immediate typed-fact inspection remains supported through opaque
-  `consume_projection_facts(...)` results, but those decomposed parts cannot be
-  named through the curated facade as downstream authority.
+- Typed-fact inspection goes through admitted projection authority. There is no
+  public decomposed-result exception.
 - Projection authority does not replace `read`, `observe`, or `materialize`.
   Use those when rows are the actual product.
 

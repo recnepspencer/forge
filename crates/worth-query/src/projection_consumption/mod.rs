@@ -58,9 +58,7 @@ pub use declaration::{
     declare_projection_consumption, ProjectionConsumptionBindingContext,
     ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
 };
-pub use declaration_authoring::{
-    ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
-};
+pub use declaration_authoring::ProjectionConsumptionAuthoringSurface;
 pub use downstream_authority::{
     downstream_authority_closure_contract, load_projection_authority_contract_document,
     ConsumedProjectionAuthorityCounters, ConsumedProjectionAuthorityDenial,
@@ -80,8 +78,7 @@ pub use eligibility::{
     evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
     DeferredProjectionConsumption, DeferredProjectionConsumptionReason,
     DeniedProjectionConsumption, ProjectionConsumptionDenialReason,
-    ProjectionConsumptionEligibility, ProjectionConsumptionEligibilityCounters,
-    ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind,
+    ProjectionConsumptionEligibility, ProjectionConsumptionWarningKind,
     ProjectionConsumptionWarnings, SourceMismatchedProjectionConsumption,
 };
 pub use envelope::{

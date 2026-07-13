@@ -59,66 +59,66 @@ impl WorthServerWorthNativeDirectFacade {
                     .responses
                     .shape_with_defaults(WorthServerResponseInput::query_handoff_success(handoff));
                 match projection_attempt {
-                    worth_query::facade::ProjectionFactConsumptionAttempt::Admitted(completed) => {
+                    worth_query::facade::ProjectionAuthorityOutcome::Admitted(authority) => {
                         let direct_context = WorthServerDirectContextArtifact::new(
                             self.admission.request_context(),
                             &support_posture,
                             &response_envelope,
-                            completed.contract().basis_digest(),
+                            authority.contract().basis_digest(),
                             WorthServerDirectRemaskPosture::from_materialized_fact_posture(
-                                completed.materialized_fact_posture(),
+                                authority.receipt().materialized_fact_posture(),
                             ),
                         );
-                        TransitionOutcome::Success(WorthServerDirectProjection::from_completed(
+                        TransitionOutcome::Success(WorthServerDirectProjection::from_authority(
                             plan_proof.clone(),
                             support_posture,
                             workspace_name,
                             handoff_digest,
                             direct_context,
-                            completed,
+                            *authority,
                             Vec::new(),
                             response_envelope,
                         ))
                     }
-                    worth_query::facade::ProjectionFactConsumptionAttempt::AdmittedWithWarnings(
-                        completed,
+                    worth_query::facade::ProjectionAuthorityOutcome::AdmittedWithWarnings(
+                        authority,
                         warnings,
                     ) => {
                         let direct_context = WorthServerDirectContextArtifact::new(
                             self.admission.request_context(),
                             &support_posture,
                             &response_envelope,
-                            completed.contract().basis_digest(),
+                            authority.contract().basis_digest(),
                             WorthServerDirectRemaskPosture::from_materialized_fact_posture(
-                                completed.materialized_fact_posture(),
+                                authority.receipt().materialized_fact_posture(),
                             ),
                         );
-                        TransitionOutcome::Success(WorthServerDirectProjection::from_completed(
+                        TransitionOutcome::Success(WorthServerDirectProjection::from_authority(
                             plan_proof,
                             support_posture,
                             workspace_name,
                             handoff_digest,
                             direct_context,
-                            completed,
+                            *authority,
                             warnings.warning_kinds().to_vec(),
                             response_envelope,
                         ))
                     }
-                    worth_query::facade::ProjectionFactConsumptionAttempt::Denied(denied) => {
+                    worth_query::facade::ProjectionAuthorityOutcome::ConsumptionDenied(denied) => {
                         TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
                             crate::WorthServerQueryHandoffDenialCode::ProjectionFactConsumptionDenied,
                             self.admission.request_context().diagnostics_profile(),
                             format!("{:?}", denied.reason()),
                         ))
                     }
-                    worth_query::facade::ProjectionFactConsumptionAttempt::Deferred(deferred) => {
+                    worth_query::facade::ProjectionAuthorityOutcome::Deferred(deferred) => {
                         TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
                             crate::WorthServerQueryHandoffDenialCode::ProjectionFactConsumptionDeferred,
                             self.admission.request_context().diagnostics_profile(),
                             format!("{:?}", deferred.reason()),
                         ))
                     }
-                    worth_query::facade::ProjectionFactConsumptionAttempt::SourceMismatch(
+                    worth_query::facade::ProjectionAuthorityOutcome::SourceMismatch(
                         mismatch,
                     ) => TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
                         crate::WorthServerQueryHandoffDenialCode::ProjectionFactConsumptionSourceMismatch,
@@ -129,6 +129,13 @@ impl WorthServerWorthNativeDirectFacade {
                             mismatch.source_family()
                         ),
                     )),
+                    worth_query::facade::ProjectionAuthorityOutcome::AuthorityDenied(denied) => {
+                        TransitionOutcome::Denied(crate::WorthServerQueryHandoffDenial::new(
+                            crate::WorthServerQueryHandoffDenialCode::ProjectionFactConsumptionDenied,
+                            self.admission.request_context().diagnostics_profile(),
+                            format!("projection authority denied: {:?}", denied.kind()),
+                        ))
+                    }
                 }
             }
             Err(denial) => TransitionOutcome::Denied(denial),

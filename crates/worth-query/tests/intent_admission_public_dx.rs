@@ -1,6 +1,5 @@
 use worth_query::facade::{
-    worth_query_basis_observation_intent, worth_query_projection_consumption_intent,
-    AdmittedQueryBasisContext, ProjectionConsumptionDeclaration, RawBasisIntent,
+    worth_query_basis_observation_intent, AdmittedQueryBasisContext, RawBasisIntent,
     WorthQueryBatchWriteReceipt, WorthQueryEffectHandle, WorthQueryEffectIntentReceipt,
     WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthProbeResult,
     WorthQueryExistingTruthTargetBinding, WorthQueryIntentAdmissionDecision,
@@ -185,15 +184,6 @@ fn basis_observation_common_path_compiles() {
         .unwrap();
     let _ = admitted.plan().execution_seam();
     let _ = admitted.scope();
-}
-
-fn projection_consumption_common_path_compiles(declaration: ProjectionConsumptionDeclaration) {
-    let admitted = worth_query_projection_consumption_intent(declaration)
-        .unwrap()
-        .admit()
-        .unwrap();
-    let _ = admitted.plan().execution_seam();
-    let _ = admitted.bind_contract();
 }
 
 fn read_family_common_path_compiles(
@@ -484,7 +474,6 @@ fn public_dx_signatures_are_referenced() {
     let _ = consumer_lane_typecheck
         as fn(&WorthQueryIntentReceipt) -> WorthQueryIntentConsumerOutcomeClass;
     let _ = basis_observation_common_path_compiles as fn();
-    let _ = projection_consumption_common_path_compiles as fn(ProjectionConsumptionDeclaration);
     let _ = read_family_common_path_compiles
         as fn(
             &mut WorthQueryWorkspace,

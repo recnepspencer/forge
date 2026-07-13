@@ -4,5 +4,5 @@ error[E0432]: unresolved import `worth_query::facade::CompletedProjectionFactCon
 1 | use worth_query::facade::CompletedProjectionFactConsumption;
   |     ^^^^^^^^^^^^^^^^^^^^^----------------------------------
   |     |                    |
-  |     |                    help: a similar name exists in the module: `AdmittedProjectionConsumption`
+  |     |                    help: a similar name exists in the module: `DeferredProjectionConsumption`
   |     no `CompletedProjectionFactConsumption` in `facade`

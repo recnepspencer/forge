@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crate::application::scan_shared_read_mint_forbidden_patterns;
-use crate::projection_consumption::ProjectionFactConsumptionAttempt;
+use crate::projection_consumption::ProjectionAuthorityOutcome;
 
 use super::shared_read_support::*;
 use super::support::*;
@@ -31,8 +31,8 @@ fn shared_read_context_consumes_published_projection_facts_through_typed_artifac
     let consumption = consume_display_title_attempt(&artifact);
 
     match consumption {
-        WorthQueryPublishedProjectionConsumption::Current(
-            ProjectionFactConsumptionAttempt::Admitted(completed),
+        WorthQueryPublishedProjectionAuthorityOutcome::Current(
+            ProjectionAuthorityOutcome::Admitted(completed),
         ) => {
             assert_eq!(completed.receipt().extracted_fact_count(), 1);
             assert_eq!(
@@ -73,7 +73,7 @@ fn shared_read_unpublished_artifact_fails_closed_with_typed_pending_state() {
         .expect("declared unpublished derived view should still mint a typed handle");
 
     match consume_display_title_attempt(&unpublished) {
-        WorthQueryPublishedProjectionConsumption::ResultState(state) => {
+        WorthQueryPublishedProjectionAuthorityOutcome::ResultState(state) => {
             assert_eq!(state.kind(), WorthQueryRuntimeAsyncResultStateKind::Pending);
             assert_eq!(
                 state.basis_for_reporting(),

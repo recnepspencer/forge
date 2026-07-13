@@ -1,7 +1,7 @@
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{
-    CompletedProjectionFactConsumption, ProjectionConsumptionBindingContext,
-    ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError,
+    ProjectionAuthorityOutcome, ProjectionConsumptionBindingContext,
+    ProjectionFactConsumptionPathError, WorthQueryConsumedProjectionAuthority,
 };
 use worth_server::{
     WorthServerDirectProjectionOutcome, WorthServerDirectProjectionRequest,
@@ -24,15 +24,15 @@ fn direct_projection_consumes_retained_live_read_facts_with_typed_receipt_bounda
         .entity_identities()
         .view_local_identities()
         .display_field("profile.display_name");
-    let query_projection_attempt = direct_read
+    let query_projection_outcome = direct_read
         .read_result()
-        .consume_projection_facts_with_binding(
+        .consume_projection_authority_with_binding(
             query_binding(&request, direct_read.read_result().receipt()),
-            request.requested_facts().clone(),
+            request.authority_contract().clone(),
         )
         .expect("query projection path should stay typed");
-    let query_projection = query_projection_attempt
-        .completed()
+    let (query_projection, _) = query_projection_outcome
+        .into_admitted()
         .expect("query projection should admit");
 
     let projection = direct_projection_success(session.direct().project(&declaration, &request));
@@ -53,6 +53,7 @@ fn direct_projection_consumes_retained_live_read_facts_with_typed_receipt_bounda
     assert_eq!(
         projection.materialization_digest().as_str(),
         query_projection
+            .receipt()
             .materialized_fact_posture()
             .map(|posture| posture.posture_digest())
             .unwrap_or(query_projection.receipt().receipt_digest())
@@ -136,9 +137,9 @@ fn direct_projection_preserves_query_projection_receipt_parity() {
     let query = query_projection_success(
         direct_read
             .read_result()
-            .consume_projection_facts_with_binding(
+            .consume_projection_authority_with_binding(
                 query_binding(&request, direct_read.read_result().receipt()),
-                request.requested_facts().clone(),
+                request.authority_contract().clone(),
             ),
     );
 
@@ -159,6 +160,7 @@ fn direct_projection_preserves_query_projection_receipt_parity() {
     assert_eq!(
         direct.materialization_digest().as_str(),
         query
+            .receipt()
             .materialized_fact_posture()
             .map(|posture| posture.posture_digest())
             .unwrap_or(query.receipt().receipt_digest())
@@ -167,7 +169,7 @@ fn direct_projection_preserves_query_projection_receipt_parity() {
         direct.fact_receipt().counter_snapshot_digest(),
         query.receipt().counter_snapshot_digest()
     );
-    assert_eq!(query.authority_reopen_count(), 0);
+    assert_eq!(query.counters().authority_constructions(), 1);
 }
 
 #[test]
@@ -267,9 +269,9 @@ fn direct_projection_preserves_query_projection_denial_parity_for_hidden_fields(
     let direct_denial = direct_projection_denied(session.direct().project(&declaration, &request));
     let query_attempt = direct_read
         .read_result()
-        .consume_projection_facts_with_binding(
+        .consume_projection_authority_with_binding(
             query_binding(&request, direct_read.read_result().receipt()),
-            request.requested_facts().clone(),
+            request.authority_contract().clone(),
         )
         .expect("query projection denial should stay typed");
 
@@ -278,7 +280,7 @@ fn direct_projection_preserves_query_projection_denial_parity_for_hidden_fields(
         WorthServerQueryHandoffDenialCode::ProjectionFactConsumptionDenied
     );
     match query_attempt {
-        ProjectionFactConsumptionAttempt::Denied(denied) => {
+        ProjectionAuthorityOutcome::ConsumptionDenied(denied) => {
             assert_eq!(direct_denial.detail(), format!("{:?}", denied.reason()));
         }
         other => panic!("expected denied query projection path, got {other:?}"),
@@ -339,13 +341,13 @@ fn direct_projection_denied(
 }
 
 fn query_projection_success(
-    outcome: Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError>,
-) -> CompletedProjectionFactConsumption {
-    match outcome.expect("query projection path should stay typed") {
-        ProjectionFactConsumptionAttempt::Admitted(value)
-        | ProjectionFactConsumptionAttempt::AdmittedWithWarnings(value, _) => value,
-        other => panic!("expected admitted query projection path, got {other:?}"),
-    }
+    outcome: Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError>,
+) -> WorthQueryConsumedProjectionAuthority {
+    outcome
+        .expect("query projection path should stay typed")
+        .into_admitted()
+        .map(|(authority, _)| authority)
+        .unwrap_or_else(|other| panic!("expected admitted query projection path, got {other:?}"))
 }
 
 struct ProjectionRemaskTestSupport;

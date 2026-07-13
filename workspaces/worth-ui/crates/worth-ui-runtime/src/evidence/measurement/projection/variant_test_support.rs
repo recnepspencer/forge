@@ -9,8 +9,8 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactFieldPath, ScalarPredicateValue, WorthQueryAspectTouch,
-    WorthQueryAuthoredAspectValue,
+    ProjectionAuthorityContract, ProjectionFactFieldPath, ScalarPredicateValue,
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
 };
 
 use crate::graph::UiGraphWorldProfile;
@@ -28,12 +28,14 @@ pub(crate) fn display_field_plus_entity_identity_projection_context(
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let requested = ProjectMaterializedFacts::declare()
-        .entity_identities()
-        .display_field_path(size_value_field_path());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
+    let contract = ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
+        .require_entity_identities()
+        .require_display_field(size_value_field_path());
+    let outcome = read_result
+        .consume_projection_authority(&result_shape, &authorized_projection, contract)
+        .expect("real query read should consume projection authority");
     let basis = resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
         family.read_graph().schema_basis().clone(),
@@ -49,7 +51,7 @@ pub(crate) fn display_field_plus_entity_identity_projection_context(
     )
     .expect("query world profile should align to basis resolution");
     let (authority, _) =
-        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
             .expect("real Query consumption should mint authority");
     (prerequisites, authority, world_profile)
 }

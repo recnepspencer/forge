@@ -1,3 +1,22 @@
+error[E0432]: unresolved imports `worth_query::facade::ProjectionConsumptionAuthoringSurface`, `worth_query::facade::ProjectionConsumptionDeclarationBuilder`
+ --> tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs:2:5
+  |
+2 |     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionDeclarationBuilder` in `facade`
+  |     |
+  |     no `ProjectionConsumptionAuthoringSurface` in `facade`
+  |
+help: a similar name exists in the module
+  |
+2 -     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
+2 +     ProjectionConsumptionSource, ProjectionConsumptionDeclarationBuilder,
+  |
+help: a similar name exists in the module
+  |
+2 -     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclarationBuilder,
+2 +     ProjectionConsumptionAuthoringSurface, ProjectionConsumptionCertificationBundle,
+  |
+
 warning: unreachable expression
  --> tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs:8:18
   |
@@ -18,31 +37,3 @@ warning: unreachable expression
    | |                    ------- any code following this expression is unreachable
 14 | |     };
    | |_____^ unreachable expression
-
-warning: unused variable: `surface`
- --> tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs:6:9
-  |
-6 |     let surface = ProjectionConsumptionAuthoringSurface {
-  |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_surface`
-  |
-  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-
-error[E0451]: fields `source` and `binding` of struct `ProjectionConsumptionAuthoringSurface` are private
- --> tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs:7:9
-  |
-6 |     let surface = ProjectionConsumptionAuthoringSurface {
-  |                   ------------------------------------- in this type
-7 |         source: loop {},
-  |         ^^^^^^ private field
-8 |         binding: loop {},
-  |         ^^^^^^^ private field
-
-error[E0451]: fields `surface` and `requested` of struct `ProjectionConsumptionDeclarationBuilder` are private
-  --> tests/ui/projection_consumption/construction/projection_consumption_authoring_surface_constructor_private.rs:12:9
-   |
-11 |     let _builder = ProjectionConsumptionDeclarationBuilder {
-   |                    --------------------------------------- in this type
-12 |         surface,
-   |         ^^^^^^^ private field
-13 |         requested: loop {},
-   |         ^^^^^^^^^ private field

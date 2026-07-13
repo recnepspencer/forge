@@ -1,6 +1,6 @@
 use worth_query::facade::{
-    CompletedProjectionFactConsumption, ConsumedProjectionFactSet,
-    ProjectionConsumptionWarningKind, SelfDescribingProjectionConsumptionEnvelope,
+    ConsumedProjectionFactSet, ProjectionConsumptionWarningKind,
+    SelfDescribingProjectionConsumptionEnvelope, WorthQueryConsumedProjectionAuthority,
 };
 
 use crate::{
@@ -29,38 +29,39 @@ pub struct WorthServerDirectProjection {
 }
 
 impl WorthServerDirectProjection {
-    pub(crate) fn from_completed(
+    pub(crate) fn from_authority(
         plan_proof: crate::WorthServerOperationPlanProof,
         support_posture: WorthServerQuerySupportPosture,
         workspace_name: String,
         handoff_digest: String,
         direct_context: WorthServerDirectContextArtifact,
-        completed: CompletedProjectionFactConsumption,
+        authority: WorthQueryConsumedProjectionAuthority,
         warning_kinds: Vec<ProjectionConsumptionWarningKind>,
         response_envelope: WorthServerResponseEnvelope,
     ) -> Self {
-        let materialization_digest = completed
+        let materialization_digest = authority
+            .receipt()
             .materialized_fact_posture()
             .map(|posture| WorthServerDirectMaterializationDigest::new(posture.posture_digest()))
             .unwrap_or_else(|| {
-                WorthServerDirectMaterializationDigest::new(completed.receipt().receipt_digest())
+                WorthServerDirectMaterializationDigest::new(authority.receipt().receipt_digest())
             });
         let fact_receipt = WorthServerDirectProjectionFactReceipt::from_projection_receipt(
-            completed.receipt(),
+            authority.receipt(),
             materialization_digest,
         );
-        let basis_digest = completed.contract().basis_digest().map(str::to_string);
-        let policy_digest = completed.contract().policy_digest().to_string();
-        let result_shape_digest = completed
+        let basis_digest = authority.contract().basis_digest().map(str::to_string);
+        let policy_digest = authority.contract().policy_digest().to_string();
+        let result_shape_digest = authority
             .contract()
             .canonical_result_shape_digest()
             .to_string();
-        let narrowed_result_shape_digest = completed
+        let narrowed_result_shape_digest = authority
             .contract()
             .narrowed_result_shape_digest()
             .to_string();
-        let facts = completed.facts().clone();
-        let projection_consumption_envelope = completed.projection_consumption_envelope();
+        let facts = authority.facts().clone();
+        let projection_consumption_envelope = authority.receipt().projection_consumption_envelope();
         let canonical_digest = format!(
             "worth-server-direct-projection-v1:{}:{}:{}",
             handoff_digest,

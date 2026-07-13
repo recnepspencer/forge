@@ -2,15 +2,18 @@ use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, GuidedAuthoringPath, RawAuthoredQuery,
     RawAuthoredResultShape, RootEntityKey,
 };
+use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::authorized_projection::{
     derive_authorized_projection, PolicyAspectMask, PolicyInfluenceSet,
 };
-use crate::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectMaterializedFacts,
-    ProjectionConsumptionAuthoringSurface, ProjectionConsumptionDeclaration,
-    ProjectionConsumptionDeclarationError, ProjectionSourceFamily, QueryContextExecutionArtifact,
-    WorthQueryReadReceipt, WorthQueryWriteReceipt,
+use crate::canonicalization::CanonicalResultShapeArtifact;
+use crate::projection_consumption::{
+    ProjectMaterializedFacts, ProjectionConsumptionAuthoringSurface,
+    ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
+    ProjectionSourceFamily,
 };
+use crate::query_context::QueryContextExecutionArtifact;
+use crate::runtime::{WorthQueryReadReceipt, WorthQueryWriteReceipt};
 use worth_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use worth_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,

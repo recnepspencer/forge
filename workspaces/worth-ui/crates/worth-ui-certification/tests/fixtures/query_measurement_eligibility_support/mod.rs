@@ -1,7 +1,7 @@
 mod projection_consumption_support;
 
 use worth_query::facade::{
-    ProjectMaterializedFacts, ProjectionAuthorityOutcome, WorthQueryAuthoredAspectValue,
+    ProjectionAuthorityContract, ProjectionAuthorityOutcome, WorthQueryAuthoredAspectValue,
 };
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
@@ -125,7 +125,7 @@ pub fn display_field_projection_consumption(
     query_authority(projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     ))
 }
 
@@ -137,7 +137,7 @@ pub fn denied_display_field_projection_consumption(
     let (world, outcome) = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     (world, outcome)
 }
@@ -149,7 +149,7 @@ pub fn view_local_only_projection_consumption(
     query_authority(projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().entity_identities(),
+        authority_contract().require_entity_identities(),
     ))
 }
 
@@ -164,12 +164,12 @@ pub fn display_and_view_local_projection_consumptions(
     let (world_profile, display_consumption) = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     let (_, view_local_consumption) = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().entity_identities(),
+        authority_contract().require_entity_identities(),
     );
     let (_, display_authority) = query_authority((world_profile.clone(), display_consumption));
     let (_, view_local_authority) =
@@ -187,7 +187,7 @@ pub fn display_projection_consumptions_across_basis_generations(
     let current = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     workspace
         .update(entity_identity, |task| {
@@ -200,9 +200,15 @@ pub fn display_projection_consumptions_across_basis_generations(
     let next = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     (query_authority(current), query_authority(next))
+}
+
+fn authority_contract() -> ProjectionAuthorityContract {
+    ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
 }
 
 fn query_authority(

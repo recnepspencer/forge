@@ -62,7 +62,6 @@ Common path:
 - `workspace.probe_existing_intent(request).execute()`
 - `workspace.probe_existing_intent(request).review()?.admit()?.execute()`
 - `worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`
-- `worth_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`
 
 Advanced path:
 
@@ -216,13 +215,11 @@ let scoped_basis = worth_query_basis_observation_intent(
 .admit()?
 .scope();
 
-let contract = worth_query_projection_consumption_intent(declaration)?
-    .admit()?
-    .bind_contract();
 ```
 
-That is the point of the feature: one shared public admission story, even when
-the family-specific terminal artifact is different.
+Projection authority does not use this intent-admission rhythm. Its only
+public route is a declared `ProjectionAuthorityContract` consumed directly by
+the result or receipt that owns the projection facts.
 
 Covered family examples:
 
@@ -247,9 +244,15 @@ let scoped_basis = worth_query_basis_observation_intent(
 ```
 
 ```rust
-let contract = worth_query_projection_consumption_intent(declaration)?
-    .admit()?
-    .bind_contract();
+let contract = ProjectionAuthorityContract::declare()
+    .require_entity_identities()
+    .build();
+
+let authority = read_result
+    .consume_projection_authority(&shape, &authorized_projection, contract)?
+    .into_admitted()
+    .map_err(|outcome| handle_projection_denial(outcome))?
+    .0;
 ```
 
 ```rust
@@ -305,11 +308,6 @@ let probe = runtime.probe_existing(request.clone())?;
 ```rust
 let basis_review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)?
     .review()?;
-```
-
-```rust
-let projection_review =
-    worth_query_projection_consumption_intent(declaration)?.review()?;
 ```
 
 ```rust

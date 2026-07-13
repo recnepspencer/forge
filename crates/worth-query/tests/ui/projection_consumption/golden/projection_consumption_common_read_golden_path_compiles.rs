@@ -1,43 +1,24 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectMaterializedFacts,
-    ProjectionFactConsumptionPathError, ProjectionFactFieldPath, WorthQueryReadResult,
+    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath,
+    WorthQueryReadResult,
 };
 
 fn common_read_path(
     read_result: &WorthQueryReadResult,
     result_shape: &CanonicalResultShapeArtifact,
     authorized_projection: &AuthorizedProjectionArtifact,
-) -> Result<String, ProjectionFactConsumptionPathError> {
-    let attempt = read_result.consume_projection_facts(
+) -> Result<ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError> {
+    read_result.consume_projection_authority(
         result_shape,
         authorized_projection,
-        ProjectMaterializedFacts::declare()
-            .entity_identities()
-            .display_field_path(profile_display_name_field_path()),
-    )?;
-
-    if let Some(completed) = attempt.completed() {
-        let receipt = completed.receipt();
-        let envelope = completed.projection_consumption_envelope();
-        return Ok(format!(
-            "{}:{}:{}",
-            receipt.contract_digest(),
-            envelope.envelope_digest(),
-            completed.extracted_fact_count()
-        ));
-    }
-
-    if let Some(denied) = attempt.denied() {
-        return Ok(format!("{:?}", denied.reason()));
-    }
-    if let Some(deferred) = attempt.deferred() {
-        return Ok(format!("{:?}", deferred.reason()));
-    }
-    if let Some(mismatch) = attempt.source_mismatch() {
-        return Ok(format!("{:?}", mismatch.source_family()));
-    }
-    unreachable!()
+        ProjectionAuthorityContract::declare()
+            .require_settled_consumption()
+            .require_source_authority()
+            .require_entity_identities()
+            .require_display_field(profile_display_name_field_path()),
+    )
 }
 
 fn profile_display_name_field_path() -> ProjectionFactFieldPath {

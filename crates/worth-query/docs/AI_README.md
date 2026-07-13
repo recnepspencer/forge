@@ -972,9 +972,10 @@ basis digest, projection receipt, extracted facts, and source labels as separate
 authority inputs. Declare a `ProjectionAuthorityContract` and use the
 result-attached `consume_projection_authority(...)` path. Query mints one sealed
 `WorthQueryConsumedProjectionAuthority`; evidence projections and getters are
-for observation and cannot recreate it. Use the older
-`consume_projection_facts(...)` path only for immediate typed fact inspection.
-Move admitted proof with `ProjectionAuthorityOutcome::into_admitted()`. If the
+for observation and cannot recreate it. The older fact-consumption and
+declaration methods and the projection-consumption intent entry point are not
+public, including for immediate inspection. Move
+admitted proof with `ProjectionAuthorityOutcome::into_admitted()`. If the
 declaration must cross a terminal boundary, serialize
 `ProjectionAuthorityContract` with `to_terminal_json_document()` and reload it
 with `load_projection_authority_contract_document(...)`; never serialize or
@@ -1558,9 +1559,9 @@ when declarations must replay across a process boundary. The loaded declaration
 must still pass the canonical authority transition against a real source; a
 serialized declaration is not serialized authority.
 
-Use `consume_projection_facts(...)` only when facts are inspected immediately
-and no downstream operation will treat them as authority. Its decomposed
-completion types are intentionally not part of the curated facade.
+Typed inspection also goes through `consume_projection_authority(...)`, then
+reads `facts()` or `receipt()` from admitted authority. The decomposed
+fact-consumption lifecycle is crate-internal and must not be recreated.
 
 The mistakes to avoid are fishing in lower-runtime truth for IDs or passing a
 basis digest, receipt digest, source label, and fact list as a replacement
@@ -1791,7 +1792,8 @@ Need cross-runtime why:
 
 Need materialized facts without reopening authority:
 
-- use projection consumption declarations and receipts
+- declare a `ProjectionAuthorityContract` and consume one sealed projection
+  authority from the result or receipt that owns the facts
 
 Need public-bridge read certification:
 

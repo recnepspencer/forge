@@ -154,8 +154,8 @@ Good to know:
 - they converge on the same inspection result families rather than publishing
   a second explanation system
 - projection consumption does not currently arrive through `workspace.inspect(...)`
-- it uses receipt-first inspection on `CompletedProjectionFactConsumption`,
-  `ProjectionConsumptionReceipt`, and the projection-consumption envelope
+- it uses admitted `WorthQueryConsumedProjectionAuthority`, whose `facts()`,
+  `receipt()`, and evidence getters are inspection-only projections
 - use [Projection Consumption](projection-consumption.md) when the feature
   you need to inspect is â€œtyped facts consumed from this materializationâ€
 

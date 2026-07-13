@@ -138,23 +138,27 @@ binding instead of flattening everything into caller-owned identity strings.
 - `workspace.materialize_intent(...)`
 - `workspace.inspect_intent(...)`
 - `worth_query_basis_observation_intent(...)`
-- `worth_query_projection_consumption_intent(...)`
 
 Use the intent lattice only when the family genuinely belongs on the admitted
 intent path. Do not treat every surface with `intent` in the name as the
 default way to do ordinary work.
 
+Projection authority is deliberately not a second intent family. Declare a
+`ProjectionAuthorityContract` and ask the producing result or receipt to seal
+the corresponding authority directly.
+
 ### Typed fact extraction
 
-- `consume_projection_facts(...)`
-- `declare_projection_fact_consumption(...)`
-- `bind_contract()`
+- `ProjectionAuthorityContract::declare()`
+- `consume_projection_authority(...)`
+- `ProjectionAuthorityOutcome::into_admitted()`
 
 Use Projection Consumption when the caller needs typed identities, memberships,
 targets, source references, provenance, or continuity facts from a read
 result, write receipt, or query-context artifact.
 
-Do not re-parse payload bags or reconstruct the same meaning in caller code.
+Do not re-parse payload bags, invoke the crate-internal decomposed lifecycle,
+or reconstruct the same meaning in caller code.
 
 ## Do Not Build These Things Locally
 

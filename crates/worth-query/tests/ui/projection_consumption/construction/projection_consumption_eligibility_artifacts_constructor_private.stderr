@@ -1,26 +1,28 @@
-error: cannot construct `AdmittedProjectionConsumption` with struct literal syntax due to private fields
-  --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:19:13
-   |
-19 |     let _ = AdmittedProjectionConsumption {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-20 |         declaration_digest: String::new(),
-   |         --------------------------------- private field
-21 |         query_digest: String::new(),
-   |         --------------------------- private field
-22 |         basis_digest: String::new(),
-   |         --------------------------- private field
-23 |         result_shape_digest: String::new(),
-   |         ---------------------------------- private field
-24 |         authorized_projection_identity: String::new(),
-   |         --------------------------------------------- private field
-25 |         counters: counters.clone(),
-   |         -------------------------- private field
-26 |         trace: trace.clone(),
-   |         -------------------- private field
-27 |         eligibility_digest: String::new(),
-   |         --------------------------------- private field
-   |
-   = note: ...and other private fields `declaration` and `warning_kinds` that were not provided
+error[E0432]: unresolved imports `worth_query::facade::foundation::AdmittedProjectionConsumption`, `worth_query::facade::foundation::ProjectionConsumptionEligibilityCounters`, `worth_query::facade::foundation::ProjectionConsumptionEligibilityTrace`
+ --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:2:5
+  |
+2 |     AdmittedProjectionConsumption, DeferredProjectionConsumption,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `AdmittedProjectionConsumption` in `facade::foundation`
+3 |     DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters,
+  |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionEligibilityCounters` in `facade::foundation`
+4 |     ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionEligibilityTrace` in `facade::foundation`
+  |
+help: a similar name exists in the module
+  |
+2 -     AdmittedProjectionConsumption, DeferredProjectionConsumption,
+2 +     DeniedProjectionConsumption, DeferredProjectionConsumption,
+  |
+help: a similar name exists in the module
+  |
+3 -     DeniedProjectionConsumption, ProjectionConsumptionEligibilityCounters,
+3 +     DeniedProjectionConsumption, ProjectionConsumptionBindingContext,
+  |
+help: a similar name exists in the module
+  |
+4 -     ProjectionConsumptionEligibilityTrace, ProjectionConsumptionWarningKind,
+4 +     ProjectionConsumptionCertificationLane, ProjectionConsumptionWarningKind,
+  |
 
 error: cannot construct `DeferredProjectionConsumption` with struct literal syntax due to private fields
   --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:36:13

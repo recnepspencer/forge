@@ -1,7 +1,7 @@
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-use crate::projection_consumption::ProjectionFactConsumptionAttempt;
+use crate::projection_consumption::ProjectionAuthorityOutcome;
 use crate::runtime::tests::support::*;
 use crate::runtime::{
     WorthQueryConcurrentHostileMatrixCounterSnapshot, WorthQueryConcurrentHostileMatrixTopology,
@@ -12,8 +12,8 @@ pub(super) fn consume_artifact_title(
     artifact: &WorthQueryPublishedDerivedArtifactHandle,
 ) -> String {
     match hostile_consume_title_attempt(artifact) {
-        WorthQueryPublishedProjectionConsumption::Current(
-            ProjectionFactConsumptionAttempt::Admitted(completed),
+        WorthQueryPublishedProjectionAuthorityOutcome::Current(
+            ProjectionAuthorityOutcome::Admitted(completed),
         ) => completed
             .facts()
             .display_fields()
@@ -25,7 +25,7 @@ pub(super) fn consume_artifact_title(
             })
             .unwrap_or("none")
             .to_string(),
-        WorthQueryPublishedProjectionConsumption::ResultState(state) => {
+        WorthQueryPublishedProjectionAuthorityOutcome::ResultState(state) => {
             state.result_state_for_reporting().to_string()
         }
         other => panic!("unexpected projection consumption posture: {other:?}"),

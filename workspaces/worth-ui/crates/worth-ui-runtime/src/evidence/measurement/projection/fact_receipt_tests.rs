@@ -128,13 +128,13 @@ fn entity_identity_projection_consumption(
 ) {
     projection_consumption(
         lane_label,
-        worth_query::facade::ProjectMaterializedFacts::declare().entity_identities(),
+        authority_contract().require_entity_identities(),
     )
 }
 
 fn projection_consumption(
     lane_label: &str,
-    requested: worth_query::facade::ProjectMaterializedFacts,
+    contract: worth_query::facade::ProjectionAuthorityContract,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     worth_ui_query_binding::WorthUiQueryAuthorityHandle,
@@ -145,9 +145,9 @@ fn projection_consumption(
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
         worth_query::facade::public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
+    let outcome = read_result
+        .consume_projection_authority(&result_shape, &authorized_projection, contract)
+        .expect("real query read should consume projection authority");
     let basis = worth_query::facade::resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
         family.read_graph().schema_basis().clone(),
@@ -161,9 +161,15 @@ fn projection_consumption(
         )
         .expect("query prerequisites should admit");
     let (authority, _) =
-        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(attempt.into_authority())
+        worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
             .expect("entity identity consumption should mint Query authority");
     (prerequisites, authority)
+}
+
+fn authority_contract() -> worth_query::facade::ProjectionAuthorityContract {
+    worth_query::facade::ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
 }
 
 fn measurement_projection_workspace(

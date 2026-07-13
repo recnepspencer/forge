@@ -18,13 +18,16 @@ impl ProjectionFactConsumptionAttempt {
     pub fn into_authority(self) -> ProjectionAuthorityOutcome {
         match self {
             Self::Admitted(completed) => match seal_completed_consumption(completed) {
-                Ok(authority) => ProjectionAuthorityOutcome::Admitted(authority),
+                Ok(authority) => ProjectionAuthorityOutcome::Admitted(Box::new(authority)),
                 Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
             },
             Self::AdmittedWithWarnings(completed, warnings) => {
                 match seal_completed_consumption(completed) {
                     Ok(authority) => {
-                        ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, warnings)
+                        ProjectionAuthorityOutcome::AdmittedWithWarnings(
+                            Box::new(authority),
+                            warnings,
+                        )
                     }
                     Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
                 }
@@ -42,14 +45,17 @@ impl ProjectionFactConsumptionAttempt {
         match self {
             Self::Admitted(completed) => {
                 match seal_completed_consumption_with_contract(completed, contract) {
-                    Ok(authority) => ProjectionAuthorityOutcome::Admitted(authority),
+                    Ok(authority) => ProjectionAuthorityOutcome::Admitted(Box::new(authority)),
                     Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
                 }
             }
             Self::AdmittedWithWarnings(completed, warnings) => {
                 match seal_completed_consumption_with_contract(completed, contract) {
                     Ok(authority) => {
-                        ProjectionAuthorityOutcome::AdmittedWithWarnings(authority, warnings)
+                        ProjectionAuthorityOutcome::AdmittedWithWarnings(
+                            Box::new(authority),
+                            warnings,
+                        )
                     }
                     Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
                 }

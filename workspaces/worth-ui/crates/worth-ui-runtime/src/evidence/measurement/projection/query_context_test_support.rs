@@ -7,8 +7,8 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionFactFieldPath, ScalarPredicateValue, WorthQueryAspectTouch,
-    WorthQueryAuthoredAspectValue,
+    ProjectionAuthorityContract, ProjectionFactFieldPath, ScalarPredicateValue,
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
 };
 
 use crate::graph::UiGraphWorldProfile;
@@ -21,7 +21,7 @@ pub(crate) fn display_field_projection_consumption(
 ) {
     projection_consumption(
         lane_label,
-        ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
+        authority_contract().require_display_field(size_value_field_path()),
     )
 }
 
@@ -33,7 +33,7 @@ pub(crate) fn display_field_projection_authority_outcome(
 ) {
     let (prerequisites, outcome, _) = projection_authority_with_world(
         lane_label,
-        ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
+        authority_contract().require_display_field(size_value_field_path()),
     );
     (prerequisites, outcome)
 }
@@ -47,7 +47,7 @@ pub(crate) fn display_field_projection_context(
 ) {
     projection_consumption_with_world(
         lane_label,
-        ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
+        authority_contract().require_display_field(size_value_field_path()),
     )
 }
 
@@ -60,31 +60,31 @@ pub(crate) fn entity_identity_projection_context(
 ) {
     projection_consumption_with_world(
         lane_label,
-        ProjectMaterializedFacts::declare().entity_identities(),
+        authority_contract().require_entity_identities(),
     )
 }
 
 fn projection_consumption(
     lane_label: &str,
-    requested: ProjectMaterializedFacts,
+    contract: ProjectionAuthorityContract,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     worth_ui_query_binding::WorthUiQueryAuthorityHandle,
 ) {
-    let (prerequisites, attempt, _) = projection_consumption_with_world(lane_label, requested);
+    let (prerequisites, attempt, _) = projection_consumption_with_world(lane_label, contract);
     (prerequisites, attempt)
 }
 
 fn projection_consumption_with_world(
     lane_label: &str,
-    requested: ProjectMaterializedFacts,
+    contract: ProjectionAuthorityContract,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     worth_ui_query_binding::WorthUiQueryAuthorityHandle,
     UiGraphWorldProfile,
 ) {
     let (prerequisites, outcome, world_profile) =
-        projection_authority_with_world(lane_label, requested);
+        projection_authority_with_world(lane_label, contract);
     let (authority, _) = worth_ui_query_binding::WorthUiQueryAuthorityHandle::from_outcome(outcome)
         .expect("real Query consumption should mint authority");
     (prerequisites, authority, world_profile)
@@ -92,7 +92,7 @@ fn projection_consumption_with_world(
 
 fn projection_authority_with_world(
     lane_label: &str,
-    requested: ProjectMaterializedFacts,
+    contract: ProjectionAuthorityContract,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     worth_query::facade::ProjectionAuthorityOutcome,
@@ -104,9 +104,9 @@ fn projection_authority_with_world(
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(&result_shape, &authorized_projection, requested)
-        .expect("real query read should consume projection facts");
+    let outcome = read_result
+        .consume_projection_authority(&result_shape, &authorized_projection, contract)
+        .expect("real query read should consume projection authority");
     let basis = resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
         family.read_graph().schema_basis().clone(),
@@ -121,7 +121,13 @@ fn projection_authority_with_world(
         snapshot_resolution_report(&basis),
     )
     .expect("query world profile should align to basis resolution");
-    (prerequisites, attempt.into_authority(), world_profile)
+    (prerequisites, outcome, world_profile)
+}
+
+fn authority_contract() -> ProjectionAuthorityContract {
+    ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
 }
 
 fn measurement_projection_workspace(

@@ -64,8 +64,18 @@ impl ProjectionAuthorityContract {
         self
     }
 
+    pub fn require_view_local_identities(mut self) -> Self {
+        self.requested_facts = self.requested_facts.view_local_identities();
+        self
+    }
+
     pub fn require_source_references(mut self) -> Self {
         self.requested_facts = self.requested_facts.source_references();
+        self
+    }
+
+    pub fn require_effect_continuity_facts(mut self) -> Self {
+        self.requested_facts = self.requested_facts.effect_continuity_facts();
         self
     }
 
@@ -74,8 +84,18 @@ impl ProjectionAuthorityContract {
         self
     }
 
+    pub fn require_relation_endpoints(mut self) -> Self {
+        self.requested_facts = self.requested_facts.relation_endpoints();
+        self
+    }
+
     pub fn require_display_field(mut self, field: ProjectionFactFieldPath) -> Self {
         self.requested_facts = self.requested_facts.display_field_path(field);
+        self
+    }
+
+    pub fn require_derived_scalar_field(mut self, field: ProjectionFactFieldPath) -> Self {
+        self.requested_facts = self.requested_facts.derived_scalar_field_path(field);
         self
     }
 

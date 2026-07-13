@@ -10,7 +10,7 @@ use crate::{
         PolicyInfluenceSet,
     },
     canonicalization::CanonicalResultShapeArtifact,
-    projection_consumption::ProjectMaterializedFacts,
+    projection_consumption::ProjectionAuthorityContract,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -352,20 +352,23 @@ pub(in crate::runtime::tests) fn hostile_insert_task_command(
 
 pub(in crate::runtime::tests) fn hostile_consume_title_attempt(
     artifact: &WorthQueryPublishedDerivedArtifactHandle,
-) -> WorthQueryPublishedProjectionConsumption {
+) -> WorthQueryPublishedProjectionAuthorityOutcome {
     let (result_shape, authorized_projection) = hostile_projection_artifacts();
     artifact
-        .consume_projection_facts(
+        .consume_projection_authority(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("title")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("value")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            ),
+            ProjectionAuthorityContract::declare()
+                .require_settled_consumption()
+                .require_source_authority()
+                .require_display_field(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        worth_foundational::facade::FieldKey::new("title")
+                            .expect("projection fact field segment should admit"),
+                        worth_foundational::facade::FieldKey::new("value")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
         )
         .expect("projection consumption should remain on the typed artifact lane")
 }

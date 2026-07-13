@@ -7,7 +7,7 @@ use worth_query::facade::runtime::{
 use worth_query::facade::{
     public_bridge_projection_artifacts_for_read_graph, resolve_runtime_current_snapshot_basis,
     snapshot_resolution_report, AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate,
-    ProjectMaterializedFacts, ProjectionAuthorityOutcome, ProjectionFactFieldPath,
+    ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactFieldPath,
     ScalarPredicateValue, WorthQueryAspectTouch, WorthQueryAuthoredAspectValue,
 };
 
@@ -235,13 +235,16 @@ fn display_field_projection_consumption_with_extent(
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
         public_bridge_projection_artifacts_for_read_graph(family.read_graph());
-    let attempt = read_result
-        .consume_projection_facts(
+    let outcome = read_result
+        .consume_projection_authority(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field_path(size_value_field_path()),
+            ProjectionAuthorityContract::declare()
+                .require_settled_consumption()
+                .require_source_authority()
+                .require_display_field(size_value_field_path()),
         )
-        .expect("real query read should consume projection facts");
+        .expect("real query read should consume projection authority");
     let basis = resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
         family.read_graph().schema_basis().clone(),
@@ -251,7 +254,7 @@ fn display_field_projection_consumption_with_extent(
         .prerequisites()
         .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
         .expect("query prerequisites should admit");
-    (prerequisites, attempt.into_authority())
+    (prerequisites, outcome)
 }
 
 fn measurement_projection_workspace(

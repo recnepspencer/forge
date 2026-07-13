@@ -1,7 +1,7 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    AuthorizedProjectionFieldPath, ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
-    ProjectionFactFieldPath,
+    AuthorizedProjectionFieldPath, ProjectionAuthorityContract,
+    ProjectionConsumptionBindingContext, ProjectionFactFieldPath,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,7 +11,7 @@ pub struct WorthServerDirectProjectionRequest {
     policy_digest: String,
     tenant_schema_basis_digest: String,
     visible_fields: Vec<AuthorizedProjectionFieldPath>,
-    requested_facts: ProjectMaterializedFacts,
+    authority_contract: ProjectionAuthorityContract,
 }
 
 impl WorthServerDirectProjectionRequest {
@@ -36,42 +36,44 @@ impl WorthServerDirectProjectionRequest {
                     })
                 })
                 .collect(),
-            requested_facts: ProjectMaterializedFacts::declare(),
+            authority_contract: ProjectionAuthorityContract::declare()
+                .require_settled_consumption()
+                .require_source_authority(),
         }
     }
 
     pub fn entity_identities(mut self) -> Self {
-        self.requested_facts = self.requested_facts.entity_identities();
+        self.authority_contract = self.authority_contract.require_entity_identities();
         self
     }
 
     pub fn view_local_identities(mut self) -> Self {
-        self.requested_facts = self.requested_facts.view_local_identities();
+        self.authority_contract = self.authority_contract.require_view_local_identities();
         self
     }
 
     pub fn target_identity(mut self) -> Self {
-        self.requested_facts = self.requested_facts.target_identity();
+        self.authority_contract = self.authority_contract.require_target_identity();
         self
     }
 
     pub fn source_references(mut self) -> Self {
-        self.requested_facts = self.requested_facts.source_references();
+        self.authority_contract = self.authority_contract.require_source_references();
         self
     }
 
     pub fn effect_continuity_facts(mut self) -> Self {
-        self.requested_facts = self.requested_facts.effect_continuity_facts();
+        self.authority_contract = self.authority_contract.require_effect_continuity_facts();
         self
     }
 
     pub fn memberships(mut self) -> Self {
-        self.requested_facts = self.requested_facts.memberships();
+        self.authority_contract = self.authority_contract.require_memberships();
         self
     }
 
     pub fn relation_endpoints(mut self) -> Self {
-        self.requested_facts = self.requested_facts.relation_endpoints();
+        self.authority_contract = self.authority_contract.require_relation_endpoints();
         self
     }
 
@@ -80,7 +82,7 @@ impl WorthServerDirectProjectionRequest {
         let field_path = admit_projection_fact_field_path(&field).unwrap_or_else(|error| {
             panic!("display field `{field}` must be a foundational projection field path: {error}")
         });
-        self.requested_facts = self.requested_facts.display_field_path(field_path);
+        self.authority_contract = self.authority_contract.require_display_field(field_path);
         self
     }
 
@@ -91,7 +93,9 @@ impl WorthServerDirectProjectionRequest {
                 "derived scalar field `{field}` must be a foundational projection field path: {error}"
             )
         });
-        self.requested_facts = self.requested_facts.derived_scalar_field_path(field_path);
+        self.authority_contract = self
+            .authority_contract
+            .require_derived_scalar_field(field_path);
         self
     }
 
@@ -115,8 +119,8 @@ impl WorthServerDirectProjectionRequest {
         &self.visible_fields
     }
 
-    pub fn requested_facts(&self) -> &ProjectMaterializedFacts {
-        &self.requested_facts
+    pub fn authority_contract(&self) -> &ProjectionAuthorityContract {
+        &self.authority_contract
     }
 
     pub(crate) fn binding_context(
@@ -136,8 +140,8 @@ impl WorthServerDirectProjectionRequest {
         )
     }
 
-    pub(crate) fn requested_facts_owned(&self) -> ProjectMaterializedFacts {
-        self.requested_facts.clone()
+    pub(crate) fn authority_contract_owned(&self) -> ProjectionAuthorityContract {
+        self.authority_contract.clone()
     }
 }
 
@@ -147,8 +151,8 @@ fn admit_authorized_projection_field_path(
     let Some((aspect, terminal_field)) = field.split_once('.') else {
         return Err("field must use `aspect.field` form".to_string());
     };
-    let aspect_key =
-        AspectKey::new(aspect.to_string()).ok_or_else(|| "aspect is not foundational".to_string())?;
+    let aspect_key = AspectKey::new(aspect.to_string())
+        .ok_or_else(|| "aspect is not foundational".to_string())?;
     let field_key = FieldKey::new(terminal_field.to_string())
         .ok_or_else(|| "field is not foundational".to_string())?;
     Ok(AuthorizedProjectionFieldPath::from_native_keys(

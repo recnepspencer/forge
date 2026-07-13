@@ -1,7 +1,7 @@
 #[path = "measurement_basis_projection_support.rs"]
 mod projection_consumption_support;
 
-use worth_query::facade::{ProjectMaterializedFacts, WorthQueryAuthoredAspectValue};
+use worth_query::facade::{ProjectionAuthorityContract, WorthQueryAuthoredAspectValue};
 use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -64,7 +64,7 @@ pub fn display_field_projection_consumption(
     query_authority(projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     ))
 }
 
@@ -78,7 +78,7 @@ pub fn display_projection_consumptions_across_basis_generations(
     let current = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     workspace
         .update(entity_identity, |task| {
@@ -91,9 +91,15 @@ pub fn display_projection_consumptions_across_basis_generations(
     let next = projection_consumption_attempt(
         &mut workspace,
         &family,
-        ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+        authority_contract().require_display_field(title_value_field_path()),
     );
     (query_authority(current), query_authority(next))
+}
+
+fn authority_contract() -> ProjectionAuthorityContract {
+    ProjectionAuthorityContract::declare()
+        .require_settled_consumption()
+        .require_source_authority()
 }
 
 fn query_authority(

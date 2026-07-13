@@ -214,17 +214,17 @@ fn empty_framework_turn_is_typed_and_does_not_acknowledge() {
 #[test]
 fn query_gateway_derives_and_submits_real_projection_consumption() {
     let (prerequisites, attempt) = query_projection_consumption("runtime-gateway");
-    let mut framework = framework_from_artifact(empty_artifact());
+    let mut framework = Box::new(framework_from_artifact(empty_artifact()));
     let settlement = framework
         .query_admission()
         .admit(prerequisites, attempt)
         .expect("Query source should admit before submission");
     let expected_source_identity = settlement.allocation_source_identity().as_str().to_string();
-    let mut outcome = None;
+    let mut outcome = Box::new(None);
     let turn_outcome = run_framework_turn(&mut framework, |turn| {
-        outcome = Some(turn.submit_query_projection(settlement));
+        *outcome = Some(turn.submit_query_projection(settlement));
     });
-    let outcome = outcome.expect("framework callback submits");
+    let outcome = outcome.take().expect("framework callback submits");
     assert!(outcome
         .submission()
         .is_some_and(|submission| submission.is_queued()));

@@ -4,9 +4,9 @@ use std::sync::{
 };
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::{
-    public_bridge_hostile_title_projection_artifacts, ProjectMaterializedFacts,
+    public_bridge_hostile_title_projection_artifacts, ProjectionAuthorityContract,
     ProjectionFactFieldPath, WorthQueryPublishedDerivedArtifactHandle,
-    WorthQueryPublishedProjectionConsumption,
+    WorthQueryPublishedProjectionAuthorityOutcome,
 };
 use worth_query::{
     WorthQueryPublicBridgeProjectionConsumptionEvidence,
@@ -31,15 +31,18 @@ impl<'a> PublicBridgePublishedProjectionReader<'a> {
         let before = invocations.load(Ordering::SeqCst);
         let (result_shape, authorized_projection) =
             public_bridge_hostile_title_projection_artifacts();
-        let attempt = self
+        let outcome = self
             .reader
-            .consume_projection_facts(
+            .consume_projection_authority(
                 &result_shape,
                 &authorized_projection,
-                ProjectMaterializedFacts::declare().display_field_path(title_value_field_path()),
+                ProjectionAuthorityContract::declare()
+                    .require_settled_consumption()
+                    .require_source_authority()
+                    .require_display_field(title_value_field_path()),
             )
-            .expect("public bridge reader lane should consume typed projection facts");
-        let evidence = read_evidence_from_attempt(attempt);
+            .expect("public bridge reader lane should consume typed projection authority");
+        let evidence = read_evidence_from_outcome(outcome);
         let after = invocations.load(Ordering::SeqCst);
         assert_eq!(after, before, "reader path must not trigger reevaluation");
         evidence
@@ -56,12 +59,12 @@ fn title_value_field_path() -> ProjectionFactFieldPath {
     )
 }
 
-fn read_evidence_from_attempt(
-    attempt: WorthQueryPublishedProjectionConsumption,
+fn read_evidence_from_outcome(
+    outcome: WorthQueryPublishedProjectionAuthorityOutcome,
 ) -> WorthQueryPublicBridgeProjectionConsumptionEvidence {
-    if let Some(completed) = attempt.completed() {
-        let facts = completed.facts();
-        let receipt = facts.issue_receipt();
+    if let Some(authority) = outcome.authority() {
+        let facts = authority.facts();
+        let receipt = authority.receipt();
         WorthQueryPublicBridgeProjectionConsumptionEvidence::new(
             facts
                 .display_fields()
@@ -80,10 +83,10 @@ fn read_evidence_from_attempt(
             receipt.receipt_digest(),
             receipt.fact_set_digest(),
             receipt.source_identity(),
-            completed.extracted_fact_count(),
+            authority.counters().consumed_fact_visits(),
             "title.value",
         )
     } else {
-        panic!("unexpected public bridge projection consumption posture: {attempt:?}")
+        panic!("unexpected public bridge projection authority posture: {outcome:?}")
     }
 }

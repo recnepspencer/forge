@@ -233,6 +233,18 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         "fn residue(value: CompletedProjectionFactConsumption) { let _ = value; }",
     ),
     (
+        WorthQueryConsumerResidueClass::LegacyProjectionFactConsumptionCall,
+        "fn residue(result: Result) { let _ = result.consume_projection_facts(); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionDeclarationCall,
+        "fn residue(receipt: Receipt) { let _ = receipt.declare_projection_fact_consumption(); }",
+    ),
+    (
+        WorthQueryConsumerResidueClass::LegacyProjectionIntentAdmissionCall,
+        "fn residue(declaration: Declaration) { let _ = worth_query_projection_consumption_intent(declaration); }",
+    ),
+    (
         WorthQueryConsumerResidueClass::LocalQueryMeasurementConsumptionIdentity,
         "struct WorthUiQueryMeasurementConsumptionIdentity;",
     ),

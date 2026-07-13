@@ -6,9 +6,9 @@ use crate::projection_consumption::{
 
 #[derive(Debug)]
 pub enum ProjectionAuthorityOutcome {
-    Admitted(WorthQueryConsumedProjectionAuthority),
+    Admitted(Box<WorthQueryConsumedProjectionAuthority>),
     AdmittedWithWarnings(
-        WorthQueryConsumedProjectionAuthority,
+        Box<WorthQueryConsumedProjectionAuthority>,
         ProjectionConsumptionWarnings,
     ),
     AuthorityDenied(ConsumedProjectionAuthorityDenial),
@@ -20,7 +20,9 @@ pub enum ProjectionAuthorityOutcome {
 impl ProjectionAuthorityOutcome {
     pub fn authority(&self) -> Option<&WorthQueryConsumedProjectionAuthority> {
         match self {
-            Self::Admitted(authority) | Self::AdmittedWithWarnings(authority, _) => Some(authority),
+            Self::Admitted(authority) | Self::AdmittedWithWarnings(authority, _) => {
+                Some(authority.as_ref())
+            }
             Self::AuthorityDenied(_)
             | Self::ConsumptionDenied(_)
             | Self::Deferred(_)
@@ -40,8 +42,10 @@ impl ProjectionAuthorityOutcome {
         Self,
     > {
         match self {
-            Self::Admitted(authority) => Ok((authority, None)),
-            Self::AdmittedWithWarnings(authority, warnings) => Ok((authority, Some(warnings))),
+            Self::Admitted(authority) => Ok((*authority, None)),
+            Self::AdmittedWithWarnings(authority, warnings) => {
+                Ok((*authority, Some(warnings)))
+            }
             denied => Err(denied),
         }
     }

@@ -775,7 +775,7 @@ use runtime_helpers::{
 };
 #[allow(unused_imports)]
 pub use shared_read::{
-    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionConsumption,
+    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
     WorthQueryPublishedProjectionInspection, WorthQuerySharedReadBasisInspection,
     WorthQuerySharedReadContext,
 };

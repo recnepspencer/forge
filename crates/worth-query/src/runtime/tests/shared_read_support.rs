@@ -14,7 +14,7 @@ use crate::authorized_projection::{
     PolicyInfluenceSet,
 };
 use crate::canonicalization::CanonicalResultShapeArtifact;
-use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactConsumptionAttempt};
+use crate::projection_consumption::{ProjectionAuthorityContract, ProjectionAuthorityOutcome};
 
 use super::support::*;
 
@@ -151,29 +151,32 @@ pub(super) fn insert_task(workspace: &mut WorthQueryWorkspace, id: &str, title: 
 
 pub(super) fn consume_display_title_attempt(
     artifact: &WorthQueryPublishedDerivedArtifactHandle,
-) -> WorthQueryPublishedProjectionConsumption {
+) -> WorthQueryPublishedProjectionAuthorityOutcome {
     let (result_shape, authorized_projection) = projection_artifacts();
     artifact
-        .consume_projection_facts(
+        .consume_projection_authority(
             &result_shape,
             &authorized_projection,
-            ProjectMaterializedFacts::declare().display_field_path(
-                crate::projection_consumption::projection_fact_field_path_from_segments([
-                    worth_foundational::facade::FieldKey::new("title")
-                        .expect("projection fact field segment should admit"),
-                    worth_foundational::facade::FieldKey::new("value")
-                        .expect("projection fact field segment should admit"),
-                ]),
-            ),
+            ProjectionAuthorityContract::declare()
+                .require_settled_consumption()
+                .require_source_authority()
+                .require_display_field(
+                    crate::projection_consumption::projection_fact_field_path_from_segments([
+                        worth_foundational::facade::FieldKey::new("title")
+                            .expect("projection fact field segment should admit"),
+                        worth_foundational::facade::FieldKey::new("value")
+                            .expect("projection fact field segment should admit"),
+                    ]),
+                ),
         )
         .expect("projection consumption should stay on the typed artifact lane")
 }
 
 pub(super) fn consume_display_title(artifact: &WorthQueryPublishedDerivedArtifactHandle) -> String {
     let completed = match consume_display_title_attempt(artifact) {
-        WorthQueryPublishedProjectionConsumption::Current(
-            ProjectionFactConsumptionAttempt::Admitted(completed),
-        ) => completed,
+        WorthQueryPublishedProjectionAuthorityOutcome::Current(
+            ProjectionAuthorityOutcome::Admitted(authority),
+        ) => authority,
         other => panic!("expected admitted published consumption, got {other:?}"),
     };
     completed

@@ -1,0 +1,15 @@
+error[E0624]: method `consume_projection_facts` is private
+  --> tests/ui/consumer_residue/legacy_projection_fact_consumption_method_private.rs:11:20
+   |
+11 |       let _ = result.consume_projection_facts(
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/projection_consumption/dx.rs
+   |
+   | /     pub(crate) fn consume_projection_facts(
+   | |         &self,
+   | |         result_shape: &CanonicalResultShapeArtifact,
+   | |         authorized_projection: &AuthorizedProjectionArtifact,
+   | |         requested: ProjectMaterializedFacts,
+   | |     ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
+   | |_____________________________________________________________________________________- private method defined here

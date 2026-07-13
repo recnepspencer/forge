@@ -21,6 +21,9 @@ pub enum WorthQueryConsumerResidueClass {
     DelimiterFormattedQueryProof,
     DecomposedProjectionConsumptionAttempt,
     IndependentlyPairableProjectionConsumptionParts,
+    LegacyProjectionFactConsumptionCall,
+    LegacyProjectionDeclarationCall,
+    LegacyProjectionIntentAdmissionCall,
     LocalQueryMeasurementConsumptionIdentity,
     LocalProjectionContractBinding,
     LocalQueryBasisDigestCompatibility,
@@ -56,6 +59,9 @@ impl WorthQueryConsumerResidueClass {
             Self::IndependentlyPairableProjectionConsumptionParts => {
                 "independently-pairable-projection-consumption-parts"
             }
+            Self::LegacyProjectionFactConsumptionCall => "legacy-projection-fact-consumption-call",
+            Self::LegacyProjectionDeclarationCall => "legacy-projection-declaration-call",
+            Self::LegacyProjectionIntentAdmissionCall => "legacy-projection-intent-admission-call",
             Self::LocalQueryMeasurementConsumptionIdentity => {
                 "local-query-measurement-consumption-identity"
             }
@@ -314,6 +320,27 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         WorthQueryConsumerResidueDetection::ExactText,
         "CompletedProjectionFactConsumption",
         "consumer retains completed consumption parts that can be paired outside Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionFactConsumptionCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        ".consume_projection_facts(",
+        "consumer invokes the decomposed fact-consumption lifecycle instead of requesting sealed authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionDeclarationCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        ".declare_projection_fact_consumption(",
+        "consumer authors the intermediate projection lifecycle outside Query authority",
+        "downstream-authority-adoption",
+    ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyProjectionIntentAdmissionCall,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "worth_query_projection_consumption_intent(",
+        "consumer routes through the retired projection-consumption intent instead of requesting sealed authority",
         "downstream-authority-adoption",
     ),
     registry_row(

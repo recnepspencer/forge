@@ -1,8 +1,10 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
-use crate::projection_consumption::{ProjectMaterializedFacts, ProjectionFactConsumptionPathError};
+use crate::projection_consumption::{
+    ProjectionAuthorityContract, ProjectionFactConsumptionPathError,
+};
 use crate::runtime::{
-    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionConsumption,
+    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
 };
 
 pub struct WorthQueryPublicBridgePublishedProjectionReader<'a> {
@@ -14,13 +16,14 @@ impl<'a> WorthQueryPublicBridgePublishedProjectionReader<'a> {
         Self { artifact }
     }
 
-    pub fn consume_projection_facts(
+    pub fn consume_projection_authority(
         &self,
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
-        requested: ProjectMaterializedFacts,
-    ) -> Result<WorthQueryPublishedProjectionConsumption, ProjectionFactConsumptionPathError> {
+        contract: ProjectionAuthorityContract,
+    ) -> Result<WorthQueryPublishedProjectionAuthorityOutcome, ProjectionFactConsumptionPathError>
+    {
         self.artifact
-            .consume_projection_facts(result_shape, authorized_projection, requested)
+            .consume_projection_authority(result_shape, authorized_projection, contract)
     }
 }
