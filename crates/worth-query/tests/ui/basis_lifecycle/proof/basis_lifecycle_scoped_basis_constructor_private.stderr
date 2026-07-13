@@ -1,4 +1,4 @@
-error: cannot construct `worth_query::facade::ScopedObservationBasis` with struct literal syntax due to private fields
+error: cannot construct `worth_query::facade::foundation::ScopedObservationBasis` with struct literal syntax due to private fields
   --> tests/ui/basis_lifecycle/proof/basis_lifecycle_scoped_basis_constructor_private.rs:8:13
    |
  8 |     let _ = ScopedObservationBasis {

@@ -1,4 +1,4 @@
-use worth_query::facade::CausalInspectionCertificationBundle;
+use worth_query::facade::certification::CausalInspectionCertificationBundle;
 
 fn main() {
     let _ = CausalInspectionCertificationBundle {

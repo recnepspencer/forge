@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryBranchOptions, WorthQueryEffectPolicy};
+use worth_query::facade::runtime::{WorthQueryBranchOptions, WorthQueryEffectPolicy};
 
 fn main() {
     let _ = WorthQueryBranchOptions::derive_only()

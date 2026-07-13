@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    worth_query_domain, WorthQueryLowerRuntimeBoundaryEnvelope,
-    WorthQueryLowerRuntimeExplanationRequest,
-};
+use worth_query::facade::runtime::{worth_query_domain, WorthQueryLowerRuntimeBoundaryEnvelope, WorthQueryLowerRuntimeExplanationRequest};
 
 fn main() {
     let _ = worth_query_domain("worth.spatial")

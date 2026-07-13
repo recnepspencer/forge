@@ -1,0 +1,29 @@
+#[test]
+fn public_authority_surface_manifest_is_read_only_to_consumers() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/public_authority_surface/manifest_row_constructor_private.rs");
+    tests.compile_fail("tests/ui/public_authority_surface/internal_manifest_module_private.rs");
+    tests.compile_fail("tests/ui/public_authority_surface/raw_digest_minting_removed.rs");
+    tests.compile_fail("tests/ui/public_authority_surface/schema_digest_cannot_resolve_basis.rs");
+    tests.compile_fail(
+        "tests/ui/public_authority_surface/raw_digests_cannot_enter_identity_evolution.rs",
+    );
+    tests.compile_fail("tests/ui/public_authority_surface/historical_string_basis_removed.rs");
+    tests.compile_fail("tests/ui/public_authority_surface/authority_handle_fields_private.rs");
+    tests.compile_fail("tests/ui/public_authority_surface/raw_query_context_surface_removed.rs");
+    tests
+        .compile_fail("tests/ui/public_authority_surface/scoped_query_context_cannot_be_peeled.rs");
+    tests.compile_fail(
+        "tests/ui/public_authority_surface/causal_receipt_cannot_author_inspection.rs",
+    );
+    tests
+        .compile_fail("tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs");
+    tests.compile_fail(
+        "tests/ui/public_authority_surface/legacy_preview_binding_cannot_assess_drift.rs",
+    );
+    tests.compile_fail(
+        "tests/ui/public_authority_surface/certification_tooling_not_in_ordinary_facade.rs",
+    );
+    tests.pass("tests/ui/public_authority_surface/golden/read_only_manifest_compiles.rs");
+    tests.pass("tests/ui/public_authority_surface/golden/certification_namespace_compiles.rs");
+}

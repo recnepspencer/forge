@@ -14,7 +14,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use worth_foundational::facade::AspectValue;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryAspectTouch, WorthQueryExistingTruthTargetBinding, WorthQueryRuntime,
     WorthQueryRuntimeSupportProfile,
 };

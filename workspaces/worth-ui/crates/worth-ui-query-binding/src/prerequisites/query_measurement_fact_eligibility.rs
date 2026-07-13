@@ -1,5 +1,7 @@
-use worth_query::facade::{
-    MaterializedProjectionContract, ProjectionContractSourcePosture, ProjectionFactKind,
+use worth_query::facade::foundation::{
+    MaterializedProjectionContract,
+    ProjectionContractSourcePosture,
+    ProjectionFactKind,
     WorthQueryConsumedProjectionAuthority,
 };
 

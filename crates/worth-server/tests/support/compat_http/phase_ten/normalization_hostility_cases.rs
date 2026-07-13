@@ -1,5 +1,5 @@
 use worth_foundational::facade::DiagnosticRichnessProfile;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerBinaryDownloadExecutionInput, WorthServerBinaryDownloadRequest,
     WorthServerCompatHttpRouteFamily, WorthServerCompatibilityExecutionInput,

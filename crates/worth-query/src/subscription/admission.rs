@@ -1,3 +1,4 @@
+use crate::basis_lifecycle::ScopedSubscriptionDeclarationBasis;
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::identity_authority::{
     project_query_subscription_evidence, QueryProjectionIdentity, QuerySubscriptionIdentityKind,
@@ -25,6 +26,7 @@ pub struct QuerySubscriptionAdmissionArtifact {
     bridge_declaration_identity: WorthQueryEvidenceIdentity,
     future_selection: QuerySubscriptionFutureSelection,
     basis_binding_identity: WorthQueryEvidenceIdentity,
+    scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
     signal_strategy_identity: WorthQueryEvidenceIdentity,
     admission_budget: QuerySubscriptionAdmissionBudget,
     diagnostics: QuerySubscriptionAdmissionDiagnostics,
@@ -75,6 +77,10 @@ impl QuerySubscriptionAdmissionArtifact {
 
     pub fn basis_binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.basis_binding_identity
+    }
+
+    pub fn scoped_declaration_basis(&self) -> &ScopedSubscriptionDeclarationBasis {
+        &self.scoped_declaration_basis
     }
 
     pub fn signal_strategy_projection(
@@ -199,6 +205,7 @@ pub fn admit_query_subscription(
         bridge_declaration_identity: lowering.bridge_declaration_identity().clone(),
         future_selection: lowering.future_selection().clone(),
         basis_binding_identity: lowering.basis_request().evidence_identity().clone(),
+        scoped_declaration_basis: lowering.scoped_declaration_basis().clone(),
         signal_strategy_identity: lowering
             .signal_strategy_request()
             .evidence_identity()

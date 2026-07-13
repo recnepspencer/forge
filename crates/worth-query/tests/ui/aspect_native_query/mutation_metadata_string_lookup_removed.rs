@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryMutationMetadata;
+use worth_query::facade::runtime::WorthQueryMutationMetadata;
 
 fn main() {
     let metadata = metadata_fixture();

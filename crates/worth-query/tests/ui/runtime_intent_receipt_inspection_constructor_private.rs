@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryIntentExecutionKind,
-    WorthQueryIntentInspectionDeliveryCounters, WorthQueryIntentReceiptInspection,
-    WorthQueryIntentSourceLane,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryIntentExecutionKind, WorthQueryIntentInspectionDeliveryCounters, WorthQueryIntentReceiptInspection, WorthQueryIntentSourceLane};
 
 fn main() {
     let counters = WorthQueryIntentInspectionDeliveryCounters {

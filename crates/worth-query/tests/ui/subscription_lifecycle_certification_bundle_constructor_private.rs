@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionLifecycleCertificationBundle;
+use worth_query::facade::certification::SubscriptionLifecycleCertificationBundle;
 
 fn main() {
     let _ = SubscriptionLifecycleCertificationBundle {

@@ -1,8 +1,10 @@
 mod projection_consumption_support;
 
-use worth_query::facade::{
-    ProjectionAuthorityContract, ProjectionAuthorityOutcome, WorthQueryAuthoredAspectValue,
+use worth_query::facade::foundation::{
+    ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome,
 };
+use worth_query::facade::runtime::WorthQueryAuthoredAspectValue;
 use worth_ui::facade::admission::{UiAdmissionQueryBasis, UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -214,7 +216,7 @@ fn authority_contract() -> ProjectionAuthorityContract {
 fn query_authority(
     (world, outcome): (
         UiGraphWorldProfile,
-        worth_query::facade::ProjectionAuthorityOutcome,
+        worth_query::facade::foundation::ProjectionAuthorityOutcome,
     ),
 ) -> (UiGraphWorldProfile, WorthUiQueryAuthorityHandle) {
     let (authority, _) = WorthUiQueryAuthorityHandle::from_outcome(outcome)

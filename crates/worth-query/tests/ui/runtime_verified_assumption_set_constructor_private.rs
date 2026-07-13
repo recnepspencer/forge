@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryVerificationReadSetBreadth, WorthQueryVerifiedAssumptionSet,
-};
+use worth_query::facade::runtime::{WorthQueryVerificationReadSetBreadth, WorthQueryVerifiedAssumptionSet};
 
 fn main() {
     let read_set = WorthQueryVerificationReadSetBreadth {

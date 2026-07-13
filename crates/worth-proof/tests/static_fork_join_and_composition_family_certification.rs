@@ -1,12 +1,12 @@
 mod support;
 
+use support::compile_fail::run_compile_fail_bundle;
+use support::compile_pass::run_compile_pass_bundle;
+use support::milestone6;
 use worth_proof::{
     lower_deterministic_family_pair, resolve_family_symbol, AuthoritativeFamilyMember,
     CompositionFamilySymbol, FamilyLifecycleAction,
 };
-use support::compile_fail::run_compile_fail_bundle;
-use support::compile_pass::run_compile_pass_bundle;
-use support::milestone6;
 
 #[test]
 fn static_fork_join_and_composition_family_certification() {

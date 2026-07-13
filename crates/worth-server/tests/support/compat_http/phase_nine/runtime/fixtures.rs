@@ -1,5 +1,5 @@
-use worth_server::{WorthServerMultipartUpload, WorthServerUploadManifest, WorthServerUploadPart};
 use serde_json::json;
+use worth_server::{WorthServerMultipartUpload, WorthServerUploadManifest, WorthServerUploadPart};
 
 pub(crate) fn canonical_upload(identity: &str) -> WorthServerMultipartUpload {
     WorthServerMultipartUpload::new(

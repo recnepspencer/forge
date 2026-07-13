@@ -1,4 +1,4 @@
-use worth_query::facade::{admit_effect_intent, AdvisoryEffectEligibility};
+use worth_query::facade::foundation::{admit_effect_intent, AdvisoryEffectEligibility};
 
 fn main() {
     let advisory: AdvisoryEffectEligibility = unsafe { std::mem::zeroed() };

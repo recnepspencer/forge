@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
-};
+use worth_query::facade::foundation::{WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt};
 
 fn main() {
     let _receipt = WorthQueryMutationReceipt {

@@ -17,6 +17,8 @@ use super::request::{
     causal_inspection_target, request_causal_inspection, CausalInspectionExplanationFamily,
     CausalInspectionRequest, CausalInspectionRequestError, CausalInspectionRichness,
 };
+use crate::basis_lifecycle::ScopedInspectionBasis;
+use crate::identity::hash_parts;
 
 /// Intent-first entrypoint for inspecting why an existing Query observation happened.
 ///
@@ -26,6 +28,7 @@ use super::request::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspection {
     receipt: QueryObservationReceipt,
+    inspection_basis: ScopedInspectionBasis,
     reason: Option<CausalInspectionReason>,
     explanation_family: CausalInspectionExplanationFamily,
     richness: CausalInspectionRichness,
@@ -53,6 +56,7 @@ impl CausalInspectionSupportPosture {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CausalInspectionPlanError {
+    BasisMismatch(CausalInspectionBasisMismatch),
     Anchor(CausalObservationAnchorError),
     MissingEvidence(CausalEvidenceReferenceResolutionDenial),
     Request(CausalInspectionRequestError),
@@ -60,6 +64,7 @@ pub enum CausalInspectionPlanError {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalInspectionPlanErrorKind {
+    BasisMismatch,
     Anchor,
     MissingEvidence,
     Request,
@@ -68,6 +73,7 @@ pub enum CausalInspectionPlanErrorKind {
 impl CausalInspectionPlanErrorKind {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::BasisMismatch => "basis_mismatch",
             Self::Anchor => "anchor",
             Self::MissingEvidence => "missing_evidence",
             Self::Request => "request",
@@ -78,6 +84,7 @@ impl CausalInspectionPlanErrorKind {
 impl CausalInspectionPlanError {
     pub fn kind(&self) -> CausalInspectionPlanErrorKind {
         match self {
+            Self::BasisMismatch(_) => CausalInspectionPlanErrorKind::BasisMismatch,
             Self::Anchor(_) => CausalInspectionPlanErrorKind::Anchor,
             Self::MissingEvidence(_) => CausalInspectionPlanErrorKind::MissingEvidence,
             Self::Request(_) => CausalInspectionPlanErrorKind::Request,
@@ -86,6 +93,7 @@ impl CausalInspectionPlanError {
 
     pub fn failure_digest(&self) -> &str {
         match self {
+            Self::BasisMismatch(error) => error.failure_digest(),
             Self::Anchor(error) => error.failure_digest(),
             Self::MissingEvidence(denial) => denial.failure_digest(),
             Self::Request(error) => error.failure_for_reporting(),
@@ -93,10 +101,50 @@ impl CausalInspectionPlanError {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CausalInspectionBasisMismatch {
+    receipt_basis_digest: String,
+    requested_basis_digest: String,
+    failure_digest: String,
+}
+
+impl CausalInspectionBasisMismatch {
+    fn new(receipt_basis: &ScopedInspectionBasis, requested_basis: &ScopedInspectionBasis) -> Self {
+        let receipt_basis_digest = receipt_basis.scoped_basis_digest().to_string();
+        let requested_basis_digest = requested_basis.scoped_basis_digest().to_string();
+        let failure_digest = hash_parts(&[
+            "causal_inspection_basis_mismatch_v1".to_string(),
+            format!("receipt:{receipt_basis_digest}"),
+            format!("requested:{requested_basis_digest}"),
+        ]);
+        Self {
+            receipt_basis_digest,
+            requested_basis_digest,
+            failure_digest,
+        }
+    }
+
+    pub fn receipt_basis_digest(&self) -> &str {
+        &self.receipt_basis_digest
+    }
+
+    pub fn requested_basis_digest(&self) -> &str {
+        &self.requested_basis_digest
+    }
+
+    pub fn failure_digest(&self) -> &str {
+        &self.failure_digest
+    }
+}
+
 impl CausalInspection {
-    pub fn for_observation(receipt: QueryObservationReceipt) -> Self {
+    pub fn for_observation(
+        receipt: QueryObservationReceipt,
+        inspection_basis: ScopedInspectionBasis,
+    ) -> Self {
         Self {
             receipt,
+            inspection_basis,
             reason: None,
             explanation_family: CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
             richness: CausalInspectionRichness::ReferenceOnly,
@@ -105,6 +153,12 @@ impl CausalInspection {
             materialization_policy:
                 CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
         }
+    }
+
+    #[cfg(test)]
+    pub(in crate::runtime) fn for_test_observation(receipt: QueryObservationReceipt) -> Self {
+        let inspection_basis = receipt.inspection_basis_for_test();
+        Self::for_observation(receipt, inspection_basis)
     }
 
     pub fn why_changed(self) -> Self {
@@ -215,6 +269,14 @@ impl CausalInspection {
     }
 
     pub fn plan(self) -> Result<CausalInspectionPlan, CausalInspectionPlanError> {
+        if self.receipt.inspection_basis() != &self.inspection_basis {
+            return Err(CausalInspectionPlanError::BasisMismatch(
+                CausalInspectionBasisMismatch::new(
+                    self.receipt.inspection_basis(),
+                    &self.inspection_basis,
+                ),
+            ));
+        }
         let reason = self
             .reason
             .unwrap_or_else(|| reason_for_outcome(self.receipt.outcome()));
@@ -243,6 +305,7 @@ impl CausalInspection {
         .map_err(CausalInspectionPlanError::Request)?;
         let admission = admit_causal_inspection(request.clone());
         Ok(CausalInspectionPlan {
+            inspection_basis: self.inspection_basis,
             reference_set,
             request,
             admission,
@@ -254,6 +317,7 @@ impl CausalInspection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CausalInspectionPlan {
+    pub(super) inspection_basis: ScopedInspectionBasis,
     pub(super) reference_set: CausalEvidenceReferenceSet,
     pub(super) request: CausalInspectionRequest,
     pub(super) admission: CausalInspectionProofFlow,
@@ -269,7 +333,14 @@ impl CausalInspectionPlan {
         materialization_policy: CausalInspectionMaterializationPolicy,
     ) -> Self {
         let admission = admit_causal_inspection(request.clone());
+        let inspection_basis = request
+            .reference_set()
+            .anchor()
+            .observation_receipt()
+            .inspection_basis()
+            .clone();
         Self {
+            inspection_basis,
             reference_set,
             request,
             admission,
@@ -284,6 +355,10 @@ impl CausalInspectionPlan {
             CausalInspectionProofFlow::Advisory(_) => CausalInspectionSupportPosture::Advisory,
             CausalInspectionProofFlow::Denied(_) => CausalInspectionSupportPosture::Denied,
         }
+    }
+
+    pub fn inspection_basis(&self) -> &ScopedInspectionBasis {
+        &self.inspection_basis
     }
 
     pub fn required_evidence(&self) -> &[CausalEvidenceReference] {

@@ -1,5 +1,5 @@
-use worth_harness::facade::{SnapshotPayload as HarnessSnapshotCaptureValue, StructuredValue};
 use serde_json::json;
+use worth_harness::facade::{SnapshotPayload as HarnessSnapshotCaptureValue, StructuredValue};
 
 pub(in crate::harness::adapter) fn historical_terminal_snapshot_capture_value(
     record: &crate::facade::BridgeCanonicalHistoricalEvaluationRecord,

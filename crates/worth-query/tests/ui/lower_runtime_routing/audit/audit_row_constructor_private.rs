@@ -1,7 +1,5 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeDirectImportAuditRow, WorthQueryLowerRuntimeDirectImportPosture,
-    WorthQueryLowerRuntimeSeamKey,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeDirectImportPosture, WorthQueryLowerRuntimeSeamKey};
+use worth_query::facade::certification::WorthQueryLowerRuntimeDirectImportAuditRow;
 
 fn main() {
     let _ = WorthQueryLowerRuntimeDirectImportAuditRow::new(

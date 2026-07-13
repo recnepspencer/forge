@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     AspectKey, CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind,
     CanonicalBasisLocus, FieldKey, InternedString,
 };
-use serde::{Deserialize, Serialize};
 
 use super::value::NativeValue;
 use crate::diagnostics::data::fields::native_serde::{

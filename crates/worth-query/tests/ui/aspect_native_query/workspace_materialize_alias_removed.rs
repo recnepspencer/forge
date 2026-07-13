@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryDerivedViewHandle, WorthQueryNativeRow, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryNativeRow, WorthQueryWorkspace};
 
 fn main() {
     let workspace = workspace_fixture();

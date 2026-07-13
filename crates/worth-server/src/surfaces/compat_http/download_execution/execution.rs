@@ -5,8 +5,8 @@ use crate::{
     WorthServerOperationFamily, WorthServerOperationRequestFacade, WorthServerQueryHandoffDenial,
     WorthServerQueryHandoffDenialCode, WorthServerQueryHandoffFailure,
 };
-use worth_proof::TransitionOutcome;
 use std::collections::BTreeMap;
+use worth_proof::TransitionOutcome;
 
 use super::{
     performance::{

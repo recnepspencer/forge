@@ -1,7 +1,7 @@
-use worth_query::facade::{
-    WORTHQueryDeclarationEntryCrossingInventory, WORTHQueryDeclarationEntryReadinessReport,
-    WORTHQueryDeclarationEnvelope, WORTHQueryDeclarationInput, WORTHQueryDeclaredFamilyChecked,
-    WORTHQueryOrdinaryOutcome,
+use worth_query::facade::foundation::{
+    WorthQueryDeclarationEntryCrossingInventory, WorthQueryDeclarationEntryReadinessReport,
+    WorthQueryDeclarationEnvelope, WorthQueryDeclarationInput, WorthQueryDeclaredFamilyChecked,
+    WorthQueryOrdinaryOutcome,
 };
 
 use super::geometry_screening_request_types::{
@@ -42,7 +42,7 @@ use super::tiling_request_types::{
 use crate::query_entry::{HadwigerResearchDomainEntry, HadwigerResearchHandle};
 
 pub trait HadwigerResearchDeclarationInput:
-    WORTHQueryDeclarationInput<HadwigerResearchDomainEntry> + sealed::HadwigerResearchRequestSeal
+    WorthQueryDeclarationInput<HadwigerResearchDomainEntry> + sealed::HadwigerResearchRequestSeal
 {
 }
 
@@ -111,7 +111,7 @@ hadwiger_request_input!(
 pub fn declare_research_request_checked<I>(
     handle: &HadwigerResearchHandle,
     input: I,
-) -> WORTHQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
+) -> WorthQueryDeclaredFamilyChecked<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -121,7 +121,7 @@ where
 pub fn orchestrate_research_request_entry<I>(
     handle: &HadwigerResearchHandle,
     input: I,
-) -> WORTHQueryOrdinaryOutcome<WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
+) -> WorthQueryOrdinaryOutcome<WorthQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -130,7 +130,7 @@ where
 
 pub fn research_declaration_entry_inventory<I>(
     handle: &HadwigerResearchHandle,
-) -> WORTHQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
+) -> WorthQueryDeclarationEntryCrossingInventory<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {
@@ -139,7 +139,7 @@ where
 
 pub fn research_declaration_entry_readiness<I>(
     handle: &HadwigerResearchHandle,
-) -> WORTHQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
+) -> WorthQueryDeclarationEntryReadinessReport<HadwigerResearchDomainEntry, I>
 where
     I: HadwigerResearchDeclarationInput,
 {

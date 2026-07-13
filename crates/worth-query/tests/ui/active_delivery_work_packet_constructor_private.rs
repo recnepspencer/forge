@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveDeliveryWorkPacket, ActiveSubscriptionAllocationPosture};
+use worth_query::facade::runtime::{ActiveDeliveryWorkPacket, ActiveSubscriptionAllocationPosture};
 
 fn main() {
     let _packet = ActiveDeliveryWorkPacket {

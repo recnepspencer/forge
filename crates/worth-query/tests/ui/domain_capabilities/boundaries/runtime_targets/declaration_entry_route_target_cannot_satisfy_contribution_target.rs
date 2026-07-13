@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryDeclarationBoundContributionTarget, WorthQueryDeclarationRoutePlanBindingTarget,
-};
+use worth_query::facade::runtime::WorthQueryDeclarationBoundContributionTarget;
+use worth_query::facade::WorthQueryDeclarationRoutePlanBindingTarget;
 
 fn route_target() -> WorthQueryDeclarationRoutePlanBindingTarget {
     loop {}

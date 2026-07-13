@@ -1,4 +1,4 @@
-use worth_query::facade::PreviewSubscriptionPromotionHandoff;
+use worth_query::facade::runtime::PreviewSubscriptionPromotionHandoff;
 
 fn main() {
     let _ = PreviewSubscriptionPromotionHandoff {

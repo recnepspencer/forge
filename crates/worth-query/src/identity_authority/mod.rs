@@ -2,14 +2,14 @@ mod admission;
 mod authority;
 mod categories;
 mod kinds;
+mod operational;
 mod phase_one_compile_fail_targets;
 mod phase_one_family_map;
 mod phase_one_root_break_targets;
 mod projection;
 
 pub(crate) use admission::{
-    admit_query_causal_inspection_authority_identity, admit_query_feeder_authority_identity,
-    admit_query_subscription_authority_identity,
+    admit_query_causal_inspection_authority_identity, admit_query_subscription_authority_identity,
 };
 pub use authority::{
     query_causal_inspection_authority, query_domain_capability_authority,
@@ -44,6 +44,7 @@ pub use kinds::{
     QuerySignalInvalidationIdentityKind, QuerySignalRouteIdentityKind, QuerySnapshotIdentityKind,
     QuerySubscriptionIdentityKind, QueryWorkflowIdentityKind,
 };
+pub use operational::QueryCanonicalAuthority;
 pub use phase_one_compile_fail_targets::{
     worth_query_identity_phase_one_compile_fail_targets,
     worth_query_identity_phase_one_subscription_phase_seven_reentry_targets,

@@ -11,25 +11,15 @@ fn broad_collection_diff_remains_denied_before_diff_bundle_construction() {
     let left = contexts
         .capability()
         .admit_basis_context(
-            contexts
-                .capability()
-                .bind_basis_context(
-                    QueryBasisContextRequest::current_branch_head(),
-                    QueryContextBindingSource::RuntimeCurrent(&left_preflight),
-                )
-                .expect("left context should bind"),
+            basis_lifecycle().current_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
         )
         .expect("left context should admit");
     let right = contexts
         .capability()
         .admit_basis_context(
-            contexts
-                .capability()
-                .bind_basis_context(
-                    QueryBasisContextRequest::branch_head("branch:ordered-collection"),
-                    QueryContextBindingSource::RuntimeBranch(&right_preflight),
-                )
-                .expect("right context should bind"),
+            basis_lifecycle().branch_head("branch:ordered-collection", true),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
         )
         .expect("right context should admit");
     let diff = contexts

@@ -1,4 +1,4 @@
-use worth_query::facade::{admit_effect_intent, DeniedEffectEligibility};
+use worth_query::facade::foundation::{admit_effect_intent, DeniedEffectEligibility};
 
 fn main() {
     let denied: DeniedEffectEligibility = unsafe { std::mem::zeroed() };

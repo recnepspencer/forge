@@ -2,8 +2,8 @@
 
 use std::num::NonZeroUsize;
 
-use worth_harness::facade::{ComparisonMode, ComparisonProfile, ExecutionRequest};
 use serde_json::json;
+use worth_harness::facade::{ComparisonMode, ComparisonProfile, ExecutionRequest};
 
 use crate::data::comparator::{
     DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,

@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionFamilySelection;
+use worth_query::facade::runtime::QuerySubscriptionFamilySelection;
 
 fn main() {
     let selection: QuerySubscriptionFamilySelection = todo!();

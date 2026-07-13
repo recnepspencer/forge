@@ -16,14 +16,15 @@ This includes both:
 
 ## What This Is Not
 
-- **Cross-runtime causal inspection** â€” use the `CausalInspection` lane
-  (`admit_causal_inspection`, `request_causal_inspection`), not `workspace.inspect`.
+- **Cross-runtime causal inspection** — construct `CausalInspection` from the
+  originating receipt and a `ScopedInspectionBasis`, then use the causal
+  admission/materialization lane rather than `workspace.inspect`.
   See [cross-runtime causal inspection](cross-runtime-causal-inspection.md) and
   [inspection vs cross-runtime explanation](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md).
-- **Explanation contributions** â€” domain declaration posture in
-  [explanation/](../domain-capabilities/explanation/); does not replace inspect or
+- **Explanation contributions** — domain declaration posture in
+  [lower-runtime explanation contributions](../domain-capabilities/explanation/lower-runtime-explanation-contributions.md); does not replace inspect or
   causal inspection APIs.
-- **Authoritative mutation write proof** â€” use
+- **Authoritative mutation write proof** — use
   [authoritative mutation evidence](authoritative-mutation-evidence.md) for
   bridge-backed write receipts, not inspect alone.
 
@@ -157,7 +158,7 @@ Good to know:
 - it uses admitted `WorthQueryConsumedProjectionAuthority`, whose `facts()`,
   `receipt()`, and evidence getters are inspection-only projections
 - use [Projection Consumption](projection-consumption.md) when the feature
-  you need to inspect is â€œtyped facts consumed from this materializationâ€
+  you need to inspect is “typed facts consumed from this materialization”
 
 - when that materialization was temporal, async, mixed-cause, or remask-bound,
   the receipt-first projection-consumption lane now retains that typed posture
@@ -166,7 +167,7 @@ Good to know:
 ## Small Example
 
 ```rust
-use worth_query::facade::{WorthQueryInspection, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryInspection, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
@@ -210,7 +211,7 @@ let provenance = result.receipt().execution_provenance();
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryInspection, WorthQueryLiveView, WorthQueryPreviewOptions,
 };
 use serde_json::Value;
@@ -423,7 +424,8 @@ Some especially important things to look for:
   `LiveViewInspection::remask_posture()` when you need the retained narrowing
   authority and basis/policy/proof/schema digests directly
 - cross-runtime temporal/async "why" questions:
-  use `CausalInspection` artifacts and their
+  use receipt-and-`ScopedInspectionBasis`-bound `CausalInspection` artifacts
+  and their
   `temporal_async_explanation()` surface instead of expecting
   `workspace.inspect(...)` to materialize cross-runtime explanation envelopes
 - basis-sensitive artifacts: admitted basis digest, scoped digest, lower-runtime

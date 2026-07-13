@@ -1,10 +1,6 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, WorthQueryDerivedArtifactBinding,
-    WorthQueryEvidenceIdentity, WorthQueryLiveArtifactBinding,
-    ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
-    ProjectionFactFieldPath,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryEvidenceIdentity, WorthQueryLiveArtifactBinding};
 
 fn retained_live_ordinary_path(
     retained: &WorthQueryDerivedArtifactBinding,

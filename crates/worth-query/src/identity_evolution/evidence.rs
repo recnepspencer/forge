@@ -1,7 +1,9 @@
+use crate::basis::ResolvedBasisProof;
 use crate::identity::{
     BasisDigest, CanonicalQueryDigest, CounterSnapshotDigest, FailureDigest, LineageDigest,
     ResultDigest,
 };
+use crate::identity_authority::QueryCanonicalAuthority;
 
 #[cfg(test)]
 use super::admission::IdentityEvolutionAdmissionError;
@@ -159,8 +161,8 @@ impl IdentityEvolutionCounterSnapshot {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionCertificationResultEvidence {
-    query_digest: CanonicalQueryDigest,
-    basis_digest: BasisDigest,
+    query_authority: QueryCanonicalAuthority,
+    basis: ResolvedBasisProof,
     lineage_digest: LineageDigest,
     branch_locality_digest: ResultDigest,
     complexity_contract_digest: ResultDigest,
@@ -174,11 +176,19 @@ pub struct IdentityEvolutionCertificationResultEvidence {
 
 impl IdentityEvolutionCertificationResultEvidence {
     pub fn query_digest(&self) -> &CanonicalQueryDigest {
-        &self.query_digest
+        self.query_authority.digest()
     }
 
     pub fn basis_digest(&self) -> &BasisDigest {
-        &self.basis_digest
+        self.basis.digest()
+    }
+
+    pub fn query_authority(&self) -> &QueryCanonicalAuthority {
+        &self.query_authority
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn lineage_digest(&self) -> &LineageDigest {
@@ -231,8 +241,8 @@ impl IdentityEvolutionCertificationResultEvidence {
             FailureDigest::from_parts(&[format!("result_digest:{}", artifact.result_digest())])
         };
         Self {
-            query_digest: metadata.query_digest().clone(),
-            basis_digest: metadata.basis_digest().clone(),
+            query_authority: metadata.query_authority().clone(),
+            basis: metadata.basis_proof().clone(),
             lineage_digest: metadata.lineage_digest().clone(),
             branch_locality_digest: metadata.branch_locality_digest().clone(),
             complexity_contract_digest: metadata
@@ -376,28 +386,6 @@ impl IdentityEvolutionCertificationDenialEvidence {
             result_digest,
             failure_digest: FailureDigest::from_parts(&[format!("compile_fail:{row_name}")]),
             counter_snapshot: IdentityEvolutionCounterSnapshot::compile_fail(row_name),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum IdentityEvolutionCertificationEvidence {
-    Result(IdentityEvolutionCertificationResultEvidence),
-    Denial(IdentityEvolutionCertificationDenialEvidence),
-}
-
-impl IdentityEvolutionCertificationEvidence {
-    pub fn as_result(&self) -> Option<&IdentityEvolutionCertificationResultEvidence> {
-        match self {
-            Self::Result(evidence) => Some(evidence),
-            Self::Denial(_) => None,
-        }
-    }
-
-    pub fn as_denial(&self) -> Option<&IdentityEvolutionCertificationDenialEvidence> {
-        match self {
-            Self::Result(_) => None,
-            Self::Denial(evidence) => Some(evidence),
         }
     }
 }

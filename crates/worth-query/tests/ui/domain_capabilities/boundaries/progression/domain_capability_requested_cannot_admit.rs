@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    admit_eligible_domain_capability_contribution, WorthQueryAdmissionContributionAuthoring,
-    WorthQueryIntentDeclaration, WorthQueryIntentInput,
-};
+use worth_query::facade::runtime::{admit_eligible_domain_capability_contribution, WorthQueryAdmissionContributionAuthoring, WorthQueryIntentDeclaration, WorthQueryIntentInput};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

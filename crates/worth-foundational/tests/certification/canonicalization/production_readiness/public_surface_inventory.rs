@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+use std::path::Path;
 use worth_foundational::{
     canonical_milestone2_production_readiness_report,
     canonicalization_api::{
@@ -5,8 +7,6 @@ use worth_foundational::{
     },
     CanonicalHarnessExpansionPoint,
 };
-use std::collections::BTreeSet;
-use std::path::Path;
 
 #[test]
 fn canonical_public_surface_inventory_is_exact_and_grouped_by_lane() {

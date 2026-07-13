@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    worth_query_lower_runtime_closeout_registry, worth_query_lower_runtime_support_matrix,
-    inspect_lower_runtime_closeout, WorthQueryLowerRuntimeSeamKey,
-};
+use worth_query::facade::runtime::WorthQueryLowerRuntimeSeamKey;
+use worth_query::facade::certification::{worth_query_lower_runtime_closeout_registry, worth_query_lower_runtime_support_matrix, inspect_lower_runtime_closeout};
 
 fn main() {
     let support = worth_query_lower_runtime_support_matrix();

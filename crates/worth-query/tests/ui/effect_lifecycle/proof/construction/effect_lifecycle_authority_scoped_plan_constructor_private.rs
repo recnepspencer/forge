@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    AdmittedEffectIntent, AuthorityScopedEffectPlan, EffectArtifactPolicy, EffectConflictFootprint,
-    EffectInvariantScope, EffectPermittedLoweringFamily, EffectPolicyPosture, EffectPreviewPosture,
-    EffectLifecycleCounters,
-};
+use worth_query::facade::foundation::{AdmittedEffectIntent, AuthorityScopedEffectPlan, EffectArtifactPolicy, EffectConflictFootprint, EffectInvariantScope, EffectPermittedLoweringFamily, EffectPolicyPosture, EffectPreviewPosture, EffectLifecycleCounters};
 
 fn admitted() -> AdmittedEffectIntent {
     unimplemented!()

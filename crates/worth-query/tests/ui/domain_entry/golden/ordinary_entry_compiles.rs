@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker,
-};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
 
 const ENTRY_CAPABILITIES: &[WorthQueryCapabilityFamily] = &[WorthQueryCapabilityFamily::QueryRead];
 

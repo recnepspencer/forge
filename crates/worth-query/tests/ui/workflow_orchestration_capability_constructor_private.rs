@@ -1,4 +1,4 @@
-use worth_query::facade::WorkflowOrchestrationCapability;
+use worth_query::facade::foundation::WorkflowOrchestrationCapability;
 
 fn main() {
     let _ = WorkflowOrchestrationCapability {

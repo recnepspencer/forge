@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath};
-use worth_query::facade::WorthQueryEntity;
+use worth_query::facade::foundation::WorthQueryEntity;
 
 fn main() {
     let entity = entity_fixture();
@@ -23,6 +23,6 @@ fn entity_fixture() -> WorthQueryEntity {
     panic!("fixture only")
 }
 
-fn identity_fixture() -> worth_query::facade::WorthQueryEntityIdentity {
+fn identity_fixture() -> worth_query::facade::foundation::WorthQueryEntityIdentity {
     panic!("fixture only")
 }

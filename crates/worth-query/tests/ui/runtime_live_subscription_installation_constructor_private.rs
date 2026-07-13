@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    ActiveSubscriptionCounters, WorthQueryAuthorityLane,
-    WorthQueryRuntimeLiveSubscriptionInstallation, QuerySubscriptionDeclarationCounters,
-};
+use worth_query::facade::runtime::{ActiveSubscriptionCounters, WorthQueryAuthorityLane, WorthQueryRuntimeLiveSubscriptionInstallation, QuerySubscriptionDeclarationCounters};
 
 fn main() {
     let _ = WorthQueryRuntimeLiveSubscriptionInstallation {

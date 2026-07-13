@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLiveArtifactTarget,
-    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt,
-    WorthQueryRuntimeSourceAdapter, WorthQueryWorkspaceError, QuerySchemaView,
-};
+use worth_query::facade::foundation::{DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationReceipt, WorthQueryWorkspaceError};
+use worth_query::facade::runtime::{WorthQueryLiveArtifactTarget, WorthQueryRuntimeSourceAdapter, QuerySchemaView};
 
 struct StringSnapshotSource;
 

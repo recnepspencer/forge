@@ -8,7 +8,7 @@ use crate::authoring::{
 
 fn canonical_predicate_bundle(
     configure: impl FnOnce(crate::authoring::DetailQueryBuilder) -> crate::authoring::DetailQueryBuilder,
-) -> crate::facade::CanonicalQueryBundle {
+) -> crate::facade::foundation::CanonicalQueryBundle {
     let root = RootEntityKey::new("user").expect("root should build");
     let query = configure(
         crate::authoring::DetailQueryBuilder::new(root)

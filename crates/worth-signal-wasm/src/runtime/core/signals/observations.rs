@@ -1,8 +1,8 @@
+use js_sys::Function;
 use worth_signal::facade::runtime::{
     ObservationHandle, ObservationListener, ObservationNotice, ObservationPolicy,
     ObservationReadContext,
 };
-use js_sys::Function;
 
 use crate::boundary::errors::WorthSignalJsError;
 use crate::expression::model::SignalValue;

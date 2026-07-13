@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BasisEligibilityCounters, BasisEligibilityDecisionTrace, LowerRuntimeBoundBasis,
-    LowerRuntimeEvidenceAuthority, ScopedObservationBasis,
-};
+use worth_query::facade::foundation::{BasisEligibilityCounters, BasisEligibilityDecisionTrace, LowerRuntimeBoundBasis, LowerRuntimeEvidenceAuthority, ScopedObservationBasis};
 
 fn scoped_basis() -> ScopedObservationBasis {
     unimplemented!()

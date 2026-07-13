@@ -1,5 +1,8 @@
 use worth_runtime_bridge::facade::{BridgeTruthViewEvaluationRequest, TruthBranchIdentity};
 
+use crate::basis_lifecycle::{
+    basis_lifecycle, readmit_lower_runtime_evidence, LowerRuntimeBasisEvidence,
+};
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
@@ -9,13 +12,6 @@ use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeCapabilityRequest, WorthQueryLowerRuntimeReadmissionReceipt,
     WorthQueryLowerRuntimeRouteKind, WorthQueryLowerRuntimeRoutePlan,
     WorthQueryLowerRuntimeSeamKey,
-};
-use crate::query_basis_lifecycle::{
-    admit_inspection_basis, admit_observation_basis, admit_subscription_activation_basis,
-    admit_subscription_declaration_basis, evaluate_basis_eligibility, normalize_raw_basis,
-    readmit_bridge_continuity_evidence, readmit_bridge_subscription_activation_evidence,
-    readmit_bridge_subscription_declaration_evidence, readmit_bridge_truth_view_evidence,
-    BasisOperationLaneRequest, RawBasisIntent,
 };
 
 use super::super::{RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource};
@@ -27,43 +23,41 @@ use super::readmission_support::{
 pub(crate) fn representative_subscription_continuity_row() -> RepresentativeArtifacts {
     let runtime = continuity_runtime();
     let continuity = delivered_continuity(&runtime);
-    let capability = admit_inspection_basis(
-        evaluate_basis_eligibility(
-            normalize_raw_basis(RawBasisIntent::branch_head(
-                phase_six_branch_identity(),
-                BasisOperationLaneRequest::Inspection,
-            ))
-            .expect("subscription continuity fixture should normalize inspection basis"),
-        )
-        .expect("subscription continuity fixture should admit inspection basis"),
-    )
-    .expect("subscription continuity fixture should wrap admitted inspection basis");
-    let bound = readmit_bridge_continuity_evidence(capability, &continuity)
-        .expect("subscription continuity fixture should readmit bridge continuity evidence");
+    let record = continuity.canonical_record();
     let continuity_evidence =
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_value(
                 WorthQueryEvidenceTag::new("route_identity"),
-                bound
-                    .evidence()
+                record
                     .route_identity()
-                    .expect("continuity route identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("continuity_identity"),
-                bound
-                    .evidence()
+                continuity
                     .continuity_identity()
-                    .expect("continuity identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
-            .field_value(
+            .field_shape(
                 WorthQueryEvidenceTag::new("continuity_resolution"),
-                bound
-                    .evidence()
-                    .continuity_resolution_digest()
-                    .expect("continuity resolution digest should exist"),
+                record.continuity_resolution_digest(),
             )
             .seal();
+    let scoped = basis_lifecycle()
+        .runtime_snapshot("phase-six-continuity", "runtime-bridge-continuity")
+        .inspect()
+        .expect("continuity inspection basis should admit");
+    readmit_lower_runtime_evidence(
+        scoped,
+        LowerRuntimeBasisEvidence::from_runtime_bridge_facade(
+            "runtime-bridge-continuity",
+            continuity_evidence.as_str(),
+            1,
+        ),
+    )
+    .expect("continuity fixture should use canonical scoped readmission");
 
     let request = WorthQueryLowerRuntimeCapabilityRequest::new(
         WorthQueryLowerRuntimeSeamKey::SubscriptionContinuity,
@@ -123,43 +117,42 @@ pub(crate) fn representative_basis_truth_view_readmission_row() -> Representativ
             TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH),
         ))
         .expect("truth-view readmission fixture should evaluate branch head");
-    let capability = admit_observation_basis(
-        evaluate_basis_eligibility(
-            normalize_raw_basis(RawBasisIntent::branch_head(
-                phase_six_branch_identity(),
-                BasisOperationLaneRequest::Observation,
-            ))
-            .expect("truth-view readmission fixture should normalize observation basis"),
-        )
-        .expect("truth-view readmission fixture should admit observation basis"),
-    )
-    .expect("truth-view readmission fixture should wrap admitted observation basis");
-    let bound = readmit_bridge_truth_view_evidence(capability, &evaluation)
-        .expect("truth-view readmission fixture should bind bridge evidence");
+    let selector = evaluation.record().declaration().selector();
     let truth_view_evidence =
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_value(
                 WorthQueryEvidenceTag::new("record_identity"),
-                bound
-                    .evidence()
+                evaluation
+                    .record()
                     .record_identity()
-                    .expect("truth-view record identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("selector_identity"),
-                bound
-                    .evidence()
+                selector
                     .selector_identity()
-                    .expect("truth-view selector identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
-            .field_value(
+            .field_shape(
                 WorthQueryEvidenceTag::new("authority"),
-                bound
-                    .evidence()
-                    .authority_digest()
-                    .expect("truth-view authority digest should exist"),
+                evaluation.record().decision_log().authority_digest(),
             )
             .seal();
+    let scoped = basis_lifecycle()
+        .runtime_snapshot("phase-six-truth-view", "runtime-bridge-truth-view")
+        .observe()
+        .expect("truth-view observation basis should admit");
+    readmit_lower_runtime_evidence(
+        scoped,
+        LowerRuntimeBasisEvidence::from_runtime_bridge_facade(
+            "runtime-bridge-truth-view",
+            truth_view_evidence.as_str(),
+            1,
+        ),
+    )
+    .expect("truth-view fixture should use canonical scoped readmission");
 
     readmission_row(
         WorthQueryLowerRuntimeSeamKey::BasisReadmissionFromTruthViewEvidence,
@@ -180,64 +173,71 @@ pub(crate) fn representative_basis_truth_view_readmission_row() -> Representativ
 pub(crate) fn representative_basis_subscription_readmission_row() -> RepresentativeArtifacts {
     let runtime = subscription_runtime();
     let admitted = detail_subscription(&runtime);
-    let declaration = admit_subscription_declaration_basis(
-        evaluate_basis_eligibility(
-            normalize_raw_basis(RawBasisIntent::branch_head(
-                phase_six_branch_identity(),
-                BasisOperationLaneRequest::SubscriptionDeclaration,
-            ))
-            .expect("subscription readmission fixture should normalize declaration basis"),
-        )
-        .expect("subscription readmission fixture should admit declaration basis"),
-    )
-    .expect("subscription readmission fixture should wrap admitted declaration basis");
-    let activation = admit_subscription_activation_basis(
-        evaluate_basis_eligibility(
-            normalize_raw_basis(RawBasisIntent::branch_head(
-                phase_six_branch_identity(),
-                BasisOperationLaneRequest::SubscriptionActivation,
-            ))
-            .expect("subscription readmission fixture should normalize activation basis"),
-        )
-        .expect("subscription readmission fixture should admit activation basis"),
-    )
-    .expect("subscription readmission fixture should wrap admitted activation basis");
-    let declaration_bound =
-        readmit_bridge_subscription_declaration_evidence(declaration, &admitted)
-            .expect("subscription declaration readmission should bind bridge evidence");
-    let activation_bound = readmit_bridge_subscription_activation_evidence(activation, &admitted)
-        .expect("subscription activation readmission should bind bridge evidence");
     let subscription_evidence =
         WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
             .field_value(
                 WorthQueryEvidenceTag::new("declaration_subscription"),
-                declaration_bound
-                    .evidence()
+                admitted
                     .admitted_subscription_identity()
-                    .expect("admitted subscription identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("declaration_strategy"),
-                declaration_bound
-                    .evidence()
+                admitted
+                    .signal_strategy()
                     .strategy_identity()
-                    .expect("subscription strategy identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("activation_subscription"),
-                activation_bound
-                    .evidence()
+                admitted
                     .admitted_subscription_identity()
-                    .expect("admitted subscription identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .field_value(
                 WorthQueryEvidenceTag::new("activation_strategy"),
-                activation_bound
-                    .evidence()
+                admitted
+                    .signal_strategy()
                     .strategy_identity()
-                    .expect("subscription strategy identity should exist"),
+                    .bridge_admission_evidence()
+                    .terminal_projection_for_reporting(),
             )
             .seal();
+    let declaration = basis_lifecycle()
+        .runtime_snapshot("phase-six-subscription", "runtime-bridge-subscription")
+        .declare_subscription()
+        .expect("subscription declaration basis should admit");
+    let activation = basis_lifecycle()
+        .runtime_snapshot("phase-six-subscription", "runtime-bridge-subscription")
+        .activate_subscription()
+        .expect("subscription activation basis should admit");
+    for scoped_digest in [
+        readmit_lower_runtime_evidence(
+            declaration,
+            LowerRuntimeBasisEvidence::from_runtime_bridge_facade(
+                "runtime-bridge-subscription",
+                subscription_evidence.as_str(),
+                1,
+            ),
+        )
+        .expect("subscription declaration should use canonical scoped readmission")
+        .lower_runtime_binding_digest(),
+        readmit_lower_runtime_evidence(
+            activation,
+            LowerRuntimeBasisEvidence::from_runtime_bridge_facade(
+                "runtime-bridge-subscription",
+                subscription_evidence.as_str(),
+                1,
+            ),
+        )
+        .expect("subscription activation should use canonical scoped readmission")
+        .lower_runtime_binding_digest(),
+    ] {
+        assert!(!scoped_digest.is_empty());
+    }
 
     readmission_row(
         WorthQueryLowerRuntimeSeamKey::BasisReadmissionFromSubscriptionEvidence,
@@ -253,11 +253,6 @@ pub(crate) fn representative_basis_subscription_readmission_row() -> Representat
         subscription_evidence.clone(),
         subscription_evidence,
     )
-}
-
-fn phase_six_branch_identity() -> worth_runtime_bridge::facade::BridgeIdentityEvidence {
-    TruthBranchIdentity::from_relational_branch_id(PHASE_SIX_MAIN_BRANCH)
-        .bridge_admission_evidence()
 }
 
 fn readmission_row(

@@ -2,15 +2,15 @@
 mod compat_http_phase_two_runtime;
 #[path = "support/direct_context_runtime.rs"]
 mod direct_context_runtime;
+#[path = "support/query_handoff/runtime.rs"]
+mod query_handoff_runtime;
 #[path = "support/worth_native/assertions.rs"]
 mod worth_native_assertions;
 #[path = "support/worth_native/runtime.rs"]
 mod worth_native_runtime;
-#[path = "support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryInspection, WorthQueryRuntimeRemaskProjection, WorthQueryRuntimeRemaskReasonKind,
 };
 use worth_server::{
@@ -20,14 +20,14 @@ use worth_server::{
 
 use compat_http_phase_two_runtime::{
     branch_head_execution_input, build_phase_two_server,
-    build_phase_two_server_with_workspace_provider, compat_execution_input,
-    worth_native_named_read, prepared_read_request, read_input,
+    build_phase_two_server_with_workspace_provider, compat_execution_input, prepared_read_request,
+    read_input, worth_native_named_read,
 };
 use direct_context_runtime::RemaskWorkspaceProvider;
+use query_handoff_runtime::PanicOnReadTestWorkspaceProvider;
 use worth_native_assertions::{
     direct_provenance_digest, family_contract_digest, response_provenance_digest,
 };
-use query_handoff_runtime::PanicOnReadTestWorkspaceProvider;
 
 #[test]
 fn compat_http_read_matches_worth_native_direct_read_on_narrow_canonical_artifacts() {

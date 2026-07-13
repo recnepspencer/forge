@@ -2,10 +2,10 @@ use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 use worth_query::facade::consumer_kit::{
     compare_test_backend_write_receipts, in_memory_test_runtime, WorthQueryTestBackendSchema,
 };
+use worth_query::facade::foundation::WorthQueryWorkspaceErrorKind;
 use worth_query::facade::runtime::{InvariantCatalog, InvariantRegistration, InvariantRule};
-use worth_query::facade::{
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspaceErrorKind,
-    WorthQueryWriteReceipt,
+use worth_query::facade::runtime::{
+    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWriteReceipt,
 };
 
 mod support;
@@ -28,10 +28,14 @@ fn in_memory_test_backend_facade_builds_a_real_workspace() {
     let tasks = workspace
         .live_view::<WorthQueryNativeRow>("consumer-kit.facade.tasks", |view| {
             view.from("Task").select([
-                worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                    .unwrap(),
-                worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                    .unwrap(),
+                worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                    "identity", "id",
+                )
+                .unwrap(),
+                worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                    "title", "value",
+                )
+                .unwrap(),
             ])
         })
         .expect("facade workspace should declare a live view");
@@ -55,7 +59,7 @@ fn in_memory_test_backend_facade_admits_preview_and_invariant_denial() {
         .expect("facade should build preview workspace");
     let mut preview = preview_workspace
         .preview(
-            worth_query::facade::WorthQuerySessionLabel::scoped_strs(
+            worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs(
                 "consumer-kit-facade",
                 ["preview"],
             )
@@ -107,14 +111,20 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
             |view| {
                 view.from("Task")
                     .select([
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                            .unwrap(),
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "identity", "id",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
                     ])
                     .order_by(
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
                     )
             },
         )
@@ -123,14 +133,20 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
         .live_view::<WorthQueryNativeRow>("consumer-kit.facade.equivalence.bridge.tasks", |view| {
             view.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
         })
         .expect("bridge harness should declare live view");
@@ -188,7 +204,7 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
 
     let in_memory_preview = in_memory_workspace
         .preview(
-            worth_query::facade::WorthQuerySessionLabel::scoped_strs(
+            worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs(
                 "consumer-kit-facade",
                 ["in-memory-equivalence-preview"],
             )
@@ -197,7 +213,7 @@ fn in_memory_test_backend_matches_bridge_harness_for_covered_live_write_path() {
         .expect("in-memory preview should admit");
     let bridge_preview = bridge_workspace
         .preview(
-            worth_query::facade::WorthQuerySessionLabel::scoped_strs(
+            worth_query::facade::runtime::WorthQuerySessionLabel::scoped_strs(
                 "consumer-kit-facade",
                 ["bridge-equivalence-preview"],
             )
@@ -242,7 +258,7 @@ fn task_schema() -> WorthQueryTestBackendSchema {
 }
 
 fn selected_task_scalars(
-    row: &worth_query::facade::WorthQueryEntity,
+    row: &worth_query::facade::foundation::WorthQueryEntity,
 ) -> Vec<(CanonicalFieldPath, Option<AspectValue>)> {
     ["identity.id", "title.value"]
         .into_iter()
@@ -263,8 +279,10 @@ fn field_path(path: &str) -> CanonicalFieldPath {
     .expect("test field path should be non-empty")
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn assert_workspace_error_kind(error: WorthQueryRuntimeError, kind: WorthQueryWorkspaceErrorKind) {

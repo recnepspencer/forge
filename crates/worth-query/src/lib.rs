@@ -48,6 +48,7 @@ mod live;
 mod live_performance;
 mod lower_runtime_routing;
 mod memory_workspace;
+mod milestone_nine_twelve_certification;
 mod orchestration_inventory;
 mod ordinary_outcome;
 mod planning;
@@ -63,7 +64,6 @@ mod preview;
 mod program;
 mod projection_consumption;
 mod public_doc_coverage;
-mod query_basis_lifecycle;
 mod query_context;
 mod recovery_boundary;
 mod result_shape;
@@ -87,22 +87,11 @@ mod workflow;
 #[cfg(test)]
 mod future_signal_test_support;
 
-pub use application::{
-    WorthQueryConcurrentHostileMatrixArtifact, WorthQueryConcurrentHostileMatrixPosture,
-    WorthQueryConcurrentHostileMatrixSabotage, WorthQueryConcurrentHostileMatrixSabotageKind,
-    WorthQueryMilestoneClosureStatus, WorthQueryMilestoneNineSevenDerivedClosure,
-    WorthQueryMilestoneNineSevenPhaseClosure, WorthQueryPublicBridgeForbiddenAccessFinding,
-    WorthQueryPublicBridgeForbiddenAccessPattern,
-    WorthQueryPublicBridgeProjectionConsumptionEvidence,
-    WorthQueryPublicBridgePublishedProjectionReader, WorthQueryPublicBridgeReaderLaneCertification,
-    WorthQueryPublicBridgeReaderLaneInventory, WorthQueryPublicBridgeReaderLanePosture,
-    WorthQueryPublicBridgeReaderLaneSabotage, WorthQueryPublicBridgeReaderLaneSabotageKind,
-    WorthQueryPublicBridgeReaderLaneSabotageOutcome,
-};
-pub use consumer_kit::{
-    compare_test_backend_write_receipts, downstream_authority_adoption,
-    evidence_report_adoption_audit, graph_obligation_consumer_kit, graph_read_bypass_adoption,
-    graph_read_bypass_audit, hard_prohibition_boundary_audit,
+#[allow(unused_imports)]
+pub(crate) use consumer_kit::{
+    audit_public_authority_surface_symbols, compare_test_backend_write_receipts,
+    downstream_authority_adoption, evidence_report_adoption_audit, graph_obligation_consumer_kit,
+    graph_read_bypass_adoption, graph_read_bypass_audit, hard_prohibition_boundary_audit,
     hard_prohibition_boundary_audit_coverage, hard_prohibition_compile_fail_fixtures,
     hard_prohibition_documentation_rows, hard_prohibition_documented_seam_keys,
     hard_prohibition_registry, hard_prohibition_seeded_consumer_sources, in_memory_test_runtime,
@@ -111,30 +100,31 @@ pub use consumer_kit::{
     query_consumer_residue_audit, query_test_backend_residue_audit,
     render_hard_prohibition_reference, support_pinning_contract,
     worth_query_consumer_residue_certification_evidence, worth_query_consumer_residue_registry,
-    worth_query_graph_read_bypass_registry, worth_query_test_backend_residue_classes,
-    EvidenceReport, EvidenceReportDeclaration, EvidenceReportError, EvidenceReportErrorKind,
-    EvidenceReportField, EvidenceReportFieldKind, EvidenceReportFieldParticipation,
-    EvidenceReportFieldValue, EvidenceReportScope, WorthQueryBoundaryAuditCoverage,
-    WorthQueryBoundaryAuditCoverageMechanism, WorthQueryBoundaryAuditCoverageRow,
-    WorthQueryBoundaryAuditError, WorthQueryBoundaryAuditErrorKind,
-    WorthQueryBoundaryAuditEvaluation, WorthQueryBoundaryAuditFailure,
-    WorthQueryBoundaryAuditFinding, WorthQueryBoundaryAuditFindingKind,
-    WorthQueryBoundaryAuditReport, WorthQueryBoundaryAuditSeededSource,
-    WorthQueryBoundaryAuditSource, WorthQueryBoundaryAuditSourceInventory,
-    WorthQueryBoundaryAuditSourceInventoryBuilder, WorthQueryBoundaryAuditSourceInventoryFile,
-    WorthQueryBoundaryAuditSourceSet, WorthQueryBoundaryAuditSourceSite,
-    WorthQueryBoundaryAuditSyntaxClass, WorthQueryConsumerResidueAudit,
-    WorthQueryConsumerResidueCertificationCaseEvidence, WorthQueryConsumerResidueClass,
-    WorthQueryConsumerResidueDetection, WorthQueryConsumerResidueFinding,
-    WorthQueryConsumerResidueQueryOwnedRootAuthority, WorthQueryConsumerResidueRegistryRow,
-    WorthQueryConsumerResidueReport, WorthQueryConsumerResidueSourceInventory,
-    WorthQueryConsumerResidueSourceSite, WorthQueryDownstreamAuthorityAdoption,
-    WorthQueryDownstreamAuthorityAdoptionManifest, WorthQueryDownstreamAuthorityAdoptionProof,
-    WorthQueryDownstreamAuthorityDeletionReceipt, WorthQueryDownstreamAuthorityDeletionRow,
-    WorthQueryEvidenceReportAdoptionAudit, WorthQueryEvidenceReportAdoptionError,
-    WorthQueryEvidenceReportAdoptionErrorKind, WorthQueryEvidenceReportAdoptionEvaluation,
-    WorthQueryEvidenceReportAdoptionFinding, WorthQueryEvidenceReportAdoptionFindingKind,
-    WorthQueryEvidenceReportAdoptionReport, WorthQueryEvidenceReportAdoptionResidueClassification,
+    worth_query_graph_read_bypass_registry, worth_query_public_authority_surface_rows,
+    worth_query_test_backend_residue_classes, EvidenceReport, EvidenceReportDeclaration,
+    EvidenceReportError, EvidenceReportErrorKind, EvidenceReportField, EvidenceReportFieldKind,
+    EvidenceReportFieldParticipation, EvidenceReportFieldValue, EvidenceReportScope,
+    WorthQueryBoundaryAuditCoverage, WorthQueryBoundaryAuditCoverageMechanism,
+    WorthQueryBoundaryAuditCoverageRow, WorthQueryBoundaryAuditError,
+    WorthQueryBoundaryAuditErrorKind, WorthQueryBoundaryAuditEvaluation,
+    WorthQueryBoundaryAuditFailure, WorthQueryBoundaryAuditFinding,
+    WorthQueryBoundaryAuditFindingKind, WorthQueryBoundaryAuditReport,
+    WorthQueryBoundaryAuditSeededSource, WorthQueryBoundaryAuditSource,
+    WorthQueryBoundaryAuditSourceInventory, WorthQueryBoundaryAuditSourceInventoryBuilder,
+    WorthQueryBoundaryAuditSourceInventoryFile, WorthQueryBoundaryAuditSourceSet,
+    WorthQueryBoundaryAuditSourceSite, WorthQueryBoundaryAuditSyntaxClass,
+    WorthQueryConsumerResidueAudit, WorthQueryConsumerResidueCertificationCaseEvidence,
+    WorthQueryConsumerResidueClass, WorthQueryConsumerResidueDetection,
+    WorthQueryConsumerResidueFinding, WorthQueryConsumerResidueQueryOwnedRootAuthority,
+    WorthQueryConsumerResidueRegistryRow, WorthQueryConsumerResidueReport,
+    WorthQueryConsumerResidueSourceInventory, WorthQueryConsumerResidueSourceSite,
+    WorthQueryDownstreamAuthorityAdoption, WorthQueryDownstreamAuthorityAdoptionManifest,
+    WorthQueryDownstreamAuthorityAdoptionProof, WorthQueryDownstreamAuthorityDeletionReceipt,
+    WorthQueryDownstreamAuthorityDeletionRow, WorthQueryEvidenceReportAdoptionAudit,
+    WorthQueryEvidenceReportAdoptionError, WorthQueryEvidenceReportAdoptionErrorKind,
+    WorthQueryEvidenceReportAdoptionEvaluation, WorthQueryEvidenceReportAdoptionFinding,
+    WorthQueryEvidenceReportAdoptionFindingKind, WorthQueryEvidenceReportAdoptionReport,
+    WorthQueryEvidenceReportAdoptionResidueClassification,
     WorthQueryEvidenceReportAdoptionResidueRow, WorthQueryEvidenceReportAdoptionSource,
     WorthQueryEvidenceReportAdoptionSourceSet, WorthQueryEvidenceReportAdoptionSyntaxClass,
     WorthQueryExternalSupportPinContractTerminalJsonDocument,
@@ -166,7 +156,10 @@ pub use consumer_kit::{
     WorthQueryObservedSupportPin, WorthQueryPinnedSupportStatus, WorthQueryPinnedTeachingPosture,
     WorthQueryProhibitedSeam, WorthQueryProhibitionCompileFailFixture,
     WorthQueryProhibitionEnforcementTier, WorthQueryProhibitionRegistry,
-    WorthQueryProhibitionRegistryRow, WorthQuerySupportPinContract,
+    WorthQueryProhibitionRegistryRow, WorthQueryPublicAuthorityOwner,
+    WorthQueryPublicAuthoritySurfaceAudit, WorthQueryPublicAuthoritySurfaceClass,
+    WorthQueryPublicAuthoritySurfaceFinding, WorthQueryPublicAuthoritySurfaceFindingKind,
+    WorthQueryPublicAuthoritySurfaceRow, WorthQuerySupportPinContract,
     WorthQuerySupportPinContractBuilder, WorthQuerySupportPinContractSchemaVersion,
     WorthQuerySupportPinContractTerminalJsonDocument, WorthQuerySupportPinDeclaration,
     WorthQuerySupportPinFinding, WorthQuerySupportPinFindingKind, WorthQuerySupportPinReport,

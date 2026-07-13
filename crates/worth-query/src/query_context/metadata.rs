@@ -14,6 +14,7 @@ use super::performance::{
     HistoricalMaterializationCostClass, QueryContextBudgetClass, QueryContextCostClass,
     QueryContextCounters, QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
 };
+use super::scoped::ScopedQueryBasisContext;
 use crate::basis::BasisAuthorityFamily;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -132,7 +133,7 @@ pub struct DiffQueryMetadata {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryBasisResultBundle {
-    context: AdmittedQueryBasisContext,
+    context: ScopedQueryBasisContext,
     execution: QueryContextExecutionArtifact,
     metadata: QueryBasisMetadata,
     replay_digest: String,
@@ -140,7 +141,7 @@ pub struct QueryBasisResultBundle {
 }
 
 impl QueryBasisResultBundle {
-    pub fn context(&self) -> &AdmittedQueryBasisContext {
+    pub fn context(&self) -> &ScopedQueryBasisContext {
         &self.context
     }
 
@@ -246,7 +247,7 @@ impl DiffQueryMetadata {
     }
 }
 
-pub fn attach_query_basis_metadata(
+pub(crate) fn attach_legacy_query_basis_metadata(
     context: &AdmittedQueryBasisContext,
     result: &QueryContextExecutionArtifact,
 ) -> Result<QueryBasisMetadata, QueryContextAdmissionError> {
@@ -291,18 +292,20 @@ pub fn attach_query_basis_metadata(
     })
 }
 
-pub fn build_query_basis_result_bundle(
-    context: &AdmittedQueryBasisContext,
+pub(crate) fn build_legacy_query_basis_result_bundle(
+    context: &ScopedQueryBasisContext,
     execution: QueryContextExecutionArtifact,
 ) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {
-    let metadata = attach_query_basis_metadata(context, &execution)?;
+    let legacy_context = context.context();
+    let metadata = attach_legacy_query_basis_metadata(legacy_context, &execution)?;
     let replay_digest = compose_query_basis_replay_digest(
-        context,
+        legacy_context,
         execution.result_digest(),
         metadata.result_digest(),
         metadata.prediction_drift_outcome(),
     );
-    let counter_snapshot_digest = compose_query_basis_counter_snapshot_digest(context, &execution);
+    let counter_snapshot_digest =
+        compose_query_basis_counter_snapshot_digest(legacy_context, &execution);
 
     Ok(QueryBasisResultBundle {
         context: context.clone(),

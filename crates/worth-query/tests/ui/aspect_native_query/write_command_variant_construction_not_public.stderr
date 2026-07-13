@@ -1,10 +1,10 @@
 error[E0639]: cannot create non-exhaustive variant using struct expression
-  --> tests/ui/aspect_native_query/write_command_variant_construction_not_public.rs:7:13
+  --> tests/ui/aspect_native_query/write_command_variant_construction_not_public.rs:6:13
    |
- 7 |       let _ = WorthQueryWriteCommand::Delete {
+ 6 |       let _ = WorthQueryWriteCommand::Delete {
    |  _____________^
- 8 | |         entity_identity: WorthQueryEntityIdentity::admit_authored_entity_token(
- 9 | |             QueryExternalIdentityToken::new(Arc::from("task-1")),
-10 | |         ),
-11 | |     };
+ 7 | |         entity_identity: WorthQueryEntityIdentity::admit_authored_entity_token(
+ 8 | |             QueryExternalIdentityToken::new(Arc::from("task-1")),
+ 9 | |         ),
+10 | |     };
    | |_____^

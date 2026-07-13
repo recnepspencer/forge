@@ -1,11 +1,11 @@
 error[E0599]: no method named `orchestrate_trim_segment` found for struct `WorthQueryAdmittedConfiguredDomainHandle<D, C>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_family_specific_orchestration_alias.rs:75:20
+  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_family_specific_orchestration_alias.rs:68:20
    |
-75 |     let _ = handle.orchestrate_trim_segment(TrimSegmentAtIntersection);
+68 |     let _ = handle.orchestrate_trim_segment(TrimSegmentAtIntersection);
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `orchestrate_grouped` with a similar name
    |
-75 -     let _ = handle.orchestrate_trim_segment(TrimSegmentAtIntersection);
-75 +     let _ = handle.orchestrate_grouped(TrimSegmentAtIntersection);
+68 -     let _ = handle.orchestrate_trim_segment(TrimSegmentAtIntersection);
+68 +     let _ = handle.orchestrate_grouped(TrimSegmentAtIntersection);
    |

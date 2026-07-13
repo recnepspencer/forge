@@ -115,7 +115,7 @@ impl WorthServerOperationRegistration {
             ProductSessionCoordination, QueryDirectProjection, QueryDirectRead,
             QueryDirectSubmission, SyncLease,
         };
-        use crate::WorthServerSurfaceFamily::{CompatHttp, WorthNative, Sync};
+        use crate::WorthServerSurfaceFamily::{CompatHttp, Sync, WorthNative};
 
         vec![
             Self::enabled(QueryDirectRead)

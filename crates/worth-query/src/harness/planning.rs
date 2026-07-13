@@ -1,20 +1,23 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
-use crate::facade::{
+use crate::facade::foundation::{
     canonicalize_request, derive_binding_requirements, execute_preflight_bundle,
-    plan_validated_bundle, planning_request_context_for_bound, planning_request_context_for_direct,
-    preflight_execution_basis, resolve_bindings, resolve_snapshot_basis, validate_canonical_bundle,
-    AspectFieldSelector, AuthoredResultShapeField, BasisAuthorityFamily, BasisResolutionError,
-    BasisResolutionMode, BoundBinding, BoundBindings, CollectionResultFamily, ExecutionBasisIntent,
-    GuidedAuthoringPath, IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot,
-    QueryBindingSubject, ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
+    preflight_execution_basis, resolve_bindings, resolve_snapshot_basis, AspectFieldSelector,
+    AuthoredResultShapeField, BasisAuthorityFamily, BasisResolutionError, BasisResolutionMode,
+    BoundBinding, BoundBindings, CollectionResultFamily, ExecutionBasisIntent, GuidedAuthoringPath,
+    IdentityBindingDescriptor, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
+    ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
 };
+use crate::facade::policy::{
+    plan_validated_bundle, planning_request_context_for_bound, planning_request_context_for_direct,
+};
+use crate::facade::runtime::validate_canonical_bundle;
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
     plan_validated_bundle_for_requested_derived_field_family, RequestedAggregateFamily,
     RequestedDerivedFieldFamily,
 };
 
-fn direct_validated_bundle() -> crate::facade::ValidatedQueryBundle {
+fn direct_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
     let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .build()
@@ -33,7 +36,7 @@ fn direct_validated_bundle() -> crate::facade::ValidatedQueryBundle {
     .unwrap()
 }
 
-fn bound_validated_bundle() -> crate::facade::ValidatedQueryBundle {
+fn bound_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
     let query = RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .build()
@@ -56,16 +59,19 @@ fn bound_validated_bundle() -> crate::facade::ValidatedQueryBundle {
     .unwrap()
 }
 
-fn expanded_validated_bundle() -> crate::facade::ValidatedQueryBundle {
+fn expanded_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
     crate::harness::fixtures::validated_bundles::legal_detail_bundle()
 }
 
-fn collection_validated_bundle() -> crate::facade::ValidatedQueryBundle {
+fn collection_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
     let query = RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-        .order_by(crate::facade::OrderingSelector::ascending("profile", "display_name").unwrap())
-        .traverse(crate::facade::TraversalSelector::bounded("manager", 1).unwrap())
+        .order_by(
+            crate::facade::foundation::OrderingSelector::ascending("profile", "display_name")
+                .unwrap(),
+        )
+        .traverse(crate::facade::foundation::TraversalSelector::bounded("manager", 1).unwrap())
         .build()
         .unwrap();
     let shape = RawAuthoredResultShape::collection_builder()
@@ -83,12 +89,15 @@ fn collection_validated_bundle() -> crate::facade::ValidatedQueryBundle {
     .unwrap()
 }
 
-fn descending_collection_validated_bundle() -> crate::facade::ValidatedQueryBundle {
+fn descending_collection_validated_bundle() -> crate::facade::runtime::ValidatedQueryBundle {
     let query = RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
         .project(AspectFieldSelector::new("identity", "id").unwrap())
         .project(AspectFieldSelector::new("profile", "display_name").unwrap())
-        .order_by(crate::facade::OrderingSelector::descending("profile", "display_name").unwrap())
-        .traverse(crate::facade::TraversalSelector::bounded("manager", 1).unwrap())
+        .order_by(
+            crate::facade::foundation::OrderingSelector::descending("profile", "display_name")
+                .unwrap(),
+        )
+        .traverse(crate::facade::foundation::TraversalSelector::bounded("manager", 1).unwrap())
         .build()
         .unwrap();
     let shape = RawAuthoredResultShape::collection_builder()
@@ -115,7 +124,7 @@ fn runtime_basis_intent() -> ExecutionBasisIntent {
 }
 
 fn runtime_resolved_identity(
-    schema_basis: crate::facade::SchemaBasisDigest,
+    schema_basis: crate::facade::foundation::SchemaBasisDigest,
 ) -> ResolvedSnapshotIdentity {
     ResolvedSnapshotIdentity::new(
         BasisAuthorityFamily::Runtime,
@@ -162,9 +171,12 @@ fn direct_and_pre_resolved_bound_requests_seed_identical_plans_for_same_semantic
 
     let requirements = derive_binding_requirements(&bundle);
     let bound_resolution = resolve_bindings(requirements, BoundBindings::new(Vec::new())).unwrap();
-    let bound = crate::facade::PlanningRequestContext::new(
-        crate::facade::PlanningSemanticInputs::new(Some(bound_resolution), runtime_basis_intent()),
-        crate::facade::PlanningAmbientContext::new(Vec::new()),
+    let bound = crate::facade::policy::PlanningRequestContext::new(
+        crate::facade::policy::PlanningSemanticInputs::new(
+            Some(bound_resolution),
+            runtime_basis_intent(),
+        ),
+        crate::facade::policy::PlanningAmbientContext::new(Vec::new()),
     );
     let seeded_bound = plan_validated_bundle(&bundle, bound).unwrap();
 
@@ -216,11 +228,11 @@ fn collection_queries_emit_collection_plan_artifacts() {
     let collection = planned.collection().expect("collection plan");
     assert_eq!(
         collection.planning_context().query_family(),
-        &crate::facade::QueryFamily::Collection
+        &crate::facade::foundation::QueryFamily::Collection
     );
     assert_eq!(
         collection.planning_context().result_family(),
-        &crate::facade::CollectionResultFamily::OrdinaryCollection
+        &crate::facade::foundation::CollectionResultFamily::OrdinaryCollection
     );
     assert_eq!(
         collection.ordering_basis().entries().len(),
@@ -249,11 +261,11 @@ fn collection_queries_emit_collection_plan_artifacts() {
     );
     assert_eq!(
         collection.cursor_contract(),
-        &crate::facade::CursorAdvanceContract::BasisBoundOpaque
+        &crate::facade::foundation::CursorAdvanceContract::BasisBoundOpaque
     );
     assert_eq!(
         collection.window_policy(),
-        &crate::facade::CollectionWindowPolicy::FullSnapshotRead
+        &crate::facade::foundation::CollectionWindowPolicy::FullSnapshotRead
     );
     assert!(!collection.digest().as_str().is_empty());
     assert_eq!(
@@ -337,7 +349,7 @@ fn cdc_collection_family_changes_collection_and_plan_digests() {
     let cdc_request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
 
     let ordinary = plan_validated_bundle(&bundle, ordinary_request).unwrap();
-    let cdc = crate::facade::plan_validated_bundle_for_collection_family(
+    let cdc = crate::facade::policy::plan_validated_bundle_for_collection_family(
         &bundle,
         cdc_request,
         CollectionResultFamily::CdcCollection,
@@ -396,7 +408,7 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
             .post_read_shaping()
             .aggregate_shape()
             .function_family(),
-        &crate::facade::AggregateFunctionFamily::CountRows
+        &crate::facade::foundation::AggregateFunctionFamily::CountRows
     );
     assert_eq!(
         aggregate
@@ -405,7 +417,7 @@ fn aggregate_rollup_collection_family_changes_plan_and_rollup_semantics() {
             .post_read_shaping()
             .rollup_shape()
             .edge_class(),
-        &crate::facade::RollupEdgeClass::RootCollection
+        &crate::facade::foundation::RollupEdgeClass::RootCollection
     );
 }
 
@@ -440,7 +452,7 @@ fn derived_field_collection_family_changes_plan_and_derived_shape_semantics() {
             .post_read_shaping()
             .derived_field_plan()
             .computation_class(),
-        &crate::facade::DerivedFieldComputationClass::DisplayLabelFromIdentityAndProfile
+        &crate::facade::foundation::DerivedFieldComputationClass::DisplayLabelFromIdentityAndProfile
     );
     assert_eq!(
         derived
@@ -461,7 +473,7 @@ fn traversal_bearing_runtime_queries_lower_to_expanded_runtime_route() {
 
     assert_eq!(
         planned.query().route(),
-        &crate::facade::PlannedExecutionRoute::RuntimeExpandedSnapshotRead
+        &crate::facade::policy::PlannedExecutionRoute::RuntimeExpandedSnapshotRead
     );
     assert_eq!(planned.counters().route_candidate_count(), 2);
     assert_eq!(planned.counters().planned_projection_entry_count(), 2);
@@ -501,7 +513,7 @@ fn store_backend_planning_is_rejected_until_parity_is_admitted() {
     let error = plan_validated_bundle(&bundle, request).unwrap_err();
     assert_eq!(
         error,
-        crate::facade::PlanningError::UnsupportedBackendParityRequest
+        crate::facade::policy::PlanningError::UnsupportedBackendParityRequest
     );
 }
 
@@ -540,7 +552,7 @@ fn fallback_admission_is_rejected_until_supported_shape_exists() {
     let error = plan_validated_bundle(&bundle, request).unwrap_err();
     assert_eq!(
         error,
-        crate::facade::PlanningError::UnsupportedFallbackShape
+        crate::facade::policy::PlanningError::UnsupportedFallbackShape
     );
 }
 
@@ -653,7 +665,7 @@ fn collection_execution_counters_reflect_materialization_and_aggregate_breadth()
 fn cdc_collection_execution_emits_distinct_payload_and_cdc_counters() {
     let bundle = collection_validated_bundle();
     let request = planning_request_context_for_direct(&bundle, runtime_basis_intent()).unwrap();
-    let planned = crate::facade::plan_validated_bundle_for_collection_family(
+    let planned = crate::facade::policy::plan_validated_bundle_for_collection_family(
         &bundle,
         request,
         CollectionResultFamily::CdcCollection,

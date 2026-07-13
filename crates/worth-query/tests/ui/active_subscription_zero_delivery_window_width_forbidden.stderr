@@ -1,17 +1,17 @@
 error[E0451]: fields `delivery_window_width`, `patch_group_width`, `maintenance_delta_width`, `allocation_scope_width`, `allocation_posture` and `backpressure_policy` of struct `QueryDeliveryWindowBudget` are private
-  --> tests/ui/active_subscription_zero_delivery_window_width_forbidden.rs:8:9
+  --> tests/ui/active_subscription_zero_delivery_window_width_forbidden.rs:5:9
    |
- 7 |     let _ = QueryDeliveryWindowBudget {
+ 4 |     let _ = QueryDeliveryWindowBudget {
    |             ------------------------- in this type
- 8 |         delivery_window_width: DeliveryWindowWidth::measured(0),
+ 5 |         delivery_window_width: DeliveryWindowWidth::measured(0),
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         patch_group_width: PatchGroupWidth::measured(1),
+ 6 |         patch_group_width: PatchGroupWidth::measured(1),
    |         ^^^^^^^^^^^^^^^^^ private field
-10 |         maintenance_delta_width: MaintenanceDeltaWidth::measured(1),
+ 7 |         maintenance_delta_width: MaintenanceDeltaWidth::measured(1),
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         allocation_scope_width: ActiveAllocationScopeWidth::measured(1),
+ 8 |         allocation_scope_width: ActiveAllocationScopeWidth::measured(1),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         allocation_posture: ActiveSubscriptionAllocationPosture::DeliveryWindowArena,
+ 9 |         allocation_posture: ActiveSubscriptionAllocationPosture::DeliveryWindowArena,
    |         ^^^^^^^^^^^^^^^^^^ private field
-13 |         backpressure_policy: DeliveryBackpressurePolicy::RetainWithinWindow,
+10 |         backpressure_policy: DeliveryBackpressurePolicy::RetainWithinWindow,
    |         ^^^^^^^^^^^^^^^^^^^ private field

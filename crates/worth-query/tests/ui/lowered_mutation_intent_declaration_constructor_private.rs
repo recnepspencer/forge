@@ -1,4 +1,4 @@
-use worth_query::facade::LoweredMutationIntentDeclaration;
+use worth_query::facade::runtime::LoweredMutationIntentDeclaration;
 
 fn main() {
     let _ = LoweredMutationIntentDeclaration {

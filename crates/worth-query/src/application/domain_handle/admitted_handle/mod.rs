@@ -18,7 +18,10 @@ pub use declaration_entry::WorthQueryDeclarationEntryProgressionError;
 pub(crate) use route_plan::checked_route_plan_from_progressed_with_profile;
 
 use super::operating_context::WorthQueryDomainOperatingContext;
-use super::{compose_admitted_configured_domain_handle_identity, WorthQueryAdmittedWorldBasis};
+use super::{
+    compose_admitted_configured_domain_handle_identity, compose_basis_lifecycle_support_identity,
+    WorthQueryAdmittedWorldBasis,
+};
 use crate::application::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainEntryMarker,
     WorthQueryDomainEntrySupportSnapshot, WorthQueryDomainOperatingRequirement,
@@ -101,15 +104,14 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
     }
 
     pub fn retained_world_basis(&self) -> WorthQueryAdmittedWorldBasis {
-        let basis_lifecycle_support =
-            crate::query_basis_lifecycle::query_basis_lifecycle_support_report();
+        let basis_lifecycle_support = crate::basis_lifecycle::basis_lifecycle_support_matrix();
         WorthQueryAdmittedWorldBasis::new(
             self.domain_key(),
             self.display_name(),
             self.operating_context_identity_digest.clone(),
             compose_admitted_configured_domain_handle_identity(self),
             self.support_snapshot.snapshot_digest().to_string(),
-            basis_lifecycle_support.report_identity(),
+            compose_basis_lifecycle_support_identity(basis_lifecycle_support.matrix_digest()),
         )
     }
 }

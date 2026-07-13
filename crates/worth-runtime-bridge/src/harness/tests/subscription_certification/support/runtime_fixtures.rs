@@ -1,11 +1,11 @@
 use crate::builder::RuntimeBridgeBuilder;
+use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeRuntimePolicy, BridgeSubscriptionBasisRequest,
     BridgeSubscriptionConsumerBackpressurePosture, BridgeSubscriptionConsumerContract,
     BridgeSubscriptionConsumerContractFamily, BridgeSubscriptionConsumerDiagnosticsRetention,
-    BridgeSubscriptionConsumerPacingCapability, BridgeSubscriptionDeclarationFamilyKind,
-    BridgeSubscriptionDeliveryDensityPosture, BridgeSubscriptionDeliveryIntentClass,
-    NormalizedSubscriptionSliceIntent, RuntimeBridge,
+    BridgeSubscriptionConsumerPacingCapability, BridgeSubscriptionDeliveryDensityPosture,
+    BridgeSubscriptionDeliveryIntentClass, NormalizedSubscriptionSliceIntent, RuntimeBridge,
 };
 use crate::mapping::{
     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,

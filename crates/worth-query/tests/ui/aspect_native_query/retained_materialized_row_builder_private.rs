@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRetainedMaterializedRow;
+use worth_query::facade::runtime::WorthQueryRetainedMaterializedRow;
 
 fn main() {
     let _ = WorthQueryRetainedMaterializedRow::builder();

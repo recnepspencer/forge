@@ -3,10 +3,7 @@ use worth_query::facade::consumer_kit::{
     WorthQueryPinnedSupportStatus, WorthQueryPinnedTeachingPosture, WorthQueryRuntimeFacadeFamily,
     WorthQuerySupportPinContractSchemaVersion, WorthQuerySupportPinFindingKind,
 };
-use worth_query::facade::runtime::{
-    WorthQueryRuntimeFamilySupport, WorthQueryRuntimePublicApiContract,
-    WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeSupportProfile,
-};
+use worth_query::facade::runtime::{WorthQueryRuntimeFamilySupport, WorthQueryRuntimePublicApiContract, WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeSupportProfile};
 
 fn main() {
     let profile = WorthQueryRuntimeSupportProfile::scaffold_backend_profile();

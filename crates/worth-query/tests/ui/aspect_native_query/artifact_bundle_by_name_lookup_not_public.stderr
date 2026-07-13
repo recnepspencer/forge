@@ -1,59 +1,59 @@
 error[E0599]: no method named `materialization_by_name` found for struct `WorthQueryDerivedMaterializationBundle` in the current scope
- --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:8:28
+ --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:5:28
   |
-8 |     let _ = derived_bundle.materialization_by_name("derived.example");
+5 |     let _ = derived_bundle.materialization_by_name("derived.example");
   |                            ^^^^^^^^^^^^^^^^^^^^^^^
   |
 help: there is a method `materialization` with a similar name
   |
-8 -     let _ = derived_bundle.materialization_by_name("derived.example");
-8 +     let _ = derived_bundle.materialization("derived.example");
+5 -     let _ = derived_bundle.materialization_by_name("derived.example");
+5 +     let _ = derived_bundle.materialization("derived.example");
   |
 
 error[E0599]: no method named `target_view_names` found for struct `WorthQueryDerivedMaterializationBundle` in the current scope
- --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:9:28
+ --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:6:28
   |
-9 |     let _ = derived_bundle.target_view_names();
+6 |     let _ = derived_bundle.target_view_names();
   |                            ^^^^^^^^^^^^^^^^^ method not found in `WorthQueryDerivedMaterializationBundle`
 
 error[E0599]: no method named `materialization_by_name` found for struct `WorthQueryDerivedArtifactBinding` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:12:29
-   |
-12 |     let _ = derived_binding.materialization_by_name("derived.example");
-   |                             ^^^^^^^^^^^^^^^^^^^^^^^
-   |
+ --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:9:29
+  |
+9 |     let _ = derived_binding.materialization_by_name("derived.example");
+  |                             ^^^^^^^^^^^^^^^^^^^^^^^
+  |
 help: there is a method `materialization` with a similar name
-   |
-12 -     let _ = derived_binding.materialization_by_name("derived.example");
-12 +     let _ = derived_binding.materialization("derived.example");
-   |
+  |
+9 -     let _ = derived_binding.materialization_by_name("derived.example");
+9 +     let _ = derived_binding.materialization("derived.example");
+  |
 
 error[E0599]: no method named `target_view_names` found for struct `WorthQueryDerivedArtifactBinding` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:13:29
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:10:29
    |
-13 |     let _ = derived_binding.target_view_names();
+10 |     let _ = derived_binding.target_view_names();
    |                             ^^^^^^^^^^^^^^^^^ method not found in `WorthQueryDerivedArtifactBinding`
 
 error[E0599]: no method named `read_by_name` found for struct `WorthQueryLiveArtifactBundle` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:16:25
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:13:25
    |
-16 |     let _ = live_bundle.read_by_name("live.example");
+13 |     let _ = live_bundle.read_by_name("live.example");
    |                         ^^^^^^^^^^^^ method not found in `WorthQueryLiveArtifactBundle`
 
 error[E0599]: no method named `target_view_names` found for struct `WorthQueryLiveArtifactBundle` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:17:25
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:14:25
    |
-17 |     let _ = live_bundle.target_view_names();
+14 |     let _ = live_bundle.target_view_names();
    |                         ^^^^^^^^^^^^^^^^^ method not found in `WorthQueryLiveArtifactBundle`
 
 error[E0599]: no method named `read_by_name` found for struct `WorthQueryLiveArtifactBinding` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:20:26
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:17:26
    |
-20 |     let _ = live_binding.read_by_name("live.example");
+17 |     let _ = live_binding.read_by_name("live.example");
    |                          ^^^^^^^^^^^^ method not found in `WorthQueryLiveArtifactBinding`
 
 error[E0599]: no method named `target_view_names` found for struct `WorthQueryLiveArtifactBinding` in the current scope
-  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:21:26
+  --> tests/ui/aspect_native_query/artifact_bundle_by_name_lookup_not_public.rs:18:26
    |
-21 |     let _ = live_binding.target_view_names();
+18 |     let _ = live_binding.target_view_names();
    |                          ^^^^^^^^^^^^^^^^^ method not found in `WorthQueryLiveArtifactBinding`

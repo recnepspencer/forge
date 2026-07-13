@@ -1,4 +1,4 @@
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport, WorthQueryRuntimeSupportProfile,
 };
 use worth_server::{
@@ -21,8 +21,10 @@ impl WorthServerQueryWorkspaceProvider for SchedulerWorkspaceProvider {
     fn bind_workspace(
         &self,
         request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         validate_scheduler_world(request)?;
         query_handoff_runtime::TestWorkspaceProvider::default().bind_workspace(request)
     }
@@ -39,8 +41,10 @@ impl WorthServerQueryWorkspaceProvider for SelectiveSharedReadWorkspaceProvider 
     fn bind_workspace(
         &self,
         request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         validate_scheduler_world(request)?;
         let workspace_id = workspace_id(request);
         if workspace_id == "workspace-shared-read-denied" {

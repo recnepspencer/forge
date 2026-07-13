@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 use crate::{
     WorthServerDirectDeliveryClass, WorthServerDirectFreshnessMode,

@@ -1,9 +1,4 @@
-use worth_query::facade::{
-    admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution,
-    materialize_graph_composition_domain_invariant_denial,
-    prepare_admitted_domain_capability_contribution_for_materialization,
-    WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryInvariantCapabilityContributionAuthoring,
-};
+use worth_query::facade::runtime::{admit_eligible_domain_capability_contribution, evaluate_requested_domain_capability_contribution, materialize_graph_composition_domain_invariant_denial, prepare_admitted_domain_capability_contribution_for_materialization, WorthQueryIntentDeclaration, WorthQueryIntentInput, WorthQueryInvariantCapabilityContributionAuthoring};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

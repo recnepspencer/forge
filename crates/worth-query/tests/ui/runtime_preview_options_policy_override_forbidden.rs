@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryEffectPolicy, WorthQueryPreviewOptions};
+use worth_query::facade::runtime::{WorthQueryEffectPolicy, WorthQueryPreviewOptions};
 
 fn main() {
     let _ = WorthQueryPreviewOptions::derive_only()

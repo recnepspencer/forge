@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedGraphReadRelation, WorthQueryAdmittedGraphReadRelationDirection,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedGraphReadRelation, WorthQueryAdmittedGraphReadRelationDirection};
 
 fn main() {
     let _ = WorthQueryAdmittedGraphReadRelation {

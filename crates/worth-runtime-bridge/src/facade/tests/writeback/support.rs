@@ -12,8 +12,8 @@ pub(super) use crate::facade::{
     BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
     BridgeWritebackStrategyCoherenceDisposition, BridgeWritebackStrategyDescriptorBasis,
 };
-use worth_foundational::facade::{AspectKey, AspectValue};
 use std::sync::{Arc, RwLock};
+use worth_foundational::facade::{AspectKey, AspectValue};
 
 #[derive(Clone)]
 pub(super) struct RejectingWritebackAuthority {

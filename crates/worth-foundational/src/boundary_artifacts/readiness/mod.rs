@@ -15,14 +15,15 @@ pub use report::FoundationalBoundaryArtifactProductionReadinessReport;
 pub use vocabulary::{
     FoundationalBoundaryArtifactCertifiedSurface,
     FoundationalBoundaryArtifactCertifiedSurfaceEvidence,
-    FoundationalBoundaryArtifactCompileFailBoundary, FoundationalBoundaryArtifactWORTHProofApi,
-    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
-    FoundationalBoundaryArtifactWORTHProofSurface, FoundationalBoundaryArtifactMilestone4PhaseGate,
-    FoundationalBoundaryArtifactPhaseGateEvidence,
+    FoundationalBoundaryArtifactCompileFailBoundary,
+    FoundationalBoundaryArtifactMilestone4PhaseGate, FoundationalBoundaryArtifactPhaseGateEvidence,
     FoundationalBoundaryArtifactProductionReadinessScope, FoundationalBoundaryArtifactResidualDebt,
     FoundationalBoundaryArtifactRuntimeAssumption,
     FoundationalBoundaryArtifactRuntimeNonAssumption,
     FoundationalBoundaryArtifactSyntheticRuntimePressure,
+    FoundationalBoundaryArtifactWORTHProofApi,
+    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
+    FoundationalBoundaryArtifactWORTHProofSurface,
 };
 
 #[cfg(test)]

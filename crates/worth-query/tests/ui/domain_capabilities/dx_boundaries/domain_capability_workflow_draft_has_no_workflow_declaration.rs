@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    worth_query_domain, BridgePreviewSessionIdentity, WorthQueryIntentDeclaration, WorthQueryIntentInput,
-};
+use worth_query::facade::runtime::{worth_query_domain, BridgePreviewSessionIdentity, WorthQueryIntentDeclaration, WorthQueryIntentInput};
 
 fn main() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

@@ -3,10 +3,11 @@ use super::mapping_support::{
     query_observation_reference,
 };
 use super::{runtime, BridgeRuntimePolicy};
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceReferenceIdentity,
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity,
+    BridgePreviewSessionDeclarationIdentity, BridgeSignalBranchIdentity,
+    BridgeSpeculativeBranchBindingIdentity,
 };
 
 #[test]

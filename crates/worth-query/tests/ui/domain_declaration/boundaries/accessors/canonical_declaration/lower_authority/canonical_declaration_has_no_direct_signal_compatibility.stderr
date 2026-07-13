@@ -1,10 +1,10 @@
 error[E0599]: no method named `declare` found for struct `WorthQueryDomainEntryRoot<D>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/lower_authority/canonical_declaration_has_no_direct_signal_compatibility.rs:47:10
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/lower_authority/canonical_declaration_has_no_direct_signal_compatibility.rs:41:10
    |
-45 |       let declaration = worth_query::facade::WorthQueryApplicationFacade::runtime_backed_default()
+39 |       let declaration = worth_query::facade::foundation::WorthQueryApplicationFacade::runtime_backed_default()
    |  _______________________-
-46 | |         .domain(GeometryDomain)
-47 | |         .declare(SplitEdgeDeclaration)
+40 | |         .domain(GeometryDomain)
+41 | |         .declare(SplitEdgeDeclaration)
    | |         -^^^^^^^ method not found in `WorthQueryDomainEntryRoot<GeometryDomain>`
    | |_________|
    |

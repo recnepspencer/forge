@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionAcknowledgementFrontier;
+use worth_query::facade::runtime::SubscriptionAcknowledgementFrontier;
 
 fn main() {
     let _ = SubscriptionAcknowledgementFrontier {

@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    declare_query_subscription, LiveQueryAdmissionArtifact, QuerySubscriptionSliceBudget,
-};
+use worth_query::facade::runtime::{declare_query_subscription, LiveQueryAdmissionArtifact, QuerySubscriptionSliceBudget};
 
 fn main() {
     let live = Option::<LiveQueryAdmissionArtifact>::None.unwrap();

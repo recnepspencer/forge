@@ -1,3 +1,6 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     boundary_evidence_api::{stronger_lane::readiness, BoundaryEvidencePublicLane},
     FoundationalBoundaryEvidenceCertifiedSurface, FoundationalBoundaryEvidenceCompileFailBoundary,
@@ -10,9 +13,6 @@ use worth_foundational::{
     FoundationalBoundaryEvidenceRuntimeNonAssumption,
     FoundationalBoundaryEvidenceSyntheticRuntimePressure,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_boundary_evidence_readiness_artifact(
     _: &FoundationalBoundaryEvidenceProductionTestReadyArtifact,

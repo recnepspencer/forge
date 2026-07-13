@@ -1,13 +1,13 @@
-use worth_query::facade::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use worth_query::facade::runtime::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
 fn main() {
     let schema = QuerySchemaView::new(
         "schema",
-        [SchemaFieldView::new(worth_query::facade::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String)],
-        [SchemaRelationView::new(worth_query::facade::RelationName::new("manager").expect("schema relation literal must be valid"), 1)],
+        [SchemaFieldView::new(worth_query::facade::foundation::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::foundation::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String)],
+        [SchemaRelationView::new(worth_query::facade::foundation::RelationName::new("manager").expect("schema relation literal must be valid"), 1)],
     );
-    let field = SchemaFieldView::new(worth_query::facade::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String);
-    let relation = SchemaRelationView::new(worth_query::facade::RelationName::new("manager").expect("schema relation literal must be valid"), 1);
+    let field = SchemaFieldView::new(worth_query::facade::foundation::AspectName::new("identity").expect("schema aspect literal must be valid"), worth_query::facade::foundation::FieldName::new("id").expect("schema field literal must be valid"), SchemaFieldKind::String);
+    let relation = SchemaRelationView::new(worth_query::facade::foundation::RelationName::new("manager").expect("schema relation literal must be valid"), 1);
 
     let _ = schema.field("identity", "id");
     let _ = schema.has_aspect("identity");

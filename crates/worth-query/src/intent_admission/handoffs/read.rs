@@ -1,5 +1,5 @@
 use crate::identity::hash_parts;
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{WorthQueryReadFamily, WorthQueryRuntimeLiveSubscriptionInstallation};
 
 use super::{
@@ -12,7 +12,7 @@ use crate::intent_admission::WorthQueryReadExecutionPlan;
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryReadExecutionHandoff {
     read_family: WorthQueryReadFamily,
-    basis_context: Option<AdmittedQueryBasisContext>,
+    basis_context: Option<ScopedQueryBasisContext>,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: WorthQueryIntentEligibilityTraceEvidence,
@@ -89,7 +89,7 @@ impl WorthQueryReadExecutionHandoff {
         &self.read_family
     }
 
-    pub fn basis_context(&self) -> Option<&AdmittedQueryBasisContext> {
+    pub fn basis_context(&self) -> Option<&ScopedQueryBasisContext> {
         self.basis_context.as_ref()
     }
 

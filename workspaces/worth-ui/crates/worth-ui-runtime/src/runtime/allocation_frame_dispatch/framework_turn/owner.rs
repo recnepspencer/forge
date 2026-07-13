@@ -290,7 +290,7 @@ impl WorthUiRuntime {
     pub(super) fn admit_and_submit_query_projection(
         &mut self,
         prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-        authority: worth_query::facade::ProjectionAuthorityOutcome,
+        authority: worth_query::facade::foundation::ProjectionAuthorityOutcome,
     ) -> Result<
         UiAllocationFrameGatewayOutcome,
         worth_ui_query_binding::WorthUiQueryMeasurementFactSettlementDenial,

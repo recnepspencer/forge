@@ -1,5 +1,5 @@
 use worth_foundational::facade::DiagnosticRichnessProfile;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::WorthServerBinaryDownloadRequest;
 
 use crate::compat_http_phase_ten_assertions::{

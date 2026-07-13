@@ -1,25 +1,25 @@
 error[E0451]: fields `digest`, `read_graph_digest`, `access_shape_digest`, `boolean_topology`, `anchor_posture`, `traversal_predicate_ordering_posture`, `admission_posture`, `branches`, `predicate_rows` and `counters` of struct `WorthQueryBooleanSelectivityShape` are private
-  --> tests/ui/graph_read_access/boolean_selectivity_shape_constructor_private.rs:11:9
+  --> tests/ui/graph_read_access/boolean_selectivity_shape_constructor_private.rs:7:9
    |
-10 |     let _ = WorthQueryBooleanSelectivityShape {
+ 6 |     let _ = WorthQueryBooleanSelectivityShape {
    |             --------------------------------- in this type
-11 |         digest: todo!(),
+ 7 |         digest: todo!(),
    |         ^^^^^^ private field
-12 |         read_graph_digest: String::new(),
+ 8 |         read_graph_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^ private field
-13 |         access_shape_digest: String::new(),
+ 9 |         access_shape_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^ private field
-14 |         boolean_topology: WorthQueryBooleanPredicateTopology::None,
+10 |         boolean_topology: WorthQueryBooleanPredicateTopology::None,
    |         ^^^^^^^^^^^^^^^^ private field
-15 |         anchor_posture: WorthQueryPredicateAnchorPosture::NoPredicateAnchor,
+11 |         anchor_posture: WorthQueryPredicateAnchorPosture::NoPredicateAnchor,
    |         ^^^^^^^^^^^^^^ private field
-16 |         traversal_predicate_ordering_posture: WorthQueryTraversalPredicateOrderingPosture::NoPredicate,
+12 |         traversal_predicate_ordering_posture: WorthQueryTraversalPredicateOrderingPosture::NoPredicate,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         admission_posture: WorthQueryBooleanSelectivityAdmissionPosture::InlineEligible,
+13 |         admission_posture: WorthQueryBooleanSelectivityAdmissionPosture::InlineEligible,
    |         ^^^^^^^^^^^^^^^^^ private field
-18 |         branches: Vec::new(),
+14 |         branches: Vec::new(),
    |         ^^^^^^^^ private field
-19 |         predicate_rows: Vec::new(),
+15 |         predicate_rows: Vec::new(),
    |         ^^^^^^^^^^^^^^ private field
-20 |         counters: todo!(),
+16 |         counters: todo!(),
    |         ^^^^^^^^ private field

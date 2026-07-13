@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryLowerRuntimeNonBypassAudit;
+use worth_query::facade::certification::WorthQueryLowerRuntimeNonBypassAudit;
 
 fn main() {
     let _ = WorthQueryLowerRuntimeNonBypassAudit::new(

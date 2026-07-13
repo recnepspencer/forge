@@ -1,4 +1,5 @@
 mod digest;
+mod digest_hash;
 mod equivalence;
 
 pub(crate) use digest::hash_parts;

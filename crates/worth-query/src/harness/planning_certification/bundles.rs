@@ -1,10 +1,13 @@
-use crate::facade::{
-    execute_preflight_bundle, plan_validated_bundle, planning_request_context_for_direct,
-    resolve_snapshot_basis, validate_canonical_bundle, AspectFieldSelector,
+use crate::facade::foundation::{
+    execute_preflight_bundle, resolve_snapshot_basis, AspectFieldSelector,
     AuthoredResultShapeField, BasisAuthorityFamily, BasisPreflightError, BasisResolutionError,
-    BasisResolutionMode, ExecutionBasisIntent, GuidedAuthoringPath, PlanningError,
-    ResolvedSnapshotIdentity, RootEntityKey, SnapshotLineageClass,
+    BasisResolutionMode, ExecutionBasisIntent, GuidedAuthoringPath, ResolvedSnapshotIdentity,
+    RootEntityKey, SnapshotLineageClass,
 };
+use crate::facade::policy::{
+    plan_validated_bundle, planning_request_context_for_direct, PlanningError,
+};
+use crate::facade::runtime::validate_canonical_bundle;
 
 use super::super::planning_matrix::{
     PlanningCertificationBundle, PlanningCertificationRow, PlanningHostileExpectation,
@@ -13,7 +16,7 @@ use super::super::planning_matrix::{
 use super::super::profiles::CertificationProfile;
 pub(super) fn to_bundle(
     profile: CertificationProfile,
-    preflight: &crate::facade::ExecutionPreflightBundle,
+    preflight: &crate::facade::foundation::ExecutionPreflightBundle,
 ) -> PlanningCertificationBundle {
     let envelope = execute_preflight_bundle(preflight).unwrap();
     PlanningCertificationBundle {
@@ -46,7 +49,7 @@ pub(super) fn to_rejection_bundle(
 pub(super) fn rejection_row(
     row_name: &'static str,
     perturbation_class: PlanningPerturbationClass,
-    control: &crate::facade::ExecutionPreflightBundle,
+    control: &crate::facade::foundation::ExecutionPreflightBundle,
     hostile: Result<(), impl RejectionDigest>,
 ) -> PlanningRejectionRow {
     let hostile = hostile.unwrap_err();
@@ -156,31 +159,33 @@ pub(super) fn binding_conflict_hostile() -> Result<(), PlanningError> {
         .field(AuthoredResultShapeField::new("identity", "id", "id").unwrap())
         .build()
         .unwrap();
-    let bindings = crate::facade::QueryBindingDescriptor::new().with_identity(
-        crate::facade::IdentityBindingDescriptor::new(
-            crate::facade::QueryBindingSlot::new("root").unwrap(),
-            crate::facade::QueryBindingSubject::RootEntity,
+    let bindings = crate::facade::foundation::QueryBindingDescriptor::new().with_identity(
+        crate::facade::foundation::IdentityBindingDescriptor::new(
+            crate::facade::foundation::QueryBindingSlot::new("root").unwrap(),
+            crate::facade::foundation::QueryBindingSubject::RootEntity,
         ),
     );
     let request = GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings).unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let validated = validate_canonical_bundle(
         canonical,
         crate::harness::fixtures::schema_view::detail_schema_view(),
     )
     .unwrap();
-    crate::facade::planning_request_context_for_bound(
+    crate::facade::policy::planning_request_context_for_bound(
         &validated,
         ExecutionBasisIntent::new(
             BasisAuthorityFamily::Runtime,
             SnapshotLineageClass::CurrentHead,
             false,
         ),
-        crate::facade::BoundBindings::new(vec![crate::facade::BoundBinding::new(
-            crate::facade::QueryBindingSlot::new("root").unwrap(),
-            crate::facade::QueryBindingSubject::TraversalRoot,
-            "user-1",
-        )]),
+        crate::facade::foundation::BoundBindings::new(vec![
+            crate::facade::foundation::BoundBinding::new(
+                crate::facade::foundation::QueryBindingSlot::new("root").unwrap(),
+                crate::facade::foundation::QueryBindingSubject::TraversalRoot,
+                "user-1",
+            ),
+        ]),
         Vec::new(),
     )
     .map(|_| ())
@@ -197,7 +202,7 @@ pub(super) fn unsupported_backend_route_hostile() -> Result<(), PlanningError> {
         .build()
         .unwrap();
     let request = GuidedAuthoringPath::pair_detail(query, shape).unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let validated = validate_canonical_bundle(
         canonical,
         crate::harness::fixtures::schema_view::detail_schema_view(),
@@ -226,7 +231,7 @@ pub(super) fn unsupported_fallback_shape_hostile() -> Result<(), PlanningError> 
         .build()
         .unwrap();
     let request = GuidedAuthoringPath::pair_detail(query, shape).unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let validated = validate_canonical_bundle(
         canonical,
         crate::harness::fixtures::schema_view::detail_schema_view(),
@@ -255,7 +260,7 @@ pub(super) fn snapshot_basis_resolution_failure_hostile() -> Result<(), BasisRes
         .build()
         .unwrap();
     let request = GuidedAuthoringPath::pair_detail(query, shape).unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let validated = validate_canonical_bundle(
         canonical,
         crate::harness::fixtures::schema_view::detail_schema_view(),
@@ -284,9 +289,9 @@ pub(super) fn canonical_row(
     row_name: &'static str,
     perturbation_class: PlanningPerturbationClass,
     hostile_expectation: PlanningHostileExpectation,
-    control: crate::facade::ExecutionPreflightBundle,
-    hostile: crate::facade::ExecutionPreflightBundle,
-    parity: crate::facade::ExecutionPreflightBundle,
+    control: crate::facade::foundation::ExecutionPreflightBundle,
+    hostile: crate::facade::foundation::ExecutionPreflightBundle,
+    parity: crate::facade::foundation::ExecutionPreflightBundle,
 ) -> PlanningCertificationRow {
     PlanningCertificationRow {
         row_name,

@@ -36,9 +36,9 @@ pub use anchor::{
     CausalObservationMissingReferencePosture,
 };
 pub use builder::{
-    CausalInspection, CausalInspectionEstimatedCost, CausalInspectionPlan,
-    CausalInspectionPlanError, CausalInspectionPlanErrorKind, CausalInspectionPlanExplanation,
-    CausalInspectionSupportPosture,
+    CausalInspection, CausalInspectionBasisMismatch, CausalInspectionEstimatedCost,
+    CausalInspectionPlan, CausalInspectionPlanError, CausalInspectionPlanErrorKind,
+    CausalInspectionPlanExplanation, CausalInspectionSupportPosture,
 };
 pub use builder_support::{
     CausalInspectionSupport, CausalInspectionSupportExplanation, CausalInspectionSupportRow,
@@ -97,10 +97,11 @@ pub use reference_index::{
 pub use reference_resolution::{
     resolve_causal_evidence_references, resolve_indexed_causal_evidence_references,
 };
+pub(crate) use request::request_causal_inspection;
 pub use request::{
-    causal_inspection_target, request_causal_inspection, CausalInspectionExplanationFamily,
-    CausalInspectionRequest, CausalInspectionRequestError, CausalInspectionRequestErrorKind,
-    CausalInspectionRichness, CausalInspectionTarget,
+    causal_inspection_target, CausalInspectionExplanationFamily, CausalInspectionRequest,
+    CausalInspectionRequestError, CausalInspectionRequestErrorKind, CausalInspectionRichness,
+    CausalInspectionTarget,
 };
 
 #[cfg(test)]

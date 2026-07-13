@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryExistingTruthProbeField;
+use worth_query::facade::runtime::WorthQueryExistingTruthProbeField;
 
 fn main() {
     let field: WorthQueryExistingTruthProbeField = unreachable!();

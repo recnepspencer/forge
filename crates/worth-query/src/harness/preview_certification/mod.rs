@@ -515,7 +515,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         )
         .expect_err("discarded lifecycle should reject");
         let preview_live_drift_denied = match assess_preview_live_drift(
-            preview_live_binding.preview_live(),
+            &preview_live_binding,
             PreviewSessionQueryContext::discarded(
                 &discarded,
                 PreviewEvaluationClass::promotion_eligible(),
@@ -525,7 +525,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             other => panic!("discarded preview-live should deny drift, got {other:?}"),
         };
         let preview_live_broad_fallback_denied = match assess_preview_live_drift(
-            preview_live_binding.preview_live(),
+            &preview_live_binding,
             PreviewSessionQueryContext::active(
                 &active,
                 &foreign_execution_record,
@@ -622,7 +622,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         let (_rebind_new_runtime, rebind_new_active, rebind_new_execution_record) =
             active_preview_artifacts("preview-certification-live-rebind-new");
         let preview_live_explicit_rebind = match assess_preview_live_drift(
-            rebind_seed_preview_live.preview_live(),
+            &rebind_seed_preview_live,
             PreviewSessionQueryContext::active(
                 &rebind_new_active,
                 &rebind_new_execution_record,
@@ -637,6 +637,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
                 &admit_promotion_eligible_preview_session_plan_binding(
                     preview_live_explicit_rebind
                         .rebound_preview_live()
+                        .scoped_binding()
                         .preview_binding()
                         .clone(),
                 )
@@ -648,6 +649,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
                 admit_scoped_preview_session_plan_binding_from_preview_binding(
                     preview_live_explicit_rebind
                         .rebound_preview_live()
+                        .scoped_binding()
                         .preview_binding()
                         .clone(),
                 )

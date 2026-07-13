@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
- --> tests/ui/graph_read_access/admitted_relation_constructor_private.rs:7:19
+ --> tests/ui/graph_read_access/admitted_relation_constructor_private.rs:5:19
   |
-7 |         relation: "manager".to_string(),
+5 |         relation: "manager".to_string(),
   |                   ^^^^^^^^^^^^^^^^^^^^^ expected `RelationName`, found `String`

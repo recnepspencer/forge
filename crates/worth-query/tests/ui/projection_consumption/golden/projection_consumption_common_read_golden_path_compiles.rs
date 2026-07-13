@@ -1,9 +1,6 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath,
-    WorthQueryReadResult,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::runtime::WorthQueryReadResult;
 
 fn common_read_path(
     read_result: &WorthQueryReadResult,

@@ -1,5 +1,5 @@
-use worth_signal::facade::ChangedRegion;
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::ChangedRegion;
 
 #[cfg(test)]
 use crate::boundary::errors::WorthSignalJsError;

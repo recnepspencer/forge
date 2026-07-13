@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    MaterializedProjectionContract, ProjectionContractSourcePosture,
-    ProjectionContractSupportPosture, ProjectionSourceFamily,
-};
+use worth_query::facade::foundation::{MaterializedProjectionContract, ProjectionContractSourcePosture, ProjectionContractSupportPosture, ProjectionSourceFamily};
 
 fn main() {
     let contract: MaterializedProjectionContract = unsafe { std::mem::zeroed() };

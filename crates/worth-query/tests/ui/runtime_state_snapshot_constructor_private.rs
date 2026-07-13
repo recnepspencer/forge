@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryRuntimeStateKind, WorthQueryRuntimeStateSnapshot,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryRuntimeStateKind, WorthQueryRuntimeStateSnapshot};
 
 fn main() {
     let _worthd = WorthQueryRuntimeStateSnapshot {

@@ -1,13 +1,14 @@
 use super::vocabulary::{
     FoundationalBoundaryArtifactCertifiedSurface,
     FoundationalBoundaryArtifactCertifiedSurfaceEvidence,
-    FoundationalBoundaryArtifactCompileFailBoundary, FoundationalBoundaryArtifactWORTHProofApi,
-    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
-    FoundationalBoundaryArtifactWORTHProofSurface, FoundationalBoundaryArtifactMilestone4PhaseGate,
-    FoundationalBoundaryArtifactPhaseGateEvidence, FoundationalBoundaryArtifactResidualDebt,
-    FoundationalBoundaryArtifactRuntimeAssumption,
+    FoundationalBoundaryArtifactCompileFailBoundary,
+    FoundationalBoundaryArtifactMilestone4PhaseGate, FoundationalBoundaryArtifactPhaseGateEvidence,
+    FoundationalBoundaryArtifactResidualDebt, FoundationalBoundaryArtifactRuntimeAssumption,
     FoundationalBoundaryArtifactRuntimeNonAssumption,
     FoundationalBoundaryArtifactSyntheticRuntimePressure,
+    FoundationalBoundaryArtifactWORTHProofApi,
+    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
+    FoundationalBoundaryArtifactWORTHProofSurface,
 };
 
 pub(super) fn certified_surfaces() -> Vec<FoundationalBoundaryArtifactCertifiedSurface> {

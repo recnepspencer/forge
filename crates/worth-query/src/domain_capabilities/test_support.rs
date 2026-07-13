@@ -16,6 +16,7 @@ use super::{
 };
 use crate::domain_capabilities::identity::{domain_capability_scope_encoder, seal};
 use crate::evidence_identity::WorthQueryEvidenceTag;
+use crate::intent_admission::admit_runtime_intent_request;
 use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeBoundaryEnvelope,
     WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeCapabilityEligibility,
@@ -23,8 +24,7 @@ use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
-    admit_runtime_intent_request, WorthQueryAdmittedIntentPlan, WorthQueryIntentAdmissionDecision,
-    WorthQueryIntentDeclaration,
+    WorthQueryAdmittedIntentPlan, WorthQueryIntentAdmissionDecision, WorthQueryIntentDeclaration,
 };
 
 pub(super) fn ready<P, T>(

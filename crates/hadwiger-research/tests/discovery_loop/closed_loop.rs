@@ -1,7 +1,7 @@
-use worth_query::facade::{
-    WORTHQueryApplicationFacade, WORTHQueryContributionComposedOrchestrationInput,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::{
+    WorthQueryApplicationFacade, WorthQueryContributionComposedOrchestrationInput,
+};
 
 fn handle() -> HadwigerResearchHandle {
     admit_hadwiger_research_handle(HadwigerResearchOperatingContext::finite_lower_bound_real())
@@ -84,7 +84,7 @@ fn partial_explanation(
 }
 
 fn query_recovery_explanation(handle: &HadwigerResearchHandle) -> HadwigerQueryRecoveryExplanation {
-    let query_handle = WORTHQueryApplicationFacade::runtime_backed_default()
+    let query_handle = WorthQueryApplicationFacade::runtime_backed_default()
         .domain(HadwigerResearchDomainEntry)
         .with_operating_context(HadwigerResearchOperatingContext::finite_lower_bound_real())
         .validate()
@@ -92,7 +92,7 @@ fn query_recovery_explanation(handle: &HadwigerResearchHandle) -> HadwigerQueryR
         .admit()
         .unwrap();
     let checked = query_handle.orchestrate_declaration_with_contributions_checked(
-        WORTHQueryContributionComposedOrchestrationInput::new(
+        WorthQueryContributionComposedOrchestrationInput::new(
             RejectionExplanationDeclaration::new("candidate-a", "bad-edge"),
         ),
     );

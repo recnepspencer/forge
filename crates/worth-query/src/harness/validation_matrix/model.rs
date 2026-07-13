@@ -1,4 +1,6 @@
-use crate::facade::{QueryValidationCounters, QueryValidationReport, ValidationRejectionMatrix};
+use crate::facade::runtime::{
+    QueryValidationCounters, QueryValidationReport, ValidationRejectionMatrix,
+};
 
 use super::super::certification::{
     digest_parts, CanonicalCertificationRow, CertificationMatrix, HostileExpectation, ParityAnchor,

@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    admit_policy_tenant_context, BranchAccessGrant, PolicyEpoch, PolicyExecutionModeRequest,
-    PolicyRuleSnapshot, SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot,
-};
+use worth_query::facade::policy::{admit_policy_tenant_context, BranchAccessGrant, PolicyEpoch, PolicyExecutionModeRequest, PolicyRuleSnapshot};
+use worth_query::facade::runtime::{SchemaVariantSnapshot, TenantBasisEpoch, TenantBindingSnapshot};
 
 fn main() {
     let policy =

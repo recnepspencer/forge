@@ -1,4 +1,4 @@
-use worth_query::facade::{ProjectMaterializedFacts, ProjectionFactFieldPath};
+use worth_query::facade::foundation::{ProjectMaterializedFacts, ProjectionFactFieldPath};
 
 fn main() {
     let _ = ProjectionFactFieldPath::from_authoring_path("profile.display_name").unwrap();

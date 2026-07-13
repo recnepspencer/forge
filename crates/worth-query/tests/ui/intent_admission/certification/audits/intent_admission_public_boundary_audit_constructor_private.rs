@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryIntentAdmissionPublicBoundaryAudit;
+use worth_query::facade::certification::WorthQueryIntentAdmissionPublicBoundaryAudit;
 
 fn main() {
     let _ = WorthQueryIntentAdmissionPublicBoundaryAudit {

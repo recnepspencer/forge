@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionDomainInvariantSummary;
+use worth_query::facade::runtime::WorthQueryGraphCompositionDomainInvariantSummary;
 
 fn main() {
     let _ = WorthQueryGraphCompositionDomainInvariantSummary {

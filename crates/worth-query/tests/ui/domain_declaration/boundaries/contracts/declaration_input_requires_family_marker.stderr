@@ -1,7 +1,7 @@
 error[E0046]: not all trait items implemented, missing: `Family`
-  --> tests/ui/domain_declaration/boundaries/contracts/declaration_input_requires_family_marker.rs:25:1
+  --> tests/ui/domain_declaration/boundaries/contracts/declaration_input_requires_family_marker.rs:22:1
    |
-25 | impl WorthQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+22 | impl WorthQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `Family` in implementation
    |
    = help: implement the missing item: `type Family = /* Type */;`

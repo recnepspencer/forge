@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionBasisBindingRequest, QuerySubscriptionBasisBindingRequestKind,
-};
+use worth_query::facade::runtime::{QuerySubscriptionBasisBindingRequest, QuerySubscriptionBasisBindingRequestKind};
 
 fn main() {
     let _fabricated = QuerySubscriptionBasisBindingRequest {

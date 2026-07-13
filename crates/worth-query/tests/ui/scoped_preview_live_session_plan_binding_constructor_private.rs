@@ -1,4 +1,4 @@
-use worth_query::facade::ScopedPreviewLiveSessionPlanBinding;
+use worth_query::facade::policy::ScopedPreviewLiveSessionPlanBinding;
 
 fn main() {
     let _ = ScopedPreviewLiveSessionPlanBinding {

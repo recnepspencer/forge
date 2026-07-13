@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionDeclarationArtifact;
+use worth_query::facade::runtime::QuerySubscriptionDeclarationArtifact;
 
 fn main() {
     let declaration: QuerySubscriptionDeclarationArtifact = todo!();

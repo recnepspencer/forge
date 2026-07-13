@@ -1,35 +1,35 @@
 error[E0308]: mismatched types
- --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:8:26
+ --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:6:26
   |
-8 |         commit_identity: "commit-1".to_string(),
+6 |         commit_identity: "commit-1".to_string(),
   |                          ^^^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryCommitIdentity`, found `String`
 
 error[E0560]: struct `WorthQueryMutationReceipt` has no field named `snapshot_token`
- --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:9:9
+ --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:7:9
   |
-9 |         snapshot_token: "snapshot-1".to_string(),
+7 |         snapshot_token: "snapshot-1".to_string(),
   |         ^^^^^^^^^^^^^^ `WorthQueryMutationReceipt` does not have this field
   |
   = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryMutationDelta` has no field named `collection`
-  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:11:13
-   |
-11 |             collection: "Task".to_string(),
-   |             ^^^^^^^^^^ `WorthQueryMutationDelta` does not have this field
-   |
-   = note: all struct fields are already assigned
+ --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:9:13
+  |
+9 |             collection: "Task".to_string(),
+  |             ^^^^^^^^^^ `WorthQueryMutationDelta` does not have this field
+  |
+  = note: all struct fields are already assigned
 
 error[E0308]: mismatched types
-  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:12:30
+  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:10:30
    |
-12 |             entity_identity: "task-1".to_string(),
+10 |             entity_identity: "task-1".to_string(),
    |                              ^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryEntityIdentity`, found `String`
 
 error[E0624]: associated function `from_mutation_receipt` is private
-  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:18:47
+  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:16:47
    |
-18 |       let _ = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
+16 |       let _ = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
    |                                                 ^^^^^^^^^^^^^^^^^^^^^ private associated function
    |
   ::: src/runtime/backend/signal_routing_receipt.rs

@@ -1,6 +1,8 @@
 use std::sync::Arc;
-use worth_query::facade::{
-    ProjectionAuthorityOutcome, ProjectionConsumptionWarningKind, ProjectionSourceBasisAuthority,
+use worth_query::facade::foundation::{
+    ProjectionAuthorityOutcome,
+    ProjectionConsumptionWarningKind,
+    ProjectionSourceBasisAuthority,
 };
 
 use super::{
@@ -149,7 +151,7 @@ impl WorthUiQueryMeasurementFactSettlement {
     fn from_query_authority(
         prerequisites: WorthUiQueryPrerequisiteEvidence,
         query_authority: WorthUiQueryAuthorityHandle,
-        warnings: Option<worth_query::facade::ProjectionConsumptionWarnings>,
+        warnings: Option<worth_query::facade::foundation::ProjectionConsumptionWarnings>,
         source_coordinates: WorthUiQueryAllocationSourceCoordinates,
     ) -> Result<Self, WorthUiQueryMeasurementFactSettlementDenial> {
         match warnings {

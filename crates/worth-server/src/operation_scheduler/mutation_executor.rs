@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
-use worth_query::facade::{WorthQueryInspection, WorthQueryRuntimeError};
+use worth_query::facade::runtime::{WorthQueryInspection, WorthQueryRuntimeError};
 
 use crate::{WorthServerQueryOperation, WorthServerResponseFacade, WorthServerResponseInput};
 

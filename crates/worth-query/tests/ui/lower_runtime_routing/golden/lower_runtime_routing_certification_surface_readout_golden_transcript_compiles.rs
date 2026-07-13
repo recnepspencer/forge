@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    worth_query_lower_runtime_acceptance_suite,
-    worth_query_lower_runtime_boundary_reconciliation_report,
-    worth_query_lower_runtime_synthetic_tail_report, WorthQueryLowerRuntimeAcceptanceLane,
-};
+use worth_query::facade::runtime::{worth_query_lower_runtime_acceptance_suite, worth_query_lower_runtime_boundary_reconciliation_report, WorthQueryLowerRuntimeAcceptanceLane};
+use worth_query::facade::certification::worth_query_lower_runtime_synthetic_tail_report;
 
 fn main() {
     std::thread::Builder::new()

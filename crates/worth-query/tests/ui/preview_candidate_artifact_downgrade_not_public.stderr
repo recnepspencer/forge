@@ -1,16 +1,13 @@
 error[E0432]: unresolved import `worth_query::facade::PreviewComparisonCandidateArtifact`
- --> tests/ui/preview_candidate_artifact_downgrade_not_public.rs:1:68
+ --> tests/ui/preview_candidate_artifact_downgrade_not_public.rs:2:5
   |
-1 | use worth_query::facade::{AuthoritativePreviewComparisonCandidate, PreviewComparisonCandidateArtifact};
-  |                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                                                                    |
-  |                                                                    no `PreviewComparisonCandidateArtifact` in `facade`
-  |                                                                    help: a similar name exists in the module: `PreviewComparisonEligibilityArtifact`
+2 | use worth_query::facade::PreviewComparisonCandidateArtifact;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PreviewComparisonCandidateArtifact` in `facade`
 
 error[E0624]: method `artifact` is private
- --> tests/ui/preview_candidate_artifact_downgrade_not_public.rs:5:50
+ --> tests/ui/preview_candidate_artifact_downgrade_not_public.rs:6:50
   |
-5 |         AuthoritativePreviewComparisonCandidate::artifact;
+6 |         AuthoritativePreviewComparisonCandidate::artifact;
   |                                                  ^^^^^^^^ private method
   |
  ::: src/preview/mod.rs

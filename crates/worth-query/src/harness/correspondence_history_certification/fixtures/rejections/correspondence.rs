@@ -3,7 +3,7 @@ use crate::correspondence::{
     StructuralCandidateDiscoveryPlan,
 };
 use crate::correspondence_history::compose_correspondence_historical_envelope;
-use crate::facade::build_correspondence_historical_parity_bundle;
+use crate::facade::foundation::build_correspondence_historical_parity_bundle;
 
 use super::super::scenarios::{
     correspondence_denied_envelope, detail_preflight_bundle, retained_resolved,

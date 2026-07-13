@@ -1,11 +1,11 @@
 #[path = "support/compat_http/phase_three_runtime.rs"]
 mod compat_http_phase_three_runtime;
+#[path = "support/query_handoff/runtime.rs"]
+mod query_handoff_runtime;
 #[path = "support/worth_native/assertions.rs"]
 mod worth_native_assertions;
 #[path = "support/worth_native/runtime.rs"]
 mod worth_native_runtime;
-#[path = "support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;
 
 use worth_proof::TransitionOutcome;
 use worth_server::{
@@ -20,8 +20,8 @@ use worth_server::{
 };
 
 use compat_http_phase_three_runtime::{compat_mutation_success, insert_task, single_insert_body};
-use worth_native_assertions::worth_native_session;
 use query_handoff_runtime::RealMutationWorkspaceProvider;
+use worth_native_assertions::worth_native_session;
 
 #[test]
 fn successful_mutation_boundaries_expose_the_canonical_operation_request() {

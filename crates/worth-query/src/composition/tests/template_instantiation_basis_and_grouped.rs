@@ -7,8 +7,8 @@ use crate::composition::{
 };
 use crate::harness::fixtures::execution_preflights;
 use crate::query_context::{
-    admit_query_basis_context, bind_query_basis_context, QueryBasisContextRequest,
-    QueryContextBindingSource,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest, QueryContextBindingSource,
 };
 
 use super::template_instantiation_support::{
@@ -20,12 +20,12 @@ use super::template_instantiation_support::{
 #[test]
 fn detail_template_instantiation_preserves_basis_metadata_when_present() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct_query =
         crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("user").unwrap())
             .project(AspectFieldSelector::new("identity", "id").unwrap())
@@ -159,12 +159,12 @@ fn grouped_collection_template_instantiation_preserves_canonical_parity_and_bind
 #[test]
 fn grouped_collection_template_instantiation_preserves_basis_metadata_when_present() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct_query =
         crate::authoring::RawAuthoredQuery::collection_builder(RootEntityKey::new("user").unwrap())
             .project(AspectFieldSelector::new("identity", "id").unwrap())

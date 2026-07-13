@@ -1,6 +1,4 @@
-use worth_query::facade::foundation::{
-    ProjectionConsumptionSupportReport, ProjectionConsumptionSupportRow,
-};
+use worth_query::facade::foundation::{ProjectionConsumptionSupportReport, ProjectionConsumptionSupportRow};
 
 fn impossible<T>() -> T {
     panic!("fixture should fail before construction")

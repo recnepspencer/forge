@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     ProjectionAuthorityOutcome, ProjectionConsumptionBindingContext,
     ProjectionFactConsumptionPathError, WorthQueryConsumedProjectionAuthority,
 };
@@ -299,7 +299,7 @@ fn projection_request() -> WorthServerDirectProjectionRequest {
 
 fn query_binding(
     request: &WorthServerDirectProjectionRequest,
-    receipt: &worth_query::facade::WorthQueryLiveReadReceipt,
+    receipt: &worth_query::facade::runtime::WorthQueryLiveReadReceipt,
 ) -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::from_projection_metadata(
         receipt.view_shape_digest(),
@@ -353,9 +353,9 @@ fn query_projection_success(
 struct ProjectionRemaskTestSupport;
 
 impl ProjectionRemaskTestSupport {
-    fn projection() -> worth_query::facade::WorthQueryRuntimeRemaskProjection {
-        worth_query::facade::WorthQueryRuntimeRemaskProjection::remasked(
-            worth_query::facade::WorthQueryRuntimeRemaskReasonKind::PolicyDrift,
+    fn projection() -> worth_query::facade::runtime::WorthQueryRuntimeRemaskProjection {
+        worth_query::facade::runtime::WorthQueryRuntimeRemaskProjection::remasked(
+            worth_query::facade::runtime::WorthQueryRuntimeRemaskReasonKind::PolicyDrift,
             "policy:test",
             "tenant-truth:test",
             "tenant-schema:test",

@@ -7,7 +7,7 @@ use super::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
-use worth_query::facade::ProjectionConsumptionWarningKind;
+use worth_query::facade::foundation::ProjectionConsumptionWarningKind;
 
 /// Submission-only capability for an admitted Query projection settlement.
 ///

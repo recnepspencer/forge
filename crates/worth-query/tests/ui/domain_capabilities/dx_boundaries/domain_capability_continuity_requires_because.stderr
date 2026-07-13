@@ -1,11 +1,11 @@
 error[E0599]: no method named `materialize` found for struct `WorthQueryAdmittedPlanContinuityDraft` in the current scope
-  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_continuity_requires_because.rs:18:10
-   |
-15 |       let _ = worth_query_domain("worth.spatial")
-   |  _____________-
-16 | |         .for_admitted_intent_plan(&plan)
-17 | |         .preserves_continuity("identity.edge_split", "edge:before", "edge:after")
-18 | |         .materialize();
-   | |         -^^^^^^^^^^^ method not found in `WorthQueryAdmittedPlanContinuityDraft`
-   | |_________|
-   |
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_continuity_requires_because.rs:7:10
+  |
+4 |       let _ = worth_query_domain("worth.spatial")
+  |  _____________-
+5 | |         .for_admitted_intent_plan(plan)
+6 | |         .preserves_continuity("identity.edge_split", "edge:before", "edge:after")
+7 | |         .materialize();
+  | |         -^^^^^^^^^^^ method not found in `WorthQueryAdmittedPlanContinuityDraft`
+  | |_________|
+  |

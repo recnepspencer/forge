@@ -1,4 +1,4 @@
-use worth_query::facade::{AdvisoryStructuralUnique, LineageContinuity};
+use worth_query::facade::foundation::{AdvisoryStructuralUnique, LineageContinuity};
 
 fn requires_lineage(_: LineageContinuity) {}
 

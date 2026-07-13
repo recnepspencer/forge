@@ -1,19 +1,20 @@
 use crate::identity::ResultDigest;
 
 use super::basis::{
-    AdmittedQueryBasisContext, ComparisonBasisFamily, QueryContextAdmissionError,
-    QueryContextAdmissionFailureClass, QueryContextDriftOutcome, QueryContextFamily,
+    ComparisonBasisFamily, QueryContextAdmissionError, QueryContextAdmissionFailureClass,
+    QueryContextDriftOutcome, QueryContextFamily,
 };
 use super::execution::QueryContextExecutionArtifact;
 use super::performance::{
     QueryContextBudgetClass, QueryContextCostClass, QueryContextCounters,
     QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
 };
+use super::scoped::ScopedQueryBasisContext;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedDiffQueryContext {
-    left: AdmittedQueryBasisContext,
-    right: AdmittedQueryBasisContext,
+    left: ScopedQueryBasisContext,
+    right: ScopedQueryBasisContext,
     family: ComparisonBasisFamily,
     drift_outcome: QueryContextDriftOutcome,
     cost_class: QueryContextCostClass,
@@ -24,11 +25,11 @@ pub struct AdmittedDiffQueryContext {
 }
 
 impl AdmittedDiffQueryContext {
-    pub fn left(&self) -> &AdmittedQueryBasisContext {
+    pub fn left(&self) -> &ScopedQueryBasisContext {
         &self.left
     }
 
-    pub fn right(&self) -> &AdmittedQueryBasisContext {
+    pub fn right(&self) -> &ScopedQueryBasisContext {
         &self.right
     }
 
@@ -157,8 +158,8 @@ pub(crate) fn reject_raw_storage_delta_access() -> QueryContextAdmissionError {
 }
 
 pub fn bind_diff_query_context(
-    left: &AdmittedQueryBasisContext,
-    right: &AdmittedQueryBasisContext,
+    left: &ScopedQueryBasisContext,
+    right: &ScopedQueryBasisContext,
 ) -> Result<AdmittedDiffQueryContext, QueryContextAdmissionError> {
     let family = match (left.family(), right.family()) {
         (QueryContextFamily::CurrentBranchHead, QueryContextFamily::BranchHead)

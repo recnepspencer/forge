@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQuerySymbolicAspectResolutionEvidence;
+use worth_query::facade::runtime::WorthQuerySymbolicAspectResolutionEvidence;
 
 fn main() {
     let evidence: WorthQuerySymbolicAspectResolutionEvidence = unreachable!();

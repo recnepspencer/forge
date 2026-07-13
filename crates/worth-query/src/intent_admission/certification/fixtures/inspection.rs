@@ -21,6 +21,10 @@ pub(in crate::intent_admission::certification) struct CertifiedInspectionAdvisor
 
 pub(in crate::intent_admission::certification) fn certified_inspection_advisory_redaction_fixture(
 ) -> CertifiedInspectionAdvisoryRedactionFixture {
+    let inspection_basis = crate::basis_lifecycle::basis_lifecycle()
+        .current_head()
+        .inspect()
+        .expect("inspection certification basis should admit");
     let bridge = certification_bridge();
     let declaration = authoritative_declaration("certification-inspection-advisory-redaction");
     let mut runtime = certification_runtime();
@@ -41,12 +45,15 @@ pub(in crate::intent_admission::certification) fn certified_inspection_advisory_
         .expect("inspection certification should execute through unified inspection intent");
     let observation = match inspection_result.inspection() {
         WorthQueryInspection::IntentReceipt(inspection) => {
-            QueryObservationReceipt::from_intent_receipt_inspection(inspection)
+            QueryObservationReceipt::from_intent_receipt_inspection(
+                inspection,
+                inspection_basis.clone(),
+            )
         }
         other => panic!("expected intent receipt inspection, got {other:?}"),
     };
 
-    let full = CausalInspection::for_observation(observation.clone())
+    let full = CausalInspection::for_observation(observation.clone(), inspection_basis.clone())
         .why_changed()
         .materialized_detail()
         .evidence_families([
@@ -60,7 +67,7 @@ pub(in crate::intent_admission::certification) fn certified_inspection_advisory_
         .materialize_with_bridge(&bridge)
         .expect("full inspection artifact should materialize");
 
-    let redacted = CausalInspection::for_observation(observation)
+    let redacted = CausalInspection::for_observation(observation, inspection_basis)
         .why_changed()
         .materialized_detail()
         .evidence_families([

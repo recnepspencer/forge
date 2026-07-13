@@ -1,8 +1,8 @@
 warning: unused import: `SavedQueryMetadata`
- --> tests/ui/saved_query_artifact_constructor_private.rs:1:47
+ --> tests/ui/saved_query_artifact_constructor_private.rs:1:56
   |
-1 | use worth_query::facade::{SavedQueryArtifact, SavedQueryMetadata, SavedQueryPersistenceFamily};
-  |                                               ^^^^^^^^^^^^^^^^^^
+1 | use worth_query::facade::runtime::{SavedQueryArtifact, SavedQueryMetadata, SavedQueryPersistenceFamily};
+  |                                                        ^^^^^^^^^^^^^^^^^^
   |
   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
 

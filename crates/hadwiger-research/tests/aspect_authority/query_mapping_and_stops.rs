@@ -1,8 +1,8 @@
-use worth_query::facade::{
-    WORTHQueryBindingAspectConflict, WORTHQueryBindingMissingRequiredAspect,
-    WORTHQueryBindingRebindRequired, WORTHQueryBindingStale,
-};
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::{
+    WorthQueryBindingAspectConflict, WorthQueryBindingMissingRequiredAspect,
+    WorthQueryBindingRebindRequired, WorthQueryBindingStale,
+};
 
 #[test]
 fn query_aspect_contract_mapping_uses_exact_hadwiger_paths() {
@@ -142,19 +142,19 @@ fn query_coverage_and_publication_reflect_aspect_posture() {
 fn binding_stops_retain_typed_query_reasons() {
     let stale = AspectClosureStop::query_stale(
         HadwigerAspectKind::UnitDistanceEmbedding,
-        WORTHQueryBindingStale::new("stale retained embedding"),
+        WorthQueryBindingStale::new("stale retained embedding"),
     );
     let rebind = AspectClosureStop::query_rebind_required(
         HadwigerAspectKind::UnitDistanceEmbedding,
-        WORTHQueryBindingRebindRequired::new("rebind required"),
+        WorthQueryBindingRebindRequired::new("rebind required"),
     );
     let missing = AspectClosureStop::query_missing_required_aspect(
         HadwigerAspectKind::UnitDistanceEmbedding,
-        WORTHQueryBindingMissingRequiredAspect::new("unit-distance aspect missing"),
+        WorthQueryBindingMissingRequiredAspect::new("unit-distance aspect missing"),
     );
     let conflict = AspectClosureStop::query_aspect_conflict(
         HadwigerAspectKind::UnitDistanceEmbedding,
-        WORTHQueryBindingAspectConflict::new("unit-distance aspect conflicts"),
+        WorthQueryBindingAspectConflict::new("unit-distance aspect conflicts"),
     );
     let local = AspectClosureStop::local(HadwigerAspectKind::FailureEvidence, "local stop");
 

@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    ActiveLaneLookupClass, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget,
-};
+use worth_query::facade::runtime::{ActiveLaneLookupClass, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget};
 
 fn main() {
     let _budget = ActiveSubscriptionWorkBudget {

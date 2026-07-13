@@ -348,26 +348,24 @@ fn workspace(name: &str) -> WorthQueryWorkspace {
 fn current_context_for_family(
     workspace: &WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
-) -> worth_query::facade::AdmittedQueryBasisContext {
-    use worth_query::facade::{
-        admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
-        resolve_runtime_current_snapshot_basis, QueryBasisContextRequest,
-        QueryContextBindingSource,
+) -> worth_query::facade::policy::ScopedQueryBasisContext {
+    use worth_query::facade::foundation::{
+        basis_lifecycle, preflight_execution_basis, resolve_runtime_current_snapshot_basis,
     };
+    use worth_query::facade::policy::{admit_query_basis_context, QueryContextBindingSource};
 
     let basis = resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis().clone(),
+        family.read_graph().schema_basis_authority(),
     )
     .expect("snapshot basis should resolve");
     let preflight = preflight_execution_basis(family.read_graph().execution_plan().clone(), basis)
         .expect("query basis should preflight");
-    let binding = bind_query_basis_context(
-        QueryBasisContextRequest::current_branch_head(),
+    admit_query_basis_context(
+        basis_lifecycle().current_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
-    .expect("current basis context should bind");
-    admit_query_basis_context(binding).expect("current basis context should admit")
+    .expect("current basis context should admit")
 }
 
 fn assert_unregistered_operation_admission(

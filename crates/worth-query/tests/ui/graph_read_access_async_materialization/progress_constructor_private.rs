@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadMaterializationAdmittedLimits, WorthQueryGraphReadMaterializationCounters,
-    WorthQueryGraphReadMaterializationProgress,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadMaterializationAdmittedLimits, WorthQueryGraphReadMaterializationCounters, WorthQueryGraphReadMaterializationProgress};
 
 fn main() {
     let _ = WorthQueryGraphReadMaterializationProgress {

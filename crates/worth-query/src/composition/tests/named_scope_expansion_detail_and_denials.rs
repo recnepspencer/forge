@@ -8,8 +8,8 @@ use crate::composition::{
 };
 use crate::harness::fixtures::execution_preflights;
 use crate::query_context::{
-    admit_query_basis_context, bind_query_basis_context, QueryBasisContextRequest,
-    QueryContextBindingSource,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest, QueryContextBindingSource,
 };
 
 fn direct_detail_query() -> crate::authoring::DetailAuthoredQuery {
@@ -95,12 +95,12 @@ fn scope_expansion_preserves_parity_and_emits_lineage() {
 #[test]
 fn basis_aware_scope_preserves_query_meaning_and_emits_basis_metadata() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct =
         GuidedAuthoringPath::canonicalize_detail(direct_detail_query(), direct_detail_shape())
             .unwrap();
@@ -137,12 +137,12 @@ fn basis_aware_scope_preserves_query_meaning_and_emits_basis_metadata() {
 #[test]
 fn basis_aware_scope_denies_mismatched_query_binding() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let wrong_direct = GuidedAuthoringPath::canonicalize_detail(
         crate::authoring::RawAuthoredQuery::detail_builder(RootEntityKey::new("account").unwrap())
             .project(AspectFieldSelector::new("identity", "id").unwrap())
@@ -175,12 +175,12 @@ fn basis_aware_scope_denies_mismatched_query_binding() {
 #[test]
 fn duplicate_basis_aware_scope_fails_with_exact_failure_class_and_counters() {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct =
         GuidedAuthoringPath::canonicalize_detail(direct_detail_query(), direct_detail_shape())
             .unwrap();

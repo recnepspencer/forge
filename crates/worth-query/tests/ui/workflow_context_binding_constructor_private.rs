@@ -1,4 +1,4 @@
-use worth_query::facade::WorkflowContextBinding;
+use worth_query::facade::runtime::WorkflowContextBinding;
 
 fn main() {
     let _ = WorkflowContextBinding {

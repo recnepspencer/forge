@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewSubscriptionDiscardCloseout, PreviewSubscriptionIsolationArtifact};
+use worth_query::facade::runtime::{PreviewSubscriptionDiscardCloseout, PreviewSubscriptionIsolationArtifact};
 
 fn discard(_: PreviewSubscriptionDiscardCloseout) {}
 

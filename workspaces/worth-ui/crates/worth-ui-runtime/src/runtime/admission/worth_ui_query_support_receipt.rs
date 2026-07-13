@@ -1,6 +1,8 @@
-use worth_query::facade::{
-    BasisSupportPosture, QuerySubscriptionSupportPosture, WorthQueryCapabilityStatus,
+use worth_query::facade::foundation::{
+    BasisSupportPosture,
+    WorthQueryCapabilityStatus,
 };
+use worth_query::facade::runtime::QuerySubscriptionSupportPosture;
 
 use crate::runtime::candidate::WorthUiCandidateDependencyMetadata;
 use crate::source::WorthUiRuntimeDependencyHook;
@@ -142,13 +144,23 @@ fn fold_text(text: &str) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use worth_query::facade::{
-        discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-        QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-        WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfig,
-        WorthQueryQueryConfig, WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
-        WorthQuerySignalConfig,
-    };
+    use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+    WorthQueryConfig,
+    WorthQueryQueryConfig,
+    WorthQueryRelationalConfig,
+    WorthQueryRuntimeBridgeConfig,
+    WorthQuerySignalConfig,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
+};
 
     use crate::capability::{
         QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,

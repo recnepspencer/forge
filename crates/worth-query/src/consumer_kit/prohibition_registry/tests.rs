@@ -117,6 +117,15 @@ fn direct_workspace_write_and_existing_truth_bypass_seams_are_registry_owned() {
         WorthQueryProhibitedSeam::WorkspaceExistingTruthDelete,
         WorthQueryProhibitedSeam::WorkspaceExistingTruthDeleteWith,
         WorthQueryProhibitedSeam::WorkspaceExistingTruthDeleteVerified,
+        WorthQueryProhibitedSeam::RawDigestMinting,
+        WorthQueryProhibitedSeam::RawBasisIdentity,
+        WorthQueryProhibitedSeam::UnscopedQueryContext,
+        WorthQueryProhibitedSeam::RawIntentAdmissionRequest,
+        WorthQueryProhibitedSeam::PostureAuthoredSubscription,
+        WorthQueryProhibitedSeam::ReceiptOnlyCausalInspection,
+        WorthQueryProhibitedSeam::LegacyPreviewExecution,
+        WorthQueryProhibitedSeam::DeepFacadeToolingImport,
+        WorthQueryProhibitedSeam::LegacyQueryBasisLifecycle,
     ] {
         assert!(
             registry.contains_seam(seam),

@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
- --> tests/ui/subscription_admission_requires_bridge_lowering.rs:9:47
+ --> tests/ui/subscription_admission_requires_bridge_lowering.rs:6:47
   |
-9 |     let _admission = admit_query_subscription(declaration.unwrap(), budget);
+6 |     let _admission = admit_query_subscription(declaration.unwrap(), budget);
   |                      ------------------------ ^^^^^^^^^^^^^^^^^^^^ expected `BridgeSubscriptionLoweringPlan`, found `QuerySubscriptionDeclarationArtifact`
   |                      |
   |                      arguments to this function are incorrect

@@ -1,4 +1,4 @@
-use worth_query::facade::QueryDeliveryError;
+use worth_query::facade::runtime::QueryDeliveryError;
 
 fn main() {
     let error: QueryDeliveryError = todo!();

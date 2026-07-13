@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryEffectPolicy, WorthQueryPreviewBasisAdmission,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryEffectPolicy, WorthQueryPreviewBasisAdmission};
 
 fn main() {
     let _ = WorthQueryPreviewBasisAdmission {

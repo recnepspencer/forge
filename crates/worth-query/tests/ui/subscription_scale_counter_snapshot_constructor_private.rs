@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionDeclarationCounters, QuerySubscriptionScaleCounterSnapshot,
-    QuerySubscriptionScaleFixtureSize,
-};
+use worth_query::facade::runtime::{QuerySubscriptionDeclarationCounters, QuerySubscriptionScaleCounterSnapshot, QuerySubscriptionScaleFixtureSize};
 
 fn main() {
     let _ = QuerySubscriptionScaleCounterSnapshot {

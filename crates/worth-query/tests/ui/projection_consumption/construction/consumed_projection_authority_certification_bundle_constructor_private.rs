@@ -1,4 +1,4 @@
-use worth_query::facade::ConsumedProjectionAuthorityCertificationBundle;
+use worth_query::facade::certification::ConsumedProjectionAuthorityCertificationBundle;
 
 fn main() {
     let _ = ConsumedProjectionAuthorityCertificationBundle {

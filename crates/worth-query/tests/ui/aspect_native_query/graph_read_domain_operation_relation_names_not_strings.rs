@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryAdmittedGraphReadDomainOperationReference, WorthQueryGraphReadOperationRegistration,
-};
+use worth_query::facade::foundation::WorthQueryAdmittedGraphReadDomainOperationReference;
+use worth_query::facade::runtime::WorthQueryGraphReadOperationRegistration;
 
 fn main() {
     let reference =

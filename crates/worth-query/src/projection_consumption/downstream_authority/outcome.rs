@@ -43,9 +43,7 @@ impl ProjectionAuthorityOutcome {
     > {
         match self {
             Self::Admitted(authority) => Ok((*authority, None)),
-            Self::AdmittedWithWarnings(authority, warnings) => {
-                Ok((*authority, Some(warnings)))
-            }
+            Self::AdmittedWithWarnings(authority, warnings) => Ok((*authority, Some(warnings))),
             denied => Err(denied),
         }
     }

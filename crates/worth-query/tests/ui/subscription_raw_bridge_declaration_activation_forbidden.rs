@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    prepare_subscription_activation, BridgeSubscriptionDeclarationFamilyKind,
-};
+use worth_query::facade::runtime::{prepare_subscription_activation, BridgeSubscriptionDeclarationFamilyKind};
 
 fn main() {
     let raw_bridge = BridgeSubscriptionDeclarationFamilyKind::DetailExact;

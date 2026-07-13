@@ -144,3 +144,15 @@ pub(crate) fn compose_admitted_configured_domain_handle_identity<
         handle.support_snapshot().validated_config_digest(),
     )
 }
+
+pub(crate) fn compose_basis_lifecycle_support_identity(
+    matrix_digest: &str,
+) -> WorthQueryEvidenceIdentity {
+    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
+        .field_shape(
+            WorthQueryEvidenceTag::new("identity_family"),
+            "basis_lifecycle_support_matrix_v1",
+        )
+        .field_shape(WorthQueryEvidenceTag::new("support_matrix"), matrix_digest)
+        .seal()
+}

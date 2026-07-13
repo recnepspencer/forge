@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryLivePatch, WorthQueryMutationKind};
+use worth_query::facade::foundation::{WorthQueryLivePatch, WorthQueryMutationKind};
 
 fn main() {
     let _patch = WorthQueryLivePatch {

@@ -1,130 +1,130 @@
 warning: unreachable expression
- --> tests/ui/private_stream_delivery_support_artifact_fields.rs:9:23
+ --> tests/ui/private_stream_delivery_support_artifact_fields.rs:6:23
   |
-8 |         digest: todo!(),
+5 |         digest: todo!(),
   |                 ------- any code following this expression is unreachable
-9 |         query_digest: todo!(),
+6 |         query_digest: todo!(),
   |                       ^^^^^^^ unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unreachable expression
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:18:32
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:15:32
    |
-17 |         digest: todo!(),
+14 |         digest: todo!(),
    |                 ------- any code following this expression is unreachable
-18 |         query_delivery_digest: todo!(),
+15 |         query_delivery_digest: todo!(),
    |                                ^^^^^^^ unreachable expression
    |
    = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unreachable expression
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:26:25
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:23:25
    |
-25 |         digest: todo!(),
+22 |         digest: todo!(),
    |                 ------- any code following this expression is unreachable
-26 |         consumer_shape: todo!(),
+23 |         consumer_shape: todo!(),
    |                         ^^^^^^^ unreachable expression
    |
    = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unreachable expression
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:33:25
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:30:25
    |
-32 |         digest: todo!(),
+29 |         digest: todo!(),
    |                 ------- any code following this expression is unreachable
-33 |         consumer_shape: todo!(),
+30 |         consumer_shape: todo!(),
    |                         ^^^^^^^ unreachable expression
    |
    = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 warning: unreachable expression
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:40:23
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:37:23
    |
-39 |         digest: todo!(),
+36 |         digest: todo!(),
    |                 ------- any code following this expression is unreachable
-40 |         query_digest: todo!(),
+37 |         query_digest: todo!(),
    |                       ^^^^^^^ unreachable expression
    |
    = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0451]: fields `digest`, `query_digest`, `locality_digest`, `delivery_digest`, `family` and `locality_outcome` of struct `QueryDeliveryContract` are private
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:8:9
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:5:9
    |
- 7 |     let _ = QueryDeliveryContract {
+ 4 |     let _ = QueryDeliveryContract {
    |             --------------------- in this type
- 8 |         digest: todo!(),
+ 5 |         digest: todo!(),
    |         ^^^^^^ private field
- 9 |         query_digest: todo!(),
+ 6 |         query_digest: todo!(),
    |         ^^^^^^^^^^^^ private field
-10 |         locality_digest: todo!(),
+ 7 |         locality_digest: todo!(),
    |         ^^^^^^^^^^^^^^^ private field
-11 |         delivery_digest: todo!(),
+ 8 |         delivery_digest: todo!(),
    |         ^^^^^^^^^^^^^^^ private field
-12 |         family: todo!(),
+ 9 |         family: todo!(),
    |         ^^^^^^ private field
-13 |         locality_outcome: todo!(),
+10 |         locality_outcome: todo!(),
    |         ^^^^^^^^^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `query_delivery_digest`, `request_digest`, `admitted_consumer_contract_digest` and `stream_contract_digest` of struct `DeliveryContractLowering` are private
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:17:9
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:14:9
    |
-16 |     let _ = DeliveryContractLowering {
+13 |     let _ = DeliveryContractLowering {
    |             ------------------------ in this type
-17 |         digest: todo!(),
+14 |         digest: todo!(),
    |         ^^^^^^ private field
-18 |         query_delivery_digest: todo!(),
+15 |         query_delivery_digest: todo!(),
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
-19 |         request_digest: todo!(),
+16 |         request_digest: todo!(),
    |         ^^^^^^^^^^^^^^ private field
-20 |         admitted_consumer_contract_digest: todo!(),
+17 |         admitted_consumer_contract_digest: todo!(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-21 |         stream_contract_digest: todo!(),
+18 |         stream_contract_digest: todo!(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `consumer_shape`, `member_count` and `delivery_width` of struct `StreamMemberProjection` are private
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:25:9
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:22:9
    |
-24 |     let _ = StreamMemberProjection {
+21 |     let _ = StreamMemberProjection {
    |             ---------------------- in this type
-25 |         digest: todo!(),
+22 |         digest: todo!(),
    |         ^^^^^^ private field
-26 |         consumer_shape: todo!(),
+23 |         consumer_shape: todo!(),
    |         ^^^^^^^^^^^^^^ private field
-27 |         member_count: todo!(),
+24 |         member_count: todo!(),
    |         ^^^^^^^^^^^^ private field
-28 |         delivery_width: todo!(),
+25 |         delivery_width: todo!(),
    |         ^^^^^^^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `consumer_shape`, `window_width` and `budget_limit` of struct `StreamWindowCompatibility` are private
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:32:9
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:29:9
    |
-31 |     let _ = StreamWindowCompatibility {
+28 |     let _ = StreamWindowCompatibility {
    |             ------------------------- in this type
-32 |         digest: todo!(),
+29 |         digest: todo!(),
    |         ^^^^^^ private field
-33 |         consumer_shape: todo!(),
+30 |         consumer_shape: todo!(),
    |         ^^^^^^^^^^^^^^ private field
-34 |         window_width: todo!(),
+31 |         window_width: todo!(),
    |         ^^^^^^^^^^^^ private field
-35 |         budget_limit: todo!(),
+32 |         budget_limit: todo!(),
    |         ^^^^^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `query_digest`, `delivery_digest`, `replay_digest`, `locality_outcome` and `stream_contract_digest` of struct `DeliveryContractReplayRecord` are private
-  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:39:9
+  --> tests/ui/private_stream_delivery_support_artifact_fields.rs:36:9
    |
-38 |     let _ = DeliveryContractReplayRecord {
+35 |     let _ = DeliveryContractReplayRecord {
    |             ---------------------------- in this type
-39 |         digest: todo!(),
+36 |         digest: todo!(),
    |         ^^^^^^ private field
-40 |         query_digest: todo!(),
+37 |         query_digest: todo!(),
    |         ^^^^^^^^^^^^ private field
-41 |         delivery_digest: todo!(),
+38 |         delivery_digest: todo!(),
    |         ^^^^^^^^^^^^^^^ private field
-42 |         replay_digest: todo!(),
+39 |         replay_digest: todo!(),
    |         ^^^^^^^^^^^^^ private field
-43 |         locality_outcome: todo!(),
+40 |         locality_outcome: todo!(),
    |         ^^^^^^^^^^^^^^^^ private field
-44 |         stream_contract_digest: todo!(),
+41 |         stream_contract_digest: todo!(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field

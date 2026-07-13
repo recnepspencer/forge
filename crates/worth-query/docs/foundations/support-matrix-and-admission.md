@@ -12,7 +12,7 @@ runtime whether a public family is actually available before they build on it.
 ## Why You Use It
 
 - you need to know whether a public surface is truly supported or only visible
-  so later milestones extend the same facade
+  so neighboring capability work extends the same facade
 - you want typed denials instead of silent fallback when a family is deferred
   or unsupported
 - you want one machine-checkable way to teach support posture in docs, product
@@ -158,8 +158,8 @@ Canonical kind labels are `blocking-invariant`,
 `unsupported`, `not-applicable`, `diagnostic-only`, and
 `deferred-to-backstop`.
 
-The `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`
-uses this covered lane vocabulary:
+The graph touch obligation hostile certification matrix uses this covered lane
+vocabulary:
 
 - graph composition
 - authoritative command batch
@@ -191,8 +191,8 @@ row.
 
 ## Graph Read Access Planning Rows
 
-Graph read access planning is the Milestone 9.10 access and cost contract for
-declared graph reads. It is separate from graph touch obligation authority:
+Graph read access planning is the access and cost contract for declared graph
+reads. It is separate from graph touch obligation authority:
 obligation rows describe graph meaning that must be checked, while graph read
 access rows describe the access structures required to read graph-shaped data
 without hidden N+1 traversal or unbounded local materialization.
@@ -260,7 +260,7 @@ the read receipt.
 ## Small Example
 
 ```rust
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 let workspace = runtime.workspace("support")?;
 
@@ -281,7 +281,7 @@ support matrix, then ask for executable admission.
 ## Real Example
 
 ```rust
-use worth_query::facade::{WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily};
+use worth_query::facade::runtime::{WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily};
 
 let workspace = runtime.workspace("future-gates")?;
 let matrix = workspace.public_support_matrix();
@@ -358,10 +358,10 @@ What is supported now:
 
 What is support-gated:
 
-- `Temporal` -> separate facade-family root is published as a support-gated extension marker; shipped runtime-backed temporal meaning extends ordinary live handles in Milestone `9.4`
-- `AsyncResource` -> separate facade-family root is published as a support-gated extension marker; shipped runtime-backed async/resource meaning extends ordinary live handles in Milestone `9.4`
-- `MixedCauseDelivery` -> separate facade-family root is published as a support-gated extension marker; shipped mixed-cause delivery meaning projects through retained live and downstream delivery surfaces in Milestone `9.4`
-- `temporal-async-certification` -> temporal/async certification closure in Milestone `9.4`
+- `Temporal` -> support-gated extension marker whose runtime-backed meaning extends ordinary live handles
+- `AsyncResource` -> support-gated extension marker whose runtime-backed meaning extends ordinary live handles
+- `MixedCauseDelivery` -> support-gated extension marker whose meaning projects through retained live and downstream delivery surfaces
+- `temporal-async-certification` -> temporal/async certification closure
 
 What is visible but deferred:
 

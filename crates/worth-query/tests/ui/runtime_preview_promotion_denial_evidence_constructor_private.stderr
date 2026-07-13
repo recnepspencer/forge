@@ -1,31 +1,31 @@
 error[E0560]: struct `WorthQueryPreviewPromotionDenialEvidence` has no field named `label`
- --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:8:9
+ --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:5:9
   |
-8 |         label: "preview".to_string(),
+5 |         label: "preview".to_string(),
   |         ^^^^^ `WorthQueryPreviewPromotionDenialEvidence` does not have this field
   |
   = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewPromotionDenialEvidence` has no field named `basis_snapshot_token`
-  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:12:9
-   |
-12 |         basis_snapshot_token: "a".to_string(),
-   |         ^^^^^^^^^^^^^^^^^^^^ `WorthQueryPreviewPromotionDenialEvidence` does not have this field
-   |
-   = note: all struct fields are already assigned
+ --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:9:9
+  |
+9 |         basis_snapshot_token: "a".to_string(),
+  |         ^^^^^^^^^^^^^^^^^^^^ `WorthQueryPreviewPromotionDenialEvidence` does not have this field
+  |
+  = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewPromotionDenialEvidence` has no field named `promotion_snapshot_token`
-  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:13:9
+  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:10:9
    |
-13 |         promotion_snapshot_token: "b".to_string(),
+10 |         promotion_snapshot_token: "b".to_string(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ `WorthQueryPreviewPromotionDenialEvidence` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewPromotionDenialEvidence` has no field named `denial_digest`
-  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:19:9
+  --> tests/ui/runtime_preview_promotion_denial_evidence_constructor_private.rs:16:9
    |
-19 |         denial_digest: String::new(),
+16 |         denial_digest: String::new(),
    |         ^^^^^^^^^^^^^ `WorthQueryPreviewPromotionDenialEvidence` does not have this field
    |
    = note: all struct fields are already assigned

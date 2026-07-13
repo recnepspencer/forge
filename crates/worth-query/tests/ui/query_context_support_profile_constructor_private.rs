@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryQueryContextSupportProfile;
+use worth_query::facade::foundation::WorthQueryQueryContextSupportProfile;
 
 fn main() {
     let _ = WorthQueryQueryContextSupportProfile {

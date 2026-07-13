@@ -1,8 +1,8 @@
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity,
+    BridgePreviewSessionDeclarationIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
+    BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
 };
 
 use super::support::{build_runtime, registration};

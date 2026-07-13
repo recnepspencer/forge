@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     prepare_aspect_patch_for_canonical_basis, validate_aspect_value, AspectContract,
     AspectContractRevision, AspectIdentity, AspectKey, AspectValue,
@@ -8,7 +9,6 @@ use worth_foundational::facade::{
     ContractValidationDenial,
 };
 use worth_proof::TransitionOutcome;
-use sha2::{Digest, Sha256};
 
 use crate::canonical_basis::canonical_basis_ready_text;
 

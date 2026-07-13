@@ -6,11 +6,9 @@ use super::{
     execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
     PreviewEvaluationClass, PreviewLiveFailureClass, PreviewSessionQueryContext,
 };
+use crate::basis_lifecycle::{basis_lifecycle, BasisFamily};
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::live::promote_preflight_bundle_to_live;
-use crate::query_basis_lifecycle::{
-    scope_observation_basis_intent, BasisOperationLaneRequest, RawBasisIntent,
-};
 
 #[test]
 fn scoped_preview_live_admission_preserves_existing_live_report_shape() {
@@ -27,10 +25,10 @@ fn scoped_preview_live_admission_preserves_existing_live_report_shape() {
         ),
     )
     .expect("preview binding should succeed");
-    let scoped_basis = scope_observation_basis_intent(RawBasisIntent::current_head(
-        BasisOperationLaneRequest::Observation,
-    ))
-    .expect("current-head observation basis should scope");
+    let scoped_basis = basis_lifecycle()
+        .current_head()
+        .observe()
+        .expect("current-head observation basis should scope");
     let scoped_binding =
         admit_scoped_preview_session_plan_binding(scoped_basis, preview_binding.clone())
             .expect("scoped preview binding should admit");
@@ -46,10 +44,7 @@ fn scoped_preview_live_admission_preserves_existing_live_report_shape() {
     let unscoped_execution = execute_preview_live_session_plan(&unscoped_preview_live)
         .expect("legacy preview-live execution should succeed");
 
-    assert_eq!(
-        scoped_preview_live.preview_live().report(),
-        unscoped_preview_live.report()
-    );
+    assert_eq!(scoped_preview_live.report(), unscoped_preview_live.report());
     assert_eq!(scoped_execution.counters(), unscoped_execution.counters());
 }
 
@@ -67,14 +62,10 @@ fn scoped_preview_live_admission_denies_mismatched_scoped_basis_semantics() {
         ),
     )
     .expect("preview binding should succeed");
-    let scoped_basis = scope_observation_basis_intent(RawBasisIntent::runtime_snapshot(
-        worth_runtime_bridge::facade::TruthSnapshotIdentity::from_bridge_harness_label(
-            "snapshot:other",
-        )
-        .bridge_admission_evidence(),
-        BasisOperationLaneRequest::Observation,
-    ))
-    .expect("runtime-snapshot observation basis should scope");
+    let scoped_basis = basis_lifecycle()
+        .runtime_snapshot("snapshot:other", "binding:other")
+        .observe()
+        .expect("runtime-snapshot observation basis should scope");
 
     let error = admit_scoped_preview_session_plan_binding(scoped_basis, preview_binding)
         .expect_err("mismatched scoped basis should deny");
@@ -106,10 +97,10 @@ fn scoped_preview_live_admission_preserves_underlying_preview_live_denials() {
         ),
     )
     .expect("preview binding should succeed");
-    let scoped_basis = scope_observation_basis_intent(RawBasisIntent::current_head(
-        BasisOperationLaneRequest::Observation,
-    ))
-    .expect("current-head observation basis should scope");
+    let scoped_basis = basis_lifecycle()
+        .current_head()
+        .observe()
+        .expect("current-head observation basis should scope");
     let scoped_binding = admit_scoped_preview_session_plan_binding(scoped_basis, preview_binding)
         .expect("scoped preview binding should admit");
 
@@ -142,24 +133,6 @@ fn scoped_preview_binding_adapter_derives_current_head_observation_semantics() {
     let admitted = admit_scoped_preview_session_plan_binding_from_preview_binding(preview_binding)
         .expect("preview binding should admit through scoped adapter");
 
-    match scoped_basis.admission() {
-        crate::query_basis_lifecycle::BasisCapabilityAdmission::Admitted(capability) => {
-            assert_eq!(capability.family().as_str(), "current_head");
-            assert_eq!(capability.scope_label(), "current_head");
-            assert_eq!(
-                capability.operation_lane(),
-                &BasisOperationLaneRequest::Observation
-            );
-        }
-        other => panic!("unexpected preview-derived scoped admission: {other:?}"),
-    }
-    match admitted.scoped_basis().admission() {
-        crate::query_basis_lifecycle::BasisCapabilityAdmission::Admitted(capability) => {
-            assert_eq!(
-                capability.operation_lane(),
-                &BasisOperationLaneRequest::Observation
-            );
-        }
-        other => panic!("unexpected scoped preview binding admission: {other:?}"),
-    }
+    assert_eq!(scoped_basis.family(), BasisFamily::CurrentHead);
+    assert_eq!(admitted.scoped_basis(), &scoped_basis);
 }

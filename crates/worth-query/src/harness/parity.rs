@@ -1,5 +1,5 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
-use crate::facade::{
+use crate::facade::foundation::{
     AspectFieldSelector, AuthoredResultShapeField, IdentityBindingDescriptor,
     NonIdentityBindingMetadata, QueryBindingDescriptor, QueryBindingSlot, QueryBindingSubject,
     RootEntityKey, TraversalSelector,
@@ -27,10 +27,12 @@ fn equivalent_detail_queries_canonicalize_to_identical_query_digests() {
         .unwrap();
 
     let request_a =
-        crate::facade::GuidedAuthoringPath::pair_detail(query_a, shape.clone()).unwrap();
-    let bundle_a = crate::facade::canonicalize_request(request_a).unwrap();
-    let request_b = crate::facade::GuidedAuthoringPath::pair_detail(query_b, shape).unwrap();
-    let bundle_b = crate::facade::canonicalize_request(request_b).unwrap();
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query_a, shape.clone())
+            .unwrap();
+    let bundle_a = crate::facade::foundation::canonicalize_request(request_a).unwrap();
+    let request_b =
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query_b, shape).unwrap();
+    let bundle_b = crate::facade::foundation::canonicalize_request(request_b).unwrap();
 
     assert_eq!(bundle_a.query().digest(), bundle_b.query().digest());
     assert_eq!(
@@ -39,17 +41,17 @@ fn equivalent_detail_queries_canonicalize_to_identical_query_digests() {
     );
     assert_eq!(
         bundle_a.query().equivalence_to(bundle_b.query()),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_eq!(
         bundle_a
             .result_shape()
             .equivalence_to(bundle_b.result_shape()),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_eq!(
         bundle_a.equivalence_to(&bundle_b),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_eq!(bundle_a.counters().raw_clause_count, 3);
     assert_eq!(bundle_a.counters().normalized_clause_count, 3);
@@ -60,7 +62,7 @@ fn equivalent_detail_queries_canonicalize_to_identical_query_digests() {
     assert_eq!(bundle_a.counters().canonicalization_fallback_count, 0);
     assert_eq!(
         bundle_a.report().compatibility(),
-        &crate::facade::CompatibilityEvidence::Compatible
+        &crate::facade::foundation::CompatibilityEvidence::Compatible
     );
     assert_eq!(bundle_a.report().normalized_projection_entries(), 2);
     assert_eq!(bundle_a.report().normalized_traversal_entries(), 1);
@@ -75,11 +77,11 @@ fn equivalent_detail_queries_canonicalize_to_identical_query_digests() {
     );
     assert!(bundle_a.report().events().iter().any(|event| matches!(
         event,
-        crate::facade::NormalizationEvent::CompatibilityEstablished
+        crate::facade::foundation::NormalizationEvent::CompatibilityEstablished
     )));
     assert!(bundle_a.report().events().iter().any(|event| matches!(
         event,
-        crate::facade::NormalizationEvent::IdentityFrozen { .. }
+        crate::facade::foundation::NormalizationEvent::IdentityFrozen { .. }
     )));
     bundle_a.check_invariants().unwrap();
     bundle_b.check_invariants().unwrap();
@@ -98,12 +100,16 @@ fn repeated_guided_canonicalization_is_deterministic() {
         .build()
         .unwrap();
 
-    let request_a =
-        crate::facade::GuidedAuthoringPath::pair_collection(query.clone(), shape.clone()).unwrap();
-    let request_b = crate::facade::GuidedAuthoringPath::pair_collection(query, shape).unwrap();
+    let request_a = crate::facade::foundation::GuidedAuthoringPath::pair_collection(
+        query.clone(),
+        shape.clone(),
+    )
+    .unwrap();
+    let request_b =
+        crate::facade::foundation::GuidedAuthoringPath::pair_collection(query, shape).unwrap();
 
-    let bundle_a = crate::facade::canonicalize_request(request_a).unwrap();
-    let bundle_b = crate::facade::canonicalize_request(request_b).unwrap();
+    let bundle_a = crate::facade::foundation::canonicalize_request(request_a).unwrap();
+    let bundle_b = crate::facade::foundation::canonicalize_request(request_b).unwrap();
 
     assert_eq!(bundle_a.query().digest(), bundle_b.query().digest());
     assert_eq!(
@@ -113,7 +119,7 @@ fn repeated_guided_canonicalization_is_deterministic() {
     assert_eq!(bundle_a.report().events(), bundle_b.report().events());
     assert_eq!(
         bundle_a.equivalence_to(&bundle_b),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     bundle_a.check_invariants().unwrap();
     bundle_b.check_invariants().unwrap();
@@ -157,17 +163,17 @@ fn event_order_is_deterministic_under_metadata_and_traversal_noise() {
         ))
         .with_non_identity(NonIdentityBindingMetadata::new("route", "tasks.index").unwrap());
 
-    let request_a = crate::facade::GuidedAuthoringPath::pair_collection_with_bindings(
+    let request_a = crate::facade::foundation::GuidedAuthoringPath::pair_collection_with_bindings(
         query_a, shape_a, bindings_a,
     )
     .unwrap();
-    let request_b = crate::facade::GuidedAuthoringPath::pair_collection_with_bindings(
+    let request_b = crate::facade::foundation::GuidedAuthoringPath::pair_collection_with_bindings(
         query_b, shape_b, bindings_b,
     )
     .unwrap();
 
-    let bundle_a = crate::facade::canonicalize_request(request_a).unwrap();
-    let bundle_b = crate::facade::canonicalize_request(request_b).unwrap();
+    let bundle_a = crate::facade::foundation::canonicalize_request(request_a).unwrap();
+    let bundle_b = crate::facade::foundation::canonicalize_request(request_b).unwrap();
 
     assert_eq!(bundle_a.report().events(), bundle_b.report().events());
     bundle_a.check_invariants().unwrap();
@@ -186,7 +192,8 @@ fn convenience_detail_canonicalization_uses_hardened_path() {
         .build()
         .unwrap();
 
-    let bundle = crate::facade::GuidedAuthoringPath::canonicalize_detail(query, shape).unwrap();
+    let bundle =
+        crate::facade::foundation::GuidedAuthoringPath::canonicalize_detail(query, shape).unwrap();
 
     assert_eq!(bundle.query().projection().len(), 1);
     assert_eq!(bundle.query().traversal().len(), 1);
@@ -211,14 +218,15 @@ fn convenience_collection_canonicalization_with_bindings_preserves_metadata_rule
             QueryBindingSubject::RootEntity,
         ));
 
-    let bundle = crate::facade::GuidedAuthoringPath::canonicalize_collection_with_bindings(
-        query, shape, bindings,
-    )
-    .unwrap();
+    let bundle =
+        crate::facade::foundation::GuidedAuthoringPath::canonicalize_collection_with_bindings(
+            query, shape, bindings,
+        )
+        .unwrap();
 
     assert!(bundle.report().events().iter().any(|event| matches!(
         event,
-        crate::facade::NormalizationEvent::NonIdentityBindingIgnored { .. }
+        crate::facade::foundation::NormalizationEvent::NonIdentityBindingIgnored { .. }
     )));
     assert_eq!(bundle.counters().canonicalization_fallback_count, 0);
     bundle.check_invariants().unwrap();

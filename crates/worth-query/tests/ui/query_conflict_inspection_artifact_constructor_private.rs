@@ -1,4 +1,4 @@
-use worth_query::facade::QueryConflictInspectionArtifact;
+use worth_query::facade::runtime::QueryConflictInspectionArtifact;
 
 fn main() {
     let _ = QueryConflictInspectionArtifact {

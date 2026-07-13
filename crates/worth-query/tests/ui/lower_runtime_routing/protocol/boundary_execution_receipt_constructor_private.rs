@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeRoutePlan,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeRoutePlan};
 
 fn main() {
     let plan: WorthQueryLowerRuntimeRoutePlan = todo!();

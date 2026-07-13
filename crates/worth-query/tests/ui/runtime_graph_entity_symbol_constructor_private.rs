@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphEntitySymbol;
+use worth_query::facade::runtime::WorthQueryGraphEntitySymbol;
 
 fn main() {
     let _ = WorthQueryGraphEntitySymbol {

@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionLifecycleCloseout;
+use worth_query::facade::certification::SubscriptionLifecycleCloseout;
 
 fn main() {
     let closeout: SubscriptionLifecycleCloseout = todo!();

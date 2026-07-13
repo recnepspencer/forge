@@ -4,6 +4,7 @@ mod relation;
 use std::collections::BTreeMap;
 
 use crate::authoring::{AspectName, FieldName, RelationName};
+use crate::basis::QuerySchemaBasisAuthority;
 use crate::identity::SchemaBasisDigest;
 
 pub use field::{SchemaFieldKind, SchemaFieldView};
@@ -76,6 +77,10 @@ impl QuerySchemaView {
 
     pub fn basis(&self) -> &SchemaBasisDigest {
         &self.basis
+    }
+
+    pub fn basis_authority(&self) -> QuerySchemaBasisAuthority {
+        QuerySchemaBasisAuthority::from_query_artifact(&self.basis)
     }
 
     pub fn field(&self, aspect: &AspectName, field: &FieldName) -> Option<&SchemaFieldView> {

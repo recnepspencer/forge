@@ -1,8 +1,5 @@
 use worth_query::facade::consumer_kit::WorthQueryGraphObligationInMemorySelectedObligation;
-use worth_query::facade::runtime::{
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationSupportLane,
-    WorthQueryGraphObligationSupportStatus,
-};
+use worth_query::facade::runtime::{WorthQueryGraphObligationKind, WorthQueryGraphObligationSupportLane, WorthQueryGraphObligationSupportStatus};
 
 fn main() {
     let _ = WorthQueryGraphObligationInMemorySelectedObligation {

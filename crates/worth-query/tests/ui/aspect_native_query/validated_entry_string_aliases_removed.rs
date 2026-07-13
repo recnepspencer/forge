@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    ValidatedOrderingEntry, ValidatedPredicateEntry, ValidatedProjectionEntry,
-    ValidatedResultShapeBinding, ValidatedTraversalEntry,
-};
+use worth_query::facade::runtime::{ValidatedOrderingEntry, ValidatedPredicateEntry, ValidatedProjectionEntry, ValidatedResultShapeBinding, ValidatedTraversalEntry};
 
 fn main() {
     let projection = projection_fixture();

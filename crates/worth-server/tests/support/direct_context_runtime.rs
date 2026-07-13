@@ -1,14 +1,17 @@
-use worth_query::facade::{
-    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryEvidenceIdentity, WorthQueryLivePatch,
-    WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle, WorthQueryRuntime,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryBackendAdmissibleMutation,
-    WorthQueryRuntimeRemaskProjection, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
-    WorthQuerySessionLabel, WorthQuerySnapshotIdentity, WorthQueryWorkspace,
-    WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
+use worth_query::facade::foundation::{
+    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle,
+    WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
+};
+use worth_query::facade::runtime::{
     LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SubscriptionActivationInput,
-    SubscriptionActivationReceipt,
+    SubscriptionActivationReceipt, WorthQueryBackendAdmissibleMutation, WorthQueryEvidenceIdentity,
+    WorthQueryLiveArtifactTarget, WorthQueryRuntime, WorthQueryRuntimeBackend,
+    WorthQueryRuntimeError, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeRemaskProjection,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
+    WorthQueryRuntimeSupportProfile, WorthQuerySessionLabel, WorthQueryWorkspace,
+    WorthQueryWriteReceipt,
 };
 use worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts;
 use worth_server::{
@@ -16,7 +19,6 @@ use worth_server::{
     WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceBindingTarget,
     WorthServerQueryWorkspaceProvider,
 };
-use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
 
 #[derive(Clone, Debug)]
 pub(crate) struct RemaskWorkspaceProvider {
@@ -112,43 +114,55 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
     fn write(
         &mut self,
         _command: WorthQueryBackendAdmissibleMutation,
-    ) -> Result<worth_query::facade::WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
+    ) -> Result<worth_query::facade::foundation::WorthQueryMutationReceipt, WorthQueryWorkspaceError>
+    {
         panic!("unused in direct context remask tests")
     }
 
     fn write_batch(
         &mut self,
         _commands: Vec<WorthQueryBackendAdmissibleMutation>,
-    ) -> Result<Vec<worth_query::facade::WorthQueryMutationReceipt>, WorthQueryWorkspaceError> {
+    ) -> Result<
+        Vec<worth_query::facade::foundation::WorthQueryMutationReceipt>,
+        WorthQueryWorkspaceError,
+    > {
         panic!("unused in direct context remask tests")
     }
 
     fn execute_intent(
         &mut self,
-        _declaration: &worth_query::facade::WorthQueryIntentDeclaration,
-    ) -> Result<worth_query::facade::WorthQueryIntentExecution, WorthQueryRuntimeError> {
+        _declaration: &worth_query::facade::runtime::WorthQueryIntentDeclaration,
+    ) -> Result<worth_query::facade::runtime::WorthQueryIntentExecution, WorthQueryRuntimeError>
+    {
         panic!("unused in direct context remask tests")
     }
 
-    fn live_entities_for_target(&self, target: &WorthQueryLiveArtifactTarget) -> Vec<WorthQueryEntity> {
+    fn live_entities_for_target(
+        &self,
+        target: &WorthQueryLiveArtifactTarget,
+    ) -> Vec<WorthQueryEntity> {
         self.declared_live_views
             .contains(target.terminal_view_name_projection())
             .then(|| {
-            vec![WorthQueryEntity::from_native_field_values(
-                worth_query::facade::admit_authored_entity_token(
-                    worth_query::facade::QueryExternalIdentityToken::new(
-                        std::sync::Arc::from("user-1"),
+                vec![WorthQueryEntity::from_native_field_values(
+                    worth_query::facade::foundation::admit_authored_entity_token(
+                        worth_query::facade::foundation::QueryExternalIdentityToken::new(
+                            std::sync::Arc::from("user-1"),
+                        ),
                     ),
-                ),
-                std::collections::BTreeMap::from([
-                    (field_path("identity.id"), AspectValue::String("user-1".into())),
-                    (
-                        field_path("profile.display_name"),
-                        AspectValue::String("Ada WORTH".into()),
-                    ),
-                ]),
-            )]
-        }).unwrap_or_default()
+                    std::collections::BTreeMap::from([
+                        (
+                            field_path("identity.id"),
+                            AspectValue::String("user-1".into()),
+                        ),
+                        (
+                            field_path("profile.display_name"),
+                            AspectValue::String("Ada WORTH".into()),
+                        ),
+                    ]),
+                )]
+            })
+            .unwrap_or_default()
     }
 
     fn drain_live_patches_for_target(
@@ -160,7 +174,7 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
 
     fn affected_live_view_targets(
         &self,
-        _receipt: &worth_query::facade::WorthQueryMutationReceipt,
+        _receipt: &worth_query::facade::foundation::WorthQueryMutationReceipt,
     ) -> Vec<WorthQueryLiveArtifactTarget> {
         Vec::new()
     }
@@ -186,10 +200,12 @@ impl WorthQueryRuntimeBackend for RemaskRuntimeBackend {
     fn admit_preview_basis(
         &self,
         _label: &WorthQuerySessionLabel,
-        _effect_policy: worth_query::facade::WorthQueryEffectPolicy,
+        _effect_policy: worth_query::facade::runtime::WorthQueryEffectPolicy,
         _authority: &WorthQueryRuntimeEvidenceAuthority,
-    ) -> Result<worth_query::facade::WorthQueryPreviewBasisAdmission, WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryPreviewBasisAdmission,
+        WorthQueryWorkspaceError,
+    > {
         panic!("unused in direct context remask tests")
     }
 
@@ -237,15 +253,17 @@ fn install_requested_named_read(
         })
 }
 
-fn aspect_field_key(aspect: &str, field: &str) -> worth_query::facade::AspectFieldKey {
-    worth_query::facade::AspectFieldKey::from_authoring_parts(aspect, field)
+fn aspect_field_key(aspect: &str, field: &str) -> worth_query::facade::foundation::AspectFieldKey {
+    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(aspect, field)
         .expect("direct context field keys should be foundational")
 }
 
 fn field_path(path: &str) -> CanonicalFieldPath {
     let fields = path
         .split('.')
-        .map(|field| FieldKey::new(field).expect("direct context field segments should be foundational"))
+        .map(|field| {
+            FieldKey::new(field).expect("direct context field segments should be foundational")
+        })
         .collect::<Vec<_>>();
     CanonicalFieldPath::new(fields).expect("direct context field path should be non-empty")
 }
@@ -270,7 +288,7 @@ struct DirectContextRemaskActivation {
 
 impl WorthQueryRuntimeSubscriptionActivationAdapter for DirectContextRemaskActivation {
     fn support_evidence_identity(&self) -> WorthQueryEvidenceIdentity {
-        worth_query::facade::runtime_subscription_support_evidence_identity(
+        worth_query::facade::runtime::runtime_subscription_support_evidence_identity(
             "direct-context-remask-support",
         )
     }
@@ -287,8 +305,10 @@ impl WorthQueryRuntimeSubscriptionActivationAdapter for DirectContextRemaskActiv
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<worth_query::facade::SubscriptionActivationBoundaryReceipt, WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::SubscriptionActivationBoundaryReceipt,
+        WorthQueryWorkspaceError,
+    > {
         let receipt = self.build_subscription_activation_receipt(view_name, activation);
         Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }

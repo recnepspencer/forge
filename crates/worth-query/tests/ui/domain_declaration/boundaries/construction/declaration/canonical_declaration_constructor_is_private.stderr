@@ -1,37 +1,37 @@
 error: cannot construct `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>` with struct literal syntax due to private fields
-  --> tests/ui/domain_declaration/boundaries/construction/declaration/canonical_declaration_constructor_is_private.rs:61:13
+  --> tests/ui/domain_declaration/boundaries/construction/declaration/canonical_declaration_constructor_is_private.rs:55:13
    |
-61 |     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
+55 |     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-62 |         handle_identity_digest: String::new(),
+56 |         handle_identity_digest: String::new(),
    |         ------------------------------------- private field
-63 |         declaration_family_key: "split-edge",
+57 |         declaration_family_key: "split-edge",
    |         ------------------------------------ private field
-64 |         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
+58 |         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
    |         ------------------------------------------------- private field
-65 |         canonical_entries: Vec::new(),
+59 |         canonical_entries: Vec::new(),
    |         ----------------------------- private field
-66 |         canonical_basis_bundle: fake(),
+60 |         canonical_basis_bundle: fake(),
    |         ------------------------------ private field
-67 |         declaration_digest: fake(),
+61 |         declaration_digest: fake(),
    |         -------------------------- private field
-68 |         version: fake(),
+62 |         version: fake(),
    |         --------------- private field
-69 |         _marker: std::marker::PhantomData,
+63 |         _marker: std::marker::PhantomData,
    |         --------------------------------- private field
    |
    = note: ...and other private fields `async_resource_clauses`, `temporal_clauses` and `declaration_entry_loci` that were not provided
 help: you might have meant to use the `new` associated function
    |
-61 -     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
-62 -         handle_identity_digest: String::new(),
-63 -         declaration_family_key: "split-edge",
-64 -         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
-65 -         canonical_entries: Vec::new(),
-66 -         canonical_basis_bundle: fake(),
-67 -         declaration_digest: fake(),
-68 -         version: fake(),
-69 -         _marker: std::marker::PhantomData,
-70 -     };
-61 +     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _, _);
+55 -     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
+56 -         handle_identity_digest: String::new(),
+57 -         declaration_family_key: "split-edge",
+58 -         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
+59 -         canonical_entries: Vec::new(),
+60 -         canonical_basis_bundle: fake(),
+61 -         declaration_digest: fake(),
+62 -         version: fake(),
+63 -         _marker: std::marker::PhantomData,
+64 -     };
+55 +     let _ = WorthQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _, _);
    |

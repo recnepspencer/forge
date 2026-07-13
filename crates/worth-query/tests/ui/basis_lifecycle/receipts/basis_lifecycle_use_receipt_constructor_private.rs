@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BasisAuthorityPosture, BasisEligibilityCounters, BasisFamily, BasisLifecyclePosture,
-    BasisUseReceipt, BasisUseReceiptKind,
-};
+use worth_query::facade::foundation::{BasisAuthorityPosture, BasisEligibilityCounters, BasisFamily, BasisLifecyclePosture, BasisUseReceipt, BasisUseReceiptKind};
 
 fn counters() -> BasisEligibilityCounters {
     unimplemented!()

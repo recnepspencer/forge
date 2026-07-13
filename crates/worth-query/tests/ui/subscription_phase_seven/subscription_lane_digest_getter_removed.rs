@@ -1,4 +1,4 @@
-use worth_query::facade::ActiveSubscriptionLaneHandle;
+use worth_query::facade::runtime::ActiveSubscriptionLaneHandle;
 
 fn main() {
     let handle: ActiveSubscriptionLaneHandle = todo!();

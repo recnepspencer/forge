@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessInventoryMatch,
-    WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadRequiredCapabilityOwner,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessInventoryMatch, WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadRequiredCapabilityOwner};
 
 fn main() {
     let _ = WorthQueryGraphReadAccessInventoryMatch {

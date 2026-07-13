@@ -1,5 +1,5 @@
-use worth_signal::facade::history::RuntimeSnapshot;
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::history::RuntimeSnapshot;
 
 use crate::boundary::restore_tokens::{
     load_snapshot, load_snapshot_envelope, store_snapshot, store_snapshot_envelope,

@@ -1,4 +1,4 @@
-use worth_query::facade::CanonicalQueryBundle;
+use worth_query::facade::foundation::CanonicalQueryBundle;
 
 fn main() {
     let _ = CanonicalQueryBundle {

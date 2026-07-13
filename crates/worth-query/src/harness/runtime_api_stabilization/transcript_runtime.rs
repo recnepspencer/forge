@@ -3,20 +3,23 @@ use std::collections::BTreeMap;
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
-use crate::facade::{
-    DeclarativeLiveQueryRequest, LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
+use crate::facade::foundation::{
+    DeclarativeLiveQueryRequest, WorthQueryLiveViewHandle, WorthQueryMutationDelta,
+    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQueryWorkspaceError,
+};
+use crate::facade::runtime::{
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
     SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationInput, WorthQueryAuthorityLane, WorthQueryBasisAdmissionEvidenceRow,
     WorthQueryEffectPolicy, WorthQueryIntentAuthorityAdapter, WorthQueryIntentDeclaration,
-    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryLiveViewHandle,
-    WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
-    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeInspectorEvidenceAdapter,
-    WorthQueryRuntimePreviewBasisAdapter, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSignalSinkAdapter, WorthQueryRuntimeSnapshotIdentityAdapter,
-    WorthQueryRuntimeSourceAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
-    WorthQueryRuntimeSupportProfile, WorthQueryWorkspaceError, WorthQueryWriteReceipt,
+    WorthQueryIntentExecution, WorthQueryLiveArtifactTarget, WorthQueryPreviewBasisAdmission,
+    WorthQueryRuntime, WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeFacadeFamily,
+    WorthQueryRuntimeFamilySupport, WorthQueryRuntimeInspectionEvidence,
+    WorthQueryRuntimeInspectorEvidenceAdapter, WorthQueryRuntimePreviewBasisAdapter,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
+    WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
+    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeSupportProfile,
+    WorthQueryWriteReceipt,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{WorthQueryCommitIdentity, WorthQuerySnapshotIdentity};

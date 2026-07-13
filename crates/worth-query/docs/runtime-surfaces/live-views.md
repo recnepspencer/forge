@@ -103,7 +103,7 @@ asking downstream domain code to reconstruct it later.
 ## Small Example
 
 ```rust
-use worth_query::facade::WorthQueryLiveView;
+use worth_query::facade::runtime::WorthQueryLiveView;
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
@@ -134,7 +134,7 @@ snapshot reads and incremental observation.
 ## Real Example
 
 ```rust
-use worth_query::facade::{WorthQueryInspection, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryInspection, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks.grouped").unwrap();
@@ -166,7 +166,7 @@ assert!(receipt
 match inspection {
     WorthQueryInspection::LiveView(live) => {
         assert_eq!(live.view_name(), "tasks.grouped");
-        assert_eq!(live.authority_lane(), worth_query::facade::WorthQueryAuthorityLane::AuthoritativeTruth);
+        assert_eq!(live.authority_lane(), worth_query::facade::runtime::WorthQueryAuthorityLane::AuthoritativeTruth);
     }
     other => panic!("expected live inspection, got {other:?}"),
 }

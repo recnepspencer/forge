@@ -1,4 +1,7 @@
-use worth_query::facade::{ResolvedSnapshotBasis, SnapshotResolutionReport};
+use worth_query::facade::foundation::{
+    ResolvedSnapshotBasis,
+    SnapshotResolutionReport,
+};
 
 use super::prerequisite_assembly::construct_prerequisite_evidence;
 #[cfg(feature = "certification-construction")]
@@ -120,7 +123,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn bind_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryPrerequisiteEvidence, WorthUiQueryMeasurementFactEligibilityError> {
         let _ = self;
         WorthUiQueryMeasurementFactEligibility::bind_query_authority(prerequisites, authority)
@@ -129,7 +132,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn measurement_fact_eligibility_from_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<WorthUiQueryMeasurementFactEligibility, WorthUiQueryMeasurementFactEligibilityError>
     {
         let _ = self;
@@ -152,7 +155,7 @@ impl WorthUiQueryPrerequisiteBoundary {
     pub fn measurement_fact_observation_from_query_authority(
         self,
         prerequisites: WorthUiQueryPrerequisiteEvidence,
-        authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<
         Box<[WorthUiQueryMeasurementFactObservation]>,
         WorthUiQueryMeasurementFactObservationError,

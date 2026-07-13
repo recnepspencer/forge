@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionSupportProfile;
+use worth_query::facade::runtime::QuerySubscriptionSupportProfile;
 
 fn main() {
     let profile: QuerySubscriptionSupportProfile = todo!();

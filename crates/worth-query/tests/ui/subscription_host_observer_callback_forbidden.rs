@@ -1,4 +1,4 @@
-use worth_query::facade::{select_query_subscription_family, QuerySubscriptionWorkBudget};
+use worth_query::facade::runtime::{select_query_subscription_family, QuerySubscriptionWorkBudget};
 
 fn main() {
     let observer_callback = || "host-local-observer-state";

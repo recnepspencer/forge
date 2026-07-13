@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    BundleResolvedBasisDigest, FrontierAwarePlan, ParallelAdmissionEvidence, PlannedWorkPacket,
-    SerialFallbackBundleEvidence, SerialFallbackEvidence, SignalFrontierBundleEvidence,
-};
+use worth_query::facade::foundation::FrontierAwarePlan;
+use worth_query::facade::{BundleResolvedBasisDigest, ParallelAdmissionEvidence, PlannedWorkPacket, SerialFallbackBundleEvidence, SerialFallbackEvidence, SignalFrontierBundleEvidence};
 
 fn main() {
     let _ = std::any::type_name::<FrontierAwarePlan>();

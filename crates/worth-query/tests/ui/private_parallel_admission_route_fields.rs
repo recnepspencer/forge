@@ -1,4 +1,4 @@
-use worth_query::facade::ParallelAdmissionRoute;
+use worth_query::facade::foundation::ParallelAdmissionRoute;
 
 fn main() {
     let _ = ParallelAdmissionRoute {

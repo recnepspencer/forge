@@ -1,8 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryIntentAdmissionCoveredEntrypoint, WorthQueryIntentAdmissionExecutionBoundary,
-    WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionSupportPosture,
-    WorthQueryIntentAdmissionSupportDetail, WorthQueryIntentAdmissionSupportRow,
-};
+use worth_query::facade::runtime::{WorthQueryIntentAdmissionCoveredEntrypoint, WorthQueryIntentAdmissionExecutionBoundary, WorthQueryIntentAdmissionFamily, WorthQueryIntentAdmissionSupportPosture, WorthQueryIntentAdmissionSupportDetail, WorthQueryIntentAdmissionSupportRow};
 
 fn main() {
     let _ = WorthQueryIntentAdmissionSupportRow {

@@ -1,4 +1,4 @@
-use worth_query::facade::ActiveSubscriptionLifecycleError;
+use worth_query::facade::runtime::ActiveSubscriptionLifecycleError;
 
 fn main() {
     let error: ActiveSubscriptionLifecycleError = todo!();

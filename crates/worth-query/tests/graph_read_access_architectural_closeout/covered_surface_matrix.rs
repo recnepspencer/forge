@@ -293,14 +293,20 @@ fn assert_live_read_receipt_proves_no_caller_owned_n_plus_one() {
             query
                 .from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("graph-read-access-closeout-live")
         })

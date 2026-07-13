@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimePublicApiContract,
-};
+use worth_query::facade::runtime::{WorthQueryRuntimeBackendPosture, WorthQueryRuntimePublicApiContract};
 
 fn main() {
     let _worthd = WorthQueryRuntimePublicApiContract {

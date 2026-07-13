@@ -11,7 +11,7 @@ pub fn start() {
 }
 
 pub use boundary::facade::{
-    createSignals, WorthSignalCoreProfile, WorthSignalMaxAspects, ComputedSignal, DisposableHandle,
-    InputSignal, OutputSignal, SignalAdapters, SignalApp, SignalDiagnostics, SignalHistory,
-    SignalRuntime, SignalSpecialist, Signals, SignalsTransaction,
+    createSignals, ComputedSignal, DisposableHandle, InputSignal, OutputSignal, SignalAdapters,
+    SignalApp, SignalDiagnostics, SignalHistory, SignalRuntime, SignalSpecialist, Signals,
+    SignalsTransaction, WorthSignalCoreProfile, WorthSignalMaxAspects,
 };

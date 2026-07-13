@@ -9,7 +9,7 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `intent`, `identity`, `resolution_mode` and `proof` of struct `worth_query::facade::ResolvedSnapshotBasis` are private
+error[E0451]: fields `intent`, `identity`, `resolution_mode` and `proof` of struct `worth_query::facade::foundation::ResolvedSnapshotBasis` are private
  --> tests/ui/private_resolved_snapshot_basis_fields.rs:5:9
   |
 4 |     let _ = ResolvedSnapshotBasis {

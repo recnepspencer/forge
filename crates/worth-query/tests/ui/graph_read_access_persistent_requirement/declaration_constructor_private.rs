@@ -1,8 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadRequiredCapabilityOwner,
-    WorthQueryPersistentGraphIndexRequirementCounters,
-    WorthQueryPersistentGraphIndexRequirementDeclaration,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadRequiredCapabilityOwner, WorthQueryPersistentGraphIndexRequirementCounters, WorthQueryPersistentGraphIndexRequirementDeclaration};
 
 fn main() {
     let _ = WorthQueryPersistentGraphIndexRequirementDeclaration {

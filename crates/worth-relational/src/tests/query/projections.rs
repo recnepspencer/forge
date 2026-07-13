@@ -3,8 +3,8 @@ use crate::facade::runtime::{
     EntityProjectionRecord, EntityRecordProjection, ProjectionAspectScope,
 };
 use crate::tests::support::*;
-use worth_foundational::facade::{AspectValue, InternedString};
 use std::sync::OnceLock;
+use worth_foundational::facade::{AspectValue, InternedString};
 
 fn entity_name_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();

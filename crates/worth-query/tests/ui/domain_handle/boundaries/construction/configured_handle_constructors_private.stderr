@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_handle/boundaries/construction/configured_handle_constructors_private.rs:42:101
+  --> tests/ui/domain_handle/boundaries/construction/configured_handle_constructors_private.rs:38:101
    |
-42 |       let _ = WorthQueryConfiguredDomainHandleDraft::<GeometryDomainEntry, GeometryOperatingContext>::new(
+38 |       let _ = WorthQueryConfiguredDomainHandleDraft::<GeometryDomainEntry, GeometryOperatingContext>::new(
    |                                                                                                       ^^^ private associated function
    |
   ::: src/application/domain_handle/draft.rs

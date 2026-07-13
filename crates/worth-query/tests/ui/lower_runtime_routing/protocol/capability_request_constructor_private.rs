@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeCapabilityRequest,
-    WorthQueryLowerRuntimeRouteKind, WorthQueryLowerRuntimeSeamKey,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeCapabilityRequest, WorthQueryLowerRuntimeRouteKind, WorthQueryLowerRuntimeSeamKey};
 
 fn main() {
     let _ = WorthQueryLowerRuntimeCapabilityRequest::new(

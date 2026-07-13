@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    admit_subscription_continuation_evidence, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
-    WorthQueryEvidenceTag, SubscriptionContinuationClass,
-};
+use worth_query::facade::runtime::{admit_subscription_continuation_evidence, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag, SubscriptionContinuationClass};
 
 fn evidence(label: &str) -> WorthQueryEvidenceIdentity {
     WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::SubscriptionActivationReceipt)

@@ -1,10 +1,10 @@
+use serde_json::json;
 use worth_foundational::{
     aspect_state_digest_preparation_basis, lower_json_record_aspect_state, validate_aspect_value,
     AspectValue, CanonicalDigestPreparationEntry, JsonCompatibilityAspectInput, ScalarAspectType,
     StructAspectValue,
 };
 use worth_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::readiness_fixtures::{admitted_state, ready_state, task_summary_contract};
 use crate::foundational_vocabulary::{field, key, revision, validated_scalar};

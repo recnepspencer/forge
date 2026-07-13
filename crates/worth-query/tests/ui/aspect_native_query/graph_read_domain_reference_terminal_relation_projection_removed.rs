@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAdmittedGraphReadDomainOperationReference;
+use worth_query::facade::foundation::WorthQueryAdmittedGraphReadDomainOperationReference;
 
 fn main() {
     let reference = WorthQueryAdmittedGraphReadDomainOperationReference::relation("manager").unwrap();

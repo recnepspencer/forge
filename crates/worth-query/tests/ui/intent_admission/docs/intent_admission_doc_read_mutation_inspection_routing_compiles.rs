@@ -1,12 +1,9 @@
 
-use worth_query::facade::{
-    WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime,
-    WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace,
-};
+use worth_query::facade::runtime::{WorthQueryExistingTruthProbeRequest, WorthQueryLiveView, WorthQueryRuntime, WorthQueryNativeRow, WorthQueryRuntimeError, WorthQueryWorkspace};
 
 fn mutation_common_path(
     runtime: &mut WorthQueryRuntime,
-    command: worth_query::facade::WorthQueryWriteCommand,
+    command: worth_query::facade::runtime::WorthQueryWriteCommand,
 ) -> Result<(), WorthQueryRuntimeError> {
     let write_receipt = runtime.write_intent(command).execute()?;
     let _ = write_receipt.decision_trace_envelope();

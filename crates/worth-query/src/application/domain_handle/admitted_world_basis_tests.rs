@@ -81,7 +81,7 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
         .admit()
         .expect("world should admit");
     let basis = handle.retained_world_basis();
-    let support = crate::query_basis_lifecycle::query_basis_lifecycle_support_report();
+    let support = crate::basis_lifecycle::basis_lifecycle_support_matrix();
 
     assert_eq!(basis.domain_key(), handle.domain_key());
     assert_eq!(basis.display_name(), handle.display_name());
@@ -99,7 +99,7 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
     );
     assert_eq!(
         basis.basis_lifecycle_support_identity(),
-        &support.report_identity()
+        &super::compose_basis_lifecycle_support_identity(support.matrix_digest())
     );
 }
 

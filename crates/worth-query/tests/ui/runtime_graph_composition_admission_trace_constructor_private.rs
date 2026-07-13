@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryGraphCompositionAdmissionTrace, WorthQueryGraphCompositionAdmissionTraceStage,
-};
+use worth_query::facade::runtime::{WorthQueryGraphCompositionAdmissionTrace, WorthQueryGraphCompositionAdmissionTraceStage};
 
 fn main() {
     let _ = WorthQueryGraphCompositionAdmissionTrace {

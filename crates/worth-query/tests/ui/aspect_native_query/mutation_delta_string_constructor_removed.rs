@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryEntityIdentity, WorthQueryMutationDelta, WorthQueryMutationKind,
-    QueryExternalIdentityToken,
-};
+use worth_query::facade::foundation::{WorthQueryEntityIdentity, WorthQueryMutationDelta, WorthQueryMutationKind, QueryExternalIdentityToken};
 use std::sync::Arc;
 
 fn main() {

@@ -134,7 +134,7 @@ fn entity_identity_projection_consumption(
 
 fn projection_consumption(
     lane_label: &str,
-    contract: worth_query::facade::ProjectionAuthorityContract,
+    contract: worth_query::facade::foundation::ProjectionAuthorityContract,
 ) -> (
     worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
     worth_ui_query_binding::WorthUiQueryAuthorityHandle,
@@ -144,20 +144,20 @@ fn projection_consumption(
         .execute_read_family(&family)
         .expect("query read family should execute");
     let (result_shape, authorized_projection) =
-        worth_query::facade::public_bridge_projection_artifacts_for_read_graph(family.read_graph());
+        worth_query::facade::certification::public_bridge_projection_artifacts_for_read_graph(family.read_graph());
     let outcome = read_result
         .consume_projection_authority(&result_shape, &authorized_projection, contract)
         .expect("real query read should consume projection authority");
-    let basis = worth_query::facade::resolve_runtime_current_snapshot_basis(
+    let basis = worth_query::facade::foundation::resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis().clone(),
+        family.read_graph().schema_basis_authority(),
     )
     .expect("runtime current snapshot basis should resolve");
     let prerequisites = worth_ui_query_binding::WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
         .graph_aligned(
             basis.clone(),
-            worth_query::facade::snapshot_resolution_report(&basis),
+            worth_query::facade::foundation::snapshot_resolution_report(&basis),
         )
         .expect("query prerequisites should admit");
     let (authority, _) =
@@ -166,8 +166,8 @@ fn projection_consumption(
     (prerequisites, authority)
 }
 
-fn authority_contract() -> worth_query::facade::ProjectionAuthorityContract {
-    worth_query::facade::ProjectionAuthorityContract::declare()
+fn authority_contract() -> worth_query::facade::foundation::ProjectionAuthorityContract {
+    worth_query::facade::foundation::ProjectionAuthorityContract::declare()
         .require_settled_consumption()
         .require_source_authority()
 }
@@ -194,11 +194,11 @@ fn measurement_projection_workspace(
         .insert("task", |task| {
             task.set_aspect(
                 aspect_touch("identity.id"),
-                worth_query::facade::WorthQueryAuthoredAspectValue::string("task"),
+                worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string("task"),
             )
             .set_aspect(
                 aspect_touch("size.value"),
-                worth_query::facade::WorthQueryAuthoredAspectValue::string("240"),
+                worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string("240"),
             )
         })
         .expect("fixture insert should admit");
@@ -223,10 +223,10 @@ fn size_family_graph(
         |query| {
             query
                 .where_equal(
-                    worth_query::facade::EqualityPredicate::new(
+                    worth_query::facade::foundation::EqualityPredicate::new(
                         "identity",
                         "id",
-                        worth_query::facade::ScalarPredicateValue::String("task".to_string()),
+                        worth_query::facade::foundation::ScalarPredicateValue::String("task".to_string()),
                     )
                     .expect("identity anchor predicate should build"),
                 )
@@ -241,14 +241,14 @@ fn task_query_schema() -> worth_query::facade::runtime::QuerySchemaView {
         "task",
         [
             worth_query::facade::runtime::SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity")
+                worth_query::facade::foundation::AspectName::new("identity")
                     .expect("schema aspect should admit"),
-                worth_query::facade::FieldName::new("id").expect("schema field should admit"),
+                worth_query::facade::foundation::FieldName::new("id").expect("schema field should admit"),
                 worth_query::facade::runtime::SchemaFieldKind::String,
             ),
             worth_query::facade::runtime::SchemaFieldView::new(
-                worth_query::facade::AspectName::new("size").expect("schema aspect should admit"),
-                worth_query::facade::FieldName::new("value").expect("schema field should admit"),
+                worth_query::facade::foundation::AspectName::new("size").expect("schema aspect should admit"),
+                worth_query::facade::foundation::FieldName::new("value").expect("schema field should admit"),
                 worth_query::facade::runtime::SchemaFieldKind::String,
             ),
         ],
@@ -256,8 +256,8 @@ fn task_query_schema() -> worth_query::facade::runtime::QuerySchemaView {
     )
 }
 
-fn field(aspect: &str, field: &str) -> worth_query::facade::AspectFieldSelector {
-    worth_query::facade::AspectFieldSelector::new(aspect, field)
+fn field(aspect: &str, field: &str) -> worth_query::facade::foundation::AspectFieldSelector {
+    worth_query::facade::foundation::AspectFieldSelector::new(aspect, field)
         .expect("field selector should build")
 }
 
@@ -265,12 +265,12 @@ fn result_field(
     aspect: &str,
     field: &str,
     delivered: &str,
-) -> worth_query::facade::AuthoredResultShapeField {
-    worth_query::facade::AuthoredResultShapeField::new(aspect, field, delivered)
+) -> worth_query::facade::foundation::AuthoredResultShapeField {
+    worth_query::facade::foundation::AuthoredResultShapeField::new(aspect, field, delivered)
         .expect("result-shape field should build")
 }
 
-fn aspect_touch(authored_touch_text: &str) -> worth_query::facade::WorthQueryAspectTouch {
+fn aspect_touch(authored_touch_text: &str) -> worth_query::facade::runtime::WorthQueryAspectTouch {
     let mut segments = authored_touch_text.split('.');
     let aspect = segments.next().expect("touch aspect should exist");
     let fields = segments
@@ -279,11 +279,11 @@ fn aspect_touch(authored_touch_text: &str) -> worth_query::facade::WorthQueryAsp
         })
         .collect::<Vec<_>>();
     if fields.is_empty() {
-        worth_query::facade::WorthQueryAspectTouch::whole_aspect(
+        worth_query::facade::runtime::WorthQueryAspectTouch::whole_aspect(
             worth_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
         )
     } else {
-        worth_query::facade::WorthQueryAspectTouch::aspect_field_path(
+        worth_query::facade::runtime::WorthQueryAspectTouch::aspect_field_path(
             worth_foundational::facade::AspectKey::new(aspect).expect("touch aspect should admit"),
             worth_foundational::facade::CanonicalFieldPath::new(fields)
                 .expect("touch field path should admit"),

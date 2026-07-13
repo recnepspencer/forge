@@ -1,4 +1,4 @@
-use worth_query::facade::{SubscriptionContinuationClass, SubscriptionContinuationReport};
+use worth_query::facade::runtime::{SubscriptionContinuationClass, SubscriptionContinuationReport};
 
 fn main() {
     let _report = SubscriptionContinuationReport {

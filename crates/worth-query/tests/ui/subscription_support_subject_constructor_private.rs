@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionFamily, QuerySubscriptionSupportClass, QuerySubscriptionSupportSubject,
-};
+use worth_query::facade::runtime::{QuerySubscriptionFamily, QuerySubscriptionSupportClass, QuerySubscriptionSupportSubject};
 
 fn main() {
     let _ = QuerySubscriptionSupportSubject {

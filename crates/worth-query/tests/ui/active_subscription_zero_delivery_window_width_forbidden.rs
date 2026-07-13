@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPosture, DeliveryBackpressurePolicy,
-    DeliveryWindowWidth, MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryWindowBudget,
-};
+use worth_query::facade::runtime::{ActiveAllocationScopeWidth, ActiveSubscriptionAllocationPosture, DeliveryBackpressurePolicy, DeliveryWindowWidth, MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryWindowBudget};
 
 fn main() {
     let _ = QueryDeliveryWindowBudget {

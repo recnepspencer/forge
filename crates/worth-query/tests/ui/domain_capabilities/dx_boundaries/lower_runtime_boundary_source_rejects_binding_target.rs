@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget, WorthQuerySupportContributionAuthoring,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget, WorthQuerySupportContributionAuthoring};
 
 fn cannot_use_binding_target_as_source(target: &WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget) {
     let _ = WorthQuerySupportContributionAuthoring::narrowed_support("routing", "detail")

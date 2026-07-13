@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:61:85
+  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:55:85
    |
-61 |       let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+55 |       let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
    |                                                                                       ^^^ private associated function
    |
   ::: src/application/declaration_route_plan/plan.rs
@@ -16,16 +16,16 @@ error[E0624]: associated function `new` is private
    | |_____________- private associated function defined here
 
 error[E0061]: this function takes 11 arguments but 6 arguments were supplied
-  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:61:13
+  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:55:13
    |
-61 |       let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+55 |       let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
    |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
-62 | |         fake(),
-63 | |         fake(),
-64 | |         None,
+56 | |         fake(),
+57 | |         fake(),
+58 | |         None,
 ...  |
-67 | |         fake(),
-68 | |     );
+61 | |         fake(),
+62 | |     );
    | |_____- multiple arguments are missing
    |
 note: associated function defined here
@@ -35,13 +35,13 @@ note: associated function defined here
    |                   ^^^
 help: provide the arguments
    |
-61 |     let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+55 |     let _ = WorthQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
 ...
-67 |         fake(),
-68 ~         /* WorthQueryDeclarationAspectContract */,
-69 +         /* WorthQueryDeclarationAspectFit */,
-70 +         /* WorthQueryDeclarationAspectPublication */,
-71 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
-72 +         /* WorthQueryDeclarationRoutePlanExplanation */,
-73 ~     );
+61 |         fake(),
+62 ~         /* WorthQueryDeclarationAspectContract */,
+63 +         /* WorthQueryDeclarationAspectFit */,
+64 +         /* WorthQueryDeclarationAspectPublication */,
+65 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
+66 +         /* WorthQueryDeclarationRoutePlanExplanation */,
+67 ~     );
    |

@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionContinuationError;
+use worth_query::facade::runtime::SubscriptionContinuationError;
 
 fn main() {
     let error: SubscriptionContinuationError = todo!();

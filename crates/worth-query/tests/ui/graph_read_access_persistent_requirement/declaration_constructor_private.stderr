@@ -1,41 +1,41 @@
 error[E0451]: fields `digest`, `read_graph_digest`, `access_shape_digest`, `selectivity_shape_digest`, `requirement_set_digest`, `inventory_match_report_digest`, `estimated_index_bytes`, `estimated_result_bytes`, `required_owner`, `requirement_rows` and `counters` of struct `WorthQueryPersistentGraphIndexRequirementDeclaration` are private
-  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:9:9
+  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:5:9
    |
- 8 |     let _ = WorthQueryPersistentGraphIndexRequirementDeclaration {
+ 4 |     let _ = WorthQueryPersistentGraphIndexRequirementDeclaration {
    |             ---------------------------------------------------- in this type
- 9 |         digest: String::new(),
+ 5 |         digest: String::new(),
    |         ^^^^^^ private field
-10 |         read_graph_digest: String::new(),
+ 6 |         read_graph_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^ private field
-11 |         access_shape_digest: String::new(),
+ 7 |         access_shape_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^ private field
-12 |         selectivity_shape_digest: String::new(),
+ 8 |         selectivity_shape_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         requirement_set_digest: String::new(),
+ 9 |         requirement_set_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         inventory_match_report_digest: String::new(),
+10 |         inventory_match_report_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         estimated_index_bytes: 0,
+11 |         estimated_index_bytes: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         estimated_result_bytes: 0,
+12 |         estimated_result_bytes: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-17 |         required_owner: WorthQueryGraphReadRequiredCapabilityOwner::PersistentStore,
+13 |         required_owner: WorthQueryGraphReadRequiredCapabilityOwner::PersistentStore,
    |         ^^^^^^^^^^^^^^ private field
-18 |         requirement_rows: Vec::new(),
+14 |         requirement_rows: Vec::new(),
    |         ^^^^^^^^^^^^^^^^ private field
-19 |         counters: WorthQueryPersistentGraphIndexRequirementCounters {
+15 |         counters: WorthQueryPersistentGraphIndexRequirementCounters {
    |         ^^^^^^^^ private field
 
 error[E0451]: fields `requirement_row_count`, `persistent_store_owner_row_count`, `blocked_allocation_count` and `durable_artifact_count` of struct `WorthQueryPersistentGraphIndexRequirementCounters` are private
-  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:20:13
+  --> tests/ui/graph_read_access_persistent_requirement/declaration_constructor_private.rs:16:13
    |
-19 |         counters: WorthQueryPersistentGraphIndexRequirementCounters {
+15 |         counters: WorthQueryPersistentGraphIndexRequirementCounters {
    |                   ------------------------------------------------- in this type
-20 |             requirement_row_count: 0,
+16 |             requirement_row_count: 0,
    |             ^^^^^^^^^^^^^^^^^^^^^ private field
-21 |             persistent_store_owner_row_count: 0,
+17 |             persistent_store_owner_row_count: 0,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-22 |             blocked_allocation_count: 0,
+18 |             blocked_allocation_count: 0,
    |             ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-23 |             durable_artifact_count: 0,
+19 |             durable_artifact_count: 0,
    |             ^^^^^^^^^^^^^^^^^^^^^^ private field

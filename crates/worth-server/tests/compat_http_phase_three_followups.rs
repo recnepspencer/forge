@@ -8,12 +8,12 @@ use std::sync::{
     Arc,
 };
 
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use serde_json::json;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerQueryHandoffDenialCode, WorthServerQueryWorkspaceBindingError,
     WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceProvider,
 };
-use serde_json::json;
 
 use compat_http_phase_three_runtime::{
     build_phase_three_server, build_phase_three_server_with_workspace_provider,
@@ -51,8 +51,10 @@ impl WorthServerQueryWorkspaceProvider for BindCountingMutationWorkspaceProvider
     fn bind_workspace(
         &self,
         request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         self.bind_count.fetch_add(1, Ordering::Relaxed);
         self.inner.bind_workspace(request)
     }

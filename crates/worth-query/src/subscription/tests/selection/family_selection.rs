@@ -29,7 +29,7 @@ fn detail_live_family_selects_exact_subscription_with_budgeted_counters() {
     assert_eq!(selection.counters().family_selection_count(), 1);
     assert_eq!(selection.counters().family_registry_lookup_count(), 1);
     assert_eq!(selection.counters().view_family_registry_lookup_count(), 0);
-    assert_eq!(selection.counters().equivalence_digest_part_count(), 22);
+    assert_eq!(selection.counters().equivalence_digest_part_count(), 23);
     assert_eq!(selection.counters().admission_dimension_denial_count(), 0);
     assert_eq!(selection.counters().work_budget_denial_count(), 0);
     assert_eq!(selection.counters().unknown_cost_denial_count(), 0);

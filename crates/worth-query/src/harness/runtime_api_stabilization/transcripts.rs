@@ -1,5 +1,6 @@
-use crate::facade::{
-    AspectFieldKey, WorthQueryInspection, WorthQueryRuntimeFacadeFamily,
+use crate::facade::foundation::AspectFieldKey;
+use crate::facade::runtime::{
+    WorthQueryInspection, WorthQueryRuntimeFacadeFamily,
     WorthQueryRuntimePublicApiTranscriptEvidence,
 };
 use crate::identity::hash_parts;

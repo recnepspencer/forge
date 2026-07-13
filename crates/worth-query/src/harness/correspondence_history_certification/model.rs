@@ -1,7 +1,7 @@
 use super::super::certification::{
     digest_parts, CanonicalCertificationRow, CertificationMatrix, RejectionCertificationRow,
 };
-use crate::facade::CorrespondenceHistoricalParityBundle;
+use crate::facade::foundation::CorrespondenceHistoricalParityBundle;
 use crate::harness::certification::RequiredAssertionClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]

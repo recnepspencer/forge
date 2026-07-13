@@ -1,4 +1,4 @@
-use crate::facade::QueryValidationCounters;
+use crate::facade::runtime::QueryValidationCounters;
 
 use super::super::profiles::CertificationProfile;
 use super::model::{

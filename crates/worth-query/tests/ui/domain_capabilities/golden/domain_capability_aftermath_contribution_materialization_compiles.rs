@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    WorthQueryProjectionContractRequest, MaterializedProjectionContract, ProjectMaterializedFacts,
-    ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
-};
+use worth_query::facade::foundation::{MaterializedProjectionContract, ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource};
+use worth_query::facade::runtime::WorthQueryProjectionContractRequest;
 use worth_query::facade::runtime::{worth_query_domain, WorthQueryAdmittedIntentPlan};
 
 fn aftermath_common_lane(

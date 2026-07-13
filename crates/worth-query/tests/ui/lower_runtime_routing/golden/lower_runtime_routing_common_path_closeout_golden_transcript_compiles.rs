@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    worth_query_lower_runtime_closeout_report, worth_query_lower_runtime_closure_test,
-    worth_query_lower_runtime_phase_manifest,
-};
+use worth_query::facade::runtime::worth_query_lower_runtime_closure_test;
+use worth_query::facade::certification::{worth_query_lower_runtime_closeout_report, worth_query_lower_runtime_phase_manifest};
 
 fn main() {
     std::thread::Builder::new()

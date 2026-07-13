@@ -128,7 +128,7 @@ call order.
 ## Small Example
 
 ```rust
-use worth_query::facade::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("tasks").unwrap();
@@ -163,7 +163,7 @@ materialization.
 ## Real Example
 
 ```rust
-use worth_query::facade::{WorthQueryDerivedViewHandle, WorthQueryInspection, WorthQueryLiveView};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryInspection, WorthQueryLiveView};
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("workflow").unwrap();

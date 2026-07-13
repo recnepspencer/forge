@@ -78,6 +78,8 @@ impl ActiveSubscriptionLaneRegistry {
             bridge_declaration_identity: admission.bridge_declaration_identity,
             future_selection: admission.future_selection,
             basis_binding_identity: admission.basis_binding_identity,
+            scoped_declaration_basis: admission.scoped_declaration_basis,
+            scoped_activation_basis: admission.scoped_activation_basis,
             checkpoint_identity: admission.checkpoint_identity,
             signal_strategy_identity: admission.signal_strategy_identity,
             lifecycle_posture: admission.lifecycle_posture,

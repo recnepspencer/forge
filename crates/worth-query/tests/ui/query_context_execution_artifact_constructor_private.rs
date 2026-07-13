@@ -1,4 +1,4 @@
-use worth_query::facade::QueryContextExecutionArtifact;
+use worth_query::facade::policy::QueryContextExecutionArtifact;
 
 fn main() {
     let _ = QueryContextExecutionArtifact {

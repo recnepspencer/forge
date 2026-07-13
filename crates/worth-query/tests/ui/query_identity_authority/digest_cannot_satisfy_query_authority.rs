@@ -2,7 +2,7 @@ use worth_query::facade::identity_authority::{
     QueryDigestIdentityEvidence, QueryFeederDigestIdentityBasis, QuerySubscriptionAuthority,
     QuerySubscriptionAuthorityIdentity, QuerySubscriptionIdentityKind,
 };
-use worth_query::facade::WorthQueryEvidenceIdentity;
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 fn digest_evidence(
 ) -> QueryDigestIdentityEvidence<

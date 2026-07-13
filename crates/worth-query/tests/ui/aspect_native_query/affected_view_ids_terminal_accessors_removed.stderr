@@ -1,95 +1,95 @@
-error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::WorthQueryWriteReceipt` in the current scope
- --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:8:25
+error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
+ --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:5:25
   |
-8 |         let _ = receipt.affected_live_view_ids();
+5 |         let _ = receipt.affected_live_view_ids();
   |                         ^^^^^^^^^^^^^^^^^^^^^^
   |
 help: there is a method `terminal_affected_live_view_ids_projection` with a similar name
   |
-8 -         let _ = receipt.affected_live_view_ids();
-8 +         let _ = receipt.terminal_affected_live_view_ids_projection();
+5 -         let _ = receipt.affected_live_view_ids();
+5 +         let _ = receipt.terminal_affected_live_view_ids_projection();
   |
 
-error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::WorthQueryWriteReceipt` in the current scope
- --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:9:25
+error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryWriteReceipt` in the current scope
+ --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:6:25
   |
-9 |         let _ = receipt.affected_derived_view_ids();
+6 |         let _ = receipt.affected_derived_view_ids();
   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 help: there is a method `terminal_affected_derived_view_ids_projection` with a similar name
   |
-9 -         let _ = receipt.affected_derived_view_ids();
-9 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
+6 -         let _ = receipt.affected_derived_view_ids();
+6 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
   |
 
-error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::WorthQueryBatchWriteReceipt` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:13:25
+error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryBatchWriteReceipt` in the current scope
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:10:25
    |
-13 |         let _ = receipt.affected_live_view_ids();
+10 |         let _ = receipt.affected_live_view_ids();
    |                         ^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `terminal_affected_live_view_ids_projection` with a similar name
    |
-13 -         let _ = receipt.affected_live_view_ids();
-13 +         let _ = receipt.terminal_affected_live_view_ids_projection();
+10 -         let _ = receipt.affected_live_view_ids();
+10 +         let _ = receipt.terminal_affected_live_view_ids_projection();
    |
 
-error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::WorthQueryBatchWriteReceipt` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:14:25
+error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryBatchWriteReceipt` in the current scope
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:11:25
    |
-14 |         let _ = receipt.affected_derived_view_ids();
+11 |         let _ = receipt.affected_derived_view_ids();
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `terminal_affected_derived_view_ids_projection` with a similar name
    |
-14 -         let _ = receipt.affected_derived_view_ids();
-14 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
+11 -         let _ = receipt.affected_derived_view_ids();
+11 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
    |
 
-error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::WorthQueryIntentReceipt` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:18:25
+error[E0599]: no method named `affected_live_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryIntentReceipt` in the current scope
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:15:25
    |
-18 |         let _ = receipt.affected_live_view_ids();
+15 |         let _ = receipt.affected_live_view_ids();
    |                         ^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `terminal_affected_live_view_ids_projection` with a similar name
    |
-18 -         let _ = receipt.affected_live_view_ids();
-18 +         let _ = receipt.terminal_affected_live_view_ids_projection();
+15 -         let _ = receipt.affected_live_view_ids();
+15 +         let _ = receipt.terminal_affected_live_view_ids_projection();
    |
 
-error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::WorthQueryIntentReceipt` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:19:25
+error[E0599]: no method named `affected_derived_view_ids` found for reference `&worth_query::facade::runtime::WorthQueryIntentReceipt` in the current scope
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:16:25
    |
-19 |         let _ = receipt.affected_derived_view_ids();
+16 |         let _ = receipt.affected_derived_view_ids();
    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `terminal_affected_derived_view_ids_projection` with a similar name
    |
-19 -         let _ = receipt.affected_derived_view_ids();
-19 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
+16 -         let _ = receipt.affected_derived_view_ids();
+16 +         let _ = receipt.terminal_affected_derived_view_ids_projection();
    |
 
 error[E0599]: no method named `affected_live_view_ids` found for reference `&WorthQueryBatchWriteReceiptInspection` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:23:28
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:20:28
    |
-23 |         let _ = inspection.affected_live_view_ids();
+20 |         let _ = inspection.affected_live_view_ids();
    |                            ^^^^^^^^^^^^^^^^^^^^^^ private field, not a method
    |
 help: there is a method `terminal_affected_live_view_ids_projection` with a similar name
    |
-23 -         let _ = inspection.affected_live_view_ids();
-23 +         let _ = inspection.terminal_affected_live_view_ids_projection();
+20 -         let _ = inspection.affected_live_view_ids();
+20 +         let _ = inspection.terminal_affected_live_view_ids_projection();
    |
 
 error[E0599]: no method named `affected_derived_view_ids` found for reference `&WorthQueryBatchWriteReceiptInspection` in the current scope
-  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:24:28
+  --> tests/ui/aspect_native_query/affected_view_ids_terminal_accessors_removed.rs:21:28
    |
-24 |         let _ = inspection.affected_derived_view_ids();
+21 |         let _ = inspection.affected_derived_view_ids();
    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^ private field, not a method
    |
 help: there is a method `terminal_affected_derived_view_ids_projection` with a similar name
    |
-24 -         let _ = inspection.affected_derived_view_ids();
-24 +         let _ = inspection.terminal_affected_derived_view_ids_projection();
+21 -         let _ = inspection.affected_derived_view_ids();
+21 +         let _ = inspection.terminal_affected_derived_view_ids_projection();
    |

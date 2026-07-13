@@ -1,45 +1,45 @@
 error: cannot construct `WorthQueryDeclarationLegalityEvidence<GeometryDomain, SplitEdgeDeclaration>` with struct literal syntax due to private fields
-  --> tests/ui/domain_declaration/boundaries/construction/legality/legality_evidence_constructor_is_private.rs:52:13
+  --> tests/ui/domain_declaration/boundaries/construction/legality/legality_evidence_constructor_is_private.rs:46:13
    |
-52 |       let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
+46 |       let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-53 |           declaration: fake(),
+47 |           declaration: fake(),
    |           ------------------- private field
-54 |           support_report: fake(),
+48 |           support_report: fake(),
    |           ---------------------- private field
-55 |           legality_contract: WorthQueryDeclarationLegalityContract::authoritative_hot_artifact(),
+49 |           legality_contract: WorthQueryDeclarationLegalityContract::authoritative_hot_artifact(),
    |           -------------------------------------------------------------------------------------- private field
-56 |           role_claim_category: fake(),
+50 |           role_claim_category: fake(),
    |           --------------------------- private field
-57 |           role_claim_role: fake(),
+51 |           role_claim_role: fake(),
    |           ----------------------- private field
-58 | /         surface_disposition: evaluate_boundary_surface_disposition_legality(
-59 | |             fake(),
-60 | |             fake(),
-61 | |         )
-62 | |         .unwrap(),
+52 | /         surface_disposition: evaluate_boundary_surface_disposition_legality(
+53 | |             fake(),
+54 | |             fake(),
+55 | |         )
+56 | |         .unwrap(),
    | |_________________- private field
-63 |           world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
+57 |           world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
    |           -------------------------------------------------------------------------- private field
-64 |           legality_digest: String::new(),
+58 |           legality_digest: String::new(),
    |           ------------------------------ private field
    |
    = note: ...and other private field `reviewed_aspect_coverage` that was not provided
 help: you might have meant to use the `new` associated function
    |
-52 -     let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
-53 -         declaration: fake(),
-54 -         support_report: fake(),
-55 -         legality_contract: WorthQueryDeclarationLegalityContract::authoritative_hot_artifact(),
-56 -         role_claim_category: fake(),
-57 -         role_claim_role: fake(),
-58 -         surface_disposition: evaluate_boundary_surface_disposition_legality(
-59 -             fake(),
-60 -             fake(),
-61 -         )
-62 -         .unwrap(),
-63 -         world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
-64 -         legality_digest: String::new(),
-65 -     };
-52 +     let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _);
+46 -     let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
+47 -         declaration: fake(),
+48 -         support_report: fake(),
+49 -         legality_contract: WorthQueryDeclarationLegalityContract::authoritative_hot_artifact(),
+50 -         role_claim_category: fake(),
+51 -         role_claim_role: fake(),
+52 -         surface_disposition: evaluate_boundary_surface_disposition_legality(
+53 -             fake(),
+54 -             fake(),
+55 -         )
+56 -         .unwrap(),
+57 -         world_basis: unsafe { std::mem::zeroed::<WorthQueryAdmittedWorldBasis>() },
+58 -         legality_digest: String::new(),
+59 -     };
+46 +     let _ = WorthQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _);
    |

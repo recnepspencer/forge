@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAspectMutationBuilder;
+use worth_query::facade::runtime::WorthQueryAspectMutationBuilder;
 use std::collections::BTreeSet;
 
 fn main() {

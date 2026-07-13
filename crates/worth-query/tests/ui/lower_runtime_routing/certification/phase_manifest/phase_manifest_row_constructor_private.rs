@@ -1,6 +1,5 @@
-use worth_query::facade::{
-    WorthQueryLowerRuntimePhaseArtifact, WorthQueryLowerRuntimePhaseManifestRow,
-};
+use worth_query::facade::runtime::WorthQueryLowerRuntimePhaseArtifact;
+use worth_query::facade::certification::WorthQueryLowerRuntimePhaseManifestRow;
 
 fn main() {
     let _ = WorthQueryLowerRuntimePhaseManifestRow::new(

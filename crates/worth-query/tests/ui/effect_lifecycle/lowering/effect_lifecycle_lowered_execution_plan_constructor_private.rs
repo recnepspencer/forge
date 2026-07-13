@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    AuthorityScopedEffectPlan, EffectLifecycleCounters, WorthQueryEvidenceIdentity,
-    WorthQueryEvidenceScope, WorthQueryEvidenceTag, LoweredEffectExecutionArtifact,
-    LoweredEffectExecutionPlan,
-};
+use worth_query::facade::foundation::{AuthorityScopedEffectPlan, EffectLifecycleCounters, LoweredEffectExecutionArtifact, LoweredEffectExecutionPlan};
+use worth_query::facade::runtime::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
 fn authority_scoped_plan() -> AuthorityScopedEffectPlan {
     unimplemented!()

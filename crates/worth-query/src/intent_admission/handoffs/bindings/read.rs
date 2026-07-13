@@ -1,4 +1,4 @@
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
     WorthQueryAdmittedGraphReadAccessPlan, WorthQueryAuthoritativeMutationObligationDispatch,
     WorthQueryLiveGraphReadAccessPlan, WorthQueryReadFamily,
@@ -66,7 +66,7 @@ impl WorthQueryReadExecutionBinding {
         self.handoff.read_family()
     }
 
-    pub fn basis_context(&self) -> Option<&AdmittedQueryBasisContext> {
+    pub fn basis_context(&self) -> Option<&ScopedQueryBasisContext> {
         self.handoff.basis_context()
     }
 

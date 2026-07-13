@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `WorthQueryLowerRuntimeBoundaryBoundContributionTarget: worth_query::domain_capabilities::canonical_runtime::workflow::preview::WorthQueryWorkflowPreviewMaterializationTarget` is not satisfied
-  --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_preview_workflow_artifact_requires_workflow_target.rs:14:9
+  --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_preview_workflow_artifact_requires_workflow_target.rs:10:9
    |
-14 |         materialize_query_preview_workflow_artifact;
+10 |         materialize_query_preview_workflow_artifact;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
    = help: the trait `worth_query::domain_capabilities::canonical_runtime::workflow::preview::WorthQueryWorkflowPreviewMaterializationTarget` is not implemented for `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`

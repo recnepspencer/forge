@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    DeclarativeBranchCompareFieldDelta, DeclarativeBranchCompareValue,
-};
+use worth_query::facade::foundation::{DeclarativeBranchCompareFieldDelta, DeclarativeBranchCompareValue};
 
 fn main() {
     let value = DeclarativeBranchCompareValue::new("title", "value", "left");

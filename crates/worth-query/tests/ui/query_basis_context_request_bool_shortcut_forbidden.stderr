@@ -1,16 +1,14 @@
-error[E0061]: this function takes 0 arguments but 1 argument was supplied
- --> tests/ui/query_basis_context_request_bool_shortcut_forbidden.rs:4:13
+error[E0432]: unresolved import `worth_query::facade::QueryBasisContextRequest`
+ --> tests/ui/query_basis_context_request_bool_shortcut_forbidden.rs:1:5
   |
-4 |     let _ = QueryBasisContextRequest::current_branch_head(true);
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ---- unexpected argument of type `bool`
+1 | use worth_query::facade::QueryBasisContextRequest;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryBasisContextRequest` in `facade`
   |
-note: associated function defined here
- --> src/query_context/basis.rs
+note: found an item that was configured out
+ --> src/facade.rs
   |
-  |     pub fn current_branch_head() -> Self {
-  |            ^^^^^^^^^^^^^^^^^^^
-help: remove the extra argument
-  |
-4 -     let _ = QueryBasisContextRequest::current_branch_head(true);
-4 +     let _ = QueryBasisContextRequest::current_branch_head();
-  |
+  | #[cfg(test)]
+  |       ---- the item is gated here
+...
+  |     QueryBasisContextRequest,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^

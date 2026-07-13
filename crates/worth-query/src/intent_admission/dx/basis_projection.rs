@@ -1,4 +1,4 @@
-use crate::basis_lifecycle::{RawBasisIntent, ScopedObservationBasis};
+use crate::basis_lifecycle::{BasisLifecycleIntentDraft, ScopedObservationBasis};
 use crate::intent_admission::{
     WorthQueryBasisObservationPlan, WorthQueryProjectionConsumptionPlan,
 };
@@ -15,10 +15,12 @@ use super::{
 };
 
 pub fn worth_query_basis_observation_intent(
-    raw: RawBasisIntent,
+    declaration: BasisLifecycleIntentDraft,
 ) -> Result<WorthQueryBasisObservationIntentAuthoring, super::WorthQueryIntentViolationDecision> {
     Ok(WorthQueryBasisObservationIntentAuthoring {
-        request: WorthQueryRawIntentAdmissionRequest::basis_observation_lane(raw)?,
+        request: WorthQueryRawIntentAdmissionRequest::basis_observation_lane(
+            declaration.into_raw(),
+        )?,
     })
 }
 

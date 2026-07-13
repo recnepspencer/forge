@@ -1,4 +1,4 @@
-use worth_query::facade::AspectFieldKey;
+use worth_query::facade::foundation::AspectFieldKey;
 
 fn main() {
     let _ = AspectFieldKey::new("identity", "id");

@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
- --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:7:54
+ --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:4:54
   |
-7 |       let _ = WorthQueryLowerRuntimeCapabilityRequest::new(
+4 |       let _ = WorthQueryLowerRuntimeCapabilityRequest::new(
   |                                                        ^^^ private associated function
   |
  ::: src/lower_runtime_routing/protocol.rs
@@ -16,12 +16,12 @@ error[E0624]: associated function `new` is private
   | |_____________- private associated function defined here
 
 warning: unreachable call
-  --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:7:13
-   |
- 7 |     let _ = WorthQueryLowerRuntimeCapabilityRequest::new(
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call
+ --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:4:13
+  |
+4 |     let _ = WorthQueryLowerRuntimeCapabilityRequest::new(
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable call
 ...
-12 |         todo!(),
-   |         ------- any code following this expression is unreachable
-   |
-   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+9 |         todo!(),
+  |         ------- any code following this expression is unreachable
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

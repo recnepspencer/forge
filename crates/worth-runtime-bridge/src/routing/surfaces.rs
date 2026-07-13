@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_foundational::facade::{AspectFieldLocator, AspectKey, AspectLocator};
 use sha2::{Digest, Sha256};
+use worth_foundational::facade::{AspectFieldLocator, AspectKey, AspectLocator};
 
 use crate::identity::{BridgeIdentity, TruthDeltaSurfaceIdentityTag};
 use crate::input::envelope::{

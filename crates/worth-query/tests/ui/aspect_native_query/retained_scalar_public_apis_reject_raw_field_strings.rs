@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryDerivedArtifactBinding, WorthQueryDerivedViewHandle, WorthQueryNativeRow,
-};
+use worth_query::facade::runtime::{WorthQueryDerivedArtifactBinding, WorthQueryDerivedViewHandle, WorthQueryNativeRow};
 
 fn main() {
     let binding = binding_fixture();

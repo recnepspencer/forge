@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryIntentAdmissionSlopeLane, WorthQueryIntentAdmissionWidthRunRow,
-    WorthQueryIntentAdmissionWidthRunScale,
-};
+use worth_query::facade::runtime::{WorthQueryIntentAdmissionSlopeLane, WorthQueryIntentAdmissionWidthRunRow, WorthQueryIntentAdmissionWidthRunScale};
 
 fn main() {
     let _ = WorthQueryIntentAdmissionWidthRunRow {

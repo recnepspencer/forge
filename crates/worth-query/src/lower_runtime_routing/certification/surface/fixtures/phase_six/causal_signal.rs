@@ -30,8 +30,13 @@ use super::super::{
 
 pub(crate) fn representative_causal_bridge_materialization_row() -> RepresentativeArtifacts {
     let read_result = certification_read_result();
-    let observation = QueryObservationReceipt::from_read_receipt(read_result.receipt());
-    let plan = CausalInspection::for_observation(observation)
+    let inspection_basis = crate::basis_lifecycle::basis_lifecycle()
+        .historical_snapshot("certification-read", true)
+        .inspect()
+        .expect("causal bridge inspection basis should admit");
+    let observation =
+        QueryObservationReceipt::from_read_receipt(read_result.receipt(), inspection_basis.clone());
+    let plan = CausalInspection::for_observation(observation, inspection_basis)
         .why_replayed()
         .materialized_detail()
         .include_all_retained_evidence()

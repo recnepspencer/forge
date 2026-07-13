@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewEvaluationClass, PreviewSessionPlanBinding};
+use worth_query::facade::policy::{PreviewEvaluationClass, PreviewSessionPlanBinding};
 
 fn main() {
     let mut binding: PreviewSessionPlanBinding = todo!();

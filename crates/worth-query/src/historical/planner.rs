@@ -15,7 +15,7 @@ pub fn admit_historical_evaluation_path(
     request: HistoricalEvaluationRequest,
     capability: HistoricalCapabilityDescriptor,
 ) -> Result<HistoricalEvaluationAdmission, HistoricalEvaluationError> {
-    validate_basis_match(&request, capability.basis_identity())?;
+    validate_basis_match(&request, capability.basis_proof())?;
     validate_capability_consistency(&capability, request.requested_path_class())?;
 
     let admitted_path_class = admit_requested_path(&request, &capability)?;
@@ -60,7 +60,7 @@ pub fn resolve_historical_materialization_path(
     admission: HistoricalEvaluationAdmission,
     materialization: HistoricalMaterializationDescriptor,
 ) -> Result<HistoricalPathResolved, HistoricalEvaluationError> {
-    if admission.requested_path().basis_identity() != materialization.basis_identity() {
+    if admission.requested_path().basis_proof() != materialization.basis_proof() {
         return Err(HistoricalEvaluationError::IncompatibleBasisPathPair {
             requested_basis_identity: admission.requested_path().basis_identity().to_string(),
             descriptor_basis_identity: materialization.basis_identity().to_string(),

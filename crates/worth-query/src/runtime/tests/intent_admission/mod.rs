@@ -1,16 +1,22 @@
 use super::support::*;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
-use crate::facade::runtime::{
-    admit_runtime_intent_request, certify_intent_admission,
-    worth_query_intent_admission_certification_output_manifest,
+use crate::facade::certification::{
+    certify_intent_admission, worth_query_intent_admission_certification_output_manifest,
     worth_query_intent_admission_closeout_extension_outputs,
     worth_query_intent_admission_compile_fail_targets,
-    worth_query_intent_admission_coverage_inventory, worth_query_intent_admission_family_inventory,
     worth_query_intent_admission_golden_transcripts, worth_query_intent_admission_mutation_audit,
     worth_query_intent_admission_required_certification_outputs,
-    worth_query_intent_admission_support_matrix, WorthQueryAdmittedIntentExecutionHandoff,
-    WorthQueryAuthoritativeIntentExecutionHandoff, WorthQueryAuthorityLane,
-    WorthQueryEffectTriggeredIntentExecutionHandoff,
+    worth_query_intent_admission_support_matrix,
+};
+use crate::facade::foundation::{
+    preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode,
+    ExecutionBasisIntent, ResolvedSnapshotIdentity, SnapshotLineageClass,
+};
+use crate::facade::policy::{QueryContextBindingSource, ScopedQueryBasisContext};
+use crate::facade::runtime::{
+    worth_query_intent_admission_coverage_inventory, worth_query_intent_admission_family_inventory,
+    WorthQueryAdmittedIntentExecutionHandoff, WorthQueryAuthoritativeIntentExecutionHandoff,
+    WorthQueryAuthorityLane, WorthQueryEffectTriggeredIntentExecutionHandoff,
     WorthQueryIntentAdmissionAuthorityLaneEligibility, WorthQueryIntentAdmissionBasisEligibility,
     WorthQueryIntentAdmissionCapabilityEligibility, WorthQueryIntentAdmissionCoverageStatus,
     WorthQueryIntentAdmissionCoveredEntrypoint, WorthQueryIntentAdmissionDecision,
@@ -31,11 +37,10 @@ use crate::facade::runtime::{
     WorthQueryWorkspace,
 };
 use crate::facade::{
-    admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
-    resolve_snapshot_basis, AdmittedQueryBasisContext, BasisAuthorityFamily, BasisResolutionMode,
-    ExecutionBasisIntent, QueryBasisContextRequest, QueryContextBindingSource,
-    ResolvedSnapshotIdentity, SnapshotLineageClass,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest,
 };
+use crate::intent_admission::admit_runtime_intent_request;
 use crate::schema_view::{QuerySchemaView, SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -124,7 +129,7 @@ fn identity_read_family(
 fn current_context_for_family(
     family: &crate::runtime::WorthQueryReadFamily,
     snapshot_token: &str,
-) -> AdmittedQueryBasisContext {
+) -> ScopedQueryBasisContext {
     let intent = ExecutionBasisIntent::new(
         BasisAuthorityFamily::Runtime,
         SnapshotLineageClass::CurrentHead,
@@ -141,12 +146,13 @@ fn current_context_for_family(
         .expect("runtime basis should resolve");
     let preflight = preflight_execution_basis(family.read_graph().execution_plan().clone(), basis)
         .expect("family preflight should build");
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .expect("current basis context should bind");
-    admit_query_basis_context(binding).expect("current basis context should admit")
+    admit_and_scope_legacy_query_basis_context_for_test(binding)
+        .expect("current basis context should admit")
 }
 
 fn profile_read_family(

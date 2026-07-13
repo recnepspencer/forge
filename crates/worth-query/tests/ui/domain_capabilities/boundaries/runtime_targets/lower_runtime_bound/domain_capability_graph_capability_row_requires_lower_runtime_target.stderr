@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/boundaries/runtime_targets/lower_runtime_bound/domain_capability_graph_capability_row_requires_lower_runtime_target.rs:41:66
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/lower_runtime_bound/domain_capability_graph_capability_row_requires_lower_runtime_target.rs:35:66
    |
-41 |     let _ = materialize_graph_composition_capability_support_row(ready);
+35 |     let _ = materialize_graph_composition_capability_support_row(ready);
    |             ---------------------------------------------------- ^^^^^ expected `WorthQueryLowerRuntimeBoundaryBoundContributionTarget`, found `WorthQueryDeclarationBoundContributionTarget`
    |             |
    |             arguments to this function are incorrect

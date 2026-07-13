@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionBridgeParityFailure;
+use worth_query::facade::runtime::QuerySubscriptionBridgeParityFailure;
 
 fn main() {
     let failure: QuerySubscriptionBridgeParityFailure = todo!();

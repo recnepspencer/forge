@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionDiagnosticSemanticLabels;
+use worth_query::facade::runtime::QuerySubscriptionDiagnosticSemanticLabels;
 
 fn main() {
     let labels: QuerySubscriptionDiagnosticSemanticLabels = todo!();

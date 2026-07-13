@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    AdmittedDiffQueryContext, AdmittedQueryBasisContext, ComparisonBasisFamily,
-    QueryContextBudgetClass, QueryContextCostClass, QueryContextCounters, QueryContextDriftOutcome,
-    QueryContextPredictionDriftOutcome, QueryContextPredictionReport,
-};
+use worth_query::facade::policy::{AdmittedDiffQueryContext, ComparisonBasisFamily, QueryContextBudgetClass, QueryContextCostClass, QueryContextCounters, QueryContextDriftOutcome, QueryContextPredictionDriftOutcome, QueryContextPredictionReport};
+use worth_query::facade::AdmittedQueryBasisContext;
 
 fn basis() -> AdmittedQueryBasisContext {
     panic!()

@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryDerivedViewHandle, WorthQueryNativeRow, WorthQueryRuntime};
+use worth_query::facade::runtime::{WorthQueryDerivedViewHandle, WorthQueryNativeRow, WorthQueryRuntime};
 
 fn main() {
     let runtime = runtime_fixture();

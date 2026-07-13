@@ -4,7 +4,7 @@ use crate::intent_admission::{
     WorthQueryIntentDecisionTraceEnvelope, WorthQueryRawIntentAdmissionRequest,
     WorthQueryReadExecutionBinding, WorthQueryReadExecutionHandoff,
 };
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
     WorthQueryAdmittedGraphReadAccessPlan, WorthQueryGraphIndexInventoryMatchReport,
     WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
@@ -15,7 +15,7 @@ use crate::runtime::{
 pub struct WorthQueryWorkspaceReadIntentAuthoring<'a> {
     workspace: &'a mut WorthQueryWorkspace,
     read_family: WorthQueryReadFamily,
-    basis_context: Option<AdmittedQueryBasisContext>,
+    basis_context: Option<ScopedQueryBasisContext>,
     graph_read_authority: Option<WorthQueryGraphReadAccessAuthorityContext>,
 }
 
@@ -23,7 +23,7 @@ impl<'a> WorthQueryWorkspaceReadIntentAuthoring<'a> {
     pub(crate) fn new(
         workspace: &'a mut WorthQueryWorkspace,
         read_family: WorthQueryReadFamily,
-        basis_context: Option<AdmittedQueryBasisContext>,
+        basis_context: Option<ScopedQueryBasisContext>,
         graph_read_authority: Option<WorthQueryGraphReadAccessAuthorityContext>,
     ) -> Self {
         Self {

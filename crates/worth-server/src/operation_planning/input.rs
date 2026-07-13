@@ -7,7 +7,7 @@ pub struct WorthServerOperationPlannerInput {
     operation_admission: WorthServerOperationAdmissionPosture,
     operation: WorthServerQueryHandoffOperation,
     precondition_posture: Option<WorthServerOperationPreconditionPosture>,
-    bound_workspace: Option<worth_query::facade::WorthQueryWorkspace>,
+    bound_workspace: Option<worth_query::facade::runtime::WorthQueryWorkspace>,
 }
 
 impl WorthServerOperationPlannerInput {
@@ -33,7 +33,7 @@ impl WorthServerOperationPlannerInput {
 
     pub(crate) fn with_bound_workspace(
         mut self,
-        bound_workspace: worth_query::facade::WorthQueryWorkspace,
+        bound_workspace: worth_query::facade::runtime::WorthQueryWorkspace,
     ) -> Self {
         self.bound_workspace = Some(bound_workspace);
         self
@@ -57,7 +57,7 @@ impl WorthServerOperationPlannerInput {
         WorthServerOperationAdmissionPosture,
         WorthServerQueryHandoffOperation,
         Option<WorthServerOperationPreconditionPosture>,
-        Option<worth_query::facade::WorthQueryWorkspace>,
+        Option<worth_query::facade::runtime::WorthQueryWorkspace>,
     ) {
         (
             self.operation_admission,

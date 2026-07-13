@@ -1,4 +1,4 @@
-use worth_query::facade::{admit_active_subscription_lane, ActiveSubscriptionWorkBudget};
+use worth_query::facade::runtime::{admit_active_subscription_lane, ActiveSubscriptionWorkBudget};
 
 fn main() {
     let _ = admit_active_subscription_lane("raw-activation", todo::<ActiveSubscriptionWorkBudget>());

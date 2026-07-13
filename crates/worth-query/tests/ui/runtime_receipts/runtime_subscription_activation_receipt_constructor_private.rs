@@ -1,4 +1,4 @@
-use worth_query::facade::{SubscriptionActivationInput, SubscriptionActivationReceipt};
+use worth_query::facade::runtime::{SubscriptionActivationInput, SubscriptionActivationReceipt};
 
 fn main() {
     let activation = None::<SubscriptionActivationInput>;

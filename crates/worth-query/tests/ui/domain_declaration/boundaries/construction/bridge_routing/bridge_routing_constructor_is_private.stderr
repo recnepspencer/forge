@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:55:49
+  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:46:49
    |
-55 |       let _ = WorthQueryDeclarationBridgeRouting::new(
+46 |       let _ = WorthQueryDeclarationBridgeRouting::new(
    |                                                   ^^^ private associated function
    |
   ::: src/application/declaration_bridge_routing/artifact.rs
@@ -16,20 +16,20 @@ error[E0624]: associated function `new` is private
    | |_____________- private associated function defined here
 
 error[E0061]: this function takes 15 arguments but 7 arguments were supplied
-  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:55:13
+  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:46:13
    |
-55 |       let _ = WorthQueryDeclarationBridgeRouting::new(
+46 |       let _ = WorthQueryDeclarationBridgeRouting::new(
    |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
-56 | |         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
-57 | |         WorthQueryDeclarationBridgeContinuationRequest::new(
-58 | |             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
+47 | |         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
+48 | |         WorthQueryDeclarationBridgeContinuationRequest::new(
+49 | |             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
 ...  |
-63 | |         envelope,
+54 | |         envelope,
    | |         -------- expected `std::string::String`, found `WorthQueryDeclarationEnvelope<ExampleDomain, ExampleInput>`
-64 | |         "digest".to_string(),
+55 | |         "digest".to_string(),
    | |         -------------------- expected `WorthQueryDeclarationEnvelope<_, _>`, found `std::string::String`
-65 | |         explanation,
-66 | |     );
+56 | |         explanation,
+57 | |     );
    | |     -
    | |     |
    | |_____multiple arguments are missing
@@ -42,24 +42,24 @@ note: associated function defined here
    |                   ^^^
 help: did you mean
    |
-55 ~     let _ = WorthQueryDeclarationBridgeRouting::new(
-56 +         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
-57 +         WorthQueryDeclarationBridgeContinuationRequest::new(
-58 +             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
-59 +             worth_query::facade::WorthQueryDeclarationBridgeTruthContext::Current,
-60 +         ),
-61 +         WorthQueryDeclarationBridgeContinuationFamily::RuntimeRoute,
-62 +         binding,
-63 +         /* WorthQueryDeclarationAspectContract */,
-64 +         /* WorthQueryDeclarationAspectCoverage */,
-65 +         /* WorthQueryDeclarationAspectCoverageBasis */,
-66 +         /* WorthQueryDeclarationAspectFit */,
-67 +         /* WorthQueryDeclarationAspectCoverage */,
-68 +         /* WorthQueryDeclarationAspectFit */,
-69 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
-70 +         "digest".to_string(),
-71 +         envelope,
-72 +         /* std::string::String */,
-73 +         explanation,
-74 ~     );
+46 ~     let _ = WorthQueryDeclarationBridgeRouting::new(
+47 +         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
+48 +         WorthQueryDeclarationBridgeContinuationRequest::new(
+49 +             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
+50 +             worth_query::facade::foundation::WorthQueryDeclarationBridgeTruthContext::Current,
+51 +         ),
+52 +         WorthQueryDeclarationBridgeContinuationFamily::RuntimeRoute,
+53 +         binding,
+54 +         /* WorthQueryDeclarationAspectContract */,
+55 +         /* WorthQueryDeclarationAspectCoverage */,
+56 +         /* WorthQueryDeclarationAspectCoverageBasis */,
+57 +         /* WorthQueryDeclarationAspectFit */,
+58 +         /* WorthQueryDeclarationAspectCoverage */,
+59 +         /* WorthQueryDeclarationAspectFit */,
+60 +         /* worth_query::application::declaration::future_projection::WorthQueryDeclarationFutureProjection */,
+61 +         "digest".to_string(),
+62 +         envelope,
+63 +         /* std::string::String */,
+64 +         explanation,
+65 ~     );
    |

@@ -1,9 +1,9 @@
+use std::collections::BTreeMap;
 use worth_foundational::facade::{
     validate_aspect_value, AspectFieldLocator, AspectValue, ContractValidatedAspectArtifact,
     ContractValidationInput,
 };
 use worth_proof::TransitionOutcome;
-use std::collections::BTreeMap;
 
 use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::{AspectFieldPatch, EntityAuthoritativeAspectStateDenial};

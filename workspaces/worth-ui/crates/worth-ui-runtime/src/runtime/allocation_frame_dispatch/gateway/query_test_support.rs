@@ -4,13 +4,30 @@ use worth_query::facade::runtime::{
     QuerySchemaView, SchemaFieldKind, SchemaFieldView, WorthQueryReadBuilder, WorthQueryReadDenial,
     WorthQueryReadFamily, WorthQueryReadGraph, WorthQueryWorkspace,
 };
+use worth_query::facade::policy::{
+    admit_query_basis_context,
+    execute_query_basis_context,
+    QueryContextBindingSource,
+};
 use worth_query::facade::{
-    admit_query_basis_context, bind_query_basis_context, execute_query_basis_context,
-    preflight_execution_basis, public_bridge_projection_artifacts_for_read_graph,
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, AspectFieldSelector,
-    AuthoredResultShapeField, EqualityPredicate, ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome, ProjectionFactFieldPath, QueryBasisContextRequest,
-    QueryContextBindingSource, ScalarPredicateValue, WorthQueryAspectTouch,
+    bind_query_basis_context,
+    QueryBasisContextRequest,
+};
+use worth_query::facade::foundation::{
+    preflight_execution_basis,
+    resolve_runtime_current_snapshot_basis,
+    snapshot_resolution_report,
+    AspectFieldSelector,
+    AuthoredResultShapeField,
+    EqualityPredicate,
+    ProjectionAuthorityContract,
+    ProjectionAuthorityOutcome,
+    ProjectionFactFieldPath,
+    ScalarPredicateValue,
+};
+use worth_query::facade::certification::public_bridge_projection_artifacts_for_read_graph;
+use worth_query::facade::runtime::{
+    WorthQueryAspectTouch,
     WorthQueryAuthoredAspectValue,
 };
 use worth_ui_query_binding::{WorthUiQueryBindingSubsystem, WorthUiQueryPrerequisiteEvidence};
@@ -105,16 +122,16 @@ fn prerequisites(
 fn query_basis(
     workspace: &WorthQueryWorkspace,
     family: &WorthQueryReadFamily,
-) -> worth_query::facade::ResolvedSnapshotBasis {
+) -> worth_query::facade::foundation::ResolvedSnapshotBasis {
     resolve_runtime_current_snapshot_basis(
         workspace.snapshot_identity().evidence_identity(),
-        family.read_graph().schema_basis().clone(),
+        family.read_graph().schema_basis_authority(),
     )
     .expect("Query basis")
 }
 
 fn prerequisites_from_basis(
-    basis: worth_query::facade::ResolvedSnapshotBasis,
+    basis: worth_query::facade::foundation::ResolvedSnapshotBasis,
 ) -> WorthUiQueryPrerequisiteEvidence {
     WorthUiQueryBindingSubsystem::bootstrap()
         .prerequisites()
@@ -163,13 +180,13 @@ fn query_schema() -> QuerySchemaView {
         "task",
         [
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("identity").expect("aspect"),
-                worth_query::facade::FieldName::new("id").expect("field"),
+                worth_query::facade::foundation::AspectName::new("identity").expect("aspect"),
+                worth_query::facade::foundation::FieldName::new("id").expect("field"),
                 SchemaFieldKind::String,
             ),
             SchemaFieldView::new(
-                worth_query::facade::AspectName::new("size").expect("aspect"),
-                worth_query::facade::FieldName::new("value").expect("field"),
+                worth_query::facade::foundation::AspectName::new("size").expect("aspect"),
+                worth_query::facade::foundation::FieldName::new("value").expect("field"),
                 SchemaFieldKind::String,
             ),
         ],

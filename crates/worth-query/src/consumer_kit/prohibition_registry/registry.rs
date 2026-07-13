@@ -81,6 +81,60 @@ static HARD_PROHIBITION_ROWS: &[WorthQueryProhibitionRegistryRow] = &[
         ADMITTED_EXISTING_TRUTH_MUTATION_LANE,
         "verified existing-truth deletion must be planned by the owning lane",
     ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::RawDigestMinting,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "facade::identity_authority",
+        "authority identities are minted only by sealed Query-owned admission",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::RawBasisIdentity,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "facade::foundation::basis_lifecycle",
+        "basis authority must originate from the declarative scoped lifecycle",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::UnscopedQueryContext,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "scoped observation or materialization query context",
+        "query execution must carry a scoped basis proof",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::RawIntentAdmissionRequest,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "declarative intent authoring facade",
+        "raw admission requests are internal lifecycle machinery",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::PostureAuthoredSubscription,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "scoped subscription declaration and activation",
+        "posture values cannot author subscription authority",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::ReceiptOnlyCausalInspection,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "receipt plus ScopedInspectionBasis",
+        "causal evidence does not independently authorize inspection",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::LegacyPreviewExecution,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "ScopedPreviewLiveSessionPlanBinding",
+        "preview execution and drift require the scoped live binding",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::DeepFacadeToolingImport,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "facade::certification",
+        "ordinary facade namespaces cannot expose certification or migration machinery",
+    ),
+    WorthQueryProhibitionRegistryRow::new(
+        WorthQueryProhibitedSeam::LegacyQueryBasisLifecycle,
+        WorthQueryProhibitionEnforcementTier::SealedByVisibility,
+        "facade::foundation::basis_lifecycle",
+        "the deleted parallel lifecycle cannot be restored as competing authority",
+    ),
 ];
 
 #[derive(Clone, Copy, Debug)]

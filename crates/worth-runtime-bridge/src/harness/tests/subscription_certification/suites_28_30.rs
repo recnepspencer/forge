@@ -1,10 +1,10 @@
 use super::support::*;
+use crate::facade::runtime::BridgeSubscriptionDeclarationFamilyKind;
 use crate::facade::{
     BridgeRuntimePolicy, BridgeSignalStrategyKind, BridgeSubscriptionAdmissionRejectionKind,
     BridgeSubscriptionBasisKind, BridgeSubscriptionBasisRequest,
-    BridgeSubscriptionBasisResolutionFailureKind, BridgeSubscriptionDeclarationFamilyKind,
-    BridgeSubscriptionDeliveryIntentClass, BridgeSubscriptionReplayMismatchKind,
-    NormalizedSubscriptionSliceIntent,
+    BridgeSubscriptionBasisResolutionFailureKind, BridgeSubscriptionDeliveryIntentClass,
+    BridgeSubscriptionReplayMismatchKind, NormalizedSubscriptionSliceIntent,
 };
 use crate::mapping::SubscriptionSliceKind;
 

@@ -1,4 +1,4 @@
-use worth_query::facade::ActiveSubscriptionCounters;
+use worth_query::facade::runtime::ActiveSubscriptionCounters;
 
 fn main() {
     let counters: ActiveSubscriptionCounters = todo!();

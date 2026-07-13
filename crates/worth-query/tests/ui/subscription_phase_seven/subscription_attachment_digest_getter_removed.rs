@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionConsumerAttachment;
+use worth_query::facade::runtime::SubscriptionConsumerAttachment;
 
 fn main() {
     let attachment: SubscriptionConsumerAttachment = todo!();

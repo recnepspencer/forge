@@ -23,12 +23,10 @@ impl ProjectionFactConsumptionAttempt {
             },
             Self::AdmittedWithWarnings(completed, warnings) => {
                 match seal_completed_consumption(completed) {
-                    Ok(authority) => {
-                        ProjectionAuthorityOutcome::AdmittedWithWarnings(
-                            Box::new(authority),
-                            warnings,
-                        )
-                    }
+                    Ok(authority) => ProjectionAuthorityOutcome::AdmittedWithWarnings(
+                        Box::new(authority),
+                        warnings,
+                    ),
                     Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
                 }
             }
@@ -51,12 +49,10 @@ impl ProjectionFactConsumptionAttempt {
             }
             Self::AdmittedWithWarnings(completed, warnings) => {
                 match seal_completed_consumption_with_contract(completed, contract) {
-                    Ok(authority) => {
-                        ProjectionAuthorityOutcome::AdmittedWithWarnings(
-                            Box::new(authority),
-                            warnings,
-                        )
-                    }
+                    Ok(authority) => ProjectionAuthorityOutcome::AdmittedWithWarnings(
+                        Box::new(authority),
+                        warnings,
+                    ),
                     Err(denial) => ProjectionAuthorityOutcome::AuthorityDenied(denial),
                 }
             }

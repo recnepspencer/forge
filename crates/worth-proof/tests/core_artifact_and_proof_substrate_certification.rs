@@ -2,12 +2,12 @@ mod support;
 
 use std::any::type_name;
 
+use support::milestone1;
+use support::type_shapes::TypeShapeCheck;
 use worth_proof::{
     Artifact, ArtifactParts, ArtifactView, AssumptionBasis, CanonicalOrder, CanonicalVec,
     DisjointPair, NoAssumptionBasis, NoProofs, Proof, StructuralProofAuthority, UniqueVec,
 };
-use support::milestone1;
-use support::type_shapes::TypeShapeCheck;
 
 #[test]
 fn milestone_1_evidence_bundle_is_machine_checkable() {

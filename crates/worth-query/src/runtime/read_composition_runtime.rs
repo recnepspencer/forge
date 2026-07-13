@@ -7,8 +7,8 @@ use crate::execution::{execute_preflight_bundle, ExecutionError};
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{
-    execute_query_basis_context, AdmittedQueryBasisContext, HistoricalAdmissionClass,
-    QueryContextFamily,
+    execute_query_basis_context, HistoricalAdmissionClass, QueryContextFamily,
+    ScopedQueryBasisContext,
 };
 use crate::runtime::{
     WorthQueryEphemeralGraphIndexReceipt, WorthQueryGraphReadAccessExecutionCounters,
@@ -195,7 +195,7 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
 pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
     runtime: &mut WorthQueryRuntime,
     read_graph: &WorthQueryReadGraph,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> Result<WorthQueryExecutedReadGraph, WorthQueryReadDenial> {
     ensure_context_matches_read_graph(read_graph, context)?;
     let context_execution = execute_query_basis_context(context).map_err(|error| {
@@ -280,7 +280,7 @@ fn query_context_basis_digest_identity(basis_digest: &str) -> crate::WorthQueryE
 
 fn ensure_context_matches_read_graph(
     read_graph: &WorthQueryReadGraph,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> Result<(), WorthQueryReadDenial> {
     if context.query_digest() == read_graph.query_digest() {
         return Ok(());
@@ -293,7 +293,7 @@ fn ensure_context_matches_read_graph(
 
 fn context_allows_runtime_materialization(
     runtime_snapshot_identity: &WorthQuerySnapshotIdentity,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> bool {
     match context.family() {
         QueryContextFamily::CurrentBranchHead => true,
@@ -309,7 +309,7 @@ fn context_allows_runtime_materialization(
 
 fn historical_snapshot_context_matches_bound_workspace(
     runtime_snapshot_identity: &WorthQuerySnapshotIdentity,
-    context: &AdmittedQueryBasisContext,
+    context: &ScopedQueryBasisContext,
 ) -> bool {
     let Some(HistoricalAdmissionClass::RuntimeRetained) = context.historical_admission_class()
     else {

@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    AspectFieldKey, DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter,
-    DeclarativePredicateFilter, DeclarativePresenceFilter, DeclarativeSetMembershipFilter,
-    DeclarativeStringContainsFilter, ScalarPredicateValue,
-};
+use worth_query::facade::foundation::{AspectFieldKey, DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativePredicateFilter, DeclarativePresenceFilter, DeclarativeSetMembershipFilter, DeclarativeStringContainsFilter, ScalarPredicateValue};
 
 fn main() {
     let equality = DeclarativeEqualityFilter::new(

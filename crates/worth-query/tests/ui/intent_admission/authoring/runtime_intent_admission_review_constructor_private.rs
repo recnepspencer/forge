@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeIntentAdmissionReview;
+use worth_query::facade::runtime::WorthQueryRuntimeIntentAdmissionReview;
 
 fn main() {
     let _worthd = WorthQueryRuntimeIntentAdmissionReview {

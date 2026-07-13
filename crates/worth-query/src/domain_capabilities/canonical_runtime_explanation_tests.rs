@@ -21,7 +21,13 @@ fn explanation_runtime_materializer_builds_denied_causal_artifact() {
         "result:domain-capability",
         WorthQueryReadExecutionEngine::QueryRuntimeHistorical,
     );
-    let observation = crate::runtime::QueryObservationReceipt::from_read_receipt(&read_receipt);
+    let observation = crate::runtime::QueryObservationReceipt::from_read_receipt(
+        &read_receipt,
+        crate::basis_lifecycle::basis_lifecycle()
+            .historical_snapshot("domain-capability", true)
+            .inspect()
+            .unwrap(),
+    );
     let anchor = anchor_causal_observation(
         observation.clone(),
         CausalInspectionReason::HistoricalReplayResult,
@@ -87,7 +93,13 @@ fn explanation_runtime_review_preserves_denied_plan_identity() {
         "result:domain-capability",
         WorthQueryReadExecutionEngine::QueryRuntimeHistorical,
     );
-    let observation = crate::runtime::QueryObservationReceipt::from_read_receipt(&read_receipt);
+    let observation = crate::runtime::QueryObservationReceipt::from_read_receipt(
+        &read_receipt,
+        crate::basis_lifecycle::basis_lifecycle()
+            .historical_snapshot("domain-capability", true)
+            .inspect()
+            .unwrap(),
+    );
     let anchor = anchor_causal_observation(
         observation.clone(),
         CausalInspectionReason::HistoricalReplayResult,

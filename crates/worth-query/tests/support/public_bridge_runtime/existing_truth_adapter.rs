@@ -1,5 +1,5 @@
 use worth_foundational::facade::AspectValue;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryAdmittedAspectValue, WorthQueryExistingTruthAssertionDenial,
     WorthQueryExistingTruthAssertionDenialKind, WorthQueryExistingTruthProbeDenial,
     WorthQueryExistingTruthProbeDenialKind, WorthQueryExistingTruthProbeField,
@@ -19,7 +19,7 @@ impl PublicExistingTruthVerificationAdapter {
     }
 }
 
-impl worth_query::facade::WorthQueryRuntimeExistingTruthVerificationAdapter
+impl worth_query::facade::runtime::WorthQueryRuntimeExistingTruthVerificationAdapter
     for PublicExistingTruthVerificationAdapter
 {
     fn verify_existing_truth_assertion(

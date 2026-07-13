@@ -264,6 +264,10 @@ const HOSTILE_CERTIFICATION_SOURCES: &[(WorthQueryConsumerResidueClass, &str)] =
         WorthQueryConsumerResidueClass::DirectInternalQueryImport,
         "use worth_query::projection_consumption::ProjectionConsumptionReceipt;",
     ),
+    (
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        "use worth_query::query_basis_lifecycle::RawBasisIntent;",
+    ),
 ];
 
 const FALSE_POSITIVE_CERTIFICATION_SOURCES: &[&str] = &[

@@ -1,4 +1,5 @@
 use super::*;
+use crate::basis_lifecycle::basis_lifecycle;
 use crate::live::LiveQueryFamily;
 
 #[test]
@@ -104,5 +105,42 @@ fn meaning_digest_changes_for_policy_tenant_or_relationship_proof_context() {
             .equivalence_basis()
             .equivalence_projection()
             .label()
+    );
+}
+
+#[test]
+fn distinct_branch_basis_proofs_never_collapse_to_one_subscription_meaning() {
+    let mut branch_alpha = LiveQueryAdmissionArtifact::for_test_with_context(
+        LiveQueryFamily::Detail,
+        None,
+        QuerySubscriptionConstructionSource::Direct,
+        QuerySubscriptionBasisPosture::BranchHead,
+        QuerySubscriptionFutureSelection::ordinary(),
+        Some("policy".to_string()),
+        Some("tenant".to_string()),
+        Some("relationship-proof".to_string()),
+        QuerySubscriptionRelationshipProofPosture::Admitted,
+    );
+    let mut branch_beta = branch_alpha.clone();
+    branch_alpha.scoped_declaration_basis = Some(
+        basis_lifecycle()
+            .branch_head("alpha", true)
+            .declare_subscription()
+            .unwrap(),
+    );
+    branch_beta.scoped_declaration_basis = Some(
+        basis_lifecycle()
+            .branch_head("beta", true)
+            .declare_subscription()
+            .unwrap(),
+    );
+
+    let alpha = select_query_subscription_family(branch_alpha, roomy_budget()).unwrap();
+    let beta = select_query_subscription_family(branch_beta, roomy_budget()).unwrap();
+
+    assert_eq!(alpha.basis_posture(), beta.basis_posture());
+    assert_ne!(
+        alpha.equivalence_basis().evidence_identity(),
+        beta.equivalence_basis().evidence_identity()
     );
 }

@@ -1,8 +1,8 @@
-use worth_query::facade::WorthQueryGraphReadDomainOperationDeclaration;
+use worth_query::facade::foundation::WorthQueryGraphReadDomainOperationDeclaration;
 
 fn main() {
     let _ = WorthQueryGraphReadDomainOperationDeclaration {
-        key: worth_query::facade::WorthQueryGraphReadOperationKey::new(
+        key: worth_query::facade::foundation::WorthQueryGraphReadOperationKey::new(
             "domain.operation",
             1,
             "domain",

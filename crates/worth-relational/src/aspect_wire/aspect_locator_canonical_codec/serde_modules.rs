@@ -1,6 +1,6 @@
-use worth_foundational::facade::{AspectFieldLocator, AspectValueLocator, BoundarySourceLocator};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;
+use worth_foundational::facade::{AspectFieldLocator, AspectValueLocator, BoundarySourceLocator};
 
 use super::reading::{
     decode_aspect_field_locator, decode_aspect_value_locator, decode_boundary_source_locator,

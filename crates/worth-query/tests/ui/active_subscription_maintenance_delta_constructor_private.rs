@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionMaintenanceDelta;
+use worth_query::facade::runtime::QuerySubscriptionMaintenanceDelta;
 
 fn main() {
     let _ = QuerySubscriptionMaintenanceDelta {

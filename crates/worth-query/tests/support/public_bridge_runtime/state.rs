@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath};
-use worth_query::facade::{
-    WorthQueryAspectTouch, WorthQueryEntityIdentity, WorthQueryExistingTruthTargetBinding,
-    WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity,
+use worth_query::facade::foundation::WorthQueryEntityIdentity;
+use worth_query::facade::runtime::{
+    WorthQueryAspectTouch, WorthQueryExistingTruthTargetBinding, WorthQueryLiveArtifactTarget,
+    WorthQueryMutationTargetCollectionIdentity,
 };
 
 pub(super) type NativeExternalRow = BTreeMap<CanonicalFieldPath, AspectValue>;

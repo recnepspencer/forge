@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     AuthorizedProjectionFieldPath, ProjectionAuthorityContract,
     ProjectionConsumptionBindingContext, ProjectionFactFieldPath,
 };

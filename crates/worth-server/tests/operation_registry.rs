@@ -1,3 +1,7 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 use worth_proof::TransitionOutcome;
 use worth_server::{
     surfaces::{CompatHttpSurface, WorthNativeSurface},
@@ -7,10 +11,6 @@ use worth_server::{
     WorthServerOperationRegistration, WorthServerQueryHandoffConfig,
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
     WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
-};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
 };
 
 #[test]
@@ -239,8 +239,10 @@ impl WorthServerQueryWorkspaceProvider for CountingWorkspaceProvider {
     fn bind_workspace(
         &self,
         _request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         self.bind_count.fetch_add(1, Ordering::Relaxed);
         Err(WorthServerQueryWorkspaceBindingError::new(
             "bind_workspace",

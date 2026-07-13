@@ -1,26 +1,15 @@
-mod build;
-
 use crate::application::WorthQueryAdmittedWorldBasis;
-use crate::identity::hash_parts;
-use crate::query_basis_lifecycle::{
-    BasisIntentDenial, BasisLifecyclePosture, BasisOperationLaneRequest, BasisVisibility,
-    DeniedBasisCapability, InspectionBasisCapability, LowerRuntimeBoundInspectionBasis,
-    LowerRuntimeBoundObservationBasis, LowerRuntimeBoundSubscriptionActivationBasis,
-    LowerRuntimeBoundSubscriptionDeclarationBasis, NormalizedBasisFamily,
-    ObservationBasisCapability, ScopedInspectionBasis, ScopedObservationBasis, ScopedReplayBasis,
-    ScopedSubscriptionActivationBasis, ScopedSubscriptionDeclarationBasis,
-    SubscriptionActivationBasisCapability, SubscriptionDeclarationBasisCapability,
+use crate::basis_lifecycle::{
+    BasisFamily, BasisLifecyclePosture, ScopedBasisProof, ScopedInspectionBasis,
+    ScopedMaterializationBasis, ScopedMutationPreparationBasis, ScopedObservationBasis,
+    ScopedPreviewCloseoutBasis, ScopedReplayBasis, ScopedSubscriptionActivationBasis,
+    ScopedSubscriptionDeclarationBasis,
 };
+use crate::identity::hash_parts;
 use crate::runtime::evidence_identities::{
     runtime_state_snapshot_basis_label_identity, runtime_state_snapshot_result_shape_label_identity,
 };
-use crate::runtime::state_basis_classification::{
-    authority_lane_for_denied_basis, authority_lane_for_intent_denial, state_kind_for_basis_denial,
-    state_kind_for_basis_intent_denial,
-};
 use crate::runtime::{WorthQueryAuthorityLane, WorthQueryRuntimeStateKind};
-
-use build::{from_admitted_capability, from_basis_admission, from_lower_runtime_bound_basis};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryBasisLifecycleInspection {
@@ -29,14 +18,11 @@ pub struct WorthQueryBasisLifecycleInspection {
     authority_lane: WorthQueryAuthorityLane,
     basis_digest: String,
     shape_digest: String,
-    family: Option<NormalizedBasisFamily>,
-    operation_lane: Option<BasisOperationLaneRequest>,
-    visibility: Option<BasisVisibility>,
+    family: Option<BasisFamily>,
+    operation_lane: Option<&'static str>,
     lifecycle_posture: Option<BasisLifecyclePosture>,
-    lower_runtime_authority: Option<&'static str>,
     lower_runtime_binding_digest: Option<String>,
     support_digest: Option<String>,
-    denial_digest: Option<String>,
     explanation: String,
     inspection_digest: String,
 }
@@ -45,12 +31,6 @@ impl WorthQueryBasisLifecycleInspection {
     pub(in crate::runtime) fn from_admitted_world_basis(
         basis: &WorthQueryAdmittedWorldBasis,
     ) -> Self {
-        let explanation = format!(
-            "retained admitted world basis `{}` exposes basis lifecycle support `{}` and support snapshot `{}`",
-            basis.domain_key(),
-            basis.basis_lifecycle_support_for_reporting(),
-            basis.support_snapshot_digest()
-        );
         let basis_digest =
             runtime_state_snapshot_basis_label_identity(basis.basis_lifecycle_support_identity())
                 .as_str()
@@ -59,32 +39,85 @@ impl WorthQueryBasisLifecycleInspection {
             runtime_state_snapshot_result_shape_label_identity(basis.handle_identity())
                 .as_str()
                 .to_string();
-        let inspection_digest = hash_parts(&[
-            "worth_query_basis_lifecycle_inspection_v1".to_string(),
-            "subject:admitted_world_basis".to_string(),
-            format!("state:{}", WorthQueryRuntimeStateKind::Ready.as_str()),
-            format!(
-                "authority_lane:{}",
-                WorthQueryAuthorityLane::AuthoritativeTruth.as_str()
-            ),
-            format!("basis:{}", basis_digest),
-            format!("shape:{}", shape_digest),
-            format!("support:{}", basis.support_snapshot_digest()),
-        ]);
-        Self {
-            subject_label: "admitted_world_basis",
-            state_kind: WorthQueryRuntimeStateKind::Ready,
-            authority_lane: WorthQueryAuthorityLane::AuthoritativeTruth,
+        Self::assemble(
+            "admitted_world_basis",
+            WorthQueryAuthorityLane::AuthoritativeTruth,
             basis_digest,
             shape_digest,
-            family: None,
-            operation_lane: None,
-            visibility: None,
-            lifecycle_posture: None,
-            lower_runtime_authority: None,
-            lower_runtime_binding_digest: None,
-            support_digest: Some(basis.support_snapshot_digest().to_string()),
-            denial_digest: None,
+            None,
+            None,
+            None,
+            None,
+            Some(basis.support_snapshot_digest().to_string()),
+            format!(
+                "retained admitted world basis `{}` exposes canonical basis lifecycle support `{}`",
+                basis.domain_key(),
+                basis.basis_lifecycle_support_for_reporting()
+            ),
+        )
+    }
+
+    fn from_scoped(
+        basis: &impl ScopedBasisProof,
+        subject_label: &'static str,
+        operation_lane: &'static str,
+    ) -> Self {
+        Self::assemble(
+            subject_label,
+            authority_lane_for_family(basis.family()),
+            basis.scoped_basis_digest().to_string(),
+            basis.capability_digest().to_string(),
+            Some(basis.family()),
+            Some(operation_lane),
+            Some(basis.lifecycle()),
+            basis
+                .expected_lower_runtime_binding_digest()
+                .map(str::to_string),
+            None,
+            format!(
+                "{subject_label} carries sealed `{}` authority with `{}` lifecycle posture",
+                basis.authority().as_str(),
+                basis.lifecycle().as_str()
+            ),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn assemble(
+        subject_label: &'static str,
+        authority_lane: WorthQueryAuthorityLane,
+        basis_digest: String,
+        shape_digest: String,
+        family: Option<BasisFamily>,
+        operation_lane: Option<&'static str>,
+        lifecycle_posture: Option<BasisLifecyclePosture>,
+        lower_runtime_binding_digest: Option<String>,
+        support_digest: Option<String>,
+        explanation: String,
+    ) -> Self {
+        let inspection_digest = hash_parts(&[
+            "worth_query_basis_lifecycle_inspection_v2".to_string(),
+            format!("subject:{subject_label}"),
+            format!("authority_lane:{}", authority_lane.as_str()),
+            format!("basis:{basis_digest}"),
+            format!("shape:{shape_digest}"),
+            format!(
+                "family:{}",
+                family.map(|value| value.as_str()).unwrap_or("none")
+            ),
+            format!("lane:{}", operation_lane.unwrap_or("none")),
+        ]);
+        Self {
+            subject_label,
+            state_kind: WorthQueryRuntimeStateKind::Ready,
+            authority_lane,
+            basis_digest,
+            shape_digest,
+            family,
+            operation_lane,
+            lifecycle_posture,
+            lower_runtime_binding_digest,
+            support_digest,
             explanation,
             inspection_digest,
         }
@@ -93,267 +126,101 @@ impl WorthQueryBasisLifecycleInspection {
     pub fn subject_label(&self) -> &'static str {
         self.subject_label
     }
-
     pub fn state_kind(&self) -> WorthQueryRuntimeStateKind {
         self.state_kind
     }
-
     pub fn authority_lane(&self) -> WorthQueryAuthorityLane {
         self.authority_lane
     }
-
     pub fn basis_digest(&self) -> &str {
         &self.basis_digest
     }
-
     pub fn shape_digest(&self) -> &str {
         &self.shape_digest
     }
-
-    pub fn family(&self) -> Option<&NormalizedBasisFamily> {
-        self.family.as_ref()
+    pub fn family(&self) -> Option<BasisFamily> {
+        self.family
     }
-
-    pub fn operation_lane(&self) -> Option<&BasisOperationLaneRequest> {
-        self.operation_lane.as_ref()
+    pub fn operation_lane(&self) -> Option<&'static str> {
+        self.operation_lane
     }
-
-    pub fn visibility(&self) -> Option<BasisVisibility> {
-        self.visibility
-    }
-
     pub fn lifecycle_posture(&self) -> Option<BasisLifecyclePosture> {
         self.lifecycle_posture
     }
-
-    pub fn lower_runtime_authority(&self) -> Option<&'static str> {
-        self.lower_runtime_authority
-    }
-
     pub fn lower_runtime_binding_digest(&self) -> Option<&str> {
         self.lower_runtime_binding_digest.as_deref()
     }
-
     pub fn support_digest(&self) -> Option<&str> {
         self.support_digest.as_deref()
     }
-
-    pub fn denial_digest(&self) -> Option<&str> {
-        self.denial_digest.as_deref()
-    }
-
     pub fn explanation(&self) -> &str {
         &self.explanation
     }
-
     pub fn inspection_digest(&self) -> &str {
         &self.inspection_digest
     }
 }
 
-impl From<&ObservationBasisCapability> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ObservationBasisCapability) -> Self {
-        from_basis_admission("observation_basis_capability", value.admission())
-    }
-}
-
-impl From<&InspectionBasisCapability> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &InspectionBasisCapability) -> Self {
-        from_basis_admission("inspection_basis_capability", value.admission())
-    }
-}
-
-impl From<&SubscriptionDeclarationBasisCapability> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &SubscriptionDeclarationBasisCapability) -> Self {
-        from_basis_admission(
-            "subscription_declaration_basis_capability",
-            value.admission(),
-        )
-    }
-}
-
-impl From<&SubscriptionActivationBasisCapability> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &SubscriptionActivationBasisCapability) -> Self {
-        from_basis_admission(
-            "subscription_activation_basis_capability",
-            value.admission(),
-        )
-    }
-}
-
-impl From<&ScopedObservationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ScopedObservationBasis) -> Self {
-        from_basis_admission("scoped_observation_basis", value.admission())
-    }
-}
-
-impl From<&ScopedInspectionBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ScopedInspectionBasis) -> Self {
-        from_basis_admission("scoped_inspection_basis", value.admission())
-    }
-}
-
-impl From<&ScopedReplayBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ScopedReplayBasis) -> Self {
-        from_admitted_capability(
-            "scoped_replay_basis",
-            value.capability(),
-            value.scoped_digest(),
-            None,
-        )
-    }
-}
-
-impl From<&ScopedSubscriptionDeclarationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ScopedSubscriptionDeclarationBasis) -> Self {
-        from_admitted_capability(
-            "scoped_subscription_declaration_basis",
-            value.capability(),
-            value.scoped_digest(),
-            None,
-        )
-    }
-}
-
-impl From<&ScopedSubscriptionActivationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &ScopedSubscriptionActivationBasis) -> Self {
-        from_admitted_capability(
-            "scoped_subscription_activation_basis",
-            value.capability(),
-            value.scoped_digest(),
-            None,
-        )
-    }
-}
-
-impl From<&LowerRuntimeBoundObservationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &LowerRuntimeBoundObservationBasis) -> Self {
-        from_lower_runtime_bound_basis(
-            "lower_runtime_bound_observation_basis",
-            value.capability(),
-            value.authority_name(),
-            value.binding_for_reporting(),
-        )
-    }
-}
-
-impl From<&LowerRuntimeBoundInspectionBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &LowerRuntimeBoundInspectionBasis) -> Self {
-        from_lower_runtime_bound_basis(
-            "lower_runtime_bound_inspection_basis",
-            value.capability(),
-            value.authority_name(),
-            value.binding_for_reporting(),
-        )
-    }
-}
-
-impl From<&LowerRuntimeBoundSubscriptionDeclarationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &LowerRuntimeBoundSubscriptionDeclarationBasis) -> Self {
-        from_lower_runtime_bound_basis(
-            "lower_runtime_bound_subscription_declaration_basis",
-            value.capability(),
-            value.authority_name(),
-            value.binding_for_reporting(),
-        )
-    }
-}
-
-impl From<&LowerRuntimeBoundSubscriptionActivationBasis> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &LowerRuntimeBoundSubscriptionActivationBasis) -> Self {
-        from_lower_runtime_bound_basis(
-            "lower_runtime_bound_subscription_activation_basis",
-            value.capability(),
-            value.authority_name(),
-            value.binding_for_reporting(),
-        )
-    }
-}
-
-impl From<&DeniedBasisCapability> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &DeniedBasisCapability) -> Self {
-        let explanation = format!(
-            "query basis lifecycle denied `{}` on `{}` with `{}`",
-            value.family().as_str(),
-            value.operation_lane().as_str(),
-            value.trace().rule_label()
-        );
-        let inspection_digest = hash_parts(&[
-            "worth_query_basis_lifecycle_inspection_v1".to_string(),
-            "subject:denied_basis_capability".to_string(),
-            format!(
-                "state:{}",
-                state_kind_for_basis_denial(value.kind()).as_str()
-            ),
-            format!(
-                "authority_lane:{}",
-                authority_lane_for_denied_basis(value.family(), value.operation_lane()).as_str()
-            ),
-            format!("basis:{}", value.normalized_basis_intent_digest()),
-            format!("shape:{}", value.failure_digest()),
-            format!("family:{}", value.family().as_str()),
-            format!("operation_lane:{}", value.operation_lane().as_str()),
-            format!("denial:{}", value.failure_digest()),
-        ]);
-        Self {
-            subject_label: "denied_basis_capability",
-            state_kind: state_kind_for_basis_denial(value.kind()),
-            authority_lane: authority_lane_for_denied_basis(value.family(), value.operation_lane()),
-            basis_digest: value.normalized_basis_intent_digest().to_string(),
-            shape_digest: value.failure_digest().to_string(),
-            family: Some(value.family().clone()),
-            operation_lane: Some(value.operation_lane().clone()),
-            visibility: None,
-            lifecycle_posture: None,
-            lower_runtime_authority: None,
-            lower_runtime_binding_digest: None,
-            support_digest: None,
-            denial_digest: Some(value.failure_digest().to_string()),
-            explanation,
-            inspection_digest,
+macro_rules! impl_scoped_inspection {
+    ($target:ty, $label:literal, $lane:literal) => {
+        impl From<&$target> for WorthQueryBasisLifecycleInspection {
+            fn from(value: &$target) -> Self {
+                Self::from_scoped(value, $label, $lane)
+            }
         }
-    }
+    };
 }
 
-impl From<&BasisIntentDenial> for WorthQueryBasisLifecycleInspection {
-    fn from(value: &BasisIntentDenial) -> Self {
-        let explanation = format!(
-            "query basis lifecycle normalization denied `{}` through `{}`",
-            value.operation_lane().as_str(),
-            value.source_path().as_str()
-        );
-        let inspection_digest = hash_parts(&[
-            "worth_query_basis_lifecycle_inspection_v1".to_string(),
-            "subject:basis_intent_denial".to_string(),
-            format!(
-                "state:{}",
-                state_kind_for_basis_intent_denial(value.kind()).as_str()
-            ),
-            format!(
-                "authority_lane:{}",
-                authority_lane_for_intent_denial(value.kind(), value.operation_lane()).as_str()
-            ),
-            format!("basis:{}", value.raw_basis_intent_digest()),
-            format!("shape:{}", value.failure_digest()),
-            format!("operation_lane:{}", value.operation_lane().as_str()),
-            format!("denial:{}", value.failure_digest()),
-        ]);
-        Self {
-            subject_label: "basis_intent_denial",
-            state_kind: state_kind_for_basis_intent_denial(value.kind()),
-            authority_lane: authority_lane_for_intent_denial(value.kind(), value.operation_lane()),
-            basis_digest: value.raw_basis_intent_digest().to_string(),
-            shape_digest: value.failure_digest().to_string(),
-            family: None,
-            operation_lane: Some(value.operation_lane().clone()),
-            visibility: None,
-            lifecycle_posture: None,
-            lower_runtime_authority: None,
-            lower_runtime_binding_digest: None,
-            support_digest: None,
-            denial_digest: Some(value.failure_digest().to_string()),
-            explanation,
-            inspection_digest,
+impl_scoped_inspection!(
+    ScopedObservationBasis,
+    "scoped_observation_basis",
+    "observation"
+);
+impl_scoped_inspection!(
+    ScopedMutationPreparationBasis,
+    "scoped_mutation_preparation_basis",
+    "mutation_preparation"
+);
+impl_scoped_inspection!(ScopedReplayBasis, "scoped_replay_basis", "replay");
+impl_scoped_inspection!(
+    ScopedInspectionBasis,
+    "scoped_inspection_basis",
+    "inspection"
+);
+impl_scoped_inspection!(
+    ScopedMaterializationBasis,
+    "scoped_materialization_basis",
+    "materialization"
+);
+impl_scoped_inspection!(
+    ScopedSubscriptionDeclarationBasis,
+    "scoped_subscription_declaration_basis",
+    "subscription_declaration"
+);
+impl_scoped_inspection!(
+    ScopedSubscriptionActivationBasis,
+    "scoped_subscription_activation_basis",
+    "subscription_activation"
+);
+impl_scoped_inspection!(
+    ScopedPreviewCloseoutBasis,
+    "scoped_preview_closeout_basis",
+    "preview_closeout"
+);
+
+fn authority_lane_for_family(family: BasisFamily) -> WorthQueryAuthorityLane {
+    match family {
+        BasisFamily::BranchHead | BasisFamily::BranchSnapshot => {
+            WorthQueryAuthorityLane::BranchLocalTruth
         }
+        BasisFamily::Preview | BasisFamily::PreviewDerived => WorthQueryAuthorityLane::PreviewTruth,
+        BasisFamily::HistoricalSnapshot
+        | BasisFamily::HistoricalCommit
+        | BasisFamily::StoreBacked
+        | BasisFamily::DurableReload => WorthQueryAuthorityLane::BridgeExternalState,
+        BasisFamily::CurrentHead
+        | BasisFamily::RuntimeSnapshot
+        | BasisFamily::TenantScoped
+        | BasisFamily::PolicyScoped => WorthQueryAuthorityLane::AuthoritativeTruth,
     }
 }

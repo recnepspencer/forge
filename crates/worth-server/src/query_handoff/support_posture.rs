@@ -1,4 +1,4 @@
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryLowerRuntimeSupportPosture, WorthQueryRuntimePublicApiFamilyContract,
 };
 
@@ -51,10 +51,10 @@ pub enum WorthServerQuerySupportPosture {
 impl WorthServerQuerySupportPosture {
     pub fn runtime_resume_support_posture(
         &self,
-    ) -> worth_query::facade::WorthQueryLowerRuntimeSupportPosture {
+    ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         match self {
             Self::ProductIndependent { .. } => {
-                worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Forbidden
+                worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
             Self::DownstreamDeliverySupported {
                 runtime_resume_support_posture,
@@ -72,17 +72,17 @@ impl WorthServerQuerySupportPosture {
             | Self::DirectProjectionSupported { .. }
             | Self::DirectMutationSupported { .. }
             | Self::QueryMutationSupported { .. } => {
-                worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Forbidden
+                worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
         }
     }
 
     pub fn durable_resume_support_posture(
         &self,
-    ) -> worth_query::facade::WorthQueryLowerRuntimeSupportPosture {
+    ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         match self {
             Self::ProductIndependent { .. } => {
-                worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Forbidden
+                worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
             Self::DownstreamDeliverySupported {
                 durable_resume_support_posture,
@@ -100,7 +100,7 @@ impl WorthServerQuerySupportPosture {
             | Self::DirectProjectionSupported { .. }
             | Self::DirectMutationSupported { .. }
             | Self::QueryMutationSupported { .. } => {
-                worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Forbidden
+                worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
         }
     }

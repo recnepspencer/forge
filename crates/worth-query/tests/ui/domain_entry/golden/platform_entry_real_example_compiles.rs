@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryChecked,
-    WorthQueryDomainEntryMarker,
-};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryChecked, WorthQueryDomainEntryMarker};
 
 const SPATIAL_ENTRY_CAPABILITIES: &[WorthQueryCapabilityFamily] = &[
     WorthQueryCapabilityFamily::QueryComposition,

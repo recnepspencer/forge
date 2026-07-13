@@ -244,7 +244,7 @@ same structure. It still performs:
 
 ```rust
 use worth_proof::ProofOutcomeKind;
-use worth_query::facade::WorthQueryDeclarationProgressionChecked;
+use worth_query::facade::foundation::WorthQueryDeclarationProgressionChecked;
 
 match handle.progress_declaration_checked(handle.declare_and_review(
     AttachMaterialForActiveFaceSelection,
@@ -263,7 +263,7 @@ match handle.progress_declaration_checked(handle.declare_and_review(
 
 ```rust
 use worth_proof::{ProofOutcomeKind, RecipeStageKind};
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,

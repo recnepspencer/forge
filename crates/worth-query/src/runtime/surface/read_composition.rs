@@ -1,4 +1,5 @@
 use crate::authoring::WorthQueryGraphReadDomainOperationDeclaration;
+use crate::basis::QuerySchemaBasisAuthority;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
@@ -110,6 +111,10 @@ impl WorthQueryReadGraph {
 
     pub fn schema_basis(&self) -> &SchemaBasisDigest {
         &self.schema_basis
+    }
+
+    pub fn schema_basis_authority(&self) -> QuerySchemaBasisAuthority {
+        QuerySchemaBasisAuthority::from_query_artifact(&self.schema_basis)
     }
 
     pub fn built_in_operators(&self) -> &[WorthQueryReadBuiltInOperator] {

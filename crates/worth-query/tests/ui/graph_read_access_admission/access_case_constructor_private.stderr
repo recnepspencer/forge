@@ -1,7 +1,7 @@
 error[E0624]: associated function `for_requirement_kind` is private
- --> tests/ui/graph_read_access_admission/access_case_constructor_private.rs:6:44
+ --> tests/ui/graph_read_access_admission/access_case_constructor_private.rs:4:44
   |
-6 |       let _ = WorthQueryGraphReadAccessCase::for_requirement_kind(
+4 |       let _ = WorthQueryGraphReadAccessCase::for_requirement_kind(
   |                                              ^^^^^^^^^^^^^^^^^^^^ private associated function
   |
  ::: src/runtime/graph_read_access/access_admission/case_inventory.rs

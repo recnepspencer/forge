@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryAspectMutationBuilder, WorthQueryLiveView, WorthQueryMutationFamily,
     WorthQueryNativeRow, WorthQueryWriteCommand,
 };
@@ -93,29 +93,37 @@ fn task_insert_command(id: &str, title: &str) -> WorthQueryWriteCommand {
 }
 
 fn task_live_view(
-    workspace: &mut worth_query::facade::WorthQueryWorkspace,
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     name: &str,
 ) -> WorthQueryLiveView<WorthQueryNativeRow> {
     workspace
         .live_view(name, |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis(format!("{name}-schema"))
         })
         .expect("task live view should declare")
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn text(value: impl Into<String>) -> worth_foundational::facade::AspectValue {

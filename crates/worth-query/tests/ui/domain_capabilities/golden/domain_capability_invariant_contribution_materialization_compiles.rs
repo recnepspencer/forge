@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    worth_query_domain, WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog, InvariantRegistration,
-    InvariantRule,
-};
+use worth_query::facade::runtime::{worth_query_domain, WorthQueryIntentDeclaration, WorthQueryIntentInput, InvariantCatalog, InvariantRegistration, InvariantRule};
 
 fn invariant_common_lane() {
     let declaration = WorthQueryIntentDeclaration::strategy_commit(

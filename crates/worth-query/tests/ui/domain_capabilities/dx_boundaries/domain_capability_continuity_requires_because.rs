@@ -1,19 +1,10 @@
-use worth_query::facade::runtime::{
-    admit_runtime_intent_request, worth_query_domain, WorthQueryIntentAdmissionDecision,
-    WorthQueryRawIntentAdmissionRequest,
-};
-use worth_query::facade::RawBasisIntent;
+use worth_query::facade::runtime::{worth_query_domain, WorthQueryAdmittedIntentPlan};
 
-fn main() {
-    let request = WorthQueryRawIntentAdmissionRequest::basis_observation_lane(RawBasisIntent::CurrentHead)
-        .expect("basis observation request should build");
-    let WorthQueryIntentAdmissionDecision::Admitted(plan) = admit_runtime_intent_request(request)
-    else {
-        panic!("basis observation lane should admit");
-    };
-
+fn missing_because(plan: &WorthQueryAdmittedIntentPlan) {
     let _ = worth_query_domain("worth.spatial")
-        .for_admitted_intent_plan(&plan)
+        .for_admitted_intent_plan(plan)
         .preserves_continuity("identity.edge_split", "edge:before", "edge:after")
         .materialize();
 }
+
+fn main() {}

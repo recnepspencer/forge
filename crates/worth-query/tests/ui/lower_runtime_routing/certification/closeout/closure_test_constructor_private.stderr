@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs:24:48
+  --> tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs:21:48
    |
-24 |       let _ = WorthQueryLowerRuntimeClosureTest::new(
+21 |       let _ = WorthQueryLowerRuntimeClosureTest::new(
    |                                                  ^^^ private associated function
    |
   ::: src/lower_runtime_routing/certification/closeout_artifacts/closure_test.rs

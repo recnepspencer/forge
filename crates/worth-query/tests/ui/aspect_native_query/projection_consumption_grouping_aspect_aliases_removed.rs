@@ -1,4 +1,4 @@
-use worth_query::facade::{ConsumedMembershipFact, ConsumedRelationEndpointFact};
+use worth_query::facade::foundation::{ConsumedMembershipFact, ConsumedRelationEndpointFact};
 
 fn main() {
     let membership = membership_fixture();

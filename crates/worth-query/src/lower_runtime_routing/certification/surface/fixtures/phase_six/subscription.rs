@@ -17,8 +17,8 @@ use crate::subscription::{
     admit_query_subscription, declare_query_subscription, lower_query_subscription_to_bridge,
     prepare_subscription_activation, select_query_subscription_family, LiveQueryAdmissionArtifact,
     QuerySubscriptionAdmissionBudget, QuerySubscriptionAdmissionDimensions,
-    QuerySubscriptionBasisPosture, QuerySubscriptionBridgeLoweringBudget,
-    QuerySubscriptionSliceBudget, QuerySubscriptionWorkBudget,
+    QuerySubscriptionBridgeLoweringBudget, QuerySubscriptionSliceBudget,
+    QuerySubscriptionWorkBudget,
 };
 
 use super::super::{RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource};
@@ -59,7 +59,10 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
     .expect("subscription activation fixture should declare live session");
     let live = LiveQueryAdmissionArtifact::from_live_promotion_with_view(
         session.live_view().core_live_plan().descriptor(),
-        QuerySubscriptionBasisPosture::CurrentHead,
+        crate::basis_lifecycle::basis_lifecycle()
+            .current_head()
+            .declare_subscription()
+            .expect("current subscription basis should admit"),
         session.live_view().lowering().family(),
         QuerySubscriptionAdmissionDimensions::collection_membership(
             NonZeroUsize::new(2).expect("projection width"),

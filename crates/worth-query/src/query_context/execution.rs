@@ -176,7 +176,7 @@ impl QueryContextExecutionArtifact {
     }
 }
 
-pub fn execute_query_basis_context(
+pub(crate) fn execute_legacy_query_basis_context(
     context: &AdmittedQueryBasisContext,
 ) -> Result<QueryContextExecutionArtifact, QueryContextAdmissionError> {
     match context.binding().evidence() {

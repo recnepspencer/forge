@@ -1,8 +1,20 @@
-pub use worth_query::facade::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, BasisAuthorityFamily,
-    BridgePreviewSessionIdentity, QueryExternalIdentityToken, ResolvedSnapshotBasis,
-    SchemaBasisDigest, SnapshotLineageClass, SnapshotResolutionReport, WorthQuerySessionLabel,
+pub use worth_query::facade::foundation::{
+    admit_runtime_current_snapshot_basis,
+    resolve_runtime_current_snapshot_basis,
+    snapshot_resolution_report,
+    BasisAuthorityFamily,
+    QueryExternalIdentityToken,
+    QueryExternalSchemaBasisToken,
+    QuerySchemaBasisAuthority,
+    ResolvedSnapshotBasis,
+    SchemaBasisDigest,
+    SnapshotLineageClass,
+    SnapshotResolutionReport,
     WorthQuerySnapshotIdentity,
+};
+pub use worth_query::facade::runtime::{
+    BridgePreviewSessionIdentity,
+    WorthQuerySessionLabel,
 };
 
 pub use crate::graph::{

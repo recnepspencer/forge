@@ -4,10 +4,10 @@ mod root;
 
 pub mod binary;
 pub mod compat_http;
-pub mod worth_native;
 pub mod integration;
 pub mod lease;
 pub mod sync;
+pub mod worth_native;
 
 pub use capabilities::WorthServerSurfaceCapabilities;
 pub use facade::WorthServerSurfacesFacade;
@@ -65,7 +65,7 @@ pub use compat_http::{
     WorthServerUploadExpectation, WorthServerUploadManifest, WorthServerUploadPart,
     WorthServerUploadTransferMode, WorthServerVerifiedBinaryIngress,
 };
-pub use worth_native::{WorthNativeSurface, WorthNativeSurfaceRoot};
 pub use integration::{IntegrationSurface, IntegrationSurfaceRoot};
 pub use lease::{LeaseSurface, LeaseSurfaceRoot};
 pub use sync::{SyncSurface, SyncSurfaceRoot};
+pub use worth_native::{WorthNativeSurface, WorthNativeSurfaceRoot};

@@ -1,7 +1,7 @@
 use worth_query::facade::identity_authority::{
     QueryProjectionIdentity, QuerySubscriptionAuthorityIdentity, QuerySubscriptionIdentityKind,
 };
-use worth_query::facade::WorthQueryEvidenceIdentity;
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 fn projection_identity() -> QueryProjectionIdentity<String, QuerySubscriptionIdentityKind> {
     unreachable!()

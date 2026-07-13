@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphObligationDispatchContext, WorthQueryGraphObligationDispatchEnvelope,
-    WorthQueryGraphObligationDispatchPlan, WorthQueryGraphObligationVerdict,
-};
+use worth_query::facade::runtime::{WorthQueryGraphObligationDispatchContext, WorthQueryGraphObligationDispatchEnvelope, WorthQueryGraphObligationDispatchPlan, WorthQueryGraphObligationVerdict};
 
 fn main() {
     let context = WorthQueryGraphObligationDispatchContext::graph_composition(

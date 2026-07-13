@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryDeclarationEntryReadinessStatus;
+use worth_query::facade::foundation::WorthQueryDeclarationEntryReadinessStatus;
 use worth_ui::facade::{
     CapabilityDiagnosticCode, CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
     CommandReadinessBinding, CommandRuntimeIntentBinding, WorthUi,

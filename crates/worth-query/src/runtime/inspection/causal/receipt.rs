@@ -21,7 +21,10 @@ use super::receipt_types::{
 };
 
 impl QueryObservationReceipt {
-    pub fn from_write_receipt_inspection(inspection: &WorthQueryWriteReceiptInspection) -> Self {
+    pub fn from_write_receipt_inspection(
+        inspection: &WorthQueryWriteReceiptInspection,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
+    ) -> Self {
         let commit_identity = inspection.commit_identity().evidence_identity();
         let mut evidence_identities = vec![
             CausalObservationEvidenceIdentity::new(
@@ -107,6 +110,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::AuthorityLane(inspection.basis_lane()),
                 &snapshot_identity,
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "write_receipt_mutation_family",
                 inspection.inspection_identity(),
@@ -121,7 +125,10 @@ impl QueryObservationReceipt {
         })
     }
 
-    pub fn from_intent_receipt_inspection(inspection: &WorthQueryIntentReceiptInspection) -> Self {
+    pub fn from_intent_receipt_inspection(
+        inspection: &WorthQueryIntentReceiptInspection,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
+    ) -> Self {
         let snapshot_identity = inspection.snapshot_identity().evidence_identity();
         let commit_identity = inspection.commit_identity().evidence_identity();
         let outcome = if inspection.produced_mutation_digest().is_some() {
@@ -144,6 +151,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
                 &snapshot_identity,
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "intent_receipt_strategy",
                 inspection.receipt_identity(),
@@ -174,7 +182,10 @@ impl QueryObservationReceipt {
         })
     }
 
-    pub fn from_intent_denial_inspection(inspection: &WorthQueryIntentDenialInspection) -> Self {
+    pub fn from_intent_denial_inspection(
+        inspection: &WorthQueryIntentDenialInspection,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
+    ) -> Self {
         let snapshot_basis_identity = inspection
             .snapshot_evidence_identity()
             .unwrap_or_else(not_executed_snapshot_basis_identity);
@@ -193,6 +204,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
                 &snapshot_basis_identity,
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "intent_denial_stage",
                 inspection.denial_identity(),
@@ -216,6 +228,7 @@ impl QueryObservationReceipt {
 
     pub fn from_branch_intent_receipt_inspection(
         inspection: &WorthQueryBranchIntentReceiptInspection,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
     ) -> Self {
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::BranchIntentReceipt,
@@ -232,6 +245,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
                 inspection.basis_identity(),
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "branch_intent_admission",
                 inspection.receipt_identity(),
@@ -264,6 +278,7 @@ impl QueryObservationReceipt {
 
     pub fn from_preview_outcome_inspection(
         inspection: &WorthQueryPreviewOutcomeInspection,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
     ) -> Self {
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::PreviewOutcome,
@@ -280,6 +295,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
                 inspection.basis_identity(),
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "preview_outcome_residue",
                 inspection.closeout_identity(),
@@ -310,7 +326,10 @@ impl QueryObservationReceipt {
         })
     }
 
-    pub fn from_read_receipt(receipt: &WorthQueryReadReceipt) -> Self {
+    pub fn from_read_receipt(
+        receipt: &WorthQueryReadReceipt,
+        inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
+    ) -> Self {
         let snapshot_evidence_identity = receipt.snapshot_evidence_identity();
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::ReadReceipt,
@@ -323,6 +342,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::ReadExecution(receipt.execution_engine().clone()),
                 &snapshot_evidence_identity,
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "read_receipt_graph",
                 &snapshot_evidence_identity,
@@ -342,6 +362,10 @@ impl QueryObservationReceipt {
     }
 
     pub(crate) fn certification_historical_replay_fixture(label: &str) -> Self {
+        let inspection_basis = crate::basis_lifecycle::basis_lifecycle()
+            .historical_snapshot(format!("fixture-inspection:{label}"), true)
+            .inspect()
+            .expect("certification historical inspection basis should admit");
         let fixture_authority = fixture_authority_identity(label);
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::Fixture,
@@ -358,6 +382,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::HistoricalReplayCertification,
                 &fixture_component_identity(label, "basis", "historical_replay_certification"),
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "fixture_result_shape",
                 &fixture_authority,
@@ -384,6 +409,7 @@ impl QueryObservationReceipt {
         outcome: CausalObservationOutcome,
         evidence_identities: Vec<CausalObservationEvidenceIdentity>,
     ) -> Self {
+        let inspection_basis = fixture_inspection_basis(outcome);
         let fixture_authority = fixture_authority_identity(outcome.as_str());
         Self::from_parts(ObservationReceiptParts {
             family: QueryObservationReceiptFamily::Fixture,
@@ -400,6 +426,7 @@ impl QueryObservationReceipt {
                 &CausalObservationBasisPosture::Fixture,
                 &fixture_component_identity(outcome.as_str(), "basis", "fixture"),
             ),
+            inspection_basis,
             result_shape_context: result_shape_handle(
                 "fixture_result_shape",
                 &fixture_authority,
@@ -414,6 +441,21 @@ impl QueryObservationReceipt {
             evidence_identities,
         })
     }
+}
+
+#[cfg(test)]
+pub(in crate::runtime) fn fixture_inspection_basis(
+    outcome: CausalObservationOutcome,
+) -> crate::basis_lifecycle::ScopedInspectionBasis {
+    let lifecycle = crate::basis_lifecycle::basis_lifecycle();
+    match outcome {
+        CausalObservationOutcome::BranchPreview => lifecycle.preview("fixture-preview").inspect(),
+        CausalObservationOutcome::Replayed => lifecycle
+            .historical_snapshot("fixture-history", true)
+            .inspect(),
+        _ => lifecycle.current_head().inspect(),
+    }
+    .expect("fixture inspection basis should admit")
 }
 
 fn not_executed_snapshot_basis_identity() -> WorthQueryEvidenceIdentity {

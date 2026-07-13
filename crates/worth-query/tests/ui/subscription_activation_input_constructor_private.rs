@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionActivationInput;
+use worth_query::facade::runtime::SubscriptionActivationInput;
 
 fn main() {
     let _fabricated = SubscriptionActivationInput {

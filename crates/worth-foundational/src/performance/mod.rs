@@ -97,10 +97,9 @@ pub use readiness::{
     foundational_performance_milestone8_readiness_report,
     require_foundational_performance_milestone8_production_test_readiness,
     FoundationalPerformanceCertifiedSurface, FoundationalPerformanceCertifiedSurfaceEvidence,
-    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceWORTHProofApi,
-    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
-    FoundationalPerformanceHarnessExpansionPoint, FoundationalPerformanceMilestone8PhaseGate,
-    FoundationalPerformancePhaseGateEvidence, FoundationalPerformanceProductionReadinessAuthority,
+    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceHarnessExpansionPoint,
+    FoundationalPerformanceMilestone8PhaseGate, FoundationalPerformancePhaseGateEvidence,
+    FoundationalPerformanceProductionReadinessAuthority,
     FoundationalPerformanceProductionReadinessReport,
     FoundationalPerformanceProductionReadinessScope,
     FoundationalPerformanceProductionTestReadyArtifact,
@@ -108,7 +107,8 @@ pub use readiness::{
     FoundationalPerformanceRuntimeAdoptionPressure,
     FoundationalPerformanceRuntimeAdoptionPressureEvidence,
     FoundationalPerformanceRuntimeAssumption, FoundationalPerformanceRuntimeNonAssumption,
-    FoundationalPerformanceSyntheticRuntimePressure,
+    FoundationalPerformanceSyntheticRuntimePressure, FoundationalPerformanceWORTHProofApi,
+    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
 };
 pub use receipts::{
     counter_backed_performance_receipt, FoundationalCounterBackedPerformanceReceipt,

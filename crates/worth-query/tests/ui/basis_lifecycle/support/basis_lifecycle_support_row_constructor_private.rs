@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    BasisFamily, BasisLifecycleSupportRow, BasisSupportPosture,
-};
+use worth_query::facade::foundation::{BasisFamily, BasisLifecycleSupportRow, BasisSupportPosture};
 
 fn main() {
     let _ = BasisLifecycleSupportRow {

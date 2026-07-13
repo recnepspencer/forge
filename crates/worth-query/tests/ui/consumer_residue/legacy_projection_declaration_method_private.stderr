@@ -1,15 +1,15 @@
 error[E0624]: method `declare_projection_fact_consumption` is private
-  --> tests/ui/consumer_residue/legacy_projection_declaration_method_private.rs:11:21
-   |
-11 |       let _ = receipt.declare_projection_fact_consumption(
-   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
-   |
-  ::: src/projection_consumption/declaration_authoring.rs
-   |
-   | /     pub(crate) fn declare_projection_fact_consumption(
-   | |         &self,
-   | |         result_shape: &CanonicalResultShapeArtifact,
-   | |         authorized_projection: &AuthorizedProjectionArtifact,
-   | |         requested: ProjectMaterializedFacts,
-   | |     ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
-   | |________________________________________________________________________________________- private method defined here
+ --> tests/ui/consumer_residue/legacy_projection_declaration_method_private.rs:9:21
+  |
+9 |       let _ = receipt.declare_projection_fact_consumption(
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/projection_consumption/declaration_authoring.rs
+  |
+  | /     pub(crate) fn declare_projection_fact_consumption(
+  | |         &self,
+  | |         result_shape: &CanonicalResultShapeArtifact,
+  | |         authorized_projection: &AuthorizedProjectionArtifact,
+  | |         requested: ProjectMaterializedFacts,
+  | |     ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
+  | |________________________________________________________________________________________- private method defined here

@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    BasisEligibilityCounters, BasisFamily, BasisLifecycleCertificationLane,
-    BasisLifecycleCertificationOutputDigest, BasisLifecycleCertificationOutputPosture,
-    BasisLifecycleCertificationRow,
-};
+use worth_query::facade::foundation::{BasisEligibilityCounters, BasisFamily};
+use worth_query::facade::certification::{BasisLifecycleCertificationLane, BasisLifecycleCertificationOutputDigest, BasisLifecycleCertificationOutputPosture, BasisLifecycleCertificationRow};
 
 fn main() {
     let _ = BasisLifecycleCertificationRow {

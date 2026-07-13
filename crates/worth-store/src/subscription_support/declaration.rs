@@ -8,7 +8,7 @@ use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum SubscriptionSupportAuthority {
-    WORTHQuery,
+    WorthQuery,
     WORTHRuntimeBridge,
     Unadmitted(String),
 }

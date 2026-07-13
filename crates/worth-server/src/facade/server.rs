@@ -3,7 +3,6 @@ use std::io;
 use crate::{
     declaration_intake::WorthServerDirectDeclarationIntakeFacade,
     diagnostics::WorthServerCounterSnapshot,
-    worth_native::WorthServerWorthNativeFacade,
     middleware::WorthServerMiddlewareFacade,
     operation_admission::WorthServerOperationAdmissionFacade,
     operation_planning::WorthServerOperationPlanner,
@@ -29,6 +28,7 @@ use crate::{
     transport::{
         WorthServerOperationRouter, WorthServerProjectedRouter, WorthServerRouteInventory,
     },
+    worth_native::WorthServerWorthNativeFacade,
 };
 
 use super::builder::WorthServerBuilder;

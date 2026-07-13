@@ -1,6 +1,13 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily, ResultShapeFamily,
-    ViewShapeDescriptor, WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -13,7 +20,10 @@ use crate::capability::{
     ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
     COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::source::{
     WorthUiArtifactInput, WorthUiResolutionDiagnosticCode, WorthUiResolutionReport,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,

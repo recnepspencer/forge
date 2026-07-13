@@ -1,4 +1,4 @@
-use worth_query::facade::ExecutionPlanBundle;
+use worth_query::facade::policy::ExecutionPlanBundle;
 
 fn main() {
     let _ = ExecutionPlanBundle {

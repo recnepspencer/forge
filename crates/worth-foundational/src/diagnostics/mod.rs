@@ -80,9 +80,7 @@ pub use readiness::{
     FoundationalDiagnosticCanonicalGoldenArtifact,
     FoundationalDiagnosticCanonicalGoldenArtifactEvidence, FoundationalDiagnosticCertifiedSurface,
     FoundationalDiagnosticCertifiedSurfaceEvidence, FoundationalDiagnosticCompileFailBoundary,
-    FoundationalDiagnosticCompileFailEvidence, FoundationalDiagnosticWORTHProofApi,
-    FoundationalDiagnosticWORTHProofApiEvidence, FoundationalDiagnosticWORTHProofForbiddenSurface,
-    FoundationalDiagnosticWORTHProofSurface, FoundationalDiagnosticHarnessExpansionEvidence,
+    FoundationalDiagnosticCompileFailEvidence, FoundationalDiagnosticHarnessExpansionEvidence,
     FoundationalDiagnosticHarnessExpansionPoint, FoundationalDiagnosticMilestone6PhaseGate,
     FoundationalDiagnosticPhaseGateEvidence, FoundationalDiagnosticProductionReadinessAuthority,
     FoundationalDiagnosticProductionReadinessReport,
@@ -91,7 +89,9 @@ pub use readiness::{
     FoundationalDiagnosticPropertySeedEvidence, FoundationalDiagnosticResidualDebt,
     FoundationalDiagnosticRuntimeAdoptionFailurePressure, FoundationalDiagnosticRuntimeAssumption,
     FoundationalDiagnosticRuntimeNonAssumption, FoundationalDiagnosticSyntheticPressureEvidence,
-    FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofApiEvidence, FoundationalDiagnosticWORTHProofForbiddenSurface,
+    FoundationalDiagnosticWORTHProofSurface,
 };
 pub use rows::{
     sort_foundational_diagnostic_rows, FoundationalDiagnosticComparisonRow,

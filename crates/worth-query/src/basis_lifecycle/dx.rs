@@ -88,8 +88,12 @@ pub struct BasisLifecycleIntentDraft {
 }
 
 impl BasisLifecycleIntentDraft {
-    fn new(raw: RawBasisIntent) -> Self {
+    pub(crate) fn new(raw: RawBasisIntent) -> Self {
         Self { raw }
+    }
+
+    pub(crate) fn into_raw(self) -> RawBasisIntent {
+        self.raw
     }
 
     pub fn for_observation(self) -> Result<ObservationBasisAdmissionPath, BasisIntentDenial> {
@@ -135,6 +139,10 @@ impl BasisLifecyclePolicyIntentDraft {
     }
 
     pub fn for_observation(self) -> Result<ObservationBasisAdmissionPath, BasisIntentDenial> {
+        self.into_draft().for_observation()
+    }
+
+    pub(super) fn into_draft(self) -> BasisLifecycleIntentDraft {
         BasisLifecycleIntentDraft::new(RawBasisIntent::PolicyScoped {
             policy_digest: self.policy_digest,
             tenant_identity: self.tenant_identity,
@@ -144,7 +152,6 @@ impl BasisLifecyclePolicyIntentDraft {
             policy_masks_operation: self.policy_masks_operation,
             advisory_visibility: self.advisory_visibility,
         })
-        .for_observation()
     }
 }
 

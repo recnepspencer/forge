@@ -1,4 +1,4 @@
-use worth_query::facade::LiveQueryAdmissionArtifact;
+use worth_query::facade::runtime::LiveQueryAdmissionArtifact;
 
 fn main() {
     let live: LiveQueryAdmissionArtifact = todo!();

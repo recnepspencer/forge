@@ -8,6 +8,7 @@ use crate::domain_capabilities::eligibility::{
 use crate::domain_capabilities::proof_integration::WorthQueryRequestedDomainCapabilityContribution;
 use crate::domain_capabilities::targets::WorthQueryDomainCapabilityTargetBinding;
 use crate::domain_capabilities::WorthQueryDomainCapabilityPayload;
+use crate::intent_admission::admit_runtime_intent_request;
 use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeAuthorityOwner, WorthQueryLowerRuntimeBoundaryEnvelope,
     WorthQueryLowerRuntimeBoundaryExecutionReceipt, WorthQueryLowerRuntimeCapabilityEligibility,
@@ -15,10 +16,10 @@ use crate::lower_runtime_routing::{
     WorthQueryLowerRuntimeRoutePlan, WorthQueryLowerRuntimeSeamKey,
 };
 use crate::runtime::{
-    admit_runtime_intent_request, anchor_causal_observation, causal_inspection_target,
-    resolve_causal_evidence_references, CausalEvidenceFamily, CausalEvidenceReferenceResolution,
-    CausalInspectionReason, QueryObservationReceipt, WorthQueryAdmittedIntentPlan,
-    WorthQueryIntentAdmissionDecision, WorthQueryIntentDeclaration,
+    anchor_causal_observation, causal_inspection_target, resolve_causal_evidence_references,
+    CausalEvidenceFamily, CausalEvidenceReferenceResolution, CausalInspectionReason,
+    QueryObservationReceipt, WorthQueryAdmittedIntentPlan, WorthQueryIntentAdmissionDecision,
+    WorthQueryIntentDeclaration,
 };
 
 pub(super) fn intent_declaration() -> WorthQueryIntentDeclaration {

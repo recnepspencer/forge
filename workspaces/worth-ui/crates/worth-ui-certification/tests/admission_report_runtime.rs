@@ -7,8 +7,9 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 
 use worth_ui::facade::graph::{
-    resolve_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
-    SchemaBasisDigest, UiGraphWorldProfile, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
+    admit_runtime_current_snapshot_basis, snapshot_resolution_report, QueryExternalIdentityToken,
+    QueryExternalSchemaBasisToken, UiGraphWorldProfile, WorthQuerySessionLabel,
+    WorthQuerySnapshotIdentity,
 };
 use worth_ui::facade::inspection::UiInspectionAdmissionPosture;
 use worth_ui_dsl::{
@@ -294,9 +295,9 @@ fn query_snapshot_world_profile() -> UiGraphWorldProfile {
     let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
         QueryExternalIdentityToken::new(Arc::<str>::from("snapshot:admission-report")),
     );
-    let basis = resolve_runtime_current_snapshot_basis(
+    let basis = admit_runtime_current_snapshot_basis(
         snapshot_identity.evidence_identity(),
-        SchemaBasisDigest::from_domain_parts(
+        QueryExternalSchemaBasisToken::from_domain_parts(
             &["worth-ui.phase5", "admission", "report"]
                 .into_iter()
                 .map(str::to_owned)

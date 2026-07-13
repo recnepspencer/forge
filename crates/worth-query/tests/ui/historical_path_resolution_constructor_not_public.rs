@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    AdmittedHistoricalPathClass, HistoricalPathResolved, RequestedHistoricalPathClass,
-    ResolvedHistoricalPathClass,
-};
+use worth_query::facade::foundation::{AdmittedHistoricalPathClass, HistoricalPathResolved, RequestedHistoricalPathClass, ResolvedHistoricalPathClass};
 
 fn main() {
     let _ = HistoricalPathResolved {

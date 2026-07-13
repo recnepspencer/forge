@@ -367,7 +367,7 @@ fn unsupported_lineage_rejection() -> IdentityEvolutionCertificationRejection {
     let query_digest = query_digest("unsupported-lineage-traversal-family");
     let basis_digest = basis_digest("basis:unsupported-lineage");
     let error = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::lineage_traversal(
+        IdentityEvolutionQueryContext::lineage_traversal_for_test(
             query_digest.clone(),
             basis_digest.clone(),
             LineageTraversalDescriptor::direct_predecessor("entity:lineage"),
@@ -387,7 +387,7 @@ fn unsupported_comparison_rejection() -> IdentityEvolutionCertificationRejection
     let left_basis = basis_digest("basis:unsupported-left");
     let right_basis = basis_digest("basis:unsupported-right");
     let error = admit_identity_evolution_query_for_scenario(
-        IdentityEvolutionQueryContext::correspondence_identity_comparison(
+        IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
             query_digest.clone(),
             IdentityEvolutionComparisonBasisFamily::BranchToBranch,
             left_basis.clone(),
@@ -410,7 +410,7 @@ fn execute_artifact_for_lineage(
     descriptor: LineageTraversalDescriptor,
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> IdentityEvolutionExecutionArtifact {
-    let query_context = IdentityEvolutionQueryContext::lineage_traversal(
+    let query_context = IdentityEvolutionQueryContext::lineage_traversal_for_test(
         query_digest(query_seed),
         basis_digest(basis_seed),
         descriptor,
@@ -429,7 +429,7 @@ fn execute_artifact_for_comparison(
     comparison: CorrespondenceIdentityComparison,
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> IdentityEvolutionExecutionArtifact {
-    let query_context = IdentityEvolutionQueryContext::correspondence_identity_comparison(
+    let query_context = IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
         query_digest(query_seed),
         basis_family,
         basis_digest(left_basis_seed),

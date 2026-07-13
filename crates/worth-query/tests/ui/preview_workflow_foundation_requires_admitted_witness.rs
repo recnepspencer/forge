@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    admit_preview_workflow_foundation_request, PreviewSessionPlanBinding,
-    PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationRequest,
-};
+use worth_query::facade::policy::{admit_preview_workflow_foundation_request, PreviewSessionPlanBinding, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationRequest};
 
 fn main() {
     let _: fn(

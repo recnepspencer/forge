@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::foundation::{
     IdentityBindingDescriptor, NonIdentityBindingMetadata, QueryBindingDescriptor,
     QueryBindingSlot, QueryBindingSubject,
 };

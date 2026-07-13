@@ -1,9 +1,11 @@
-use worth_query::facade::{
+use worth_query::facade::certification::{
     certify_consumed_projection_authority, certify_projection_consumption_closeout_core,
     consumed_projection_authority_support_matrix, ConsumedProjectionAuthorityCertificationLane,
+    ProjectionConsumptionCertificationLane, ProjectionConsumptionCertifiedSourceSurface,
+};
+use worth_query::facade::foundation::{
     ConsumedProjectionAuthorityComplexityAxis, ConsumedProjectionAuthorityDenialKind,
     ConsumedProjectionAuthoritySupportStatus, ProjectionAuthorityRequirement,
-    ProjectionConsumptionCertifiedSourceSurface,
 };
 
 #[test]
@@ -17,8 +19,7 @@ fn projection_consumption_closeout_binds_the_authority_product_bundle() {
         Some(authority.bundle_digest())
     );
     assert!(closeout.rows().iter().any(|row| {
-        row.lane()
-            == worth_query::facade::ProjectionConsumptionCertificationLane::DownstreamAuthoritySurface
+        row.lane() == ProjectionConsumptionCertificationLane::DownstreamAuthoritySurface
     }));
 }
 

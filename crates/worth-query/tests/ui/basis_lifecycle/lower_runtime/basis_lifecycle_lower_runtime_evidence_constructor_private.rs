@@ -1,4 +1,4 @@
-use worth_query::facade::{LowerRuntimeBasisEvidence, LowerRuntimeEvidenceAuthority};
+use worth_query::facade::foundation::{LowerRuntimeBasisEvidence, LowerRuntimeEvidenceAuthority};
 
 fn main() {
     let _ = LowerRuntimeBasisEvidence {

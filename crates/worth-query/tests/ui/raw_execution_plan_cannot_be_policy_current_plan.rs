@@ -1,4 +1,4 @@
-use worth_query::facade::{ExecutionPlanBundle, PolicyAwareCurrentPlan};
+use worth_query::facade::policy::{ExecutionPlanBundle, PolicyAwareCurrentPlan};
 
 fn accepts_policy_current(_: PolicyAwareCurrentPlan) {}
 

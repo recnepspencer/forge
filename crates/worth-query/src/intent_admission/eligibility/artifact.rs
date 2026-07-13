@@ -58,7 +58,7 @@ pub struct WorthQueryIntentAdmissionEligibility {
 }
 
 impl WorthQueryIntentAdmissionEligibility {
-    pub fn from_request(request: WorthQueryRawIntentAdmissionRequest) -> Self {
+    pub(crate) fn from_request(request: WorthQueryRawIntentAdmissionRequest) -> Self {
         let (
             support_posture,
             capability_posture,

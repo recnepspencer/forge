@@ -298,7 +298,7 @@ the same structure. It still performs:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationRoutePlanChecked, WorthQueryDeclarationRoutePlanInput,
 };
 
@@ -324,7 +324,7 @@ match handle.plan_routes_checked(
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationFoundationalEvidenceInput,

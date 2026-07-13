@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectMaterializedFacts,
-    WorthQueryReadReceipt,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, CanonicalResultShapeArtifact, ProjectMaterializedFacts};
+use worth_query::facade::runtime::WorthQueryReadReceipt;
 
 fn old_path(
     receipt: &WorthQueryReadReceipt,

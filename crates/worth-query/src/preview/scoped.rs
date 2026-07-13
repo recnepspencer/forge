@@ -1,15 +1,14 @@
 use crate::basis::SnapshotLineageClass;
-use crate::live::LiveQueryPlan;
-use crate::query_basis_lifecycle::{
-    scope_observation_basis_intent, BasisCapabilityAdmission, BasisOperationLaneRequest,
-    BasisScopedAdmissionDenial, NormalizedBasisFamily, NormalizedBasisSubject, RawBasisIdentity,
-    RawBasisIntent, ScopedObservationBasis,
+use crate::basis_lifecycle::{basis_lifecycle, ScopedObservationBasis};
+use crate::evidence_identity::{
+    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
+use crate::live::LiveQueryPlan;
 
 use super::{
-    admit_preview_live_session_plan, execute_preview_live_session_plan, PreviewExecutionError,
-    PreviewLiveCounters, PreviewLiveError, PreviewLiveFailureClass, PreviewLiveSessionPlanBinding,
-    PreviewSessionPlanBinding,
+    admit_preview_live_session_plan_component, preview_live_execution_counters,
+    PreviewExecutionError, PreviewLiveCounters, PreviewLiveError, PreviewLiveFailureClass,
+    PreviewLiveSessionPlanBinding, PreviewSessionPlanBinding,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -32,6 +31,7 @@ impl ScopedPreviewSessionPlanBinding {
 pub struct ScopedPreviewLiveSessionPlanBinding {
     scoped_binding: ScopedPreviewSessionPlanBinding,
     preview_live: PreviewLiveSessionPlanBinding,
+    scoped_live_identity: WorthQueryEvidenceIdentity,
 }
 
 impl ScopedPreviewLiveSessionPlanBinding {
@@ -39,8 +39,20 @@ impl ScopedPreviewLiveSessionPlanBinding {
         &self.scoped_binding
     }
 
-    pub fn preview_live(&self) -> &PreviewLiveSessionPlanBinding {
+    pub(crate) fn preview_live_component(&self) -> &PreviewLiveSessionPlanBinding {
         &self.preview_live
+    }
+
+    pub fn report(&self) -> &super::PreviewLiveAdmissionReport {
+        self.preview_live.report()
+    }
+
+    pub fn live_plan(&self) -> &LiveQueryPlan {
+        self.preview_live.live_plan()
+    }
+
+    pub fn scoped_live_digest(&self) -> &str {
+        self.scoped_live_identity.as_str()
     }
 }
 
@@ -66,123 +78,91 @@ pub fn admit_scoped_preview_live_session_plan(
     scoped_binding: ScopedPreviewSessionPlanBinding,
     live_plan: LiveQueryPlan,
 ) -> Result<ScopedPreviewLiveSessionPlanBinding, PreviewLiveError> {
-    let preview_live =
-        admit_preview_live_session_plan(scoped_binding.preview_binding.clone(), live_plan)?;
+    let preview_live = admit_preview_live_session_plan_component(
+        scoped_binding.preview_binding.clone(),
+        live_plan,
+    )?;
+    let scoped_live_identity =
+        WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::PreviewBasisAdmission)
+            .field_shape(
+                WorthQueryEvidenceTag::new("identity_family"),
+                "scoped_preview_live_session_plan_v1",
+            )
+            .field_shape(
+                WorthQueryEvidenceTag::new("basis"),
+                scoped_binding.scoped_basis().scoped_basis_digest(),
+            )
+            .field_shape(
+                WorthQueryEvidenceTag::new("live"),
+                preview_live.report().digest(),
+            )
+            .seal();
     Ok(ScopedPreviewLiveSessionPlanBinding {
         scoped_binding,
         preview_live,
+        scoped_live_identity,
     })
 }
 
 pub fn execute_scoped_preview_live_session_plan(
     preview_live: &ScopedPreviewLiveSessionPlanBinding,
 ) -> Result<super::PreviewLiveExecutionEnvelope, PreviewExecutionError> {
-    execute_preview_live_session_plan(preview_live.preview_live())
+    let envelope = super::PreviewLiveExecutionEnvelope {
+        preview_live: preview_live.clone(),
+        counters: preview_live_execution_counters(preview_live.preview_live_component())?,
+    };
+    envelope.check_invariants()?;
+    Ok(envelope)
 }
 
 pub fn scoped_observation_basis_for_preview_binding(
     preview_binding: &PreviewSessionPlanBinding,
 ) -> Result<ScopedObservationBasis, PreviewLiveError> {
-    let intent = match preview_binding
+    let declaration = match preview_binding
         .preflight()
         .basis()
         .identity()
         .lineage_class()
     {
-        SnapshotLineageClass::CurrentHead => {
-            RawBasisIntent::current_head(BasisOperationLaneRequest::Observation)
-        }
+        SnapshotLineageClass::CurrentHead => basis_lifecycle().current_head(),
         SnapshotLineageClass::ReplayEquivalent | SnapshotLineageClass::FutureExtension => {
-            RawBasisIntent::runtime_snapshot(
+            basis_lifecycle().runtime_snapshot(
                 preview_binding
                     .preflight()
                     .basis()
                     .identity()
                     .snapshot_identity()
-                    .clone(),
-                BasisOperationLaneRequest::Observation,
+                    .as_str()
+                    .to_string(),
+                preview_binding
+                    .preflight()
+                    .basis()
+                    .proof()
+                    .digest()
+                    .as_str(),
             )
         }
     };
 
-    scope_observation_basis_intent(intent).map_err(scoped_basis_denial)
+    declaration.observe().map_err(|_| {
+        scoped_basis_mismatch(
+            "preview binding basis lineage could not be admitted as scoped observation proof",
+        )
+    })
 }
 
 fn ensure_scoped_preview_basis_coherence(
     scoped_basis: &ScopedObservationBasis,
     preview_binding: &PreviewSessionPlanBinding,
 ) -> Result<(), PreviewLiveError> {
-    let (observed_family, observed_scope_subject, observed_lane) = match scoped_basis.admission() {
-        BasisCapabilityAdmission::Admitted(capability) => (
-            capability.family(),
-            capability.scope_subject(),
-            capability.operation_lane(),
-        ),
-        BasisCapabilityAdmission::Advisory(capability) => (
-            capability.family(),
-            capability.scope_subject(),
-            capability.operation_lane(),
-        ),
-    };
-
-    if observed_lane != &BasisOperationLaneRequest::Observation {
+    let expected = scoped_observation_basis_for_preview_binding(preview_binding)?;
+    if scoped_basis != &expected {
         return Err(scoped_basis_mismatch(
-            "scoped preview binding requires an observation-lane scoped basis proof",
-        ));
-    }
-
-    let expected_family = expected_family(preview_binding);
-    if observed_family != expected_family {
-        return Err(scoped_basis_mismatch(
-            "scoped preview binding requires family parity with the preview preflight basis lineage",
-        ));
-    }
-
-    let expected_scope_subject = expected_scope_subject(preview_binding);
-    if observed_scope_subject != &expected_scope_subject {
-        return Err(scoped_basis_mismatch(
-            "scoped preview binding requires typed basis-subject parity with the preview preflight basis lineage",
+            "scoped preview binding requires exact structural basis parity with the preview preflight lineage",
         ));
     }
 
     Ok(())
-}
-
-fn expected_family(preview_binding: &PreviewSessionPlanBinding) -> &NormalizedBasisFamily {
-    match preview_binding
-        .preflight()
-        .basis()
-        .identity()
-        .lineage_class()
-    {
-        SnapshotLineageClass::CurrentHead => &NormalizedBasisFamily::CurrentHead,
-        SnapshotLineageClass::ReplayEquivalent | SnapshotLineageClass::FutureExtension => {
-            &NormalizedBasisFamily::RuntimeSnapshot
-        }
-    }
-}
-
-fn expected_scope_subject(preview_binding: &PreviewSessionPlanBinding) -> NormalizedBasisSubject {
-    match preview_binding
-        .preflight()
-        .basis()
-        .identity()
-        .lineage_class()
-    {
-        SnapshotLineageClass::CurrentHead => NormalizedBasisSubject::CurrentHead,
-        SnapshotLineageClass::ReplayEquivalent | SnapshotLineageClass::FutureExtension => {
-            NormalizedBasisSubject::RuntimeSnapshot {
-                snapshot_identity: RawBasisIdentity::from(
-                    preview_binding
-                        .preflight()
-                        .basis()
-                        .identity()
-                        .snapshot_identity()
-                        .clone(),
-                ),
-            }
-        }
-    }
 }
 
 fn scoped_basis_mismatch(message: &'static str) -> PreviewLiveError {
@@ -193,15 +173,5 @@ fn scoped_basis_mismatch(message: &'static str) -> PreviewLiveError {
             preview_live_broad_fallback_denial_count: 1,
             ..PreviewLiveCounters::default()
         },
-    }
-}
-
-fn scoped_basis_denial(denial: BasisScopedAdmissionDenial) -> PreviewLiveError {
-    match denial {
-        BasisScopedAdmissionDenial::Intent(_) | BasisScopedAdmissionDenial::Eligibility(_) => {
-            scoped_basis_mismatch(
-                "preview binding basis lineage could not be restated as scoped observation proof",
-            )
-        }
     }
 }

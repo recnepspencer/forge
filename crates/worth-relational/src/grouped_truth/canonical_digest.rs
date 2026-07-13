@@ -1,8 +1,8 @@
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{AspectKey, AspectValue};
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityKind, RelationalBridgeRecordIdentityParts, TruthSnapshotIdentity,
 };
-use sha2::{Digest, Sha256};
 
 use super::grouped_projection::{
     GroupedProjectionContract, RelationalGroupedMemberRow, RelationalGroupedProjectionDigest,

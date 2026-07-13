@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeFacadeFamily;
+use worth_query::facade::runtime::WorthQueryRuntimeFacadeFamily;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthServerQueryDependencyAuditProvenance {

@@ -1,5 +1,5 @@
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryInspection;
+use worth_query::facade::runtime::WorthQueryInspection;
 
 use crate::{
     declaration_intake::WorthServerDirectDeclarationIntakeFacade, WorthServerAdmission,

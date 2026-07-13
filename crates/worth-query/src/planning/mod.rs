@@ -162,6 +162,12 @@ pub struct PlannedQueryArtifact {
 }
 
 impl PlannedQueryArtifact {
+    pub fn canonical_authority(&self) -> crate::identity_authority::QueryCanonicalAuthority {
+        crate::identity_authority::QueryCanonicalAuthority::from_query_artifact(
+            &self.canonical_query_digest,
+        )
+    }
+
     pub fn validated_query_digest(&self) -> &ValidatedQueryDigest {
         &self.validated_query_digest
     }

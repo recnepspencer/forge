@@ -1,9 +1,9 @@
+use serde_json::json;
 use worth_proof::TransitionOutcome;
 use worth_signal::facade::{
     AspectVersion, ClockAdvanceOrdinal, ClockDomain, ClockTick, TemporalPreviousValueReference,
     TemporalWakeId, WakeOrdinal,
 };
-use serde_json::json;
 
 use super::*;
 

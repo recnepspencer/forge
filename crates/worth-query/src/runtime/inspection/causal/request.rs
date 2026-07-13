@@ -120,6 +120,7 @@ pub struct CausalInspectionRequest {
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: Vec<CausalEvidenceFamily>,
+    inspection_basis_digest: String,
     request_identity: CausalInspectionRequestIdentity,
 }
 
@@ -131,12 +132,19 @@ impl CausalInspectionRequest {
         requested_richness: CausalInspectionRichness,
         requested_evidence_families: Vec<CausalEvidenceFamily>,
     ) -> Self {
+        let inspection_basis_digest = reference_set
+            .anchor()
+            .observation_receipt()
+            .inspection_basis()
+            .scoped_basis_digest()
+            .to_string();
         let request_identity = request_digest(
             &reference_set,
             &target,
             explanation_family,
             requested_richness,
             &requested_evidence_families,
+            &inspection_basis_digest,
         );
         Self {
             reference_set,
@@ -144,6 +152,7 @@ impl CausalInspectionRequest {
             explanation_family,
             requested_richness,
             requested_evidence_families,
+            inspection_basis_digest,
             request_identity,
         }
     }
@@ -166,6 +175,10 @@ impl CausalInspectionRequest {
 
     pub fn requested_evidence_families(&self) -> &[CausalEvidenceFamily] {
         &self.requested_evidence_families
+    }
+
+    pub fn inspection_basis_digest(&self) -> &str {
+        &self.inspection_basis_digest
     }
 
     pub fn request_for_reporting(&self) -> &str {
@@ -246,7 +259,7 @@ pub fn causal_inspection_target(
     CausalInspectionTarget::new(observation_target, result_shape_context)
 }
 
-pub fn request_causal_inspection(
+pub(crate) fn request_causal_inspection(
     reference_set: CausalEvidenceReferenceSet,
     target: CausalInspectionTarget,
     explanation_family: CausalInspectionExplanationFamily,
@@ -348,6 +361,7 @@ fn request_digest(
     explanation_family: CausalInspectionExplanationFamily,
     requested_richness: CausalInspectionRichness,
     requested_evidence_families: &[CausalEvidenceFamily],
+    inspection_basis_digest: &str,
 ) -> CausalInspectionRequestIdentity {
     compose_causal_inspection_request_identity(
         reference_set.anchor().anchor_digest(),
@@ -356,5 +370,6 @@ fn request_digest(
         explanation_family,
         requested_richness,
         requested_evidence_families,
+        inspection_basis_digest,
     )
 }

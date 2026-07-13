@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    execute_lowered_effect_plan, EffectExecutionAuthority, RawEffectIntent,
-};
+use worth_query::facade::foundation::{execute_lowered_effect_plan, EffectExecutionAuthority, RawEffectIntent};
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 
 fn raw_effect_intent() -> RawEffectIntent {

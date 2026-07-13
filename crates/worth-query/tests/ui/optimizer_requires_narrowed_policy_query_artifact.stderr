@@ -1,12 +1,12 @@
 error[E0308]: mismatched types
-  --> tests/ui/optimizer_requires_narrowed_policy_query_artifact.rs:17:56
+  --> tests/ui/optimizer_requires_narrowed_policy_query_artifact.rs:15:56
    |
-17 |     let _ = optimizer_input_from_narrowed_policy_query(canonical.query());
+15 |     let _ = optimizer_input_from_narrowed_policy_query(canonical.query());
    |             ------------------------------------------ ^^^^^^^^^^^^^^^^^ expected `&NarrowedPolicyQueryArtifact`, found `&CanonicalQueryArtifact`
    |             |
    |             arguments to this function are incorrect
    |
-   = note: expected reference `&worth_query::facade::NarrowedPolicyQueryArtifact`
+   = note: expected reference `&worth_query::facade::policy::NarrowedPolicyQueryArtifact`
               found reference `&CanonicalQueryArtifact`
 note: function defined here
   --> src/policy_narrowing/lowering.rs

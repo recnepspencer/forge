@@ -1,26 +1,26 @@
 warning: unreachable expression
- --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:9:9
+ --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:6:9
   |
-8 |         todo!(),
+5 |         todo!(),
   |         ------- any code following this expression is unreachable
-9 |         SubscriptionContinuationClass::IdentityRemap,
+6 |         SubscriptionContinuationClass::IdentityRemap,
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0308]: arguments to this function are incorrect
-  --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:7:21
+  --> tests/ui/subscription_continuation_raw_identity_forbidden.rs:4:21
    |
- 7 |     let _evidence = admit_subscription_continuation_evidence(
+ 4 |     let _evidence = admit_subscription_continuation_evidence(
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-10 |         "employee:old",
+ 7 |         "employee:old",
    |         -------------- expected `WorthQueryEvidenceIdentity`, found `&str`
-11 |         "employee:new",
+ 8 |         "employee:new",
    |         -------------- expected `WorthQueryEvidenceIdentity`, found `&str`
-12 |         "basis:current",
+ 9 |         "basis:current",
    |         --------------- expected `WorthQueryEvidenceIdentity`, found `&str`
-13 |         "identity-evolution-authority",
+10 |         "identity-evolution-authority",
    |         ------------------------------ expected `WorthQueryEvidenceIdentity`, found `&str`
    |
 note: function defined here

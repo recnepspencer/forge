@@ -5,7 +5,7 @@ use crate::correspondence::{
 use crate::correspondence_history::{
     compose_correspondence_historical_envelope, CorrespondenceHistoricalEnvelope,
 };
-use crate::facade::{
+use crate::facade::foundation::{
     admit_historical_evaluation_path, build_correspondence_historical_parity_bundle,
     resolve_historical_materialization_path, HistoricalCapabilityDescriptor,
     HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
@@ -70,13 +70,13 @@ pub(crate) fn prediction_drift_lane() -> CorrespondenceHistoryCertificationLane 
             1,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let request = HistoricalEvaluationRequest::delta_replay_for_test(
         "basis:drift",
         1,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:drift",
         Some(crate::historical::AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
         true,
@@ -89,7 +89,7 @@ pub(crate) fn prediction_drift_lane() -> CorrespondenceHistoryCertificationLane 
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let historical = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:drift",
             ResolvedHistoricalPathClass::ResolvedDeltaReplayPath,
         )

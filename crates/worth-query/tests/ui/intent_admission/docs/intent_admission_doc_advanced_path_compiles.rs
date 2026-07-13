@@ -1,8 +1,5 @@
 
-use worth_query::facade::{
-    WorthQueryIntentAdmissionDecision, WorthQueryIntentDeclaration, WorthQueryIntentReceipt,
-    WorthQueryRuntime, WorthQueryRuntimeError,
-};
+use worth_query::facade::runtime::{WorthQueryIntentAdmissionDecision, WorthQueryIntentDeclaration, WorthQueryIntentReceipt, WorthQueryRuntime, WorthQueryRuntimeError};
 
 fn authoritative_advanced_path(
     runtime: &mut WorthQueryRuntime,
@@ -38,7 +35,7 @@ fn authoritative_advanced_path(
 
 fn mutation_advanced_path(
     runtime: &mut WorthQueryRuntime,
-    command: worth_query::facade::WorthQueryWriteCommand,
+    command: worth_query::facade::runtime::WorthQueryWriteCommand,
 ) -> Result<(), WorthQueryRuntimeError> {
     let write_review = runtime.write_intent(command).review()?;
     let _ = write_review.admitted_handoff();

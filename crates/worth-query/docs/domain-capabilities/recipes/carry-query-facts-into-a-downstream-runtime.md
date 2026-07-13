@@ -14,9 +14,11 @@ whose correctness depends on the exact Query basis and source lineage.
 
 ```rust
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
-    WorthQueryWriteReceipt,
+    foundation::{
+        AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+        ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
+    },
+    runtime::WorthQueryWriteReceipt,
 };
 
 fn query_authority_outcome(

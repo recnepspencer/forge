@@ -1,10 +1,10 @@
+use serde_json::json;
 #[cfg(feature = "parallel")]
 use worth_harness::facade::{ComparisonMode, ComparisonProfile};
 use worth_harness::facade::{
     ExecutionProfile, ExecutionRequest, HarnessAdapter, ObservationStatus,
     PerformanceHarnessAdapter,
 };
-use serde_json::json;
 
 use crate::facade::*;
 use crate::tests::support::{evaluate, version_ab, ASPECT_A};

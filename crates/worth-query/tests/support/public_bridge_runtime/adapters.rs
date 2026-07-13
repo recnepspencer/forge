@@ -1,23 +1,24 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use worth_query::facade::{
-    runtime_subscription_support_evidence_identity, DeclarativeLiveQueryRequest,
-    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView,
-    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
-    SubscriptionActivationInput, WorthQueryBasisAdmissionEvidenceRow, WorthQueryEffectPolicy,
-    WorthQueryEntity, WorthQueryEvidenceIdentity, WorthQueryLiveArtifactTarget,
-    WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMutationDelta, WorthQueryMutationKind,
-    WorthQueryMutationReceipt, WorthQueryPreviewBasisAdmission, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeInspectorEvidenceAdapter,
-    WorthQueryRuntimePreviewBasisAdapter, WorthQueryRuntimeSchemaAdapter,
-    WorthQueryRuntimeSignalSinkAdapter, WorthQueryRuntimeSnapshotIdentityAdapter,
-    WorthQueryRuntimeSourceAdapter, WorthQueryRuntimeSubscriptionActivationAdapter,
-    WorthQueryRuntimeWriteAuthorityAdapter, WorthQuerySessionLabel, WorthQuerySnapshotIdentity,
-    WorthQueryWorkspaceError, WorthQueryWriteReceipt, WriteAuthorityExecutionReceipt,
+use worth_query::facade::foundation::{
+    DeclarativeLiveQueryRequest, WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle,
+    WorthQueryMutationDelta, WorthQueryMutationKind, WorthQueryMutationReceipt,
+    WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
 };
-use worth_query::facade::{
-    WorthQueryBackendAdmissibleMutation, WorthQueryCommitIdentity, WorthQueryEntityIdentity,
+use worth_query::facade::foundation::{WorthQueryCommitIdentity, WorthQueryEntityIdentity};
+use worth_query::facade::runtime::WorthQueryBackendAdmissibleMutation;
+use worth_query::facade::runtime::{
+    runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
+    QuerySchemaView, SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    SubscriptionActivationInput, WorthQueryBasisAdmissionEvidenceRow, WorthQueryEffectPolicy,
+    WorthQueryEvidenceIdentity, WorthQueryLiveArtifactTarget, WorthQueryPreviewBasisAdmission,
+    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeInspectionEvidence,
+    WorthQueryRuntimeInspectorEvidenceAdapter, WorthQueryRuntimePreviewBasisAdapter,
+    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
+    WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
+    WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
+    WorthQuerySessionLabel, WorthQueryWriteReceipt, WriteAuthorityExecutionReceipt,
 };
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::{
@@ -157,7 +158,7 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for PublicWriteAuthorityAdapter {
                 WorthQueryWorkspaceError::new("public bridge write could not resolve collection")
             })?;
         let entity_identity = match mutation.mutation_family() {
-            worth_query::facade::WorthQueryMutationFamily::Insert => {
+            worth_query::facade::runtime::WorthQueryMutationFamily::Insert => {
                 state.next_entity_identity += 1;
                 WorthQueryEntityIdentity::from_relational_record(
                     RelationalBridgeRecordIdentityParts::entity(
@@ -223,7 +224,7 @@ fn apply_command(
 ) -> Result<WorthQueryMutationKind, WorthQueryWorkspaceError> {
     let entity_identity_key = entity_identity.clone();
     match mutation.mutation_family() {
-        worth_query::facade::WorthQueryMutationFamily::Insert => {
+        worth_query::facade::runtime::WorthQueryMutationFamily::Insert => {
             let external_row = external_row_from_aspects(mutation.admitted_aspect_values())?;
             state
                 .rows_by_collection
@@ -240,8 +241,8 @@ fn apply_command(
             }
             Ok(WorthQueryMutationKind::Created)
         }
-        worth_query::facade::WorthQueryMutationFamily::Update
-        | worth_query::facade::WorthQueryMutationFamily::Assertion => {
+        worth_query::facade::runtime::WorthQueryMutationFamily::Update
+        | worth_query::facade::runtime::WorthQueryMutationFamily::Assertion => {
             let row = state
                 .rows_by_collection
                 .entry(collection.to_string())
@@ -255,7 +256,7 @@ fn apply_command(
             apply_aspects_to_external_row(row, mutation.admitted_aspect_values())?;
             Ok(WorthQueryMutationKind::Updated)
         }
-        worth_query::facade::WorthQueryMutationFamily::Delete => {
+        worth_query::facade::runtime::WorthQueryMutationFamily::Delete => {
             if let Some(rows) = state.rows_by_collection.get_mut(collection) {
                 rows.remove(&entity_identity_key);
             }

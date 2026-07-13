@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionScaleSlopeReport;
+use worth_query::facade::runtime::QuerySubscriptionScaleSlopeReport;
 
 fn main() {
     let _ = QuerySubscriptionScaleSlopeReport {

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryWriteReceipt;
+use worth_query::facade::runtime::WorthQueryWriteReceipt;
 
 fn main() {}
 

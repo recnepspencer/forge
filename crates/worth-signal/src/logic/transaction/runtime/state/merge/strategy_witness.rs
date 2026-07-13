@@ -1,5 +1,5 @@
-use worth_proof::TransitionOutcome;
 use serde::{Deserialize, Serialize};
+use worth_proof::TransitionOutcome;
 
 use super::core::{BranchMergeStrategy, MergeBoundaryWitness, MergeBoundaryWitnessKind};
 use super::semantics::SelectedMergeSemanticsBundle;

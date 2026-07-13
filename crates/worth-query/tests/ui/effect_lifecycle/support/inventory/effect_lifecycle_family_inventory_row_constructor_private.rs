@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    BasisFamily, EffectAuthorityOwner, EffectLifecycleFamilyInventoryRow,
-    EffectLifecycleFamilyKey,
-    EffectLoweredArtifactKind, EffectReceiptArtifactKind, EffectSupportPosture,
-};
+use worth_query::facade::foundation::{BasisFamily, EffectAuthorityOwner, EffectLifecycleFamilyInventoryRow, EffectLifecycleFamilyKey, EffectLoweredArtifactKind, EffectReceiptArtifactKind, EffectSupportPosture};
 
 fn main() {
     let _ = EffectLifecycleFamilyInventoryRow {

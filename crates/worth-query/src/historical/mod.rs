@@ -10,13 +10,15 @@ mod report;
 mod request;
 mod resolution;
 #[cfg(test)]
+mod test_support;
+#[cfg(test)]
 mod tests;
 
 pub use admission::{
     HistoricalEvaluationAdmission, HistoricalPathAdmitted, HistoricalPathSubstitutionDenied,
 };
 pub(crate) use bridge_lowering::{
-    lower_materialization_from_decision_log, lower_policy_resolution,
+    bridge_historical_basis, lower_materialization_from_decision_log, lower_policy_resolution,
 };
 pub use contracts::{
     HistoricalPathComplexityContract, HistoricalPathReuseDescriptor,

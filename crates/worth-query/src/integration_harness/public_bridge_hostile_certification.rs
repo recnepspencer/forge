@@ -114,7 +114,7 @@ pub fn public_bridge_hostile_title_projection_artifacts(
 }
 
 pub fn public_bridge_projection_artifacts_for_canonical_bundle(
-    canonical: &crate::facade::CanonicalQueryBundle,
+    canonical: &crate::facade::foundation::CanonicalQueryBundle,
 ) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
     let authorized_projection = derive_authorized_projection(
         canonical.query(),
@@ -131,7 +131,7 @@ pub fn public_bridge_projection_artifacts_for_canonical_bundle(
 }
 
 pub fn public_bridge_projection_artifacts_for_declarative_request(
-    request: &crate::facade::DeclarativeLiveQueryRequest,
+    request: &crate::facade::foundation::DeclarativeLiveQueryRequest,
 ) -> (CanonicalResultShapeArtifact, AuthorizedProjectionArtifact) {
     let canonical = crate::declarative_live::canonicalize_declarative_request(request).unwrap();
     public_bridge_projection_artifacts_for_canonical_bundle(&canonical)

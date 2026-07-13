@@ -127,7 +127,7 @@ impl WorthQueryWorkspace {
     pub fn execute_read_family_in_basis_context_with_access_plan(
         &mut self,
         family: &WorthQueryReadFamily,
-        context: &crate::query_context::AdmittedQueryBasisContext,
+        context: &crate::query_context::ScopedQueryBasisContext,
         graph_read_access_plan: super::WorthQueryAdmittedGraphReadAccessPlan,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
@@ -152,7 +152,7 @@ impl WorthQueryWorkspace {
     pub fn execute_read_family_in_basis_context(
         &mut self,
         family: &WorthQueryReadFamily,
-        context: &crate::query_context::AdmittedQueryBasisContext,
+        context: &crate::query_context::ScopedQueryBasisContext,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;

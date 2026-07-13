@@ -12,7 +12,11 @@ use worth_ui_inspection::{
 use super::UiGraphNodeEvidenceIndex;
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiEvidenceRef;
-use crate::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+    WorthUiDslPackage,
+};
 use crate::graph::UiGraphNodeIdentity;
 
 const ALPHA_MODULE_PATH: &str = "app/graph_node_alpha.wui";

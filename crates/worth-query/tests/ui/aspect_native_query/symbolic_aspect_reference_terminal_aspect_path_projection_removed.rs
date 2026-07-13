@@ -1,7 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryAspectTouch, WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference,
-};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQuerySymbolicAspectReference, WorthQuerySymbolicTargetReference};
 
 fn main() {
     let reference = WorthQuerySymbolicAspectReference::same_batch_entity_identity(

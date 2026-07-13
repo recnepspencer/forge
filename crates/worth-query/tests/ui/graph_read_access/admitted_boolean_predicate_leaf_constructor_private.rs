@@ -1,8 +1,5 @@
 use worth_foundational::facade::{AspectKey, FieldKey};
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedBooleanPredicateLeaf, WorthQueryGraphReadAdmittedSchemaFieldKind,
-    WorthQueryPredicateOperandOperator, WorthQueryPredicateSelectivityClass,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedBooleanPredicateLeaf, WorthQueryGraphReadAdmittedSchemaFieldKind, WorthQueryPredicateOperandOperator, WorthQueryPredicateSelectivityClass};
 
 fn main() {
     let _ = WorthQueryAdmittedBooleanPredicateLeaf {

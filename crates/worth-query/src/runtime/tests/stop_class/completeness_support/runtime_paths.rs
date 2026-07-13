@@ -1,6 +1,6 @@
 use super::super::super::support::*;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
-use crate::facade::TraversalSelector;
+use crate::facade::foundation::TraversalSelector;
 use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
 use crate::schema_view::{QuerySchemaView, SchemaRelationView};
 

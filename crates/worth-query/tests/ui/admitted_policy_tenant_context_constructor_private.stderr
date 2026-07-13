@@ -1,13 +1,13 @@
 error[E0451]: fields `policy_basis`, `tenant_truth_basis`, `tenant_schema_basis` and `bundle` of struct `AdmittedPolicyTenantContext` are private
-  --> tests/ui/admitted_policy_tenant_context_constructor_private.rs:24:9
+  --> tests/ui/admitted_policy_tenant_context_constructor_private.rs:22:9
    |
-23 |     let _ = AdmittedPolicyTenantContext {
+21 |     let _ = AdmittedPolicyTenantContext {
    |             --------------------------- in this type
-24 |         policy_basis: policy_basis(),
+22 |         policy_basis: policy_basis(),
    |         ^^^^^^^^^^^^ private field
-25 |         tenant_truth_basis: tenant_truth_basis(),
+23 |         tenant_truth_basis: tenant_truth_basis(),
    |         ^^^^^^^^^^^^^^^^^^ private field
-26 |         tenant_schema_basis: tenant_schema_basis(),
+24 |         tenant_schema_basis: tenant_schema_basis(),
    |         ^^^^^^^^^^^^^^^^^^^ private field
-27 |         bundle: bundle(),
+25 |         bundle: bundle(),
    |         ^^^^^^ private field

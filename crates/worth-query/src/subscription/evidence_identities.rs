@@ -958,6 +958,7 @@ pub(super) fn basis_binding_request_identity(
     request_kind: &QuerySubscriptionBasisBindingRequestKind,
     source_declaration_identity: &WorthQueryEvidenceIdentity,
     source_equivalence_identity: &WorthQueryEvidenceIdentity,
+    scoped_declaration_basis_digest: &str,
 ) -> WorthQueryEvidenceIdentity {
     WorthQueryEvidenceIdentity::compose(SUBSCRIPTION_IDENTITY_SCOPE)
         .field_shape(
@@ -975,6 +976,10 @@ pub(super) fn basis_binding_request_identity(
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("source_equivalence"),
             source_equivalence_identity,
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_declaration_basis"),
+            scoped_declaration_basis_digest,
         )
         .seal()
 }
@@ -1171,6 +1176,8 @@ pub(super) fn active_lane_identity(
     bridge_declaration_identity: &WorthQueryEvidenceIdentity,
     future_selection_projection_identity: &WorthQueryEvidenceIdentity,
     basis_binding_identity: &WorthQueryEvidenceIdentity,
+    scoped_declaration_basis_digest: &str,
+    scoped_activation_basis_digest: &str,
     checkpoint_identity: &WorthQueryEvidenceIdentity,
     signal_strategy_identity: &WorthQueryEvidenceIdentity,
     lifecycle_posture: &str,
@@ -1206,6 +1213,14 @@ pub(super) fn active_lane_identity(
             future_selection_projection_identity,
         )
         .field_evidence_identity(WorthQueryEvidenceTag::new("basis"), basis_binding_identity)
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_declaration_basis"),
+            scoped_declaration_basis_digest,
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_activation_basis"),
+            scoped_activation_basis_digest,
+        )
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("checkpoint"),
             checkpoint_identity,

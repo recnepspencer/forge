@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    ActiveSubscriptionAllocationPosture, DeliveryBackpressurePolicy, QueryDeliveryWindowBudget,
-};
+use worth_query::facade::runtime::{ActiveSubscriptionAllocationPosture, DeliveryBackpressurePolicy, QueryDeliveryWindowBudget};
 
 fn main() {
     let _budget = QueryDeliveryWindowBudget::admitted(

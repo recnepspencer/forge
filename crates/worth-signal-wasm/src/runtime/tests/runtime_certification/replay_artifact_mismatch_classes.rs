@@ -38,9 +38,7 @@ fn replay_artifact_proof_reports_typed_mismatch_classes() {
                 merge_result_digest: Some(expected_result.proof.result_digest.clone()),
                 lineage_digest: Some(expected_result.proof.lineage_digest.clone()),
                 strategy_witness: Some(expected_result.proof.strategy_witness.clone()),
-                compatibility_witness: Some(
-                    expected_result.proof.compatibility_witness.clone(),
-                ),
+                compatibility_witness: Some(expected_result.proof.compatibility_witness.clone()),
                 scoped_merge_proof: Some(expected_result.proof.scoped_merge_proof.clone()),
                 branch_state_digest: expected_state.state_digest.clone(),
             },

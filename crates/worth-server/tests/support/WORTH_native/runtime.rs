@@ -1,18 +1,19 @@
 #![allow(dead_code)]
 
+use std::sync::{atomic::AtomicUsize, Arc, Mutex};
 use worth_proof::{TransitionOutcome, TransitionReadiness};
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     request_context::DiagnosticRichnessProfile,
     surfaces::{CompatHttpSurface, WorthNativeSurface},
-    WorthServer, WorthServerConfig, WorthServerDenialCode, WorthServerWorthNativeSessionDenial,
-    WorthServerWorthNativeSessionInput, WorthServerMiddlewareConfig, WorthServerQueryHandoffConfig,
-    WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
-    WorthServerQueryWorkspaceBindingTarget, WorthServerQueryWorkspaceProvider,
-    WorthServerRequestContextConfig, WorthServerRequestContextInput,
-    WorthServerResolvedRequestContext, WorthServerSurfaceFamily, WorthServerTransportClass,
+    WorthServer, WorthServerConfig, WorthServerDenialCode, WorthServerMiddlewareConfig,
+    WorthServerQueryHandoffConfig, WorthServerQueryWorkspaceBindingError,
+    WorthServerQueryWorkspaceBindingRequest, WorthServerQueryWorkspaceBindingTarget,
+    WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
+    WorthServerRequestContextInput, WorthServerResolvedRequestContext, WorthServerSurfaceFamily,
+    WorthServerTransportClass, WorthServerWorthNativeSessionDenial,
+    WorthServerWorthNativeSessionInput,
 };
-use std::sync::{atomic::AtomicUsize, Arc, Mutex};
 
 use crate::query_handoff_runtime::{
     ProfiledCountingTestWorkspaceProvider, ProfiledTestWorkspaceProvider, TestWorkspaceProvider,
@@ -292,8 +293,10 @@ impl WorthServerQueryWorkspaceProvider for CapturingWorkspaceProvider {
     fn bind_workspace(
         &self,
         request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         self.captured_targets
             .lock()
             .expect("capturing workspace provider mutex should not be poisoned")
@@ -317,8 +320,10 @@ impl WorthServerQueryWorkspaceProvider for FailingWorkspaceProvider {
     fn bind_workspace(
         &self,
         _request: &WorthServerQueryWorkspaceBindingRequest,
-    ) -> Result<worth_query::facade::WorthQueryWorkspace, WorthServerQueryWorkspaceBindingError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::WorthQueryWorkspace,
+        WorthServerQueryWorkspaceBindingError,
+    > {
         Err(WorthServerQueryWorkspaceBindingError::new(
             self.stage,
             self.message,

@@ -1,4 +1,4 @@
-use worth_query::facade::{PreviewSubscriptionIsolationArtifact, PreviewSubscriptionLifecycleState};
+use worth_query::facade::runtime::{PreviewSubscriptionIsolationArtifact, PreviewSubscriptionLifecycleState};
 
 fn main() {
     let mut preview: PreviewSubscriptionIsolationArtifact = todo!();

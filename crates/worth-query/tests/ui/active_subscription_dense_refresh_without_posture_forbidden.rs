@@ -1,4 +1,4 @@
-use worth_query::facade::{build_active_delivery_work_packet, ActiveSubscriptionRuntime};
+use worth_query::facade::runtime::{build_active_delivery_work_packet, ActiveSubscriptionRuntime};
 
 fn main() {
     let mut runtime = ActiveSubscriptionRuntime::new();

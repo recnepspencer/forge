@@ -5,13 +5,13 @@ use std::{
 
 use crate::{
     declaration_intake::WorthServerDirectDeclarationIntakeFacade,
+    product_operation_contract::WorthServerStoredProductOperation,
     worth_native::{
         declaration::WorthServerWorthNativeDeclarationFacade,
         product::WorthServerWorthNativeProductOperationFacade,
         product_session::WorthServerWorthNativeProductSessionFacade,
         WorthServerWorthNativeDirectFacade,
     },
-    product_operation_contract::WorthServerStoredProductOperation,
     WorthServerAdmission, WorthServerOperationRegistry, WorthServerProductAdapterRegistry,
     WorthServerProductSessionRegistry, WorthServerQueryHandoffConfig,
     WorthServerQueryHandoffFacade, WorthServerResolvedRequestContext, WorthServerResponseFacade,

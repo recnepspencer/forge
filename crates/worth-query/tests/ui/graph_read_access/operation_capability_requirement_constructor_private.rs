@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadOperationCapabilityRequirement,
-    WorthQueryGraphReadOperationCapabilityRequirementKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadOperationCapabilityRequirement, WorthQueryGraphReadOperationCapabilityRequirementKind};
 
 fn main() {
     let _ = WorthQueryGraphReadOperationCapabilityRequirement {

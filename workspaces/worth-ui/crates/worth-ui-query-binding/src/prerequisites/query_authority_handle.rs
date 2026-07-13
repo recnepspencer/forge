@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use worth_query::facade::{
-    ProjectionAuthorityOutcome, ProjectionConsumptionWarnings,
+use worth_query::facade::foundation::{
+    ProjectionAuthorityOutcome,
+    ProjectionConsumptionWarnings,
     WorthQueryConsumedProjectionAuthority,
 };
 
@@ -12,7 +13,7 @@ use worth_query::facade::{
 ///
 /// ```compile_fail
 /// fn consumer_cannot_wrap_authority_directly(
-///     authority: worth_query::facade::WorthQueryConsumedProjectionAuthority,
+///     authority: worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
 /// ) -> worth_ui_query_binding::WorthUiQueryAuthorityHandle {
 ///     worth_ui_query_binding::WorthUiQueryAuthorityHandle(std::sync::Arc::new(authority))
 /// }

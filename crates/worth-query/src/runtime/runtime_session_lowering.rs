@@ -32,10 +32,20 @@ pub(super) fn lower_runtime_live_subscription_request(
     .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
     let view_family = session.live_view().lowering().family();
     let dimensions = subscription_dimensions_for_request(request, view_family)?;
+    let scoped_declaration_basis = crate::basis_lifecycle::basis_lifecycle()
+        .current_head()
+        .declare_subscription()
+        .map_err(
+            |error| WorthQueryRuntimeError::LiveSubscriptionInstallation {
+                view_name: view_name.to_string(),
+                stage: "basis-declaration",
+                message: format!("{error:?}"),
+            },
+        )?;
     let live_admission =
         crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view(
             session.live_view().core_live_plan().descriptor(),
-            crate::subscription::QuerySubscriptionBasisPosture::CurrentHead,
+            scoped_declaration_basis,
             view_family,
             dimensions,
         );

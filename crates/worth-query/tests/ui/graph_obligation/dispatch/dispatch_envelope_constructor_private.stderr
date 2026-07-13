@@ -1,11 +1,11 @@
 error: cannot construct `WorthQueryGraphObligationDispatchEnvelope` with struct literal syntax due to private fields
-  --> tests/ui/graph_obligation/dispatch/dispatch_envelope_constructor_private.rs:16:13
+  --> tests/ui/graph_obligation/dispatch/dispatch_envelope_constructor_private.rs:13:13
    |
-16 |     let _ = WorthQueryGraphObligationDispatchEnvelope {
+13 |     let _ = WorthQueryGraphObligationDispatchEnvelope {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17 |         context,
+14 |         context,
    |         ------- private field
-18 |         rows: vec![row],
+15 |         rows: vec![row],
    |         --------------- private field
    |
    = note: ...and other private field `envelope_digest` that was not provided

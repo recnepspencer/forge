@@ -2,10 +2,7 @@ error[E0432]: unresolved import `worth_query::facade::WorthQuerySymbolicTargetRe
  --> tests/ui/runtime_symbolic_target_reference_evidence_literal_private.rs:1:5
   |
 1 | use worth_query::facade::WorthQuerySymbolicTargetReferenceEvidence;
-  |     ^^^^^^^^^^^^^^^^^^^^^-----------------------------------------
-  |     |                    |
-  |     |                    help: a similar name exists in the module: `WorthQuerySymbolicTargetReferenceDenial`
-  |     no `WorthQuerySymbolicTargetReferenceEvidence` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQuerySymbolicTargetReferenceEvidence` in `facade`
 
 warning: unreachable expression
  --> tests/ui/runtime_symbolic_target_reference_evidence_literal_private.rs:6:18

@@ -1,3 +1,4 @@
+use crate::basis_lifecycle::{basis_lifecycle, ScopedSubscriptionDeclarationBasis};
 use crate::identity::CollectionPlanDigest;
 use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
@@ -113,12 +114,14 @@ impl LiveQueryAdmissionArtifact {
         );
         let policy_context_width = policy_label.as_deref().unwrap_or("none").len();
         let tenant_context_width = tenant_label.as_deref().unwrap_or("none").len();
+        let scoped_declaration_basis = scoped_declaration_basis_for_test(&basis_posture);
         let mut artifact = Self {
             live_family,
             query_identity,
             plan_identity,
             collection_identity,
             view_family,
+            scoped_declaration_basis,
             basis_posture,
             future_selection,
             policy_context_identity,
@@ -203,4 +206,24 @@ impl LiveQueryAdmissionArtifact {
             QuerySubscriptionRelationshipProofPosture::Admitted,
         )
     }
+}
+
+fn scoped_declaration_basis_for_test(
+    posture: &QuerySubscriptionBasisPosture,
+) -> Option<ScopedSubscriptionDeclarationBasis> {
+    let lifecycle = basis_lifecycle();
+    let declaration = match posture {
+        QuerySubscriptionBasisPosture::CurrentHead => lifecycle.current_head(),
+        QuerySubscriptionBasisPosture::BranchHead => lifecycle.branch_head("test-branch", true),
+        QuerySubscriptionBasisPosture::RuntimeHistoricalSnapshot => {
+            lifecycle.historical_snapshot("test-snapshot", true)
+        }
+        QuerySubscriptionBasisPosture::PreviewScoped => lifecycle.preview("test-preview"),
+        QuerySubscriptionBasisPosture::DeniedUnsupportedBasis => return None,
+    };
+    Some(
+        declaration
+            .declare_subscription()
+            .expect("test subscription basis should admit"),
+    )
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_proof::TransitionOutcome;
 use sha2::{Digest, Sha256};
+use worth_proof::TransitionOutcome;
 
 use crate::merge::data::{
     MergeArtifactDigestBasis, MergePlanningDecisionLogDigestBasis, PreparedMergeExecution,

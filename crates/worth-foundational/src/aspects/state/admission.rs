@@ -1,5 +1,5 @@
-use worth_proof::{Artifact, TransitionOutcome};
 use serde::{Deserialize, Serialize};
+use worth_proof::{Artifact, TransitionOutcome};
 
 use super::{
     AuthoritativeRecordAspectState, AuthoritativeRecordAspectStateAdmitted,

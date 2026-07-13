@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn vocabulary_report_preserves_requested_family_and_posture() {
-        let request = HistoricalEvaluationRequest::full_reconstruction(
+        let request = HistoricalEvaluationRequest::full_reconstruction_for_test(
             "basis:reconstruction",
             5,
             9,
@@ -281,7 +281,7 @@ mod tests {
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
-        let request = HistoricalEvaluationRequest::retained_snapshot(
+        let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -373,7 +373,7 @@ mod tests {
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
-        let request = HistoricalEvaluationRequest::delta_replay(
+        let request = HistoricalEvaluationRequest::delta_replay_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -436,7 +436,7 @@ mod tests {
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
-        let request = HistoricalEvaluationRequest::full_reconstruction(
+        let request = HistoricalEvaluationRequest::full_reconstruction_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -478,7 +478,7 @@ mod tests {
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
-        let request = HistoricalEvaluationRequest::delta_replay(
+        let request = HistoricalEvaluationRequest::delta_replay_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -506,13 +506,13 @@ mod tests {
 
     #[test]
     fn admitted_path_class_must_match_requested_lane_proof() {
-        let request = HistoricalEvaluationRequest::delta_replay(
+        let request = HistoricalEvaluationRequest::delta_replay_for_test(
             "basis:mismatch",
             2,
             2,
             HistoricalPathReuseDescriptor::no_reuse(),
         );
-        let capability = super::super::request::HistoricalCapabilityDescriptor::new(
+        let capability = super::super::request::HistoricalCapabilityDescriptor::new_for_test(
             "basis:mismatch",
             Some(AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
             true,
@@ -543,7 +543,7 @@ mod tests {
             BridgeDiagnosticsTier::Standard,
             BridgeDeliveryIntent::PrepareSignalEvaluation,
         );
-        let request = HistoricalEvaluationRequest::delta_replay(
+        let request = HistoricalEvaluationRequest::delta_replay_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -562,7 +562,7 @@ mod tests {
         let admission = admit_historical_evaluation_path(request, capability)
             .expect("replay path should admit");
 
-        let wrong_path = HistoricalMaterializationDescriptor::new(
+        let wrong_path = HistoricalMaterializationDescriptor::new_for_test(
             declaration
                 .declaration_identity()
                 .bridge_admission_evidence()
@@ -581,13 +581,13 @@ mod tests {
 
     #[test]
     fn resolved_historical_counters_preserve_admission_lane_and_metadata() {
-        let request = HistoricalEvaluationRequest::delta_replay(
+        let request = HistoricalEvaluationRequest::delta_replay_for_test(
             "basis:counts",
             4,
             8,
             HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
         );
-        let capability = super::super::request::HistoricalCapabilityDescriptor::new(
+        let capability = super::super::request::HistoricalCapabilityDescriptor::new_for_test(
             "basis:counts",
             Some(AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
             true,
@@ -600,7 +600,7 @@ mod tests {
             .expect("admission should succeed");
         let resolved = resolve_historical_materialization_path(
             admission,
-            HistoricalMaterializationDescriptor::new(
+            HistoricalMaterializationDescriptor::new_for_test(
                 "basis:counts",
                 ResolvedHistoricalPathClass::ResolvedDeltaReplayPath,
             ),
@@ -629,21 +629,22 @@ mod tests {
 
     #[test]
     fn retained_reuse_counter_only_increments_when_capability_proves_reuse() {
-        let request = HistoricalEvaluationRequest::retained_snapshot(
+        let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
             "basis:retained-reuse",
             3,
             5,
             HistoricalPathReuseDescriptor::retained_reuse(),
         );
-        let capability = super::super::request::HistoricalCapabilityDescriptor::retained_snapshot(
-            "basis:retained-reuse",
-            HistoricalPathReuseDescriptor::retained_reuse(),
-        );
+        let capability =
+            super::super::request::HistoricalCapabilityDescriptor::retained_snapshot_for_test(
+                "basis:retained-reuse",
+                HistoricalPathReuseDescriptor::retained_reuse(),
+            );
         let admission = admit_historical_evaluation_path(request, capability)
             .expect("admission should succeed");
         let resolved = resolve_historical_materialization_path(
             admission,
-            HistoricalMaterializationDescriptor::retained_snapshot("basis:retained-reuse"),
+            HistoricalMaterializationDescriptor::retained_snapshot_for_test("basis:retained-reuse"),
         )
         .expect("resolution should succeed");
 

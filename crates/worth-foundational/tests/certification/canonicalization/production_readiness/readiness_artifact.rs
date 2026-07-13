@@ -1,3 +1,6 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     canonical_milestone2_production_readiness_report,
     certify_canonical_milestone2_production_readiness, require_canonical_production_test_readiness,
@@ -7,9 +10,6 @@ use worth_foundational::{
     CanonicalPropertySeed, CanonicalResidualDebt, CanonicalRuntimeAssumption,
     CanonicalRuntimeNonAssumption, CanonicalSyntheticRuntimePressure,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_production_readiness_artifact(_: &CanonicalProductionTestReadyArtifact) {}
 fn accepts_production_readiness_proof(

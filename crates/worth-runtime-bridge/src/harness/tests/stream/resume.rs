@@ -1,8 +1,8 @@
+use crate::facade::foundation::StreamConsumerShape;
 use crate::facade::{
     BridgeRouteRequest, ChangeStreamDeclaration, StreamCheckpointFrontierKind,
     StreamCheckpointPublicationMode, StreamCoalescingFamily, StreamCoalescingIntent,
-    StreamConsumerShape, StreamDeliveryIntent, StreamDiagnosticsPolicyClass, StreamReplayMode,
-    StreamResumeMode,
+    StreamDeliveryIntent, StreamDiagnosticsPolicyClass, StreamReplayMode, StreamResumeMode,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 

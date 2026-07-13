@@ -1,4 +1,4 @@
-use worth_query::facade::ProjectMaterializedFacts;
+use worth_query::facade::foundation::ProjectMaterializedFacts;
 
 fn main() {
     let _ = ProjectMaterializedFacts::declare().terminal_display_field("profile.display_name");

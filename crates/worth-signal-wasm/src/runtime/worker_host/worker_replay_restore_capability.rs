@@ -1,5 +1,5 @@
-use worth_signal::facade::history::RuntimeSnapshot;
 use serde::Serialize;
+use worth_signal::facade::history::RuntimeSnapshot;
 
 use crate::boundary::errors::WorthSignalJsError;
 

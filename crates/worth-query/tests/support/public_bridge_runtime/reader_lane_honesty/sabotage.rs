@@ -1,4 +1,4 @@
-use worth_query::{
+use worth_query::facade::certification::{
     WorthQueryPublicBridgeReaderLaneInventory, WorthQueryPublicBridgeReaderLaneSabotage,
 };
 

@@ -1,8 +1,8 @@
 error[E0432]: unresolved import `worth_query::facade::foundation::ProjectionConsumptionEligibility`
- --> tests/ui/projection_consumption/boundaries/projection_consumption_non_admitted_cannot_bind_contract.rs:2:36
+ --> tests/ui/projection_consumption/boundaries/projection_consumption_non_admitted_cannot_bind_contract.rs:1:70
   |
-2 |     DeferredProjectionConsumption, ProjectionConsumptionEligibility,
-  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |                                    |
-  |                                    no `ProjectionConsumptionEligibility` in `facade::foundation`
-  |                                    help: a similar name exists in the module: `ProjectionConsumptionReceipt`
+1 | use worth_query::facade::foundation::{DeferredProjectionConsumption, ProjectionConsumptionEligibility};
+  |                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                                                      |
+  |                                                                      no `ProjectionConsumptionEligibility` in `facade::foundation`
+  |                                                                      help: a similar name exists in the module: `ProjectionConsumptionReceipt`

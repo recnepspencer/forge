@@ -1,6 +1,7 @@
 use crate::authoring::{QueryFamily, RootEntityKey};
 use crate::binding::IdentityBindingDescriptor;
 use crate::identity::{CanonicalEquivalence, CanonicalQueryDigest};
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::entries::{
     CanonicalOrderingEntry, CanonicalPredicateEntry, CanonicalProjectionEntry,
@@ -20,6 +21,10 @@ pub struct CanonicalQueryArtifact {
 }
 
 impl CanonicalQueryArtifact {
+    pub fn authority(&self) -> QueryCanonicalAuthority {
+        QueryCanonicalAuthority::from_query_artifact(&self.digest)
+    }
+
     pub fn digest(&self) -> &CanonicalQueryDigest {
         &self.digest
     }

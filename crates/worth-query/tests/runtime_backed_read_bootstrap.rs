@@ -1,5 +1,5 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{QueryPatchGroupKind, WorthQueryLiveView, WorthQueryNativeRow};
+use worth_query::facade::runtime::{QueryPatchGroupKind, WorthQueryLiveView, WorthQueryNativeRow};
 
 mod support;
 
@@ -21,14 +21,20 @@ fn raw_runtime_read_bootstrap_simplicity_test() {
         .live_view("public.runtime-backed-read-bootstrap.tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-runtime-backed-read-bootstrap-tasks")
         })
@@ -73,14 +79,20 @@ fn runtime_backed_read_bootstrap_observe_is_a_drain_not_a_snapshot() {
         .live_view("public.runtime-backed-read-bootstrap-drain.tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-runtime-backed-read-bootstrap-drain-tasks")
         })
@@ -113,14 +125,20 @@ fn runtime_backed_read_bootstrap_narrows_observation_to_touched_projection_meani
             |q| {
                 q.from("Task")
                     .select([
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                            .unwrap(),
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "identity", "id",
+                        )
+                        .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
                     ])
                     .order_by(
-                        worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
+                        worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                            "title", "value",
+                        )
+                        .unwrap(),
                     )
                     .schema_basis("public-runtime-backed-read-bootstrap-narrowing-tasks")
             },
@@ -184,14 +202,20 @@ fn runtime_backed_read_bootstrap_removes_deleted_members_from_read_and_observe()
         .live_view("public.runtime-backed-read-bootstrap-delete.tasks", |q| {
             q.from("Task")
                 .select([
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("identity", "id")
-                        .unwrap(),
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "identity", "id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 ])
                 .order_by(
-                    worth_query::facade::AspectFieldKey::from_authoring_parts("title", "value")
-                        .unwrap(),
+                    worth_query::facade::foundation::AspectFieldKey::from_authoring_parts(
+                        "title", "value",
+                    )
+                    .unwrap(),
                 )
                 .schema_basis("public-runtime-backed-read-bootstrap-delete-tasks")
         })
@@ -237,8 +261,10 @@ fn ordinary_runtime_backed_read_bootstrap_stays_on_common_lane_without_builder_s
     );
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }
 
 fn text(value: impl Into<String>) -> worth_foundational::facade::AspectValue {

@@ -85,7 +85,7 @@ impl UiAdmissionTarget {
 
     pub fn with_query_prerequisites_from_query_authority(
         mut self,
-        authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+        authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
     ) -> Result<Self, WorthUiQueryMeasurementFactEligibilityError> {
         let Some(query_prerequisites) = self.query_prerequisites.take() else {
             return Ok(self);

@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveSubscriptionAllocationPosture, QueryDeliveryWindow};
+use worth_query::facade::runtime::{ActiveSubscriptionAllocationPosture, QueryDeliveryWindow};
 
 fn main() {
     let _window = QueryDeliveryWindow {

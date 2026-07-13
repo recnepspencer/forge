@@ -121,7 +121,7 @@ The important rule is:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncFailurePosture,
     WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart,
     WorthQueryAsyncSourceFamily,
@@ -160,7 +160,7 @@ projection surfaces can tell whether a reconciliation run was fulfilled,
 retried, or denied.
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncFailurePosture,
     WorthQueryAsyncLoadingPosture, WorthQueryAsyncRequestIdentityPart,
     WorthQueryAsyncSourceFamily, WorthQueryDeclarationCanonicalEntry,

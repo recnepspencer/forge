@@ -1,4 +1,4 @@
-use crate::facade::{CanonicalizationCounters, CanonicalizationReport};
+use crate::facade::foundation::{CanonicalizationCounters, CanonicalizationReport};
 
 use super::super::certification::{
     digest_parts, CanonicalCertificationRow as SharedCanonicalCertificationRow,

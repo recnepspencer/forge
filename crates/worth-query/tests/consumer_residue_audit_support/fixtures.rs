@@ -215,6 +215,14 @@ pub const HOSTILE_CLASS_CASES: &[HostileClassCase] = &[
         "worth_query::projection_consumption",
         "use worth_query::projection_consumption::ProjectionConsumptionReceipt;",
     ),
+    case(
+        "legacy-query-basis-lifecycle",
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        "query_basis_lifecycle",
+        "downstream-authority-adoption",
+        "query_basis_lifecycle",
+        "use worth_query::query_basis_lifecycle::RawBasisIntent;",
+    ),
 ];
 
 pub const SYNTAX_ROLE_CASES: &[HostileClassCase] = &[

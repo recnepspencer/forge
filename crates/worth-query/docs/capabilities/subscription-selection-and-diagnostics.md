@@ -22,7 +22,12 @@ lowering, runtime-backed admission, support reporting, and certification.
 
 ## Stable Entry Points
 
+- `facade::foundation::basis_lifecycle()`
+- `LiveQueryAdmissionArtifact::from_live_promotion(...)`
 - `select_query_subscription_family(...)`
+- `declare_query_subscription(...)`
+- `admit_query_subscription(...)`
+- `prepare_subscription_activation(...)`
 - `QuerySubscriptionFamilySelection`
 - `QuerySubscriptionFamilySelectionError`
 - `QuerySubscriptionFamilySelectionFailureClass`
@@ -75,11 +80,14 @@ there.
 
 Selection is not the final identity boundary.
 
-Once Worth Query declares the subscription, the retained future-bearing live
-posture and basis posture become part of the canonical subscription declaration
-digest before activation begins. If temporal basis, async request identity,
-policy, or tenant meaning changes, Worth Query must mint a new declaration
-instead of patching the old one in place.
+The live admission artifact must consume a
+`ScopedSubscriptionDeclarationBasis` created by the basis lifecycle. Once Worth
+Query declares the subscription, that proof and the retained future-bearing
+live posture become part of the canonical declaration identity. Activation
+derives its `ScopedSubscriptionActivationBasis` from the admitted declaration;
+product code does not author activation posture independently. If temporal
+basis, async request identity, policy, or tenant meaning changes, Worth Query
+must admit a new declaration instead of patching the existing one.
 
 Selection is also not the final delivery contract.
 
@@ -91,17 +99,21 @@ Query owns the public coalesced delivery artifact. Product code does not pick a
 
 ## How It Executes
 
-1. `select_query_subscription_family(...)` classifies the query, admitted view
+1. Declare a subscription basis through `basis_lifecycle()` and use it to build
+   the `LiveQueryAdmissionArtifact` from a real live-promotion descriptor.
+2. `select_query_subscription_family(...)` classifies the query, admitted view
    shape, and retained future-bearing live posture.
-2. Selection verifies required widths, basis posture, bridge families,
+3. Selection verifies required widths, basis posture, bridge families,
    allocation budgets, and relationship-proof posture.
-3. If selection succeeds, the runtime lowers the declaration and continues
+4. If selection succeeds, the runtime lowers the declaration and continues
    through bridge and admission stages.
-4. Active lifecycle then reuses that retained selection and declaration truth
+5. `prepare_subscription_activation(...)` derives activation authority from the
+   admitted declaration basis.
+6. Active lifecycle reuses that retained selection and declaration truth
    to decide whether one active subscription lane can be opened, shared, or
    denied.
-5. Diagnostic traces record the stage-by-stage outcomes.
-6. `report_query_subscription_support(...)` can emit a support matrix and
+7. Diagnostic traces record the stage-by-stage outcomes.
+8. `report_query_subscription_support(...)` can emit a support matrix and
    posture report for a declaration, activation, active lifecycle,
    continuation, or preview closeout subject.
 
@@ -111,9 +123,23 @@ contract is already impossible.
 ## Small Example
 
 ```rust
-use worth_query::subscription::select_query_subscription_family;
+use worth_query::facade::{
+    foundation::basis_lifecycle,
+    runtime::{
+        select_query_subscription_family, LiveQueryAdmissionArtifact,
+    },
+};
 
-let selection = select_query_subscription_family(live_query, work_budget)?;
+let declaration_basis = basis_lifecycle()
+    .current_head()
+    .declare_subscription()?;
+let live = LiveQueryAdmissionArtifact::from_live_promotion(
+    &live_promotion,
+    declaration_basis,
+    admission_dimensions,
+);
+
+let selection = select_query_subscription_family(live, work_budget)?;
 
 assert_eq!(selection.family().as_str(), "collection_membership");
 assert_eq!(selection.cost_posture().as_str(), "bounded_membership");
@@ -130,12 +156,25 @@ surface.
 ## Real Example
 
 ```rust
-use worth_query::subscription::{
-    report_query_subscription_support, select_query_subscription_family,
-    QuerySubscriptionSupportEvidence, QuerySubscriptionSupportSubject,
+use worth_query::facade::{
+    foundation::basis_lifecycle,
+    runtime::{
+        report_query_subscription_support, select_query_subscription_family,
+        LiveQueryAdmissionArtifact, QuerySubscriptionSupportEvidence,
+        QuerySubscriptionSupportSubject,
+    },
 };
 
-let selection = select_query_subscription_family(kanban_live_query, work_budget)?;
+let declaration_basis = basis_lifecycle()
+    .branch_head("planning", true)
+    .declare_subscription()?;
+let live = LiveQueryAdmissionArtifact::from_live_promotion_with_view(
+    &kanban_live_promotion,
+    declaration_basis,
+    kanban_view_family,
+    admission_dimensions,
+);
+let selection = select_query_subscription_family(live, work_budget)?;
 assert_eq!(selection.family().as_str(), "grouped_collection_membership");
 
 // Later lifecycle stages produce `declaration`, `admission`, and `closeout`

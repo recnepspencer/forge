@@ -113,6 +113,7 @@ pub enum QueryContextAdmissionFailureClass {
     BasisSubstitutionForbidden,
     NonQueryOwnedHistoricalArtifact,
     UnsupportedHistoricalMaterializationPathClass,
+    UnsupportedQueryContextBasisFamily,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -190,16 +191,6 @@ impl QueryBasisContextRequest {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn diff_comparison_for_internal_denial_testing(
-        declared_basis_label: impl Into<String>,
-    ) -> Self {
-        Self {
-            family: QueryContextFamily::DiffComparison,
-            declared_basis_label: declared_basis_label.into(),
-        }
-    }
-
     pub fn family(&self) -> &QueryContextFamily {
         &self.family
     }
@@ -258,7 +249,8 @@ pub struct QueryBasisContextBinding {
 }
 
 impl QueryBasisContextBinding {
-    pub fn request(&self) -> &QueryBasisContextRequest {
+    #[cfg(test)]
+    pub(crate) fn request(&self) -> &QueryBasisContextRequest {
         &self.request
     }
 
@@ -437,7 +429,7 @@ pub enum QueryContextBindingSource<'a> {
     PreviewDerivedHistorical(&'a AdmittedPreviewWorkflowFoundation),
 }
 
-pub fn bind_query_basis_context(
+pub(crate) fn bind_legacy_query_basis_context(
     request: QueryBasisContextRequest,
     source: QueryContextBindingSource<'_>,
 ) -> Result<QueryBasisContextBinding, QueryContextAdmissionError> {
@@ -474,7 +466,7 @@ pub fn bind_query_basis_context(
     }
 }
 
-pub fn admit_query_basis_context(
+pub(crate) fn admit_legacy_query_basis_context(
     binding: QueryBasisContextBinding,
 ) -> Result<AdmittedQueryBasisContext, QueryContextAdmissionError> {
     if matches!(

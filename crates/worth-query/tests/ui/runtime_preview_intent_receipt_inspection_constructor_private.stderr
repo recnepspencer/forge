@@ -1,31 +1,31 @@
 error[E0560]: struct `WorthQueryPreviewIntentReceiptInspection` has no field named `basis_digest`
-  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:16:9
+  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:13:9
    |
-16 |         basis_digest: String::new(),
+13 |         basis_digest: String::new(),
    |         ^^^^^^^^^^^^ `WorthQueryPreviewIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewIntentReceiptInspection` has no field named `admission_digest`
-  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:17:9
+  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:14:9
    |
-17 |         admission_digest: String::new(),
+14 |         admission_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^ `WorthQueryPreviewIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewIntentReceiptInspection` has no field named `receipt_digest`
-  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:18:9
+  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:15:9
    |
-18 |         receipt_digest: String::new(),
+15 |         receipt_digest: String::new(),
    |         ^^^^^^^^^^^^^^ `WorthQueryPreviewIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryPreviewIntentReceiptInspection` has no field named `inspection_digest`
-  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:19:9
+  --> tests/ui/runtime_preview_intent_receipt_inspection_constructor_private.rs:16:9
    |
-19 |         inspection_digest: String::new(),
+16 |         inspection_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^ `WorthQueryPreviewIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned

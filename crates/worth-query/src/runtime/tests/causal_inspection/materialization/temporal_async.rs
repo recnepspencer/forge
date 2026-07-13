@@ -364,14 +364,14 @@ fn retained_temporal_evidence_projects_same_explanation_for_all_retained_and_exp
             ),
         ],
     );
-    let all_retained_artifact = CausalInspection::for_observation(receipt.clone())
+    let all_retained_artifact = CausalInspection::for_test_observation(receipt.clone())
         .why_changed()
         .include_all_retained_evidence()
         .plan()
         .expect("all-retained temporal request should plan")
         .materialize_with_bridge(&runtime)
         .expect("all-retained temporal request should materialize");
-    let explicit_artifact = CausalInspection::for_observation(receipt)
+    let explicit_artifact = CausalInspection::for_test_observation(receipt)
         .why_temporal_wake()
         .reference_only()
         .plan()

@@ -1,5 +1,5 @@
-use worth_foundational::facade::AspectValue;
 use serde::{Deserialize, Deserializer, Serializer};
+use worth_foundational::facade::AspectValue;
 
 use super::reading::LengthPrefixedAspectValueReader;
 use super::writing::encode_length_prefixed_aspect_value;

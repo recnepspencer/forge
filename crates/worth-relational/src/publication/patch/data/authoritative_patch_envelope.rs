@@ -3,8 +3,8 @@ use crate::publication::patch::data::{
     PublishedAuthoritativePatch, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
-use worth_foundational::facade::AspectKey;
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublishedAuthoritativeRecordPatch {

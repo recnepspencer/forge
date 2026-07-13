@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    DeniedEffectEligibilityKind, EffectDeferredNeighborFamily, EffectDeferredResiduePosture,
-    EffectDeferredSupportContract,
-};
+use worth_query::facade::foundation::{DeniedEffectEligibilityKind, EffectDeferredNeighborFamily, EffectDeferredResiduePosture, EffectDeferredSupportContract};
 
 fn main() {
     let _ = EffectDeferredSupportContract {

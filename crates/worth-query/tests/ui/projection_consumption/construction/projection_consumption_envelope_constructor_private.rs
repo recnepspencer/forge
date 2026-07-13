@@ -1,10 +1,8 @@
-use worth_query::facade::{
-    ProjectionContractSupportPosture, SelfDescribingProjectionConsumptionEnvelope,
-};
+use worth_query::facade::foundation::{ProjectionContractSupportPosture, SelfDescribingProjectionConsumptionEnvelope};
 
 fn main() {
     let _ = SelfDescribingProjectionConsumptionEnvelope {
-        source_family: worth_query::facade::ProjectionSourceFamily::RelationalRowSet,
+        source_family: worth_query::facade::foundation::ProjectionSourceFamily::RelationalRowSet,
         source_identity: String::new(),
         support_posture: ProjectionContractSupportPosture::Admitted,
         admitted_fact_family_count: 0,

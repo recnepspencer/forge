@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 #[cfg(test)]
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use worth_signal::facade::runtime::{ObservationNotice, ObservationPolicy, ObservationReadContext};
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::runtime::{ObservationNotice, ObservationPolicy, ObservationReadContext};
 
 use crate::boundary::serde::to_js;
 #[cfg(test)]

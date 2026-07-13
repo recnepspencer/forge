@@ -1,4 +1,4 @@
-error[E0451]: fields `tenant_identity`, `truth_branch_identity`, `schema_basis_identity`, `resolution_class`, `epoch`, `ambiguous`, `hidden_filter` and `digest` of struct `worth_query::facade::TenantBindingSnapshot` are private
+error[E0451]: fields `tenant_identity`, `truth_branch_identity`, `schema_basis_identity`, `resolution_class`, `epoch`, `ambiguous`, `hidden_filter` and `digest` of struct `worth_query::facade::runtime::TenantBindingSnapshot` are private
   --> tests/ui/tenant_binding_snapshot_raw_constructor_forbidden.rs:5:9
    |
  4 |     let _ = TenantBindingSnapshot {

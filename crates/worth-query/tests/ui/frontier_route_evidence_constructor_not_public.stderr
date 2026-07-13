@@ -1,15 +1,19 @@
-error[E0432]: unresolved imports `worth_query::facade::FrontierDisjointnessClass`, `worth_query::facade::FrontierRouteEvidence`
+error[E0432]: unresolved import `worth_query::facade::foundation::FrontierDisjointnessClass`
+ --> tests/ui/frontier_route_evidence_constructor_not_public.rs:1:39
+  |
+1 | use worth_query::facade::foundation::{FrontierDisjointnessClass, FrontierSurfaceDigest};
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^ no `FrontierDisjointnessClass` in `facade::foundation`
+
+error[E0432]: unresolved import `worth_query::facade::FrontierRouteEvidence`
  --> tests/ui/frontier_route_evidence_constructor_not_public.rs:2:5
   |
-2 |     FrontierDisjointnessClass, FrontierRouteEvidence, FrontierSurfaceDigest,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^ no `FrontierRouteEvidence` in `facade`
-  |     |
-  |     no `FrontierDisjointnessClass` in `facade`
+2 | use worth_query::facade::FrontierRouteEvidence;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `FrontierRouteEvidence` in `facade`
 
 error[E0624]: associated function `from_label` is private
- --> tests/ui/frontier_route_evidence_constructor_not_public.rs:6:41
+ --> tests/ui/frontier_route_evidence_constructor_not_public.rs:5:41
   |
-6 |     let digest = FrontierSurfaceDigest::from_label("Worthd");
+5 |     let digest = FrontierSurfaceDigest::from_label("Worthd");
   |                                         ^^^^^^^^^^ private associated function
   |
  ::: src/frontier_planning/mod.rs

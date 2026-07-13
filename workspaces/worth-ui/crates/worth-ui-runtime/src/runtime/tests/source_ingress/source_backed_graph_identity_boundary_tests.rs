@@ -9,7 +9,10 @@ use crate::capability::{
     NamedMeasurementToken, SurfacePlacementClass,
 };
 use crate::declaration::UiDeclarationArtifact;
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, runtime_from_artifact};
 use crate::runtime::{WorthUiSourceProvider, WorthUiWatcherEvent};
 

@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadResolvedOperation, WorthQueryGraphReadResolvedOperationFamily,
-    WorthQueryGraphReadResolvedOperationKind,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadResolvedOperation, WorthQueryGraphReadResolvedOperationFamily, WorthQueryGraphReadResolvedOperationKind};
 
 fn main() {
     let _ = WorthQueryGraphReadResolvedOperation {

@@ -80,7 +80,7 @@ snapshot for inspection.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker,
 };
 
@@ -116,7 +116,7 @@ downstream code owns the marker, and Query contributes the entry surface.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryDomainEntryChecked,
     WorthQueryDomainEntryMarker,
 };

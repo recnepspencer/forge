@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    execute_grouped_live_view_shape_change, BridgeChangeSummary, GroupedExecutionSurfaceArtifact,
-    LiveViewShapeArtifact,
-};
+use worth_query::facade::foundation::BridgeChangeSummary;
+use worth_query::facade::runtime::{execute_grouped_live_view_shape_change, GroupedExecutionSurfaceArtifact, LiveViewShapeArtifact};
 
 fn main() {
     let _fn_ptr: fn(

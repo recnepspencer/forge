@@ -86,7 +86,7 @@ Canonical kind labels are `blocking-invariant`,
 `deferred-to-backstop`.
 
 Consumer-kit support pins and manifests must also preserve the covered lane
-vocabulary used by the `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`:
+vocabulary used by the graph touch obligation hostile certification matrix:
 
 - graph composition
 - authoritative command batch

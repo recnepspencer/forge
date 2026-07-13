@@ -86,10 +86,8 @@ pub use readiness::{
     require_foundational_boundary_artifact_milestone4_production_test_readiness,
     FoundationalBoundaryArtifactCertifiedSurface,
     FoundationalBoundaryArtifactCertifiedSurfaceEvidence,
-    FoundationalBoundaryArtifactCompileFailBoundary, FoundationalBoundaryArtifactWORTHProofApi,
-    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
-    FoundationalBoundaryArtifactWORTHProofSurface, FoundationalBoundaryArtifactMilestone4PhaseGate,
-    FoundationalBoundaryArtifactPhaseGateEvidence,
+    FoundationalBoundaryArtifactCompileFailBoundary,
+    FoundationalBoundaryArtifactMilestone4PhaseGate, FoundationalBoundaryArtifactPhaseGateEvidence,
     FoundationalBoundaryArtifactProductionReadinessAuthority,
     FoundationalBoundaryArtifactProductionReadinessReport,
     FoundationalBoundaryArtifactProductionReadinessScope,
@@ -97,6 +95,9 @@ pub use readiness::{
     FoundationalBoundaryArtifactResidualDebt, FoundationalBoundaryArtifactRuntimeAssumption,
     FoundationalBoundaryArtifactRuntimeNonAssumption,
     FoundationalBoundaryArtifactSyntheticRuntimePressure,
+    FoundationalBoundaryArtifactWORTHProofApi,
+    FoundationalBoundaryArtifactWORTHProofForbiddenSurface,
+    FoundationalBoundaryArtifactWORTHProofSurface,
 };
 pub use reserved_authority_transition::{
     evaluate_planned_work_reserved_authority_transition_legality,

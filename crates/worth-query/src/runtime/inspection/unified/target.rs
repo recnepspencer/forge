@@ -1,12 +1,9 @@
 use super::{WorthQueryBatchWriteReceiptInspection, WorthQueryWriteReceiptInspection};
 use crate::application::WorthQueryAdmittedWorldBasis;
-use crate::query_basis_lifecycle::{
-    BasisIntentDenial, DeniedBasisCapability, InspectionBasisCapability,
-    LowerRuntimeBoundInspectionBasis, LowerRuntimeBoundObservationBasis,
-    LowerRuntimeBoundSubscriptionActivationBasis, LowerRuntimeBoundSubscriptionDeclarationBasis,
-    ObservationBasisCapability, ScopedInspectionBasis, ScopedObservationBasis, ScopedReplayBasis,
+use crate::basis_lifecycle::{
+    ScopedInspectionBasis, ScopedMaterializationBasis, ScopedMutationPreparationBasis,
+    ScopedObservationBasis, ScopedPreviewCloseoutBasis, ScopedReplayBasis,
     ScopedSubscriptionActivationBasis, ScopedSubscriptionDeclarationBasis,
-    SubscriptionActivationBasisCapability, SubscriptionDeclarationBasisCapability,
 };
 use crate::runtime::{
     WorthQueryBasisLifecycleInspection, WorthQueryBatchWriteReceipt, WorthQueryBranchIntentReceipt,
@@ -21,15 +18,9 @@ use crate::runtime::{
 };
 
 pub enum WorthQueryInspectionTarget<'a> {
-    LiveView {
-        name: &'a str,
-    },
-    DerivedView {
-        name: &'a str,
-    },
-    Effect {
-        name: &'a str,
-    },
+    LiveView { name: &'a str },
+    DerivedView { name: &'a str },
+    Effect { name: &'a str },
     WriteReceipt(&'a WorthQueryWriteReceipt),
     BatchWriteReceipt(&'a WorthQueryBatchWriteReceipt),
     IntentReceipt(&'a WorthQueryIntentReceipt),
@@ -40,23 +31,14 @@ pub enum WorthQueryInspectionTarget<'a> {
     PreviewIntentReceipt(&'a WorthQueryPreviewIntentReceipt),
     BranchIntentReceipt(&'a WorthQueryBranchIntentReceipt),
     AdmittedWorldBasis(&'a WorthQueryAdmittedWorldBasis),
-    ObservationBasisCapability(&'a ObservationBasisCapability),
-    InspectionBasisCapability(&'a InspectionBasisCapability),
-    SubscriptionDeclarationBasisCapability(&'a SubscriptionDeclarationBasisCapability),
-    SubscriptionActivationBasisCapability(&'a SubscriptionActivationBasisCapability),
     ScopedObservationBasis(&'a ScopedObservationBasis),
+    ScopedMutationPreparationBasis(&'a ScopedMutationPreparationBasis),
     ScopedInspectionBasis(&'a ScopedInspectionBasis),
     ScopedReplayBasis(&'a ScopedReplayBasis),
+    ScopedMaterializationBasis(&'a ScopedMaterializationBasis),
     ScopedSubscriptionDeclarationBasis(&'a ScopedSubscriptionDeclarationBasis),
     ScopedSubscriptionActivationBasis(&'a ScopedSubscriptionActivationBasis),
-    LowerRuntimeBoundObservationBasis(&'a LowerRuntimeBoundObservationBasis),
-    LowerRuntimeBoundInspectionBasis(&'a LowerRuntimeBoundInspectionBasis),
-    LowerRuntimeBoundSubscriptionDeclarationBasis(
-        &'a LowerRuntimeBoundSubscriptionDeclarationBasis,
-    ),
-    LowerRuntimeBoundSubscriptionActivationBasis(&'a LowerRuntimeBoundSubscriptionActivationBasis),
-    DeniedBasisCapability(&'a DeniedBasisCapability),
-    BasisIntentDenial(&'a BasisIntentDenial),
+    ScopedPreviewCloseoutBasis(&'a ScopedPreviewCloseoutBasis),
 }
 
 impl<'a, T> From<&'a WorthQueryLiveView<T>> for WorthQueryInspectionTarget<'a> {
@@ -142,19 +124,14 @@ macro_rules! impl_basis_target {
 }
 
 impl_basis_target!(WorthQueryAdmittedWorldBasis, AdmittedWorldBasis);
-impl_basis_target!(ObservationBasisCapability, ObservationBasisCapability);
-impl_basis_target!(InspectionBasisCapability, InspectionBasisCapability);
-impl_basis_target!(
-    SubscriptionDeclarationBasisCapability,
-    SubscriptionDeclarationBasisCapability
-);
-impl_basis_target!(
-    SubscriptionActivationBasisCapability,
-    SubscriptionActivationBasisCapability
-);
 impl_basis_target!(ScopedObservationBasis, ScopedObservationBasis);
+impl_basis_target!(
+    ScopedMutationPreparationBasis,
+    ScopedMutationPreparationBasis
+);
 impl_basis_target!(ScopedInspectionBasis, ScopedInspectionBasis);
 impl_basis_target!(ScopedReplayBasis, ScopedReplayBasis);
+impl_basis_target!(ScopedMaterializationBasis, ScopedMaterializationBasis);
 impl_basis_target!(
     ScopedSubscriptionDeclarationBasis,
     ScopedSubscriptionDeclarationBasis
@@ -163,24 +140,7 @@ impl_basis_target!(
     ScopedSubscriptionActivationBasis,
     ScopedSubscriptionActivationBasis
 );
-impl_basis_target!(
-    LowerRuntimeBoundObservationBasis,
-    LowerRuntimeBoundObservationBasis
-);
-impl_basis_target!(
-    LowerRuntimeBoundInspectionBasis,
-    LowerRuntimeBoundInspectionBasis
-);
-impl_basis_target!(
-    LowerRuntimeBoundSubscriptionDeclarationBasis,
-    LowerRuntimeBoundSubscriptionDeclarationBasis
-);
-impl_basis_target!(
-    LowerRuntimeBoundSubscriptionActivationBasis,
-    LowerRuntimeBoundSubscriptionActivationBasis
-);
-impl_basis_target!(DeniedBasisCapability, DeniedBasisCapability);
-impl_basis_target!(BasisIntentDenial, BasisIntentDenial);
+impl_basis_target!(ScopedPreviewCloseoutBasis, ScopedPreviewCloseoutBasis);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryInspection {

@@ -1,7 +1,7 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_declaration/boundaries/construction/evidence/foundational_evidence_constructor_is_private.rs:47:100
+  --> tests/ui/domain_declaration/boundaries/construction/evidence/foundational_evidence_constructor_is_private.rs:41:100
    |
-47 |       let _ctor = WorthQueryDeclarationFoundationalEvidence::<GeometryDomain, SplitEdgeDeclaration>::new;
+41 |       let _ctor = WorthQueryDeclarationFoundationalEvidence::<GeometryDomain, SplitEdgeDeclaration>::new;
    |                                                                                                      ^^^ private associated function
    |
   ::: src/application/declaration_evidence/artifact.rs

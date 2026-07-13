@@ -19,7 +19,7 @@ impl WorthServerDirectRemaskPosture {
     }
 
     pub(crate) fn from_materialized_fact_posture(
-        posture: Option<&worth_query::facade::ProjectionMaterializedFactPosture>,
+        posture: Option<&worth_query::facade::runtime::ProjectionMaterializedFactPosture>,
     ) -> Self {
         match posture {
             Some(posture) if posture.kind().as_str() == "remasked" => {
@@ -35,7 +35,7 @@ impl WorthServerDirectRemaskPosture {
     }
 
     pub(crate) fn from_state_snapshot(
-        snapshot: &worth_query::facade::WorthQueryRuntimeStateSnapshot,
+        snapshot: &worth_query::facade::runtime::WorthQueryRuntimeStateSnapshot,
     ) -> Self {
         match snapshot.remask_posture() {
             None => Self::Visible,
@@ -67,7 +67,7 @@ impl WorthServerDirectRemaskPosture {
     }
 
     pub(crate) fn from_live_inspection(
-        live: &worth_query::facade::WorthQueryLiveViewInspection,
+        live: &worth_query::facade::runtime::WorthQueryLiveViewInspection,
     ) -> Self {
         match live.remask_posture() {
             None => Self::Visible,

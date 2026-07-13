@@ -1,5 +1,5 @@
-use worth_query::facade::WORTHQueryOrdinaryOutcome;
 use hadwiger_research::facade::*;
+use worth_query::facade::foundation::WorthQueryOrdinaryOutcome;
 
 fn query_source(graph_id: &str, graph_version: &str) -> HadwigerQueryDeclarationReference {
     let handle =
@@ -174,7 +174,7 @@ fn query_envelope_references_are_self_describing() {
         &handle,
         CandidateGraphDeclaration::new("candidate-a").with_graph_version("v1"),
     ) {
-        WORTHQueryOrdinaryOutcome::Bound(envelope) => envelope,
+        WorthQueryOrdinaryOutcome::Bound(envelope) => envelope,
         _ => panic!("expected bound declaration envelope"),
     };
     let reference: HadwigerQueryEnvelopeReference = envelope.into();

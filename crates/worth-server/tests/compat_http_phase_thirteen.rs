@@ -28,9 +28,9 @@ mod compat_http_phase_three_runtime;
 mod compat_http_phase_twelve_runtime;
 #[path = "support/compat_http/phase_two_runtime.rs"]
 mod compat_http_phase_two_runtime;
+#[path = "support/query_handoff/runtime.rs"]
+mod query_handoff_runtime;
 #[path = "support/worth_native/assertions.rs"]
 mod worth_native_assertions;
 #[path = "support/worth_native/runtime.rs"]
 mod worth_native_runtime;
-#[path = "support/query_handoff/runtime.rs"]
-mod query_handoff_runtime;

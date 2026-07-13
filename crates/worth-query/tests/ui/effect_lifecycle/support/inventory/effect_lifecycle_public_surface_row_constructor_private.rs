@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    EffectLifecyclePublicSurfaceRow, EffectPublicSurfaceAvailability, EffectPublicSurfaceKind,
-    EffectReceiptArtifactKind,
-};
+use worth_query::facade::foundation::{EffectLifecyclePublicSurfaceRow, EffectPublicSurfaceAvailability, EffectPublicSurfaceKind, EffectReceiptArtifactKind};
 
 fn main() {
     let _ = EffectLifecyclePublicSurfaceRow {

@@ -2,7 +2,7 @@ use worth_query::facade::identity_authority::{
     QueryBoundaryBridgedIdentity, QuerySubscriptionAuthority, QuerySubscriptionAuthorityIdentity,
     QuerySubscriptionIdentityKind,
 };
-use worth_query::facade::WorthQueryEvidenceIdentity;
+use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 fn bridged_identity(
 ) -> QueryBoundaryBridgedIdentity<

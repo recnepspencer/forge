@@ -1,11 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphIndexInventoryMatchOutcome, WorthQueryGraphIndexLifecycleClass,
-    WorthQueryGraphIndexLifecycleOwner, WorthQueryGraphIndexSupportState,
-    WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessComplexityContract,
-    WorthQueryGraphReadAccessInvalidationBasis, WorthQueryGraphReadAccessRebuildBasis,
-    WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadRequiredCapabilityOwner,
-    WorthQueryPersistentGraphIndexRequirementRow,
-};
+use worth_query::facade::runtime::{WorthQueryGraphIndexInventoryMatchOutcome, WorthQueryGraphIndexLifecycleClass, WorthQueryGraphIndexLifecycleOwner, WorthQueryGraphIndexSupportState, WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadAccessComplexityContract, WorthQueryGraphReadAccessInvalidationBasis, WorthQueryGraphReadAccessRebuildBasis, WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadRequiredCapabilityOwner, WorthQueryPersistentGraphIndexRequirementRow};
 
 fn main() {
     let _ = WorthQueryPersistentGraphIndexRequirementRow {

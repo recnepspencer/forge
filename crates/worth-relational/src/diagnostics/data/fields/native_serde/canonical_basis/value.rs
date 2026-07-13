@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     CanonicalBasisValue, CanonicalDigestId, CanonicalFloatWidth, CanonicalIntegerWidth,
     InternedString,
 };
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub(super) enum NativeValue {

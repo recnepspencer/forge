@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryLowerRuntimeCloseoutRegistry;
+use worth_query::facade::certification::WorthQueryLowerRuntimeCloseoutRegistry;
 
 fn main() {
     let _ = WorthQueryLowerRuntimeCloseoutRegistry::new(&[]);

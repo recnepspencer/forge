@@ -2,7 +2,4 @@ error[E0432]: unresolved import `worth_query::facade::ProjectionConsumptionAutho
  --> tests/ui/consumer_residue/legacy_projection_authoring_surface_not_in_facade.rs:1:5
   |
 1 | use worth_query::facade::ProjectionConsumptionAuthoringSurface;
-  |     ^^^^^^^^^^^^^^^^^^^^^-------------------------------------
-  |     |                    |
-  |     |                    help: a similar name exists in the module: `ProjectionConsumptionSource`
-  |     no `ProjectionConsumptionAuthoringSurface` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ProjectionConsumptionAuthoringSurface` in `facade`

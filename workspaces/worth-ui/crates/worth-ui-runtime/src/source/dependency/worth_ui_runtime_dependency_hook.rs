@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use worth_query::facade::ViewShapeDescriptor;
+use worth_query::facade::runtime::ViewShapeDescriptor;
 
 use crate::capability::{
     QueryBasisPostureReference, QueryDenialPresentation, QueryLiveCompatibility,

@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/policy_live_drift_requires_epoch_evidence.rs:16:32
+  --> tests/ui/policy_live_drift_requires_epoch_evidence.rs:14:32
    |
-16 |     expects_raw_drift_shortcut(certify_policy_live_drift_evidence);
+14 |     expects_raw_drift_shortcut(certify_policy_live_drift_evidence);
    |     -------------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected fn pointer, found fn item
    |     |
    |     arguments to this function are incorrect
@@ -9,13 +9,13 @@ error[E0308]: mismatched types
    = note: expected fn pointer `for<'a> fn(&'a PolicyAwareLivePlan, PolicyDriftDisposition, PolicyLiveDensityEvidence) -> std::result::Result<PolicyLiveDriftEvidenceReport, PolicyAwareExecutionSeamError>`
                  found fn item `for<'a> fn(&'a PolicyAwareLivePlan, PolicyLiveEpochEvidence, PolicyLiveDensityEvidence) -> std::result::Result<PolicyLiveDriftEvidenceReport, PolicyAwareExecutionSeamError> {certify_policy_live_drift_evidence}`
 note: function defined here
-  --> tests/ui/policy_live_drift_requires_epoch_evidence.rs:6:4
+  --> tests/ui/policy_live_drift_requires_epoch_evidence.rs:4:4
    |
- 6 |   fn expects_raw_drift_shortcut(
+ 4 |   fn expects_raw_drift_shortcut(
    |      ^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 | /     _: fn(
- 8 | |         &PolicyAwareLivePlan,
- 9 | |         PolicyDriftDisposition,
-10 | |         PolicyLiveDensityEvidence,
-11 | |     ) -> Result<PolicyLiveDriftEvidenceReport, PolicyAwareExecutionSeamError>,
+ 5 | /     _: fn(
+ 6 | |         &PolicyAwareLivePlan,
+ 7 | |         PolicyDriftDisposition,
+ 8 | |         PolicyLiveDensityEvidence,
+ 9 | |     ) -> Result<PolicyLiveDriftEvidenceReport, PolicyAwareExecutionSeamError>,
    | |_____________________________________________________________________________-

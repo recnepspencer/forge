@@ -1,4 +1,6 @@
+use crate::basis::ResolvedBasisProof;
 use crate::identity::{BasisDigest, CanonicalQueryDigest, LineageDigest, ResultDigest};
+use crate::identity_authority::QueryCanonicalAuthority;
 
 use super::{
     contracts::{IdentityEvolutionComplexityContract, IdentityEvolutionComplexityStatus},
@@ -86,8 +88,8 @@ impl IdentityEvolutionComplexityReport {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityEvolutionMetadata {
-    query_digest: CanonicalQueryDigest,
-    basis_digest: BasisDigest,
+    query_authority: QueryCanonicalAuthority,
+    basis: ResolvedBasisProof,
     lineage_digest: LineageDigest,
     outcome_family: IdentityEvolutionOutcomeFamily,
     anchor_branch_basis_digest: BasisDigest,
@@ -102,11 +104,19 @@ pub struct IdentityEvolutionMetadata {
 
 impl IdentityEvolutionMetadata {
     pub fn query_digest(&self) -> &CanonicalQueryDigest {
-        &self.query_digest
+        self.query_authority.digest()
     }
 
     pub fn basis_digest(&self) -> &BasisDigest {
-        &self.basis_digest
+        self.basis.digest()
+    }
+
+    pub fn query_authority(&self) -> &QueryCanonicalAuthority {
+        &self.query_authority
+    }
+
+    pub fn basis_proof(&self) -> &ResolvedBasisProof {
+        &self.basis
     }
 
     pub fn lineage_digest(&self) -> &LineageDigest {
@@ -149,10 +159,38 @@ impl IdentityEvolutionMetadata {
         &self.metadata_digest
     }
 
+    #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_parts(
         query_digest: CanonicalQueryDigest,
         basis_digest: BasisDigest,
+        lineage_digest: LineageDigest,
+        outcome_family: IdentityEvolutionOutcomeFamily,
+        anchor_branch_basis_digest: BasisDigest,
+        lineage_origin_branch_digest: BasisDigest,
+        branch_divergence_root_digest: BasisDigest,
+        branch_locality_class: BranchLocalityClass,
+        promotion_or_merge_authority_state: PromotionOrMergeAuthorityState,
+        complexity_report: IdentityEvolutionComplexityReport,
+    ) -> Self {
+        Self::from_authority_parts(
+            QueryCanonicalAuthority::from_digest_for_test(query_digest),
+            ResolvedBasisProof::from_digest_for_test(basis_digest),
+            lineage_digest,
+            outcome_family,
+            anchor_branch_basis_digest,
+            lineage_origin_branch_digest,
+            branch_divergence_root_digest,
+            branch_locality_class,
+            promotion_or_merge_authority_state,
+            complexity_report,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn from_authority_parts(
+        query_authority: QueryCanonicalAuthority,
+        basis: ResolvedBasisProof,
         lineage_digest: LineageDigest,
         outcome_family: IdentityEvolutionOutcomeFamily,
         anchor_branch_basis_digest: BasisDigest,
@@ -182,8 +220,8 @@ impl IdentityEvolutionMetadata {
             ),
         ]);
         let metadata_digest = ResultDigest::from_parts(&[
-            format!("query_digest:{}", query_digest.as_str()),
-            format!("basis_digest:{}", basis_digest.as_str()),
+            format!("query_digest:{}", query_authority.digest().as_str()),
+            format!("basis_digest:{}", basis.digest().as_str()),
             format!("lineage_digest:{}", lineage_digest.as_str()),
             format!("outcome_family:{}", outcome_family.as_str()),
             format!("branch_locality_digest:{}", branch_locality_digest.as_str()),
@@ -193,8 +231,8 @@ impl IdentityEvolutionMetadata {
             ),
         ]);
         Self {
-            query_digest,
-            basis_digest,
+            query_authority,
+            basis,
             lineage_digest,
             outcome_family,
             anchor_branch_basis_digest,

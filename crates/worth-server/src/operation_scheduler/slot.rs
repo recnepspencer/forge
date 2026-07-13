@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryRuntimeError, WorthQuerySharedReadContext};
+use worth_query::facade::runtime::{WorthQueryRuntimeError, WorthQuerySharedReadContext};
 
 use crate::{
     WorthServerLoweredOperationPlan, WorthServerOperationConcurrencyClass,

@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    QueryDeliveryError, SubscriptionConsumerAttachmentError, SubscriptionContinuationError,
-};
+use worth_query::facade::runtime::{QueryDeliveryError, SubscriptionConsumerAttachmentError, SubscriptionContinuationError};
 
 fn error_source_projection_golden_path(
     delivery: &QueryDeliveryError,

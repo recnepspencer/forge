@@ -12,6 +12,15 @@ pub enum WorthQueryProhibitedSeam {
     WorkspaceExistingTruthDelete,
     WorkspaceExistingTruthDeleteWith,
     WorkspaceExistingTruthDeleteVerified,
+    RawDigestMinting,
+    RawBasisIdentity,
+    UnscopedQueryContext,
+    RawIntentAdmissionRequest,
+    PostureAuthoredSubscription,
+    ReceiptOnlyCausalInspection,
+    LegacyPreviewExecution,
+    DeepFacadeToolingImport,
+    LegacyQueryBasisLifecycle,
 }
 
 impl WorthQueryProhibitedSeam {
@@ -33,6 +42,15 @@ impl WorthQueryProhibitedSeam {
             Self::WorkspaceExistingTruthDeleteVerified => {
                 "workspace.existing-truth.delete-verified"
             }
+            Self::RawDigestMinting => "query.raw-digest-minting",
+            Self::RawBasisIdentity => "query.raw-basis-identity",
+            Self::UnscopedQueryContext => "query.unscoped-context",
+            Self::RawIntentAdmissionRequest => "query.raw-intent-admission-request",
+            Self::PostureAuthoredSubscription => "query.posture-authored-subscription",
+            Self::ReceiptOnlyCausalInspection => "query.receipt-only-causal-inspection",
+            Self::LegacyPreviewExecution => "query.legacy-preview-execution",
+            Self::DeepFacadeToolingImport => "query.deep-facade-tooling-import",
+            Self::LegacyQueryBasisLifecycle => "query.legacy-basis-lifecycle",
         }
     }
 
@@ -56,6 +74,17 @@ impl WorthQueryProhibitedSeam {
             Self::WorkspaceExistingTruthDeleteVerified => {
                 "WorthQueryWorkspace::delete_existing_verified"
             }
+            Self::RawDigestMinting => "WorthQueryDigest::from_domain_parts",
+            Self::RawBasisIdentity => "RawBasisIntent",
+            Self::UnscopedQueryContext => "bind_query_basis_context",
+            Self::RawIntentAdmissionRequest => "WorthQueryRawIntentAdmissionRequest",
+            Self::PostureAuthoredSubscription => "QuerySubscriptionBasisPosture",
+            Self::ReceiptOnlyCausalInspection => "CausalInspection::for_observation(receipt)",
+            Self::LegacyPreviewExecution => "PreviewSessionPlanBinding",
+            Self::DeepFacadeToolingImport => {
+                "facade::certification tooling through ordinary facade"
+            }
+            Self::LegacyQueryBasisLifecycle => "query_basis_lifecycle",
         }
     }
 }

@@ -171,7 +171,7 @@ runtime's inspection or state APIs.
 ## Small Example
 
 ```rust
-use worth_query::facade::WorthQueryLiveView;
+use worth_query::facade::runtime::WorthQueryLiveView;
 use serde_json::Value;
 
 let mut workspace = runtime.workspace("editor").unwrap();
@@ -219,7 +219,7 @@ schema annotation for later tooling.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryDerivedViewHandle, WorthQueryEffectHandle, WorthQueryInspection,
     WorthQueryLiveView,
 };
@@ -431,8 +431,7 @@ exposing it in another runtime.
   for `Temporal`, `AsyncResource`, or `MixedCauseDelivery`; those rows stay
   visible as extension and support markers rather than becoming parallel entry
   points beside live handles.
-- Store-backed execution and durable artifact reload remain later-milestone
-  work.
+- Store-backed execution and durable artifact reload remain deferred.
 - covered intent families are documented in
   [Intent Admission](../execution/intent-admission.md), but broader intent
   vocabulary is still not blanket stable facade-family support.

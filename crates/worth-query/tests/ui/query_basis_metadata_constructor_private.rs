@@ -1,4 +1,4 @@
-use worth_query::facade::QueryBasisMetadata;
+use worth_query::facade::policy::QueryBasisMetadata;
 
 fn main() {
     let _ = QueryBasisMetadata {

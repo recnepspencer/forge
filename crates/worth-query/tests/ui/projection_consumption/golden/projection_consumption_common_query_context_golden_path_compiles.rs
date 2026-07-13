@@ -1,8 +1,6 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome,
-    ProjectionFactConsumptionPathError, ProjectionFactFieldPath, QueryContextExecutionArtifact,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, ProjectionFactFieldPath};
+use worth_query::facade::policy::QueryContextExecutionArtifact;
 
 fn common_query_context_path(
     execution: &QueryContextExecutionArtifact,

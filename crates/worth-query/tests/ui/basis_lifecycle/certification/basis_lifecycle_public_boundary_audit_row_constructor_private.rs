@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    BasisLifecyclePublicBoundaryAuditRow, BasisLifecyclePublicBoundarySurface,
-};
+use worth_query::facade::certification::{BasisLifecyclePublicBoundaryAuditRow, BasisLifecyclePublicBoundarySurface};
 
 fn main() {
     let _row = BasisLifecyclePublicBoundaryAuditRow {

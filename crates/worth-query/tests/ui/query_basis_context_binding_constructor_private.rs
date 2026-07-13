@@ -1,4 +1,5 @@
-use worth_query::facade::{QueryBasisContextBinding, QueryBasisContextRequest, QueryContextCounters, QueryContextDriftOutcome};
+use worth_query::facade::policy::{QueryContextCounters, QueryContextDriftOutcome};
+use worth_query::facade::{QueryBasisContextBinding, QueryBasisContextRequest};
 
 fn main() {
     let _binding = QueryBasisContextBinding {

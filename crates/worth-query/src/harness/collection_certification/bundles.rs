@@ -1,8 +1,11 @@
 use crate::collection::page_cursor_for_collection;
-use crate::facade::{
-    execute_preflight_bundle, plan_validated_bundle, plan_validated_bundle_for_collection_family,
-    planning_request_context_for_direct, BasisAuthorityFamily, CollectionResultFamily,
-    ExecutionBasisIntent, PlanningError, SnapshotLineageClass,
+use crate::facade::foundation::{
+    execute_preflight_bundle, BasisAuthorityFamily, CollectionResultFamily, ExecutionBasisIntent,
+    SnapshotLineageClass,
+};
+use crate::facade::policy::{
+    plan_validated_bundle, plan_validated_bundle_for_collection_family,
+    planning_request_context_for_direct, PlanningError,
 };
 use crate::planning::{
     plan_validated_bundle_for_requested_aggregate_family,
@@ -18,7 +21,7 @@ use super::super::profiles::CertificationProfile;
 
 pub(super) fn to_bundle(
     profile: CertificationProfile,
-    preflight: &crate::facade::ExecutionPreflightBundle,
+    preflight: &crate::facade::foundation::ExecutionPreflightBundle,
 ) -> CollectionCertificationBundle {
     let envelope = execute_preflight_bundle(preflight).unwrap();
     let cursor_progress_report = if let Some(collection) = preflight.plan().collection() {
@@ -71,9 +74,9 @@ pub(super) fn canonical_row(
     row_name: &'static str,
     perturbation_class: CollectionPerturbationClass,
     hostile_expectation: CollectionHostileExpectation,
-    control: crate::facade::ExecutionPreflightBundle,
-    hostile: crate::facade::ExecutionPreflightBundle,
-    parity: crate::facade::ExecutionPreflightBundle,
+    control: crate::facade::foundation::ExecutionPreflightBundle,
+    hostile: crate::facade::foundation::ExecutionPreflightBundle,
+    parity: crate::facade::foundation::ExecutionPreflightBundle,
 ) -> CollectionCertificationRow {
     CollectionCertificationRow {
         row_name,
@@ -89,7 +92,7 @@ pub(super) fn canonical_row(
 pub(super) fn rejection_row(
     row_name: &'static str,
     perturbation_class: CollectionPerturbationClass,
-    control: &crate::facade::ExecutionPreflightBundle,
+    control: &crate::facade::foundation::ExecutionPreflightBundle,
     hostile: Result<(), PlanningError>,
 ) -> CollectionRejectionRow {
     let hostile = hostile.unwrap_err();

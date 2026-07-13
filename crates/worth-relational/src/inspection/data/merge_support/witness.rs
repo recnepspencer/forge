@@ -1,7 +1,7 @@
-use worth_foundational::{MaterializedFoundationalProfileSet, SupportProfiledArtifact};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
+use worth_foundational::{MaterializedFoundationalProfileSet, SupportProfiledArtifact};
 
 use crate::facade::merge::{
     NormalizedRelationalMergeRequest, RelationalMergeCorrespondenceWitness,

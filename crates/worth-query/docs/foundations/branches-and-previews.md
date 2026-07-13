@@ -48,6 +48,16 @@ Stable preview-local operations:
 - stage preview-local writes
 - discard or promote a preview outcome
 
+Stable preview-live planning entry points live under
+`worth_query::facade::policy`:
+
+- `admit_scoped_preview_session_plan_binding(...)`
+- `admit_scoped_preview_live_session_plan(...)`
+- `execute_scoped_preview_live_session_plan(...)`
+- `assess_preview_live_drift(...)`
+- `ScopedPreviewSessionPlanBinding`
+- `ScopedPreviewLiveSessionPlanBinding`
+
 Support-gated neighbors:
 
 - preview-local or branch-local intent execution still depends on admitted
@@ -81,6 +91,13 @@ Branch:
 The key idea is isolation by authority lane, not by reimplementing the whole
 runtime.
 
+For preview-live planning, isolation is also basis-scoped. A preview plan
+binding and a scoped observation basis must agree structurally before Query
+mints `ScopedPreviewSessionPlanBinding`. Live admission then consumes that
+binding and returns `ScopedPreviewLiveSessionPlanBinding`, which is the only
+artifact accepted by scoped execution and drift assessment. The sealed binding
+keeps preview identity, live-plan identity, and basis authority together.
+
 Graph touch obligations follow that same isolation rule. Branch and preview
 graph touches must carry an operating world descriptor, and Query must select
 registered obligations from that descriptor rather than pretending branch-local,
@@ -96,6 +113,15 @@ Preview path:
    policy and support.
 4. Discard or promote the preview.
 
+Preview-live planning path:
+
+1. Produce a preview session plan binding from an admitted preflight and active
+   preview context.
+2. Scope the matching observation world through `basis_lifecycle()`.
+3. Admit both into `ScopedPreviewSessionPlanBinding`.
+4. Admit the live plan into `ScopedPreviewLiveSessionPlanBinding`.
+5. Execute or assess drift with that sealed scoped artifact.
+
 Branch path:
 
 1. Open a branch session from the workspace.
@@ -109,7 +135,7 @@ muted unless you explicitly choose a broader policy.
 ## Small Example
 
 ```rust
-use worth_query::facade::{WorthQueryPreviewOptions, WorthQuerySessionLabel};
+use worth_query::facade::runtime::{WorthQueryPreviewOptions, WorthQuerySessionLabel};
 
 let mut workspace = runtime.workspace("preview").unwrap();
 let label = WorthQuerySessionLabel::scoped_strs("workflow", ["draft-create"]).unwrap();
@@ -138,7 +164,7 @@ truth writes.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryBranchOptions, WorthQueryInspection, WorthQueryLiveView,
     WorthQueryPreviewOptions, WorthQuerySessionLabel,
 };
@@ -182,7 +208,7 @@ let branch_result = {
             WorthQueryBranchOptions::sandboxed_write_intent(),
         )
         .unwrap();
-    branch.execute_intent(worth_query::facade::WorthQueryIntentDeclaration::strategy_commit(
+    branch.execute_intent(worth_query::facade::runtime::WorthQueryIntentDeclaration::strategy_commit(
         "branch-reconcile",
         "strategy.intent.reconcile",
         "1.0",
@@ -191,6 +217,34 @@ let branch_result = {
     ))
 };
 ```
+
+When a preview also carries a live plan, keep basis admission explicit:
+
+```rust
+use worth_query::facade::{
+    foundation::basis_lifecycle,
+    policy::{
+        admit_scoped_preview_live_session_plan,
+        admit_scoped_preview_session_plan_binding,
+        execute_scoped_preview_live_session_plan,
+    },
+};
+
+let scoped_basis = basis_lifecycle()
+    .current_head()
+    .observe()?;
+let scoped_binding = admit_scoped_preview_session_plan_binding(
+    scoped_basis,
+    preview_binding,
+)?;
+let preview_live =
+    admit_scoped_preview_live_session_plan(scoped_binding, live_plan)?;
+let execution = execute_scoped_preview_live_session_plan(&preview_live)?;
+```
+
+Here `preview_binding` and `live_plan` are admitted planning artifacts produced
+earlier in the preview pipeline. Consumer code moves the scoped binding
+forward; it does not pass the basis digest and preview identity separately.
 
 If you are authoring workflow capability evidence about a preview session, that
 is a separate typed identity lane. Opening the preview uses
@@ -267,6 +321,9 @@ Look for:
 - Treating preview writes as if they are already authoritative.
 - Assuming `derive_only` allows delivery or write-intent work.
 - Expecting branch-local or preview-local intents to bypass support admission.
+- Executing or drift-checking preview-live work from an unscoped plan binding.
+- Reconstructing preview-live authority from a basis digest, preview label, and
+  live-plan digest.
 - Treating preview or branch sessions as separate domain runtimes rather than
   authority-lane shifts over retained surfaces.
 

@@ -1,68 +1,68 @@
 error: cannot construct `WorthQueryIntentConsumerInspection<'_>` with struct literal syntax due to private fields
-  --> tests/ui/intent_admission/consumer/intent_consumer_inspection_constructor_private.rs:6:19
+  --> tests/ui/intent_admission/consumer/intent_consumer_inspection_constructor_private.rs:4:19
    |
- 6 |     let _worthd = WorthQueryIntentConsumerInspection {
+ 4 |     let _worthd = WorthQueryIntentConsumerInspection {
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 7 |         intent_name: "",
+ 5 |         intent_name: "",
    |         --------------- private field
- 8 |         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
+ 6 |         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
    |         ------------------------------------------------------------- private field
- 9 |         decision_trace_envelope: None,
+ 7 |         decision_trace_envelope: None,
    |         ----------------------------- private field
-10 |         execution_provenance: None,
+ 8 |         execution_provenance: None,
    |         -------------------------- private field
-11 |         fallback_stage: "admitted-decision",
+ 9 |         fallback_stage: "admitted-decision",
    |         ----------------------------------- private field
-12 |         fallback_cause: "admitted_for_execution",
+10 |         fallback_cause: "admitted_for_execution",
    |         ---------------------------------------- private field
-13 |         fallback_detail: "",
+11 |         fallback_detail: "",
    |         ------------------- private field
    |
    = note: ...and other private fields `admission_family` and `covered_entrypoint` that were not provided
 help: you might have meant to use an associated function to build this type
    |
- 6 -     let _worthd = WorthQueryIntentConsumerInspection {
- 7 -         intent_name: "",
- 8 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
- 9 -         decision_trace_envelope: None,
-10 -         execution_provenance: None,
-11 -         fallback_stage: "admitted-decision",
-12 -         fallback_cause: "admitted_for_execution",
-13 -         fallback_detail: "",
-14 -     };
- 6 +     let _worthd = WorthQueryIntentConsumerInspection::from_review(_, _, _, _, _);
+ 4 -     let _worthd = WorthQueryIntentConsumerInspection {
+ 5 -         intent_name: "",
+ 6 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
+ 7 -         decision_trace_envelope: None,
+ 8 -         execution_provenance: None,
+ 9 -         fallback_stage: "admitted-decision",
+10 -         fallback_cause: "admitted_for_execution",
+11 -         fallback_detail: "",
+12 -     };
+ 4 +     let _worthd = WorthQueryIntentConsumerInspection::from_review(_, _, _, _, _);
    |
- 6 -     let _worthd = WorthQueryIntentConsumerInspection {
- 7 -         intent_name: "",
- 8 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
- 9 -         decision_trace_envelope: None,
-10 -         execution_provenance: None,
-11 -         fallback_stage: "admitted-decision",
-12 -         fallback_cause: "admitted_for_execution",
-13 -         fallback_detail: "",
-14 -     };
- 6 +     let _worthd = WorthQueryIntentConsumerInspection::from_receipt(_);
+ 4 -     let _worthd = WorthQueryIntentConsumerInspection {
+ 5 -         intent_name: "",
+ 6 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
+ 7 -         decision_trace_envelope: None,
+ 8 -         execution_provenance: None,
+ 9 -         fallback_stage: "admitted-decision",
+10 -         fallback_cause: "admitted_for_execution",
+11 -         fallback_detail: "",
+12 -     };
+ 4 +     let _worthd = WorthQueryIntentConsumerInspection::from_receipt(_);
    |
- 6 -     let _worthd = WorthQueryIntentConsumerInspection {
- 7 -         intent_name: "",
- 8 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
- 9 -         decision_trace_envelope: None,
-10 -         execution_provenance: None,
-11 -         fallback_stage: "admitted-decision",
-12 -         fallback_cause: "admitted_for_execution",
-13 -         fallback_detail: "",
-14 -     };
- 6 +     let _worthd = WorthQueryIntentConsumerInspection::from_denial(_);
+ 4 -     let _worthd = WorthQueryIntentConsumerInspection {
+ 5 -         intent_name: "",
+ 6 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
+ 7 -         decision_trace_envelope: None,
+ 8 -         execution_provenance: None,
+ 9 -         fallback_stage: "admitted-decision",
+10 -         fallback_cause: "admitted_for_execution",
+11 -         fallback_detail: "",
+12 -     };
+ 4 +     let _worthd = WorthQueryIntentConsumerInspection::from_denial(_);
    |
- 6 -     let _worthd = WorthQueryIntentConsumerInspection {
- 7 -         intent_name: "",
- 8 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
- 9 -         decision_trace_envelope: None,
-10 -         execution_provenance: None,
-11 -         fallback_stage: "admitted-decision",
-12 -         fallback_cause: "admitted_for_execution",
-13 -         fallback_detail: "",
-14 -     };
- 6 +     let _worthd = WorthQueryIntentConsumerInspection::from_failure(_);
+ 4 -     let _worthd = WorthQueryIntentConsumerInspection {
+ 5 -         intent_name: "",
+ 6 -         outcome_class: WorthQueryIntentConsumerOutcomeClass::Admitted,
+ 7 -         decision_trace_envelope: None,
+ 8 -         execution_provenance: None,
+ 9 -         fallback_stage: "admitted-decision",
+10 -         fallback_cause: "admitted_for_execution",
+11 -         fallback_detail: "",
+12 -     };
+ 4 +     let _worthd = WorthQueryIntentConsumerInspection::from_failure(_);
    |
    = and 6 other candidates

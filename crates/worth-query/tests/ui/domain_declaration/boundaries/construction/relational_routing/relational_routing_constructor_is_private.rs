@@ -1,11 +1,4 @@
-use worth_query::facade::{
-    WorthQueryCapabilityFamily,
-    WorthQueryDeclarationEnvelope, WorthQueryDeclarationInput,
-    WorthQueryDeclarationRelationalAuthorityFamily, WorthQueryDeclarationRelationalBinding,
-    WorthQueryDeclarationRelationalRouting, WorthQueryDeclarationRelationalRoutingClass,
-    WorthQueryDeclarationRelationalRoutingExplanation, WorthQueryDeclarationRelationalTruthClaim,
-    WorthQueryDomainEntryMarker,
-};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDeclarationEnvelope, WorthQueryDeclarationInput, WorthQueryDeclarationRelationalAuthorityFamily, WorthQueryDeclarationRelationalBinding, WorthQueryDeclarationRelationalRouting, WorthQueryDeclarationRelationalRoutingClass, WorthQueryDeclarationRelationalRoutingExplanation, WorthQueryDeclarationRelationalTruthClaim, WorthQueryDomainEntryMarker};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ExampleDomain;
@@ -24,7 +17,7 @@ impl WorthQueryDeclarationInput<ExampleDomain> for ExampleInput {
 
     fn canonical_declaration_entries(
         &self,
-    ) -> Vec<worth_query::facade::WorthQueryDeclarationCanonicalEntry> {
+    ) -> Vec<worth_query::facade::foundation::WorthQueryDeclarationCanonicalEntry> {
         Vec::new()
     }
 }
@@ -32,15 +25,15 @@ impl WorthQueryDeclarationInput<ExampleDomain> for ExampleInput {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ExampleFamily;
 
-impl worth_query::facade::WorthQueryDeclarationFamilyMarker<ExampleDomain> for ExampleFamily {
-    type PrimaryAuthority = worth_query::facade::WorthQueryRelationalTruthAuthority;
-    type SignalCompatibility = worth_query::facade::WorthQuerySignalCompatiblePosture;
-    type GroupedPosture = worth_query::facade::WorthQueryNeighborhoodCapableGrouping;
+impl worth_query::facade::foundation::WorthQueryDeclarationFamilyMarker<ExampleDomain> for ExampleFamily {
+    type PrimaryAuthority = worth_query::facade::foundation::WorthQueryRelationalTruthAuthority;
+    type SignalCompatibility = worth_query::facade::foundation::WorthQuerySignalCompatiblePosture;
+    type GroupedPosture = worth_query::facade::foundation::WorthQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str { "example-family" }
 
-    fn legality_contract() -> worth_query::facade::WorthQueryDeclarationLegalityContract {
-        worth_query::facade::WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    fn legality_contract() -> worth_query::facade::foundation::WorthQueryDeclarationLegalityContract {
+        worth_query::facade::foundation::WorthQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 

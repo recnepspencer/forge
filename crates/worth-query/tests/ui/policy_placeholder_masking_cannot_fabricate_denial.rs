@@ -1,4 +1,4 @@
-use worth_query::facade::PolicyPlaceholderMaskingDenial;
+use worth_query::facade::policy::PolicyPlaceholderMaskingDenial;
 
 fn main() {
     let _ = PolicyPlaceholderMaskingDenial {

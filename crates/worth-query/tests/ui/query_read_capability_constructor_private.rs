@@ -1,4 +1,4 @@
-use worth_query::facade::QueryReadCapability;
+use worth_query::facade::foundation::QueryReadCapability;
 
 fn main() {
     let _ = QueryReadCapability {

@@ -1,4 +1,4 @@
-use worth_query::facade::QueryResultBindingProof;
+use worth_query::facade::runtime::QueryResultBindingProof;
 
 fn main() {
     let binding = binding_fixture();

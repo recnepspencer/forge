@@ -1,16 +1,16 @@
-use worth_query::facade::{
-    WORTHQueryCapabilityFamily, WORTHQueryConfigSectionFamily, WORTHQueryDomainOperatingContext,
+use worth_query::facade::foundation::{
+    WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily, WorthQueryDomainOperatingContext,
 };
 
 use super::HadwigerResearchDomainEntry;
 
-const REAL_CONTEXT_CAPABILITIES: &[WORTHQueryCapabilityFamily] = &[
-    WORTHQueryCapabilityFamily::HistoricalEvaluation,
-    WORTHQueryCapabilityFamily::WorkflowOrchestration,
+const REAL_CONTEXT_CAPABILITIES: &[WorthQueryCapabilityFamily] = &[
+    WorthQueryCapabilityFamily::HistoricalEvaluation,
+    WorthQueryCapabilityFamily::WorkflowOrchestration,
 ];
-const REAL_CONTEXT_SECTIONS: &[WORTHQueryConfigSectionFamily] = &[
-    WORTHQueryConfigSectionFamily::Query,
-    WORTHQueryConfigSectionFamily::Relational,
+const REAL_CONTEXT_SECTIONS: &[WorthQueryConfigSectionFamily] = &[
+    WorthQueryConfigSectionFamily::Query,
+    WorthQueryConfigSectionFamily::Relational,
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -87,14 +87,14 @@ impl Default for HadwigerResearchOperatingContext {
     }
 }
 
-impl WORTHQueryDomainOperatingContext<HadwigerResearchDomainEntry>
+impl WorthQueryDomainOperatingContext<HadwigerResearchDomainEntry>
     for HadwigerResearchOperatingContext
 {
-    fn required_capability_families(&self) -> &'static [WORTHQueryCapabilityFamily] {
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
         REAL_CONTEXT_CAPABILITIES
     }
 
-    fn required_config_sections(&self) -> &'static [WORTHQueryConfigSectionFamily] {
+    fn required_config_sections(&self) -> &'static [WorthQueryConfigSectionFamily] {
         REAL_CONTEXT_SECTIONS
     }
 

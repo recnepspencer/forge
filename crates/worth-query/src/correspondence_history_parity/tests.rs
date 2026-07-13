@@ -95,13 +95,13 @@ fn historical_denial_bundle_reports_failure_digest() {
             1,
         ))
         .expect("correspondence should resolve");
-    let denied_request = HistoricalEvaluationRequest::delta_replay(
+    let denied_request = HistoricalEvaluationRequest::delta_replay_for_test(
         "basis:replay",
         2,
         2,
         HistoricalPathReuseDescriptor::no_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:replay",
         None,
         false,
@@ -211,16 +211,16 @@ fn success_envelope_for(
         .expect("correspondence should resolve");
     let request = match requested {
         RequestedHistoricalPathClass::RequestedRetainedSnapshotPath => {
-            HistoricalEvaluationRequest::retained_snapshot("basis:a", 1, 1, reuse)
+            HistoricalEvaluationRequest::retained_snapshot_for_test("basis:a", 1, 1, reuse)
         }
         RequestedHistoricalPathClass::RequestedDeltaReplayPath => {
-            HistoricalEvaluationRequest::delta_replay("basis:a", 4, 8, reuse)
+            HistoricalEvaluationRequest::delta_replay_for_test("basis:a", 4, 8, reuse)
         }
         RequestedHistoricalPathClass::RequestedFullReconstructionPath => {
-            HistoricalEvaluationRequest::full_reconstruction("basis:a", 4, 8, reuse)
+            HistoricalEvaluationRequest::full_reconstruction_for_test("basis:a", 4, 8, reuse)
         }
     };
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:a",
         Some(admitted),
         true,
@@ -233,7 +233,7 @@ fn success_envelope_for(
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let resolved = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new("basis:a", resolved),
+        HistoricalMaterializationDescriptor::new_for_test("basis:a", resolved),
     )
     .expect("resolution should succeed");
 
@@ -251,13 +251,13 @@ fn ambiguous_envelope() -> CorrespondenceHistoricalEnvelope {
             StructuralCandidateOrderingContract::StableFingerprintOrder,
         ))
         .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::delta_replay(
+    let request = HistoricalEvaluationRequest::delta_replay_for_test(
         "basis:replay",
         4,
         8,
         HistoricalPathReuseDescriptor::with_replay_tail_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:replay",
         Some(AdmittedHistoricalPathClass::AdmittedDeltaReplayPath),
         true,
@@ -270,7 +270,7 @@ fn ambiguous_envelope() -> CorrespondenceHistoricalEnvelope {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let resolved = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:replay",
             ResolvedHistoricalPathClass::ResolvedDeltaReplayPath,
         ),
@@ -292,13 +292,13 @@ fn disagreement_envelope() -> CorrespondenceHistoricalEnvelope {
         StructuralCandidateOrderingContract::StableFingerprintThenLineageHintOrder,
     ))
     .expect("correspondence should resolve");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:a",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:a",
         Some(AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -311,7 +311,7 @@ fn disagreement_envelope() -> CorrespondenceHistoricalEnvelope {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let resolved = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:a",
             ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
         ),
@@ -332,13 +332,13 @@ fn correspondence_denied_envelope() -> CorrespondenceHistoricalEnvelope {
             StructuralCandidateOrderingContract::StableFingerprintOrder,
         ))
         .expect("correspondence should resolve into denial");
-    let request = HistoricalEvaluationRequest::retained_snapshot(
+    let request = HistoricalEvaluationRequest::retained_snapshot_for_test(
         "basis:a",
         1,
         1,
         HistoricalPathReuseDescriptor::retained_reuse(),
     );
-    let capability = HistoricalCapabilityDescriptor::new(
+    let capability = HistoricalCapabilityDescriptor::new_for_test(
         "basis:a",
         Some(AdmittedHistoricalPathClass::AdmittedRetainedSnapshotPath),
         false,
@@ -351,7 +351,7 @@ fn correspondence_denied_envelope() -> CorrespondenceHistoricalEnvelope {
         admit_historical_evaluation_path(request, capability).expect("admission should succeed");
     let resolved = resolve_historical_materialization_path(
         admission,
-        HistoricalMaterializationDescriptor::new(
+        HistoricalMaterializationDescriptor::new_for_test(
             "basis:a",
             ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath,
         ),
@@ -368,9 +368,10 @@ fn detail_preflight_bundle() -> crate::basis::ExecutionPreflightBundle {
         &validated,
         &crate::harness::fixtures::resolved_bases::primary_snapshot_identity(),
     );
-    let plan = crate::facade::plan_validated_bundle(&validated, request)
+    let plan = crate::facade::policy::plan_validated_bundle(&validated, request)
         .expect("detail validated bundle should plan");
-    crate::facade::preflight_execution_basis(plan, basis).expect("detail plan should preflight")
+    crate::facade::foundation::preflight_execution_basis(plan, basis)
+        .expect("detail plan should preflight")
 }
 
 fn collection_preflight_bundle() -> crate::basis::ExecutionPreflightBundle {
@@ -380,7 +381,8 @@ fn collection_preflight_bundle() -> crate::basis::ExecutionPreflightBundle {
         &validated,
         &crate::harness::fixtures::resolved_bases::primary_snapshot_identity(),
     );
-    let plan = crate::facade::plan_validated_bundle(&validated, request)
+    let plan = crate::facade::policy::plan_validated_bundle(&validated, request)
         .expect("collection validated bundle should plan");
-    crate::facade::preflight_execution_basis(plan, basis).expect("collection plan should preflight")
+    crate::facade::foundation::preflight_execution_basis(plan, basis)
+        .expect("collection plan should preflight")
 }

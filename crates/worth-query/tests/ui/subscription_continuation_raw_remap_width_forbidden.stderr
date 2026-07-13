@@ -1,7 +1,7 @@
 error[E0624]: associated function `compose` is private
- --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:7:33
+ --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:4:33
   |
-7 |     WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::SubscriptionActivationReceipt)
+4 |     WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::SubscriptionActivationReceipt)
   |                                 ^^^^^^^ private associated function
   |
  ::: src/evidence_identity/artifact.rs
@@ -10,9 +10,9 @@ error[E0624]: associated function `compose` is private
   |     ------------------------------------------------------------------------------------------ private associated function defined here
 
 error[E0624]: method `field_shape` is private
- --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:8:10
+ --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:5:10
   |
-8 |           .field_shape(
+5 |           .field_shape(
   |            ^^^^^^^^^^^ private method
   |
  ::: src/evidence_identity/encoder.rs
@@ -25,22 +25,22 @@ error[E0624]: method `field_shape` is private
   | |_____________- private method defined here
 
 warning: unreachable expression
-  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:19:9
+  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:16:9
    |
-18 |         todo!(),
+15 |         todo!(),
    |         ------- any code following this expression is unreachable
-19 |         SubscriptionContinuationClass::IdentityRemap,
+16 |         SubscriptionContinuationClass::IdentityRemap,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
    |
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
 error[E0308]: mismatched types
-  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:24:9
+  --> tests/ui/subscription_continuation_raw_remap_width_forbidden.rs:21:9
    |
-17 |     let _evidence = admit_subscription_continuation_evidence(
+14 |     let _evidence = admit_subscription_continuation_evidence(
    |                     ---------------------------------------- arguments to this function are incorrect
 ...
-24 |         1,
+21 |         1,
    |         ^ expected `ContinuationRemapWidth`, found integer
    |
 note: function defined here

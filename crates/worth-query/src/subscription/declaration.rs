@@ -18,6 +18,7 @@ use super::slice::{
     QuerySubscriptionSliceIntent, QuerySubscriptionSliceKind, QuerySubscriptionSlicePart,
 };
 use super::slice_budget::QuerySubscriptionSliceBudget;
+use crate::basis_lifecycle::ScopedSubscriptionDeclarationBasis;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionDeclarationArtifact {
@@ -25,6 +26,7 @@ pub struct QuerySubscriptionDeclarationArtifact {
     future_selection: QuerySubscriptionFutureSelection,
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
+    scoped_declaration_basis: Option<ScopedSubscriptionDeclarationBasis>,
     bridge_posture: QuerySubscriptionBridgePosture,
     live_graph_access_posture: QuerySubscriptionLiveGraphAccessPosture,
     equivalence_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
@@ -51,6 +53,10 @@ impl QuerySubscriptionDeclarationArtifact {
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {
         &self.basis_posture
+    }
+
+    pub fn scoped_declaration_basis(&self) -> Option<&ScopedSubscriptionDeclarationBasis> {
+        self.scoped_declaration_basis.as_ref()
     }
 
     pub fn bridge_posture(&self) -> &QuerySubscriptionBridgePosture {
@@ -225,6 +231,7 @@ pub fn declare_query_subscription(
         future_selection: selection.future_selection().clone(),
         cost_posture: selection.cost_posture().clone(),
         basis_posture: selection.basis_posture().clone(),
+        scoped_declaration_basis: selection.scoped_declaration_basis().cloned(),
         bridge_posture: selection.bridge_posture().clone(),
         live_graph_access_posture: *selection.live_graph_access_posture(),
         equivalence_identity,

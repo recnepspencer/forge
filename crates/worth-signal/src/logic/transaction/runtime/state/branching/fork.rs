@@ -1,5 +1,5 @@
-use worth_proof::TransitionOutcome;
 use serde::{Deserialize, Serialize};
+use worth_proof::TransitionOutcome;
 
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalSnapshotV1};
 

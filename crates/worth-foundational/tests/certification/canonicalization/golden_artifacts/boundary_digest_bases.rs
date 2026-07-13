@@ -1,3 +1,4 @@
+use serde_json::json;
 use worth_foundational::{
     aspect_contract_digest_preparation_basis, aspect_mask_digest_preparation_basis,
     aspect_patch_digest_preparation_basis, aspect_state_digest_preparation_basis,
@@ -6,7 +7,6 @@ use worth_foundational::{
     LocatorAuthority, MutationMask, StructAspectValue,
 };
 use worth_proof::TransitionOutcome;
-use serde_json::json;
 
 use super::golden_fixtures::{
     admitted_state, golden_contract, golden_contract_basis, golden_mutation_mask_basis,

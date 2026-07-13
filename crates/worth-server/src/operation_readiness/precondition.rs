@@ -58,15 +58,16 @@ impl WorthServerProductBasisPrecondition {
         requested_basis_digest: Option<&str>,
         observed_basis_digest: &str,
     ) -> Result<Self, WorthServerOperationReadinessDenial> {
-        let observed_basis_digest = crate::WorthServerProductOperationBaseDigest::canonicalize_text(
-            observed_basis_digest.to_string(),
-        )
-        .map_err(|error| {
-            WorthServerOperationReadinessDenial::new(
-                WorthServerOperationReadinessDenialCode::InvalidPreconditionInput,
-                error,
+        let observed_basis_digest =
+            crate::WorthServerProductOperationBaseDigest::canonicalize_text(
+                observed_basis_digest.to_string(),
             )
-        })?;
+            .map_err(|error| {
+                WorthServerOperationReadinessDenial::new(
+                    WorthServerOperationReadinessDenialCode::InvalidPreconditionInput,
+                    error,
+                )
+            })?;
         if let Some(expected_basis_digest) = requested_basis_digest {
             if expected_basis_digest != observed_basis_digest {
                 return Err(WorthServerOperationReadinessDenial::new(

@@ -1,9 +1,5 @@
-use worth_query::facade::{
-    materialize_query_preview_workflow_artifact,
-    WorthQueryDomainCapabilityTransitionOutcome, WorthQueryLowerRuntimeBoundaryBoundContributionTarget,
-    WorthQueryMaterializationReadyWorkflowContribution,
-    PreviewWorkflowFoundationArtifact,
-};
+use worth_query::facade::policy::PreviewWorkflowFoundationArtifact;
+use worth_query::facade::runtime::{materialize_query_preview_workflow_artifact, WorthQueryDomainCapabilityTransitionOutcome, WorthQueryLowerRuntimeBoundaryBoundContributionTarget, WorthQueryMaterializationReadyWorkflowContribution};
 
 fn main() {
     let _preview_materializer: fn(

@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionDiagnosticBundleWidth;
+use worth_query::facade::runtime::QuerySubscriptionDiagnosticBundleWidth;
 
 fn main() {
     let width: QuerySubscriptionDiagnosticBundleWidth = todo!();

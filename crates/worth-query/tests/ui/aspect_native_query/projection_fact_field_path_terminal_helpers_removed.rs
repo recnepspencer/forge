@@ -1,5 +1,5 @@
 use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query::facade::ProjectionFactFieldPath;
+use worth_query::facade::foundation::ProjectionFactFieldPath;
 
 fn main() {
     let _ = ProjectionFactFieldPath::from_terminal_projection("profile.display_name");

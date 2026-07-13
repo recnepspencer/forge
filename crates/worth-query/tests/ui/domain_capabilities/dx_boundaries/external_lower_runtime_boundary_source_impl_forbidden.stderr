@@ -1,13 +1,13 @@
 error[E0277]: the trait bound `FakeSource: worth_query::lower_runtime_routing::sources::sealed::Sealed` is not satisfied
- --> tests/ui/domain_capabilities/dx_boundaries/external_lower_runtime_boundary_source_impl_forbidden.rs:7:55
+ --> tests/ui/domain_capabilities/dx_boundaries/external_lower_runtime_boundary_source_impl_forbidden.rs:5:55
   |
-7 | impl WorthQueryLowerRuntimeBoundaryEnvelopeSource for FakeSource {
+5 | impl WorthQueryLowerRuntimeBoundaryEnvelopeSource for FakeSource {
   |                                                       ^^^^^^^^^^ unsatisfied trait bound
   |
 help: the trait `worth_query::lower_runtime_routing::sources::sealed::Sealed` is not implemented for `FakeSource`
- --> tests/ui/domain_capabilities/dx_boundaries/external_lower_runtime_boundary_source_impl_forbidden.rs:5:1
+ --> tests/ui/domain_capabilities/dx_boundaries/external_lower_runtime_boundary_source_impl_forbidden.rs:3:1
   |
-5 | struct FakeSource;
+3 | struct FakeSource;
   | ^^^^^^^^^^^^^^^^^
   = help: the following other types implement trait `worth_query::lower_runtime_routing::sources::sealed::Sealed`:
             LiveViewDeclarationAdmissionBoundaryReceipt
@@ -22,8 +22,8 @@ note: required by a bound in `WorthQueryLowerRuntimeBoundaryEnvelopeSource`
   |                                                         ^^^^^^^^^^^^^^ required by this bound in `WorthQueryLowerRuntimeBoundaryEnvelopeSource`
   = note: `WorthQueryLowerRuntimeBoundaryEnvelopeSource` is a "sealed trait", because to implement it you also need to implement `worth_query::lower_runtime_routing::sources::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
   = help: the following types implement the trait:
-            worth_query::facade::WorthQueryLowerRuntimeBoundaryEnvelope
-            worth_query::facade::LiveViewDeclarationAdmissionBoundaryReceipt
-            worth_query::facade::WriteAuthorityExecutionReceipt
-            worth_query::facade::SignalInvalidationBoundaryReceipt
-            worth_query::facade::SubscriptionActivationBoundaryReceipt
+            worth_query::facade::runtime::WorthQueryLowerRuntimeBoundaryEnvelope
+            worth_query::facade::runtime::LiveViewDeclarationAdmissionBoundaryReceipt
+            worth_query::facade::runtime::WriteAuthorityExecutionReceipt
+            worth_query::facade::runtime::SignalInvalidationBoundaryReceipt
+            worth_query::facade::runtime::SubscriptionActivationBoundaryReceipt

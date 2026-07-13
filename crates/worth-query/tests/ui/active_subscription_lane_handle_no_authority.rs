@@ -1,4 +1,4 @@
-use worth_query::facade::{ActiveSubscriptionLaneDigest, ActiveSubscriptionLaneHandle};
+use worth_query::facade::runtime::{ActiveSubscriptionLaneDigest, ActiveSubscriptionLaneHandle};
 
 fn main() {
     let _handle = ActiveSubscriptionLaneHandle {

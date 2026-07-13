@@ -1,8 +1,8 @@
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::preview_declaration;
 use crate::facade::{
-    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionIdentity,
-    BridgeRuntimePolicy,
+    BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgeRuntimePolicy,
 };
 
 #[test]

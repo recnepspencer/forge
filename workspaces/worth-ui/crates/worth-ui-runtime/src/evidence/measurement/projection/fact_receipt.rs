@@ -1,4 +1,4 @@
-use worth_query::facade::BasisResolutionMode;
+use worth_query::facade::foundation::BasisResolutionMode;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 use worth_ui_query_binding::{
     WorthUiQueryBindingSubsystem, WorthUiQueryMeasurementFactFamily,

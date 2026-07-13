@@ -1,8 +1,6 @@
 #![allow(unreachable_code)]
 
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedBooleanExpressionTopology, WorthQueryAdmittedBooleanPredicateExpression,
-};
+use worth_query::facade::runtime::{WorthQueryAdmittedBooleanExpressionTopology, WorthQueryAdmittedBooleanPredicateExpression};
 
 fn main() {
     let _ = WorthQueryAdmittedBooleanPredicateExpression {

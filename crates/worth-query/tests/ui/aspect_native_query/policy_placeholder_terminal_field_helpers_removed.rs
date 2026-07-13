@@ -1,8 +1,6 @@
 use worth_foundational::facade::{AspectKey, FieldKey};
-use worth_query::facade::{
-    AuthorizedProjectionFieldPath, PolicyPlaceholderMaskingDenial,
-    PolicyPlaceholderMaskingRequest,
-};
+use worth_query::facade::foundation::AuthorizedProjectionFieldPath;
+use worth_query::facade::policy::{PolicyPlaceholderMaskingDenial, PolicyPlaceholderMaskingRequest};
 
 fn main() {
     let _ = PolicyPlaceholderMaskingRequest::terminal_requested_placeholder_fields(vec![

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryProgramValue;
+use worth_query::facade::policy::WorthQueryProgramValue;
 
 fn main() {
     let _ = WorthQueryProgramValue {

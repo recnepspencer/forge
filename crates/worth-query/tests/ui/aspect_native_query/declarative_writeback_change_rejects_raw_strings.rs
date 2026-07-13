@@ -1,4 +1,4 @@
-use worth_query::facade::{DeclarativeWritebackChange, DeclarativeWritebackValue};
+use worth_query::facade::foundation::{DeclarativeWritebackChange, DeclarativeWritebackValue};
 
 fn main() {
     let _ = DeclarativeWritebackChange::new(

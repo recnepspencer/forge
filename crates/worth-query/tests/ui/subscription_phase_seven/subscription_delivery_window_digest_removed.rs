@@ -1,4 +1,4 @@
-use worth_query::facade::QueryDeliveryWindow;
+use worth_query::facade::runtime::QueryDeliveryWindow;
 
 fn main() {
     let window: QueryDeliveryWindow = todo!();

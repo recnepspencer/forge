@@ -4,12 +4,13 @@ use super::{
     WorthQueryQueryConfig, WorthQueryRelationalConfig, WorthQueryRuntimeBridgeConfig,
     WorthQuerySignalConfig,
 };
+use crate::basis_lifecycle::basis_lifecycle;
 use crate::harness::fixtures::execution_preflights;
 use crate::identity_evolution::{
     CorrespondenceIdentityComparison, IdentityEvolutionComparisonBasisFamily,
     IdentityEvolutionQueryContext,
 };
-use crate::query_context::{QueryBasisContextRequest, QueryContextBindingSource};
+use crate::query_context::QueryContextBindingSource;
 
 mod bootstrap_semantics;
 mod broad_collection_diff;

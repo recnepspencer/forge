@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectValue, InternedString};
-use worth_query::facade::WorthQueryConsumedProjectionAuthority;
+use worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority;
 
 use super::{WorthUiQueryMeasurementFactFamily, WorthUiQueryPrerequisiteEvidence};
 

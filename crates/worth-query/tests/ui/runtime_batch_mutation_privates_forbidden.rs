@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryBatchWriteReceipt, WorthQueryMutationBatchBuilder,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryBatchWriteReceipt, WorthQueryMutationBatchBuilder};
 
 fn main() {
     let _ = WorthQueryMutationBatchBuilder {

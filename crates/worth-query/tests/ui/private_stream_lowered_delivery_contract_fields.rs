@@ -1,4 +1,4 @@
-use worth_query::facade::StreamLoweredDeliveryContract;
+use worth_query::facade::foundation::StreamLoweredDeliveryContract;
 
 fn main() {
     let _ = StreamLoweredDeliveryContract {

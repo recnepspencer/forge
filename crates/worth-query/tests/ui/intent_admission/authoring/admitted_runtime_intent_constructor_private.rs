@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryAdmittedRuntimeIntent;
+use worth_query::facade::runtime::WorthQueryAdmittedRuntimeIntent;
 
 fn main() {
     let _worthd = WorthQueryAdmittedRuntimeIntent {

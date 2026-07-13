@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionProgram;
+use worth_query::facade::runtime::WorthQueryGraphCompositionProgram;
 
 fn main() {
     let _ = WorthQueryGraphCompositionProgram {

@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBindingLinkedArtifacts, WorthQueryDeclarationEntryOrchestrationStage,
-    WorthQueryOrdinaryBindingCheckedTopologyKind, WorthQueryOrdinaryCheckedTopology,
-};
+use worth_query::facade::foundation::{WorthQueryBindingLinkedArtifacts, WorthQueryDeclarationEntryOrchestrationStage, WorthQueryOrdinaryBindingCheckedTopologyKind, WorthQueryOrdinaryCheckedTopology};
 
 fn main() {
     let linked = WorthQueryBindingLinkedArtifacts::new();

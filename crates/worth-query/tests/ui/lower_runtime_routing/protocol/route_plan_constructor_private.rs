@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryLowerRuntimeCapabilityEligibility, WorthQueryLowerRuntimeRoutePlan,
-};
+use worth_query::facade::runtime::{WorthQueryLowerRuntimeCapabilityEligibility, WorthQueryLowerRuntimeRoutePlan};
 
 fn main() {
     let eligibility: WorthQueryLowerRuntimeCapabilityEligibility = todo!();

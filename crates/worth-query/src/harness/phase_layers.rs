@@ -7,8 +7,8 @@ fn phase_aligned_fixtures_compose_pipeline_artifacts() {
         &validated,
         &crate::harness::fixtures::resolved_bases::primary_snapshot_identity(),
     );
-    let plan = crate::facade::plan_validated_bundle(&validated, request).unwrap();
-    let preflight = crate::facade::preflight_execution_basis(plan, basis).unwrap();
+    let plan = crate::facade::policy::plan_validated_bundle(&validated, request).unwrap();
+    let preflight = crate::facade::foundation::preflight_execution_basis(plan, basis).unwrap();
 
     assert_eq!(
         canonical.query().digest().as_str(),
@@ -28,9 +28,10 @@ fn bound_fixture_paths_support_bound_and_pre_resolved_planning() {
             "user-1",
         );
 
-    let bound_plan = crate::facade::plan_validated_bundle(&bound_bundle, bound_request).unwrap();
+    let bound_plan =
+        crate::facade::policy::plan_validated_bundle(&bound_bundle, bound_request).unwrap();
     let pre_resolved_plan =
-        crate::facade::plan_validated_bundle(&bound_bundle, pre_resolved_request).unwrap();
+        crate::facade::policy::plan_validated_bundle(&bound_bundle, pre_resolved_request).unwrap();
 
     assert_eq!(
         bound_plan.query().plan_digest(),

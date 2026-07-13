@@ -1,38 +1,38 @@
 error: cannot construct `WorthQueryDeclarationEntryOrchestrationMaterializationPolicy` with struct literal syntax due to private fields
-  --> tests/ui/domain_declaration/boundaries/construction/orchestration/policy/orchestration_materialization_policy_private.rs:10:13
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/policy/orchestration_materialization_policy_private.rs:5:13
    |
-10 |       let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy {
+ 5 |       let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy {
    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-11 | /         foundational_evidence_profile:
-12 | |             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
+ 6 | /         foundational_evidence_profile:
+ 7 | |             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
    | |_______________________________________________________________________________________- private field
-13 |           receipt_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+ 8 |           receipt_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
    |           -------------------------------------------------------------------------------------- private field
-14 |           envelope_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+ 9 |           envelope_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
    |           ------------------------------------------------------------------------------------------ private field
-15 |           support_rich_publication_admitted: true,
+10 |           support_rich_publication_admitted: true,
    |           --------------------------------------- private field
-16 |           diagnostic_rich_publication_admitted: true,
+11 |           diagnostic_rich_publication_admitted: true,
    |           ------------------------------------------ private field
-17 |           cost_posture: WorthQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+12 |           cost_posture: WorthQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
    |           -------------------------------------------------------------------------------- private field
-18 | /         materialization_gate:
-19 | |             WorthQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+13 | /         materialization_gate:
+14 | |             WorthQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
    | |_________________________________________________________________________________________- private field
    |
    = note: ...and other private fields `foundational_aspect_publication`, `receipt_aspect_publication` and `envelope_aspect_publication` that were not provided
 help: you might have meant to use the `default_for_lane` associated function
    |
-10 -     let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy {
-11 -         foundational_evidence_profile:
-12 -             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
-13 -         receipt_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
-14 -         envelope_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
-15 -         support_rich_publication_admitted: true,
-16 -         diagnostic_rich_publication_admitted: true,
-17 -         cost_posture: WorthQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
-18 -         materialization_gate:
-19 -             WorthQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
-20 -     };
-10 +     let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy::default_for_lane(_, _, _, _);
+ 5 -     let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy {
+ 6 -         foundational_evidence_profile:
+ 7 -             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
+ 8 -         receipt_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+ 9 -         envelope_tier: WorthQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+10 -         support_rich_publication_admitted: true,
+11 -         diagnostic_rich_publication_admitted: true,
+12 -         cost_posture: WorthQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+13 -         materialization_gate:
+14 -             WorthQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+15 -     };
+ 5 +     let _ = WorthQueryDeclarationEntryOrchestrationMaterializationPolicy::default_for_lane(_, _, _, _);
    |

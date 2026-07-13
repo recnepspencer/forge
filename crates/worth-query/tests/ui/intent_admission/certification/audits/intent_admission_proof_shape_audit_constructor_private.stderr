@@ -1,15 +1,15 @@
 error[E0451]: fields `admitted_phase_progression`, `advisory_phase_progression`, `violation_phase_progression`, `decision_phase_progression_digest` and `decision_proof_shape_digest` of struct `WorthQueryIntentAdmissionProofShapeAudit` are private
-  --> tests/ui/intent_admission/certification/audits/intent_admission_proof_shape_audit_constructor_private.rs:7:9
+  --> tests/ui/intent_admission/certification/audits/intent_admission_proof_shape_audit_constructor_private.rs:6:9
    |
- 6 |     let _ = WorthQueryIntentAdmissionProofShapeAudit {
+ 5 |     let _ = WorthQueryIntentAdmissionProofShapeAudit {
    |             ---------------------------------------- in this type
- 7 |         admitted_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
+ 6 |         admitted_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 8 |         advisory_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
+ 7 |         advisory_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         violation_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
+ 8 |         violation_phase_progression: vec![WorthQueryIntentDecisionTraceStage::RawIntent],
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         decision_phase_progression_digest: String::new(),
+ 9 |         decision_phase_progression_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         decision_proof_shape_digest: String::new(),
+10 |         decision_proof_shape_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

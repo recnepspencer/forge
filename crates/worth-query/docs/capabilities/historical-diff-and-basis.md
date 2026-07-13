@@ -2,226 +2,130 @@
 
 ## What This Feature Is
 
-Historical basis and diff queries let Worth Query bind a validated query to an
-admitted execution basis, materialize that query against current or historical
-snapshots, and shape comparisons as query-level change sets rather than raw
-storage deltas.
+Historical basis and diff queries let you run the same validated query against
+different admitted versions of truth, then compare the query-shaped results.
+They preserve Query meaning across current, branch, preview-derived, and
+retained-history worlds instead of exposing raw storage deltas.
 
 ## Why You Use It
 
-- you need the same query to run against current, branch, preview, or
-  historical bases
-- you want retained-history reuse when it is legal and available
-- you need typed admission around historical replay, reconstruction, and basis
-  substitution
-- you want diff results shaped as query outputs, not low-level record churn
+- Run one canonical query against current or retained historical truth.
+- Make branch or preview comparisons without changing the query expression.
+- Reuse retained history only when the runtime can prove that reuse is valid.
+- Receive typed denials for unsupported replay, reconstruction, or basis
+  substitution.
+- Produce added, removed, modified, and unchanged query-result rows rather than
+  low-level record churn.
 
 ## Stable Entry Points
 
-- `resolve_snapshot_basis(...)`
-- `preflight_execution_basis(...)`
-- `bind_query_basis_context(...)`
+Declare the truth world through the foundation facade:
+
+```rust
+use worth_query::facade::foundation::basis_lifecycle;
+```
+
+Use the policy facade to bind that declaration to Query-owned runtime or
+historical evidence:
+
 - `admit_query_basis_context(...)`
 - `execute_query_basis_context(...)`
-- `attach_query_basis_metadata(...)`
-- `build_query_basis_result_bundle(...)`
-- `admit_historical_evaluation_path(...)`
-- `resolve_historical_materialization_path(...)`
+- `execute_and_build_query_basis_result_bundle(...)`
 - `bind_diff_query_context(...)`
 - `shape_query_diff_change_set(...)`
-- `attach_diff_query_metadata(...)`
 - `build_query_diff_result_bundle(...)`
 
-Important public vocabulary:
+Historical path selection is exposed through the foundation facade:
 
-- `ExecutionBasisIntent`
-- `ResolvedSnapshotBasis`
-- `SnapshotResolutionReport`
 - `HistoricalEvaluationRequest`
-- `HistoricalPathResolved`
+- `admit_historical_evaluation_path(...)`
+- `resolve_historical_materialization_path(...)`
 - `HistoricalEvaluationAdmission`
-- `ComparisonBasisFamily`
-- `QueryDiffChangeSetArtifact`
-- `worth_query_basis_observation_intent(...)`
-- `RawBasisIntent`
-- `ObservationBasisCapability`
-- `ReplayBasisCapability`
-- `ScopedObservationBasis`
-- `ScopedReplayBasis`
+- `HistoricalMaterializationPathMetadata`
+
+Store-backed replay and reconstruction remain support-gated. A visible type or
+request family does not imply that the active runtime profile admits it.
 
 ## Core Mental Model
 
-The query stays the same. The basis changes.
+The query stays the same; the admitted basis changes.
 
-This feature answers three linked questions:
+Query owns three linked decisions:
 
-- which snapshot or branch head are we asking about
-- whether that basis is admitted for this query and support posture
-- whether a comparison can be expressed as a query-shaped diff
+1. which truth world the caller declared
+2. whether the supplied runtime or history evidence authorizes that world for
+   this query
+3. whether two admitted query contexts can form a meaningful comparison
 
-Basis work is explicit because authority matters. A current runtime head,
-branch head, retained historical snapshot, preview-derived historical context,
-or future store-backed replay are not interchangeable.
+The resulting `ScopedQueryBasisContext` keeps the operation-scoped basis proof
+and the admitted query context together. Its digest getters are useful for
+inspection, but cannot be used to construct another context.
 
-Diff work is also explicit. Worth Query does not expose "compare arbitrary
-storage blobs." It shapes differences through the same query meaning that would
-have been materialized on each side.
-
-Good to know:
-
-- basis observation is now also a covered admitted family through
-  `worth_query_basis_observation_intent(...)`
-- that admitted family is the public basis-observation entry point when you
-  need one scoped basis artifact directly instead of a full basis-bound query
-  execution
-- the query basis lifecycle is also the public place where preview,
-  historical replay, lower-runtime binding, and future temporal or async basis
-  posture get typed before execution starts
-- if you need to ask "is this basis artifact ready, advisory, stale, or denied"
-  without materializing the whole query, use the basis capability or scoped
-  basis artifact itself rather than carrying raw branch, snapshot, or preview
-  identifiers forward
-- subscription basis binding now also follows the same rule: temporal basis
-  posture belongs in the canonical subscription declaration before active
-  lifecycle begins, and bridge-facing basis requests are projections from that
-  declaration rather than a second identity authority
-- policy, tenant, relationship-proof, and schema-context drift now follow the
-  same basis-first rule for temporal/async retained meaning: Query remasks or
-  denies before public delivery, state, or inspection projection instead of
-  materializing first and filtering later
-- basis-aware runtimes may also attach historical-basis metadata to
-  declaration-time whole-refresh computed initialization, so retained derived
-  surfaces can seed honestly from one admitted historical basis without
-  caller-side reconstruction
-- once those retained derived rows exist, downstream crates should consume them
-  through the admitted materialization floor rather than reopening raw row
-  archaeology;
-  `materialize_intent(...).execute().terminal_json_decode_single_row::<T>()`
-  is the preferred terminal export seam for one typed historical computed row
-- when one historical step needs a coherent retained artifact across several
-  computed surfaces from the same admitted basis, downstream crates should use
-  `materialize_derived_artifact_bundle(...)` instead of rebuilding that pack
-  through repeated local materialization loops
-  - when that historical pack also needs exact artifact identity over a specific
-  set of retained computed surfaces, downstream crates should bind the bundle
-  through `bind_retained_artifact(...)` so the runtime owns the target-set
-  contract and artifact digest
-  - when the caller already knows the historical step is one exact named
-  retained artifact, prefer `materialize_derived_artifact_binding(...)` so the
-  runtime owns both materialization and binding in one seam
-- when a historical proof or comparison step needs typed identity, membership,
-  provenance, continuity, or other declared facts from retained derived/live
-  artifacts, downstream crates should use `consume_projection_authority(...)`
-  on those retained artifact bindings instead of reopening older helper seams
-- retained scalar/bundle helpers still exist as expert historical utilities
-  when the exact named artifact contract itself is the product surface, but
-  they are no longer the ordinary typed-fact lane after the retained/live
-  projection-consumption closure
+A diff is defined over query results. It is not an API for comparing arbitrary
+snapshots or storage blobs.
 
 ## How It Executes
 
-1. Resolve a requested basis through `resolve_snapshot_basis(...)` and
-   `preflight_execution_basis(...)`.
-2. Bind that basis to a validated query with `bind_query_basis_context(...)`.
-3. Admit the basis context for execution.
-4. Execute the admitted basis context and attach basis metadata.
-5. For comparisons, bind a diff context across two admitted bases.
-6. Shape a query-level change set and package it into a diff result bundle.
+```text
+validated query + basis declaration + Query-owned binding evidence
+  -> scoped query-context admission
+  -> execution against the admitted world
+  -> result with basis metadata
 
-Historical path work adds another explicit layer:
+two compatible scoped query contexts
+  -> diff-context admission
+  -> query-shaped change set
+  -> diff result bundle
+```
 
-- admit the requested historical path
-- resolve the materialization path
-- preserve cost, reconstruction, replay-span, and reuse posture in the result
-
-One more runtime consequence matters for downstream crates that declare
-maintained computed surfaces over historical truth:
-
-- when the runtime already has retained upstream rows for an admitted
-  historical basis, declaration-time whole-refresh computeds can materialize
-  immediately
-- the runtime carries that historical-basis metadata through retained refresh
-  context instead of asking the maintainer or caller to rediscover it from raw
-  rows
-- downstream callers that need one typed retained historical row should cross
-  the admitted derived-materialization artifact instead of combining
-  `workspace.materialize_result(...)` with local decode helpers
-- downstream callers that need several typed retained historical computed rows
-  from one admitted basis should cross the retained derived-materialization
-  bundle artifact instead of assembling the pack locally
-- downstream callers that need only retained scalar basis evidence from one
-  admitted historical derived row should cross the retained scalar fact set
-  artifact instead of rebuilding that evidence from decoded structs
+Historical work adds an admitted materialization path before context binding.
+The path records whether retained state, replay-tail reuse, or reconstruction
+is legal and what work it predicts.
 
 ## Small Example
 
 ```rust
-use worth_query::query_context::{
-    admit_query_basis_context, bind_query_basis_context, execute_query_basis_context,
-    QueryBasisContextRequest, QueryContextBindingSource,
+use worth_query::facade::{
+    foundation::basis_lifecycle,
+    policy::{
+        admit_query_basis_context, execute_query_basis_context,
+        QueryContextBindingSource,
+    },
 };
 
-let request = QueryBasisContextRequest::current_branch_head();
-let context = bind_query_basis_context(
-    request,
+let context = admit_query_basis_context(
+    basis_lifecycle().current_head(),
     QueryContextBindingSource::RuntimeCurrent(&preflight_bundle),
 )?;
-let admitted = admit_query_basis_context(context)?;
-let artifact = execute_query_basis_context(&admitted)?;
+
+let result = execute_query_basis_context(&context)?;
+assert_eq!(result.query_digest(), context.query_digest());
 ```
 
-This is the smallest honest example because it shows the sequence that keeps
-authority and execution posture explicit.
-
-The direct basis-observation family is intentionally smaller:
-
-```rust
-let scoped_basis = worth_query_basis_observation_intent(
-    RawBasisIntent::CurrentHead,
-)?
-.review()?
-.admit()?
-.scope();
-```
-
-You can also inspect the basis artifact's state directly:
-
-```rust
-let state = workspace.state(&scoped_basis)?;
-assert_eq!(state.kind().as_str(), "ready");
-```
-
-You can inspect that same artifact through the unified inspection surface:
-
-```rust
-let inspection = workspace.inspect(&scoped_basis)?;
-
-match inspection {
-    WorthQueryInspection::BasisLifecycle(basis) => {
-        assert_eq!(basis.subject_label(), "scoped_observation_basis");
-        assert_eq!(basis.state_kind().as_str(), "ready");
-    }
-    other => panic!("expected basis lifecycle inspection, got {other:?}"),
-}
-```
-
-Both surfaces are digest-bound to the typed basis artifact. They are not a
-best-effort reconstruction from raw snapshot IDs.
+The caller declares current truth and supplies the preflight evidence Query
+already produced. Query performs lifecycle admission and context binding as one
+transition; the caller never assembles a scoped context.
 
 ## Real Example
 
 ```rust
-use worth_query::historical::HistoricalEvaluationRequest;
-use worth_query::historical::HistoricalPathReuseDescriptor;
-use worth_query::query_context::{
-    admit_query_basis_context, bind_diff_query_context, bind_query_basis_context,
-    shape_query_diff_change_set, QueryBasisContextRequest, QueryContextBindingSource,
+use worth_query::facade::{
+    foundation::{
+        admit_historical_evaluation_path, basis_lifecycle,
+        resolve_historical_materialization_path, HistoricalEvaluationRequest,
+        HistoricalPathReuseDescriptor,
+    },
+    policy::{
+        admit_query_basis_context, bind_diff_query_context,
+        shape_query_diff_change_set, QueryContextBindingSource,
+        QueryDiffChangeFamily,
+    },
 };
 
-let current_context = admit_query_basis_context(bind_query_basis_context(
-    QueryBasisContextRequest::current_branch_head(),
+let current = admit_query_basis_context(
+    basis_lifecycle().current_head(),
     QueryContextBindingSource::RuntimeCurrent(&current_preflight),
-)?)?;
+)?;
 
 let request = HistoricalEvaluationRequest::retained_snapshot(
     "workflow-main@snapshot-42",
@@ -229,23 +133,25 @@ let request = HistoricalEvaluationRequest::retained_snapshot(
     0,
     HistoricalPathReuseDescriptor::retained_reuse(),
 );
-let path = admit_historical_evaluation_path(&validated, &request)?;
-let resolved = resolve_historical_materialization_path(&path)?;
+let admitted_path = admit_historical_evaluation_path(&validated, &request)?;
+let materialization = resolve_historical_materialization_path(&admitted_path)?;
 
-let historical_context = admit_query_basis_context(bind_query_basis_context(
-    QueryBasisContextRequest::historical_snapshot("workflow-main@snapshot-42"),
+let historical = admit_query_basis_context(
+    basis_lifecycle().historical_snapshot(
+        "workflow-main@snapshot-42",
+        true,
+    ),
     QueryContextBindingSource::Historical {
         query_preflight: &historical_preflight,
-        admission: &path,
-        metadata: &resolved,
+        admission: &admitted_path,
+        metadata: &materialization,
     },
-)?)?;
+)?;
 
-let diff = bind_diff_query_context(&current_context, &historical_context)?;
-let change_set = shape_query_diff_change_set(&diff)?;
+let comparison = bind_diff_query_context(&current, &historical)?;
+let changes = shape_query_diff_change_set(&comparison)?;
 
-assert_eq!(change_set.comparison_basis_family().as_str(), "current_to_historical");
-assert!(change_set.rows().iter().all(|row| {
+assert!(changes.rows().iter().all(|row| {
     matches!(
         row.change_family(),
         QueryDiffChangeFamily::Added
@@ -254,79 +160,71 @@ assert!(change_set.rows().iter().all(|row| {
             | QueryDiffChangeFamily::Unchanged
     )
 }));
-
-assert_eq!(resolved.resolved_path_class().as_str(), "resolved_retained_snapshot_path");
 ```
 
-Two important things are happening here:
-
-- the diff is expressed as the query's result meaning, not raw row-store churn
-- retained history reuse is explicit, costed, and admitted rather than assumed
+The historical path is admitted before the context exists. The comparison then
+uses two scoped contexts that still refer to the same canonical query meaning.
+The output describes changes to that query's result, not every underlying
+storage mutation between the two worlds.
 
 ## How It Relates To Other Features
 
-- Start with a legal query from [Schema Validation](../modeling/schema-validation.md).
-- Use [Scopes, Templates, Saved Queries, And View Shapes](../authoring/scopes-templates-saved-queries-and-view-shapes.md)
-  when the query came from reusable higher-order composition.
-- Historical basis is a query execution feature, not the same thing as runtime
-  `workspace.state(...)` from [State](../foundations/state.md).
-- Use [Intent Admission](../execution/intent-admission.md) when you want the
-  shared admitted-family story for basis observation itself.
-- Historical comparisons pair naturally with [Lineage And Correspondence](lineage-and-correspondence.md)
-  when identity continuity matters across time.
+- [Basis Capability Lifecycle](./basis-capability-lifecycle.md) owns the sealed
+  world and operation proof used by query-context admission.
+- [Schema Validation](../modeling/schema-validation.md) establishes the
+  canonical query meaning that must remain equal across a comparison.
+- [Lineage And Correspondence](./lineage-and-correspondence.md) explains entity
+  continuity when identity changes across history.
+- [Projection Consumption](./projection-consumption.md) transfers facts from a
+  historical result without reopening its basis authority.
+- [Scopes, Templates, Saved Queries, And View Shapes](../authoring/scopes-templates-saved-queries-and-view-shapes.md)
+  describes reusable query authoring before basis admission.
 
 ## Inspection And Debugging
 
-Look at the basis and historical artifacts directly:
+Inspect the typed artifacts rather than reconstructing posture from labels:
 
-- `SnapshotResolutionReport`
-- `HistoricalEvaluationAdmission`
-- `HistoricalMaterializationPathMetadata`
-- `HistoricalCounterSnapshot`
-- `QueryDiffChangeSetArtifact`
-- `WorthQueryInspection::BasisLifecycle`
+- `ScopedQueryBasisContext` reports family, authority family, cost, budget,
+  drift, and historical admission posture.
+- `SnapshotResolutionReport` explains snapshot resolution.
+- `HistoricalEvaluationAdmission` explains whether the requested path was
+  admitted.
+- `HistoricalMaterializationPathMetadata` reports retained-state, replay, or
+  reconstruction posture and predicted work.
+- `QueryDiffChangeSetArtifact` reports comparison family and row-level change
+  classification.
 
-Important posture signals include:
-
-- basis authority family: runtime vs store
-- resolution mode: direct vs replay vs reconstruction
-- retained-state reuse eligibility
-- replay-tail reuse eligibility
-- performance prediction drift
-- comparison basis family and diff-shape legality
-
-If a diff or historical execution denies early, inspect whether the failure came
-from basis substitution, unsupported replay/reconstruction scope, or a query
-shape that broadened beyond the admitted comparison contract.
+If admission stops early, check basis substitution, support posture, replay or
+reconstruction limits, and whether both sides preserve the same query digest.
 
 ## Anti-Patterns
 
-- Treating a basis handle as a loose timestamp instead of an authority-bound
-  execution contract.
-- Passing raw branch, snapshot, preview, or restart identifiers around after
-  Query already admitted a typed basis artifact.
-- Comparing two different query digests and expecting a meaningful diff.
-- Using historical APIs to ask for raw storage deltas instead of query-shaped
-  result changes.
-- Assuming store-backed replay and reconstruction are already equivalent to
-  runtime-backed retained history.
+- Treating a basis as a timestamp or free-form snapshot label.
+- Building a query context from independently assembled identifiers or
+  reporting digests.
+- Comparing contexts produced from different canonical queries.
+- Asking historical APIs for raw storage deltas.
+- Rebuilding retained artifact packs with consumer-owned loops when a typed
+  materialization or projection-consumption surface already owns the result.
+- Assuming durable reload or store-backed reconstruction because retained
+  runtime history is supported.
 
 ## Current Limits
 
 - Runtime-backed current, branch, preview-derived, and retained-history paths
-  are the strongest supported surfaces here.
-- Store-backed retained-history parity exists in the tested surface area.
-- Store-backed replay and reconstruction remain explicit deferred debt and deny
-  typed and early where not yet supported.
-- Basis substitution that crosses the admitted authority contract is denied.
-- Temporal/async runtime-backed meaning that no longer matches the admitted
-  policy, tenant, relationship-proof, or schema context is remasked or denied
-  before public projection.
+  are the strongest supported surfaces.
+- Store-backed retained-history parity exists only for admitted rows in the
+  support matrix.
+- Store-backed replay, reconstruction, and durable reload remain deferred
+  where the active profile does not admit them.
+- Cross-basis substitution and cross-query comparison fail closed.
+- Policy, tenant, relationship-proof, and schema-context changes can remask or
+  deny a retained result before public projection.
 
 ## Related Docs
 
+- [Basis Capability Lifecycle](./basis-capability-lifecycle.md)
 - [Schema Validation](../modeling/schema-validation.md)
-- [Lineage And Correspondence](lineage-and-correspondence.md)
-- [Scopes, Templates, Saved Queries, And View Shapes](../authoring/scopes-templates-saved-queries-and-view-shapes.md)
-
-
+- [Lineage And Correspondence](./lineage-and-correspondence.md)
+- [Projection Consumption](./projection-consumption.md)
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

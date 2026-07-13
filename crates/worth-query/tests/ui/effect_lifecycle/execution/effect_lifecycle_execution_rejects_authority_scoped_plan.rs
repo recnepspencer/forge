@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    execute_lowered_effect_plan, AuthorityScopedEffectPlan, EffectExecutionAuthority,
-};
+use worth_query::facade::foundation::{execute_lowered_effect_plan, AuthorityScopedEffectPlan, EffectExecutionAuthority};
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 
 fn authority_scoped_plan() -> AuthorityScopedEffectPlan {

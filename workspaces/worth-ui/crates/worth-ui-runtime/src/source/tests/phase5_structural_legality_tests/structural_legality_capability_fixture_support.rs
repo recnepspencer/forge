@@ -17,7 +17,10 @@ use crate::capability::{
     MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME, SURFACE_FAMILY_NAME,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 
 use super::structural_legality_snapshot_support::merge_support_candidates;
 

@@ -1,18 +1,18 @@
-error[E0432]: unresolved imports `worth_query::facade::execute_parallel_admission_route`, `worth_query::facade::ParallelAdmissionRoute`, `worth_query::facade::SerialFallbackRoute`
- --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:2:5
+error[E0432]: unresolved imports `worth_query::facade::foundation::execute_parallel_admission_route`, `worth_query::facade::foundation::ParallelAdmissionRoute`, `worth_query::facade::foundation::SerialFallbackRoute`
+ --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:1:39
   |
-2 |     execute_parallel_admission_route, ParallelAdmissionRoute, SerialFallbackRoute,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade`
-  |     |                                 |
-  |     |                                 no `ParallelAdmissionRoute` in `facade`
-  |     no `execute_parallel_admission_route` in `facade`
+1 | use worth_query::facade::foundation::{execute_parallel_admission_route, ParallelAdmissionRoute, SerialFallbackRoute};
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade::foundation`
+  |                                       |                                 |
+  |                                       |                                 no `ParallelAdmissionRoute` in `facade::foundation`
+  |                                       no `execute_parallel_admission_route` in `facade::foundation`
 
 warning: unreachable statement
- --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:7:5
+ --> tests/ui/serial_route_cannot_use_parallel_entrypoint.rs:5:5
   |
-6 |     let route: SerialFallbackRoute = todo!();
+4 |     let route: SerialFallbackRoute = todo!();
   |                                      ------- any code following this expression is unreachable
-7 |     let _parallel: ParallelAdmissionRoute = todo!();
+5 |     let _parallel: ParallelAdmissionRoute = todo!();
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default

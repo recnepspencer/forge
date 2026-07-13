@@ -1,8 +1,8 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use worth_foundational::facade::{
     AspectKey, AspectMask, AspectMaskLocator, CanonicalFieldPath, DiagnosticMask, FieldKey,
     LocatorAuthority,
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub(crate) mod canonical_basis;
 

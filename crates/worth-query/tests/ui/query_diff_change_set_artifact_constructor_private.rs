@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    ComparisonBasisFamily, QueryContextPredictionDriftOutcome, QueryDiffChangeSetArtifact,
-};
+use worth_query::facade::policy::{ComparisonBasisFamily, QueryContextPredictionDriftOutcome, QueryDiffChangeSetArtifact};
 
 fn main() {
     let _ = QueryDiffChangeSetArtifact {

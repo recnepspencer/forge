@@ -8,8 +8,8 @@ use crate::certification_bundle::{
 
 use super::worth_native_common::{
     direct_bundle, direct_projection_success, direct_retained_posture_success,
-    direct_state_success, worth_native_session_for_branch, projection_request,
-    support_posture_digest,
+    direct_state_success, projection_request, support_posture_digest,
+    worth_native_session_for_branch,
 };
 
 pub fn product_retained_bundle(

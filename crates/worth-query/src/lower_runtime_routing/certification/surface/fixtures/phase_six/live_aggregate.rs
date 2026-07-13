@@ -29,10 +29,9 @@ use crate::subscription::{
     ActiveFanoutWidth, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPosture,
     ActiveSubscriptionRuntime, ActiveSubscriptionWorkBudget, ConsumerDeliveryPacingWidth,
     DeliveryBackpressurePolicy, QuerySubscriptionAdmissionBudget,
-    QuerySubscriptionAdmissionDimensions, QuerySubscriptionBasisPosture,
-    QuerySubscriptionBridgeLoweringBudget, QuerySubscriptionSliceBudget,
-    QuerySubscriptionWorkBudget, SubscriptionActivationInput, SubscriptionConsumerAttachmentBudget,
-    SubscriptionConsumerAttachmentRequest,
+    QuerySubscriptionAdmissionDimensions, QuerySubscriptionBridgeLoweringBudget,
+    QuerySubscriptionSliceBudget, QuerySubscriptionWorkBudget, SubscriptionActivationInput,
+    SubscriptionConsumerAttachmentBudget, SubscriptionConsumerAttachmentRequest,
 };
 
 const LIVE_AGGREGATE_VIEW_NAME: &str = "tasks.live-aggregate";
@@ -206,7 +205,10 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
     let live_admission =
         crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view(
             session.live_view().core_live_plan().descriptor(),
-            QuerySubscriptionBasisPosture::CurrentHead,
+            crate::basis_lifecycle::basis_lifecycle()
+                .current_head()
+                .declare_subscription()
+                .expect("current subscription basis should admit"),
             session.live_view().lowering().family(),
             QuerySubscriptionAdmissionDimensions::collection_membership(
                 NonZeroUsize::new(2).expect("projection width"),

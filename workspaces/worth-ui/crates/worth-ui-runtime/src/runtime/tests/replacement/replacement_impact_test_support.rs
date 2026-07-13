@@ -6,7 +6,10 @@ use crate::capability::{
     SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenDescriptor,
     ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::candidate::rust_authored_replacement_candidate;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiReplacementCause,

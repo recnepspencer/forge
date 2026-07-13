@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryEffectInspectionEvidence;
+use worth_query::facade::runtime::WorthQueryEffectInspectionEvidence;
 
 fn assert_no_neutral_condition_aspect_aliases(evidence: &WorthQueryEffectInspectionEvidence) {
     let _ = evidence.condition_inputs();

@@ -1,4 +1,4 @@
-use worth_query::facade::QueryPatchGroup;
+use worth_query::facade::runtime::QueryPatchGroup;
 
 fn main() {
     let _: Vec<QueryPatchGroup> = vec![

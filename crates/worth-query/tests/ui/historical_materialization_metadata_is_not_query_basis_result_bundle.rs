@@ -1,4 +1,5 @@
-use worth_query::facade::{HistoricalMaterializationPathMetadata, QueryBasisResultBundle};
+use worth_query::facade::foundation::HistoricalMaterializationPathMetadata;
+use worth_query::facade::policy::QueryBasisResultBundle;
 
 fn takes_bundle(_: QueryBasisResultBundle) {}
 

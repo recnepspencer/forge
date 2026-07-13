@@ -95,13 +95,13 @@ pub use readiness::{
     foundational_profile_milestone3_readiness_report,
     require_foundational_profile_milestone3_production_test_readiness,
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
-    FoundationalProfileCompileFailBoundary, FoundationalProfileWORTHProofApi,
+    FoundationalProfileCompileFailBoundary, FoundationalProfileMilestone3PhaseGate,
+    FoundationalProfilePhaseGateEvidence, FoundationalProfileProductionReadinessAuthority,
+    FoundationalProfileProductionReadinessReport, FoundationalProfileProductionReadinessScope,
+    FoundationalProfileProductionTestReadyArtifact, FoundationalProfileResidualDebt,
+    FoundationalProfileRuntimeAssumption, FoundationalProfileRuntimeNonAssumption,
+    FoundationalProfileSyntheticRuntimePressure, FoundationalProfileWORTHProofApi,
     FoundationalProfileWORTHProofForbiddenSurface, FoundationalProfileWORTHProofSurface,
-    FoundationalProfileMilestone3PhaseGate, FoundationalProfilePhaseGateEvidence,
-    FoundationalProfileProductionReadinessAuthority, FoundationalProfileProductionReadinessReport,
-    FoundationalProfileProductionReadinessScope, FoundationalProfileProductionTestReadyArtifact,
-    FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
-    FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
 };
 
 use crate::facade::ResponsibilityArea;

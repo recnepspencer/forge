@@ -1,4 +1,4 @@
-use worth_query::facade::ViewShapeDeliveryMetadata;
+use worth_query::facade::runtime::ViewShapeDeliveryMetadata;
 
 fn assert_no_terminal_delivery_aspect_projection(metadata: &ViewShapeDeliveryMetadata) {
     let _ = metadata.terminal_focus_aspect_projection();

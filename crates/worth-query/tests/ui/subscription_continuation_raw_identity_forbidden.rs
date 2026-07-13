@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    admit_subscription_continuation_evidence, ContinuationRemapWidth,
-    SubscriptionContinuationClass,
-};
+use worth_query::facade::runtime::{admit_subscription_continuation_evidence, ContinuationRemapWidth, SubscriptionContinuationClass};
 
 fn main() {
     let _evidence = admit_subscription_continuation_evidence(

@@ -1,7 +1,7 @@
 error[E0599]: no function or associated item named `new` found for struct `WorthQueryMutationDelta` in the current scope
- --> tests/ui/aspect_native_query/mutation_delta_string_constructor_removed.rs:8:38
+ --> tests/ui/aspect_native_query/mutation_delta_string_constructor_removed.rs:5:38
   |
-8 |     let _ = WorthQueryMutationDelta::new(
+5 |     let _ = WorthQueryMutationDelta::new(
   |                                      ^^^ function or associated item not found in `WorthQueryMutationDelta`
   |
 note: if you're trying to build a new `WorthQueryMutationDelta`, consider using `WorthQueryMutationDelta::from_touched_aspects` which returns `WorthQueryMutationDelta`

@@ -1,7 +1,7 @@
 error[E0624]: method `view_name` is private
- --> tests/ui/aspect_native_query/artifact_target_view_name_alias_removed.rs:9:28
+ --> tests/ui/aspect_native_query/artifact_target_view_name_alias_removed.rs:7:28
   |
-9 |     let _ = derived_target.view_name();
+7 |     let _ = derived_target.view_name();
   |                            ^^^^^^^^^ private method
   |
  ::: src/runtime/surface/derived_materialization_bundle.rs
@@ -10,12 +10,12 @@ error[E0624]: method `view_name` is private
   |     -------------------------------------- private method defined here
 
 error[E0624]: method `view_name` is private
-  --> tests/ui/aspect_native_query/artifact_target_view_name_alias_removed.rs:10:25
-   |
-10 |     let _ = live_target.view_name();
-   |                         ^^^^^^^^^ private method
-   |
-  ::: src/runtime/surface/live_artifact_bundle.rs
-   |
-   |     pub(crate) fn view_name(&self) -> &str {
-   |     -------------------------------------- private method defined here
+ --> tests/ui/aspect_native_query/artifact_target_view_name_alias_removed.rs:8:25
+  |
+8 |     let _ = live_target.view_name();
+  |                         ^^^^^^^^^ private method
+  |
+ ::: src/runtime/surface/live_artifact_bundle.rs
+  |
+  |     pub(crate) fn view_name(&self) -> &str {
+  |     -------------------------------------- private method defined here

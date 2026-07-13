@@ -1,4 +1,4 @@
-use worth_query::facade::ViewShapeDescriptor;
+use worth_query::facade::runtime::ViewShapeDescriptor;
 
 use crate::capability::{
     AdmittedCapability, CommandDescriptor, CommandId, CommandProjectionDescriptor,

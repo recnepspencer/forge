@@ -1,6 +1,6 @@
-use worth_signal::facade::history::RuntimeSnapshot;
 use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::history::RuntimeSnapshot;
 
 use crate::boundary::restore_tokens::{
     load_snapshot, load_snapshot_envelope, store_snapshot, store_snapshot_envelope,

@@ -1,4 +1,4 @@
-use worth_query::facade::{PolicyPlaceholderMaskingDenial, PolicyPlaceholderMaskingRequest};
+use worth_query::facade::policy::{PolicyPlaceholderMaskingDenial, PolicyPlaceholderMaskingRequest};
 
 fn main() {
     let request = request_fixture();

@@ -1,4 +1,5 @@
 use crate::basis::ExecutionPreflightBundle;
+use crate::basis_lifecycle::BasisLifecycleIntentDraft;
 use crate::composition::{
     ExpandedComposedIntent, GuidedCompositionPath, QueryCompositionError, QueryScopeDescriptor,
     QueryTemplateDescriptor, TemplateBindingSet,
@@ -20,12 +21,11 @@ use crate::preview::{
 };
 use crate::query_context::{
     admit_query_basis_context, attach_diff_query_metadata, attach_query_basis_metadata,
-    bind_diff_query_context, bind_query_basis_context, build_query_basis_result_bundle,
-    build_query_diff_result_bundle, execute_query_basis_context, shape_query_diff_change_set,
-    AdmittedDiffQueryContext, AdmittedQueryBasisContext, DiffQueryMetadata,
-    QueryBasisContextBinding, QueryBasisContextRequest, QueryBasisMetadata, QueryBasisResultBundle,
-    QueryContextAdmissionError, QueryContextBindingSource, QueryContextExecutionArtifact,
-    QueryDiffChangeSetArtifact, QueryDiffResultBundle,
+    bind_diff_query_context, build_query_basis_result_bundle, build_query_diff_result_bundle,
+    execute_query_basis_context, shape_query_diff_change_set, AdmittedDiffQueryContext,
+    DiffQueryMetadata, QueryBasisMetadata, QueryBasisResultBundle, QueryContextAdmissionError,
+    QueryContextBindingSource, QueryContextExecutionArtifact, QueryDiffChangeSetArtifact,
+    QueryDiffResultBundle, ScopedQueryBasisContext, ScopedQueryContextAdmissionError,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, QueryWorkflowDeclaration,
@@ -228,27 +228,19 @@ impl QueryContextCapability {
         Self { facade_digest }
     }
 
-    pub fn bind_basis_context(
-        &self,
-        request: QueryBasisContextRequest,
-        source: QueryContextBindingSource<'_>,
-    ) -> Result<QueryBasisContextBinding, QueryContextAdmissionError> {
-        let _ = &self.facade_digest;
-        bind_query_basis_context(request, source)
-    }
-
     pub fn admit_basis_context(
         &self,
-        binding: QueryBasisContextBinding,
-    ) -> Result<AdmittedQueryBasisContext, QueryContextAdmissionError> {
+        declaration: BasisLifecycleIntentDraft,
+        source: QueryContextBindingSource<'_>,
+    ) -> Result<ScopedQueryBasisContext, ScopedQueryContextAdmissionError> {
         let _ = &self.facade_digest;
-        admit_query_basis_context(binding)
+        admit_query_basis_context(declaration, source)
     }
 
     pub fn bind_diff_context(
         &self,
-        left: &AdmittedQueryBasisContext,
-        right: &AdmittedQueryBasisContext,
+        left: &ScopedQueryBasisContext,
+        right: &ScopedQueryBasisContext,
     ) -> Result<AdmittedDiffQueryContext, QueryContextAdmissionError> {
         let _ = &self.facade_digest;
         bind_diff_query_context(left, right)
@@ -256,7 +248,7 @@ impl QueryContextCapability {
 
     pub fn execute_basis_context(
         &self,
-        context: &AdmittedQueryBasisContext,
+        context: &ScopedQueryBasisContext,
     ) -> Result<QueryContextExecutionArtifact, QueryContextAdmissionError> {
         let _ = &self.facade_digest;
         execute_query_basis_context(context)
@@ -264,7 +256,7 @@ impl QueryContextCapability {
 
     pub fn execute_basis_result_bundle(
         &self,
-        context: &AdmittedQueryBasisContext,
+        context: &ScopedQueryBasisContext,
     ) -> Result<QueryBasisResultBundle, QueryContextAdmissionError> {
         let _ = &self.facade_digest;
         let execution = execute_query_basis_context(context)?;
@@ -273,7 +265,7 @@ impl QueryContextCapability {
 
     pub fn attach_basis_metadata(
         &self,
-        context: &AdmittedQueryBasisContext,
+        context: &ScopedQueryBasisContext,
         result: &QueryContextExecutionArtifact,
     ) -> Result<QueryBasisMetadata, QueryContextAdmissionError> {
         let _ = &self.facade_digest;

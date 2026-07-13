@@ -1,5 +1,5 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
-use crate::facade::{
+use crate::facade::foundation::{
     derive_binding_requirements, resolve_bindings, AspectFieldSelector, AuthoredResultShapeField,
     BindingFailureClass, BindingResolutionError, BoundBinding, BoundBindings,
     IdentityBindingDescriptor, NonIdentityBindingMetadata, QueryBindingDescriptor,
@@ -31,23 +31,24 @@ fn equivalent_binding_order_does_not_change_query_digest() {
             QueryBindingSubject::RootEntity,
         ));
 
-    let request_a = crate::facade::GuidedAuthoringPath::pair_collection_with_bindings(
+    let request_a = crate::facade::foundation::GuidedAuthoringPath::pair_collection_with_bindings(
         query.clone(),
         shape.clone(),
         bindings_a,
     )
     .unwrap();
-    let request_b =
-        crate::facade::GuidedAuthoringPath::pair_collection_with_bindings(query, shape, bindings_b)
-            .unwrap();
+    let request_b = crate::facade::foundation::GuidedAuthoringPath::pair_collection_with_bindings(
+        query, shape, bindings_b,
+    )
+    .unwrap();
 
-    let bundle_a = crate::facade::canonicalize_request(request_a).unwrap();
-    let bundle_b = crate::facade::canonicalize_request(request_b).unwrap();
+    let bundle_a = crate::facade::foundation::canonicalize_request(request_a).unwrap();
+    let bundle_b = crate::facade::foundation::canonicalize_request(request_b).unwrap();
 
     assert_eq!(bundle_a.query().digest(), bundle_b.query().digest());
     assert_eq!(
         bundle_a.equivalence_to(&bundle_b),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_eq!(bundle_a.counters().binding_descriptor_count, 2);
     assert_eq!(bundle_b.counters().binding_descriptor_count, 2);
@@ -57,7 +58,7 @@ fn equivalent_binding_order_does_not_change_query_digest() {
     assert_eq!(bundle_b.counters().canonicalization_fallback_count, 0);
     assert!(bundle_a.report().events().iter().any(|event| matches!(
         event,
-        crate::facade::NormalizationEvent::NonIdentityBindingIgnored { .. }
+        crate::facade::foundation::NormalizationEvent::NonIdentityBindingIgnored { .. }
     )));
     bundle_a.check_invariants().unwrap();
     bundle_b.check_invariants().unwrap();
@@ -72,7 +73,7 @@ fn forbidden_binding_metadata_is_rejected_at_binding_boundary() {
     );
     assert!(matches!(
         error,
-        crate::facade::BindingError::ForbiddenMetadataKey { .. }
+        crate::facade::foundation::BindingError::ForbiddenMetadataKey { .. }
     ));
 }
 
@@ -85,7 +86,7 @@ fn unsupported_binding_metadata_is_rejected_at_binding_boundary() {
     );
     assert!(matches!(
         error,
-        crate::facade::BindingError::UnsupportedMetadataKey { .. }
+        crate::facade::foundation::BindingError::UnsupportedMetadataKey { .. }
     ));
 }
 
@@ -109,17 +110,18 @@ fn duplicate_binding_descriptor_same_subject_deduplicates() {
             QueryBindingSubject::RootEntity,
         ));
 
-    let request =
-        crate::facade::GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings)
-            .unwrap();
-    let bundle = crate::facade::canonicalize_request(request).unwrap();
+    let request = crate::facade::foundation::GuidedAuthoringPath::pair_detail_with_bindings(
+        query, shape, bindings,
+    )
+    .unwrap();
+    let bundle = crate::facade::foundation::canonicalize_request(request).unwrap();
 
     assert_eq!(bundle.query().identity_bindings().len(), 1);
     assert_eq!(bundle.counters().binding_descriptor_count, 2);
     assert_eq!(bundle.counters().canonicalization_fallback_count, 0);
     assert!(bundle.report().events().iter().any(|event| matches!(
         event,
-        crate::facade::NormalizationEvent::IdentityBindingCollapsedDuplicate { .. }
+        crate::facade::foundation::NormalizationEvent::IdentityBindingCollapsedDuplicate { .. }
     )));
 }
 
@@ -151,11 +153,11 @@ fn conflicting_binding_descriptor_subject_fails_explicitly() {
     .unwrap_err();
     assert_eq!(
         error.failure_class(),
-        crate::facade::CanonicalizationFailureClass::BindingRejection
+        crate::facade::foundation::CanonicalizationFailureClass::BindingRejection
     );
     assert!(matches!(
         error,
-        crate::facade::QueryCanonicalizationError::DuplicateBindingDescriptorConflict { .. }
+        crate::facade::foundation::QueryCanonicalizationError::DuplicateBindingDescriptorConflict { .. }
     ));
 }
 
@@ -174,12 +176,13 @@ fn validated_bundle_derives_binding_requirements() {
         QueryBindingSubject::RootEntity,
     ));
 
-    let request =
-        crate::facade::GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings)
-            .unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let request = crate::facade::foundation::GuidedAuthoringPath::pair_detail_with_bindings(
+        query, shape, bindings,
+    )
+    .unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let schema = crate::harness::fixtures::schema_view::detail_schema_view();
-    let validated = crate::facade::validate_canonical_bundle(canonical, schema).unwrap();
+    let validated = crate::facade::runtime::validate_canonical_bundle(canonical, schema).unwrap();
 
     let requirements = derive_binding_requirements(&validated);
     assert_eq!(requirements.requirements().len(), 1);
@@ -206,12 +209,13 @@ fn binding_resolution_requires_exact_slot_match() {
         QueryBindingSubject::RootEntity,
     ));
 
-    let request =
-        crate::facade::GuidedAuthoringPath::pair_detail_with_bindings(query, shape, bindings)
-            .unwrap();
-    let canonical = crate::facade::canonicalize_request(request).unwrap();
+    let request = crate::facade::foundation::GuidedAuthoringPath::pair_detail_with_bindings(
+        query, shape, bindings,
+    )
+    .unwrap();
+    let canonical = crate::facade::foundation::canonicalize_request(request).unwrap();
     let schema = crate::harness::fixtures::schema_view::detail_schema_view();
-    let validated = crate::facade::validate_canonical_bundle(canonical, schema).unwrap();
+    let validated = crate::facade::runtime::validate_canonical_bundle(canonical, schema).unwrap();
     let requirements = derive_binding_requirements(&validated);
 
     let ok = resolve_bindings(

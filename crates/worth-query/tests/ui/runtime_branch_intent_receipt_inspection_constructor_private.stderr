@@ -1,39 +1,39 @@
 error[E0560]: struct `WorthQueryBranchIntentReceiptInspection` has no field named `basis_digest`
-  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:16:9
+  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:13:9
    |
-16 |         basis_digest: String::new(),
+13 |         basis_digest: String::new(),
    |         ^^^^^^^^^^^^ `WorthQueryBranchIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryBranchIntentReceiptInspection` has no field named `basis_snapshot_token`
-  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:17:9
+  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:14:9
    |
-17 |         basis_snapshot_token: String::new(),
+14 |         basis_snapshot_token: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^ `WorthQueryBranchIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryBranchIntentReceiptInspection` has no field named `admission_digest`
-  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:18:9
+  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:15:9
    |
-18 |         admission_digest: String::new(),
+15 |         admission_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^ `WorthQueryBranchIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryBranchIntentReceiptInspection` has no field named `receipt_digest`
-  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:19:9
+  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:16:9
    |
-19 |         receipt_digest: String::new(),
+16 |         receipt_digest: String::new(),
    |         ^^^^^^^^^^^^^^ `WorthQueryBranchIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned
 
 error[E0560]: struct `WorthQueryBranchIntentReceiptInspection` has no field named `inspection_digest`
-  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:20:9
+  --> tests/ui/runtime_branch_intent_receipt_inspection_constructor_private.rs:17:9
    |
-20 |         inspection_digest: String::new(),
+17 |         inspection_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^ `WorthQueryBranchIntentReceiptInspection` does not have this field
    |
    = note: all struct fields are already assigned

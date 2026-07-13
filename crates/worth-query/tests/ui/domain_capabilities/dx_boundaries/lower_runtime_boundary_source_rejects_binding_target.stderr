@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget: WorthQueryLowerRuntimeBoundaryEnvelopeSource` is not satisfied
- --> tests/ui/domain_capabilities/dx_boundaries/lower_runtime_boundary_source_rejects_binding_target.rs:7:44
+ --> tests/ui/domain_capabilities/dx_boundaries/lower_runtime_boundary_source_rejects_binding_target.rs:5:44
   |
-7 |         .for_lower_runtime_boundary_source(target);
+5 |         .for_lower_runtime_boundary_source(target);
   |          --------------------------------- ^^^^^^ the trait `WorthQueryLowerRuntimeBoundaryEnvelopeSource` is not implemented for `WorthQueryLowerRuntimeBoundaryEnvelopeBindingTarget`
   |          |
   |          required by a bound introduced by this call

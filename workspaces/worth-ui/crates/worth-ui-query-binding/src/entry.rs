@@ -10,7 +10,7 @@ pub struct WorthUiQueryBindingSubsystem {
 /// fn legacy_attempt_cannot_admit(
 ///     admission: &mut worth_ui_query_binding::WorthUiQueryAllocationAdmission<'_>,
 ///     prerequisites: worth_ui_query_binding::WorthUiQueryPrerequisiteEvidence,
-///     authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+///     authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
 /// ) {
 ///     let _ = admission.admit(prerequisites, attempt);
 /// }
@@ -41,7 +41,7 @@ impl WorthUiQueryAllocationAdmission<'_> {
     pub fn admit(
         &mut self,
         prerequisites: crate::WorthUiQueryPrerequisiteEvidence,
-        outcome: worth_query::facade::ProjectionAuthorityOutcome,
+        outcome: worth_query::facade::foundation::ProjectionAuthorityOutcome,
     ) -> Result<
         crate::WorthUiQueryMeasurementFactSettlement,
         crate::WorthUiQueryMeasurementFactSettlementDenial,

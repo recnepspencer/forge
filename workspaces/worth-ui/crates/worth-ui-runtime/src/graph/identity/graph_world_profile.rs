@@ -1,6 +1,10 @@
-use worth_query::facade::{
-    BridgePreviewSessionIdentity, ResolvedSnapshotBasis, SnapshotResolutionReport,
+use worth_query::facade::runtime::{
+    BridgePreviewSessionIdentity,
     WorthQuerySessionLabel,
+};
+use worth_query::facade::foundation::{
+    ResolvedSnapshotBasis,
+    SnapshotResolutionReport,
 };
 
 use crate::declaration::stable_text_digest;
@@ -167,8 +171,8 @@ impl UiGraphWorldProfile {
             Self::QuerySnapshotBasis { basis, .. } => {
                 stable_text_digest("graph-world-family:query")
                     ^ stable_text_digest(match basis.identity().authority_family() {
-                        worth_query::facade::BasisAuthorityFamily::Runtime => "runtime",
-                        worth_query::facade::BasisAuthorityFamily::Store => "store",
+                        worth_query::facade::foundation::BasisAuthorityFamily::Runtime => "runtime",
+                        worth_query::facade::foundation::BasisAuthorityFamily::Store => "store",
                     })
                     .rotate_left(11)
             }

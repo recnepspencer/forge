@@ -122,8 +122,8 @@ Canonical support status labels are `supported`, `unsupported`,
 
 ## Covered Lanes
 
-The `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`
-and public docs must use the same covered lane vocabulary:
+The graph touch obligation hostile certification matrix and public docs use the
+same covered lane vocabulary:
 
 - graph composition
 - authoritative command batch
@@ -210,12 +210,11 @@ When a downstream crate adopts graph obligations, it should be able to prove:
 Manual invariant packs are compatibility/custom extension surfaces, not the
 primary covered graph obligation path.
 
-Milestone 9.10 covers graph read access planning: derived access requirements,
-typed admission or denial, runtime-owned support rows, and receipt-backed
-no-N+1 proof for declared graph-shaped reads. Do not use that scope to bypass
-Milestone 9.9 obligation authority. Reads can already carry graph obligation
-meaning; graph read access planning changes how read access structures are
-admitted and proved, not whether obligations belong to Query.
+Graph read access planning owns derived access requirements, typed admission or
+denial, runtime-owned support rows, and receipt-backed no-N+1 proof for declared
+graph-shaped reads. It does not replace graph touch obligation authority. Read
+access planning changes how access structures are admitted and proved, not
+whether graph obligations belong to Query.
 
 ## Related Docs
 

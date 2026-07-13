@@ -1,15 +1,15 @@
 error[E0451]: fields `family`, `entrypoint`, `posture`, `execution_boundary` and `detail` of struct `WorthQueryIntentAdmissionSupportRow` are private
-  --> tests/ui/intent_admission/inventory/support/support_row_constructor_private.rs:9:9
-   |
- 8 |     let _ = WorthQueryIntentAdmissionSupportRow {
-   |             ----------------------------------- in this type
- 9 |         family: WorthQueryIntentAdmissionFamily::AuthoritativeUserIntent,
-   |         ^^^^^^ private field
-10 |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
-   |         ^^^^^^^^^^ private field
-11 |         posture: WorthQueryIntentAdmissionSupportPosture::Admitted,
-   |         ^^^^^^^ private field
-12 |         execution_boundary: WorthQueryIntentAdmissionExecutionBoundary::deferred_neighbor("Worthd"),
-   |         ^^^^^^^^^^^^^^^^^^ private field
-13 |         detail: WorthQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor,
-   |         ^^^^^^ private field
+ --> tests/ui/intent_admission/inventory/support/support_row_constructor_private.rs:5:9
+  |
+4 |     let _ = WorthQueryIntentAdmissionSupportRow {
+  |             ----------------------------------- in this type
+5 |         family: WorthQueryIntentAdmissionFamily::AuthoritativeUserIntent,
+  |         ^^^^^^ private field
+6 |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
+  |         ^^^^^^^^^^ private field
+7 |         posture: WorthQueryIntentAdmissionSupportPosture::Admitted,
+  |         ^^^^^^^ private field
+8 |         execution_boundary: WorthQueryIntentAdmissionExecutionBoundary::deferred_neighbor("Worthd"),
+  |         ^^^^^^^^^^^^^^^^^^ private field
+9 |         detail: WorthQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor,
+  |         ^^^^^^ private field

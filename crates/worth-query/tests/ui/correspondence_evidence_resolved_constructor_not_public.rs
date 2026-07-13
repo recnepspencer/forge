@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    CorrespondenceCostPosture, CorrespondenceEvidenceResolved, StructuralCandidateBudget,
-    StructuralCandidateDiscoveryPlan,
-};
+use worth_query::facade::foundation::{CorrespondenceCostPosture, CorrespondenceEvidenceResolved, StructuralCandidateBudget, StructuralCandidateDiscoveryPlan};
 
 fn bogus<T>() -> T {
     panic!()

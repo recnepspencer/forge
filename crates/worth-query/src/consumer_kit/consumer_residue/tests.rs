@@ -38,6 +38,7 @@ fn consumer_residue_registry_covers_all_phase_nine_classes() {
         WorthQueryConsumerResidueClass::LocalQueryBasisDigestCompatibility,
         WorthQueryConsumerResidueClass::LegacyProjectionPrerequisiteAssembly,
         WorthQueryConsumerResidueClass::DirectInternalQueryImport,
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
     ] {
         assert!(
             classes.contains(&required),

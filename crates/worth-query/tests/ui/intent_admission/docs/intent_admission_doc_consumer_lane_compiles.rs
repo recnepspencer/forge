@@ -1,8 +1,5 @@
 
-use worth_query::facade::{
-    WorthQueryEffectHandle, WorthQueryEffectIntentReceipt, WorthQueryIntentDeclaration,
-    WorthQueryIntentReceipt, WorthQueryRuntime, WorthQueryRuntimeError,
-};
+use worth_query::facade::runtime::{WorthQueryEffectHandle, WorthQueryEffectIntentReceipt, WorthQueryIntentDeclaration, WorthQueryIntentReceipt, WorthQueryRuntime, WorthQueryRuntimeError};
 
 fn consumer_lane_on_receipt(
     runtime: &mut WorthQueryRuntime,

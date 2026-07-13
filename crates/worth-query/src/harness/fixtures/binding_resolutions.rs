@@ -1,7 +1,8 @@
-use crate::facade::{
+use crate::facade::foundation::{
     derive_binding_requirements, resolve_bindings, BoundBinding, BoundBindings, QueryBindingSlot,
-    QueryBindingSubject, ValidatedQueryBundle,
+    QueryBindingSubject,
 };
+use crate::facade::runtime::ValidatedQueryBundle;
 
 pub fn root_bound_bindings(value: &str) -> BoundBindings {
     BoundBindings::new(vec![BoundBinding::new(
@@ -14,7 +15,7 @@ pub fn root_bound_bindings(value: &str) -> BoundBindings {
 pub fn resolved_root_binding(
     bundle: &ValidatedQueryBundle,
     value: &str,
-) -> crate::facade::BindingResolution {
+) -> crate::facade::foundation::BindingResolution {
     resolve_bindings(
         derive_binding_requirements(bundle),
         root_bound_bindings(value),

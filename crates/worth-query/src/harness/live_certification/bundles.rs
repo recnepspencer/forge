@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::foundation::{
     promote_preflight_bundle_to_live, replay_live_sequence, BridgeChangeSummary, BridgeFieldDelta,
     BridgeRelationDelta, LiveChangeOrdinal, LivePatchPayload, LivePolicyCounters, LiveReplayBundle,
     LiveReplayRun, LiveReplayStepInput, MilestoneFiveLiveAdapter, PatchWidthResolution,
@@ -440,7 +440,7 @@ pub(super) fn raw_cdc_leakage_rejection_bundle(
 
 fn bundle_from_lane(
     profile: CertificationProfile,
-    lane: &crate::facade::LiveCertificationLane,
+    lane: &crate::facade::certification::LiveCertificationLane,
 ) -> LiveCertificationBundle {
     LiveCertificationBundle {
         profile,
@@ -503,11 +503,13 @@ fn replay_payload_kind(bundle: &LiveReplayBundle) -> LiveOutcomeKind {
     outcome_kind_from_payload(bundle.patch_envelope().payload())
 }
 
-fn bundle_family(family: &crate::facade::LiveQueryFamily) -> LiveBundleFamily {
+fn bundle_family(family: &crate::facade::foundation::LiveQueryFamily) -> LiveBundleFamily {
     match family {
-        crate::facade::LiveQueryFamily::Detail => LiveBundleFamily::Detail,
-        crate::facade::LiveQueryFamily::OrderedCollection => LiveBundleFamily::OrderedCollection,
-        crate::facade::LiveQueryFamily::BoundedMaterialization => {
+        crate::facade::foundation::LiveQueryFamily::Detail => LiveBundleFamily::Detail,
+        crate::facade::foundation::LiveQueryFamily::OrderedCollection => {
+            LiveBundleFamily::OrderedCollection
+        }
+        crate::facade::foundation::LiveQueryFamily::BoundedMaterialization => {
             LiveBundleFamily::BoundedMaterialization
         }
     }

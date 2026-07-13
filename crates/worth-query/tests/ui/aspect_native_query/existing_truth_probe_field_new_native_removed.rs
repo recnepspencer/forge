@@ -1,5 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{WorthQueryAspectTouch, WorthQueryExistingTruthProbeField};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryExistingTruthProbeField};
 
 fn main() {
     let touch = WorthQueryAspectTouch::aspect_field_path(
@@ -8,6 +8,6 @@ fn main() {
     );
     let _ = WorthQueryExistingTruthProbeField::new_native(
         touch,
-        worth_query::facade::WorthQueryAuthoredAspectValue::string("Buy milk"),
+        worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string("Buy milk"),
     );
 }

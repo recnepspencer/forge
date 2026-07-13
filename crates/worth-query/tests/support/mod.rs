@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::WorthQueryAspectTouch;
+use worth_query::facade::runtime::WorthQueryAspectTouch;
 
 pub mod graph_index_inventory;
 pub mod graph_read_access;

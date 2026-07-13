@@ -1,6 +1,6 @@
-use worth_query::facade::{
-    WORTHQueryCanonicalDeclarationArtifact, WORTHQueryDeclarationEnvelope,
-    WORTHQueryDeclarationInput,
+use worth_query::facade::foundation::{
+    WorthQueryCanonicalDeclarationArtifact, WorthQueryDeclarationEnvelope,
+    WorthQueryDeclarationInput,
 };
 
 use crate::query_entry::HadwigerResearchDomainEntry;
@@ -49,13 +49,13 @@ impl HadwigerQueryDeclarationReference {
     }
 }
 
-impl<I> From<WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>
+impl<I> From<WorthQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>>
     for HadwigerQueryDeclarationReference
 where
-    I: WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>,
+    I: WorthQueryDeclarationInput<HadwigerResearchDomainEntry>,
 {
     fn from(
-        declaration: WORTHQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>,
+        declaration: WorthQueryCanonicalDeclarationArtifact<HadwigerResearchDomainEntry, I>,
     ) -> Self {
         Self {
             domain_key: "WORTH.hadwiger.research",
@@ -137,12 +137,12 @@ impl HadwigerQueryEnvelopeReference {
     }
 }
 
-impl<I> From<WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
+impl<I> From<WorthQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>>
     for HadwigerQueryEnvelopeReference
 where
-    I: WORTHQueryDeclarationInput<HadwigerResearchDomainEntry>,
+    I: WorthQueryDeclarationInput<HadwigerResearchDomainEntry>,
 {
-    fn from(envelope: WORTHQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>) -> Self {
+    fn from(envelope: WorthQueryDeclarationEnvelope<HadwigerResearchDomainEntry, I>) -> Self {
         Self {
             domain_key: "WORTH.hadwiger.research",
             declaration_family_key: envelope.declaration_family_key(),

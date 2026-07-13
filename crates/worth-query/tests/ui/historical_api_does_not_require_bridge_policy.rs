@@ -1,11 +1,11 @@
-use worth_query::facade::{admit_historical_evaluation_path, HistoricalEvaluationRequest};
+use worth_query::facade::foundation::{admit_historical_evaluation_path, HistoricalEvaluationRequest};
 
 type WrongFn = fn(
     HistoricalEvaluationRequest,
     worth_runtime_bridge::facade::ResolvedTruthViewPolicy,
 ) -> Result<
-    worth_query::facade::HistoricalEvaluationAdmission,
-    worth_query::facade::HistoricalEvaluationError,
+    worth_query::facade::foundation::HistoricalEvaluationAdmission,
+    worth_query::facade::foundation::HistoricalEvaluationError,
 >;
 
 fn _expects_query_owned_policy(_: WrongFn) {}

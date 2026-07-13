@@ -20,7 +20,9 @@ fn test_runtime_world_basis() -> crate::application::WorthQueryAdmittedWorldBasi
             )
             .seal(),
         "support:snapshot".to_string(),
-        crate::query_basis_lifecycle::query_basis_lifecycle_support_report().report_identity(),
+        crate::application::compose_basis_lifecycle_support_identity(
+            crate::basis_lifecycle::basis_lifecycle_support_matrix().matrix_digest(),
+        ),
     )
 }
 #[test]
@@ -298,32 +300,28 @@ fn runtime_workspace_states_basis_lifecycle_surfaces() {
     let workspace = stateful_bridge_task_runtime()
         .workspace("task.basis-state-workspace")
         .expect("task runtime should open a named workspace");
-    let current = crate::query_basis_lifecycle::admit_observation_basis_intent(
-        crate::query_basis_lifecycle::RawBasisIntent::current_head(
-            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
-        ),
-    )
-    .expect("current-head observation should admit");
-    let preview = crate::query_basis_lifecycle::admit_observation_basis_intent(
-        crate::query_basis_lifecycle::RawBasisIntent::preview(
-            worth_runtime_bridge::facade::BridgePreviewSessionIdentity::from_stable_name(
-                "preview:state-1",
-            )
-            .bridge_admission_evidence(),
-            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
-        ),
-    )
-    .expect("preview observation should admit as advisory");
+    let current = crate::basis_lifecycle::basis_lifecycle()
+        .current_head()
+        .observe()
+        .expect("current-head observation should admit");
+    let branch = crate::basis_lifecycle::basis_lifecycle()
+        .branch_head("branch:state-1", true)
+        .observe()
+        .expect("branch-head observation should admit");
 
     let current_state = workspace
         .state(&current)
         .expect("basis capability should snapshot");
-    let preview_state = workspace
-        .state(&preview)
-        .expect("preview basis capability should snapshot");
+    let branch_state = workspace
+        .state(&branch)
+        .expect("branch basis capability should snapshot");
 
     assert_eq!(current_state.kind(), WorthQueryRuntimeStateKind::Ready);
-    assert_eq!(preview_state.kind(), WorthQueryRuntimeStateKind::Pending);
+    assert_eq!(branch_state.kind(), WorthQueryRuntimeStateKind::Ready);
+    assert_eq!(
+        branch_state.authority_lane(),
+        WorthQueryAuthorityLane::BranchLocalTruth
+    );
 }
 
 #[test]
@@ -331,12 +329,10 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
     let workspace = stateful_bridge_task_runtime()
         .workspace("task.basis-inspection-workspace")
         .expect("task runtime should open a named workspace");
-    let current = crate::query_basis_lifecycle::admit_observation_basis_intent(
-        crate::query_basis_lifecycle::RawBasisIntent::current_head(
-            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
-        ),
-    )
-    .expect("current-head observation should admit");
+    let current = crate::basis_lifecycle::basis_lifecycle()
+        .current_head()
+        .observe()
+        .expect("current-head observation should admit");
     let world_basis = test_runtime_world_basis();
 
     let capability_inspection = workspace
@@ -348,7 +344,7 @@ fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
 
     match capability_inspection {
         WorthQueryInspection::BasisLifecycle(inspection) => {
-            assert_eq!(inspection.subject_label(), "observation_basis_capability");
+            assert_eq!(inspection.subject_label(), "scoped_observation_basis");
             assert_eq!(inspection.state_kind(), WorthQueryRuntimeStateKind::Ready);
             assert_eq!(
                 inspection.authority_lane(),

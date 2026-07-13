@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryAuthorityLane, WorthQueryEffectHandle, WorthQueryNativeRow};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryEffectHandle, WorthQueryNativeRow};
 use std::marker::PhantomData;
 
 fn main() {

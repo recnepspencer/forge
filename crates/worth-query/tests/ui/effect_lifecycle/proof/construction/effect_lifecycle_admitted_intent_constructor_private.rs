@@ -1,6 +1,7 @@
-use worth_query::facade::{AdmittedEffectIntent, QueryWorkflowDeclaration};
+use worth_query::facade::foundation::AdmittedEffectIntent;
+use worth_query::facade::runtime::QueryWorkflowDeclaration;
 
-fn normalized() -> worth_query::facade::NormalizedEffectIntent {
+fn normalized() -> worth_query::facade::foundation::NormalizedEffectIntent {
     unimplemented!()
 }
 

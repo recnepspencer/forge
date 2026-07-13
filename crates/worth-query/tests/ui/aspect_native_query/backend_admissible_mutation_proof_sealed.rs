@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryBackendAdmissibleMutation, WorthQueryWriteCommand};
+use worth_query::facade::runtime::{WorthQueryBackendAdmissibleMutation, WorthQueryWriteCommand};
 
 fn main() {
     let command = command_fixture();

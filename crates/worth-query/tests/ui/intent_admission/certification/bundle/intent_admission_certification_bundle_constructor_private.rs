@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryIntentAdmissionCertificationBundle;
+use worth_query::facade::certification::WorthQueryIntentAdmissionCertificationBundle;
 
 fn main() {
     let _ = WorthQueryIntentAdmissionCertificationBundle {

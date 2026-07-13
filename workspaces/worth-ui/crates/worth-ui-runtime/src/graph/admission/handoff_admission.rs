@@ -80,7 +80,7 @@ fn assemble_instantiation_plan(
 mod tests {
     use std::sync::Arc;
 
-    use worth_query::facade::QueryExternalIdentityToken;
+    use worth_query::facade::foundation::QueryExternalIdentityToken;
     use worth_ui_dsl::{
         UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
         UiDslSourceProvenance, UiDslStructuralToken,
@@ -88,7 +88,10 @@ mod tests {
 
     use super::admit_graph_handoffs;
     use crate::declaration::UiDeclarationArtifact;
-    use crate::facade::{WorthUi, WorthUiDslPackage};
+    use crate::facade::{
+    WorthUi,
+    WorthUiDslPackage,
+};
     use crate::graph::{
         UiGraphInstantiationDenial, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
         UiRuntimeInstanceBasisAdmission,

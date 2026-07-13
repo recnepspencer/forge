@@ -153,6 +153,7 @@ pub struct QueryObservationReceipt {
     query_identity: CausalObservationQueryIdentity,
     basis_posture: CausalObservationBasisPosture,
     basis_identity: CausalObservationBasisIdentity,
+    inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
     result_shape_context: CausalResultShapeContextHandle,
     observation_target: CausalObservationTargetHandle,
     outcome: CausalObservationOutcome,
@@ -182,6 +183,10 @@ impl QueryObservationReceipt {
             WorthQueryEvidenceTag::new("basis"),
             parts.basis_identity.evidence_identity(),
         )
+        .field_shape(
+            WorthQueryEvidenceTag::new("scoped_inspection_basis"),
+            parts.inspection_basis.scoped_basis_digest(),
+        )
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("result_shape_context"),
             parts.result_shape_context.identity().evidence_identity(),
@@ -209,6 +214,7 @@ impl QueryObservationReceipt {
             query_identity: parts.query_identity,
             basis_posture: parts.basis_posture,
             basis_identity: parts.basis_identity,
+            inspection_basis: parts.inspection_basis,
             result_shape_context: parts.result_shape_context,
             observation_target: parts.observation_target,
             outcome: parts.outcome,
@@ -241,6 +247,19 @@ impl QueryObservationReceipt {
         &self.basis_identity
     }
 
+    pub(in crate::runtime) fn inspection_basis(
+        &self,
+    ) -> &crate::basis_lifecycle::ScopedInspectionBasis {
+        &self.inspection_basis
+    }
+
+    #[cfg(test)]
+    pub(in crate::runtime) fn inspection_basis_for_test(
+        &self,
+    ) -> crate::basis_lifecycle::ScopedInspectionBasis {
+        self.inspection_basis.clone()
+    }
+
     pub fn result_shape_context(&self) -> &CausalResultShapeContextHandle {
         &self.result_shape_context
     }
@@ -268,6 +287,7 @@ pub(super) struct ObservationReceiptParts {
     pub query_identity: CausalObservationQueryIdentity,
     pub basis_posture: CausalObservationBasisPosture,
     pub basis_identity: CausalObservationBasisIdentity,
+    pub inspection_basis: crate::basis_lifecycle::ScopedInspectionBasis,
     pub result_shape_context: CausalResultShapeContextHandle,
     pub observation_target: CausalObservationTargetHandle,
     pub outcome: CausalObservationOutcome,

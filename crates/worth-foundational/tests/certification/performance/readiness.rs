@@ -1,3 +1,6 @@
+use std::collections::BTreeSet;
+use std::fmt::Debug;
+use std::path::Path;
 use worth_foundational::{
     performance_api::{
         stronger_lane::readiness, FoundationalPerformancePublicLane,
@@ -11,9 +14,6 @@ use worth_foundational::{
     FoundationalPerformanceRuntimeAdoptionPressure, FoundationalPerformanceRuntimeAssumption,
     FoundationalPerformanceRuntimeNonAssumption, FoundationalPerformanceSyntheticRuntimePressure,
 };
-use std::collections::BTreeSet;
-use std::fmt::Debug;
-use std::path::Path;
 
 fn accepts_performance_readiness_artifact(_: &FoundationalPerformanceProductionTestReadyArtifact) {}
 

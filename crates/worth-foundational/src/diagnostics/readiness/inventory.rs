@@ -1,12 +1,12 @@
 use super::vocabulary::{
     FoundationalDiagnosticCertifiedSurface, FoundationalDiagnosticCertifiedSurfaceEvidence,
     FoundationalDiagnosticCompileFailBoundary, FoundationalDiagnosticCompileFailEvidence,
-    FoundationalDiagnosticWORTHProofApi, FoundationalDiagnosticWORTHProofApiEvidence,
-    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
     FoundationalDiagnosticMilestone6PhaseGate, FoundationalDiagnosticPhaseGateEvidence,
     FoundationalDiagnosticResidualDebt, FoundationalDiagnosticRuntimeAssumption,
     FoundationalDiagnosticRuntimeNonAssumption, FoundationalDiagnosticSyntheticPressureEvidence,
-    FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofApiEvidence, FoundationalDiagnosticWORTHProofForbiddenSurface,
+    FoundationalDiagnosticWORTHProofSurface,
 };
 
 pub(super) fn certified_surfaces() -> Vec<FoundationalDiagnosticCertifiedSurface> {

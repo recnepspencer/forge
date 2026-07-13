@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
 use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectLocator, AspectMask, CanonicalFieldPath, FieldKey,
     LocatorAuthority, ProjectionMask,
 };
-use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, SubscriptionSliceTargetIdentityTag};
 use crate::input::envelope::BridgeCommittedPatchTarget;

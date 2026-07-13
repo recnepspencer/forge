@@ -53,13 +53,13 @@ pub(crate) use certification::{
     INTENT_ADMISSION_CERTIFICATION_CHILD_MODULES, INTENT_ADMISSION_CERTIFICATION_EXPORTED_SURFACE,
     INTENT_ADMISSION_CERTIFICATION_MODULE_ROOT,
 };
-pub use decisions::{
-    admit_runtime_intent_request, WorthQueryIntentAdmissionDecision,
-    WorthQueryIntentAdvisoryDecision, WorthQueryIntentViolationDecision,
-};
 pub(crate) use decisions::{
-    INTENT_ADMISSION_DECISIONS_CHILD_MODULES, INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE,
-    INTENT_ADMISSION_DECISIONS_MODULE_ROOT,
+    admit_runtime_intent_request, INTENT_ADMISSION_DECISIONS_CHILD_MODULES,
+    INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE, INTENT_ADMISSION_DECISIONS_MODULE_ROOT,
+};
+pub use decisions::{
+    WorthQueryIntentAdmissionDecision, WorthQueryIntentAdvisoryDecision,
+    WorthQueryIntentViolationDecision,
 };
 #[allow(unused_imports)]
 pub use dx::{

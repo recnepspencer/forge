@@ -4,10 +4,10 @@ use crate::schema::data::{
     AspectBinding, AspectContractPlanRevision, LoweredAspectContractBinding,
     LoweredAspectContractPlan,
 };
+use smallvec::smallvec;
 use worth_foundational::facade::{
     AspectContract, AspectContractRevision, AspectIdentity, AspectKey, FieldKey, ScalarAspectType,
 };
-use smallvec::smallvec;
 
 #[test]
 #[should_panic(expected = "projection mask rejected by aspect contract")]

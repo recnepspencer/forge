@@ -1,8 +1,8 @@
-error[E0432]: unresolved import `worth_query::facade::SerialFallbackRoute`
+error[E0432]: unresolved import `worth_query::facade::foundation::SerialFallbackRoute`
  --> tests/ui/private_serial_fallback_route_fields.rs:1:5
   |
-1 | use worth_query::facade::SerialFallbackRoute;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade`
+1 | use worth_query::facade::foundation::SerialFallbackRoute;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade::foundation`
 
 warning: unreachable expression
  --> tests/ui/private_serial_fallback_route_fields.rs:6:24

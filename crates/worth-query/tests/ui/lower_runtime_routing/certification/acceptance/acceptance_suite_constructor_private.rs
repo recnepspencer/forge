@@ -1,5 +1,5 @@
-use worth_query::facade::WorthQueryLowerRuntimeAcceptanceRow;
-use worth_query::facade::WorthQueryLowerRuntimeAcceptanceSuite;
+use worth_query::facade::runtime::WorthQueryLowerRuntimeAcceptanceRow;
+use worth_query::facade::runtime::WorthQueryLowerRuntimeAcceptanceSuite;
 
 fn main() {
     let rows: Vec<WorthQueryLowerRuntimeAcceptanceRow> = Vec::new();

@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_admission_runtime_decision_requires_admitted_plan_target.rs:37:52
+  --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_admission_runtime_decision_requires_admitted_plan_target.rs:33:52
    |
-37 |     let _ = materialize_runtime_admission_decision(ready);
+33 |     let _ = materialize_runtime_admission_decision(ready);
    |             -------------------------------------- ^^^^^ expected `WorthQueryAdmittedPlanBoundContributionTarget`, found `WorthQueryDeclarationBoundContributionTarget`
    |             |
    |             arguments to this function are incorrect

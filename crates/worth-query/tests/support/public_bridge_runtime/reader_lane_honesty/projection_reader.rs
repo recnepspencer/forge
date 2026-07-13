@@ -3,14 +3,14 @@ use std::sync::{
     Arc,
 };
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    public_bridge_hostile_title_projection_artifacts, ProjectionAuthorityContract,
-    ProjectionFactFieldPath, WorthQueryPublishedDerivedArtifactHandle,
-    WorthQueryPublishedProjectionAuthorityOutcome,
-};
-use worth_query::{
+use worth_query::facade::certification::public_bridge_hostile_title_projection_artifacts;
+use worth_query::facade::certification::{
     WorthQueryPublicBridgeProjectionConsumptionEvidence,
     WorthQueryPublicBridgePublishedProjectionReader as SealedPublicBridgeProjectionReader,
+};
+use worth_query::facade::foundation::{ProjectionAuthorityContract, ProjectionFactFieldPath};
+use worth_query::facade::runtime::{
+    WorthQueryPublishedDerivedArtifactHandle, WorthQueryPublishedProjectionAuthorityOutcome,
 };
 
 pub struct PublicBridgePublishedProjectionReader<'a> {

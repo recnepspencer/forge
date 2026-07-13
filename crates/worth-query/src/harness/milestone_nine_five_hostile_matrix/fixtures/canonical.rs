@@ -7,8 +7,8 @@ use crate::composition::{
 };
 use crate::harness::fixtures::execution_preflights;
 use crate::query_context::{
-    admit_query_basis_context, bind_query_basis_context, QueryBasisContextRequest,
-    QueryContextBindingSource,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest, QueryContextBindingSource,
 };
 
 pub fn direct_detail() -> crate::canonicalization::CanonicalQueryBundle {
@@ -158,14 +158,14 @@ pub fn basis_aware_composed_detail() -> crate::composition::ComposedCanonicalQue
     GuidedCompositionPath::canonicalize_expanded(expanded).unwrap()
 }
 
-fn admitted_current_head_context() -> crate::query_context::AdmittedQueryBasisContext {
+fn admitted_current_head_context() -> crate::query_context::ScopedQueryBasisContext {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    admit_query_basis_context(binding).unwrap()
+    admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap()
 }
 
 fn detail_shape() -> crate::authoring::DetailAuthoredResultShape {

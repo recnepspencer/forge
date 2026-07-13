@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryLiveViewBuilder, WorthQueryNativeRow};
+use worth_query::facade::runtime::{WorthQueryLiveViewBuilder, WorthQueryNativeRow};
 
 fn main() {
     let _ = WorthQueryLiveViewBuilder::surface("tasks")

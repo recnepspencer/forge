@@ -1,9 +1,4 @@
-use worth_query::facade::{
-    WorthQueryDeclarationEntryOrchestrationExposureLevel,
-    WorthQueryDeclarationEntryOrchestrationVerb,
-    WorthQueryDeclarationEntryOrchestrationVerbCeiling,
-    WorthQueryDeclarationEntryOrchestrationVerbFamily,
-};
+use worth_query::facade::foundation::{WorthQueryDeclarationEntryOrchestrationExposureLevel, WorthQueryDeclarationEntryOrchestrationVerb, WorthQueryDeclarationEntryOrchestrationVerbCeiling, WorthQueryDeclarationEntryOrchestrationVerbFamily};
 
 fn main() {
     let _ = WorthQueryDeclarationEntryOrchestrationVerb {

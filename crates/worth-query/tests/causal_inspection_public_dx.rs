@@ -1,4 +1,5 @@
-use worth_query::facade::{
+use worth_query::facade::foundation::ScopedInspectionBasis;
+use worth_query::facade::runtime::{
     CausalInspection, CausalInspectionExplanationFamily, CausalInspectionMaterializationPolicy,
     CausalInspectionRedactionPolicy, CausalInspectionRichness, CausalInspectionSupportRowPosture,
     QueryCausalInspectionArtifact, QueryObservationReceipt,
@@ -7,10 +8,13 @@ use worth_runtime_bridge::facade::RuntimeBridge;
 
 fn common_path_compiles(
     receipt: QueryObservationReceipt,
+    inspection_basis: ScopedInspectionBasis,
     bridge: &RuntimeBridge,
-) -> Result<QueryCausalInspectionArtifact, worth_query::facade::CausalInspectionMaterializationError>
-{
-    let plan = CausalInspection::for_observation(receipt)
+) -> Result<
+    QueryCausalInspectionArtifact,
+    worth_query::facade::runtime::CausalInspectionMaterializationError,
+> {
+    let plan = CausalInspection::for_observation(receipt, inspection_basis)
         .why_changed()
         .reference_only()
         .include_all_retained_evidence()
@@ -20,8 +24,11 @@ fn common_path_compiles(
     plan.materialize_with_bridge(bridge)
 }
 
-fn plan_inspection_compiles(receipt: QueryObservationReceipt) {
-    let plan = CausalInspection::for_observation(receipt)
+fn plan_inspection_compiles(
+    receipt: QueryObservationReceipt,
+    inspection_basis: ScopedInspectionBasis,
+) {
+    let plan = CausalInspection::for_observation(receipt, inspection_basis)
         .why_changed()
         .materialized_detail()
         .redaction(CausalInspectionRedactionPolicy::DigestOnly)
@@ -93,12 +100,13 @@ fn causal_inspection_public_dx_signatures_are_referenced() {
     let _ = common_path_compiles
         as fn(
             QueryObservationReceipt,
+            ScopedInspectionBasis,
             &RuntimeBridge,
         ) -> Result<
             QueryCausalInspectionArtifact,
-            worth_query::facade::CausalInspectionMaterializationError,
+            worth_query::facade::runtime::CausalInspectionMaterializationError,
         >;
-    let _ = plan_inspection_compiles as fn(QueryObservationReceipt);
+    let _ = plan_inspection_compiles as fn(QueryObservationReceipt, ScopedInspectionBasis);
     let _ = support_discovery_compiles as fn();
     let _ = artifact_exploration_compiles as fn(QueryCausalInspectionArtifact);
     let _ = advanced_vocabulary_remains_available as fn();

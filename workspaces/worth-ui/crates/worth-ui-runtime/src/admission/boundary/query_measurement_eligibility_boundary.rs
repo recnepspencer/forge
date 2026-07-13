@@ -270,7 +270,7 @@ fn stale_basis_posture_from_query_authority(
 }
 
 fn observed_basis_authority(
-    authority: &worth_query::facade::WorthQueryConsumedProjectionAuthority,
+    authority: &worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority,
 ) -> UiQueryMeasurementBasisAuthority {
     UiQueryMeasurementBasisAuthority::ProjectionConsumption {
         basis_digest: authority

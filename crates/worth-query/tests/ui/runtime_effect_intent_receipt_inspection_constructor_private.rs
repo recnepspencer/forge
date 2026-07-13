@@ -1,13 +1,10 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryEffectIntentReceiptInspection, WorthQueryEffectPolicy,
-    WorthQueryIntentSourceLane,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryEffectIntentReceiptInspection, WorthQueryEffectPolicy, WorthQueryIntentSourceLane};
 
 fn main() {
     let _ = WorthQueryEffectIntentReceiptInspection {
         effect_name: String::new(),
         trigger_commit_identity: String::new(),
-        trigger_source_kind: worth_query::facade::WorthQueryEffectTriggerSourceKind::LiveView,
+        trigger_source_kind: worth_query::facade::runtime::WorthQueryEffectTriggerSourceKind::LiveView,
         pending_intent_target: String::new(),
         source_lane: WorthQueryIntentSourceLane::EffectTriggered,
         target_lane: WorthQueryAuthorityLane::AuthoritativeTruth,

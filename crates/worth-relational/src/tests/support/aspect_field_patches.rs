@@ -1,6 +1,6 @@
 use super::{AspectFieldPatch, AspectKey};
-use worth_foundational::facade::FieldKey;
 use std::collections::BTreeMap;
+use worth_foundational::facade::FieldKey;
 
 pub(crate) fn single_string_aspect_field_patch(
     aspect_key: AspectKey,

@@ -1,4 +1,4 @@
-use worth_query::facade::{admit_effect_intent, DeferredEffectEligibility};
+use worth_query::facade::foundation::{admit_effect_intent, DeferredEffectEligibility};
 
 fn main() {
     let deferred: DeferredEffectEligibility = unsafe { std::mem::zeroed() };

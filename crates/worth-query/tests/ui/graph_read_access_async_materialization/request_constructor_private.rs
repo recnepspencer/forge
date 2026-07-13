@@ -1,7 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadAccessDenialKind, WorthQueryGraphReadMaterializationPolicy,
-    WorthQueryGraphReadMaterializationRequest,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadAccessDenialKind, WorthQueryGraphReadMaterializationPolicy, WorthQueryGraphReadMaterializationRequest};
 
 fn main() {
     let _ = WorthQueryGraphReadMaterializationRequest {

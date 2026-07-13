@@ -1,8 +1,5 @@
-use worth_query::facade::{
-    ProjectionConsumptionCertificationBundle, ProjectionConsumptionFamilyInventory,
-    ProjectionConsumptionProofShapeAudit, ProjectionConsumptionPublicBoundaryAudit,
-    ProjectionConsumptionSupportMatrix,
-};
+use worth_query::facade::foundation::{ProjectionConsumptionFamilyInventory, ProjectionConsumptionSupportMatrix};
+use worth_query::facade::certification::{ProjectionConsumptionCertificationBundle, ProjectionConsumptionProofShapeAudit, ProjectionConsumptionPublicBoundaryAudit};
 
 fn main() {
     let _ = ProjectionConsumptionCertificationBundle {

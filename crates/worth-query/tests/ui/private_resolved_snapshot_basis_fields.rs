@@ -1,4 +1,4 @@
-use worth_query::facade::ResolvedSnapshotBasis;
+use worth_query::facade::foundation::ResolvedSnapshotBasis;
 
 fn main() {
     let _ = ResolvedSnapshotBasis {

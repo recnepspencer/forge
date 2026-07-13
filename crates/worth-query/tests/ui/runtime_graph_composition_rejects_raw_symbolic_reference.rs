@@ -1,7 +1,5 @@
 use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
-use worth_query::facade::{
-    WorthQueryAspectTouch, WorthQueryGraphRelationMutationBuilder, WorthQuerySymbolicTargetReference,
-};
+use worth_query::facade::runtime::{WorthQueryAspectTouch, WorthQueryGraphRelationMutationBuilder, WorthQuerySymbolicTargetReference};
 
 fn main() {
     let reference = WorthQuerySymbolicTargetReference::new("draft-task")

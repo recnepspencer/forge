@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphTouchDescriptor;
+use worth_query::facade::runtime::WorthQueryGraphTouchDescriptor;
 
 fn main() {
     let descriptor = descriptor_fixture();

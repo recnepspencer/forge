@@ -1,5 +1,5 @@
-use worth_query::facade::WorthQueryGraphCompositionAssumptionSummary;
-use worth_query::facade::WorthQueryVerificationReadSetBreadth;
+use worth_query::facade::runtime::WorthQueryGraphCompositionAssumptionSummary;
+use worth_query::facade::runtime::WorthQueryVerificationReadSetBreadth;
 
 fn main() {
     let _ = WorthQueryGraphCompositionAssumptionSummary {

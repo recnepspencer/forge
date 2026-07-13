@@ -47,7 +47,7 @@ fn identity_evolution_capability_admits_and_executes_query_surface() {
     let admitted = identity_evolution
         .capability()
         .admit_query(
-            IdentityEvolutionQueryContext::correspondence_identity_comparison(
+            IdentityEvolutionQueryContext::correspondence_identity_comparison_for_test(
                 crate::identity::CanonicalQueryDigest::from_parts(&["app:identity".to_string()]),
                 IdentityEvolutionComparisonBasisFamily::BranchToBranch,
                 crate::identity::BasisDigest::from_parts(&["basis:left".to_string()]),

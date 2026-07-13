@@ -1,16 +1,3 @@
-warning: the type `AdmittedQueryBasisContext` does not permit zero-initialization
- --> tests/ui/query_basis_result_bundle_constructor_private.rs:5:27
-  |
-5 |         context: unsafe { std::mem::zeroed() },
-  |                           ^^^^^^^^^^^^^^^^^^
-  |                           |
-  |                           this code causes undefined behavior when executed
-  |                           help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
-  |
-  = note: `std::ptr::Unique<u8>` must be non-null
-  = note: because `std::ptr::NonNull<u8>` must be non-null
-  = note: `#[warn(invalid_value)]` on by default
-
 warning: the type `QueryContextExecutionArtifact` does not permit zero-initialization
  --> tests/ui/query_basis_result_bundle_constructor_private.rs:6:29
   |
@@ -22,6 +9,7 @@ warning: the type `QueryContextExecutionArtifact` does not permit zero-initializ
   |
   = note: `std::ptr::Unique<u8>` must be non-null
   = note: because `std::ptr::NonNull<u8>` must be non-null
+  = note: `#[warn(invalid_value)]` on by default
 
 warning: the type `QueryBasisMetadata` does not permit zero-initialization
  --> tests/ui/query_basis_result_bundle_constructor_private.rs:7:28

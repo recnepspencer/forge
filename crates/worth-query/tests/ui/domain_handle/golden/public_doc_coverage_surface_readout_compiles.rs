@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryPublicDocCoverageAudit, WorthQueryPublicDocCoverageInventory,
-};
+use worth_query::facade::certification::{WorthQueryPublicDocCoverageAudit, WorthQueryPublicDocCoverageInventory};
 
 fn main() {
     let coverage = WorthQueryPublicDocCoverageInventory::current();

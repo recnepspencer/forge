@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    DeliveryContractLowering, DeliveryContractReplayRecord, QueryDeliveryContract,
-    StreamMemberProjection, StreamWindowCompatibility,
-};
+use worth_query::facade::foundation::{DeliveryContractLowering, DeliveryContractReplayRecord, QueryDeliveryContract, StreamMemberProjection, StreamWindowCompatibility};
 
 fn main() {
     let _ = QueryDeliveryContract {

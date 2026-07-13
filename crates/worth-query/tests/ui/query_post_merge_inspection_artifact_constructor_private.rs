@@ -1,4 +1,4 @@
-use worth_query::facade::QueryPostMergeInspectionArtifact;
+use worth_query::facade::runtime::QueryPostMergeInspectionArtifact;
 
 fn main() {
     let _ = QueryPostMergeInspectionArtifact {

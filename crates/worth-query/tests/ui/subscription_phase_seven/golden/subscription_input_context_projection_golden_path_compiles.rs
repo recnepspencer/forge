@@ -1,4 +1,4 @@
-use worth_query::facade::LiveQueryAdmissionArtifact;
+use worth_query::facade::runtime::LiveQueryAdmissionArtifact;
 
 fn input_context_projection_golden_path(live: &LiveQueryAdmissionArtifact) {
     let _ = live.policy_projection().label();

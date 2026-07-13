@@ -29,6 +29,7 @@ pub enum WorthQueryConsumerResidueClass {
     LocalQueryBasisDigestCompatibility,
     LegacyProjectionPrerequisiteAssembly,
     DirectInternalQueryImport,
+    LegacyQueryBasisLifecycle,
 }
 
 impl WorthQueryConsumerResidueClass {
@@ -69,6 +70,7 @@ impl WorthQueryConsumerResidueClass {
             Self::LocalQueryBasisDigestCompatibility => "local-query-basis-digest-compatibility",
             Self::LegacyProjectionPrerequisiteAssembly => "legacy-projection-prerequisite-assembly",
             Self::DirectInternalQueryImport => "direct-internal-query-import",
+            Self::LegacyQueryBasisLifecycle => "legacy-query-basis-lifecycle",
         }
     }
 
@@ -378,20 +380,16 @@ const CONSUMER_RESIDUE_REGISTRY: &[WorthQueryConsumerResidueRegistryRow] = &[
         "consumer imports Query implementation topology instead of the curated facade",
         "downstream-authority-adoption",
     ),
+    registry_row(
+        WorthQueryConsumerResidueClass::LegacyQueryBasisLifecycle,
+        WorthQueryConsumerResidueDetection::ExactText,
+        "query_basis_lifecycle",
+        "consumer imports or reconstructs the deleted parallel basis lifecycle",
+        "downstream-authority-adoption",
+    ),
 ];
 
-const fn registry_row(
-    class: WorthQueryConsumerResidueClass,
-    detection: WorthQueryConsumerResidueDetection,
-    detection_key: &'static str,
-    explanation: &'static str,
-    replacement_lane: &'static str,
-) -> WorthQueryConsumerResidueRegistryRow {
-    WorthQueryConsumerResidueRegistryRow::new(
-        class,
-        detection,
-        detection_key,
-        explanation,
-        replacement_lane,
-    )
+#[rustfmt::skip]
+const fn registry_row(class: WorthQueryConsumerResidueClass, detection: WorthQueryConsumerResidueDetection, detection_key: &'static str, explanation: &'static str, replacement_lane: &'static str) -> WorthQueryConsumerResidueRegistryRow {
+    WorthQueryConsumerResidueRegistryRow::new(class, detection, detection_key, explanation, replacement_lane)
 }

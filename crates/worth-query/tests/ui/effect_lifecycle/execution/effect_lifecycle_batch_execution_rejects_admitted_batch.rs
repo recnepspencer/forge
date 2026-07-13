@@ -1,4 +1,4 @@
-use worth_query::facade::{AdmittedEffectBatch, EffectExecutionAuthority};
+use worth_query::facade::foundation::{AdmittedEffectBatch, EffectExecutionAuthority};
 use worth_relational::facade::runtime::RelationalRuntimeApi;
 
 fn admitted_batch() -> AdmittedEffectBatch {

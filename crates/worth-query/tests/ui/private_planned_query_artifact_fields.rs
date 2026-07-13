@@ -1,4 +1,4 @@
-use worth_query::facade::PlannedQueryArtifact;
+use worth_query::facade::policy::PlannedQueryArtifact;
 
 fn main() {
     let _ = PlannedQueryArtifact {

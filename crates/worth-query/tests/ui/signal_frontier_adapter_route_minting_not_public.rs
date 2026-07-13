@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, SerialFallbackReason,
-    SignalFrontierBundleEvidence, SignalFrontierSurfaceEvidence,
-};
+use worth_query::facade::foundation::{FrontierDisjointnessClass, FrontierPredictionDriftOutcome, SerialFallbackReason, SignalFrontierSurfaceEvidence};
+use worth_query::facade::SignalFrontierBundleEvidence;
 
 fn assert_route_minting_is_private(
     surface: SignalFrontierSurfaceEvidence,

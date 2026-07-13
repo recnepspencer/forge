@@ -1,4 +1,4 @@
-use worth_query::facade::LocalityPredicateContract;
+use worth_query::facade::foundation::LocalityPredicateContract;
 
 fn main() {
     let _ = LocalityPredicateContract {

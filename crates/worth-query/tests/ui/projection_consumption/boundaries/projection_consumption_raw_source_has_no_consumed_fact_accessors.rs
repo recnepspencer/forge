@@ -1,4 +1,4 @@
-use worth_query::facade::ConsumedProjectionFactSet;
+use worth_query::facade::foundation::ConsumedProjectionFactSet;
 use worth_relational::facade::grouped_truth::RelationalAuthoritativeRowSetArtifact;
 
 fn expect_fact_set(_: &ConsumedProjectionFactSet) {}

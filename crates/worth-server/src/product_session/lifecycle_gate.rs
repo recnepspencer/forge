@@ -183,4 +183,3 @@ fn validate_session_lifecycle(
     }
     Ok(())
 }
-

@@ -17,13 +17,13 @@ macro_rules! worth_query_schema {
     ) => {
         $vis struct $Schema;
 
-        impl $crate::facade::TypedSchemaRoot for $Schema {
+        impl $crate::facade::runtime::TypedSchemaRoot for $Schema {
             const ROOT_ENTITY: &'static str = $root;
         }
 
         impl $Schema {
-            pub fn schema_view() -> $crate::facade::QuerySchemaView {
-                $crate::facade::QuerySchemaView::new(
+            pub fn schema_view() -> $crate::facade::runtime::QuerySchemaView {
+                $crate::facade::runtime::QuerySchemaView::new(
                     stringify!($Schema),
                     [
                         $(
@@ -38,8 +38,8 @@ macro_rules! worth_query_schema {
                     ],
                     [
                         $(
-                            $crate::facade::SchemaRelationView::new(
-                                $crate::facade::RelationName::new($relation)
+                            $crate::facade::runtime::SchemaRelationView::new(
+                                $crate::facade::foundation::RelationName::new($relation)
                                     .expect("typed schema relation literal must be valid"),
                                 $max_depth
                             )
@@ -52,7 +52,7 @@ macro_rules! worth_query_schema {
         $(
             $field_vis struct $Field;
 
-            impl $crate::facade::TypedSchemaField for $Field {
+            impl $crate::facade::runtime::TypedSchemaField for $Field {
                 type Schema = $Schema;
                 const ASPECT: &'static str = $aspect;
                 const FIELD: &'static str = $field;
@@ -64,7 +64,7 @@ macro_rules! worth_query_schema {
         $(
             $relation_vis struct $Relation;
 
-            impl $crate::facade::TypedTraversalRelation for $Relation {
+            impl $crate::facade::runtime::TypedTraversalRelation for $Relation {
                 type Schema = $Schema;
                 const RELATION: &'static str = $relation;
             }
@@ -74,12 +74,12 @@ macro_rules! worth_query_schema {
     (@schema_field $aspect:literal, $field:literal, $kind:ident, [ $($caps:tt)* ]) => {
         $crate::worth_query_schema!(
             @apply_schema_caps
-            $crate::facade::SchemaFieldView::new(
-                $crate::facade::AspectName::new($aspect)
+            $crate::facade::runtime::SchemaFieldView::new(
+                $crate::facade::foundation::AspectName::new($aspect)
                     .expect("typed schema aspect literal must be valid"),
-                $crate::facade::FieldName::new($field)
+                $crate::facade::foundation::FieldName::new($field)
                     .expect("typed schema field literal must be valid"),
-                $crate::facade::SchemaFieldKind::$kind
+                $crate::facade::runtime::SchemaFieldKind::$kind
             ),
             [ $($caps)* ]
         )
@@ -150,44 +150,44 @@ macro_rules! worth_query_schema {
 
     (@impl_field_caps $Schema:ident, $Field:ident, [ ]) => {};
     (@impl_field_caps $Schema:ident, $Field:ident, [ projectable $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedProjectableField for $Field {}
+        impl $crate::facade::runtime::TypedProjectableField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ equality($ty:tt) $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedEqualityField for $Field {
+        impl $crate::facade::runtime::TypedEqualityField for $Field {
             type Value = $ty;
 
-            fn into_scalar(value: Self::Value) -> $crate::facade::ScalarPredicateValue {
+            fn into_scalar(value: Self::Value) -> $crate::facade::foundation::ScalarPredicateValue {
                 $crate::worth_query_schema!(@into_scalar $ty, value)
             }
         }
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ integer_comparable $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedIntegerComparableField for $Field {}
+        impl $crate::facade::runtime::TypedIntegerComparableField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ contains $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedStringContainsField for $Field {}
+        impl $crate::facade::runtime::TypedStringContainsField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ membership $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedMembershipField for $Field {}
+        impl $crate::facade::runtime::TypedMembershipField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ presence $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedPresenceField for $Field {}
+        impl $crate::facade::runtime::TypedPresenceField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ workflow $(, $($rest:tt)*)? ]) => {
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ orderable $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedOrderableField for $Field {}
+        impl $crate::facade::runtime::TypedOrderableField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ ordering_only $(, $($rest:tt)*)? ]) => {
-        impl $crate::facade::TypedOrderableField for $Field {}
+        impl $crate::facade::runtime::TypedOrderableField for $Field {}
         $crate::worth_query_schema!(@impl_field_caps $Schema, $Field, [ $($($rest)*)? ]);
     };
     (@impl_field_caps $Schema:ident, $Field:ident, [ non_queryable $(, $($rest:tt)*)? ]) => {
@@ -198,12 +198,12 @@ macro_rules! worth_query_schema {
     };
 
     (@into_scalar String, $value:expr) => {
-        $crate::facade::ScalarPredicateValue::String($value)
+        $crate::facade::foundation::ScalarPredicateValue::String($value)
     };
     (@into_scalar i64, $value:expr) => {
-        $crate::facade::ScalarPredicateValue::Integer($value)
+        $crate::facade::foundation::ScalarPredicateValue::Integer($value)
     };
     (@into_scalar bool, $value:expr) => {
-        $crate::facade::ScalarPredicateValue::Boolean($value)
+        $crate::facade::foundation::ScalarPredicateValue::Boolean($value)
     };
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use worth_foundational::facade::AspectFieldLocator;
 use serde::{Deserialize, Serialize};
+use worth_foundational::facade::AspectFieldLocator;
 
 use crate::commit_strategies::data::canonical_digest::serial_intent_scope_digest;
 use crate::commit_strategies::data::native_strategy_intent_scope::{

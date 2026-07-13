@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryEffectPayload;
+use worth_query::facade::runtime::WorthQueryEffectPayload;
 
 fn assert_no_neutral_payload_aspect_aliases(payload: &WorthQueryEffectPayload) {
     let _ = payload.input_aspects();

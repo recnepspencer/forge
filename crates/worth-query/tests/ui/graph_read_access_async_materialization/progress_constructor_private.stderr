@@ -1,46 +1,46 @@
 error[E0451]: fields `digest`, `request_digest`, `admitted_limits` and `counters` of struct `WorthQueryGraphReadMaterializationProgress` are private
-  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:8:9
+  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:5:9
    |
- 7 |     let _ = WorthQueryGraphReadMaterializationProgress {
+ 4 |     let _ = WorthQueryGraphReadMaterializationProgress {
    |             ------------------------------------------ in this type
- 8 |         digest: String::new(),
+ 5 |         digest: String::new(),
    |         ^^^^^^ private field
- 9 |         request_digest: String::new(),
+ 6 |         request_digest: String::new(),
    |         ^^^^^^^^^^^^^^ private field
-10 |         admitted_limits: WorthQueryGraphReadMaterializationAdmittedLimits {
+ 7 |         admitted_limits: WorthQueryGraphReadMaterializationAdmittedLimits {
    |         ^^^^^^^^^^^^^^^ private field
 ...
-15 |         counters: WorthQueryGraphReadMaterializationCounters {
+12 |         counters: WorthQueryGraphReadMaterializationCounters {
    |         ^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `max_resident_bytes` and `max_touched_edges` of struct `WorthQueryGraphReadMaterializationAdmittedLimits` are private
-  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:11:13
+  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:8:13
    |
-10 |         admitted_limits: WorthQueryGraphReadMaterializationAdmittedLimits {
+ 7 |         admitted_limits: WorthQueryGraphReadMaterializationAdmittedLimits {
    |                          ------------------------------------------------ in this type
-11 |             digest: String::new(),
+ 8 |             digest: String::new(),
    |             ^^^^^^ private field
-12 |             max_resident_bytes: 0,
+ 9 |             max_resident_bytes: 0,
    |             ^^^^^^^^^^^^^^^^^^ private field
-13 |             max_touched_edges: 0,
+10 |             max_touched_edges: 0,
    |             ^^^^^^^^^^^^^^^^^ private field
 
 error[E0451]: fields `digest`, `touched_edges`, `frontier_pages`, `allocated_bytes`, `emitted_rows`, `checkpoint_count` and `cancellation_poll_count` of struct `WorthQueryGraphReadMaterializationCounters` are private
-  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:16:13
+  --> tests/ui/graph_read_access_async_materialization/progress_constructor_private.rs:13:13
    |
-15 |         counters: WorthQueryGraphReadMaterializationCounters {
+12 |         counters: WorthQueryGraphReadMaterializationCounters {
    |                   ------------------------------------------ in this type
-16 |             digest: String::new(),
+13 |             digest: String::new(),
    |             ^^^^^^ private field
-17 |             touched_edges: 0,
+14 |             touched_edges: 0,
    |             ^^^^^^^^^^^^^ private field
-18 |             frontier_pages: 0,
+15 |             frontier_pages: 0,
    |             ^^^^^^^^^^^^^^ private field
-19 |             allocated_bytes: 0,
+16 |             allocated_bytes: 0,
    |             ^^^^^^^^^^^^^^^ private field
-20 |             emitted_rows: 0,
+17 |             emitted_rows: 0,
    |             ^^^^^^^^^^^^ private field
-21 |             checkpoint_count: 0,
+18 |             checkpoint_count: 0,
    |             ^^^^^^^^^^^^^^^^ private field
-22 |             cancellation_poll_count: 0,
+19 |             cancellation_poll_count: 0,
    |             ^^^^^^^^^^^^^^^^^^^^^^^ private field

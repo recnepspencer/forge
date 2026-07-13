@@ -1,7 +1,4 @@
-use worth_query::facade::foundation::{
-    ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
-    ProjectionConsumptionSource,
-};
+use worth_query::facade::foundation::{ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration, ProjectionConsumptionSource};
 
 fn main() {
     let _ = ProjectionConsumptionDeclaration {

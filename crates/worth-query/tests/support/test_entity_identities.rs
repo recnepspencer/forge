@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use worth_query::facade::{RelationalBridgeRecordIdentityParts, WorthQueryEntityIdentity};
+use worth_query::facade::foundation::{
+    RelationalBridgeRecordIdentityParts, WorthQueryEntityIdentity,
+};
 
 pub fn relational_test_entity_identity(label: &str) -> WorthQueryEntityIdentity {
     parse_typed_relational_record_parts(label)
@@ -9,7 +11,9 @@ pub fn relational_test_entity_identity(label: &str) -> WorthQueryEntityIdentity 
         .map(WorthQueryEntityIdentity::from_relational_record)
         .unwrap_or_else(|| {
             WorthQueryEntityIdentity::admit_authored_entity_token(
-                worth_query::facade::QueryExternalIdentityToken::new(std::sync::Arc::from(label)),
+                worth_query::facade::foundation::QueryExternalIdentityToken::new(
+                    std::sync::Arc::from(label),
+                ),
             )
         })
 }

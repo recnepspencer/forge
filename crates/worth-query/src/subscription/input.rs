@@ -1,3 +1,4 @@
+use crate::basis_lifecycle::{BasisFamily, ScopedSubscriptionDeclarationBasis};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::live::{LivePromotionDescriptor, LiveQueryFamily};
 use crate::view_shape_live::LiveViewShapeFamily;
@@ -21,6 +22,7 @@ pub struct LiveQueryAdmissionArtifact {
     pub(super) plan_identity: WorthQueryEvidenceIdentity,
     pub(super) collection_identity: WorthQueryEvidenceIdentity,
     pub(super) view_family: Option<LiveViewShapeFamily>,
+    pub(super) scoped_declaration_basis: Option<ScopedSubscriptionDeclarationBasis>,
     pub(super) basis_posture: QuerySubscriptionBasisPosture,
     pub(super) future_selection: QuerySubscriptionFutureSelection,
     pub(super) policy_context_identity: WorthQueryEvidenceIdentity,
@@ -43,12 +45,12 @@ pub struct LiveQueryAdmissionArtifact {
 impl LiveQueryAdmissionArtifact {
     pub fn from_live_promotion(
         descriptor: &LivePromotionDescriptor,
-        basis_posture: QuerySubscriptionBasisPosture,
+        scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
         dimensions: QuerySubscriptionAdmissionDimensions,
     ) -> Self {
         Self::from_live_promotion_with_future_selection(
             descriptor,
-            basis_posture,
+            scoped_declaration_basis,
             QuerySubscriptionFutureSelection::ordinary(),
             dimensions,
         )
@@ -56,13 +58,13 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn from_live_promotion_with_future_selection(
         descriptor: &LivePromotionDescriptor,
-        basis_posture: QuerySubscriptionBasisPosture,
+        scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
         future_selection: QuerySubscriptionFutureSelection,
         dimensions: QuerySubscriptionAdmissionDimensions,
     ) -> Self {
         Self::from_promotion_parts(
             descriptor,
-            basis_posture,
+            scoped_declaration_basis,
             None,
             dimensions,
             QuerySubscriptionConstructionSource::FacadeLive,
@@ -72,13 +74,13 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn from_live_promotion_with_view(
         descriptor: &LivePromotionDescriptor,
-        basis_posture: QuerySubscriptionBasisPosture,
+        scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
         view_family: LiveViewShapeFamily,
         dimensions: QuerySubscriptionAdmissionDimensions,
     ) -> Self {
         Self::from_live_promotion_with_view_and_future_selection(
             descriptor,
-            basis_posture,
+            scoped_declaration_basis,
             view_family,
             QuerySubscriptionFutureSelection::ordinary(),
             dimensions,
@@ -87,14 +89,14 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn from_live_promotion_with_view_and_future_selection(
         descriptor: &LivePromotionDescriptor,
-        basis_posture: QuerySubscriptionBasisPosture,
+        scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
         view_family: LiveViewShapeFamily,
         future_selection: QuerySubscriptionFutureSelection,
         dimensions: QuerySubscriptionAdmissionDimensions,
     ) -> Self {
         Self::from_promotion_parts(
             descriptor,
-            basis_posture,
+            scoped_declaration_basis,
             Some(view_family),
             dimensions,
             QuerySubscriptionConstructionSource::FacadeLive,
@@ -104,12 +106,13 @@ impl LiveQueryAdmissionArtifact {
 
     fn from_promotion_parts(
         descriptor: &LivePromotionDescriptor,
-        basis_posture: QuerySubscriptionBasisPosture,
+        scoped_declaration_basis: ScopedSubscriptionDeclarationBasis,
         view_family: Option<LiveViewShapeFamily>,
         dimensions: QuerySubscriptionAdmissionDimensions,
         construction_source: QuerySubscriptionConstructionSource,
         future_selection: QuerySubscriptionFutureSelection,
     ) -> Self {
+        let basis_posture = subscription_posture_for_basis(&scoped_declaration_basis);
         let query_identity = descriptor.query_digest().evidence_identity().clone();
         let plan_identity = descriptor.plan_digest().evidence_identity().clone();
         let collection_identity = descriptor
@@ -130,6 +133,7 @@ impl LiveQueryAdmissionArtifact {
             plan_identity,
             collection_identity,
             view_family,
+            scoped_declaration_basis: Some(scoped_declaration_basis),
             basis_posture,
             future_selection,
             policy_context_identity,
@@ -165,6 +169,10 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {
         &self.basis_posture
+    }
+
+    pub fn scoped_declaration_basis(&self) -> Option<&ScopedSubscriptionDeclarationBasis> {
+        self.scoped_declaration_basis.as_ref()
     }
 
     pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
@@ -241,5 +249,27 @@ impl LiveQueryAdmissionArtifact {
 
     pub fn view_shape_metadata_width(&self) -> usize {
         self.view_shape_metadata_width
+    }
+}
+
+fn subscription_posture_for_basis(
+    basis: &ScopedSubscriptionDeclarationBasis,
+) -> QuerySubscriptionBasisPosture {
+    match basis.family() {
+        BasisFamily::CurrentHead | BasisFamily::TenantScoped | BasisFamily::PolicyScoped => {
+            QuerySubscriptionBasisPosture::CurrentHead
+        }
+        BasisFamily::BranchHead | BasisFamily::BranchSnapshot => {
+            QuerySubscriptionBasisPosture::BranchHead
+        }
+        BasisFamily::RuntimeSnapshot
+        | BasisFamily::HistoricalSnapshot
+        | BasisFamily::HistoricalCommit => QuerySubscriptionBasisPosture::RuntimeHistoricalSnapshot,
+        BasisFamily::Preview | BasisFamily::PreviewDerived => {
+            QuerySubscriptionBasisPosture::PreviewScoped
+        }
+        BasisFamily::StoreBacked | BasisFamily::DurableReload => {
+            QuerySubscriptionBasisPosture::DeniedUnsupportedBasis
+        }
     }
 }

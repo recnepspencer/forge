@@ -1,7 +1,14 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
 };
 
 use crate::capability::{
@@ -9,7 +16,10 @@ use crate::capability::{
     QueryLiveCompatibility, QueryResultShapeReference, QueryViewCapabilityReference, SurfaceId,
     ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::tests::replacement_impact_test_support::impact_test_app;
 use crate::runtime::{
     WorthUiCandidateAdmission, WorthUiCandidateArtifactBundle, WorthUiCandidateAuthoringLane,

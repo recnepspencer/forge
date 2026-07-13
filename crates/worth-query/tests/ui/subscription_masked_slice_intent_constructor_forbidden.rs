@@ -1,4 +1,4 @@
-use worth_query::facade::{QuerySubscriptionSliceKind, QuerySubscriptionSlicePart};
+use worth_query::facade::runtime::{QuerySubscriptionSliceKind, QuerySubscriptionSlicePart};
 
 fn main() {
     let _masked_slice =

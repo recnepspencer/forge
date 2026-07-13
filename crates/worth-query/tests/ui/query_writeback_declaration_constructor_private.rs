@@ -1,4 +1,4 @@
-use worth_query::facade::QueryWritebackDeclaration;
+use worth_query::facade::runtime::QueryWritebackDeclaration;
 
 fn main() {
     let _ = QueryWritebackDeclaration {

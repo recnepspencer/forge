@@ -1,5 +1,5 @@
 error[E0599]: no method named `review_legality` found for struct `WorthQueryCanonicalDeclarationArtifact<D, I>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_declaration_has_no_direct_legality_review.rs:73:25
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/core/canonical_declaration_has_no_direct_legality_review.rs:66:25
    |
-73 |     let _ = declaration.review_legality();
+66 |     let _ = declaration.review_legality();
    |                         ^^^^^^^^^^^^^^^ method not found in `WorthQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`

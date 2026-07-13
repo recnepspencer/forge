@@ -1,5 +1,5 @@
-use worth_proof::{Recipe, Unresolved};
 use serde::Serialize;
+use worth_proof::{Recipe, Unresolved};
 
 use super::declaration_candidate::{PlacementDeclarationCandidate, PlacementDeclarationOrigin};
 use crate::runtime::core::WebSignalKind;

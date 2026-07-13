@@ -91,7 +91,7 @@ fn deletion_receipt_rows_equal_the_closure_contract_obligations() {
         .iter()
         .map(|row| row.obligation())
         .collect::<Vec<_>>();
-    let expected = worth_query::facade::downstream_authority_closure_contract()
+    let expected = worth_query::facade::foundation::downstream_authority_closure_contract()
         .deletion_obligations()
         .collect::<Vec<_>>();
     assert_eq!(actual, expected);

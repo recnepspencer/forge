@@ -1,6 +1,6 @@
-use worth_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use worth_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
 
 use crate::commit_strategies::data::{
     decode_entity_id, encode_entity_id, encode_u64, CanonicalStrategyCommitRequest,

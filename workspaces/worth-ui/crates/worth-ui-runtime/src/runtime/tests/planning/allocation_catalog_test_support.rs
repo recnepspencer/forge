@@ -19,7 +19,10 @@ use crate::evidence::{
     admit_measurement_basis, consume_declared_measurement_projection_facts,
     MeasurementEvidenceInput, UiMeasurementBasis,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot};
 use crate::obligations::selection::UiSelectedObligationSet;
 

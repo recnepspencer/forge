@@ -1,7 +1,7 @@
 use worth_proof::{TransitionOutcome, TransitionReadiness};
 use worth_server::{
     request_context::DiagnosticRichnessProfile,
-    surfaces::{CompatHttpSurface, WorthNativeSurface, SyncSurface},
+    surfaces::{CompatHttpSurface, SyncSurface, WorthNativeSurface},
     WorthServer, WorthServerConfig, WorthServerMiddlewareConfig, WorthServerPipelineInput,
     WorthServerPipelineIntent, WorthServerRequestContextConfig, WorthServerRequestContextInput,
     WorthServerResolvedRequestContext, WorthServerSurfaceFamily, WorthServerTransportClass,

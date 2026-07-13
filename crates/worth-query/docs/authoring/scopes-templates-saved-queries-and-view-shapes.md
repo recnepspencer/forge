@@ -116,8 +116,8 @@ to silently degrade that meaning into ordinary-only reuse.
 ## Small Example
 
 ```rust
-use worth_query::composition::GuidedCompositionPath;
-use worth_query::saved_query::freeze_composed_saved_query;
+use worth_query::facade::foundation::GuidedCompositionPath;
+use worth_query::facade::runtime::freeze_composed_saved_query;
 
 let composed = GuidedCompositionPath::new()
     .expand_collection_scopes(["open-items", "recent-first"])?
@@ -134,10 +134,10 @@ starts with composition meaning, not with ad hoc post-hoc persistence.
 ## Real Example
 
 ```rust
-use worth_query::composition::GuidedCompositionPath;
-use worth_query::saved_query::{evaluate_saved_query_reuse, freeze_composed_saved_query};
-use worth_query::saved_query::{SavedQueryFreezeContext, SavedQueryReuseOutcome};
-use worth_query::view_shape::{
+use worth_query::facade::foundation::GuidedCompositionPath;
+use worth_query::facade::runtime::{evaluate_saved_query_reuse, freeze_composed_saved_query};
+use worth_query::facade::runtime::{SavedQueryFreezeContext, SavedQueryReuseOutcome};
+use worth_query::facade::runtime::{
     admit_view_shape, plan_admitted_view_shape,
     validate_canonical_bundle_for_admitted_view_shape,
 };

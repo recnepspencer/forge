@@ -5,7 +5,7 @@ use std::sync::{
 
 use worth_foundational::facade::DiagnosticRichnessProfile;
 use worth_proof::TransitionOutcome;
-use worth_query::facade::WorthQueryRuntimeSupportProfile;
+use worth_query::facade::runtime::WorthQueryRuntimeSupportProfile;
 use worth_server::{
     WorthServerBinaryDownloadAuthorization, WorthServerQueryHandoffDenialCode,
     WorthServerUploadCleanupReason,

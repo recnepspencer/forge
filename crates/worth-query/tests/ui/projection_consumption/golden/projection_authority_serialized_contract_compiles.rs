@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    load_projection_authority_contract_document, ProjectionAuthorityContract,
-};
+use worth_query::facade::foundation::{load_projection_authority_contract_document, ProjectionAuthorityContract};
 
 fn round_trip() {
     let contract = ProjectionAuthorityContract::declare()

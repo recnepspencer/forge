@@ -69,13 +69,6 @@ Support discovery is available through source-local
 `discover_projection_fact_consumption_support(...)` methods and
 `consumed_projection_authority_support_matrix()`.
 
-### Migration history
-
-Older consumers retained completed consumption parts or compared basis and
-receipt digests locally. Those patterns are no longer curated facade APIs.
-Retain the sealed authority object and use its getters only for observation or
-indexing.
-
 ## Core Mental Model
 
 A **basis** is the admitted world of truth used by the Query operation. A
@@ -105,9 +98,11 @@ authority path may cross the crate boundary.
 
 ```rust
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
-    WorthQueryWriteReceipt,
+    foundation::{
+        AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+        ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
+    },
+    runtime::WorthQueryWriteReceipt,
 };
 
 fn consume_write_authority(
@@ -133,9 +128,11 @@ and receives the indivisible authority product directly.
 
 ```rust
 use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectionAuthorityContract,
-    ProjectionAuthorityOutcome, WorthQueryConsumedProjectionAuthority,
-    WorthQueryWriteReceipt,
+    foundation::{
+        AuthorizedProjectionArtifact, ProjectionAuthorityContract,
+        ProjectionAuthorityOutcome, WorthQueryConsumedProjectionAuthority,
+    },
+    runtime::WorthQueryWriteReceipt,
 };
 
 fn admitted_authority(
@@ -201,12 +198,12 @@ On an admitted authority, inspect:
 - `evidence()` for a derived diagnostic projection
 - `counters()` for bounded-work evidence
 
-For adoption and migration audits, Consumer Kit exposes
+For ongoing adoption audits, Consumer Kit exposes
 `WorthQueryDownstreamAuthorityAdoptionProof`. A zero-residue audit carries a
 `WorthQueryDownstreamAuthorityDeletionReceipt` whose rows prove the closure
 contract's four authority-reconstruction families are absent from the audited
-source inventory. This receipt certifies consumer cutover; it is not a way to
-mint projection authority.
+source inventory. This is compliance evidence; it is not a way to mint
+projection authority.
 
 Before consumption, inspect
 `consumed_projection_authority_support_matrix()` when source support is
@@ -222,7 +219,7 @@ fall back to raw facts.
   contract.
 - Reconstructing a projection contract or source identity in downstream code.
 - Importing Query's internal `projection_consumption` module.
-- Calling the legacy fact-consumption or declaration methods, including for
+- Building a parallel fact-consumption or declaration pipeline, including for
   tests or one-shot inspection.
 - Treating evidence getters as constructors or promotion inputs.
 - Falling back to raw rows after a typed denial or unsupported posture.

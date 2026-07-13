@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRuntimeDownstreamDeliveryContract;
+use worth_query::facade::runtime::WorthQueryRuntimeDownstreamDeliveryContract;
 
 use crate::{WorthServerDirectContextArtifact, WorthServerQuerySupportPosture};
 
@@ -110,13 +110,13 @@ impl WorthServerDirectDeliveryContract {
 
     pub fn runtime_resume_support_posture(
         &self,
-    ) -> worth_query::facade::WorthQueryLowerRuntimeSupportPosture {
+    ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         self.support_posture.runtime_resume_support_posture()
     }
 
     pub fn durable_resume_support_posture(
         &self,
-    ) -> worth_query::facade::WorthQueryLowerRuntimeSupportPosture {
+    ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         self.support_posture.durable_resume_support_posture()
     }
 }

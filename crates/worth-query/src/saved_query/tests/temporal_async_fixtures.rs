@@ -5,8 +5,8 @@ use crate::composition::{GuidedCompositionPath, QueryScopeDescriptor};
 use crate::harness::fixtures::execution_preflights;
 use crate::policy_basis::{PolicyExecutionModeRequest, SavedQueryPolicyReuseDescriptor};
 use crate::query_context::{
-    admit_query_basis_context, bind_query_basis_context, QueryBasisContextRequest,
-    QueryContextBindingSource, QueryContextFamily,
+    admit_and_scope_legacy_query_basis_context_for_test, bind_legacy_query_basis_context,
+    QueryBasisContextRequest, QueryContextBindingSource, QueryContextFamily,
 };
 use crate::saved_query::{
     freeze_composed_saved_query, freeze_direct_saved_query, SavedQueryArtifact,
@@ -155,12 +155,12 @@ pub(super) fn planned_focused_inspector_view(
 pub(super) fn basis_aware_composed_collection() -> crate::composition::ComposedCanonicalQueryBundle
 {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct = direct_collection();
     let evidence =
         crate::composition::BasisScopeEvidence::from_admitted_context_for_canonical_query(
@@ -201,12 +201,12 @@ pub(super) fn basis_aware_composed_collection() -> crate::composition::ComposedC
 
 pub(super) fn basis_aware_composed_detail() -> crate::composition::ComposedCanonicalQueryBundle {
     let preflight = execution_preflights::direct_runtime_preflight();
-    let binding = bind_query_basis_context(
+    let binding = bind_legacy_query_basis_context(
         QueryBasisContextRequest::current_branch_head(),
         QueryContextBindingSource::RuntimeCurrent(&preflight),
     )
     .unwrap();
-    let admitted = admit_query_basis_context(binding).unwrap();
+    let admitted = admit_and_scope_legacy_query_basis_context_for_test(binding).unwrap();
     let direct = direct_detail();
     let evidence =
         crate::composition::BasisScopeEvidence::from_admitted_context_for_canonical_query(

@@ -1,9 +1,10 @@
 use super::super::support::registration;
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::{
-    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
-    BridgePreviewSessionIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
-    BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
+    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity, BridgeRequestKind,
+    BridgeSignalBranchIdentity, BridgeSourceCapability, BridgeSourceCapabilitySet,
+    BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
+    BridgeTruthViewSelector,
 };
 
 #[test]

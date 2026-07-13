@@ -1,4 +1,4 @@
-use worth_query::facade::runtime::WorthQueryDomainCapabilityCertificationSurface;
+use worth_query::facade::certification::WorthQueryDomainCapabilityCertificationSurface;
 
 fn main() {
     let _ = WorthQueryDomainCapabilityCertificationSurface {

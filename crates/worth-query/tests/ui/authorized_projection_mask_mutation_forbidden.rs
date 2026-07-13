@@ -1,4 +1,4 @@
-use worth_query::facade::{AspectFieldKey, PolicyAspectMask};
+use worth_query::facade::foundation::{AspectFieldKey, PolicyAspectMask};
 
 fn main() {
     let mut mask =

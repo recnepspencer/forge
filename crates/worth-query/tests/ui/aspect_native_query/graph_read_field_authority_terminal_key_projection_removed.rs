@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadOrderingFieldAuthority, WorthQueryGraphReadPredicateFieldAuthority,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadOrderingFieldAuthority, WorthQueryGraphReadPredicateFieldAuthority};
 
 fn assert_predicate_terminal_key_projection_removed(
     row: &WorthQueryGraphReadPredicateFieldAuthority,

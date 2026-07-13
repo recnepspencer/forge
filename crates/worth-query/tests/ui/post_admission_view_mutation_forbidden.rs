@@ -1,4 +1,4 @@
-use worth_query::facade::{AdmittedViewShape, ViewShapeDescriptor};
+use worth_query::facade::runtime::{AdmittedViewShape, ViewShapeDescriptor};
 
 fn mutate(admitted: &mut AdmittedViewShape) {
     admitted.descriptor = ViewShapeDescriptor::table();

@@ -1,17 +1,16 @@
 
-use worth_query::facade::{
-    worth_query_basis_observation_intent, RawBasisIntent, WorthQueryIntentAdmissionDecision,
-};
+use worth_query::facade::foundation::{worth_query_basis_observation_intent, basis_lifecycle};
+use worth_query::facade::runtime::WorthQueryIntentAdmissionDecision;
 
 fn basis_observation_paths() {
-    let scoped_basis = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let scoped_basis = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation authoring should build")
         .admit()
         .expect("basis observation should admit")
         .scope();
     let _ = scoped_basis.scoped_basis_digest();
 
-    let basis_review = worth_query_basis_observation_intent(RawBasisIntent::CurrentHead)
+    let basis_review = worth_query_basis_observation_intent(basis_lifecycle().current_head())
         .expect("basis observation authoring should build")
         .review();
     let _ = basis_review.request();

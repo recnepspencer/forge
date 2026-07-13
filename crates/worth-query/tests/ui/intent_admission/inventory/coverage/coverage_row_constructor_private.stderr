@@ -1,16 +1,16 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/intent_admission/inventory/coverage/coverage_row_constructor_private.rs:11:51
-   |
-11 |       let _ = WorthQueryIntentAdmissionCoverageRow::new(
-   |                                                     ^^^ private associated function
-   |
-  ::: src/intent_admission/inventory/types.rs
-   |
-   | /     pub(crate) const fn new(
-   | |         family: WorthQueryIntentAdmissionFamily,
-   | |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint,
-   | |         execution_boundary: WorthQueryIntentAdmissionExecutionBoundary,
-...  |
-   | |         advanced_path_front_door: WorthQueryIntentAdmissionSurfaceDescriptor,
-   | |     ) -> Self {
-   | |_____________- private associated function defined here
+ --> tests/ui/intent_admission/inventory/coverage/coverage_row_constructor_private.rs:4:51
+  |
+4 |       let _ = WorthQueryIntentAdmissionCoverageRow::new(
+  |                                                     ^^^ private associated function
+  |
+ ::: src/intent_admission/inventory/types.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         family: WorthQueryIntentAdmissionFamily,
+  | |         entrypoint: WorthQueryIntentAdmissionCoveredEntrypoint,
+  | |         execution_boundary: WorthQueryIntentAdmissionExecutionBoundary,
+... |
+  | |         advanced_path_front_door: WorthQueryIntentAdmissionSurfaceDescriptor,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

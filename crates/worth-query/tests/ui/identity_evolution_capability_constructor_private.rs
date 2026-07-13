@@ -1,4 +1,4 @@
-use worth_query::facade::IdentityEvolutionCapability;
+use worth_query::facade::foundation::IdentityEvolutionCapability;
 
 fn main() {
     let _ = IdentityEvolutionCapability {

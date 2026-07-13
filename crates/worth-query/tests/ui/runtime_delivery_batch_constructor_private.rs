@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryAuthorityLane, WorthQueryRuntimeDeliveryBatch, QueryPatchGroupKind};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryRuntimeDeliveryBatch, QueryPatchGroupKind};
 
 fn main() {
     let _ = WorthQueryRuntimeDeliveryBatch {

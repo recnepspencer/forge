@@ -1,64 +1,64 @@
 error: cannot construct `WorthQueryGraphReadAccessRequirementRow` with struct literal syntax due to private fields
-  --> tests/ui/graph_read_access/access_requirement_row_constructor_private.rs:8:13
+  --> tests/ui/graph_read_access/access_requirement_row_constructor_private.rs:4:13
    |
- 8 |     let _ = WorthQueryGraphReadAccessRequirementRow {
+ 4 |     let _ = WorthQueryGraphReadAccessRequirementRow {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 9 |         kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+ 5 |         kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
    |         -------------------------------------------------------------------- private field
-10 |         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+ 6 |         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
    |         -------------------------------------------------------------------------------- private field
-11 |         relation_name: None,
+ 7 |         relation_name: None,
    |         ------------------- private field
-12 |         relation_authority: None,
+ 8 |         relation_authority: None,
    |         ------------------------ private field
-13 |         relation_direction: None,
+ 9 |         relation_direction: None,
    |         ------------------------ private field
-14 |         relation_depth: None,
+10 |         relation_depth: None,
    |         -------------------- private field
-15 |         fanout_posture: None,
+11 |         fanout_posture: None,
    |         -------------------- private field
-16 |         predicate_family: None,
+12 |         predicate_family: None,
    |         ---------------------- private field
-17 |         predicate_field_authorities: Vec::new(),
+13 |         predicate_field_authorities: Vec::new(),
    |         --------------------------------------- private field
-18 |         ordering_posture: None,
+14 |         ordering_posture: None,
    |         ---------------------- private field
-19 |         ordering_field_authorities: Vec::new(),
+15 |         ordering_field_authorities: Vec::new(),
    |         -------------------------------------- private field
-20 |         traversal_operator: None,
+16 |         traversal_operator: None,
    |         ------------------------ private field
-21 |         lifecycle_class: None,
+17 |         lifecycle_class: None,
    |         --------------------- private field
-22 |         result_pressure: None,
+18 |         result_pressure: None,
    |         --------------------- private field
-23 |         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+19 |         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
    |         ------------------------------------------------------------------------------------------ private field
-24 |         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+20 |         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
    |         ------------------------------------------------------------------------------------------- private field
-25 |         memory_estimate_basis: WorthQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
+21 |         memory_estimate_basis: WorthQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
    |         ---------------------------------------------------------------------------------------- private field
    |
    = note: ...and other private field `operation_capability_requirement` that was not provided
 help: you might have meant to use the `new` associated function
    |
- 8 -     let _ = WorthQueryGraphReadAccessRequirementRow {
- 9 -         kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
-10 -         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
-11 -         relation_name: None,
-12 -         relation_authority: None,
-13 -         relation_direction: None,
-14 -         relation_depth: None,
-15 -         fanout_posture: None,
-16 -         predicate_family: None,
-17 -         predicate_field_authorities: Vec::new(),
-18 -         ordering_posture: None,
-19 -         ordering_field_authorities: Vec::new(),
-20 -         traversal_operator: None,
-21 -         lifecycle_class: None,
-22 -         result_pressure: None,
-23 -         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
-24 -         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
-25 -         memory_estimate_basis: WorthQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
-26 -     };
- 8 +     let _ = WorthQueryGraphReadAccessRequirementRow::new(_, _, _, _, _);
+ 4 -     let _ = WorthQueryGraphReadAccessRequirementRow {
+ 5 -         kind: WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
+ 6 -         rebuild_basis: WorthQueryGraphReadAccessRebuildBasis::AuthoritativeRelationTruth,
+ 7 -         relation_name: None,
+ 8 -         relation_authority: None,
+ 9 -         relation_direction: None,
+10 -         relation_depth: None,
+11 -         fanout_posture: None,
+12 -         predicate_family: None,
+13 -         predicate_field_authorities: Vec::new(),
+14 -         ordering_posture: None,
+15 -         ordering_field_authorities: Vec::new(),
+16 -         traversal_operator: None,
+17 -         lifecycle_class: None,
+18 -         result_pressure: None,
+19 -         invalidation_basis: WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta,
+20 -         complexity_contract: WorthQueryGraphReadAccessComplexityContract::DirectionalRelationLookup,
+21 -         memory_estimate_basis: WorthQueryGraphReadAccessMemoryEstimateBasis::RelationDegreeBound,
+22 -     };
+ 4 +     let _ = WorthQueryGraphReadAccessRequirementRow::new(_, _, _, _, _);
    |

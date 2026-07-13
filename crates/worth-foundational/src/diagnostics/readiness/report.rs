@@ -1,8 +1,8 @@
 use super::inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries, compile_fail_evidence,
-    worth_proof_api_appendix, worth_proof_api_evidence, worth_proof_forbidden_surfaces,
-    worth_proof_required_surfaces, phase_gates, residual_debt, runtime_assumptions,
-    runtime_non_assumptions, synthetic_pressure_evidence, synthetic_pressures,
+    phase_gates, residual_debt, runtime_assumptions, runtime_non_assumptions,
+    synthetic_pressure_evidence, synthetic_pressures, worth_proof_api_appendix,
+    worth_proof_api_evidence, worth_proof_forbidden_surfaces, worth_proof_required_surfaces,
 };
 use super::production_test_contract::{
     FoundationalDiagnosticAdoptionShapedFollowthrough,
@@ -20,12 +20,12 @@ use super::production_test_handoff::{
 use super::vocabulary::{
     FoundationalDiagnosticCertifiedSurface, FoundationalDiagnosticCertifiedSurfaceEvidence,
     FoundationalDiagnosticCompileFailBoundary, FoundationalDiagnosticCompileFailEvidence,
-    FoundationalDiagnosticWORTHProofApi, FoundationalDiagnosticWORTHProofApiEvidence,
-    FoundationalDiagnosticWORTHProofForbiddenSurface, FoundationalDiagnosticWORTHProofSurface,
     FoundationalDiagnosticPhaseGateEvidence, FoundationalDiagnosticResidualDebt,
     FoundationalDiagnosticRuntimeAssumption, FoundationalDiagnosticRuntimeNonAssumption,
     FoundationalDiagnosticSyntheticPressureEvidence,
-    FoundationalDiagnosticSyntheticRuntimePressure,
+    FoundationalDiagnosticSyntheticRuntimePressure, FoundationalDiagnosticWORTHProofApi,
+    FoundationalDiagnosticWORTHProofApiEvidence, FoundationalDiagnosticWORTHProofForbiddenSurface,
+    FoundationalDiagnosticWORTHProofSurface,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,4 +1,5 @@
-use crate::facade::{CanonicalQueryBundle, ValidatedQueryBundle};
+use crate::facade::foundation::CanonicalQueryBundle;
+use crate::facade::runtime::ValidatedQueryBundle;
 use crate::harness::fixtures::schema_view::detail_schema_view;
 use crate::validation::{
     validate_canonical_bundle_with_failure_artifact, ValidationFailureArtifact,

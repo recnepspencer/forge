@@ -1,4 +1,4 @@
-use worth_query::facade::ValidatedPredicateEntry;
+use worth_query::facade::runtime::ValidatedPredicateEntry;
 
 fn main() {
     let entry: ValidatedPredicateEntry = unreachable!();

@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     AspectKey, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
 };
-use serde::{Deserialize, Serialize};
 
 use crate::publication::patch::data::PublishedAuthoritativePatch;
 

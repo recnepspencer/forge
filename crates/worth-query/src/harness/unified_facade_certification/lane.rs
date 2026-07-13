@@ -1,4 +1,4 @@
-use crate::facade::{
+use crate::facade::foundation::{
     WorthQueryCapabilityFamily, WorthQueryCapabilityStatus, WorthQueryConfigSectionFamily,
     WorthQueryFacadeCounters, WorthQueryFacadeFailureClass,
 };
@@ -208,7 +208,7 @@ pub struct UnifiedFacadeRejection {
 }
 
 impl UnifiedFacadeRejection {
-    pub fn from_error(error: &crate::facade::WorthQueryFacadeError) -> Self {
+    pub fn from_error(error: &crate::facade::foundation::WorthQueryFacadeError) -> Self {
         Self {
             failure_class: match error.failure_class() {
                 WorthQueryFacadeFailureClass::UnsupportedCapabilityFamily => {
@@ -255,7 +255,9 @@ impl UnifiedFacadeRejection {
         }
     }
 
-    pub fn from_config_error(error: &crate::facade::ConfigurationAdmissionError) -> Self {
+    pub fn from_config_error(
+        error: &crate::facade::foundation::ConfigurationAdmissionError,
+    ) -> Self {
         Self {
             failure_class: UnifiedFacadeFailureClass::InvalidConfiguration,
             capability_lookup_count: 0,
@@ -286,7 +288,7 @@ impl UnifiedFacadeRejection {
     }
 
     pub fn from_query_context_error(
-        facade_counters: &crate::facade::WorthQueryFacadeCounters,
+        facade_counters: &crate::facade::foundation::WorthQueryFacadeCounters,
         error: &crate::query_context::QueryContextAdmissionError,
     ) -> Self {
         Self {

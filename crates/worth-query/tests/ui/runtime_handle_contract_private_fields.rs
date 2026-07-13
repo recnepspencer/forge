@@ -1,13 +1,11 @@
-use worth_query::facade::{
-    WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow,
-};
+use worth_query::facade::runtime::{WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow};
 
 fn main() {
     let _row = WorthQueryHandleContractRow {
         family: WorthQueryHandleContractFamily::LiveView,
         authority_lanes: Vec::new(),
         basis_lanes: Vec::new(),
-        support_status: worth_query::facade::WorthQueryRuntimeFamilySupportStatus::Supported,
+        support_status: worth_query::facade::runtime::WorthQueryRuntimeFamilySupportStatus::Supported,
         inspection_sections: Vec::new(),
         retained_artifact_required: true,
         deferred_future_posture: false,

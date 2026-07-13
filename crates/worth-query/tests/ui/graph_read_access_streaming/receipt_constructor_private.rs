@@ -1,6 +1,4 @@
-use worth_query::facade::runtime::{
-    WorthQueryGraphReadStreamingCounters, WorthQueryGraphReadStreamingReceipt,
-};
+use worth_query::facade::runtime::{WorthQueryGraphReadStreamingCounters, WorthQueryGraphReadStreamingReceipt};
 
 fn main() {
     let _ = WorthQueryGraphReadStreamingReceipt {

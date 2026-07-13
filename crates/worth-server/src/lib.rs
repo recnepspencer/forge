@@ -13,7 +13,6 @@ mod config;
 mod declaration_intake;
 mod diagnostics;
 pub mod facade;
-pub mod worth_native;
 pub mod middleware;
 mod operation_admission;
 mod operation_planning;
@@ -35,6 +34,7 @@ pub mod response;
 mod runtime;
 pub mod surfaces;
 mod transport;
+pub mod worth_native;
 
 pub use config::{
     WorthServerBindAddress, WorthServerConfig, WorthServerConfigBuilder, WorthServerConfigError,
@@ -56,32 +56,6 @@ pub use declaration_intake::{
 };
 pub use diagnostics::WorthServerCounterSnapshot;
 pub use facade::{WorthServer, WorthServerBuildError, WorthServerBuilder};
-pub use worth_native::{
-    WorthServerDirectAsyncResultState, WorthServerDirectContextArtifact,
-    WorthServerDirectDeclarationSnapshot, WorthServerDirectDeliveryClass,
-    WorthServerDirectDeliveryContract, WorthServerDirectDeliveryOutcome,
-    WorthServerDirectDeliveryRequest, WorthServerDirectFactReceipt, WorthServerDirectFreshnessMode,
-    WorthServerDirectInspection, WorthServerDirectInspectionOutcome,
-    WorthServerDirectLeaseDeclaration, WorthServerDirectLeaseDeclarationOutcome,
-    WorthServerDirectMaterializationDigest, WorthServerDirectMaterializedRemaskArtifact,
-    WorthServerDirectMutation, WorthServerDirectMutationOutcome, WorthServerDirectMutationResult,
-    WorthServerDirectProductFlow, WorthServerDirectProjection,
-    WorthServerDirectProjectionConsumption, WorthServerDirectProjectionFactReceipt,
-    WorthServerDirectProjectionOutcome, WorthServerDirectProjectionRequest,
-    WorthServerDirectProvenance, WorthServerDirectRead, WorthServerDirectReadOutcome,
-    WorthServerDirectRemaskArtifact, WorthServerDirectRemaskDisposition,
-    WorthServerDirectRemaskPosture, WorthServerDirectRetainedPosture, WorthServerDirectState,
-    WorthServerDirectStateOutcome, WorthServerDirectTemporalState, WorthServerWorthNativeDeferred,
-    WorthServerWorthNativeDirectFacade, WorthServerWorthNativeFacade,
-    WorthServerWorthNativeFailure, WorthServerWorthNativePreparationOutcome,
-    WorthServerWorthNativePreparedSession, WorthServerWorthNativeProductFacade,
-    WorthServerWorthNativeProductMutationCommand, WorthServerWorthNativeProductSessionFacade,
-    WorthServerWorthNativeRebindRequired, WorthServerWorthNativeSession,
-    WorthServerWorthNativeSessionDenial, WorthServerWorthNativeSessionDenialCode,
-    WorthServerWorthNativeSessionInput, WorthServerWorthNativeSessionInputBuilder,
-    WorthServerWorthNativeSessionInputError, WorthServerWorthNativeSessionOutcome,
-    WorthServerWorthNativeStale, WorthServerWorthNativeSurfaceRoot,
-};
 pub use middleware::{
     WorthServerAdmission, WorthServerAdmissionOutcome, WorthServerDenial, WorthServerDenialCode,
     WorthServerDenialPriority, WorthServerMiddlewareDeferred, WorthServerMiddlewareFacade,
@@ -243,28 +217,30 @@ pub use response::{
     WorthServerSuccessEnvelope, WorthServerSuccessKind, WorthServerSuccessPayload,
 };
 pub use surfaces::{
-    BinarySurface, BinarySurfaceRoot, CompatHttpSurface, CompatHttpSurfaceRoot, WorthNativeSurface,
-    WorthNativeSurfaceRoot, WorthServerAbuseBudgetReceipt, WorthServerBackgroundExportRequest,
-    WorthServerBinaryCertificationBundle, WorthServerBinaryCounterSet, WorthServerBinaryDownload,
-    WorthServerBinaryDownloadAuthorization, WorthServerBinaryDownloadExecutionInput,
-    WorthServerBinaryDownloadOutcome, WorthServerBinaryDownloadRequest,
-    WorthServerBinaryEgressPerformanceReceipt, WorthServerBinaryEgressSession,
-    WorthServerBinaryIngressSession, WorthServerBinaryIntegrityDigest,
-    WorthServerBinaryPolicyDecision, WorthServerBinaryResumeRequest, WorthServerBinaryRetryPosture,
-    WorthServerBinarySessionResume, WorthServerCacheabilityPolicy, WorthServerCanonicalFilename,
-    WorthServerCanonicalHeaderSet, WorthServerCompatHttpRouteFamilies,
-    WorthServerCompatHttpRouteFamily, WorthServerCompatibilityAdmittedProductMutationCommand,
-    WorthServerCompatibilityCachePolicy, WorthServerCompatibilityCertificationBundle,
-    WorthServerCompatibilityDeferred, WorthServerCompatibilityDenial,
-    WorthServerCompatibilityDenialCode, WorthServerCompatibilityExecutionInput,
-    WorthServerCompatibilityExecutionOutcome, WorthServerCompatibilityExport,
-    WorthServerCompatibilityFacade, WorthServerCompatibilityFailure,
-    WorthServerCompatibilityFileEnvelope, WorthServerCompatibilityInspection,
-    WorthServerCompatibilityMutation, WorthServerCompatibilityMutationCommand,
-    WorthServerCompatibilityMutationEnvelope, WorthServerCompatibilityMutationExecutionInput,
-    WorthServerCompatibilityMutationOutcome, WorthServerCompatibilityMutationRequest,
-    WorthServerCompatibilityMutationResult, WorthServerCompatibilityOpenedProductSession,
-    WorthServerCompatibilityPreparedRequest, WorthServerCompatibilityProductSessionContinuation,
+    BinarySurface, BinarySurfaceRoot, CompatHttpSurface, CompatHttpSurfaceRoot, IntegrationSurface,
+    IntegrationSurfaceRoot, LeaseSurface, LeaseSurfaceRoot, SyncSurface, SyncSurfaceRoot,
+    WorthNativeSurface, WorthNativeSurfaceRoot, WorthServerAbuseBudgetReceipt,
+    WorthServerBackgroundExportRequest, WorthServerBinaryCertificationBundle,
+    WorthServerBinaryCounterSet, WorthServerBinaryDownload, WorthServerBinaryDownloadAuthorization,
+    WorthServerBinaryDownloadExecutionInput, WorthServerBinaryDownloadOutcome,
+    WorthServerBinaryDownloadRequest, WorthServerBinaryEgressPerformanceReceipt,
+    WorthServerBinaryEgressSession, WorthServerBinaryIngressSession,
+    WorthServerBinaryIntegrityDigest, WorthServerBinaryPolicyDecision,
+    WorthServerBinaryResumeRequest, WorthServerBinaryRetryPosture, WorthServerBinarySessionResume,
+    WorthServerCacheabilityPolicy, WorthServerCanonicalFilename, WorthServerCanonicalHeaderSet,
+    WorthServerCompatHttpRouteFamilies, WorthServerCompatHttpRouteFamily,
+    WorthServerCompatibilityAdmittedProductMutationCommand, WorthServerCompatibilityCachePolicy,
+    WorthServerCompatibilityCertificationBundle, WorthServerCompatibilityDeferred,
+    WorthServerCompatibilityDenial, WorthServerCompatibilityDenialCode,
+    WorthServerCompatibilityExecutionInput, WorthServerCompatibilityExecutionOutcome,
+    WorthServerCompatibilityExport, WorthServerCompatibilityFacade,
+    WorthServerCompatibilityFailure, WorthServerCompatibilityFileEnvelope,
+    WorthServerCompatibilityInspection, WorthServerCompatibilityMutation,
+    WorthServerCompatibilityMutationCommand, WorthServerCompatibilityMutationEnvelope,
+    WorthServerCompatibilityMutationExecutionInput, WorthServerCompatibilityMutationOutcome,
+    WorthServerCompatibilityMutationRequest, WorthServerCompatibilityMutationResult,
+    WorthServerCompatibilityOpenedProductSession, WorthServerCompatibilityPreparedRequest,
+    WorthServerCompatibilityProductSessionContinuation,
     WorthServerCompatibilityProductSessionFacade, WorthServerCompatibilityRead,
     WorthServerCompatibilityRebindRequired, WorthServerCompatibilityRequest,
     WorthServerCompatibilityRequestInput, WorthServerCompatibilityRequestInputBuilder,
@@ -290,8 +266,7 @@ pub use surfaces::{
     WorthServerTransferCleanupReason, WorthServerUploadChunk, WorthServerUploadCleanupReason,
     WorthServerUploadCleanupReceipt, WorthServerUploadContentEncoding,
     WorthServerUploadExpectation, WorthServerUploadManifest, WorthServerUploadPart,
-    WorthServerUploadTransferMode, WorthServerVerifiedBinaryIngress, IntegrationSurface,
-    IntegrationSurfaceRoot, LeaseSurface, LeaseSurfaceRoot, SyncSurface, SyncSurfaceRoot,
+    WorthServerUploadTransferMode, WorthServerVerifiedBinaryIngress,
 };
 pub use transport::{
     WorthServerDeclaredRoute, WorthServerOperationRouter, WorthServerOperationalRoute,
@@ -300,4 +275,30 @@ pub use transport::{
     WorthServerRouteBranchTarget, WorthServerRouteExecutionBridge,
     WorthServerRouteExecutionOutcome, WorthServerRouteInventory, WorthServerRouteInventoryRow,
     WorthServerRouteTransportRequest, WorthServerTransportDenial, WorthServerTransportDenialCode,
+};
+pub use worth_native::{
+    WorthServerDirectAsyncResultState, WorthServerDirectContextArtifact,
+    WorthServerDirectDeclarationSnapshot, WorthServerDirectDeliveryClass,
+    WorthServerDirectDeliveryContract, WorthServerDirectDeliveryOutcome,
+    WorthServerDirectDeliveryRequest, WorthServerDirectFactReceipt, WorthServerDirectFreshnessMode,
+    WorthServerDirectInspection, WorthServerDirectInspectionOutcome,
+    WorthServerDirectLeaseDeclaration, WorthServerDirectLeaseDeclarationOutcome,
+    WorthServerDirectMaterializationDigest, WorthServerDirectMaterializedRemaskArtifact,
+    WorthServerDirectMutation, WorthServerDirectMutationOutcome, WorthServerDirectMutationResult,
+    WorthServerDirectProductFlow, WorthServerDirectProjection,
+    WorthServerDirectProjectionConsumption, WorthServerDirectProjectionFactReceipt,
+    WorthServerDirectProjectionOutcome, WorthServerDirectProjectionRequest,
+    WorthServerDirectProvenance, WorthServerDirectRead, WorthServerDirectReadOutcome,
+    WorthServerDirectRemaskArtifact, WorthServerDirectRemaskDisposition,
+    WorthServerDirectRemaskPosture, WorthServerDirectRetainedPosture, WorthServerDirectState,
+    WorthServerDirectStateOutcome, WorthServerDirectTemporalState, WorthServerWorthNativeDeferred,
+    WorthServerWorthNativeDirectFacade, WorthServerWorthNativeFacade,
+    WorthServerWorthNativeFailure, WorthServerWorthNativePreparationOutcome,
+    WorthServerWorthNativePreparedSession, WorthServerWorthNativeProductFacade,
+    WorthServerWorthNativeProductMutationCommand, WorthServerWorthNativeProductSessionFacade,
+    WorthServerWorthNativeRebindRequired, WorthServerWorthNativeSession,
+    WorthServerWorthNativeSessionDenial, WorthServerWorthNativeSessionDenialCode,
+    WorthServerWorthNativeSessionInput, WorthServerWorthNativeSessionInputBuilder,
+    WorthServerWorthNativeSessionInputError, WorthServerWorthNativeSessionOutcome,
+    WorthServerWorthNativeStale, WorthServerWorthNativeSurfaceRoot,
 };

@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    admit_basis_capability, evaluate_basis_inspection_advisory_eligibility,
-    normalize_raw_basis_intent, BasisOperationLane, InspectionLaneWitness, RawBasisIntent,
-};
+use worth_query::facade::foundation::{BasisOperationLane, InspectionLaneWitness};
+use worth_query::facade::{admit_basis_capability, evaluate_basis_inspection_advisory_eligibility, normalize_raw_basis_intent, RawBasisIntent};
 
 fn main() {
     let normalized = normalize_raw_basis_intent(

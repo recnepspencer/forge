@@ -8,7 +8,7 @@ use crate::application::{
     EXACT_ZERO_STRING_CARRIED_SESSION_IDENTITY_PATHS, EXACT_ZERO_STRING_MATCHING_PATHS,
     STOP_CLASS_COVERED_CONTRACTS,
 };
-use crate::facade::WorthQueryApplicationFacade;
+use crate::facade::foundation::WorthQueryApplicationFacade;
 use crate::intent_admission::{
     WorthQueryAuthoritativeMutationIntentSeed, WorthQueryAuthoritativeMutationPreflight,
 };

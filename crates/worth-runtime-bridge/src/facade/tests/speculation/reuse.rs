@@ -1,10 +1,11 @@
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 use crate::facade::tests::runtime;
 use crate::facade::tests::speculation::{
     preview_declaration, structural_basis, StructuralBasisInput, StructuralSemanticsVersion,
 };
 use crate::facade::{
-    BridgePreviewLifecycleStateKind, BridgePreviewSessionIdentity, BridgeRuntimePolicy,
-    StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
+    BridgePreviewLifecycleStateKind, BridgeRuntimePolicy, StructuralIdentityDeclarationIdentity,
+    StructuralSchemaIdentity,
 };
 
 #[test]

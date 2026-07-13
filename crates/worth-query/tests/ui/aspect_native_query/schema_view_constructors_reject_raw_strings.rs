@@ -1,4 +1,4 @@
-use worth_query::facade::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use worth_query::facade::runtime::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
 fn main() {
     let _field = SchemaFieldView::new("identity", "id", SchemaFieldKind::String);

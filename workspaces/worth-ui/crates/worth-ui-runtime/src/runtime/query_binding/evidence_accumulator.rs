@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use worth_query::facade::worth_ui_query_binding_evidence_identity;
+use worth_query::facade::foundation::worth_ui_query_binding_evidence_identity;
 
 use super::evidence::WorthUiQueryBindingEvidence;
 use crate::runtime::query_binding::{WorthUiQueryBindingIdentity, WorthUiQueryBindingPosture};

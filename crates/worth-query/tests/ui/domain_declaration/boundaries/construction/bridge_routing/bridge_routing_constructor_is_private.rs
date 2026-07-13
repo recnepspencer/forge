@@ -1,13 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily,
-    WorthQueryDeclarationBridgeBinding, WorthQueryDeclarationBridgeContinuationFamily,
-    WorthQueryDeclarationBridgeContinuationMode, WorthQueryDeclarationBridgeContinuationRequest,
-    WorthQueryDeclarationBridgeRouting, WorthQueryDeclarationBridgeRoutingClass,
-    WorthQueryDeclarationBridgeRoutingExplanation, WorthQueryDeclarationCanonicalEntry,
-    WorthQueryDeclarationEnvelope, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
-    WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker,
-    WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture,
-};
+use worth_query::facade::foundation::{WorthQueryBridgeContinuationAuthority, WorthQueryCapabilityFamily, WorthQueryDeclarationBridgeBinding, WorthQueryDeclarationBridgeContinuationFamily, WorthQueryDeclarationBridgeContinuationMode, WorthQueryDeclarationBridgeContinuationRequest, WorthQueryDeclarationBridgeRouting, WorthQueryDeclarationBridgeRoutingClass, WorthQueryDeclarationBridgeRoutingExplanation, WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationEnvelope, WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput, WorthQueryDeclarationLegalityContract, WorthQueryDomainEntryMarker, WorthQueryNeighborhoodCapableGrouping, WorthQuerySignalCompatiblePosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ExampleDomain;
@@ -56,7 +47,7 @@ fn main() {
         WorthQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
         WorthQueryDeclarationBridgeContinuationRequest::new(
             WorthQueryDeclarationBridgeContinuationMode::RuntimeRoute,
-            worth_query::facade::WorthQueryDeclarationBridgeTruthContext::Current,
+            worth_query::facade::foundation::WorthQueryDeclarationBridgeTruthContext::Current,
         ),
         WorthQueryDeclarationBridgeContinuationFamily::RuntimeRoute,
         binding,

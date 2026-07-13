@@ -55,8 +55,8 @@ The main stable entry points are:
 - `WorthQueryConsumerResidueCertificationCaseEvidence`
 - `query_test_backend_residue_audit()`
 
-Durable persisted kit archives are not the stable contract yet. Treat persisted
-archives and store-backed kit replay as later milestone scope.
+Durable persisted kit archives are not the stable contract. Persisted archives
+and store-backed kit replay remain deferred.
 
 ## Core Mental Model
 
@@ -240,10 +240,10 @@ Useful things to inspect:
 - `WorthQueryTestBackendResidueReport`
 - `support_report().consumer_kit_closure()`
 
-The milestone closure signal lives on the application support report:
+The Consumer Kit closeout signal lives on the application support report:
 
 ```rust
-let closure = worth_query::facade::WorthQueryApplicationFacade::runtime_backed_default()
+let closure = worth_query::facade::foundation::WorthQueryApplicationFacade::runtime_backed_default()
     .support_report()
     .consumer_kit_closure();
 
@@ -283,7 +283,7 @@ assert_eq!(closure.reference_consumer_residue().query_owned_residue_count(), 0);
   reported as evidence without blocking a consumer.
 - The in-memory test backend is honestly postured and fail-closed. It is not a
   production backend and does not imply support for families it denies.
-- Durable persisted kit archives remain later milestone scope.
+- Durable persisted kit archives remain deferred.
 
 ## Related Docs
 

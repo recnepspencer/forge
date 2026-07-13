@@ -1,8 +1,11 @@
-use worth_query::facade::{
-    WorthQueryBackendAdmissibleMutation, WorthQueryCommitIdentity, WorthQueryEntityIdentity,
-    WorthQueryEvidenceIdentity, WorthQueryMutationDelta, WorthQueryMutationKind,
-    WorthQueryMutationReceipt, WorthQueryRuntimeSubscriptionActivationAdapter,
-    WorthQuerySnapshotIdentity, WorthQueryWorkspaceError, SubscriptionActivationInput,
+use worth_query::facade::foundation::{
+    WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQueryMutationDelta,
+    WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQuerySnapshotIdentity,
+    WorthQueryWorkspaceError,
+};
+use worth_query::facade::runtime::{
+    SubscriptionActivationInput, WorthQueryBackendAdmissibleMutation, WorthQueryEvidenceIdentity,
+    WorthQueryRuntimeSubscriptionActivationAdapter,
 };
 use worth_runtime_bridge::facade::{
     RelationalBridgeRecordIdentityParts, RelationalBridgeSnapshotIdentityParts,
@@ -30,7 +33,7 @@ pub(crate) struct TestSubscriptionActivation;
 
 impl WorthQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivation {
     fn support_evidence_identity(&self) -> WorthQueryEvidenceIdentity {
-        worth_query::facade::runtime_subscription_support_evidence_identity(
+        worth_query::facade::runtime::runtime_subscription_support_evidence_identity(
             "worth-server-query-handoff-test-support",
         )
     }
@@ -39,8 +42,10 @@ impl WorthQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivati
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<worth_query::facade::SubscriptionActivationBoundaryReceipt, WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        worth_query::facade::runtime::SubscriptionActivationBoundaryReceipt,
+        WorthQueryWorkspaceError,
+    > {
         let receipt = self.build_subscription_activation_receipt(view_name, activation);
         Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }
@@ -66,8 +71,12 @@ fn mutation_entity_identity(
 
 fn mutation_kind(command: &WorthQueryBackendAdmissibleMutation) -> WorthQueryMutationKind {
     match command.mutation_family() {
-        worth_query::facade::WorthQueryMutationFamily::Insert => WorthQueryMutationKind::Created,
-        worth_query::facade::WorthQueryMutationFamily::Delete => WorthQueryMutationKind::Deleted,
+        worth_query::facade::runtime::WorthQueryMutationFamily::Insert => {
+            WorthQueryMutationKind::Created
+        }
+        worth_query::facade::runtime::WorthQueryMutationFamily::Delete => {
+            WorthQueryMutationKind::Deleted
+        }
         _ => WorthQueryMutationKind::Updated,
     }
 }

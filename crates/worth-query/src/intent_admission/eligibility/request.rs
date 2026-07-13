@@ -41,7 +41,7 @@ pub struct WorthQueryRawIntentAdmissionRequest {
 }
 
 impl WorthQueryRawIntentAdmissionRequest {
-    pub fn authoritative_runtime_entrypoint(
+    pub(crate) fn authoritative_runtime_entrypoint(
         declaration: WorthQueryIntentDeclaration,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -52,7 +52,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn effect_runtime_entrypoint(
+    pub(crate) fn effect_runtime_entrypoint(
         declaration: WorthQueryIntentDeclaration,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -63,7 +63,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn authoritative_write_entrypoint(
+    pub(crate) fn authoritative_write_entrypoint(
         seed: WorthQueryAuthoritativeMutationIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let intent_name = seed.command_label();
@@ -76,7 +76,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn authoritative_write_batch_entrypoint(
+    pub(crate) fn authoritative_write_batch_entrypoint(
         seed: WorthQueryAuthoritativeMutationBatchIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let intent_name = seed.batch_label();
@@ -89,7 +89,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn basis_observation_lane(
+    pub(crate) fn basis_observation_lane(
         raw: RawBasisIntent,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let normalized = normalize_raw_basis_intent(raw, "observation").map_err(|denial| {
@@ -110,7 +110,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn read_family_entrypoint(
+    pub(crate) fn read_family_entrypoint(
         seed: WorthQueryReadExecutionIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -121,7 +121,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn read_family_in_basis_context_entrypoint(
+    pub(crate) fn read_family_in_basis_context_entrypoint(
         seed: WorthQueryReadExecutionIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -132,7 +132,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn live_read_entrypoint(
+    pub(crate) fn live_read_entrypoint(
         seed: WorthQueryLiveReadIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -143,7 +143,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn derived_materialization_entrypoint(
+    pub(crate) fn derived_materialization_entrypoint(
         seed: WorthQueryDerivedViewIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let intent_name = seed.request_label("materialize");
@@ -156,7 +156,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn derived_inspection_entrypoint(
+    pub(crate) fn derived_inspection_entrypoint(
         seed: WorthQueryDerivedViewIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let intent_name = seed.request_label("inspect");
@@ -169,7 +169,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn generic_inspection_entrypoint(
+    pub(crate) fn generic_inspection_entrypoint(
         seed: WorthQueryGenericInspectionIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -180,7 +180,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn existing_truth_probe_entrypoint(
+    pub(crate) fn existing_truth_probe_entrypoint(
         seed: WorthQueryExistingTruthProbeIntentSeed,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         Self::new(
@@ -191,7 +191,7 @@ impl WorthQueryRawIntentAdmissionRequest {
         )
     }
 
-    pub fn projection_consumption(
+    pub(crate) fn projection_consumption(
         declaration: ProjectionConsumptionDeclaration,
     ) -> Result<Self, WorthQueryIntentViolationDecision> {
         let source_family = declaration.source().family().as_str().to_string();

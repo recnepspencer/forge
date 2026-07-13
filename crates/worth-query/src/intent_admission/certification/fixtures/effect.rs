@@ -36,16 +36,18 @@ pub(in crate::intent_admission::certification) fn certified_effect_intent_fixtur
         ))
         .expect("effect certification effect should declare");
     runtime
-        .write(crate::facade::WorthQueryWriteCommand::UpdateAspect {
-            entity_identity: certification_entity_identity("task-1"),
-            aspect: crate::facade::WorthQueryAdmittedAspectValue::new_set(
-                title_value_touch(),
-                crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
-                    "title from certification effect",
-                ),
-            )
-            .expect("effect certification aspect should admit"),
-        })
+        .write(
+            crate::facade::runtime::WorthQueryWriteCommand::UpdateAspect {
+                entity_identity: certification_entity_identity("task-1"),
+                aspect: crate::facade::runtime::WorthQueryAdmittedAspectValue::new_set(
+                    title_value_touch(),
+                    crate::runtime::WorthQueryAdmittedAspectValue::native_string_value(
+                        "title from certification effect",
+                    ),
+                )
+                .expect("effect certification aspect should admit"),
+            },
+        )
         .expect("effect certification write should queue");
 
     let review = runtime

@@ -111,8 +111,8 @@ pub(super) fn derive_retry_posture(
     if resume_request.require_restart_stable_claim()
         && matches!(
             read.support_posture().durable_resume_support_posture(),
-            worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Deferred
-                | worth_query::facade::WorthQueryLowerRuntimeSupportPosture::Forbidden
+            worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Deferred
+                | worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
         )
     {
         return Err(crate::WorthServerQueryHandoffDenial::new(

@@ -1,6 +1,6 @@
 use crate::authoring::{RawAuthoredQuery, RawAuthoredResultShape};
 use crate::canonicalization::pipeline::QueryCanonicalizer;
-use crate::facade::{AspectFieldSelector, AuthoredResultShapeField, RootEntityKey};
+use crate::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, RootEntityKey};
 
 #[test]
 fn conflicting_alias_identity_fails_explicitly() {
@@ -18,17 +18,17 @@ fn conflicting_alias_identity_fails_explicitly() {
     let error = QueryCanonicalizer::canonicalize_bundle(
         query.clone().into_raw(),
         shape.clone().into_raw(),
-        crate::facade::QueryBindingDescriptor::default(),
+        crate::facade::foundation::QueryBindingDescriptor::default(),
     )
     .unwrap_err();
 
     assert_eq!(
         error.failure_class(),
-        crate::facade::CanonicalizationFailureClass::CompatibilityRejection
+        crate::facade::foundation::CanonicalizationFailureClass::CompatibilityRejection
     );
     assert!(matches!(
         error,
-        crate::facade::QueryCanonicalizationError::AmbiguousShapeAliasIdentity { .. }
+        crate::facade::foundation::QueryCanonicalizationError::AmbiguousShapeAliasIdentity { .. }
     ));
 }
 
@@ -51,28 +51,28 @@ fn semantically_distinct_queries_are_not_equivalent() {
         .build()
         .unwrap();
 
-    let bundle_a = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query_a, shape_a).unwrap(),
+    let bundle_a = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query_a, shape_a).unwrap(),
     )
     .unwrap();
-    let bundle_b = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query_b, shape_b).unwrap(),
+    let bundle_b = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query_b, shape_b).unwrap(),
     )
     .unwrap();
 
     assert_eq!(
         bundle_a.query().equivalence_to(bundle_b.query()),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
     assert_eq!(
         bundle_a
             .result_shape()
             .equivalence_to(bundle_b.result_shape()),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
     assert_eq!(
         bundle_a.equivalence_to(&bundle_b),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
 }
 
@@ -93,12 +93,14 @@ fn result_shape_omission_changes_shape_identity_but_not_query_identity() {
         .build()
         .unwrap();
 
-    let full_bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_collection(query.clone(), full_shape).unwrap(),
+    let full_bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_collection(query.clone(), full_shape)
+            .unwrap(),
     )
     .unwrap();
-    let omitted_bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_collection(query, omitted_shape).unwrap(),
+    let omitted_bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_collection(query, omitted_shape)
+            .unwrap(),
     )
     .unwrap();
 
@@ -108,7 +110,7 @@ fn result_shape_omission_changes_shape_identity_but_not_query_identity() {
     );
     assert_eq!(
         full_bundle.query().equivalence_to(omitted_bundle.query()),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_ne!(
         full_bundle.result_shape().digest(),
@@ -118,11 +120,11 @@ fn result_shape_omission_changes_shape_identity_but_not_query_identity() {
         full_bundle
             .result_shape()
             .equivalence_to(omitted_bundle.result_shape()),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
     assert_eq!(
         full_bundle.equivalence_to(&omitted_bundle),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
 }
 
@@ -141,19 +143,20 @@ fn alias_identity_changes_result_shape_digest_without_changing_query_digest() {
         .build()
         .unwrap();
 
-    let title_bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query.clone(), title_shape).unwrap(),
+    let title_bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query.clone(), title_shape)
+            .unwrap(),
     )
     .unwrap();
-    let label_bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query, label_shape).unwrap(),
+    let label_bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query, label_shape).unwrap(),
     )
     .unwrap();
 
     assert_eq!(title_bundle.query().digest(), label_bundle.query().digest());
     assert_eq!(
         title_bundle.query().equivalence_to(label_bundle.query()),
-        crate::facade::CanonicalEquivalence::Equivalent
+        crate::facade::foundation::CanonicalEquivalence::Equivalent
     );
     assert_ne!(
         title_bundle.result_shape().digest(),
@@ -163,7 +166,7 @@ fn alias_identity_changes_result_shape_digest_without_changing_query_digest() {
         title_bundle
             .result_shape()
             .equivalence_to(label_bundle.result_shape()),
-        crate::facade::CanonicalEquivalence::Distinct
+        crate::facade::foundation::CanonicalEquivalence::Distinct
     );
 }
 
@@ -180,8 +183,8 @@ fn invalid_canonical_ordering_basis_is_detected_explicitly() {
         .build()
         .unwrap();
 
-    let mut bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
+    let mut bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
     )
     .unwrap();
     bundle.query_mut_for_test().reverse_projection_for_test();
@@ -193,7 +196,7 @@ fn invalid_canonical_ordering_basis_is_detected_explicitly() {
     .unwrap_err();
     assert!(matches!(
         error,
-        crate::facade::QueryCanonicalizationError::InvalidCanonicalOrderingBasis {
+        crate::facade::foundation::QueryCanonicalizationError::InvalidCanonicalOrderingBasis {
             artifact: "query_projection"
         }
     ));
@@ -210,8 +213,8 @@ fn digest_basis_inconsistency_is_detected_explicitly() {
         .build()
         .unwrap();
 
-    let mut bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
+    let mut bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
     )
     .unwrap();
     bundle
@@ -225,7 +228,9 @@ fn digest_basis_inconsistency_is_detected_explicitly() {
     .unwrap_err();
     assert!(matches!(
         error,
-        crate::facade::QueryCanonicalizationError::DigestBasisInconsistency { artifact: "query" }
+        crate::facade::foundation::QueryCanonicalizationError::DigestBasisInconsistency {
+            artifact: "query"
+        }
     ));
 }
 
@@ -242,8 +247,8 @@ fn result_shape_ordering_and_digest_inconsistency_are_detected_explicitly() {
         .build()
         .unwrap();
 
-    let mut bundle = crate::facade::canonicalize_request(
-        crate::facade::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
+    let mut bundle = crate::facade::foundation::canonicalize_request(
+        crate::facade::foundation::GuidedAuthoringPath::pair_detail(query, shape).unwrap(),
     )
     .unwrap();
     bundle.result_shape_mut_for_test().reverse_fields_for_test();
@@ -255,7 +260,7 @@ fn result_shape_ordering_and_digest_inconsistency_are_detected_explicitly() {
     .unwrap_err();
     assert!(matches!(
         ordering_error,
-        crate::facade::QueryCanonicalizationError::InvalidCanonicalOrderingBasis {
+        crate::facade::foundation::QueryCanonicalizationError::InvalidCanonicalOrderingBasis {
             artifact: "result_shape_fields"
         }
     ));
@@ -271,7 +276,7 @@ fn result_shape_ordering_and_digest_inconsistency_are_detected_explicitly() {
         .unwrap_err();
     assert!(matches!(
         digest_error,
-        crate::facade::QueryCanonicalizationError::DigestBasisInconsistency {
+        crate::facade::foundation::QueryCanonicalizationError::DigestBasisInconsistency {
             artifact: "result_shape"
         }
     ));

@@ -1,10 +1,7 @@
 use worth_query::facade::consumer_kit::{
     load_support_snapshot_terminal_json_document, project_support_snapshot, WorthQuerySupportSnapshotSchemaVersion,
 };
-use worth_query::facade::runtime::{
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimePublicApiContract,
-    WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeSupportProfile,
-};
+use worth_query::facade::runtime::{WorthQueryRuntimeBackendPosture, WorthQueryRuntimePublicApiContract, WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeSupportProfile};
 
 fn main() {
     let profile = WorthQueryRuntimeSupportProfile::scaffold_backend_profile()

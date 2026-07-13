@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    ActiveAllocationScopeWidth, ActiveFanoutWidth, ActiveLaneLookupClass,
-    ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget,
-};
+use worth_query::facade::runtime::{ActiveAllocationScopeWidth, ActiveFanoutWidth, ActiveLaneLookupClass, ActiveRegistryLookupWidth, ActiveSubscriptionAllocationPolicy, ActiveSubscriptionWorkBudget};
 
 fn main() {
     let _budget = ActiveSubscriptionWorkBudget {

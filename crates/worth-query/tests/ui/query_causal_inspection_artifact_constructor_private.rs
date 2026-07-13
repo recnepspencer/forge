@@ -1,4 +1,4 @@
-use worth_query::facade::QueryCausalEvidenceReferenceArtifact;
+use worth_query::facade::runtime::QueryCausalEvidenceReferenceArtifact;
 
 fn main() {
     let _ = QueryCausalEvidenceReferenceArtifact {

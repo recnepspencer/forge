@@ -1,7 +1,7 @@
 error[E0599]: no function or associated item named `terminal_requested_placeholder_fields` found for struct `PolicyPlaceholderMaskingRequest` in the current scope
- --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:8:46
+ --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:6:46
   |
-8 |     let _ = PolicyPlaceholderMaskingRequest::terminal_requested_placeholder_fields(vec![
+6 |     let _ = PolicyPlaceholderMaskingRequest::terminal_requested_placeholder_fields(vec![
   |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ function or associated item not found in `PolicyPlaceholderMaskingRequest`
   |
 note: if you're trying to build a new `PolicyPlaceholderMaskingRequest`, consider using `PolicyPlaceholderMaskingRequest::from_authorized_field_paths` which returns `PolicyPlaceholderMaskingRequest`
@@ -18,25 +18,25 @@ help: there is a method `requested_placeholder_field_paths` with a similar name,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0599]: no method named `terminal_requested_placeholder_fields_projection` found for struct `PolicyPlaceholderMaskingRequest` in the current scope
-  --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:15:21
+  --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:13:21
    |
-15 |     let _ = request.terminal_requested_placeholder_fields_projection();
+13 |     let _ = request.terminal_requested_placeholder_fields_projection();
    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `requested_placeholder_field_paths` with a similar name
    |
-15 -     let _ = request.terminal_requested_placeholder_fields_projection();
-15 +     let _ = request.requested_placeholder_field_paths();
+13 -     let _ = request.terminal_requested_placeholder_fields_projection();
+13 +     let _ = request.requested_placeholder_field_paths();
    |
 
 error[E0599]: no method named `terminal_requested_placeholder_fields_projection` found for struct `PolicyPlaceholderMaskingDenial` in the current scope
-  --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:18:20
+  --> tests/ui/aspect_native_query/policy_placeholder_terminal_field_helpers_removed.rs:16:20
    |
-18 |     let _ = denial.terminal_requested_placeholder_fields_projection();
+16 |     let _ = denial.terminal_requested_placeholder_fields_projection();
    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 help: there is a method `requested_placeholder_field_paths` with a similar name
    |
-18 -     let _ = denial.terminal_requested_placeholder_fields_projection();
-18 +     let _ = denial.requested_placeholder_field_paths();
+16 -     let _ = denial.terminal_requested_placeholder_fields_projection();
+16 +     let _ = denial.requested_placeholder_field_paths();
    |

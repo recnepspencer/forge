@@ -1,4 +1,4 @@
-use worth_query::facade::WorkflowReplayBundle;
+use worth_query::facade::runtime::WorkflowReplayBundle;
 
 fn main() {
     let _ = WorkflowReplayBundle {

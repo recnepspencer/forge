@@ -1,20 +1,20 @@
 error[E0451]: fields `stage`, `cause`, `detail`, `evidence_owner`, `evidence`, `artifact_digest` and `row_digest` of struct `WorthQueryIntentDecisionTraceRow` are private
-  --> tests/ui/intent_admission/trace/decision_trace_row_constructor_private.rs:8:9
+  --> tests/ui/intent_admission/trace/decision_trace_row_constructor_private.rs:5:9
    |
- 7 |     let _worthd = WorthQueryIntentDecisionTraceRow {
+ 4 |     let _worthd = WorthQueryIntentDecisionTraceRow {
    |                   -------------------------------- in this type
- 8 |         stage: WorthQueryIntentDecisionTraceStage::RawIntent,
+ 5 |         stage: WorthQueryIntentDecisionTraceStage::RawIntent,
    |         ^^^^^ private field
- 9 |         cause: "raw_intent_authored",
+ 6 |         cause: "raw_intent_authored",
    |         ^^^^^ private field
-10 |         detail: String::new(),
+ 7 |         detail: String::new(),
    |         ^^^^^^ private field
-11 |         evidence_owner: WorthQueryIntentDecisionTraceEvidenceOwner::QueryIntentAuthoring,
+ 8 |         evidence_owner: WorthQueryIntentDecisionTraceEvidenceOwner::QueryIntentAuthoring,
    |         ^^^^^^^^^^^^^^ private field
-12 |         evidence: WorthQueryIntentDecisionTraceEvidence::Request {
+ 9 |         evidence: WorthQueryIntentDecisionTraceEvidence::Request {
    |         ^^^^^^^^ private field
 ...
-15 |         artifact_digest: String::new(),
+12 |         artifact_digest: String::new(),
    |         ^^^^^^^^^^^^^^^ private field
-16 |         row_digest: String::new(),
+13 |         row_digest: String::new(),
    |         ^^^^^^^^^^ private field

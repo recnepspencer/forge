@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    AdmittedPolicyTenantContext, PolicyBasis, PolicyTenantAdmissionBundle, TenantSchemaBasis,
-    TenantTruthBasis,
-};
+use worth_query::facade::policy::{AdmittedPolicyTenantContext, PolicyBasis, PolicyTenantAdmissionBundle};
+use worth_query::facade::runtime::{TenantSchemaBasis, TenantTruthBasis};
 
 fn policy_basis() -> PolicyBasis {
     todo!()

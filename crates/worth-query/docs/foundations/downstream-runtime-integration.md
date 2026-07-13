@@ -134,10 +134,11 @@ binding instead of flattening everything into caller-owned identity strings.
 - `runtime.write_intent(...)`
 - `runtime.write_batch_intent(...)`
 - `runtime.next_effect_write_intent(...)`
+- `workspace.read_family_intent(...)`
+- `workspace.read_family_in_basis_context_intent(...)`
 - `workspace.read_live_intent(...)`
 - `workspace.materialize_intent(...)`
 - `workspace.inspect_intent(...)`
-- `worth_query_basis_observation_intent(...)`
 
 Use the intent lattice only when the family genuinely belongs on the admitted
 intent path. Do not treat every surface with `intent` in the name as the
@@ -146,6 +147,18 @@ default way to do ordinary work.
 Projection authority is deliberately not a second intent family. Declare a
 `ProjectionAuthorityContract` and ask the producing result or receipt to seal
 the corresponding authority directly.
+
+### Basis capabilities
+
+- `facade::foundation::basis_lifecycle()`
+- `basis_lifecycle().current_head().observe()`
+- `basis_lifecycle().historical_snapshot(...).materialize()`
+- `basis_lifecycle().current_head().declare_subscription()`
+
+Use the basis lifecycle when the operation depends on which truth world it may
+observe, inspect, replay, materialize, mutate, or subscribe to. Carry the
+returned scoped capability rather than a raw branch, snapshot, preview, or
+digest projection.
 
 ### Typed fact extraction
 

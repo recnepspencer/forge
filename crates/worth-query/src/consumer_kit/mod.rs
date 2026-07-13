@@ -6,6 +6,7 @@ pub(crate) mod evidence_report_adoption;
 pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
 pub(crate) mod prohibition_registry;
+pub(crate) mod public_authority_surface;
 pub(crate) mod support_pinning;
 pub(crate) mod support_snapshot;
 pub(crate) mod test_backend;
@@ -87,6 +88,12 @@ pub use prohibition_registry::{
     WorthQueryProhibitedSeam, WorthQueryProhibitionCompileFailFixture,
     WorthQueryProhibitionEnforcementTier, WorthQueryProhibitionRegistry,
     WorthQueryProhibitionRegistryRow,
+};
+pub use public_authority_surface::{
+    audit_public_authority_surface_symbols, worth_query_public_authority_surface_rows,
+    WorthQueryPublicAuthorityOwner, WorthQueryPublicAuthoritySurfaceAudit,
+    WorthQueryPublicAuthoritySurfaceClass, WorthQueryPublicAuthoritySurfaceFinding,
+    WorthQueryPublicAuthoritySurfaceFindingKind, WorthQueryPublicAuthoritySurfaceRow,
 };
 pub use support_pinning::{
     load_support_pin_contract_terminal_json_document, support_pinning_contract,

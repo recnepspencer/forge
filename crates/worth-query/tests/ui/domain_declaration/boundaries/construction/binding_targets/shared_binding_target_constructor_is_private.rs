@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    WorthQueryBindingTarget, WorthQueryBindingTargetKind, WorthQueryBindingTargetSemantics,
-};
+use worth_query::facade::{WorthQueryBindingTarget, WorthQueryBindingTargetKind, WorthQueryBindingTargetSemantics};
 
 fn semantics() -> WorthQueryBindingTargetSemantics {
     loop {}

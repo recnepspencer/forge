@@ -268,6 +268,15 @@ cross-feature proof gates before final certification:
   Query-owned canonical artifact: consumers declare required meaning through
   fluent facade DX and cannot pair, reconstruct, restamp, or promote authority
   from independently valid bases, receipts, facts, labels, or digests
+- `Milestone 9.12` must prove Query's public facade contains one sealed
+  authority path per capability: consumers cannot mint authority from raw
+  digests or identities, skip scoped basis admission, invoke the raw intent
+  engine, assert subscription posture, or carry unscoped preview/inspection
+  artifacts into operational work
+- `Milestone 9.13` must prove ordinary Query usage is capability-oriented and
+  declarative: consumers describe desired read, live, historical, workflow,
+  and inspection outcomes while Query owns canonicalization, admission,
+  planning, lowering, execution routing, lifecycle, and receipt assembly
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -292,8 +301,9 @@ Critical path:
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
-  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 9.11` -> `Milestone 10` ->
-  `Milestone 11` -> `Milestone 12` -> `Milestone 13`
+  `Milestone 9.9` -> `Milestone 9.10` -> `Milestone 9.11` ->
+  `Milestone 9.12` -> `Milestone 9.13` -> `Milestone 10` -> `Milestone 11` ->
+  `Milestone 12` -> `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -403,6 +413,12 @@ Store-gated completion tracks:
 - `Milestone 9.11` closes runtime-backed downstream basis/projection authority,
   declarative consumer DX, and Worth UI reference adoption before store-backed
   execution introduces additional source and reload postures
+- `Milestone 9.12` closes remaining runtime-backed public authority minting,
+  parallel lifecycle entrypoints, raw admission access, and facade leakage so
+  store-backed execution inherits one sealed capability surface
+- `Milestone 9.13` closes consumer-authored Query phase orchestration and
+  freezes the capability-oriented ordinary experience inherited by runtime and
+  future store-backed execution
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3804,6 +3820,187 @@ consumer cutover; architectural certification and legacy deletion close last.
   seams
 - docs, AI orientation, support rows, DX transcripts, and implementation agree
 
+## Milestone 9.12: Query Public Authority Surface Cutover
+
+Status: Closed on 2026-07-13. The ordinary facade now exposes one sealed
+authority-preserving path per supported capability; legacy authority minting,
+parallel basis lifecycle, raw admission, and ordinary-facade tooling seams are
+deleted or mechanically prohibited. The milestone spec records the complete
+package, hostile, compile-fail, reference-consumer, server-consumer, workspace,
+formatting, and hygiene evidence.
+
+### Goal
+
+Make Query's ordinary public facade expose one sealed authority-preserving path
+per capability, with raw representations, lifecycle internals, compatibility
+adapters, and certification machinery unable to act as parallel authority APIs.
+
+### Adversarial Constraint
+
+A downstream consumer must be unable to mint, restamp, pair, or route Query
+authority through a raw digest, string identity, posture enum, raw admission
+request, legacy unscoped lifecycle, or certification-only artifact—even when
+each supplied component is individually well-formed or collides textually with
+a legitimate Query artifact.
+
+### Why This Milestone Exists
+
+Milestone 9.11 closes the canonical downstream authority product, but Query's
+broader facade still contains older and lower-level construction paths capable
+of recreating competing authority. Those paths must be removed before
+store-backed execution extends the same contracts across another substrate.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.12.md](./milestone-9.12.md).
+
+### Must Ship
+
+- sealed digest and identity authority construction
+- one scoped public basis lifecycle
+- declarative intent admission with raw admission machinery internal
+- scoped subscription, causal inspection, and preview-live follow-on paths
+- contracted ordinary facade separated from certification and migration tools
+- consumer cutover, named prohibitions, compile-fail and residue enforcement,
+  public API snapshots, and hostile certification
+
+### Must Preserve
+
+- Query and every lower runtime retain their existing semantic authorities
+- equivalent ordinary declarations converge on one sealed capability chain
+- evidence labels, digests, diagnostics, and serialized projections remain
+  useful but non-promotable
+- ordinary developer ergonomics remain declarative
+- rejection precedes expensive construction and lower-runtime contact
+
+### Complexity / Proof Obligations
+
+- admission work remains proportional to declared inputs and admitted facts,
+  independent of unrelated workspace, history, subscription, or consumer state
+- exact counters prove invalid relationships deny before construction or
+  lower-runtime contact
+- hostile collision, replay, stale-generation, cross-basis, cross-receipt, and
+  phase-skipping tests prove representation cannot become authority
+- compile-fail, facade snapshot, prohibition, residue, and sabotage suites prove
+  every removed path is mechanically non-resurrectable
+
+### Allowed Debt
+
+- store-backed and durable implementations remain Milestone 10/11 scope
+- no runtime-backed raw constructor, unscoped operational entrypoint, callable
+  compatibility adapter, or ordinary-facade certification leak may remain debt
+
+### Sequencing Notes
+
+This belongs after 9.11 because it contracts Query's complete public authority
+surface around the canonical downstream product. It belongs before 10 because
+store-backed execution must inherit one sealed lifecycle rather than multiply
+legacy and canonical paths across runtime and store substrates.
+
+### Store Dependency
+
+This milestone is not blocked on `worth-store`.
+
+### Acceptance Evidence
+
+- raw representation cannot mint operational Query authority
+- ordinary basis, intent, subscription, preview, and inspection paths consume
+  sealed proof-bearing predecessors
+- covered compatibility-debt rows and callable migration APIs are absent
+- public facade, support posture, docs, reference consumers, and hostile
+  certification agree on one authority path per capability
+
+## Milestone 9.13: Declarative Query Experience And Phase-Surface Cutover
+
+### Goal
+
+Make ordinary Query usage capability-oriented and declarative so consumers
+describe desired outcomes while Query owns its proof-preserving internal phase
+progression, managed lifecycles, backend routing, receipts, and diagnostics.
+
+### Adversarial Constraint
+
+An ordinary consumer must be unable to skip, reorder, reproduce, or become the
+owner of Query's canonicalization, binding, validation, admission, planning,
+lowering, execution, maintenance, or envelope phases. Equivalent declarations
+must converge on the same canonical meaning and outcome without guessing basis,
+policy, tenant, bound, lifecycle, or backend decisions.
+
+### Why This Milestone Exists
+
+Milestone 9.12 makes authority-preserving phase artifacts safe, but the public
+surface can still require consumers to assemble safe low-level stages into
+local Query coordinators. That is both poor DX and an architectural fork point.
+The ordinary experience must close before store-backed execution would
+otherwise multiply phase-shaped journeys across backends.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.13.md](./milestone-9.13.md).
+
+### Must Ship
+
+- capability-oriented facade and progressive-disclosure DX grammar
+- one declarative authoring path into canonical Query meaning
+- declarative context handoff for basis, binding, tenant, policy, and
+  relationship proof
+- admitted-query read execution and framework-owned live resource lifecycle
+- coherent history, diff, correspondence, preview, workflow, result, receipt,
+  projection-consumption, and inspection journeys
+- internalized phase transitions and contracted ordinary facade
+- reference-consumer cutover, DX measurements, permanent prohibitions,
+  residue enforcement, and hostile certification
+
+### Must Preserve
+
+- Query and lower-runtime authority boundaries
+- family-specific cost, failure, correctness, and lifecycle distinctions
+- explicit basis, policy, tenant, branch, preview, and relationship authority
+- backend-independent canonical meaning and ordinary outcomes
+- advanced domain contribution without public internal-pipeline access
+
+### Complexity / Proof Obligations
+
+- ergonomic lowering adds work only proportional to declared inputs and
+  admitted context
+- invalid declarations deny before planning or lower-runtime contact
+- one-shot/live and ordinary/internal-oracle parity are exact for canonical
+  identity, results, receipts, diagnostics, and counters
+- facade snapshots, compile-fail, prohibition, residue, sabotage, lifecycle,
+  and reference-consumer suites prove phase machinery cannot reappear
+
+### Allowed Debt
+
+- store-backed execution, durable restore, saved-artifact survival, and durable
+  continuation remain Milestones 10 and 11
+- no callable ordinary phase transition, backend-shaped ordinary API,
+  compatibility alias, or consumer-local Query coordinator may remain debt
+
+### Sequencing Notes
+
+This belongs after 9.12 because the proof and authority chain must be sealed
+before its internal transitions are hidden behind a simpler product surface.
+It belongs before 10 because runtime-backed and store-backed execution must
+implement the same admitted capability contract and ordinary journey.
+
+### Store Dependency
+
+This milestone is not blocked on `worth-store`.
+
+### Acceptance Evidence
+
+- ordinary consumers declare capabilities without manual phase progression
+- phase artifacts are observable where useful but not constructible or
+  independently advanceable
+- invalid combinations yield typed next-action stops without guessed defaults
+- live resources are framework-owned and deterministically disposable
+- reference consumers delete local Query orchestration and preserve exact
+  canonical outcomes
+- ordinary facade, docs, support posture, prohibitions, residue audits, and
+  hostile certification agree
+
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
 ### Goal
@@ -4269,6 +4466,8 @@ answer is "store-gated" or "shared with another subsystem."
 | Relation traversal expressions | Milestones 1, 2, and 4 | Traversal nodes, validated relation-edge constraints | Illegal traversals reject; legal traversals stay bounded | Milestone 13 validation rejection + domain suites |
 | Graph read access planning and declarative index admission | Milestone 9.10 | Operation-resolution descriptors, access-shape descriptors, access requirement sets, intrinsic/supported budget estimates, access admission envelopes, graph access receipts | Covered graph reads execute through admitted access postures, with no hidden N+1 traversal and no unbounded background indexing | Milestone 9.10 no-N+1, memory-budget, and access-plan replay certification + Milestone 13 execution parity |
 | Declarative downstream basis authority and consumer DX | Milestone 9.11 | Consumed projection authority artifacts, declarative authority contracts, typed authority denials, DX transcripts, consumer adoption receipts | Downstream runtimes consume one Query-owned basis/projection authority product and cannot reconstruct or recombine authority from receipts, facts, labels, or digests | Milestone 9.11 cross-basis, facade-DX, consumer-residue, and Worth UI adoption certification + Milestone 13 projection/domain parity |
+| Query public authority surface cutover | Milestone 9.12 | Sealed identity handles, scoped basis and follow-on proofs, declarative admission handoffs, contracted facade snapshots, prohibition and residue artifacts | Ordinary consumers cannot mint authority from representation, skip Query lifecycles, invoke raw admission machinery, assert operational posture, or import certification internals as product APIs | Milestone 9.12 collision, phase-skipping, compile-fail, facade-snapshot, prohibition, residue, sabotage, and reference-consumer certification + Milestone 13 authority-boundary parity |
+| Declarative Query experience and phase-surface cutover | Milestone 9.13 | Capability declarations, admitted-query handles, managed live resources, typed outcomes and next-action stops, DX transcripts, contracted facade and residue artifacts | Ordinary consumers describe desired outcomes while Query exclusively owns canonicalization, binding, validation, admission, planning, lowering, execution routing, lifecycle, receipt assembly, and derived diagnostics | Milestone 9.13 ordinary/internal parity, compile-fail, facade-snapshot, prohibition, residue, lifecycle, bounded-work, and reference-consumer certification + Milestone 13 product-surface parity |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
@@ -4358,6 +4557,8 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.10.md](./milestone-9.10.md)
 - [milestone-9.11.md](./milestone-9.11.md)
 - [milestone-9.11-closeout.md](./milestone-9.11-closeout.md)
+- [milestone-9.12.md](./milestone-9.12.md)
+- [milestone-9.13.md](./milestone-9.13.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)

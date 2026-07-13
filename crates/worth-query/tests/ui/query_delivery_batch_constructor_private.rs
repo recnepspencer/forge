@@ -1,4 +1,4 @@
-use worth_query::facade::QueryDeliveryBatch;
+use worth_query::facade::runtime::QueryDeliveryBatch;
 
 fn main() {
     let _batch = QueryDeliveryBatch {

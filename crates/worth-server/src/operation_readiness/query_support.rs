@@ -1,5 +1,5 @@
 use worth_foundational::DiagnosticRichnessProfile;
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryRuntimeDownstreamDeliveryContract, WorthQueryRuntimeFacadeFamily,
     WorthQueryRuntimePublicApiFamilyContract, WorthQueryWorkspace,
 };

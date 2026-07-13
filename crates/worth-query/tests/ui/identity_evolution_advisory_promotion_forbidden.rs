@@ -1,4 +1,4 @@
-use worth_query::facade::{AdvisoryIdentityCandidateSet, SingularIdentityContinuityResult};
+use worth_query::facade::foundation::{AdvisoryIdentityCandidateSet, SingularIdentityContinuityResult};
 
 fn main() {
     let _: fn(AdvisoryIdentityCandidateSet) -> SingularIdentityContinuityResult =

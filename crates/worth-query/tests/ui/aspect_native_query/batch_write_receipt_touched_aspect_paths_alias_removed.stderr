@@ -1,5 +1,5 @@
-error[E0599]: no method named `touched_aspect_paths` found for reference `&worth_query::facade::WorthQueryBatchWriteReceipt` in the current scope
+error[E0599]: no method named `touched_aspect_paths` found for reference `&worth_query::facade::runtime::WorthQueryBatchWriteReceipt` in the current scope
  --> tests/ui/aspect_native_query/batch_write_receipt_touched_aspect_paths_alias_removed.rs:4:21
   |
 4 |     let _ = receipt.touched_aspect_paths();
-  |                     ^^^^^^^^^^^^^^^^^^^^ method not found in `&worth_query::facade::WorthQueryBatchWriteReceipt`
+  |                     ^^^^^^^^^^^^^^^^^^^^ method not found in `&worth_query::facade::runtime::WorthQueryBatchWriteReceipt`

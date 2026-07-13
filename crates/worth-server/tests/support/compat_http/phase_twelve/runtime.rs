@@ -146,11 +146,11 @@ pub(crate) fn download_input(
 }
 
 pub(crate) fn drip_fed_upload() -> WorthServerMultipartUpload {
+    use serde_json::json;
     use worth_server::{
         WorthServerUploadChunk, WorthServerUploadManifest, WorthServerUploadPart,
         WorthServerUploadTransferMode,
     };
-    use serde_json::json;
 
     let part = (0..33).fold(
         WorthServerUploadPart::file("blob")

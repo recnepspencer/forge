@@ -1,0 +1,25 @@
+warning: unreachable statement
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:5:5
+  |
+4 |     let binding: PreviewSessionPlanBinding = todo!();
+  |                                              ------- any code following this expression is unreachable
+5 |     let _ = execute_scoped_preview_live_session_plan(&binding);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0308]: mismatched types
+ --> tests/ui/public_authority_surface/legacy_preview_binding_cannot_execute.rs:5:54
+  |
+5 |     let _ = execute_scoped_preview_live_session_plan(&binding);
+  |             ---------------------------------------- ^^^^^^^^ expected `&ScopedPreviewLiveSessionPlanBinding`, found `&PreviewSessionPlanBinding`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&ScopedPreviewLiveSessionPlanBinding`
+             found reference `&PreviewSessionPlanBinding`
+note: function defined here
+ --> src/preview/scoped.rs
+  |
+  | pub fn execute_scoped_preview_live_session_plan(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,4 +1,4 @@
-use worth_query::facade::{RequestedHistoricalPathClass, ResolvedHistoricalPathClass};
+use worth_query::facade::foundation::{RequestedHistoricalPathClass, ResolvedHistoricalPathClass};
 
 fn expects_requested(_: RequestedHistoricalPathClass) {}
 

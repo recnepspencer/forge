@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, MaskedProjectionArtifact, PolicyAwareDeliveryShape,
-    PolicyAwareOptimizerInput, ProjectionConsumptionBindingContext,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, MaskedProjectionArtifact, ProjectionConsumptionBindingContext};
+use worth_query::facade::policy::{PolicyAwareDeliveryShape, PolicyAwareOptimizerInput};
 
 fn main() {
     let authorized = authorized_fixture();

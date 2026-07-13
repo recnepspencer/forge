@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    EffectAuthorityLane, EffectEnvelopePrimaryResult, EffectFamily, SelfDescribingEffectEnvelope,
-};
+use worth_query::facade::foundation::{EffectAuthorityLane, EffectEnvelopePrimaryResult, EffectFamily, SelfDescribingEffectEnvelope};
 
 fn main() {
     let _ = SelfDescribingEffectEnvelope {

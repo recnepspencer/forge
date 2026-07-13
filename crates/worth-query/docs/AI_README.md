@@ -41,7 +41,7 @@ cross-runtime policy propagation, bridge-mediated commit strategies and
 extensible writeback families, subscription declaration/admission/lifecycle with
 checkpointed delivery and shared fanout, temporal basis binding for mixed
 truth-and-clock causality, and async/resource completion causality with
-generation-safe stale-completion rejectionâ€”all expressed through deterministic,
+generation-safe stale-completion rejection—all expressed through deterministic,
 replay-safe routing plus machine-checkable receipts, envelopes, and diagnostics
 that record how work crossed boundaries while leaving truth authority,
 invariants, merge execution, and signal scheduling to their owning runtimes.
@@ -63,7 +63,7 @@ versus optimized scheduling with cost and priority shaping and parallel-ready
 planning, speculative branchable execution with snapshot/replay/time-travel
 state, fixed-point and convergence policies, temporal and previous-value
 dependencies, comparator and adaptive tolerance propagation, and first-class
-observation with extensible delivery strategiesâ€”all over host snapshots without
+observation with extensible delivery strategies—all over host snapshots without
 owning truth storage, while exposing execution traces, graph inspection, and
 metrics that explain why work ran, deferred, or delivered change.
 
@@ -85,7 +85,7 @@ That rule explains most of the architecture.
 Query wants domain code to express work once, keep that work canonically
 identified, and let the runtime lower it through public, typed lanes instead of
 forcing every downstream crate to invent local wrappers, local status enums,
-local recovery folklore, or local â€œsmartâ€ adapters around lower layers.
+local recovery folklore, or local “smart” adapters around lower layers.
 
 If you are about to invent a local pseudo-Query surface, a hidden recovery path,
 or a caller-owned translation layer that duplicates a Query lane, stop and
@@ -178,61 +178,45 @@ Read next:
 
 ## Public Runtime Facade
 
-The public runtime facade is stabilized **per support-matrix row** on the
-runtime-backed path. It is the part of Query that says â€œdownstream runtimes can
-build on this nowâ€ for families that are actually admittedâ€”not every visible
-export.
+The public facade is a set of explicit capability namespaces, not one barrel
+that mirrors Query's module tree:
 
-Conceptually, the workspace facade turns Query into a real platform layer. It
-gives downstream code one public context for live views, computed state,
-effects, reads, observation, materialization, preview and branch work, writes,
-state snapshots, inspection, and support posture. Instead of forcing callers to
-orchestrate lower runtime layers directly, the facade gives them one stable
-surface and one stable vocabulary.
+- `worth_query::facade::foundation` contains declarations, canonical artifacts,
+  sealed basis capabilities, projection authority, and application-facing
+  foundation types.
+- `worth_query::facade::policy` contains admitted query-context, comparison,
+  narrowing, and other policy-bearing transitions.
+- `worth_query::facade::runtime` contains the workspace, runtime, retained
+  handles, operational receipts, typed stops, state, and inspection surfaces.
+- `worth_query::facade::consumer_kit` contains downstream adoption, support
+  pinning, evidence, test-runtime, and residue-proof tools.
+- `worth_query::facade::certification` contains manifests, generated checks,
+  and hostile-test tooling. It is not an ordinary product import.
 
-The most important thing to understand here is that the facade is not just a
-nice naming pass. It is a support contract. Some concepts are public now so
-later milestones can extend the same model, but not every visible concept is
-already admitted as a stable production lane. That is why support posture and
-admission belong beside the facade instead of after it.
+Start with the narrowest namespace that owns the task. A declaration normally
+comes from `foundation`, an admitted policy transition from `policy`, and
+runtime-backed product work from `runtime`. Do not import through the facade
+root or reach into crate-internal modules.
 
-The ordinary runtime-backed product lane also has four hard boundary rules:
-
-- canonical machine identity comes from `WorthQueryEvidenceIdentity::compose(...)`,
-  not from caller-owned string hashing, `Debug`, `Display`, or joined delimiters
-- `error.stop_class()` is the machine lane for runtime denials; messages are presentation and may change wording without changing the contract
-- preview and branch entry take `WorthQuerySessionLabel`, not raw strings, so
-  label identity, replay collision posture, and basis-admission evidence stay
-  runtime-owned
-- preview binding and preview outcome inspection keep that same
-  `WorthQuerySessionLabel` artifact on the ordinary path; rendered labels are
-  DX, not the identity lane
-- workflow preview capability authoring takes
-  `BridgePreviewSessionIdentity`, not ad hoc preview-session strings, so
-  preview-planning evidence stays on the typed artifact lane too
-
-Those last two bullets are intentionally different:
-
-- `WorthQuerySessionLabel` names an opened preview or branch session on the
-  workspace runtime surface
-- `BridgePreviewSessionIdentity` names the retained preview foundation artifact
-  that declaration-bound workflow evidence binds against
-
-Do not collapse them into one caller-owned string just because both refer to
-"the preview."
+Visibility and support are separate. A public type can describe vocabulary for
+a deferred neighbor without making that neighbor an admitted runtime lane.
+Check the support matrix for the active profile.
 
 Reach for this category when the task sounds like ordinary runtime-backed
 product behavior: declaring retained surfaces, reading them, mutating truth,
 opening preview or branch sessions, inspecting retained handles, or deciding
 whether a public family is really supported today.
 
-The main mistake to avoid is teaching support from autocomplete. Query
-deliberately separates â€œpublic vocabularyâ€ from â€œruntime-backed support.â€
+The mistakes to avoid are importing from `worth_query::facade` as a flat
+barrel, using `facade::certification` in production code, and teaching support
+from autocomplete.
 
 Read next:
 
 - [Workspace Overview](./foundations/workspace-overview.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+- [Basis Capability Lifecycle](./capabilities/basis-capability-lifecycle.md)
+- [Consumer Kit](./foundations/consumer-kit.md)
 - [Query Operating Modes](./foundations/query-operating-modes.md)
 
 ## Query Operating Modes
@@ -244,8 +228,8 @@ to live maintenance without changing the query expression, or exist as
 ephemeral saved-query or host-bound artifacts before durable store support
 closes.
 
-Use this category when the question is not â€œhow do I author the query?â€ but
-â€œwhich execution posture is real today, and what completion debt is still open?â€
+Use this category when the question is not “how do I author the query?” but
+“which execution posture is real today, and what completion debt is still open?”
 
 The mistake to avoid is claiming store-backed, restart-stable, or durable
 cursor semantics because a helper name sounds persistent. Ephemeral and
@@ -259,9 +243,8 @@ Read next:
 
 ## Shared Read Authority And Journal Replay
 
-Milestone `9.7` changed the runtime mental model from "one mutable workspace
-borrow owns everything" to "read authority, mutation intake, derived
-publication, and replay each have a named lane."
+Shared read authority, mutation intake, derived publication, and replay are
+separate named runtime lanes.
 
 The important rule is that shared reads are real runtime-owned read authority,
 not copied snapshot convenience. A shared read context is basis-bound, sealed,
@@ -279,11 +262,6 @@ Published derived artifacts are read through projection consumption. If a
 public bridge or downstream runtime needs materialized facts, it should consume
 typed projection receipts rather than spelunking materialization rows or
 bridge-only helper state.
-
-Milestone `9.7` closure is also derived, not declared. The support/profile row
-`milestone-9.7-derived-closure-posture` is honest only when the phase-local
-pinning, journal/replay, concurrent hostile matrix, and public-bridge reader
-proofs are present, closed, and evidence-bearing.
 
 Use this category when work touches concurrent reads, submission order, replay,
 published derived artifacts, or public-bridge read certification.
@@ -310,8 +288,8 @@ without pretending everything is already implemented. The support matrix exists
 to make that distinction explicit. It tells you what is stable, what is
 deferred debt, what is visible-but-not-admitted yet, and what must fail closed.
 
-Use this category whenever the real question is not â€œdoes this method exist?â€
-but â€œcan I build on this honestly right now?â€ This is especially important near
+Use this category whenever the real question is not “does this method exist?”
+but “can I build on this honestly right now?” This is especially important near
 intent-shaped families, temporal neighbors, async/resource neighbors, and
 anything that looks like a future extension point.
 
@@ -329,9 +307,8 @@ through free-form strings.
 If identity matters to support, replay, inspection, workflow binding, or
 recovery, prefer the Query-owned typed artifact over a caller-owned string.
 
-For Milestone `9.6`, the application support surface also publishes
-`support_report().identity_boundary_closure()`. Read that closure posture
-literally:
+The application support surface publishes
+`support_report().identity_boundary_closure()`. Read that posture literally:
 
 - `Closed` means the ordinary runtime-backed identity boundary is live and the
   hostile residue scans are clean
@@ -370,12 +347,6 @@ If the downstream need is read-only proof or diagnostics inspection, the same
 boundary still applies: read the canonical public facade artifact and its typed
 inspection getters. Do not satisfy that contract through support wrappers, raw
 rows, or local helper explanations that rediscover planner-owned routing.
-
-This milestone moved consumer proof out of downstream folklore and into Query.
-The old patterns were hand-written report structs, local digest strings,
-consumer-owned source greps, local required-family rows, and fabricated test
-receipts. Those are not alternate implementations. They are the failure modes
-the kit exists to remove.
 
 The required Consumer Kit families are:
 
@@ -421,15 +392,8 @@ that report and inventory evidence directly. They should not build local source
 manifests, local residue classes, local scanners, or local replacement
 matrices around it.
 
-Milestone `9.8` closure for `consumer-residue-audit` is backed by typed
-consumer-residue certification evidence. Do not "certify" this family by
-checking that a test name or marker string appears in source text. The
-certification evidence must come from Query-owned detector execution, the
-reference-consumer audit report, and the report/inventory identities those
-surfaces produce.
-
-Do not confuse `query_consumer_residue_audit(...)` with the Milestone `9.9`
-graph-obligation local ceremony audit. The generic residue audit owns
+Do not confuse `query_consumer_residue_audit(...)` with the graph-obligation
+local ceremony audit. The generic residue audit owns
 Query-proof folklore across Consumer Kit adoption: fake reports, fake proofs,
 raw support rows, row searches, debug proof strings, and delimiter proof
 strings. The graph-obligation audit is a narrower specialized lane for manual
@@ -548,15 +512,18 @@ audit, adoption manifests, and residue manifests. If a consumer is building
 local ceremony for any of those jobs, treat that as a product gap or adoption
 residue, not as a parallel authority.
 
-Milestone 9.9 closure allows only explicit certified residue. Do not describe
-covered graph obligation authority as zero-residue everywhere; describe it as
-closed for covered lanes with any remaining downstream residue named in an
-owner-tagged manifest with caps and removal triggers.
+Do not describe graph obligation authority as zero-residue outside its covered
+lanes. Any accepted downstream residue must remain named in an owner-tagged
+manifest with caps and removal triggers.
 
 Use bypass audit as the named proof job when checking for local graph walks,
 local validator tables, or other consumer-owned ceremony.
 
-The covered lane vocabulary must match the `Milestone 9.9 Graph Touch Obligation Authority Hostile Certification Matrix`: graph composition, authoritative command batch, scalar mutation, effect-triggered write intent, declaration entry, contribution orchestration, read family, live read, preview mutation, preview intent, branch intent, policy-aware graph mutation, primitive construction birth, worth-topo operator catalog, and worth-kernel phase chain.
+The covered lane vocabulary is: graph composition, authoritative command
+batch, scalar mutation, effect-triggered write intent, declaration entry,
+contribution orchestration, read family, live read, preview mutation, preview
+intent, branch intent, policy-aware graph mutation, primitive construction
+birth, worth-topo operator catalog, and worth-kernel phase chain.
 Canonical covered lane labels are `graph-composition`,
 `authoritative-command-batch`, `scalar-mutation`,
 `effect-triggered-write-intent`, `declaration-entry`,
@@ -566,13 +533,13 @@ Canonical covered lane labels are `graph-composition`,
 `worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
 
 The mistake to avoid is describing manual invariant packs as the primary
-covered graph obligation path. Manual invariant packs are compatibility/custom extension surfaces;
-registered graph obligations are the covered path.
+covered graph obligation path. Registered graph obligations are the ordinary
+path; manual packs are advanced custom-extension surfaces.
 
-Do not reduce this to "index reads for a DAG." Milestone 9.9 closes graph
-obligation authority. Milestone 9.10 is separate: graph read access planning,
-admitted access postures, typed required-capability or materialization
-postures, and receipt-backed no-N+1 proof.
+Do not reduce this to "index reads for a DAG." Graph obligation authority
+selects semantic checks. Graph read access planning separately owns admitted
+access postures, required-capability or materialization postures, and
+receipt-backed no-N+1 proof.
 
 Read next:
 
@@ -733,7 +700,7 @@ Read next:
 
 ## Scopes, Templates, View Shapes, And Saved Queries
 
-This category is Queryâ€™s productization layer for reusable query meaning:
+This category is Query’s productization layer for reusable query meaning:
 named scopes, parameterized templates, admitted view shapes, and frozen
 saved-query artifacts with explicit reuse posture.
 
@@ -792,7 +759,7 @@ preparation, continuation, inspection, and ordinary product work start inside
 Query instead of above it in local pseudo-Query layers.
 
 Configured domain handles are the typed operating world you get after entry.
-Platform entry is the broader â€œenter Query honestlyâ€ contract that those handles
+Platform entry is the broader “enter Query honestly” contract that those handles
 assume.
 
 Use this category when the product layer should treat Query as the daily-driver
@@ -818,13 +785,13 @@ Platform entry (see the section above) is the broader serious-downstream boundar
 configured handles are the concrete handle your app or domain crate holds day to
 day.
 
-Use this category when the question is â€œwhich admitted handle should this product
-layer hold for ordinary work?â€
+Use this category when the question is “which admitted handle should this product
+layer hold for ordinary work?”
 
 The mistake to avoid is expecting the handle alone to replace declarations,
 basis, orchestration, or recovery lanes.
 
-For runtime-backed read bring-up specifically, Query now also ships one simple
+For runtime-backed read bring-up specifically, Query provides one simple
 public bridge-backed bootstrap lane for obtaining a valid read runtime without
 custom minimal assembly folklore. Use that ordinary builder-owned path for
 hostile tests and downstream examples instead of rebuilding one-off bridge
@@ -848,7 +815,7 @@ contracts then describe what sort of thing the work is: relational,
 descriptive, grouped, signal-compatible, legality-constrained, route-sensitive,
 and so on.
 
-Use this category when the problem is â€œdefine the work honestly.â€ That means
+Use this category when the problem is “define the work honestly.” That means
 new request families, canonical identity, declaration family taxonomy, or any
 place where lower-runtime posture should be part of declared meaning rather than
 buried in local branching logic.
@@ -877,8 +844,8 @@ you a public lowering path from declaration work into route, receipt, and
 envelope truth. Receipts and envelopes retain what happened so later code does
 not need to reverse-engineer the path from side effects and logs.
 
-Use this category when the problem is â€œI have declaration-shaped work and need
-to know what Query can do with it now.â€ Use readiness for seam posture before
+Use this category when the problem is “I have declaration-shaped work and need
+to know what Query can do with it now.” Use readiness for seam posture before
 execution. Use orchestration when you want Query to lower the work through its
 public path. Use route/receipt/envelope artifacts when you need the result to
 stay structured and inspectable.
@@ -901,9 +868,9 @@ Ordinary outcomes are the compact public result vocabulary for binding,
 declaration-entry orchestration, continuation preparation, and signal-
 compatibility orchestration.
 
-They keep non-success categories distinctâ€”denied, refused, stale, rebind-
+They keep non-success categories distinct—denied, refused, stale, rebind-
 required, wrong-world, wrong-handle, basis mismatch, authority mismatch,
-unsupported, ambiguousâ€”without collapsing into one local `Result` or string.
+unsupported, ambiguous—without collapsing into one local `Result` or string.
 
 Use this category when you need one concise outcome value that still links back
 to the checked topology underneath, especially before handing a stop to recovery.
@@ -930,7 +897,7 @@ wrong-handle posture built into the public lane.
 
 Use this category when the next step starts from a retained route, receipt,
 envelope, continuation, or other artifact rather than from a fresh declaration.
-If your instinct is â€œI can probably infer the next input from this object,â€ that
+If your instinct is “I can probably infer the next input from this object,” that
 usually means you should look here first.
 
 The mistake to avoid is hidden dependency injection. Query wants reuse to stay
@@ -953,8 +920,14 @@ and returns self-describing envelopes. Read, mutate, replay, inspect, and
 materialize surfaces consume basis proofs rather than rediscovering authority
 from identifiers alone.
 
+Start at `worth_query::facade::foundation::basis_lifecycle()`. Declare the truth
+world, then call the operation you need, such as `observe()`,
+`prepare_mutation()`, `replay()`, `inspect()`, or `materialize()`. The result is
+the sealed scoped capability for that operation; consumer code does not
+assemble lifecycle phases itself.
+
 Use this category when the job depends on which truth world, preview world,
-historical world, or tenant/policy world a surface is allowed to useâ€”and what
+historical world, or tenant/policy world a surface is allowed to use—and what
 transition is legal next.
 
 The mistake to avoid is threading raw relational or bridge ids through product
@@ -990,11 +963,11 @@ Read next:
 `workspace.state(...)` answers typed readiness posture for a retained surface
 or public facade family: ready, pending, unsupported, or otherwise not in a
 normal ready lane. Inspection answers richer **per-target retained evidence**
-after work has run. Cross-runtime causal explanation is a separate laneâ€”see
+after work has run. Cross-runtime causal explanation is a separate lane—see
 [Cross-Runtime Causal Inspection](./capabilities/cross-runtime-causal-inspection.md).
 
 Declaration entry readiness is a third neighbor: it tells you whether a
-declaration seam is available before you orchestrate, not what a live handleâ€™s
+declaration seam is available before you orchestrate, not what a live handle’s
 runtime posture is right now.
 
 Use state when you need a digest-bound posture snapshot without full
@@ -1002,7 +975,7 @@ explanation. Use inspection when you need why. Use declaration readiness before
 you lower new declaration work.
 
 The mistake to avoid is guessing support from handle behavior, or using
-inspection when you only needed readinessâ€”or the reverse.
+inspection when you only needed readiness—or the reverse.
 
 Read next:
 
@@ -1015,11 +988,11 @@ Read next:
 
 This category is for paths that stopped or narrowed instead of simply
 continuing. For explanation **contributions** (domain declaration posture), see
-[Explanation Contributions](./domain-capabilities/explanation/lower-runtime-explanation-contributions.md)â€”not this section.
+[Explanation Contributions](./domain-capabilities/explanation/lower-runtime-explanation-contributions.md)—not this section.
 
 Query uses recovery surfaces so stop states do not collapse into one vague local
 error. Denied, deferred, stale, rebind-required, unsupported, and other stop
-classes are part of the runtimeâ€™s knowledge model. Recovery turns those stops
+classes are part of the runtime’s knowledge model. Recovery turns those stops
 into typed next-step posture instead of leaving them as comments, strings, or
 host-local exception handling.
 
@@ -1027,7 +1000,7 @@ Use this category when you need to explain why a path stopped, or when the next
 step is a repair action instead of a normal continuation.
 
 The mistake to avoid is inventing one local error family that erases the
-runtimeâ€™s distinctions.
+runtime’s distinctions.
 
 Read next:
 
@@ -1041,7 +1014,7 @@ Read next:
 This category exists because some operations are grouped by meaning, not by
 iteration convenience.
 
-Sometimes the correct abstraction is not â€œmany isolated declarations,â€ but one
+Sometimes the correct abstraction is not “many isolated declarations,” but one
 grouped or neighborhood-shaped operation whose members, outputs, contributions,
 and support posture belong together semantically. Query treats that as a real
 category instead of letting it dissolve into loops and caller-owned grouping
@@ -1077,12 +1050,12 @@ This category is proof-bearing from the start. The progression from request to
 eligibility to admitted contribution to materialization-ready contribution to
 canonical runtime materialization is a real typed lifecycle. On top of that,
 Query documents contribution lanes across admission, support/traceability,
-invariant/capability posture, workflow, continuity, aftermath, and explanationâ€”
+invariant/capability posture, workflow, continuity, aftermath, and explanation—
 **not every orchestration row is fully closed**; check per-lane support reports.
 
 Use this category when the domain needs to add semantic posture to Query-owned
-runtime truth. If the problem is â€œthe domain needs to say something important
-about runtime posture, but Query should still own the final artifact,â€ this is
+runtime truth. If the problem is “the domain needs to say something important
+about runtime posture, but Query should still own the final artifact,” this is
 where you start.
 
 The mistake to avoid is solving contribution problems by making canonical
@@ -1108,7 +1081,7 @@ stay explicit rather than becoming a silent escape hatch around basis, admission
 projection, effect, or inspection contracts.
 
 Use this category when work must touch lower runtimes and you need the honest
-Query-owned route rather than â€œimport bridge/relational/signal for speed.â€
+Query-owned route rather than “import bridge/relational/signal for speed.”
 
 The mistake to avoid is choosing a lower crate by convenience and bypassing
 basis, admission, and envelope contracts Query already owns publicly.
@@ -1128,7 +1101,7 @@ product with different meaning.
 
 Live maintenance must converge to the same result as re-executing the canonical
 one-shot query on the same basis, with suppression and invalidation explained in
-query termsâ€”not raw CDC events or host observer folklore.
+query terms—not raw CDC events or host observer folklore.
 
 Use this category when you need current rows or view-shaped records, query-
 shaped write patches, or a retained surface that computeds, effects, previews,
@@ -1154,6 +1127,14 @@ preview isolation, and family-aware delivery. Automatic family selection must
 remain bridge-honest and diagnostically sufficient rather than smuggling a fake
 default subscription kind.
 
+Subscription declaration consumes a
+`facade::foundation::ScopedSubscriptionDeclarationBasis`. Build the declaration
+through `LiveQueryAdmissionArtifact::from_live_promotion(...)`, select and admit
+the subscription family through `facade::runtime`, then call
+`prepare_subscription_activation(...)`. Activation derives its scoped
+activation proof from the admitted declaration basis; callers do not author a
+second basis posture or carry basis digests alongside the artifact.
+
 Use this category when work is long-lived observation: shared equivalent
 subscriptions, continuation after identity evolution, preview-scoped
 subscriptions, or understanding which bridge and signal strategies were selected.
@@ -1169,12 +1150,12 @@ Read next:
 
 ## Region-Scoped Live Invalidation And Stream Contracts
 
-When truth changes only touch a bounded region or partition of a queryâ€™s
+When truth changes only touch a bounded region or partition of a query’s
 declared scope, live maintenance should narrow to that region and emit delivery
 metadata that stays query-shaped.
 
 Change-stream-backed delivery contracts may lower where the bridge admits them,
-but the consumer contract remains query-shaped result maintenanceâ€”not raw
+but the consumer contract remains query-shaped result maintenance—not raw
 partition events or transport-local stream glue.
 
 Use this category for geometry-grade locality, integration feeds, or large
@@ -1204,10 +1185,9 @@ This section is the umbrella for everything else you declare or consume through
 The important mental model is retained handles and digest-bound evidence, not
 throwaway callbacks or host-local stores.
 
-That same category now includes the simple public bridge-backed read-runtime
-bootstrap closed in Milestone 9.5: hostile tests and downstream bring-up can
-obtain a valid raw read runtime through the ordinary Query builder-owned lane
-instead of inventing custom scaffolding first.
+The workspace also provides the public bridge-backed read-runtime bootstrap
+used by hostile tests and downstream bring-up. Obtain it through the ordinary
+Query builder-owned lane rather than custom runtime scaffolding.
 
 Use this category when you are operating inside the stabilized facade and need
 the overview of which workspace methods belong to which retained surface family.
@@ -1242,8 +1222,8 @@ directly from an effect callback.
 
 Read next:
 
-- [Effects](./execution/effects.md) â€” authoring and staging
-- [Authority-Scoped Effect Execution](./execution/authority-scoped-effect-execution.md) â€” lifecycle matrix
+- [Effects](./execution/effects.md) — authoring and staging
+- [Authority-Scoped Effect Execution](./execution/authority-scoped-effect-execution.md) — lifecycle matrix
 - [Intent Admission](./execution/intent-admission.md)
 
 ## Writes And Intent Boundaries
@@ -1251,11 +1231,11 @@ Read next:
 This category answers the question: how should truth change happen, and when
 does that change belong on a direct write path versus an intent path?
 
-Query is explicit here because runtime-heavy domains need more than â€œa mutation
-happened.â€ Direct writes are the stable everyday path when product code already
+Query is explicit here because runtime-heavy domains need more than “a mutation
+happened.” Direct writes are the stable everyday path when product code already
 knows the mutation to perform. Covered intent families exist too, but they
-belong on the admitted intent lattice instead of in a vague â€œeverything is an
-intent nowâ€ story.
+belong on the admitted intent lattice instead of in a vague “everything is an
+intent now” story.
 
 Write receipts are important in their own right. They preserve aspect
 operations, target evidence, existing-truth binding evidence, causality, batch
@@ -1267,10 +1247,9 @@ Use this category when you are performing authoritative mutation now, when you
 need graph-shaped same-batch authoring, when you need existing-truth binding or
 verification, or when you need covered mutation intent families.
 
-The mistake to avoid is teaching `workspace.write(...)` as the ordinary public
-mutation story. It exists as a lower-level seam, but the preferred public lane
-is the aspect-native mutation vocabulary plus the higher-level graph/existing-
-truth lanes when they are the honest fit.
+Use the aspect-native mutation vocabulary, explicit submission lane, or the
+higher-level graph and existing-truth lanes when they are the honest fit. Do
+not teach a direct workspace write or batch method as an alternate path.
 
 Read next:
 
@@ -1282,7 +1261,7 @@ Read next:
 ## Intent Admission Decision Lattice
 
 **Covered intent families** resolve through a structured admission decision
-lattice before construction, lowering, or covered executionâ€”not every public
+lattice before construction, lowering, or covered execution—not every public
 `Intent` export is admitted; check the matrix per family.
 
 Success, advisory, and violation outcomes carry decision traces and typed
@@ -1290,10 +1269,10 @@ context rather than collapsing into a binary wall. Covered families cross into
 real bridge-backed execution through typed admitted handoffs.
 
 Use this category when you need to know whether an intent may proceed, proceed
-with advisory posture, or stop with violation evidenceâ€”and what trace to
+with advisory posture, or stop with violation evidence—and what trace to
 preserve for inspection or recovery.
 
-The mistake to avoid is treating admission as â€œit returned Okâ€ or rebuilding
+The mistake to avoid is treating admission as “it returned Ok” or rebuilding
 admission logic locally after Query already classified the intent.
 
 Read next:
@@ -1331,7 +1310,7 @@ reactive execution.
 
 Its job is to make signal-facing posture explicit before execution and to
 provide a continuation pipeline instead of local callback folklore. Rather than
-assuming â€œreactive behavior exists somewhere below,â€ Query gives public,
+assuming “reactive behavior exists somewhere below,” Query gives public,
 retained artifacts that say whether a path is compatible, prepared, denied, or
 still stopped.
 
@@ -1340,7 +1319,7 @@ compatibility review, prepared continuation artifacts, or the next-step move
 from envelope truth into signal-facing execution.
 
 The mistake to avoid is treating signal compatibility as something the caller
-can safely infer from lower behavior without using Queryâ€™s public posture.
+can safely infer from lower behavior without using Query’s public posture.
 
 Read next:
 
@@ -1370,7 +1349,8 @@ There is also an important identity split inside this category:
 
 The first names the opened runtime session. The second names the retained
 preview foundation artifact used by workflow-capability binding. Treating them
-as interchangeable loses the exact distinction this milestone closed.
+as interchangeable loses the authority boundary between a runtime session and
+a retained workflow foundation artifact.
 
 Use this category when the job sounds like workflow declaration, preview-bound
 inspection, mutation lowering, merge analysis, or writeback planning.
@@ -1402,8 +1382,8 @@ Use this category when the feature needs invariants, relational truth, joins,
 capability-gap posture, or lower truth reasoning that should be visible in the
 public domain surface.
 
-The mistake to avoid is deciding â€œthis is about truth or invariants, so I
-should skip Query.â€ In this architecture, a major part of the point is that
+The mistake to avoid is deciding “this is about truth or invariants, so I
+should skip Query.” In this architecture, a major part of the point is that
 domains should not have to invent their own relational-entry folklore above the
 runtime.
 
@@ -1425,7 +1405,7 @@ categories above; this section is where you compose reads and graph work that
 should remain Query-owned rather than host-local.
 
 Use this category when you are building read bundles or graph-shaped authoring
-that must lower through Queryâ€™s canonical artifacts.
+that must lower through Query’s canonical artifacts.
 
 Graph-owned lookup is part of this authority boundary. If a Query-owned feature
 repeatedly needs to find nodes by canonical identity, resolve owner or placement
@@ -1437,9 +1417,9 @@ later index as a mere performance cleanup. In Query, the graph/index is part of
 the proof boundary, not just an optimization.
 
 The legality rules themselves are domain invariants, not consumer validation
-code. If your domain has structural authoring constraints â€” which owner kinds
+code. If your domain has structural authoring constraints — which owner kinds
 may contain which children, what may move or splice where, what may reference
-what â€” register them through the invariant registration lane and consume the
+what — register them through the invariant registration lane and consume the
 runtime's typed graph-composition domain-invariant denials. Do not build a
 host-local legality graph and pre-validate commands against it; that is the
 same folklore mistake as host-local traversal, applied to constraints instead
@@ -1519,15 +1499,21 @@ Read next:
 ## Cross-Runtime Causal Inspection
 
 This is the **`CausalInspection` lane** (`admit_causal_inspection`,
-`request_causal_inspection`) for cross-runtime causal explanationâ€”not
+`request_causal_inspection`) for cross-runtime causal explanation—not
 `workspace.inspect`, which is per-target retained evidence only.
 
 `CrossRuntimeCausalExplanation` at reference-only richness is **supported**;
 materialized detail is **advisory**. Durable causal archive and store-backed
 replay reconstruction are **deferred**.
 
-Use this category when the question is end-to-end â€œwhy across runtimes?â€â€”not
-â€œwhat does inspect retain for this handle?â€
+Construct `CausalInspection` from both the originating receipt and a
+`facade::foundation::ScopedInspectionBasis`. The receipt proves the event chain;
+the scoped basis proves which truth world may be inspected. Admission and
+materialization consume that combined artifact rather than recovering either
+authority from identifiers.
+
+Use this category when the question is end-to-end “why across runtimes?”—not
+“what does inspect retain for this handle?”
 
 The mistake to avoid is calling `workspace.inspect` cross-runtime causal inspection,
 or using explanation contributions instead of the causal inspection API.
@@ -1579,7 +1565,7 @@ Read next:
 ## Family Helpers And Declaration Progression
 
 Family helpers expose family-native ergonomics over the same canonical
-declaration, orchestration, binding, and recovery surfacesâ€”they are not a second
+declaration, orchestration, binding, and recovery surfaces—they are not a second
 execution engine.
 
 Declaration progression moves declaration work forward through typed phases
@@ -1650,8 +1636,8 @@ Use this category when the question is:
 - how does async posture survive materialization or downstream delivery?
 - what does replay, stale completion, or async-request drift look like?
 
-The mistake to avoid is assuming async support means â€œthere must be a
-`workspace.async(...)` API somewhere.â€ Query does not work that way. Async
+The mistake to avoid is assuming async support means “there must be a
+`workspace.async(...)` API somewhere.” Query does not work that way. Async
 meaning is part of existing declaration, live, inspection, projection, and
 continuation lanes.
 
@@ -1677,7 +1663,7 @@ Need platform entry or operating world:
 Need typed query read meaning:
 
 - use query expressions, validation, planning, collections, scopes/templates/view
-  shapes, and read compositionâ€”in that dependency order
+  shapes, and read composition—in that dependency order
 
 Need policy, tenant, or proof-gated access:
 
@@ -1904,4 +1890,3 @@ Use this decision order:
 If the current public lane cannot do the job honestly, do not invent a local
 runtime above the lower layers. Stop, read the owning docs, and choose the
 nearest honest public Query lane first.
-

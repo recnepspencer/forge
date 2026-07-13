@@ -223,7 +223,7 @@ advanced tooling.
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationInput,
@@ -332,7 +332,7 @@ outside while still lowering into canonical entries internally.
 Here is the smallest temporal example:
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationCanonicalEntry, WorthQueryDeclarationInput,
     WorthQueryTemporalDeclarationClause, WorthQueryTemporalDuration,
 };
@@ -369,7 +369,7 @@ different freshness limit or window width produces a different declaration.
 
 ```rust
 use worth_foundational::facade::CanonicalEquivalenceBasis;
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationCapabilityStatus, WorthQueryDeclarationFamilyMarker,

@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryBranchIntentReceiptInspection, WorthQueryEffectPolicy,
-    WorthQueryIntentSourceLane,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryBranchIntentReceiptInspection, WorthQueryEffectPolicy, WorthQueryIntentSourceLane};
 
 fn main() {
     let _worthd = WorthQueryBranchIntentReceiptInspection {

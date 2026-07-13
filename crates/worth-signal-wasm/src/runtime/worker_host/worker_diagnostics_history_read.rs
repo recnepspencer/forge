@@ -1,5 +1,5 @@
-use worth_signal::facade::diagnostics::GraphSummary;
 use serde::Serialize;
+use worth_signal::facade::diagnostics::GraphSummary;
 
 use crate::boundary::errors::WorthSignalJsError;
 use crate::runtime::summaries::ExecutionHistorySurfaceSummary;

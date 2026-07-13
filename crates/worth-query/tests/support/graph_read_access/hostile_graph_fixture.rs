@@ -135,6 +135,8 @@ fn user_id(prefix: &str, index: usize) -> String {
     format!("{prefix}-{index}")
 }
 
-fn authored_text(value: impl Into<String>) -> worth_query::facade::WorthQueryAuthoredAspectValue {
-    worth_query::facade::WorthQueryAuthoredAspectValue::string(value)
+fn authored_text(
+    value: impl Into<String>,
+) -> worth_query::facade::runtime::WorthQueryAuthoredAspectValue {
+    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(value)
 }

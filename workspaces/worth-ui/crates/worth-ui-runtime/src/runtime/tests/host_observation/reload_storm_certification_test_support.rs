@@ -1,7 +1,14 @@
-use worth_query::facade::{
-    discover_basis_lifecycle_support, BasisFamily, QuerySubscriptionFamily,
-    QuerySubscriptionSupportPosture, ResultShapeFamily, ViewShapeDescriptor,
-    WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
+use worth_query::facade::foundation::{
+    discover_basis_lifecycle_support,
+    BasisFamily,
+    ResultShapeFamily,
+    WorthQueryApplicationFacade,
+    WorthQueryCapabilityFamily,
+};
+use worth_query::facade::runtime::{
+    QuerySubscriptionFamily,
+    QuerySubscriptionSupportPosture,
+    ViewShapeDescriptor,
 };
 
 use super::replacement_impact_test_support::{
@@ -15,7 +22,10 @@ use crate::capability::{
     ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource,
     ThemeTokenValue, ViewBindingDescriptor, ViewBindingFamily, ViewBindingId,
 };
-use crate::facade::{WorthUi, WorthUiApp};
+use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatchedArtifactInput};
 use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
 

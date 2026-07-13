@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `WorthQueryGraphReadCostEstimateStatus: From<WorthQueryGraphReadCostEstimateStatusKind>` is not satisfied
- --> tests/ui/graph_read_access_cost/status_kind_upgrade_forbidden.rs:7:61
+ --> tests/ui/graph_read_access_cost/status_kind_upgrade_forbidden.rs:5:61
   |
-7 |         WorthQueryGraphReadCostEstimateStatusKind::Measured.into();
+5 |         WorthQueryGraphReadCostEstimateStatusKind::Measured.into();
   |                                                             ^^^^ the trait `From<WorthQueryGraphReadCostEstimateStatusKind>` is not implemented for `WorthQueryGraphReadCostEstimateStatus`
   |
   = note: required for `WorthQueryGraphReadCostEstimateStatusKind` to implement `Into<WorthQueryGraphReadCostEstimateStatus>`

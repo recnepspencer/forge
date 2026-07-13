@@ -1,4 +1,4 @@
-use worth_query::facade::ExecutionResultEnvelope;
+use worth_query::facade::foundation::ExecutionResultEnvelope;
 
 fn main() {
     let _ = ExecutionResultEnvelope {

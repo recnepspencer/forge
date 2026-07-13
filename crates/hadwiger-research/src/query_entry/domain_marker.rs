@@ -1,14 +1,14 @@
-use worth_query::facade::{WORTHQueryCapabilityFamily, WORTHQueryDomainEntryMarker};
+use worth_query::facade::foundation::{WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
 
-const HADWIGER_ENTRY_CAPABILITIES: &[WORTHQueryCapabilityFamily] = &[
-    WORTHQueryCapabilityFamily::QueryComposition,
-    WORTHQueryCapabilityFamily::WorkflowOrchestration,
+const HADWIGER_ENTRY_CAPABILITIES: &[WorthQueryCapabilityFamily] = &[
+    WorthQueryCapabilityFamily::QueryComposition,
+    WorthQueryCapabilityFamily::WorkflowOrchestration,
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HadwigerResearchDomainEntry;
 
-impl WORTHQueryDomainEntryMarker for HadwigerResearchDomainEntry {
+impl WorthQueryDomainEntryMarker for HadwigerResearchDomainEntry {
     fn domain_key(&self) -> &'static str {
         "WORTH.hadwiger.research"
     }
@@ -17,7 +17,7 @@ impl WORTHQueryDomainEntryMarker for HadwigerResearchDomainEntry {
         "HadwigerResearchDomainEntry"
     }
 
-    fn required_capability_families(&self) -> &'static [WORTHQueryCapabilityFamily] {
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
         HADWIGER_ENTRY_CAPABILITIES
     }
 }

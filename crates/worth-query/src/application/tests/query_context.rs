@@ -8,27 +8,19 @@ fn query_context_capability_binds_branch_and_diff_contexts_without_mode_flags() 
         .expect("runtime-backed facade should admit query context capability");
     let left_preflight = execution_preflights::direct_runtime_preflight();
     let right_preflight = execution_preflights::alternate_basis_runtime_preflight();
-    let left_binding = contexts
-        .capability()
-        .bind_basis_context(
-            QueryBasisContextRequest::current_branch_head(),
-            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
-        )
-        .expect("current branch context should bind");
-    let right_binding = contexts
-        .capability()
-        .bind_basis_context(
-            QueryBasisContextRequest::branch_head("branch:snapshot-2"),
-            QueryContextBindingSource::RuntimeBranch(&right_preflight),
-        )
-        .expect("branch context should bind");
     let left = contexts
         .capability()
-        .admit_basis_context(left_binding)
+        .admit_basis_context(
+            basis_lifecycle().current_head(),
+            QueryContextBindingSource::RuntimeCurrent(&left_preflight),
+        )
         .expect("current branch context should admit");
     let right = contexts
         .capability()
-        .admit_basis_context(right_binding)
+        .admit_basis_context(
+            basis_lifecycle().branch_head("branch:snapshot-2", true),
+            QueryContextBindingSource::RuntimeBranch(&right_preflight),
+        )
         .expect("branch context should admit");
     let diff = contexts
         .capability()

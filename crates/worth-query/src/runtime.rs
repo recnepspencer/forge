@@ -7,8 +7,7 @@ use crate::declarative_live::{
 };
 #[allow(unused_imports)]
 pub use crate::intent_admission::{
-    admit_runtime_intent_request, certify_intent_admission,
-    worth_query_intent_admission_certification_output_manifest,
+    certify_intent_admission, worth_query_intent_admission_certification_output_manifest,
     worth_query_intent_admission_closeout_extension_outputs,
     worth_query_intent_admission_compile_fail_targets,
     worth_query_intent_admission_coverage_inventory,
@@ -292,7 +291,6 @@ mod shared_read;
 mod shared_read_pins;
 mod state;
 mod state_basis;
-mod state_basis_classification;
 mod state_snapshot;
 mod support;
 mod support_matrix;
@@ -547,14 +545,15 @@ pub(crate) use graph_read_access::{
 pub use handle_contract::{
     WorthQueryHandleContract, WorthQueryHandleContractFamily, WorthQueryHandleContractRow,
 };
+pub(crate) use inspection::request_causal_inspection;
 pub use inspection::{
     admit_causal_inspection, anchor_causal_observation,
     build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
     causal_inspection_target, certify_causal_inspection_runtime_path,
     materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
-    materialize_denied_causal_inspection, request_causal_inspection,
-    resolve_causal_evidence_references, resolve_indexed_causal_evidence_references,
-    AdmittedCausalInspection, AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
+    materialize_denied_causal_inspection, resolve_causal_evidence_references,
+    resolve_indexed_causal_evidence_references, AdmittedCausalInspection,
+    AdmittedQueryCausalInspectionArtifact, AdvisoryCausalInspection,
     AdvisoryQueryCausalInspectionArtifact, CausalDecisionTraceIndex, CausalDecisionTraceRow,
     CausalEvidenceFamily, CausalEvidenceInventoryRow, CausalEvidenceOwner, CausalEvidenceReference,
     CausalEvidenceReferenceDigest, CausalEvidenceReferenceIndex, CausalEvidenceReferenceIndexError,
@@ -565,17 +564,17 @@ pub use inspection::{
     CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
     CausalInspectionAdmissionReceipt, CausalInspectionAdmissionSubject,
     CausalInspectionAdvisoryKind, CausalInspectionArtifactDecisionTrace,
-    CausalInspectionArtifactIntegrity, CausalInspectionArtifactKind, CausalInspectionBoundaryAudit,
-    CausalInspectionBoundaryEnvelopeCategory, CausalInspectionCertificationBundle,
-    CausalInspectionCertificationError, CausalInspectionCertificationErrorKind,
-    CausalInspectionCertificationFailureEvidence, CausalInspectionCertificationFailureKind,
-    CausalInspectionCertificationFailureSource, CausalInspectionCertificationLane,
-    CausalInspectionCertificationScope, CausalInspectionEstimatedCost,
-    CausalInspectionExplanationFamily, CausalInspectionMaterializationError,
-    CausalInspectionMaterializationErrorKind, CausalInspectionMaterializationPolicy,
-    CausalInspectionPerformanceCertificationBundle, CausalInspectionPerformanceEnvelope,
-    CausalInspectionPlan, CausalInspectionPlanError, CausalInspectionPlanErrorKind,
-    CausalInspectionPlanExplanation, CausalInspectionProofFlow,
+    CausalInspectionArtifactIntegrity, CausalInspectionArtifactKind, CausalInspectionBasisMismatch,
+    CausalInspectionBoundaryAudit, CausalInspectionBoundaryEnvelopeCategory,
+    CausalInspectionCertificationBundle, CausalInspectionCertificationError,
+    CausalInspectionCertificationErrorKind, CausalInspectionCertificationFailureEvidence,
+    CausalInspectionCertificationFailureKind, CausalInspectionCertificationFailureSource,
+    CausalInspectionCertificationLane, CausalInspectionCertificationScope,
+    CausalInspectionEstimatedCost, CausalInspectionExplanationFamily,
+    CausalInspectionMaterializationError, CausalInspectionMaterializationErrorKind,
+    CausalInspectionMaterializationPolicy, CausalInspectionPerformanceCertificationBundle,
+    CausalInspectionPerformanceEnvelope, CausalInspectionPlan, CausalInspectionPlanError,
+    CausalInspectionPlanErrorKind, CausalInspectionPlanExplanation, CausalInspectionProofFlow,
     CausalInspectionProofShapeCertification, CausalInspectionReason,
     CausalInspectionRedactionPolicy, CausalInspectionRepresentativeEvidence,
     CausalInspectionRepresentativeKind, CausalInspectionRepresentativeMatrix,

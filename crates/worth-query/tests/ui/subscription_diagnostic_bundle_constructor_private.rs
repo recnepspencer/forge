@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionAdmittedDiagnosticBundle, QuerySubscriptionDiagnosticCounters,
-    QuerySubscriptionDiagnosticSemanticLabels, QuerySubscriptionDiagnosticTrace,
-};
+use worth_query::facade::runtime::{QuerySubscriptionAdmittedDiagnosticBundle, QuerySubscriptionDiagnosticCounters, QuerySubscriptionDiagnosticSemanticLabels, QuerySubscriptionDiagnosticTrace};
 
 fn main() {
     let trace: QuerySubscriptionDiagnosticTrace = todo!();

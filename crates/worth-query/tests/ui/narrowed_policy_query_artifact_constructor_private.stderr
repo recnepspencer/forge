@@ -1,4 +1,4 @@
-error: cannot construct `worth_query::facade::NarrowedPolicyQueryArtifact` with struct literal syntax due to private fields
+error: cannot construct `worth_query::facade::policy::NarrowedPolicyQueryArtifact` with struct literal syntax due to private fields
  --> tests/ui/narrowed_policy_query_artifact_constructor_private.rs:4:21
   |
 4 |     let _artifact = NarrowedPolicyQueryArtifact {

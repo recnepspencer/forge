@@ -8,6 +8,7 @@ pub(in crate::harness::tests::pricing_shock) use crate::adapter::{
     TruthWritebackRequest,
 };
 pub(in crate::harness::tests::pricing_shock) use crate::error::BridgeDeliveryErrorKind;
+use crate::facade::runtime::BridgePreviewSessionIdentity;
 pub(in crate::harness::tests::pricing_shock) use crate::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeCommittedPatchEnvelope,
     BridgeCommittedPatchItem, BridgeDiagnosticsTier, BridgeExecutionPolicyClass,
@@ -15,8 +16,8 @@ pub(in crate::harness::tests::pricing_shock) use crate::facade::{
     BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
     BridgeMergeParentOrderProof, BridgeMergeStructuralAdvisoryDisposition, BridgePolicyDeclaration,
     BridgePolicyDeclarationIdentity, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayErrorKind,
-    BridgeRequestKind, BridgeRuntimePolicy, BridgeSignalBranchIdentity, BridgeSourceCapability,
+    BridgePreviewSessionDeclarationIdentity, BridgeReplayErrorKind, BridgeRequestKind,
+    BridgeRuntimePolicy, BridgeSignalBranchIdentity, BridgeSourceCapability,
     BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativeSessionRequest,
     BridgeStandardRouteError, BridgeSubscriptionReferenceWorkloadComponentIdSet,
@@ -48,13 +49,13 @@ pub(in crate::harness::tests::pricing_shock) use crate::source::{
     SourceDeclaration, SourceDeclarationIdentity,
 };
 pub(in crate::harness::tests::pricing_shock) use crate::speculation::BridgePreviewLifecycleStateKind;
+pub(in crate::harness::tests::pricing_shock) use std::collections::BTreeMap;
 pub(in crate::harness::tests::pricing_shock) use worth_foundational::facade::{
     AspectKey, AspectValue,
 };
 pub(in crate::harness::tests::pricing_shock) use worth_harness::facade::{
     ExecutionProfile, FeedStreamEventKind, FeedVolatilityRegime, ScenarioPlan,
 };
-pub(in crate::harness::tests::pricing_shock) use std::collections::BTreeMap;
 
 mod capture;
 mod historical_portfolio;

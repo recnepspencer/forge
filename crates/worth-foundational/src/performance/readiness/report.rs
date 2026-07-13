@@ -1,22 +1,22 @@
 use super::inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries,
-    documentation_surface_inventory, worth_proof_api_appendix, worth_proof_forbidden_surfaces,
-    worth_proof_required_surfaces, harness_expansion_points, phase_gates,
+    documentation_surface_inventory, harness_expansion_points, phase_gates,
     public_surface_compile_fail_path, public_surface_documentation_coverage,
     public_surface_evidence_path, public_surface_inventory, residual_debt,
     runtime_adoption_pressure_evidence, runtime_adoption_pressures, runtime_assumptions,
-    runtime_non_assumptions, synthetic_pressures,
+    runtime_non_assumptions, synthetic_pressures, worth_proof_api_appendix,
+    worth_proof_forbidden_surfaces, worth_proof_required_surfaces,
 };
 use super::vocabulary::{
     FoundationalPerformanceCertifiedSurface, FoundationalPerformanceCertifiedSurfaceEvidence,
-    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceWORTHProofApi,
-    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
-    FoundationalPerformanceHarnessExpansionPoint, FoundationalPerformancePhaseGateEvidence,
+    FoundationalPerformanceCompileFailBoundary, FoundationalPerformanceHarnessExpansionPoint,
+    FoundationalPerformancePhaseGateEvidence,
     FoundationalPerformancePublicSurfaceDocumentationCoverage, FoundationalPerformanceResidualDebt,
     FoundationalPerformanceRuntimeAdoptionPressure,
     FoundationalPerformanceRuntimeAdoptionPressureEvidence,
     FoundationalPerformanceRuntimeAssumption, FoundationalPerformanceRuntimeNonAssumption,
-    FoundationalPerformanceSyntheticRuntimePressure,
+    FoundationalPerformanceSyntheticRuntimePressure, FoundationalPerformanceWORTHProofApi,
+    FoundationalPerformanceWORTHProofForbiddenSurface, FoundationalPerformanceWORTHProofSurface,
 };
 use crate::performance_api::FoundationalPerformancePublicSurfaceEntry;
 

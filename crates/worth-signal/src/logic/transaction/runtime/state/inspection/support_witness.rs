@@ -1,5 +1,5 @@
-use worth_proof::TransitionOutcome;
 use serde::Serialize;
+use worth_proof::TransitionOutcome;
 
 use crate::diagnostics::replay::{ReplayEvent, ReplayEventDetail};
 use crate::logic::transaction::runtime::state::merge::{

@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryGraphCompositionDomainInvariantDenial;
+use worth_query::facade::runtime::WorthQueryGraphCompositionDomainInvariantDenial;
 
 fn main() {
     let _ = WorthQueryGraphCompositionDomainInvariantDenial {

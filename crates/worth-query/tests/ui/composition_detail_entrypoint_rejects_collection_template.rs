@@ -1,8 +1,4 @@
-use worth_query::facade::{
-    AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder,
-    CollectionResultShapeBuilder, GuidedCompositionPath, QueryTemplateDescriptor, RootEntityKey,
-    TemplateBindingSet,
-};
+use worth_query::facade::foundation::{AspectFieldSelector, AuthoredResultShapeField, CollectionQueryBuilder, CollectionResultShapeBuilder, GuidedCompositionPath, QueryTemplateDescriptor, RootEntityKey, TemplateBindingSet};
 
 fn main() {
     let query = CollectionQueryBuilder::new(RootEntityKey::new("user").unwrap())

@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    WorthQueryAuthorityLane, WorthQueryLiveSubscriptionInspectionCounters,
-    WorthQueryLiveViewInspection,
-};
+use worth_query::facade::runtime::{WorthQueryAuthorityLane, WorthQueryLiveSubscriptionInspectionCounters, WorthQueryLiveViewInspection};
 
 fn main() {
     let counters = WorthQueryLiveSubscriptionInspectionCounters {

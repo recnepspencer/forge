@@ -1,6 +1,6 @@
-use worth_signal::facade::ChangedRegion;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
+use worth_signal::facade::ChangedRegion;
 
 use crate::boundary::serde::{from_js, to_js};
 use crate::recipe::model::{

@@ -1,4 +1,4 @@
-use worth_query::facade::{
+use worth_query::facade::runtime::{
     WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport, WorthQueryRuntimeSupportProfile,
 };
 use worth_server::{
@@ -11,23 +11,23 @@ use worth_server::{
 
 #[path = "support/compat_http/phase_two_runtime.rs"]
 mod compat_http_phase_two_runtime;
-#[path = "support/worth_native/assertions.rs"]
-mod worth_native_assertions;
-#[path = "support/worth_native/runtime.rs"]
-mod worth_native_runtime;
 #[path = "support/query_handoff/fixture.rs"]
 mod query_handoff_fixture;
 #[path = "support/query_handoff/runtime.rs"]
 mod query_handoff_runtime;
+#[path = "support/worth_native/assertions.rs"]
+mod worth_native_assertions;
+#[path = "support/worth_native/runtime.rs"]
+mod worth_native_runtime;
 
 use compat_http_phase_two_runtime::{
     build_phase_two_server, compat_execution_input, worth_native_named_read,
 };
-use worth_native_runtime::server_with_request_context_default;
 use query_handoff_fixture::{
     admit_delivery_posture, admit_read_posture, request_input, resolve_request_context, test_server,
 };
 use query_handoff_runtime::ProfiledTestWorkspaceProvider;
+use worth_native_runtime::server_with_request_context_default;
 
 #[test]
 fn equivalent_operation_requests_lower_to_identical_plans() {

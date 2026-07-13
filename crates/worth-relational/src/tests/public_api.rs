@@ -1,6 +1,6 @@
 use crate::facade;
-use worth_foundational::facade::{AspectKey, AspectValue};
 use std::sync::OnceLock;
+use worth_foundational::facade::{AspectKey, AspectValue};
 
 fn public_api_projection_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();

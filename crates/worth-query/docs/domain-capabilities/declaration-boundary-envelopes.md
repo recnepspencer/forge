@@ -214,7 +214,7 @@ The common lane preserves the same structure. It still lowers through:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeInput,
 };
 
@@ -242,7 +242,7 @@ checked envelope boundary visible.
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationEnvelopeChecked, WorthQueryDeclarationEnvelopeInput,
     WorthQueryDeclarationFoundationalEvidenceInput, WorthQueryDeclarationRouteIntent,
     WorthQueryDeclarationReceiptInput, WorthQueryDeclarationRoutePlanInput,

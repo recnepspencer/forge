@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryEffectDelivery, WorthQueryEffectPayload};
+use worth_query::facade::runtime::{WorthQueryEffectDelivery, WorthQueryEffectPayload};
 
 fn payload_projection(payload: WorthQueryEffectPayload) {
     let _ = payload.terminal_json_projection();

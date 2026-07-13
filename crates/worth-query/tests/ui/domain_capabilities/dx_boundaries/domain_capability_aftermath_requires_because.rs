@@ -1,9 +1,5 @@
-use worth_query::facade::{
-    ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
-};
-use worth_query::facade::runtime::{
-    WorthQueryAdmittedPlanAftermathDraft, WorthQueryAdmittedPlanBoundContributionTarget,
-};
+use worth_query::facade::foundation::{ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource};
+use worth_query::facade::runtime::{WorthQueryAdmittedPlanAftermathDraft, WorthQueryAdmittedPlanBoundContributionTarget};
 
 fn main() {
     let _ = WorthQueryAdmittedPlanAftermathDraft {

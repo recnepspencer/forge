@@ -1,62 +1,62 @@
 error: cannot construct `WorthQueryRuntimeFamilySupport` with struct literal syntax due to private fields
-  --> tests/ui/runtime_family_support_constructor_private.rs:7:13
+  --> tests/ui/runtime_family_support_constructor_private.rs:4:13
    |
- 7 |     let _ = WorthQueryRuntimeFamilySupport {
+ 4 |     let _ = WorthQueryRuntimeFamilySupport {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         family: WorthQueryRuntimeFacadeFamily::Read,
+ 5 |         family: WorthQueryRuntimeFacadeFamily::Read,
    |         ------------------------------------------- private field
- 9 |         status: WorthQueryRuntimeFamilySupportStatus::Supported,
+ 6 |         status: WorthQueryRuntimeFamilySupportStatus::Supported,
    |         ------------------------------------------------------- private field
-10 |         authority_lanes: Vec::new(),
+ 7 |         authority_lanes: Vec::new(),
    |         --------------------------- private field
-11 |         effect_policies: Vec::new(),
+ 8 |         effect_policies: Vec::new(),
    |         --------------------------- private field
-12 |         evidence: Vec::new(),
+ 9 |         evidence: Vec::new(),
    |         -------------------- private field
-13 |         denial_reason: None,
+10 |         denial_reason: None,
    |         ------------------- private field
    |
    = note: ...and other private field `teaching_posture` that was not provided
 help: you might have meant to use an associated function to build this type
    |
- 7 -     let _ = WorthQueryRuntimeFamilySupport {
- 8 -         family: WorthQueryRuntimeFacadeFamily::Read,
- 9 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
-10 -         authority_lanes: Vec::new(),
-11 -         effect_policies: Vec::new(),
-12 -         evidence: Vec::new(),
-13 -         denial_reason: None,
-14 -     };
- 7 +     let _ = WorthQueryRuntimeFamilySupport::supported(_, _, _, _);
+ 4 -     let _ = WorthQueryRuntimeFamilySupport {
+ 5 -         family: WorthQueryRuntimeFacadeFamily::Read,
+ 6 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
+ 7 -         authority_lanes: Vec::new(),
+ 8 -         effect_policies: Vec::new(),
+ 9 -         evidence: Vec::new(),
+10 -         denial_reason: None,
+11 -     };
+ 4 +     let _ = WorthQueryRuntimeFamilySupport::supported(_, _, _, _);
    |
- 7 -     let _ = WorthQueryRuntimeFamilySupport {
- 8 -         family: WorthQueryRuntimeFacadeFamily::Read,
- 9 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
-10 -         authority_lanes: Vec::new(),
-11 -         effect_policies: Vec::new(),
-12 -         evidence: Vec::new(),
-13 -         denial_reason: None,
-14 -     };
- 7 +     let _ = WorthQueryRuntimeFamilySupport::supported_with_teaching_posture(_, _, _, _, _);
+ 4 -     let _ = WorthQueryRuntimeFamilySupport {
+ 5 -         family: WorthQueryRuntimeFacadeFamily::Read,
+ 6 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
+ 7 -         authority_lanes: Vec::new(),
+ 8 -         effect_policies: Vec::new(),
+ 9 -         evidence: Vec::new(),
+10 -         denial_reason: None,
+11 -     };
+ 4 +     let _ = WorthQueryRuntimeFamilySupport::supported_with_teaching_posture(_, _, _, _, _);
    |
- 7 -     let _ = WorthQueryRuntimeFamilySupport {
- 8 -         family: WorthQueryRuntimeFacadeFamily::Read,
- 9 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
-10 -         authority_lanes: Vec::new(),
-11 -         effect_policies: Vec::new(),
-12 -         evidence: Vec::new(),
-13 -         denial_reason: None,
-14 -     };
- 7 +     let _ = WorthQueryRuntimeFamilySupport::unsupported(_, _);
+ 4 -     let _ = WorthQueryRuntimeFamilySupport {
+ 5 -         family: WorthQueryRuntimeFacadeFamily::Read,
+ 6 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
+ 7 -         authority_lanes: Vec::new(),
+ 8 -         effect_policies: Vec::new(),
+ 9 -         evidence: Vec::new(),
+10 -         denial_reason: None,
+11 -     };
+ 4 +     let _ = WorthQueryRuntimeFamilySupport::unsupported(_, _);
    |
- 7 -     let _ = WorthQueryRuntimeFamilySupport {
- 8 -         family: WorthQueryRuntimeFacadeFamily::Read,
- 9 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
-10 -         authority_lanes: Vec::new(),
-11 -         effect_policies: Vec::new(),
-12 -         evidence: Vec::new(),
-13 -         denial_reason: None,
-14 -     };
- 7 +     let _ = WorthQueryRuntimeFamilySupport::unsupported_with_evidence(_, _, _);
+ 4 -     let _ = WorthQueryRuntimeFamilySupport {
+ 5 -         family: WorthQueryRuntimeFacadeFamily::Read,
+ 6 -         status: WorthQueryRuntimeFamilySupportStatus::Supported,
+ 7 -         authority_lanes: Vec::new(),
+ 8 -         effect_policies: Vec::new(),
+ 9 -         evidence: Vec::new(),
+10 -         denial_reason: None,
+11 -     };
+ 4 +     let _ = WorthQueryRuntimeFamilySupport::unsupported_with_evidence(_, _, _);
    |
    = and 1 other candidate

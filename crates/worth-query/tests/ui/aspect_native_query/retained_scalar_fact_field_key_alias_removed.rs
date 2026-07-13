@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryRetainedScalarFieldFact;
+use worth_query::facade::runtime::WorthQueryRetainedScalarFieldFact;
 
 fn main() {
     let fact: WorthQueryRetainedScalarFieldFact = unreachable!();

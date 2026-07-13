@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryRuntimeSupportProfile, WorthQueryWorkspace};
+use worth_query::facade::runtime::{WorthQueryRuntimeSupportProfile, WorthQueryWorkspace};
 use worth_server::{
     WorthServerQueryWorkspaceBindingError, WorthServerQueryWorkspaceBindingRequest,
     WorthServerQueryWorkspaceBindingTarget, WorthServerQueryWorkspaceProvider,

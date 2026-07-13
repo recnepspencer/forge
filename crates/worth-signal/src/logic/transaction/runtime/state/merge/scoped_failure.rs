@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use worth_foundational::facade::{
     FoundationalDeniedScopeLocus, FoundationalMergeAdmissionDenial,
     FoundationalMergeAdmissionOutcome, FoundationalMergeScope, FoundationalMergeScopeFamily,
@@ -5,7 +6,6 @@ use worth_foundational::facade::{
     FoundationalScopedMergeUnavailablePosture, FoundationalScopedMergeUnavailableReason,
 };
 use worth_proof::TransitionOutcome;
-use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;

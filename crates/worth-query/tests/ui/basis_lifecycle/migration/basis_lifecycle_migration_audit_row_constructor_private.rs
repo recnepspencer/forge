@@ -1,7 +1,4 @@
-use worth_query::facade::{
-    BasisLifecycleMigrationAuditRow, BasisLifecycleMigrationPosture,
-    BasisLifecycleMigrationSurface,
-};
+use worth_query::facade::certification::{BasisLifecycleMigrationAuditRow, BasisLifecycleMigrationPosture, BasisLifecycleMigrationSurface};
 
 fn main() {
     let _ = BasisLifecycleMigrationAuditRow {

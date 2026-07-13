@@ -1,7 +1,5 @@
-use worth_query::facade::{
-    AuthorizedProjectionArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome,
-    ProjectionFactConsumptionPathError, WorthQueryWriteReceipt,
-};
+use worth_query::facade::foundation::{AuthorizedProjectionArtifact, ProjectionAuthorityContract, ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError};
+use worth_query::facade::runtime::WorthQueryWriteReceipt;
 
 fn consume_authority(
     receipt: &WorthQueryWriteReceipt,

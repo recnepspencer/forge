@@ -1,4 +1,4 @@
-use worth_query::facade::QuerySubscriptionDeclarationArtifact;
+use worth_query::facade::runtime::QuerySubscriptionDeclarationArtifact;
 
 fn declaration_projection_golden_path(declaration: &QuerySubscriptionDeclarationArtifact) {
     let _ = declaration.declaration_projection().label();

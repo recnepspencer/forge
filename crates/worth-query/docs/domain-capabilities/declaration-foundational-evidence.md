@@ -202,7 +202,7 @@ That distinction matters in practice:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryDeclarationFoundationalEvidenceChecked,
     WorthQueryDeclarationFoundationalEvidenceInput,
 };
@@ -234,7 +234,7 @@ after your session already decided what that intent means.
 
 ```rust
 use worth_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily,
     WorthQueryConfigSectionFamily, WorthQueryDeclarationCanonicalEntry,
     WorthQueryDeclarationFamilyMarker, WorthQueryDeclarationFoundationalEvidenceClass,

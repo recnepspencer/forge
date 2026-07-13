@@ -149,7 +149,7 @@ const CROSSING_ROWS: &[WorthQueryLowerRuntimeCrossingRow] = &[
     WorthQueryLowerRuntimeCrossingRow::new(
         WorthQueryLowerRuntimeSeamKey::BasisReadmissionFromTruthViewEvidence,
         "Basis readmission from truth-view evidence",
-        "query_basis_lifecycle/binding.rs truth-view readmission",
+        "basis_lifecycle::readmit_lower_runtime_evidence truth-view readmission",
         WorthQueryLowerRuntimeCrossingClassification::CanonicalLowerRuntimeReuse,
         WorthQueryLowerRuntimeRouteKind::ReadmissionHandoff,
         WorthQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
@@ -159,7 +159,7 @@ const CROSSING_ROWS: &[WorthQueryLowerRuntimeCrossingRow] = &[
     WorthQueryLowerRuntimeCrossingRow::new(
         WorthQueryLowerRuntimeSeamKey::BasisReadmissionFromSubscriptionEvidence,
         "Basis readmission from subscription evidence",
-        "query_basis_lifecycle/binding.rs subscription declaration/activation readmission",
+        "basis_lifecycle::readmit_lower_runtime_evidence subscription declaration/activation readmission",
         WorthQueryLowerRuntimeCrossingClassification::CanonicalLowerRuntimeReuse,
         WorthQueryLowerRuntimeRouteKind::ReadmissionHandoff,
         WorthQueryLowerRuntimeAuthorityOwner::RuntimeBridge,

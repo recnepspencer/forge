@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryBackendAdmissibleMutation;
+use worth_query::facade::runtime::WorthQueryBackendAdmissibleMutation;
 
 fn main() {}
 

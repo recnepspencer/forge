@@ -13,7 +13,7 @@ use crate::intent_admission::{
     WorthQueryIntentAdmissionDecision, WorthQueryReadExecutionBinding,
     WorthQueryReadExecutionHandoff, WorthQueryReadExecutionIntentSeed,
 };
-use crate::query_context::AdmittedQueryBasisContext;
+use crate::query_context::ScopedQueryBasisContext;
 
 impl WorthQueryWorkspace {
     pub fn read_family_intent(
@@ -31,7 +31,7 @@ impl WorthQueryWorkspace {
     pub fn read_family_in_basis_context_intent(
         &mut self,
         family: &WorthQueryReadFamily,
-        context: &AdmittedQueryBasisContext,
+        context: &ScopedQueryBasisContext,
     ) -> crate::intent_admission::WorthQueryWorkspaceReadIntentAuthoring<'_> {
         crate::intent_admission::WorthQueryWorkspaceReadIntentAuthoring::new(
             self,
@@ -57,7 +57,7 @@ impl WorthQueryWorkspace {
     pub(crate) fn review_read_execution(
         &self,
         family: WorthQueryReadFamily,
-        basis_context: Option<AdmittedQueryBasisContext>,
+        basis_context: Option<ScopedQueryBasisContext>,
     ) -> Result<WorthQueryRuntimeIntentAdmissionReviewData, WorthQueryRuntimeError> {
         self.runtime
             .review_runtime_read_execution(family, basis_context)
@@ -115,7 +115,7 @@ impl WorthQueryRuntime {
     pub(crate) fn review_runtime_read_execution(
         &self,
         family: WorthQueryReadFamily,
-        basis_context: Option<AdmittedQueryBasisContext>,
+        basis_context: Option<ScopedQueryBasisContext>,
     ) -> Result<WorthQueryRuntimeIntentAdmissionReviewData, WorthQueryRuntimeError> {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Read)?;
         let request = match basis_context {

@@ -1,5 +1,8 @@
 use super::{S8CoverageBasisKind, S8MaterializationDenial, S8MaterializationStateClass};
-use crate::facade::{access_planning, layout_declarations};
+use crate::facade::{
+    access_planning,
+    layout_declarations,
+};
 use crate::key_domain::tests_support::{
     published_blob_evidence_bundle, published_blob_import_declaration,
 };

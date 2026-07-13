@@ -1,9 +1,4 @@
-use worth_query::facade::runtime::{
-    worth_query_domain_capability_certification_surface,
-    worth_query_domain_capability_compile_fail_boundaries,
-    worth_query_domain_capability_golden_transcripts,
-    worth_query_domain_capability_public_surface_inventory,
-};
+use worth_query::facade::certification::{worth_query_domain_capability_certification_surface, worth_query_domain_capability_compile_fail_boundaries, worth_query_domain_capability_golden_transcripts, worth_query_domain_capability_public_surface_inventory};
 
 fn certification_surface_readout() {
     let surface = worth_query_domain_capability_certification_surface();

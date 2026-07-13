@@ -1,4 +1,4 @@
-use worth_query::facade::effect_batch;
+use worth_query::facade::foundation::effect_batch;
 
 fn main() {
     let _ = effect_batch().lower();

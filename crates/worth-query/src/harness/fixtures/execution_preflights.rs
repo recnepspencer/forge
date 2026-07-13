@@ -1,7 +1,10 @@
-use crate::facade::{
+use crate::facade::foundation::{
+    preflight_execution_basis, CollectionResultFamily, ExecutionPreflightBundle,
+};
+use crate::facade::policy::{
     plan_validated_bundle, plan_validated_bundle_for_collection_family,
-    planning_request_context_for_direct, preflight_execution_basis, seed_execution_plan,
-    CollectionResultFamily, ExecutionPreflightBundle, FallbackDisposition, PlannedExecutionRoute,
+    planning_request_context_for_direct, seed_execution_plan, FallbackDisposition,
+    PlannedExecutionRoute,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::planning::{

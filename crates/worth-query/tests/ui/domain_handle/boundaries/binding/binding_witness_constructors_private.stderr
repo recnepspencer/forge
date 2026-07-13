@@ -1,33 +1,33 @@
 error[E0451]: fields `handle_identity_digest` and `operating_context_identity_digest` of struct `WorthQueryBindingAuthorityWitness` are private
- --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:8:9
+ --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:5:9
   |
-7 |     let _ = WorthQueryBindingAuthorityWitness {
+4 |     let _ = WorthQueryBindingAuthorityWitness {
   |             --------------------------------- in this type
-8 |         handle_identity_digest: String::from("handle"),
+5 |         handle_identity_digest: String::from("handle"),
   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-9 |         operating_context_identity_digest: String::from("world"),
+6 |         operating_context_identity_digest: String::from("world"),
   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 
 error[E0451]: field `basis_label` of struct `WorthQueryBindingBasisWitness` is private
-  --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:12:9
-   |
-11 |     let _ = WorthQueryBindingBasisWitness {
-   |             ----------------------------- in this type
-12 |         basis_label: "basis",
-   |         ^^^^^^^^^^^ private field
+ --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:9:9
+  |
+8 |     let _ = WorthQueryBindingBasisWitness {
+  |             ----------------------------- in this type
+9 |         basis_label: "basis",
+  |         ^^^^^^^^^^^ private field
 
 error[E0451]: field `binding_digests` of struct `WorthQueryBindingTargetWitnessSet` is private
-  --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:15:9
+  --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:12:9
    |
-14 |     let _ = WorthQueryBindingTargetWitnessSet {
+11 |     let _ = WorthQueryBindingTargetWitnessSet {
    |             --------------------------------- in this type
-15 |         binding_digests: vec![String::from("binding")],
+12 |         binding_digests: vec![String::from("binding")],
    |         ^^^^^^^^^^^^^^^ private field
 
 error[E0451]: field `family_key` of struct `WorthQueryBindingFamilyWitness` is private
-  --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:18:9
+  --> tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs:15:9
    |
-17 |     let _ = WorthQueryBindingFamilyWitness {
+14 |     let _ = WorthQueryBindingFamilyWitness {
    |             ------------------------------ in this type
-18 |         family_key: "family",
+15 |         family_key: "family",
    |         ^^^^^^^^^^ private field

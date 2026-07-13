@@ -1,4 +1,4 @@
-use worth_query::facade::WorthQueryIntentAdmissionTopologyAudit;
+use worth_query::facade::certification::WorthQueryIntentAdmissionTopologyAudit;
 
 fn main() {
     let _ = WorthQueryIntentAdmissionTopologyAudit {

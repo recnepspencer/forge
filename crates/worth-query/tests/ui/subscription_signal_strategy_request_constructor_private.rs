@@ -1,6 +1,4 @@
-use worth_query::facade::{
-    QuerySubscriptionSignalStrategyRequest, QuerySubscriptionSignalStrategyRequestKind,
-};
+use worth_query::facade::runtime::{QuerySubscriptionSignalStrategyRequest, QuerySubscriptionSignalStrategyRequestKind};
 
 fn main() {
     let _fabricated = QuerySubscriptionSignalStrategyRequest {

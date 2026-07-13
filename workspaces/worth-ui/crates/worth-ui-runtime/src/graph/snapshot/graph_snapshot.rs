@@ -207,7 +207,10 @@ mod tests {
         UiDeclaredPostureContract, UiDeclaredPostureLane, UiDeclaredPosturePayload,
         UiStructuralDeclarationPayload,
     };
-    use crate::facade::{WorthUi, WorthUiApp};
+    use crate::facade::{
+    WorthUi,
+    WorthUiApp,
+};
     use crate::graph::{
         UiGraphGeneration, UiGraphInstantiationPlan, UiGraphWorldDifferenceKind,
         UiGraphWorldProfile,

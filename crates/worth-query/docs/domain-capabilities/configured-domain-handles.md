@@ -453,7 +453,7 @@ Admission checks current support posture:
 ## Small Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
     WorthQueryDomainOperatingRequirement,
@@ -514,7 +514,7 @@ let handle = query
 ## Real Example
 
 ```rust
-use worth_query::facade::{
+use worth_query::facade::foundation::{
     WorthQueryApplicationFacade, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryConfiguredDomainHandleChecked, WorthQueryDomainEntryMarker,
     WorthQueryDomainOperatingContext, WorthQueryDomainOperatingRequirement,

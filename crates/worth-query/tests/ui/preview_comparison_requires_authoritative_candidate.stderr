@@ -1,11 +1,8 @@
 error[E0432]: unresolved imports `worth_query::facade::admit_preview_execution_comparison`, `worth_query::facade::PreviewExecutionComparisonAdmission`, `worth_query::facade::PreviewExecutionEnvelope`
- --> tests/ui/preview_comparison_requires_authoritative_candidate.rs:2:5
+ --> tests/ui/preview_comparison_requires_authoritative_candidate.rs:3:27
   |
-2 |     admit_preview_execution_comparison, ExecutionPreflightBundle, ExecutionResultEnvelope,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_preview_execution_comparison` in `facade`
-3 |     PreviewComparisonError, PreviewExecutionComparisonAdmission, PreviewExecutionEnvelope,
-  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
-  |                             |                                    |
-  |                             |                                    no `PreviewExecutionEnvelope` in `facade`
-  |                             |                                    help: a similar name exists in the module: `PreviewLiveExecutionEnvelope`
-  |                             no `PreviewExecutionComparisonAdmission` in `facade`
+3 | use worth_query::facade::{admit_preview_execution_comparison, PreviewExecutionComparisonAdmission, PreviewExecutionEnvelope};
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^ no `PreviewExecutionEnvelope` in `facade`
+  |                           |                                   |
+  |                           |                                   no `PreviewExecutionComparisonAdmission` in `facade`
+  |                           no `admit_preview_execution_comparison` in `facade`

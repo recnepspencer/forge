@@ -1,7 +1,9 @@
 use std::{fmt, sync::Mutex};
-use worth_query::facade::{
-    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError, WorthQueryLiveReadResult,
-    WorthQueryRuntimeError, WorthQueryRuntimePublicApiFamilyContract,
+use worth_query::facade::foundation::{
+    ProjectionAuthorityOutcome, ProjectionFactConsumptionPathError,
+};
+use worth_query::facade::runtime::{
+    WorthQueryLiveReadResult, WorthQueryRuntimeError, WorthQueryRuntimePublicApiFamilyContract,
     WorthQueryRuntimeStateSnapshot, WorthQueryUnifiedInspectionResult, WorthQueryWorkspace,
 };
 

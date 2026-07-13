@@ -1,31 +1,31 @@
 warning: unreachable expression
-  --> tests/ui/active_delivery_work_packet_raw_widths_forbidden.rs:11:9
-   |
-10 |         todo!(),
-   |         ------- any code following this expression is unreachable
-11 |         todo!(),
-   |         ^^^^^^^ unreachable expression
-   |
-   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
-   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
+ --> tests/ui/active_delivery_work_packet_raw_widths_forbidden.rs:8:9
+  |
+7 |         todo!(),
+  |         ------- any code following this expression is unreachable
+8 |         todo!(),
+  |         ^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: arguments to this function are incorrect
-  --> tests/ui/active_delivery_work_packet_raw_widths_forbidden.rs:8:5
+  --> tests/ui/active_delivery_work_packet_raw_widths_forbidden.rs:5:5
    |
- 8 |     build_active_delivery_work_packet(
+ 5 |     build_active_delivery_work_packet(
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ...
-14 |         1,
+11 |         1,
    |         - expected `ActiveDeliveryAffectedLaneWidth`, found integer
-15 |         1,
+12 |         1,
    |         - expected `ActiveDeliveryAffectedAttachmentWidth`, found integer
-16 |         1,
+13 |         1,
    |         - expected `PatchGroupWidth`, found integer
-17 |         0,
+14 |         0,
    |         - expected `ActiveDeliveryContinuationWidth`, found integer
-18 |         0,
+15 |         0,
    |         - expected `ActiveDeliveryPreviewResidueWidth`, found integer
-19 |         1,
+16 |         1,
    |         - expected `ActiveAllocationScopeWidth`, found integer
    |
 note: function defined here

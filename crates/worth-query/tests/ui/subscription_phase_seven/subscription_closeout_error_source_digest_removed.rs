@@ -1,4 +1,4 @@
-use worth_query::facade::SubscriptionLifecycleCloseError;
+use worth_query::facade::runtime::SubscriptionLifecycleCloseError;
 
 fn main() {
     let error: SubscriptionLifecycleCloseError = todo!();

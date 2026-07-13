@@ -1,4 +1,4 @@
-use worth_query::facade::{WorthQueryApplicationFacade, WorthQueryDomainEntrySupportSnapshot};
+use worth_query::facade::foundation::{WorthQueryApplicationFacade, WorthQueryDomainEntrySupportSnapshot};
 
 fn main() {
     let query = WorthQueryApplicationFacade::runtime_backed_default();
