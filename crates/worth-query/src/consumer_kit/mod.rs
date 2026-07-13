@@ -1,5 +1,6 @@
 pub(crate) mod boundary_audit;
 pub(crate) mod consumer_residue;
+pub(crate) mod declarative_surface;
 pub(crate) mod downstream_authority_adoption;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
@@ -33,6 +34,14 @@ pub use consumer_residue::{
     WorthQueryConsumerResidueFinding, WorthQueryConsumerResidueQueryOwnedRootAuthority,
     WorthQueryConsumerResidueRegistryRow, WorthQueryConsumerResidueReport,
     WorthQueryConsumerResidueSourceInventory, WorthQueryConsumerResidueSourceSite,
+};
+pub use declarative_surface::{
+    audit_declarative_surface_sources, current_declarative_surface_audit,
+    worth_query_declarative_surface_rows, WorthQueryDeclarativeCapabilityFamily,
+    WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
+    WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
+    WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,
+    WorthQueryDeclarativeSurfaceSource, WorthQueryDeclarativeSurfaceSourceSite,
 };
 pub use downstream_authority_adoption::{
     downstream_authority_adoption, WorthQueryDownstreamAuthorityAdoption,

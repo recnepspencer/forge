@@ -33,6 +33,14 @@ pub use crate::basis_lifecycle::{
     BasisLifecyclePublicBoundarySurface, BasisLifecycleReuseMatrix, BasisLifecycleReuseMatrixRow,
     BasisLifecycleReuseSurface, BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily,
 };
+pub use crate::consumer_kit::{
+    audit_declarative_surface_sources, current_declarative_surface_audit,
+    worth_query_declarative_surface_rows, WorthQueryDeclarativeCapabilityFamily,
+    WorthQueryDeclarativePhaseResponsibility, WorthQueryDeclarativeSurfaceAudit,
+    WorthQueryDeclarativeSurfaceClass, WorthQueryDeclarativeSurfaceFinding,
+    WorthQueryDeclarativeSurfaceFindingKind, WorthQueryDeclarativeSurfaceRow,
+    WorthQueryDeclarativeSurfaceSource, WorthQueryDeclarativeSurfaceSourceSite,
+};
 pub use crate::domain_capabilities::{
     certify_domain_capabilities, worth_query_domain_capability_certification_output_manifest,
     worth_query_domain_capability_certification_surface,

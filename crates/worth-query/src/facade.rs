@@ -6,6 +6,7 @@ mod exports_application;
 mod exports_certification;
 mod exports_foundation;
 mod exports_policy;
+mod exports_read;
 mod exports_runtime;
 mod exports_runtime_capabilities;
 mod exports_runtime_core;
@@ -124,6 +125,15 @@ pub mod foundation {
 
 pub mod policy {
     pub use super::exports_policy::*;
+}
+
+/// Declarative one-shot read capability.
+///
+/// Consumers author bounded read meaning and hand the resulting declaration to
+/// Query. Query owns admission, planning, execution routing, and receipt
+/// construction.
+pub mod read {
+    pub use super::exports_read::*;
 }
 
 pub mod runtime {
